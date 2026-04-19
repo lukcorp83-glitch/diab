@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href='data:application/manifest+json;utf8,{"name":"DiaControl Pro","short_name":"DiaControl","display":"standalone","start_url":".","background_color":"#020617","theme_color":"#0f172a"}'>
     
-    <title>DiaControl Pro v1.7.3</title>
+    <title>DiaControl Pro v1.7.4</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -87,8 +87,9 @@
             position: fixed; 
             bottom: 0; 
             left: 50%; transform: translateX(-50%); width: 100%; max-width: 448px;
-            padding-bottom: env(safe-area-inset-bottom);
-            min-height: 75px;
+            /* Zabezpieczenie paska systemowego przed ucinaniem menu - wymusza min. 16px marginesu na dole */
+            padding-bottom: max(env(safe-area-inset-bottom), 16px);
+            min-height: calc(75px + max(env(safe-area-inset-bottom), 16px));
             background: rgba(255, 255, 255, 0.98); 
             backdrop-filter: blur(15px);
             border-top: 1px solid #e2e8f0; 
@@ -189,7 +190,7 @@
             <div class="flex justify-between items-center mb-2">
                 <div>
                     <h1 class="text-lg font-extrabold tracking-tight">DiaControl</h1>
-                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v1.7.3 | System Update</p>
+                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v1.7.4 | System Update</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div id="cgm-indicator" class="hidden text-[8px] font-bold text-indigo-400 border border-indigo-400/30 px-1.5 py-0.5 rounded uppercase animate-pulse shadow-sm">Nightscout ON</div>
@@ -765,14 +766,16 @@
                 throw new Error("Brak klucza API Gemini. Wklej klucz w zmiennej apiKey na górze kodu.");
             }
 
-            // Gwarancja najnowszego stabilnego modelu (usunieto gemini-pro i usunięto flash-8b dla pewności)
-            const model = isCanvas ? "gemini-2.5-flash-preview-09-2025" : "gemini-1.5-flash";
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+            // Rozbudowana pętla awaryjna. Jeśli Google zablokuje jeden model, aplikacja przetestuje następne na liście.
+            const modelsToTry = isCanvas && !activeKey 
+                ? ["gemini-2.5-flash-preview-09-2025"] 
+                : ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"];
             
             let lastError = null;
-            const delays = [1000, 2000, 4000];
 
-            for (let i = 0; i < 3; i++) {
+            for (const model of modelsToTry) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+                
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
@@ -784,21 +787,21 @@
                         const err = await response.json().catch(() => ({}));
                         throw new Error(err.error?.message || `HTTP Status: ${response.status}`);
                     }
-                    return await response.json();
+                    return await response.json(); // Znaleziono działający model - zwracamy wynik!
                 } catch (error) {
                     lastError = error;
                     const msg = error.message.toLowerCase();
                     
-                    // Zły klucz API od razu wyrzuca błąd po polsku
+                    // Jeśli ewidentnie sam klucz jest błędny, natychmiast przerywamy i powiadamiamy użytkownika
                     if (msg.includes("api key not valid") || msg.includes("key is invalid") || msg.includes("api key not found")) {
                         throw new Error("Twój klucz API jest nieprawidłowy. Wygeneruj nowy w Google AI Studio.");
                     }
                     
-                    if (i === 2) break; 
-                    await new Promise(resolve => setTimeout(resolve, delays[i]));
+                    // Jeśli to tylko błąd "not found" (niedostępny model), pętla po cichu idzie dalej do kolejnego modelu na liście
+                    console.warn(`Model ${model} zablokowany: ${error.message}. Próbuję użyć kolejnego...`);
                 }
             }
-            throw new Error(`Błąd modelu AI: ${lastError.message}`);
+            throw new Error(`Klucz zadziałał, ale nie przyznano Ci dostępu do żadnego modelu AI. Ostatni błąd: ${lastError.message}`);
         }
 
         async function init() {
