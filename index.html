@@ -36,7 +36,7 @@
         });
     </script>
     
-    <title>GlikoControl v2.0.1</title>
+    <title>GlikoControl v2.0.2</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -69,6 +69,7 @@
             padding: 0;
             overflow-x: hidden;
             background-color: var(--bg-body); 
+            height: 100%;
         }
 
         body { 
@@ -77,15 +78,16 @@
             color: #1e293b; 
             min-height: 100dvh;
             transition: background-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
         }
         body.dark { color: #f8fafc; }
         
         #app { 
-            min-height: 100dvh;
+            flex: 1;
             width: 100%;
             display: flex; 
             flex-direction: column; 
-            transition: padding-bottom 0.3s ease, background-color 0.3s ease; 
         }
 
         .tab-content { display: none; flex-grow: 1; padding-bottom: 140px !important; }
@@ -210,7 +212,7 @@
             <div class="flex justify-between items-center mb-2">
                 <div>
                     <h1 class="text-lg font-extrabold tracking-tight">GlikoControl</h1>
-                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.1 | Kamień Milowy 2</p>
+                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.2 | Kamień Milowy 2</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div id="cgm-indicator" class="hidden text-[8px] font-bold text-indigo-400 border border-indigo-400/30 px-1.5 py-0.5 rounded uppercase animate-pulse shadow-sm">Nightscout ON</div>
@@ -436,7 +438,6 @@
                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Historia Raportów AI</h4>
                     <div id="ai-reports-history" class="space-y-2 text-left"></div>
                 </div>
-
                 <div class="h-28 shrink-0 w-full"></div>
             </div>
 
@@ -503,10 +504,10 @@
                     </div>
 
                     <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.1)</label>
-                        <button onclick="checkForUpdates()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors flex items-center justify-center gap-2">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.2)</label>
+                        <button onclick="window.location.reload(true)" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors flex items-center justify-center gap-2">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            Sprawdź aktualizacje
+                            Odśwież Aplikację
                         </button>
                     </div>
                 </div>
@@ -534,7 +535,7 @@
                 <span class="text-[7px] font-black uppercase tracking-widest leading-none">Raporty</span>
             </button>
             <button onclick="switchTab('profile')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 transition-all" data-tab="profile">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
                 <span class="text-[7px] font-black uppercase tracking-widest leading-none">Opcje</span>
             </button>
         </nav>
@@ -640,6 +641,9 @@
     </div>
 
     <script>
+        // ==============================================================
+        // 1. TUTAJ WPISZ ADRES SWOJEGO WORKERA Z CLOUDFLARE
+        // ==============================================================
         const CLOUDFLARE_WORKER_URL = "https://diacontrol-ai.pixelozapolska.workers.dev"; 
         
         const MY_FIREBASE_CONFIG = {
@@ -652,7 +656,7 @@
           measurementId: "G-L0XXFB95P4"
         };
 
-        const APP_VERSION = "2.0.1";
+        const APP_VERSION = "2.0.2";
         let targetMin = 70, targetMax = 140;
         
         const CATEGORIES = ["Owoce i Warzywa", "Zbożowe i Pieczywo", "Nabiał", "Mięso i Ryby", "Gotowe Posiłki", "Słodycze i Przekąski", "Inne"];
@@ -725,7 +729,7 @@
             { id: 'i5', name: "Oliwa z oliwek", carbs: 0, protein: 0, fat: 100, gi: 0, category: "Inne" }
         ];
 
-        let user = null, logs = [], plate = [], customLib = [], savedMeals = [], aiReports = [], onlineResults = [], shortcuts = [], db, auth, appId;
+        let user = null, logs = [], plate = [], customLib = [], savedMeals = [], onlineResults = [], shortcuts = [], aiReports = [], db, auth, appId;
         let isf = 58, wwRatio = 16, wbtRatio = 18;
         let html5QrcodeScanner = null;
         let currentTrend = 'stable';
@@ -819,6 +823,7 @@
             const isCanvas = window.location.href.includes('usercontent.goog') || window.location.protocol === 'blob:' || window.location.hostname === 'localhost';
             
             if (isCanvas) {
+                // Wbudowany ratunkowy tryb canvasa
                 const model = "gemini-2.5-flash-preview-09-2025";
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=`;
                 const response = await fetch(url, {
@@ -875,8 +880,7 @@
                 const dbSearchInput = document.getElementById('db-search-input');
                 if (dbSearchInput) dbSearchInput.addEventListener('input', (e) => renderDatabase(e.target.value));
 
-                const isCanvas = typeof __firebase_config !== 'undefined';
-                const cfg = isCanvas ? JSON.parse(__firebase_config) : MY_FIREBASE_CONFIG;
+                const cfg = MY_FIREBASE_CONFIG;
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'diacontrolapp';
                 
                 if (cfg && !firebase.apps.length) firebase.initializeApp(cfg);
@@ -911,7 +915,8 @@
                         }
                     });
 
-                    if (isCanvas && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    // Logowanie testowe w Canvas
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         auth.signInWithCustomToken(__initial_auth_token).catch(e => console.log(e));
                     }
 
@@ -949,9 +954,9 @@
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('logs').onSnapshot(s => {
                 logs = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => b.timestamp - a.timestamp);
                 renderDashboard(); renderChart(); updateIOBDisplay();
-            }, e => console.error("Data error:", e));
+            });
         }
-
+        
         function loadAiReports() {
             if (!user) return;
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('aiReports').onSnapshot(s => {
@@ -964,13 +969,13 @@
             if (!user) return;
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('customProducts').onSnapshot(s => {
                 customLib = s.docs.map(d => ({ id: d.id, ...d.data() })); renderDatabase(""); renderMealSearch("");
-            }, e => console.error("Library error:", e));
+            });
         }
         function loadMealSets() {
             if (!user) return;
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('savedMeals').onSnapshot(s => {
                 savedMeals = s.docs.map(d => ({ id: d.id, ...d.data() })); renderSavedMeals();
-            }, e => console.error("MealSets error:", e));
+            });
         }
 
         let isShortcutsLoaded = false;
@@ -986,7 +991,7 @@
                     renderShortcuts();
                     renderShortcutsModalList();
                 }
-            }, e => console.error("Shortcuts error:", e));
+            });
         }
 
         function renderShortcuts() {
@@ -1067,6 +1072,9 @@
                 const bbg = document.getElementById('bolus-bg');
                 if(bbg && bbg.value === '') bbg.value = lastG.value;
                 
+                const lut = document.getElementById('last-update-time');
+                if(lut) lut.innerText = new Date(lastG.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                
                 const gLogs = logs.filter(l => l.type === 'glucose');
                 if (gLogs.length >= 2) {
                     const diff = (parseFloat(gLogs[0].value) || 0) - (parseFloat(gLogs[1].value) || 0);
@@ -1141,16 +1149,19 @@
             
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            [start, start + day/4, start + day/2, start + day*0.75, now].forEach(time => {
-                const x = getX(time);
-                const d = new Date(time);
-                const timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                
+            [
+                { time: start, label: '-24h' },
+                { time: start + day/4, label: '-18h' },
+                { time: start + day/2, label: '-12h' },
+                { time: start + day*0.75, label: '-6h' },
+                { time: now, label: 'Teraz' }
+            ].forEach(point => {
+                const x = getX(point.time);
                 let align = 'center';
-                if (time === start) align = 'left';
-                if (time === now) align = 'right';
+                if (point.time === start) align = 'left';
+                if (point.time === now) align = 'right';
                 ctx.textAlign = align;
-                ctx.fillText(timeStr, x, H - padB + 4);
+                ctx.fillText(point.label, x, H - padB + 4);
                 
                 ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, H - padB); ctx.stroke();
             });
@@ -1321,16 +1332,19 @@
             const url = document.getElementById('ns-url').value.trim();
             if(!url) return;
             try {
-                const res = await fetch(url.replace(/\/$/, '') + '/api/v1/entries.json?count=1');
+                const count = lastNsTime === 0 ? 288 : 1;
+                const res = await fetch(url.replace(/\/$/, '') + `/api/v1/entries.json?count=${count}`);
                 const data = await res.json();
                 if(data && data.length > 0) {
-                    const entry = data[0];
-                    if(entry.date > lastNsTime) {
-                        lastNsTime = entry.date;
+                    const newEntries = data.filter(e => e.date > lastNsTime).sort((a,b) => a.date - b.date);
+                    if(newEntries.length > 0) {
+                        lastNsTime = newEntries[newEntries.length - 1].date;
                         if(user) {
-                            await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('logs').add({
-                                type: 'glucose', value: entry.sgv, timestamp: entry.date, description: 'Nightscout'
-                            });
+                            for (const entry of newEntries) {
+                                await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('logs').doc(entry.date.toString()).set({
+                                    type: 'glucose', value: entry.sgv, timestamp: entry.date, description: 'Nightscout'
+                                });
+                            }
                         }
                     }
                 }
