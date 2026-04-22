@@ -36,7 +36,7 @@
         });
     </script>
     
-    <title>GlikoControl v2.0.5</title>
+    <title>GlikoControl v2.0.6</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -212,7 +212,7 @@
             <div class="flex justify-between items-center mb-2">
                 <div>
                     <h1 class="text-lg font-extrabold tracking-tight">GlikoControl</h1>
-                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.5 | NS CORS Fix</p>
+                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.6 | Czysty Kod</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div id="cgm-indicator" class="hidden text-[8px] font-bold text-indigo-400 border border-indigo-400/30 px-1.5 py-0.5 rounded uppercase animate-pulse shadow-sm">Nightscout ON</div>
@@ -490,9 +490,23 @@
                     </div>
 
                     <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.5)</label>
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Adres Nightscout (URL)</label>
+                        <input type="url" id="ns-url" placeholder="https://moj-nightscout.herokuapp.com" class="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-xl font-bold text-xs outline-none border border-slate-200 dark:border-slate-700 dark:text-white focus-helper">
+                        <button onclick="toggleCGM()" id="cgm-btn" class="w-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors">Połącz z Nightscout</button>
+                    </div>
+
+                    <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Kontakt i Pomoc</label>
+                        <div class="w-full bg-slate-50 dark:bg-slate-900 rounded-xl p-4 flex items-center justify-between border border-slate-200 dark:border-slate-700">
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Wsparcie techniczne:</span>
+                            <a href="mailto:GlikoControl@proton.me" class="text-xs font-black text-indigo-600 dark:text-indigo-400">GlikoControl@proton.me</a>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.6)</label>
                         <button onclick="checkForUpdates()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors flex items-center justify-center gap-2">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21v-5h5"/></svg>
                             Sprawdź aktualizacje
                         </button>
                     </div>
@@ -540,7 +554,6 @@
             <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700">
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Dodaj nowy skrót</h3>
                 
-                <!-- Opcje wyboru emotek -->
                 <div class="flex gap-2 mb-3 overflow-x-auto pb-2 custom-scrollbar">
                     <button onclick="document.getElementById('sc-icon').value='🍎'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍎</button>
                     <button onclick="document.getElementById('sc-icon').value='🍌'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍌</button>
@@ -581,6 +594,7 @@
             <div id="reader" style="width: 100%; min-height: 250px;"></div>
         </div>
     </div>
+    
     <div id="glucose-modal" class="hidden fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
         <div class="bg-slate-50 dark:bg-darkcard w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-800">
             <div class="flex justify-between items-center mb-6">
@@ -598,6 +612,7 @@
             </div>
         </div>
     </div>
+    
     <div id="save-meal-modal" class="hidden fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
         <div class="bg-slate-50 dark:bg-darkcard w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-800">
             <div class="flex justify-between items-center mb-6">
@@ -610,6 +625,7 @@
             </div>
         </div>
     </div>
+    
     <div id="product-modal" class="hidden fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
         <div class="bg-white dark:bg-darkcard w-full max-w-md rounded-t-[3rem] p-8 shadow-2xl translate-y-full transition-transform duration-300 border-t border-slate-800" id="modal-sheet">
             <div class="flex justify-between items-start mb-6">
@@ -645,9 +661,6 @@
     </div>
 
     <script>
-        // ==============================================================
-        // 1. TUTAJ WPISZ ADRES SWOJEGO WORKERA Z CLOUDFLARE
-        // ==============================================================
         const CLOUDFLARE_WORKER_URL = "https://diacontrol-ai.pixelozapolska.workers.dev"; 
         
         const MY_FIREBASE_CONFIG = {
@@ -660,7 +673,7 @@
           measurementId: "G-L0XXFB95P4"
         };
 
-        const APP_VERSION = "2.0.5";
+        const APP_VERSION = "2.0.6";
         let targetMin = 70, targetMax = 140;
         
         const CATEGORIES = ["Owoce i Warzywa", "Zbożowe i Pieczywo", "Nabiał", "Mięso i Ryby", "Gotowe Posiłki", "Słodycze i Przekąski", "Inne"];
@@ -821,8 +834,8 @@
                 toast("Błąd logowania Google: " + e.message);
             }
         }
-        // -----------------------
 
+        // --- FETCH GEMINI ---
         async function fetchGeminiWithBackoff(payload) {
             const isCanvas = window.location.href.includes('usercontent.goog') || window.location.protocol === 'blob:' || window.location.hostname === 'localhost';
             
@@ -870,6 +883,18 @@
                 }
             }
             throw new Error(`Serwer Cloudflare zgłosił błąd: ${lastError.message}`);
+        }
+
+        // --- POMOCNICZA FUNKCJA OMIJAJĄCA BLOKADY CORS ---
+        async function fetchWithCORS(url) {
+            try {
+                const res = await fetch(url);
+                if(res.ok) return res;
+                throw new Error("HTTP Error " + res.status);
+            } catch (e) {
+                console.warn("Bezpośrednie połączenie zablokowane. Używam tunelu Proxy...");
+                return await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+            }
         }
 
         async function init() {
@@ -1075,9 +1100,6 @@
                 const bbg = document.getElementById('bolus-bg');
                 if(bbg && bbg.value === '') bbg.value = lastG.value;
                 
-                const lut = document.getElementById('last-update-time');
-                if(lut) lut.innerText = new Date(lastG.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                
                 const gLogs = logs.filter(l => l.type === 'glucose');
                 if (gLogs.length >= 2) {
                     const diff = (parseFloat(gLogs[0].value) || 0) - (parseFloat(gLogs[1].value) || 0);
@@ -1152,16 +1174,19 @@
             
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            [start, start + day/4, start + day/2, start + day*0.75, now].forEach(time => {
-                const x = getX(time);
-                const d = new Date(time);
-                const timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                
+            [
+                { time: start, label: '-24h' },
+                { time: start + day/4, label: '-18h' },
+                { time: start + day/2, label: '-12h' },
+                { time: start + day*0.75, label: '-6h' },
+                { time: now, label: 'Teraz' }
+            ].forEach(point => {
+                const x = getX(point.time);
                 let align = 'center';
-                if (time === start) align = 'left';
-                if (time === now) align = 'right';
+                if (point.time === start) align = 'left';
+                if (point.time === now) align = 'right';
                 ctx.textAlign = align;
-                ctx.fillText(timeStr, x, H - padB + 4);
+                ctx.fillText(point.label, x, H - padB + 4);
                 
                 ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, H - padB); ctx.stroke();
             });
@@ -1328,18 +1353,6 @@
             toast(`Dodano: ${name}`); switchTab('meal'); renderPlate();
         }
 
-        // --- POMOCNICZA FUNKCJA OMIJAJĄCA BLOKADY CORS ---
-        async function fetchWithCORS(url) {
-            try {
-                const res = await fetch(url);
-                if(res.ok) return res;
-                throw new Error("HTTP Error " + res.status);
-            } catch (e) {
-                console.warn("Bezpośrednie połączenie zablokowane. Używam tunelu Proxy...");
-                return await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
-            }
-        }
-
         async function fetchNightscout() {
             const url = document.getElementById('ns-url').value.trim();
             if(!url) return;
@@ -1347,7 +1360,6 @@
                 const count = lastNsTime === 0 ? 288 : 1;
                 const targetUrl = url.replace(/\/$/, '') + `/api/v1/entries.json?count=${count}`;
                 
-                // Używamy nowej funkcji z Proxy
                 const res = await fetchWithCORS(targetUrl);
                 const data = await res.json();
                 
@@ -1392,7 +1404,6 @@
                 if(!auto) toast("Sprawdzanie połączenia...");
 
                 try {
-                    // Walidacja połączenia przez Proxy
                     const targetUrl = url.replace(/\/$/, '') + '/api/v1/entries.json?count=1';
                     const testRes = await fetchWithCORS(targetUrl);
                     
