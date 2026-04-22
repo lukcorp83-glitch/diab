@@ -36,7 +36,7 @@
         });
     </script>
     
-    <title>GlikoControl v2.0.2</title>
+    <title>GlikoControl v2.0.3</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -212,7 +212,7 @@
             <div class="flex justify-between items-center mb-2">
                 <div>
                     <h1 class="text-lg font-extrabold tracking-tight">GlikoControl</h1>
-                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.2 | Kamień Milowy 2</p>
+                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.3 | Wykres & Nightscout Fix</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div id="cgm-indicator" class="hidden text-[8px] font-bold text-indigo-400 border border-indigo-400/30 px-1.5 py-0.5 rounded uppercase animate-pulse shadow-sm">Nightscout ON</div>
@@ -490,8 +490,8 @@
                     </div>
 
                     <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Adres Nightscout (URL)</label>
-                        <input type="url" id="ns-url" placeholder="https://moj-nightscout.herokuapp.com" class="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-xl font-bold text-xs outline-none border border-slate-200 dark:border-slate-700 dark:text-white focus-helper">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.3)</label>
+                        <button onclick="checkForUpdates()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors flex items-center justify-center gap-2">
                         <button onclick="toggleCGM()" id="cgm-btn" class="w-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors">Połącz z Nightscout</button>
                     </div>
 
@@ -656,7 +656,7 @@
           measurementId: "G-L0XXFB95P4"
         };
 
-        const APP_VERSION = "2.0.2";
+        const APP_VERSION = "2.0.3";
         let targetMin = 70, targetMax = 140;
         
         const CATEGORIES = ["Owoce i Warzywa", "Zbożowe i Pieczywo", "Nabiał", "Mięso i Ryby", "Gotowe Posiłki", "Słodycze i Przekąski", "Inne"];
@@ -1149,19 +1149,16 @@
             
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            [
-                { time: start, label: '-24h' },
-                { time: start + day/4, label: '-18h' },
-                { time: start + day/2, label: '-12h' },
-                { time: start + day*0.75, label: '-6h' },
-                { time: now, label: 'Teraz' }
-            ].forEach(point => {
-                const x = getX(point.time);
+            [start, start + day/4, start + day/2, start + day*0.75, now].forEach(time => {
+                const x = getX(time);
+                const d = new Date(time);
+                const timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+                
                 let align = 'center';
-                if (point.time === start) align = 'left';
-                if (point.time === now) align = 'right';
+                if (time === start) align = 'left';
+                if (time === now) align = 'right';
                 ctx.textAlign = align;
-                ctx.fillText(point.label, x, H - padB + 4);
+                ctx.fillText(timeStr, x, H - padB + 4);
                 
                 ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, H - padB); ctx.stroke();
             });
@@ -1336,19 +1333,26 @@
                 const res = await fetch(url.replace(/\/$/, '') + `/api/v1/entries.json?count=${count}`);
                 const data = await res.json();
                 if(data && data.length > 0) {
-                    const newEntries = data.filter(e => e.date > lastNsTime).sort((a,b) => a.date - b.date);
+                    const newEntries = data.filter(e => e.date > lastNsTime && e.sgv).sort((a,b) => a.date - b.date);
                     if(newEntries.length > 0) {
                         lastNsTime = newEntries[newEntries.length - 1].date;
                         if(user) {
-                            for (const entry of newEntries) {
-                                await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('logs').doc(entry.date.toString()).set({
-                                    type: 'glucose', value: entry.sgv, timestamp: entry.date, description: 'Nightscout'
+                            const batch = db.batch();
+                            newEntries.forEach(entry => {
+                                const docRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('logs').doc(entry.date.toString());
+                                batch.set(docRef, {
+                                    type: 'glucose', value: parseFloat(entry.sgv), timestamp: entry.date, description: 'Nightscout'
                                 });
-                            }
+                            });
+                            await batch.commit();
+                            toast(`Zsynchronizowano ${newEntries.length} pomiarów Nightscout.`);
                         }
                     }
                 }
-            } catch(e) { console.log("NS Error", e); }
+            } catch(e) { 
+                console.log("NS Error", e);
+                toast("Błąd łączenia z Nightscout. Sprawdź URL.");
+            }
         }
 
         function toggleCGM(auto = false) {
@@ -1374,10 +1378,12 @@
                     btn.classList.add('bg-green-500', 'text-white');
                 }
                 if (ind) ind.classList.remove('hidden');
+                
+                if(!auto) toast("Pobieranie danych z Nightscout...");
+                
                 fetchNightscout();
                 cgmInterval = setInterval(fetchNightscout, 5 * 60 * 1000);
                 if(!auto) {
-                    toast("Połączono z Nightscout.");
                     if(user) db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('cgm').set({ url: url });
                 }
             }
