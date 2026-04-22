@@ -36,7 +36,7 @@
         });
     </script>
     
-    <title>GlikoControl v1.8.5</title>
+    <title>GlikoControl v2.0.1</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -97,7 +97,7 @@
         .dark .btn-active svg { stroke: #818cf8 !important; }
         
         canvas#glucoseChart { 
-            width: 100% !important; height: 160px !important; border-radius: 1.5rem; 
+            width: 100% !important; height: 180px !important; border-radius: 1.5rem; 
             background: #ffffff; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
         }
         .dark canvas#glucoseChart { background: #0f172a; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5); border: 1px solid #1e293b;}
@@ -210,7 +210,7 @@
             <div class="flex justify-between items-center mb-2">
                 <div>
                     <h1 class="text-lg font-extrabold tracking-tight">GlikoControl</h1>
-                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v1.8.5 | SmartGuard</p>
+                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.1 | Kamień Milowy 2</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div id="cgm-indicator" class="hidden text-[8px] font-bold text-indigo-400 border border-indigo-400/30 px-1.5 py-0.5 rounded uppercase animate-pulse shadow-sm">Nightscout ON</div>
@@ -287,11 +287,11 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div class="space-y-1 text-center">
                                 <label class="text-[8px] font-black text-slate-400 uppercase">Cukier</label>
-                                <input type="number" id="bolus-bg" placeholder="mg/dL" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-indigo-500 transition-all">
+                                <input type="number" id="bolus-bg" placeholder="mg/dL" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-indigo-500 transition-all focus-helper p-3">
                             </div>
                             <div class="space-y-1 text-center">
                                 <label class="text-[8px] font-black text-slate-400 uppercase">Węgle (g)</label>
-                                <input type="number" id="bolus-carbs" placeholder="gramy" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-indigo-500 transition-all">
+                                <input type="number" id="bolus-carbs" placeholder="gramy" class="w-full bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-indigo-500 transition-all focus-helper p-3">
                             </div>
                         </div>
 
@@ -320,7 +320,7 @@
                         <div class="bg-slate-900 dark:bg-black rounded-[2rem] p-4 text-white text-center shadow-xl relative overflow-hidden result-box">
                             <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Sugerowana Dawka</span>
                             <div class="text-3xl font-black mt-2 text-indigo-400 flex justify-center items-baseline">
-                                <input type="number" id="final-dose-val" class="bg-transparent text-center outline-none w-24 border-b-2 border-indigo-500/50 focus:border-indigo-400 transition-colors" value="0.0" step="0.1">
+                                <input type="number" id="final-dose-val" class="bg-transparent text-center outline-none w-24 border-b-2 border-indigo-500/50 focus:border-indigo-400 focus-helper transition-colors" value="0.0" step="0.1">
                                 <span class="text-xl font-normal opacity-50 ml-1 uppercase">j.</span>
                             </div>
                         </div>
@@ -332,14 +332,14 @@
             <div id="tab-database" class="tab-content p-4 space-y-5">
                 <div class="bg-white dark:bg-darkcard p-5 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm transition-colors">
                     <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Dodaj własny produkt (w 100g)</h3>
-                    <input type="text" id="lib-name" placeholder="Nazwa produktu" class="w-full p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold outline-none border-none">
+                    <input type="text" id="lib-name" placeholder="Nazwa produktu" class="w-full p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold outline-none border-none focus-helper">
                     <div class="grid grid-cols-2 gap-3">
-                        <input type="number" id="lib-carbs" placeholder="Węgle (g)" class="p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold text-center outline-none">
-                        <input type="number" id="lib-gi" placeholder="Indeks (IG)" class="p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold text-center outline-none">
-                        <input type="number" id="lib-protein" placeholder="Białko (g)" class="p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold text-center outline-none">
-                        <input type="number" id="lib-fat" placeholder="Tłuszcz (g)" class="p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold text-center outline-none">
+                        <input type="number" id="lib-carbs" placeholder="Węgle (g)" class="p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold text-center outline-none focus-helper">
+                        <input type="number" id="lib-gi" placeholder="Indeks (IG)" class="p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold text-center outline-none focus-helper">
+                        <input type="number" id="lib-protein" placeholder="Białko (g)" class="p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold text-center outline-none focus-helper">
+                        <input type="number" id="lib-fat" placeholder="Tłuszcz (g)" class="p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold text-center outline-none focus-helper">
                     </div>
-                    <select id="lib-category" class="w-full p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold outline-none border-none">
+                    <select id="lib-category" class="w-full p-4 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl text-sm font-bold outline-none border-none focus-helper">
                         <option value="Inne">Inne / Ogólne</option>
                         <option value="Owoce i Warzywa">Owoce i Warzywa</option>
                         <option value="Zbożowe i Pieczywo">Zbożowe i Pieczywo</option>
@@ -351,7 +351,7 @@
                     <button onclick="addToLibrary()" class="w-full bg-slate-900 dark:bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-colors">Zapisz w bazie</button>
                 </div>
                 <div class="relative" id="db-search-container">
-                    <input type="text" id="db-search-input" oninput="renderDatabase(this.value)" placeholder="Szukaj lokalnie..." class="w-full p-4 bg-white dark:bg-darkcard dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
+                    <input type="text" id="db-search-input" oninput="renderDatabase(this.value)" placeholder="Szukaj lokalnie..." class="w-full p-4 bg-white dark:bg-darkcard dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-indigo-500 focus-helper transition-colors">
                 </div>
                 <div id="db-results" class="grid gap-2"></div>
                 <div class="h-28 shrink-0 w-full"></div>
@@ -376,13 +376,9 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3 pt-2">
-                        <button onclick="fetchMealBalancingAdvice()" id="meal-advice-btn" class="w-full bg-slate-800 dark:bg-slate-900 text-white py-3.5 rounded-2xl font-black text-[9px] uppercase active:scale-95">Analizuj AI</button>
-                        <button onclick="goToBolusWizard()" class="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-black text-[9px] uppercase active:scale-95 shadow-xl">Kalkulator</button>
+                        <button onclick="goToBolusWizard()" class="w-full col-span-2 bg-indigo-600 text-white py-3.5 rounded-2xl font-black text-[9px] uppercase active:scale-95 shadow-xl">Kalkulator Bolusa</button>
                     </div>
                     
-                    <div id="meal-advice-box" class="hidden bg-indigo-900/50 rounded-xl p-3 text-[9px] font-medium leading-relaxed border border-indigo-700/50">
-                        <div id="meal-advice-text">...</div>
-                    </div>
                 </div>
 
                 <div id="saved-meals-container" class="hidden space-y-3">
@@ -392,7 +388,7 @@
 
                 <div id="meal-search-container" class="flex gap-2 mb-4 relative bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md p-2 rounded-3xl z-20 shadow-sm border border-white dark:border-slate-700">
                     <div class="flex-grow relative">
-                        <input type="text" id="meal-search-input" oninput="renderMealSearch(this.value)" placeholder="Wybierz składniki..." class="w-full p-4 pl-4 pr-2 bg-white dark:bg-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="meal-search-input" oninput="renderMealSearch(this.value)" placeholder="Wybierz składniki..." class="w-full p-4 pl-4 pr-2 bg-white dark:bg-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-indigo-500 focus-helper">
                     </div>
                     <button onclick="startScanner()" class="bg-slate-800 dark:bg-slate-700 text-white px-3 py-2 rounded-2xl text-[10px] font-black uppercase shadow-sm shrink-0 flex items-center justify-center active:scale-95 transition-all">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v2"/><path d="M4 17v2"/><path d="M20 5v2"/><path d="M20 17v2"/><path d="M8 5h8"/><path d="M8 19h8"/><path d="M12 5v14"/><path d="M8 9v6"/><path d="M16 9v6"/></svg>
@@ -440,6 +436,7 @@
                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Historia Raportów AI</h4>
                     <div id="ai-reports-history" class="space-y-2 text-left"></div>
                 </div>
+
                 <div class="h-28 shrink-0 w-full"></div>
             </div>
 
@@ -458,15 +455,25 @@
                     <div class="grid grid-cols-3 gap-3">
                         <div class="space-y-1">
                             <label class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Wrażliwość</label>
-                            <input type="number" id="pref-isf" value="58" class="w-full p-3 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none border border-slate-100 dark:border-slate-700">
+                            <input type="number" id="pref-isf" value="58" class="w-full p-3 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none border border-slate-100 dark:border-slate-700 focus-helper">
                         </div>
                         <div class="space-y-1">
                             <label class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Ratio WW</label>
-                            <input type="number" id="pref-ww" value="16" class="w-full p-3 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none border border-slate-100 dark:border-slate-700">
+                            <input type="number" id="pref-ww" value="16" class="w-full p-3 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none border border-slate-100 dark:border-slate-700 focus-helper">
                         </div>
                         <div class="space-y-1">
                             <label class="text-[7px] font-black text-orange-400 uppercase tracking-widest">Ratio WBT</label>
-                            <input type="number" id="pref-wbt" value="18" class="w-full p-3 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none border border-slate-100 dark:border-slate-700">
+                            <input type="number" id="pref-wbt" value="18" class="w-full p-3 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none border border-slate-100 dark:border-slate-700 focus-helper">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mt-3 border-t border-slate-100 dark:border-slate-700 pt-4">
+                        <div class="space-y-1">
+                            <label class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Cel Min (mg/dL)</label>
+                            <input type="number" id="pref-target-min" value="70" class="w-full p-3 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none border border-slate-100 dark:border-slate-700 focus-helper">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Cel Max (mg/dL)</label>
+                            <input type="number" id="pref-target-max" value="140" class="w-full p-3 bg-slate-50 dark:bg-slate-800 dark:text-white rounded-2xl font-black text-center outline-none border border-slate-100 dark:border-slate-700 focus-helper">
                         </div>
                     </div>
                     
@@ -483,10 +490,10 @@
 
                     <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
                         <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Adres Nightscout (URL)</label>
-                        <input type="url" id="ns-url" placeholder="https://moj-nightscout.herokuapp.com" class="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-xl font-bold text-xs outline-none border border-slate-200 dark:border-slate-700 dark:text-white">
+                        <input type="url" id="ns-url" placeholder="https://moj-nightscout.herokuapp.com" class="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-xl font-bold text-xs outline-none border border-slate-200 dark:border-slate-700 dark:text-white focus-helper">
                         <button onclick="toggleCGM()" id="cgm-btn" class="w-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors">Połącz z Nightscout</button>
                     </div>
-                    
+
                     <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
                         <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Kontakt i Pomoc</label>
                         <div class="w-full bg-slate-50 dark:bg-slate-900 rounded-xl p-4 flex items-center justify-between border border-slate-200 dark:border-slate-700">
@@ -496,7 +503,7 @@
                     </div>
 
                     <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v1.8.5)</label>
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.1)</label>
                         <button onclick="checkForUpdates()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors flex items-center justify-center gap-2">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             Sprawdź aktualizacje
@@ -527,7 +534,7 @@
                 <span class="text-[7px] font-black uppercase tracking-widest leading-none">Raporty</span>
             </button>
             <button onclick="switchTab('profile')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 transition-all" data-tab="profile">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
                 <span class="text-[7px] font-black uppercase tracking-widest leading-none">Opcje</span>
             </button>
         </nav>
@@ -546,14 +553,14 @@
             <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700">
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Dodaj nowy skrót</h3>
                 <div class="grid grid-cols-4 gap-2 mb-2">
-                    <input type="text" id="sc-icon" placeholder="Ikona" value="🍎" class="col-span-1 p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-center text-xl outline-none">
-                    <input type="text" id="sc-name" placeholder="Nazwa" class="col-span-3 p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-sm font-bold outline-none">
+                    <input type="text" id="sc-icon" placeholder="Ikona" value="🍎" class="col-span-1 p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-center text-xl outline-none focus-helper">
+                    <input type="text" id="sc-name" placeholder="Nazwa" class="col-span-3 p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-sm font-bold outline-none focus-helper">
                 </div>
                 <div class="grid grid-cols-4 gap-2 mb-3">
-                    <input type="number" id="sc-carbs" placeholder="W (g)" class="p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-xs font-bold text-center outline-none">
-                    <input type="number" id="sc-protein" placeholder="B (g)" class="p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-xs font-bold text-center outline-none">
-                    <input type="number" id="sc-fat" placeholder="T (g)" class="p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-xs font-bold text-center outline-none">
-                    <input type="number" id="sc-gi" placeholder="IG" value="50" class="p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-xs font-bold text-center outline-none">
+                    <input type="number" id="sc-carbs" placeholder="W (g)" class="p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-xs font-bold text-center outline-none focus-helper">
+                    <input type="number" id="sc-protein" placeholder="B (g)" class="p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-xs font-bold text-center outline-none focus-helper">
+                    <input type="number" id="sc-fat" placeholder="T (g)" class="p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-xs font-bold text-center outline-none focus-helper">
+                    <input type="number" id="sc-gi" placeholder="IG" value="50" class="p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-xs font-bold text-center outline-none focus-helper">
                 </div>
                 <button onclick="addShortcut()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-all">Dodaj skrót</button>
             </div>
@@ -578,7 +585,7 @@
             <div class="space-y-6">
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-inner flex flex-col items-center justify-center">
                     <div class="flex items-baseline gap-2">
-                        <input type="number" id="quick-bg-input" placeholder="0" class="w-24 bg-transparent text-5xl font-black text-center outline-none dark:text-white">
+                        <input type="number" id="quick-bg-input" placeholder="0" class="w-24 bg-transparent text-5xl font-black text-center outline-none dark:text-white focus-helper">
                         <span class="text-slate-300 font-black text-xl">mg/dL</span>
                     </div>
                 </div>
@@ -593,7 +600,7 @@
                 <button onclick="closeSaveMealModal()" class="text-slate-300 p-2 text-xl font-bold">✕</button>
             </div>
             <div class="space-y-6">
-                <input type="text" id="meal-name-input" placeholder="Np. Śniadanie" class="w-full p-5 bg-white dark:bg-slate-800 dark:text-white rounded-3xl font-black text-center outline-none border border-slate-100 dark:border-slate-700">
+                <input type="text" id="meal-name-input" placeholder="Np. Śniadanie" class="w-full p-5 bg-white dark:bg-slate-800 dark:text-white rounded-3xl font-black text-center outline-none border border-slate-100 dark:border-slate-700 focus-helper">
                 <button onclick="saveMealSet()" class="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase active:scale-95 shadow-xl transition-all">Zapisz</button>
             </div>
         </div>
@@ -609,7 +616,7 @@
             </div>
             <div class="space-y-4">
                 <div class="bg-slate-50 dark:bg-slate-800 p-6 rounded-3xl flex items-center border border-slate-100 dark:border-slate-700 shadow-inner">
-                    <input type="number" id="m-weight" placeholder="0" class="flex-grow bg-transparent text-4xl font-black text-center outline-none dark:text-white">
+                    <input type="number" id="m-weight" placeholder="0" class="flex-grow bg-transparent text-4xl font-black text-center outline-none dark:text-white focus-helper">
                     <span class="text-slate-300 font-black text-xl ml-2">g</span>
                 </div>
                 
@@ -633,9 +640,6 @@
     </div>
 
     <script>
-        // ==============================================================
-        // 1. TUTAJ WPISZ ADRES SWOJEGO WORKERA Z CLOUDFLARE
-        // ==============================================================
         const CLOUDFLARE_WORKER_URL = "https://diacontrol-ai.pixelozapolska.workers.dev"; 
         
         const MY_FIREBASE_CONFIG = {
@@ -648,7 +652,9 @@
           measurementId: "G-L0XXFB95P4"
         };
 
-        const APP_VERSION = "1.8.5";
+        const APP_VERSION = "2.0.1";
+        let targetMin = 70, targetMax = 140;
+        
         const CATEGORIES = ["Owoce i Warzywa", "Zbożowe i Pieczywo", "Nabiał", "Mięso i Ryby", "Gotowe Posiłki", "Słodycze i Przekąski", "Inne"];
         
         const DEFAULT_SHORTCUTS = [
@@ -659,14 +665,19 @@
         ];
 
         const LIB_BASE = [
+            // Zbożowe
             { id: 'p1', name: "Ryż biały gotowany", carbs: 28, protein: 2.7, fat: 0.3, gi: 70, category: "Zbożowe i Pieczywo" },
             { id: 'p1_2', name: "Ryż brązowy gotowany", carbs: 23, protein: 2.6, fat: 0.9, gi: 50, category: "Zbożowe i Pieczywo" },
             { id: 'p3', name: "Chleb żytni pełnoziarnisty", carbs: 45, protein: 6, fat: 1.5, gi: 50, category: "Zbożowe i Pieczywo" },
+            { id: 'p3_0', name: "Chleb pszenny", carbs: 49, protein: 9, fat: 1.5, gi: 70, category: "Zbożowe i Pieczywo" },
             { id: 'p3_1', name: "Bułka pszenna (kajzerka)", carbs: 55, protein: 8, fat: 1.5, gi: 70, category: "Zbożowe i Pieczywo" },
             { id: 'p3_2', name: "Makaron pszenny (gotowany)", carbs: 25, protein: 3.5, fat: 0.5, gi: 55, category: "Zbożowe i Pieczywo" },
             { id: 'p3_3', name: "Kasza gryczana (gotowana)", carbs: 20, protein: 3, fat: 0.5, gi: 45, category: "Zbożowe i Pieczywo" },
             { id: 'p3_4', name: "Płatki owsiane", carbs: 60, protein: 12, fat: 7, gi: 40, category: "Zbożowe i Pieczywo" },
+            { id: 'p3_5', name: "Płatki kukurydziane", carbs: 84, protein: 8, fat: 1, gi: 81, category: "Zbożowe i Pieczywo" },
+            // Warzywa i Owoce
             { id: 'p2', name: "Ziemniaki gotowane", carbs: 17, protein: 1.9, fat: 0.1, gi: 70, category: "Owoce i Warzywa" },
+            { id: 'p2_1', name: "Ziemniaki pieczone", carbs: 21, protein: 2.5, fat: 0.2, gi: 85, category: "Owoce i Warzywa" },
             { id: 'p4', name: "Jabłko", carbs: 12, protein: 0.3, fat: 0.2, gi: 35, category: "Owoce i Warzywa" },
             { id: 'p5', name: "Banan", carbs: 22, protein: 1.1, fat: 0.3, gi: 60, category: "Owoce i Warzywa" },
             { id: 'p5_1', name: "Pomarańcza", carbs: 11, protein: 0.9, fat: 0.1, gi: 40, category: "Owoce i Warzywa" },
@@ -675,24 +686,46 @@
             { id: 'p5_4', name: "Marchew surowa", carbs: 10, protein: 1, fat: 0.2, gi: 16, category: "Owoce i Warzywa" },
             { id: 'p5_5', name: "Marchew gotowana", carbs: 10, protein: 1, fat: 0.2, gi: 40, category: "Owoce i Warzywa" },
             { id: 'p5_6', name: "Pomidor", carbs: 4, protein: 0.9, fat: 0.2, gi: 15, category: "Owoce i Warzywa" },
+            { id: 'p5_7', name: "Ogórek", carbs: 3, protein: 0.7, fat: 0.1, gi: 15, category: "Owoce i Warzywa" },
+            { id: 'p5_8', name: "Papryka czerwona", carbs: 6, protein: 1.3, fat: 0.5, gi: 15, category: "Owoce i Warzywa" },
+            { id: 'p5_9', name: "Cebula", carbs: 9, protein: 1.1, fat: 0.1, gi: 15, category: "Owoce i Warzywa" },
+            // Nabiał
             { id: 'n1', name: "Mleko 2%", carbs: 4.8, protein: 3.3, fat: 2.0, gi: 30, category: "Nabiał" },
+            { id: 'n1_1', name: "Mleko 3.2%", carbs: 4.8, protein: 3.3, fat: 3.2, gi: 30, category: "Nabiał" },
             { id: 'n2', name: "Jogurt naturalny", carbs: 6, protein: 4, fat: 2, gi: 35, category: "Nabiał" },
             { id: 'n3', name: "Ser żółty (Gouda)", carbs: 0, protein: 25, fat: 27, gi: 0, category: "Nabiał" },
             { id: 'n4', name: "Twaróg półtłusty", carbs: 3, protein: 16, fat: 4, gi: 30, category: "Nabiał" },
+            { id: 'n5', name: "Masło 82%", carbs: 0.7, protein: 0.7, fat: 82, gi: 0, category: "Nabiał" },
+            // Mięso i Ryby
             { id: 'm1', name: "Pierś z kurczaka (gotowana)", carbs: 0, protein: 21, fat: 1.5, gi: 0, category: "Mięso i Ryby" },
+            { id: 'm1_1', name: "Kotlet schabowy (panierowany)", carbs: 10, protein: 18, fat: 15, gi: 65, category: "Mięso i Ryby" },
             { id: 'm2', name: "Łosoś pieczony", carbs: 0, protein: 22, fat: 13, gi: 0, category: "Mięso i Ryby" },
             { id: 'm3', name: "Jajko gotowane", carbs: 0.5, protein: 13, fat: 11, gi: 0, category: "Mięso i Ryby" },
             { id: 'm4', name: "Kiełbasa Śląska", carbs: 1, protein: 14, fat: 25, gi: 0, category: "Mięso i Ryby" },
+            { id: 'm5', name: "Parówki wieprzowe", carbs: 3, protein: 12, fat: 25, gi: 0, category: "Mięso i Ryby" },
+            { id: 'm6', name: "Szynka z indyka", carbs: 1, protein: 18, fat: 2, gi: 0, category: "Mięso i Ryby" },
+            // Słodycze i Przekąski
             { id: 's1', name: "Czekolada mleczna", carbs: 57, protein: 6, fat: 30, gi: 45, category: "Słodycze i Przekąski" },
             { id: 's2', name: "Czekolada gorzka 70%", carbs: 46, protein: 7, fat: 34, gi: 25, category: "Słodycze i Przekąski" },
             { id: 's3', name: "Żelki (Haribo)", carbs: 77, protein: 6, fat: 0, gi: 70, category: "Słodycze i Przekąski" },
             { id: 's4', name: "Chipsy ziemniaczane", carbs: 50, protein: 6, fat: 35, gi: 70, category: "Słodycze i Przekąski" },
+            { id: 's5', name: "Cukier biały", carbs: 100, protein: 0, fat: 0, gi: 65, category: "Słodycze i Przekąski" },
+            { id: 's6', name: "Miód", carbs: 82, protein: 0.3, fat: 0, gi: 60, category: "Słodycze i Przekąski" },
+            { id: 's7', name: "Lody waniliowe", carbs: 24, protein: 4, fat: 11, gi: 60, category: "Słodycze i Przekąski" },
+            // Gotowe Posiłki
             { id: 'gp1', name: "Pizza Margherita", carbs: 30, protein: 11, fat: 10, gi: 70, category: "Gotowe Posiłki" },
             { id: 'gp2', name: "Frytki z piekarnika", carbs: 35, protein: 4, fat: 8, gi: 65, category: "Gotowe Posiłki" },
-            { id: 'gp3', name: "Burger klasyczny", carbs: 25, protein: 15, fat: 12, gi: 65, category: "Gotowe Posiłki" }
+            { id: 'gp3', name: "Burger klasyczny", carbs: 25, protein: 15, fat: 12, gi: 65, category: "Gotowe Posiłki" },
+            { id: 'gp4', name: "Kebab w cieście", carbs: 28, protein: 12, fat: 15, gi: 65, category: "Gotowe Posiłki" },
+            // Inne
+            { id: 'i1', name: "Sok jabłkowy (100%)", carbs: 11, protein: 0.1, fat: 0, gi: 40, category: "Inne" },
+            { id: 'i2', name: "Sok pomarańczowy (100%)", carbs: 10, protein: 0.7, fat: 0.2, gi: 50, category: "Inne" },
+            { id: 'i3', name: "Ketchup", carbs: 25, protein: 1, fat: 0, gi: 55, category: "Inne" },
+            { id: 'i4', name: "Majonez", carbs: 3, protein: 1, fat: 75, gi: 0, category: "Inne" },
+            { id: 'i5', name: "Oliwa z oliwek", carbs: 0, protein: 0, fat: 100, gi: 0, category: "Inne" }
         ];
 
-        let user = null, logs = [], plate = [], customLib = [], savedMeals = [], onlineResults = [], shortcuts = [], aiReports = [], db, auth, appId;
+        let user = null, logs = [], plate = [], customLib = [], savedMeals = [], aiReports = [], onlineResults = [], shortcuts = [], db, auth, appId;
         let isf = 58, wwRatio = 16, wbtRatio = 18;
         let html5QrcodeScanner = null;
         let currentTrend = 'stable';
@@ -732,7 +765,6 @@
                 toast("Zalogowano pomyślnie!");
             } catch(e) { 
                 toast("Błąd logowania. Sprawdź dane."); 
-                console.error(e);
             }
         }
 
@@ -746,7 +778,6 @@
                 toast("Konto zostało utworzone!");
             } catch(e) { 
                 toast("Błąd: " + e.message); 
-                console.error(e);
             }
         }
 
@@ -779,7 +810,6 @@
                 await auth.signInWithPopup(provider);
                 toast("Zalogowano przez Google!");
             } catch(e) {
-                console.error(e);
                 toast("Błąd logowania Google: " + e.message);
             }
         }
@@ -789,7 +819,6 @@
             const isCanvas = window.location.href.includes('usercontent.goog') || window.location.protocol === 'blob:' || window.location.hostname === 'localhost';
             
             if (isCanvas) {
-                // Wbudowany ratunkowy tryb canvasa
                 const model = "gemini-2.5-flash-preview-09-2025";
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=`;
                 const response = await fetch(url, {
@@ -800,7 +829,6 @@
                 return await response.json(); 
             }
 
-            // GŁÓWNA LOGIKA CLOUDFLARE WORKER DLA GITHUBA
             if (!CLOUDFLARE_WORKER_URL || CLOUDFLARE_WORKER_URL.includes("TUTAJ_WKLEJ")) {
                 throw new Error("Skonfiguruj Workera Cloudflare zgodnie z instrukcją i wklej jego adres na górze kodu!");
             }
@@ -847,8 +875,9 @@
                 const dbSearchInput = document.getElementById('db-search-input');
                 if (dbSearchInput) dbSearchInput.addEventListener('input', (e) => renderDatabase(e.target.value));
 
-                const cfg = MY_FIREBASE_CONFIG;
-                appId = 'diacontrolapp';
+                const isCanvas = typeof __firebase_config !== 'undefined';
+                const cfg = isCanvas ? JSON.parse(__firebase_config) : MY_FIREBASE_CONFIG;
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'diacontrolapp';
                 
                 if (cfg && !firebase.apps.length) firebase.initializeApp(cfg);
                 
@@ -882,8 +911,7 @@
                         }
                     });
 
-                    // Logowanie testowe w Canvas
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    if (isCanvas && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         auth.signInWithCustomToken(__initial_auth_token).catch(e => console.log(e));
                     }
 
@@ -921,7 +949,7 @@
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('logs').onSnapshot(s => {
                 logs = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => b.timestamp - a.timestamp);
                 renderDashboard(); renderChart(); updateIOBDisplay();
-            });
+            }, e => console.error("Data error:", e));
         }
 
         function loadAiReports() {
@@ -932,31 +960,17 @@
             });
         }
 
-        function renderAiReports() {
-            const hist = document.getElementById('ai-reports-history');
-            if(!hist) return;
-            if(!aiReports.length) { hist.innerHTML = "<p class='text-[10px] text-slate-400 italic text-center'>Brak zapisanych raportów.</p>"; return; }
-            hist.innerHTML = aiReports.slice(0, 10).map(r => `
-                <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-[9px] font-black uppercase text-indigo-500">${r.type}</span>
-                        <span class="text-[8px] font-bold text-slate-400">${new Date(r.timestamp).toLocaleDateString()} ${new Date(r.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
-                    </div>
-                    <div class="text-[10px] text-slate-600 dark:text-slate-300 line-clamp-3">${r.content}</div>
-                </div>`).join('');
-        }
-
         function loadLibrary() {
             if (!user) return;
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('customProducts').onSnapshot(s => {
                 customLib = s.docs.map(d => ({ id: d.id, ...d.data() })); renderDatabase(""); renderMealSearch("");
-            });
+            }, e => console.error("Library error:", e));
         }
         function loadMealSets() {
             if (!user) return;
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('savedMeals').onSnapshot(s => {
                 savedMeals = s.docs.map(d => ({ id: d.id, ...d.data() })); renderSavedMeals();
-            });
+            }, e => console.error("MealSets error:", e));
         }
 
         let isShortcutsLoaded = false;
@@ -972,7 +986,7 @@
                     renderShortcuts();
                     renderShortcutsModalList();
                 }
-            });
+            }, e => console.error("Shortcuts error:", e));
         }
 
         function renderShortcuts() {
@@ -1053,9 +1067,6 @@
                 const bbg = document.getElementById('bolus-bg');
                 if(bbg && bbg.value === '') bbg.value = lastG.value;
                 
-                const lut = document.getElementById('last-update-time');
-                if(lut) lut.innerText = new Date(lastG.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                
                 const gLogs = logs.filter(l => l.type === 'glucose');
                 if (gLogs.length >= 2) {
                     const diff = (parseFloat(gLogs[0].value) || 0) - (parseFloat(gLogs[1].value) || 0);
@@ -1088,43 +1099,107 @@
             const dataG = logs.filter(l => l.type === 'glucose' && l.timestamp >= start).sort((a,b) => a.timestamp - b.timestamp);
             const dataB = logs.filter(l => l.type === 'bolus' && l.timestamp >= start);
             const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start);
-            c.width = c.clientWidth * 2;
-            c.height = c.clientHeight * 2;
-            ctx.scale(2, 2); ctx.clearRect(0,0,300,160);
+            
+            const dpr = window.devicePixelRatio || 1;
+            c.width = c.clientWidth * dpr;
+            c.height = c.clientHeight * dpr;
+            ctx.scale(dpr, dpr);
+            
+            const W = c.clientWidth;
+            const H = c.clientHeight;
+            ctx.clearRect(0,0,W,H);
             
             const isDark = document.documentElement.classList.contains('dark');
-            const maxVal = Math.max(...dataG.map(l => parseFloat(l.value)), 180, 10);
-            const range = maxVal || 1, W = 270, H = 100, OX = 20, OY = 25;
-            ctx.fillStyle = isDark ? 'rgba(34, 197, 94, 0.1)' : 'rgba(16, 185, 129, 0.05)';
-            const y70 = H - ((70/range)*H) + OY, y140 = H - ((140/range)*H) + OY;
-            ctx.fillRect(OX, y140, W, y70 - y140);
+            const maxVal = Math.max(...dataG.map(l => parseFloat(l.value)), 200);
+            
+            const padL = 25; 
+            const padR = 10;
+            const padT = 10;
+            const padB = 20; 
+            
+            const chartW = W - padL - padR;
+            const chartH = H - padT - padB;
+            
+            ctx.fillStyle = isDark ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.1)';
+            const getY = (val) => H - padB - (val / maxVal) * chartH;
+            const getX = (time) => padL + ((time - start) / day) * chartW;
+            
+            ctx.fillRect(padL, getY(targetMax), chartW, getY(targetMin) - getY(targetMax));
+            
+            ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+            ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            ctx.lineWidth = 1;
+            ctx.font = '9px sans-serif';
+            
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            [targetMin, targetMax, maxVal].forEach(val => {
+                const y = getY(val);
+                ctx.fillText(Math.round(val), padL - 4, y);
+                ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+            });
+            
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            [start, start + day/4, start + day/2, start + day*0.75, now].forEach(time => {
+                const x = getX(time);
+                const d = new Date(time);
+                const timeStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+                
+                let align = 'center';
+                if (time === start) align = 'left';
+                if (time === now) align = 'right';
+                ctx.textAlign = align;
+                ctx.fillText(timeStr, x, H - padB + 4);
+                
+                ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, H - padB); ctx.stroke();
+            });
             
             window.chartHitboxes = [];
             
             dataB.forEach(b => {
-                const x = ((b.timestamp - start)/day)*W + OX;
+                const x = getX(b.timestamp);
                 const h = Math.min(40, (parseFloat(b.value) || 0) * 3);
-                ctx.fillStyle = 'rgba(79, 70, 229, 0.8)'; ctx.fillRect(x - 2, 145 - h, 4, h);
-                window.chartHitboxes.push({ type: 'bolus', x: x, y: 145 - h/2, data: b });
+                ctx.fillStyle = 'rgba(79, 70, 229, 0.8)'; 
+                ctx.fillRect(x - 2, H - padB - h, 4, h);
+                window.chartHitboxes.push({ type: 'bolus', x: x, y: H - padB - h/2, data: b });
             });
+            
             dataM.forEach(m => {
-                const x = ((m.timestamp - start)/day)*W + OX;
-                ctx.fillStyle = '#f59e0b'; ctx.font = '10px sans-serif'; ctx.fillText('🍴', x - 4, 150);
-                window.chartHitboxes.push({ type: 'meal', x: x, y: 150, data: m });
+                const x = getX(m.timestamp);
+                ctx.fillStyle = '#f59e0b'; ctx.font = '10px sans-serif'; 
+                ctx.textAlign = 'center';
+                ctx.fillText('🍴', x, H - padB - 5);
+                window.chartHitboxes.push({ type: 'meal', x: x, y: H - padB - 5, data: m });
             });
+            
             if(dataG.length > 0) {
                 ctx.beginPath();
-                ctx.strokeStyle = isDark ? '#60a5fa' : '#3b82f6'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+                ctx.strokeStyle = isDark ? '#60a5fa' : '#3b82f6'; 
+                ctx.lineWidth = 2.5; 
+                ctx.lineJoin = 'round';
+                
                 dataG.forEach((l, i) => {
-                    const x = ((l.timestamp - start)/day)*W + OX, y = H - ((parseFloat(l.value)/range)*H) + OY;
+                    const x = getX(l.timestamp);
+                    const y = getY(parseFloat(l.value));
                     if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
                 });
                 ctx.stroke();
+                
+                const dotRadius = dataG.length > 100 ? 1.5 : 3;
+                const strokeW = dataG.length > 100 ? 1 : 2;
+                
                 dataG.forEach(l => {
-                    const x = ((l.timestamp - start)/day)*W + OX, y = H - ((parseFloat(l.value)/range)*H) + OY;
-                    ctx.fillStyle = isDark ? '#0f172a' : '#fff'; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
-                    ctx.strokeStyle = isDark ? '#60a5fa' : '#3b82f6'; ctx.lineWidth = 2.5; 
-                    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.stroke();
+                    const x = getX(l.timestamp);
+                    const y = getY(parseFloat(l.value));
+                    
+                    ctx.fillStyle = isDark ? '#0f172a' : '#fff'; 
+                    ctx.beginPath(); ctx.arc(x, y, dotRadius, 0, Math.PI*2); ctx.fill();
+                    
+                    ctx.strokeStyle = isDark ? '#60a5fa' : '#3b82f6'; 
+                    ctx.lineWidth = strokeW; 
+                    ctx.beginPath(); ctx.arc(x, y, dotRadius, 0, Math.PI*2); ctx.stroke();
+                    
                     window.chartHitboxes.push({ type: 'glucose', x: x, y: y, data: l });
                 });
             }
@@ -1183,7 +1258,8 @@
                 if (bg < 70) timingText.innerHTML = "🔴 <b>HIPO!</b> Zjedz węgle. Nie podawaj bolusa!";
                 else if (bg <= 130) timingText.innerHTML = "🟢 <b>NORMA.</b> Bolus i posiłek za 5-10 min.";
                 else if (bg <= 180) timingText.innerHTML = "🟡 <b>WYSOKI.</b> Odczekaj ok. 15 min.";
-                else timingText.innerHTML = "🟠 <b>BARDZO WYSOKI!</b> Poczekaj z posiłkiem na niższy cukier i podaj tylko korektę.";
+                else if (bg <= 200) timingText.innerHTML = "🟠 <b>BARDZO WYSOKI!</b> Odczekaj min. 30 min.";
+                else timingText.innerHTML = "🔴 <b>KRYTYCZNY!</b> Podaj <u>tylko korektę</u> i poczekaj z posiłkiem na niższy cukier.";
             } else if (timingBox) {
                 timingBox.classList.add('hidden');
             }
@@ -1261,10 +1337,10 @@
             } catch(e) { console.log("NS Error", e); }
         }
 
-        function toggleCGM() {
+        function toggleCGM(auto = false) {
             const btn = document.getElementById('cgm-btn');
             const ind = document.getElementById('cgm-indicator');
-            if(isCgmActive) {
+            if(isCgmActive && !auto) {
                 isCgmActive = false;
                 clearInterval(cgmInterval);
                 if (btn) {
@@ -1276,7 +1352,7 @@
                 toast("Odłączono Nightscout.");
             } else {
                 const url = document.getElementById('ns-url').value;
-                if(!url) return toast("Wpisz adres Nightscout!");
+                if(!url) return !auto && toast("Wpisz adres Nightscout!");
                 isCgmActive = true;
                 if (btn) {
                     btn.innerText = "Rozłącz Nightscout";
@@ -1286,9 +1362,10 @@
                 if (ind) ind.classList.remove('hidden');
                 fetchNightscout();
                 cgmInterval = setInterval(fetchNightscout, 5 * 60 * 1000);
-                toast("Połączono z Nightscout.");
-                
-                if(user) db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('cgm').set({ url: url });
+                if(!auto) {
+                    toast("Połączono z Nightscout.");
+                    if(user) db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('cgm').set({ url: url });
+                }
             }
         }
 
@@ -1296,15 +1373,24 @@
             if(!user) return;
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('insulin').get().then(d => {
                 if(d.exists) { 
-                    isf = d.data().isf; wwRatio = d.data().wwRatio; wbtRatio = d.data().wbtRatio || 18;
+                    isf = d.data().isf || 58; 
+                    wwRatio = d.data().wwRatio || 16; 
+                    wbtRatio = d.data().wbtRatio || 18;
+                    targetMin = d.data().targetMin || 70;
+                    targetMax = d.data().targetMax || 140;
+                    
                     const prefIsf = document.getElementById('pref-isf');
                     if (prefIsf) prefIsf.value = isf;
                     const prefWw = document.getElementById('pref-ww');
                     if (prefWw) prefWw.value = wwRatio;
                     const prefWbt = document.getElementById('pref-wbt');
                     if (prefWbt) prefWbt.value = wbtRatio;
+                    const prefTargetMin = document.getElementById('pref-target-min');
+                    if (prefTargetMin) prefTargetMin.value = targetMin;
+                    const prefTargetMax = document.getElementById('pref-target-max');
+                    if (prefTargetMax) prefTargetMax.value = targetMax;
                 }
-            });
+            }).catch(e => console.error("Settings error:", e));
             db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('cgm').get().then(d => {
                 if(d.exists && d.data().url) {
                     const nsUrl = document.getElementById('ns-url');
@@ -1313,16 +1399,22 @@
                         if (!isCgmActive) toggleCGM(true); // Autostart
                     }
                 }
-            });
+            }).catch(e => console.error("CGM Settings error:", e));
         }
 
         function saveSettings() {
             if(!user) return toast("Zapis wymaga połączenia z bazą.");
             
-            isf = parseFloat(document.getElementById('pref-isf').value);
-            wwRatio = parseFloat(document.getElementById('pref-ww').value); 
-            wbtRatio = parseFloat(document.getElementById('pref-wbt').value);
-            db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('insulin').set({ isf, wwRatio, wbtRatio }).then(() => toast("Zapisano ustawienia."));
+            isf = parseFloat(document.getElementById('pref-isf').value) || 58;
+            wwRatio = parseFloat(document.getElementById('pref-ww').value) || 16; 
+            wbtRatio = parseFloat(document.getElementById('pref-wbt').value) || 18;
+            targetMin = parseFloat(document.getElementById('pref-target-min').value) || 70;
+            targetMax = parseFloat(document.getElementById('pref-target-max').value) || 140;
+            
+            db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('insulin').set({ isf, wwRatio, wbtRatio, targetMin, targetMax }).then(() => {
+                toast("Zapisano ustawienia.");
+                renderChart();
+            });
         }
 
         function addToLibrary() {
@@ -1641,6 +1733,29 @@
         window.addEventListener('focusin', (e) => { if (e.target.tagName === 'INPUT' && !e.target.classList.contains('focus-helper')) handleKeyboardVisibility(true, e.target); });
         window.addEventListener('focusout', (e) => { if (e.target.tagName === 'INPUT' && !e.target.classList.contains('focus-helper')) handleKeyboardVisibility(false); });
 
+        // --- NEW REPORT HISTORY LOGIC ---
+        function loadAiReports() {
+            if (!user) return;
+            db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('aiReports').onSnapshot(s => {
+                aiReports = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => b.timestamp - a.timestamp);
+                renderAiReports();
+            });
+        }
+
+        function renderAiReports() {
+            const hist = document.getElementById('ai-reports-history');
+            if(!hist) return;
+            if(!aiReports.length) { hist.innerHTML = "<p class='text-[10px] text-slate-400 italic text-center'>Brak zapisanych raportów.</p>"; return; }
+            hist.innerHTML = aiReports.slice(0, 10).map(r => `
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-black uppercase text-indigo-500">${r.type}</span>
+                        <span class="text-[8px] font-bold text-slate-400">${new Date(r.timestamp).toLocaleDateString()} ${new Date(r.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-600 dark:text-slate-300 line-clamp-3">${r.content}</div>
+                </div>`).join('');
+        }
+        
         async function fetchLivePrediction() { 
             const content = document.getElementById('ai-content');
             const resultBox = document.getElementById('ai-result'); 
@@ -1742,6 +1857,7 @@
             if (btn) btn.disabled = false;
         }
 
+        window.onload = init;
     </script>
 </body>
 </html>
