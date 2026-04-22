@@ -36,7 +36,7 @@
         });
     </script>
     
-    <title>GlikoControl v2.0.3</title>
+    <title>GlikoControl v2.0.4</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -212,7 +212,7 @@
             <div class="flex justify-between items-center mb-2">
                 <div>
                     <h1 class="text-lg font-extrabold tracking-tight">GlikoControl</h1>
-                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.3 | Wykres & Nightscout Fix</p>
+                    <p class="text-slate-500 text-[8px] font-bold uppercase tracking-widest opacity-80">v2.0.4 | NS UI Fix</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div id="cgm-indicator" class="hidden text-[8px] font-bold text-indigo-400 border border-indigo-400/30 px-1.5 py-0.5 rounded uppercase animate-pulse shadow-sm">Nightscout ON</div>
@@ -490,8 +490,8 @@
                     </div>
 
                     <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.3)</label>
-                        <button onclick="checkForUpdates()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors flex items-center justify-center gap-2">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Adres Nightscout (URL)</label>
+                        <input type="url" id="ns-url" placeholder="https://moj-nightscout.herokuapp.com" class="w-full p-3 bg-slate-50 dark:bg-slate-900 rounded-xl font-bold text-xs outline-none border border-slate-200 dark:border-slate-700 dark:text-white focus-helper">
                         <button onclick="toggleCGM()" id="cgm-btn" class="w-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors">Połącz z Nightscout</button>
                     </div>
 
@@ -504,10 +504,10 @@
                     </div>
 
                     <div class="space-y-2 mt-4 text-left border-t border-slate-100 dark:border-slate-700 pt-4">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.2)</label>
-                        <button onclick="window.location.reload(true)" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors flex items-center justify-center gap-2">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wersja Oprogramowania (v2.0.4)</label>
+                        <button onclick="checkForUpdates()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-colors flex items-center justify-center gap-2">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            Odśwież Aplikację
+                            Sprawdź aktualizacje
                         </button>
                     </div>
                 </div>
@@ -553,6 +553,24 @@
 
             <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700">
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Dodaj nowy skrót</h3>
+                
+                <!-- Opcje wyboru emotek -->
+                <div class="flex gap-2 mb-3 overflow-x-auto pb-2 custom-scrollbar">
+                    <button onclick="document.getElementById('sc-icon').value='🍎'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍎</button>
+                    <button onclick="document.getElementById('sc-icon').value='🍌'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍌</button>
+                    <button onclick="document.getElementById('sc-icon').value='🥪'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🥪</button>
+                    <button onclick="document.getElementById('sc-icon').value='🍕'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍕</button>
+                    <button onclick="document.getElementById('sc-icon').value='🍔'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍔</button>
+                    <button onclick="document.getElementById('sc-icon').value='☕'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">☕</button>
+                    <button onclick="document.getElementById('sc-icon').value='🧃'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🧃</button>
+                    <button onclick="document.getElementById('sc-icon').value='🍫'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍫</button>
+                    <button onclick="document.getElementById('sc-icon').value='🍬'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍬</button>
+                    <button onclick="document.getElementById('sc-icon').value='🥗'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🥗</button>
+                    <button onclick="document.getElementById('sc-icon').value='🍗'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍗</button>
+                    <button onclick="document.getElementById('sc-icon').value='🍚'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">🍚</button>
+                    <button onclick="document.getElementById('sc-icon').value='💉'" class="bg-white dark:bg-slate-900 p-2 rounded-xl text-xl shadow-sm active:scale-95 shrink-0 border border-slate-100 dark:border-slate-700">💉</button>
+                </div>
+
                 <div class="grid grid-cols-4 gap-2 mb-2">
                     <input type="text" id="sc-icon" placeholder="Ikona" value="🍎" class="col-span-1 p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-center text-xl outline-none focus-helper">
                     <input type="text" id="sc-name" placeholder="Nazwa" class="col-span-3 p-3 bg-white dark:bg-slate-900 dark:text-white rounded-xl text-sm font-bold outline-none focus-helper">
@@ -656,7 +674,7 @@
           measurementId: "G-L0XXFB95P4"
         };
 
-        const APP_VERSION = "2.0.3";
+        const APP_VERSION = "2.0.4";
         let targetMin = 70, targetMax = 140;
         
         const CATEGORIES = ["Owoce i Warzywa", "Zbożowe i Pieczywo", "Nabiał", "Mięso i Ryby", "Gotowe Posiłki", "Słodycze i Przekąski", "Inne"];
@@ -823,7 +841,6 @@
             const isCanvas = window.location.href.includes('usercontent.goog') || window.location.protocol === 'blob:' || window.location.hostname === 'localhost';
             
             if (isCanvas) {
-                // Wbudowany ratunkowy tryb canvasa
                 const model = "gemini-2.5-flash-preview-09-2025";
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=`;
                 const response = await fetch(url, {
@@ -880,7 +897,8 @@
                 const dbSearchInput = document.getElementById('db-search-input');
                 if (dbSearchInput) dbSearchInput.addEventListener('input', (e) => renderDatabase(e.target.value));
 
-                const cfg = MY_FIREBASE_CONFIG;
+                const isCanvas = typeof __firebase_config !== 'undefined';
+                const cfg = isCanvas ? JSON.parse(__firebase_config) : MY_FIREBASE_CONFIG;
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'diacontrolapp';
                 
                 if (cfg && !firebase.apps.length) firebase.initializeApp(cfg);
@@ -915,8 +933,7 @@
                         }
                     });
 
-                    // Logowanie testowe w Canvas
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    if (isCanvas && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         auth.signInWithCustomToken(__initial_auth_token).catch(e => console.log(e));
                     }
 
@@ -1345,17 +1362,15 @@
                                 });
                             });
                             await batch.commit();
-                            toast(`Zsynchronizowano ${newEntries.length} pomiarów Nightscout.`);
                         }
                     }
                 }
             } catch(e) { 
                 console.log("NS Error", e);
-                toast("Błąd łączenia z Nightscout. Sprawdź URL.");
             }
         }
 
-        function toggleCGM(auto = false) {
+        async function toggleCGM(auto = false) {
             const btn = document.getElementById('cgm-btn');
             const ind = document.getElementById('cgm-indicator');
             if(isCgmActive && !auto) {
@@ -1369,22 +1384,42 @@
                 if (ind) ind.classList.add('hidden');
                 toast("Odłączono Nightscout.");
             } else {
-                const url = document.getElementById('ns-url').value;
+                const url = document.getElementById('ns-url').value.trim();
                 if(!url) return !auto && toast("Wpisz adres Nightscout!");
-                isCgmActive = true;
-                if (btn) {
-                    btn.innerText = "Rozłącz Nightscout";
-                    btn.classList.remove('bg-slate-200', 'dark:bg-slate-700', 'text-slate-800', 'dark:text-white');
-                    btn.classList.add('bg-green-500', 'text-white');
-                }
-                if (ind) ind.classList.remove('hidden');
                 
-                if(!auto) toast("Pobieranie danych z Nightscout...");
-                
-                fetchNightscout();
-                cgmInterval = setInterval(fetchNightscout, 5 * 60 * 1000);
-                if(!auto) {
-                    if(user) db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('cgm').set({ url: url });
+                if(!auto) toast("Sprawdzanie połączenia...");
+
+                try {
+                    // Walidacja połączenia
+                    const testRes = await fetch(url.replace(/\/$/, '') + '/api/v1/entries.json?count=1');
+                    if (!testRes.ok) throw new Error("Błąd HTTP");
+                    const testData = await testRes.json();
+                    if (!Array.isArray(testData)) throw new Error("Błędny format danych");
+                    
+                    isCgmActive = true;
+                    if (btn) {
+                        btn.innerText = "Rozłącz Nightscout";
+                        btn.classList.remove('bg-slate-200', 'dark:bg-slate-700', 'text-slate-800', 'dark:text-white');
+                        btn.classList.add('bg-green-500', 'text-white');
+                    }
+                    if (ind) ind.classList.remove('hidden');
+                    
+                    fetchNightscout();
+                    cgmInterval = setInterval(fetchNightscout, 5 * 60 * 1000);
+                    if(!auto) {
+                        toast("Połączono pomyślnie z Nightscout!");
+                        if(user) db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('settings').doc('cgm').set({ url: url });
+                    }
+                } catch (e) {
+                    console.error("NS Validation Error:", e);
+                    if (!auto) toast("Błąd połączenia! Sprawdź poprawność adresu Nightscout.");
+                    isCgmActive = false;
+                    if (btn) {
+                        btn.innerText = "Połącz z Nightscout";
+                        btn.classList.remove('bg-green-500', 'text-white');
+                        btn.classList.add('bg-slate-200', 'dark:bg-slate-700', 'text-slate-800', 'dark:text-white');
+                    }
+                    if (ind) ind.classList.add('hidden');
                 }
             }
         }
