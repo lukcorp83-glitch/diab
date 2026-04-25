@@ -1,0 +1,6 @@
+{
+  "name": "GlikoControl",
+  "description": "Zaawansowany system wspomagania kontroli glikemii z integracją Nightscout i analizą AI Gemini.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": []
+}

@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "Log": {
+      "title": "Log Entry",
+      "description": "Glucose, meal, or insulin bolus record",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["glucose", "meal", "bolus"] },
+        "value": { "type": "number" },
+        "timestamp": { "type": "number" },
+        "description": { "type": "string" },
+        "carbs": { "type": "number" },
+        "insulin": { "type": "number" },
+        "protein": { "type": "number" },
+        "fat": { "type": "number" }
+      },
+      "required": ["type", "value", "timestamp"]
+    },
+    "AiReport": {
+      "title": "AI Analysis Report",
+      "description": "Generated analysis from Gemini",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["type", "content", "timestamp"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User specific settings",
+      "type": "object",
+      "properties": {
+        "targetMin": { "type": "number" },
+        "targetMax": { "type": "number" },
+        "tdi": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/artifacts/diacontrolapp/users/{userId}/logs/{logId}": {
+      "schema": "Log",
+      "description": "User activity logs"
+    },
+    "/artifacts/diacontrolapp/users/{userId}/aiReports/{reportId}": {
+      "schema": "AiReport",
+      "description": "Stored AI reports"
+    },
+    "/artifacts/diacontrolapp/users/{userId}/settings/profile": {
+      "schema": "UserProfile",
+      "description": "User profile settings"
+    }
+  }
+}
