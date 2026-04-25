@@ -1,7 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Używamy zmiennej środowiskowej (VITE_GEMINI_API_KEY w Cloudflare / .env)
-const apiKey = (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : import.meta.env.VITE_GEMINI_API_KEY) as string;
+let apiKey = "";
+try {
+  if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
+    apiKey = process.env.GEMINI_API_KEY;
+  } else if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_GEMINI_API_KEY) {
+    apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+  }
+} catch (e) {
+  // ignore
+}
+
 // Wyciszamy tymczasowo brak klucza by nie psuć buildu
 const genAI = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
