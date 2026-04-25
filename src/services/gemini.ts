@@ -1,51 +1,19 @@
-import { GoogleGenAI } from "@google/genai";
-
-let apiKey = "";
-try {
-  if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
-    apiKey = process.env.GEMINI_API_KEY;
-  } else if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_GEMINI_API_KEY) {
-    apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
-  }
-} catch (e) {
-  // ignore
-}
-
-// Wyciszamy tymczasowo brak klucza by nie psuć buildu
-const genAI = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
 export const geminiService = {
   async generateContent(prompt: string, imageData?: string) {
-    if (!genAI) throw new Error("Brak klucza VITE_GEMINI_API_KEY w konfiguracji.");
-    
     try {
-      const model = 'gemini-3-flash-preview';
-      let contents;
-      
-      if (imageData) {
-        contents = [
-          {
-            role: 'user',
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  data: imageData.split(',')[1] || imageData,
-                  mimeType: "image/jpeg"
-                }
-              }
-            ]
-          }
-        ];
-      } else {
-        contents = [{ role: 'user', parts: [{ text: prompt }] }];
-      }
-
-      const result = await genAI.models.generateContent({
-        model: model,
-        contents: contents
+      const response = await fetch('/api/ai-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, imageData })
       });
-      return result.text || "";
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server responded with ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.text || "";
     } catch (error) {
       console.error("Gemini API Error:", error);
       throw error;
