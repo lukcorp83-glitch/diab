@@ -108,8 +108,7 @@ async function startServer() {
     }
 
     try {
-      const genAI = new GoogleGenAI(apiKey);
-      const aiModel = genAI.getGenerativeModel({ model });
+      const genAI = new GoogleGenAI({ apiKey });
 
       let contents;
       if (imageData) {
@@ -138,9 +137,11 @@ async function startServer() {
         ];
       }
 
-      const result = await aiModel.generateContent({ contents });
-      const response = await result.response;
-      const text = response.text();
+      const result = await genAI.models.generateContent({
+        model: model,
+        contents: contents
+      });
+      const text = result.text;
       
       res.json({ text });
     } catch (error) {
