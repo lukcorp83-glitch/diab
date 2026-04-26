@@ -1,10 +1,10 @@
 {
-  "projectId": "gen-lang-client-0311617840",
-  "appId": "1:139335848088:web:c1d515787088154e8f00ed",
-  "apiKey": "AIzaSyD8kh-xB1qUSoiOzy626YNJpctnwSDXlZ8",
-  "authDomain": "gen-lang-client-0311617840.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-dd0fa890-2d3a-43c6-af4b-009b73966be8",
-  "storageBucket": "gen-lang-client-0311617840.firebasestorage.app",
-  "messagingSenderId": "139335848088",
-  "measurementId": ""
+  "apiKey": "AIzaSyDYYDnRl9zIZmCySB6lk0yQweY6uosWuD4",
+  "authDomain": "diacontrolapp.firebaseapp.com",
+  "databaseURL": "https://diacontrolapp-default-rtdb.europe-west1.firebasedatabase.app",
+  "projectId": "diacontrolapp",
+  "storageBucket": "diacontrolapp.firebasestorage.app",
+  "messagingSenderId": "259157952763",
+  "appId": "1:259157952763:web:4ef74475f9042575ad885e",
+  "measurementId": "G-L0XXFB95P4"
 }
