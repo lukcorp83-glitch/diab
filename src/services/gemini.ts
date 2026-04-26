@@ -2,18 +2,23 @@ import { GoogleGenAI } from "@google/genai";
 
 let genAI: GoogleGenAI | null = null;
 
-function getApiKey(): string | null {
-  // First check localStorage
-  let key = localStorage.getItem('gemini_api_key');
-  if (key) return key;
+function getApiKey(): { key: string, baseUrl?: string } {
+  // First check env variables (Vite build)
+  let key = import.meta.env.VITE_GEMINI_API_KEY;
+  let baseUrl = import.meta.env.VITE_GEMINI_BASE_URL;
 
-  // Then check env variables (Vite build)
-  try {
-    if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_GEMINI_API_KEY) {
-      key = (import.meta as any).env.VITE_GEMINI_API_KEY;
+  // Then check localStorage as fallback
+  if (!key) {
+    let rawValue = localStorage.getItem('gemini_api_key');
+    if (rawValue) {
+      if (rawValue.includes('|')) {
+        const parts = rawValue.split('|');
+        key = parts[0].trim();
+        baseUrl = parts[1]?.trim();
+      } else {
+        key = rawValue.trim();
+      }
     }
-  } catch (e) {
-    // Ignore
   }
 
   // Fallback check process.env if available
@@ -27,23 +32,25 @@ function getApiKey(): string | null {
     }
   }
 
-  return key || null;
+  // Fallback to Cloudflare AI Gateway/Worker if no key is provided
+  if (!key) {
+    return {
+      key: "proxy", // SDK requires a non-empty string
+      baseUrl: "https://diacontrol-ai.pixelozapolska.workers.dev"
+    };
+  }
+
+  return { key, baseUrl };
 }
 
 function getClient(): GoogleGenAI {
-  const key = getApiKey();
-  if (!key) {
-    const userInput = window.prompt("Do korzystania ze sztucznej inteligencji wymagany jest klucz API Gemini (Google). Skopiuj swój darmowy klucz ze strony Google AI Studio i wklej go tutaj:");
-    if (userInput && userInput.trim() !== '') {
-      localStorage.setItem('gemini_api_key', userInput.trim());
-      genAI = new GoogleGenAI({ apiKey: userInput.trim() });
-      return genAI;
-    }
-    throw new Error("Brak klucza API. Nie można wywołać analizy AI.");
-  }
+  const credentials = getApiKey();
   
   if (!genAI) {
-     genAI = new GoogleGenAI({ apiKey: key });
+     genAI = new GoogleGenAI({ 
+       apiKey: credentials.key,
+       ...(credentials.baseUrl ? { baseUrl: credentials.baseUrl } : {})
+     });
   }
   return genAI;
 }
@@ -84,11 +91,9 @@ export const geminiService = {
     } catch (error) {
       console.error("Gemini API Error:", error);
       
-      // If error is about invalid key, clear local storage so user is prompted again
+      // If error is about invalid key, we don't wipe out things anymore or show alert
       if (error instanceof Error && (error.message.includes("API key not valid") || error.message.includes("API_KEY_INVALID"))) {
-         localStorage.removeItem('gemini_api_key');
-         genAI = null;
-         alert("Podany klucz API Gemini jest nieprawidłowy. Odśwież stronę i podaj poprawny klucz.");
+         console.warn("Podany klucz API Gemini jest nieprawidłowy.");
       }
       
       throw error;
