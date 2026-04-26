@@ -52,6 +52,11 @@ body {
   50% { opacity: .3; }
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-150%); }
+  100% { transform: translateX(150%); }
+}
+
 /* Custom scrollbar for horizontal lists */
 .scrollbar-none::-webkit-scrollbar {
   display: none;

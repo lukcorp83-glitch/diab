@@ -92,13 +92,23 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                     </span>
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
                     <span className="text-[9px] font-bold text-slate-500 truncate italic">
-                      {log.notes || log.description || log.type}
+                      {(() => {
+                        const n = log.notes || log.description || '';
+                        if (n.toLowerCase() === 'glucose') return 'Glukoza';
+                        if (n.toLowerCase() === 'meal' || n.toLowerCase() === 'carbs') return 'Posiłek';
+                        if (n.toLowerCase() === 'bolus' || n.toLowerCase() === 'insulin') return 'Insulina';
+                        return n || (log.type === 'glucose' ? 'Glukoza' : log.type === 'meal' ? 'Posiłek' : 'Bolus');
+                      })()}
                     </span>
-                    {log.source === 'nightscout' && (
-                      <div className="flex items-center gap-1 ml-auto">
+                    <div className="flex items-center gap-1 ml-auto">
+                      {log.source === 'nightscout' ? (
                         <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
-                      </div>
-                    )}
+                      ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
+                        <span className="text-[8px] bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
+                      ) : (
+                        <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

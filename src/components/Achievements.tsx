@@ -105,7 +105,12 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
   
   const itemVariants = {
     hidden: { y: 20, opacity: 0, scale: 0.95 },
-    show: { y: 0, opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 20 } }
+    show: (unlocked: boolean) => ({ 
+      y: 0, 
+      opacity: 1, 
+      scale: 1, 
+      transition: { type: 'spring', stiffness: 300, damping: 20, duration: 0.6 } 
+    })
   };
 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
@@ -157,13 +162,20 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
           {achievements.map((acc) => (
             <motion.div 
               key={acc.id}
+              custom={acc.unlocked}
               variants={itemVariants}
-              className={`p-4 rounded-[2rem] border relative overflow-hidden transition-all ${
+              whileHover={acc.unlocked ? { scale: 1.02 } : {}}
+              className={`p-4 rounded-[2rem] border relative overflow-hidden transition-all group ${
                 acc.unlocked 
-                  ? 'bg-white dark:bg-slate-900 border-emerald-500/30' 
+                  ? 'bg-white dark:bg-slate-900 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
                   : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60 grayscale'
               }`}
             >
+              {acc.unlocked && (
+                <div className="absolute inset-0 z-0 overflow-hidden rounded-[2rem]">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/5 to-transparent animate-[shimmer_3s_ease-in-out_infinite]" />
+                </div>
+              )}
               <div className="flex gap-4 items-center relative z-10">
                 <div className={`p-4 rounded-[1.5rem] flex items-center justify-center shrink-0 ${acc.unlocked ? `${acc.color}/10` : 'bg-slate-200 dark:bg-slate-800'}`}>
                   {acc.icon}

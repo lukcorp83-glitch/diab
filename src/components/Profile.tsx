@@ -6,6 +6,8 @@ import { cn } from '../lib/utils';
 import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
 import { UserSettings } from '../types';
 
+import CgmImport from './CgmImport';
+
 export default function Profile({ 
   user, 
   handleLogout, 
@@ -20,9 +22,13 @@ export default function Profile({
   setTab: (t: string) => void
 }) {
   const [settings, setSettings] = useState<UserSettings>({ isf: 58, wwRatio: 16, wbtRatio: 18, targetMin: 70, targetMax: 140, showPrediction: true });
-  const [loading, setLoading] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [nsSyncLoading, setNsSyncLoading] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [cleaningLoading, setCleaningLoading] = useState(false);
   const [nsUrl, setNsUrl] = useState('');
   const [nsSecret, setNsSecret] = useState('');
+  const [saveStatus, setSaveStatus] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [newShortcut, setNewShortcut] = useState({ id: '', name: '', icon: '📌', type: 'meal', carbs: 0 });
 
@@ -80,11 +86,17 @@ export default function Profile({
     const unsubscribe = onSnapshot(settingsRef, (d) => {
       if (d.exists()) setSettings({ showPrediction: true, ...d.data() } as UserSettings);
     });
-    getDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'nightscout')).then(d => {
+    const nsSettingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'nightscout');
+    const unsubscribeNs = onSnapshot(nsSettingsRef, (d) => {
       if (d.exists()) {
-        setNsUrl(d.data()?.url || '');
-        setNsSecret(d.data()?.secret || '');
+        const data = d.data();
+        if (data) {
+          setNsUrl(data.url || '');
+          setNsSecret(data.secret || '');
+        }
       }
+    }, (error) => {
+      if (!error.message?.includes('offline')) console.error("Error fetching NS settings:", error);
     });
 
     const unsubscribeShortcuts = onSnapshot(collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'shortcuts'), (snapshot) => {
@@ -92,6 +104,7 @@ export default function Profile({
     });
     return () => {
       unsubscribe();
+      unsubscribeNs();
       unsubscribeShortcuts();
     };
   }, [user]);
@@ -124,7 +137,7 @@ export default function Profile({
 
   const saveSettings = async () => {
     if (!user) return;
-    setLoading(true);
+    setSettingsLoading(true);
     try {
       await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'profile'), settings);
       alert("Ustawienia zapisane pomyślnie!");
@@ -132,20 +145,29 @@ export default function Profile({
       console.error("Save settings error:", e);
       alert("Błąd podczas zapisywania ustawień: " + (e instanceof Error ? e.message : String(e)));
     } finally {
-      setLoading(false);
+      setSettingsLoading(false);
     }
   };
 
   const saveNsUrl = async () => {
     if (!user) return;
     try {
+      let cleanUrl = nsUrl.trim().replace(/\/$/, "");
+      if (cleanUrl && !cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+        cleanUrl = `https://${cleanUrl}`;
+      }
+      setNsUrl(cleanUrl);
+      
       await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'nightscout'), { 
-        url: nsUrl,
-        secret: nsSecret 
+        url: cleanUrl,
+        secret: nsSecret.trim() 
       });
-      alert("Adres Nightscout zapisany!");
+      setSaveStatus("Zapisano pomyślnie!");
+      setTimeout(() => setSaveStatus(""), 3000);
     } catch (e) {
       console.error(e);
+      setSaveStatus("Błąd zapisu");
+      setTimeout(() => setSaveStatus(""), 3000);
     }
   };
 
@@ -193,10 +215,10 @@ export default function Profile({
 
         <button 
           onClick={saveSettings}
-          disabled={loading}
+          disabled={settingsLoading}
           className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
         >
-          {loading ? 'Zapisywanie...' : 'Zatwierdź Ustawienia'}
+          {settingsLoading ? 'Zapisywanie...' : 'Zatwierdź Ustawienia'}
         </button>
       </div>
 
@@ -421,6 +443,7 @@ export default function Profile({
               placeholder="https://tvoja-strona.herokuapp.com" 
               value={nsUrl}
               onChange={e => setNsUrl(e.target.value)}
+              onBlur={saveNsUrl}
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
             />
             <input 
@@ -428,6 +451,7 @@ export default function Profile({
               placeholder="API_SECRET (opcjonalnie)" 
               value={nsSecret}
               onChange={e => setNsSecret(e.target.value)}
+              onBlur={saveNsUrl}
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
             />
             
@@ -456,28 +480,39 @@ export default function Profile({
               </p>
             </div>
 
-            <button 
-              onClick={saveNsUrl}
-              className="text-[9px] font-black uppercase text-indigo-500 mt-1 text-left"
-            >
-              Zapisz URL
-            </button>
+            {saveStatus && (
+              <div className="text-[9px] font-black uppercase text-emerald-500 mt-1 text-left animate-pulse">
+                {saveStatus}
+              </div>
+            )}
+            {!saveStatus && (
+              <button 
+                onClick={saveNsUrl}
+                className="text-[9px] font-black uppercase text-indigo-500 mt-1 text-left"
+              >
+                Zapisz URL
+              </button>
+            )}
             <button 
               onClick={async () => {
                 if (!nsUrl) return;
-                setLoading(true);
+                setNsSyncLoading(true);
                 // Synchronizacja jest wyzwalana w App.tsx przy zmianie ustawień lub okresowo.
                 // Zapisujemy URL, co zainicjuje synchronizację w App.tsx.
                 await saveNsUrl();
-                setLoading(false);
-                alert("Synchronizacja w toku... Dane pojawią się za chwilę.");
+                // Trigger event to force sync immediately
+                window.dispatchEvent(new Event('force-nightscout-sync'));
+                setTimeout(() => setNsSyncLoading(false), 2000);
               }}
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 group mt-2"
+              disabled={nsSyncLoading}
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 group mt-2 disabled:opacity-50"
             >
-              <Zap size={14} className="group-active:animate-ping" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Wymuś synchronizację</span>
+              <Zap size={14} className={nsSyncLoading ? "animate-pulse" : "group-active:animate-ping"} />
+              <span className="text-[10px] font-black uppercase tracking-widest">{nsSyncLoading ? "Synchronizacja..." : "Wymuś synchronizację"}</span>
             </button>
           </div>
+          
+          <CgmImport user={user} onComplete={() => window.dispatchEvent(new Event('force-nightscout-sync'))} />
         </div>
 
         {/* System & Maintenance */}
@@ -499,18 +534,18 @@ export default function Profile({
           <button 
             onClick={() => {
               if (navigator.vibrate) navigator.vibrate(50);
-              setLoading(true);
+              setUpdateLoading(true);
               setCleaningResult(null);
               setTimeout(() => {
-                setLoading(false);
+                setUpdateLoading(false);
                 setCleaningResult("Twoja wersja 2.0.12 jest aktualna. System jest zoptymalizowany.");
                 setTimeout(() => setCleaningResult(null), 5000);
               }, 1500);
             }}
-            disabled={loading}
+            disabled={updateLoading}
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 className="animate-spin" size={14} /> : null}
+            {updateLoading ? <Loader2 className="animate-spin" size={14} /> : null}
             Sprawdź Aktualizacje
           </button>
         </div>

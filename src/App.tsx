@@ -28,7 +28,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { LogEntry, UserSettings, Product } from './types';
 import { geminiService } from './services/gemini';
 import { CATEGORIES, LIB_BASE } from './constants';
@@ -125,6 +125,10 @@ export default function App() {
       console.error("Firestore subscription error:", error);
       if (error.message.includes('permission-denied')) {
         setAuthError("Błąd uprawnień - sprawdź czy jesteś zalogowany poprawnie.");
+      } else if (error.message.includes('quota') || error.message.includes('Quota')) {
+        setAuthError("Przekroczono limit bazy danych (Quota exceeded). Spróbuj ponownie jutro.");
+      } else {
+        setAuthError("Błąd bazy danych: " + error.message);
       }
     });
     return unsubscribe;
@@ -133,19 +137,17 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     
-    const fetchNsSettings = async () => {
-      const d = await getDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'nightscout'));
+    const nsSettingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'nightscout');
+    const unsubscribeNs = onSnapshot(nsSettingsRef, (d) => {
       if (d.exists()) {
         setNsUrl(d.data()?.url || '');
         setNsSecret(d.data()?.secret || '');
       }
-    };
-    
-    fetchNsSettings();
-    
-    // Refresh NS settings periodically in case they changed elsewhere
-    const interval = setInterval(fetchNsSettings, 30000);
-    return () => clearInterval(interval);
+    }, (error) => {
+      if (!error.message?.includes('offline')) console.error("Error fetching NS settings:", error);
+    });
+
+    return () => unsubscribeNs();
   }, [user]);
 
   const syncTaskRef = useRef(false);
@@ -158,8 +160,11 @@ export default function App() {
   useEffect(() => {
     if (!user || !nsUrl) return;
 
-    const syncNightscout = async () => {
-      if (syncTaskRef.current) return;
+    const syncNightscout = async (manual = false) => {
+      if (syncTaskRef.current) {
+        if (manual) console.log("Nightscout: Synchronizacja już trwa...");
+        return;
+      }
       syncTaskRef.current = true;
       
       try {
@@ -170,36 +175,72 @@ export default function App() {
         
         const allNewLogs = [...entries, ...treatments];
         
+        if (manual && allNewLogs.length === 0) {
+            console.warn("Nightscout: Nie udało się pobrać żadnych danych. Sprawdź poprawność URL.");
+        }
+        
         // Use a set of unique fingerprints from current logs reference
         const existingFingerprints = new Set(logsRef.current.map(l => `${l.type}-${Math.floor(l.timestamp / 60000)}-${l.value}`));
         
-        for (const newLog of allNewLogs) {
-          const { id: nsId, ...logData } = newLog;
-          const fingerprint = `${newLog.type}-${Math.floor(newLog.timestamp / 60000)}-${newLog.value}`;
-          const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
+        const newLogsToSync = allNewLogs.filter(newLog => {
+           const fingerprint = `${newLog.type}-${Math.floor(newLog.timestamp / 60000)}-${newLog.value}`;
+           return !existingFingerprints.has(fingerprint);
+        });
+
+        if (newLogsToSync.length > 0) {
+          console.log(`Syncing ${newLogsToSync.length} new records via batch...`);
           
-          if (!existingFingerprints.has(fingerprint)) {
-            await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs', firestoreId), {
-              ...logData,
-              nsId: nsId || firestoreId,
-              createdAt: serverTimestamp()
-            }, { merge: true });
-            existingFingerprints.add(fingerprint);
+          const CHUNK_SIZE = 400;
+          for (let i = 0; i < newLogsToSync.length; i += CHUNK_SIZE) {
+              const chunk = newLogsToSync.slice(i, i + CHUNK_SIZE);
+              const batch = writeBatch(db);
+              
+              for (const newLog of chunk) {
+                 const { id: nsId, ...logData } = newLog;
+                 const fingerprint = `${newLog.type}-${Math.floor(newLog.timestamp / 60000)}-${newLog.value}`;
+                 const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
+                 const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs', firestoreId);
+                 
+                 batch.set(docRef, {
+                   ...logData,
+                   nsId: nsId || firestoreId,
+                   createdAt: serverTimestamp()
+                 }, { merge: true });
+                 
+                 existingFingerprints.add(fingerprint);
+              }
+              await batch.commit();
           }
+          if (manual) {
+             console.log(`Nightscout: Synchronizacja zakończona. Dodano ${newLogsToSync.length} nowych wpisów.`);
+          }
+        } else if (manual && allNewLogs.length > 0) {
+           console.log(`Nightscout: Pobrano ${allNewLogs.length} wpisów, ale wszystkie są już zsynchronizowane.`);
         }
         console.log("Nightscout sync complete.");
       } catch (err) {
         console.error("Nightscout sync error:", err);
+        if (manual) {
+           console.error("Nightscout: Wystąpił nieoczekiwany błąd podczas synchronizacji.");
+        }
       } finally {
         syncTaskRef.current = false;
       }
     };
 
-    const timeout = setTimeout(syncNightscout, 2000);
-    const interval = setInterval(syncNightscout, 2 * 60 * 1000); // 2 min instead of 5
+    const handleForceSync = () => {
+      console.log("Force sync manually triggered");
+      syncNightscout(true);
+    };
+
+    window.addEventListener('force-nightscout-sync', handleForceSync);
+
+    const timeout = setTimeout(() => syncNightscout(false), 2000);
+    const interval = setInterval(() => syncNightscout(false), 2 * 60 * 1000); // 2 min instead of 5
     return () => {
       clearTimeout(timeout);
       clearInterval(interval);
+      window.removeEventListener('force-nightscout-sync', handleForceSync);
     };
   }, [user, nsUrl]);
 
@@ -227,6 +268,9 @@ export default function App() {
     try {
       await signInAnonymously(auth);
     } catch (e: any) {
+      if (e.code === 'auth/operation-not-allowed') {
+         alert("Logowanie jako gość (Anonymous Auth) jest wyłączone w Twoim projekcie Firebase. Włącz je w konsoli Firebase lub użyj konta Google.");
+      }
       setAuthError(e.message);
     }
   };
@@ -244,17 +288,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-        <Logo className="w-16 h-16 mb-8 animate-pulse shadow-indigo-500/50" />
-        <div className="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-          <motion.div 
-            initial={{ x: '-100%' }}
-            animate={{ x: '100%' }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-            className="w-full h-full bg-indigo-500"
-          />
-        </div>
-        <p className="mt-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Synchronizacja...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
+        <Logo className="w-20 h-20 animate-pulse drop-shadow-2xl opacity-70" />
       </div>
     );
   }
@@ -323,12 +358,18 @@ export default function App() {
             </button>
             
             <button onClick={handleAnonymous} className={cn(
-              "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all",
+              "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-4",
               theme === 'dark' ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-indigo-50 text-indigo-600 border-indigo-100"
             )}>
               <Zap className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-wider">Logowanie bez konta (Gość)</span>
             </button>
+            <p className={cn(
+              "text-[9px] text-center mt-2 leading-tight",
+              theme === 'dark' ? "text-slate-500" : "text-slate-400"
+            )}>
+              Uwaga: W trybie Gościa, po odświeżeniu aplikacji (szczególnie w oknie testowym), dane i adres Nightscout mogą zostać zresetowane. Użyj konta Google by zapisać je trwale.
+            </p>
           </div>
           
           <button 
@@ -365,6 +406,15 @@ export default function App() {
           <Zap size={12} className="animate-pulse" /> Tryb Offline - Funkcje mogą być ograniczone
         </motion.div>
       )}
+      {authError && user && (
+        <motion.div 
+          initial={{ y: -50 }}
+          animate={{ y: 0 }}
+          className="bg-rose-500 text-white text-[10px] font-black uppercase text-center py-2 z-[100] flex items-center justify-center gap-2 sticky top-0"
+        >
+          {authError}
+        </motion.div>
+      )}
       {/* Header */}
       <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl p-4 sticky top-0 z-40 border-b border-slate-100 dark:border-slate-800/20 pt-10 transition-all">
         <div className="flex justify-between items-center max-w-md mx-auto">
@@ -382,7 +432,11 @@ export default function App() {
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+            {user && !user.isAnonymous && user.photoURL ? (
+              <img src={user.photoURL} alt="Profile" className="w-7 h-7 rounded-full border border-indigo-500/50 shadow-sm" />
+            ) : (
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)] ml-2" />
+            )}
           </div>
         </div>
       </header>
@@ -460,18 +514,26 @@ export default function App() {
           <NavButton active={activeTab === 'database'} onClick={() => setActiveTab('database')} icon={<Database />} label="Baza" />
           
           <div className="relative -top-6">
-            <button 
+            <motion.button 
               onClick={() => setActiveTab('meal')}
+              whileTap={{ scale: 0.85 }}
+              animate={{ y: activeTab === 'meal' ? -5 : 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
               className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-xl active:scale-95 border-4 border-slate-50 dark:border-slate-950",
-                activeTab === 'meal' ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400"
+                "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950",
+                activeTab === 'meal' ? "bg-indigo-600 text-white shadow-indigo-500/40" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
               )}
             >
-              <Utensils />
-            </button>
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400">
+              <motion.div animate={{ rotate: activeTab === 'meal' ? [0, -20, 20, -10, 10, 0] : 0 }} transition={{ duration: 0.5 }}>
+                <Utensils />
+              </motion.div>
+            </motion.button>
+            <motion.div 
+              animate={{ opacity: activeTab === 'meal' ? 1 : 0.6, y: activeTab === 'meal' ? -2 : 0 }}
+              className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
+            >
                Talerz
-            </div>
+            </motion.div>
           </div>
 
           <NavButton active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} icon={<FileText />} label="Raport" />
@@ -487,12 +549,33 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
     <button 
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-1 transition-all",
-        active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600"
+        "flex flex-col items-center gap-1 relative w-16 h-full justify-center transition-colors outline-none",
+        active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
       )}
     >
-      {React.cloneElement(icon, { size: 20 })}
-      <span className="text-[7px] font-black uppercase tracking-widest">{label}</span>
+      <motion.div
+        animate={{ 
+          scale: active ? [0.8, 1.2, 1] : 1,
+          y: active ? -2 : 0
+        }}
+        transition={{ duration: 0.3 }}
+        whileTap={{ scale: 0.8 }}
+      >
+        {React.cloneElement(icon, { size: 20 })}
+      </motion.div>
+      <motion.span 
+        animate={{ opacity: active ? 1 : 0.7 }}
+        className="text-[7px] font-black uppercase tracking-widest mt-0.5"
+      >
+        {label}
+      </motion.span>
+      {active && (
+        <motion.div
+          layoutId="nav-indicator"
+          className="absolute bottom-2 w-1 h-1 rounded-full bg-indigo-600 dark:bg-indigo-400"
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        />
+      )}
     </button>
   );
 }

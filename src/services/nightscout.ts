@@ -29,43 +29,38 @@ export const nightscoutService = {
       }
       
       const baseUrl = url.replace(/\/$/, '');
-      const apiPath = `/api/v1/entries.json?count=${count}`;
-      const directUrl = secret && secret.includes('-') ? `${baseUrl}${apiPath}&token=${secret}` : `${baseUrl}${apiPath}`;
+      const cacheBust = `_t=${Date.now()}`;
+      const baseApiPath = `/api/v1/entries.json?count=${count}&${cacheBust}`;
+      const directUrl = secret && secret.includes('-') ? `${baseUrl}${baseApiPath}&token=${secret}` : `${baseUrl}${baseApiPath}`;
       
       let data: NightscoutEntry[] | null = null;
-      let fetchError = null;
+      let usedProxy = false;
 
-      // Try proxy first (best for CORS on hosted solutions)
       try {
-        const proxyUrl = `/api/nightscout-proxy?url=${encodeURIComponent(baseUrl)}&path=${encodeURIComponent(apiPath)}`;
-        const proxyHeaders: Record<string, string> = {};
-        if (secret) proxyHeaders['api-secret'] = secret;
-        
-        const response = await fetch(proxyUrl, proxyHeaders);
-        // If it returns HTML (e.g., github pages static site), it's not the proxy
-        const contentType = response.headers.get("content-type");
-        if (response.ok && contentType && contentType.includes("application/json")) {
-           data = await response.json();
-        } else {
-           throw new Error("Proxy not available or invalid response");
-        }
-      } catch (err) {
-        fetchError = err;
-      }
-
-      // Fallback to direct fetch (for local xDrip+ IPs or if proxy is unavailable)
-      if (!data) {
+        const directResponse = await fetch(directUrl, { headers });
+        if (!directResponse.ok) throw new Error(`Direct fetch failed: ${directResponse.status}`);
+        data = await directResponse.json();
+      } catch (err: any) {
+        console.warn("Direct fetch failed, attempted CORS proxy...", err);
         try {
-          const directResponse = await fetch(directUrl, { headers });
-          if (!directResponse.ok) throw new Error(`Direct fetch failed: ${directResponse.statusText}`);
-          data = await directResponse.json();
-        } catch (err) {
-           console.warn("Direct fetch also failed:", err);
-           throw fetchError || err;
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`;
+          const proxyResponse = await fetch(proxyUrl);
+          if (!proxyResponse.ok) throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+          const proxyData = await proxyResponse.json();
+          if (proxyData.contents) {
+             data = JSON.parse(proxyData.contents);
+          } else {
+             data = [];
+          }
+          usedProxy = true;
+        } catch (proxyErr) {
+          console.warn("Proxy fetch also failed for entries. Direct error was:", err instanceof Error ? err.message : String(err));
+          // return empty array instead of throwing
+          return [];
         }
       }
 
-      if (!data) return [];
+      if (!Array.isArray(data)) return [];
       
       return data.filter(e => e.sgv).map((e, index) => ({
         id: `ns-entry-${e.date}-${index}`,
@@ -88,40 +83,37 @@ export const nightscoutService = {
       }
 
       const baseUrl = url.replace(/\/$/, '');
-      const apiPath = `/api/v1/treatments.json?count=${count}`;
-      const directUrl = secret && secret.includes('-') ? `${baseUrl}${apiPath}&token=${secret}` : `${baseUrl}${apiPath}`;
-
+      const cacheBust = `_t=${Date.now()}`;
+      const baseApiPath = `/api/v1/treatments.json?count=${count}&${cacheBust}`;
+      const directUrl = secret && secret.includes('-') ? `${baseUrl}${baseApiPath}&token=${secret}` : `${baseUrl}${baseApiPath}`;
       let data: NightscoutTreatment[] | null = null;
-      let fetchError = null;
+      let usedProxy = false;
 
       try {
-        const proxyUrl = `/api/nightscout-proxy?url=${encodeURIComponent(baseUrl)}&path=${encodeURIComponent(apiPath)}`;
-        const proxyHeaders: Record<string, string> = {};
-        if (secret) proxyHeaders['api-secret'] = secret;
-
-        const response = await fetch(proxyUrl, { headers: proxyHeaders });
-        const contentType = response.headers.get("content-type");
-        if (response.ok && contentType && contentType.includes("application/json")) {
-           data = await response.json();
-        } else {
-           throw new Error("Proxy not available or invalid response");
-        }
-      } catch (err) {
-        fetchError = err;
-      }
-
-      if (!data) {
+        const directResponse = await fetch(directUrl, { headers });
+        if (!directResponse.ok) throw new Error(`Direct fetch failed: ${directResponse.status}`);
+        data = await directResponse.json();
+      } catch (err: any) {
+        console.warn("Direct fetch failed, attempted CORS proxy...", err);
         try {
-          const directResponse = await fetch(directUrl, { headers });
-          if (!directResponse.ok) throw new Error(`Direct fetch failed: ${directResponse.statusText}`);
-          data = await directResponse.json();
-        } catch (err) {
-           console.warn("Direct fetch also failed:", err);
-           throw fetchError || err;
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`;
+          const proxyResponse = await fetch(proxyUrl);
+          if (!proxyResponse.ok) throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+          const proxyData = await proxyResponse.json();
+          if (proxyData.contents) {
+             data = JSON.parse(proxyData.contents);
+          } else {
+             data = [];
+          }
+          usedProxy = true;
+        } catch (proxyErr) {
+          console.warn("Proxy fetch also failed for treatments. Direct error was:", err instanceof Error ? err.message : String(err));
+          // return empty array instead of throwing
+          return [];
         }
       }
 
-      if (!data) return [];
+      if (!Array.isArray(data)) return [];
       const logs: LogEntry[] = [];
 
 

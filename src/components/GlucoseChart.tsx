@@ -30,7 +30,20 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     canvas.height = H * scale;
     ctx.scale(scale, scale);
 
-    const now = Date.now();
+    let now = Date.now();
+    if (logs.length > 0) {
+      const gLogs = logs.filter(l => l.type === 'glucose');
+      if (gLogs.length > 0) {
+        let latestLogTime = 0;
+        for (const l of gLogs) {
+           if (l.timestamp > latestLogTime) latestLogTime = l.timestamp;
+        }
+        if (Date.now() - latestLogTime > 2 * 60 * 60 * 1000) {
+          now = latestLogTime + 30 * 60 * 1000;
+        }
+      }
+    }
+
     const predictionTime = 2 * 60 * 60 * 1000; // 2 hours prediction
     const rangeMs = hours * 60 * 60 * 1000;
     const showPrediction = settings?.showPrediction;
@@ -46,25 +59,72 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     const dataB = logs.filter(l => l.type === 'bolus' && l.timestamp >= start);
     const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start);
 
-    // Prediction Logic
+    // Prediction Logic (Improved with IOB/COB)
     let predictions: { timestamp: number, value: number }[] = [];
     if (showPrediction && dataG.length >= 2) {
       const last = dataG[dataG.length - 1];
-      const prev = dataG[dataG.length - 2];
+      let prev = dataG[dataG.length - 2];
       
-      // Calculate velocity (mg/dL per minute)
+      // Look back up to 20 mins for a better trend to avoid noise
+      for (let i = dataG.length - 2; i >= 0; i--) {
+        if (last.timestamp - dataG[i].timestamp >= 20 * 60000) {
+          prev = dataG[i];
+          break;
+        }
+      }
+      
+      let velocity = 0;
       const timeDiffMin = (last.timestamp - prev.timestamp) / 60000;
-      let velocity = (last.value - prev.value) / timeDiffMin;
+      if (timeDiffMin > 0) {
+         velocity = (last.value - prev.value) / timeDiffMin;
+      }
       
-      // Dampen velocity over time and account for target
-      // Simple model: project current trend for next 2 hours
+      // Calculate IOB (Insulin on Board) and COB (Carbs on Board) manually based on logs
+      const diaMs = (settings?.dia || 4) * 60 * 60 * 1000;
+      const nowMs = last.timestamp; 
+      
+      const iob = logs
+        .filter(l => l.type === 'bolus' && nowMs - l.timestamp < diaMs && nowMs - l.timestamp >= 0)
+        .reduce((sum, b) => {
+          const timeSince = nowMs - b.timestamp;
+          const decay = Math.max(0, 1 - (timeSince / diaMs));
+          return sum + (b.value * decay);
+        }, 0);
+        
+      // Simple COB assuming 2.5 hours digestion (150 mins)
+      const digestionMs = 2.5 * 60 * 60 * 1000;
+      const cob = logs
+        .filter(l => l.type === 'meal' && nowMs - l.timestamp < digestionMs && nowMs - l.timestamp >= 0)
+        .reduce((sum, m) => {
+          const timeSince = nowMs - m.timestamp;
+          const decay = Math.max(0, 1 - (timeSince / digestionMs));
+          return sum + (m.value * decay);
+        }, 0);
+
+      const isf = settings?.isf || 50; 
+      const cr = settings?.wwRatio || 15;
+      
+      // Net expected change from remaining active insulin and carbs
+      const expectedBgDrop = iob * isf;
+      const expectedBgRise = (cob / cr) * isf;
+      const netExpectedChange = expectedBgRise - expectedBgDrop;
+      
       const steps = 12; // every 10 min
       let currentVal = last.value;
+      
+      // Distribute net change non-linearly (more impact sooner)
       for (let i = 1; i <= steps; i++) {
         const pTime = last.timestamp + i * 10 * 60000;
-        // Dampen velocity towards 0 as we go further out
-        const dampening = Math.max(0, 1 - (i / (steps * 1.5)));
-        currentVal += velocity * 10 * dampening;
+        
+        // Dampen historical trend over time
+        const dampening = Math.max(0, 1 - (i / (steps * 0.6)));
+        const trendImpact = velocity * 10 * dampening;
+        
+        // Calculate remaining theoretical change component
+        // 12 steps, we apply a portion of the net expected change per step
+        const theoreticalImpact = (netExpectedChange / steps) * (1 - dampening * 0.5); 
+        
+        currentVal += trendImpact + theoreticalImpact;
         
         // Boundaries
         if (currentVal < 40) currentVal = 40;
