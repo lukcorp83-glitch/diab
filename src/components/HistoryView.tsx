@@ -1,3 +1,4 @@
+import { getEffectiveUid } from '../lib/utils';
 import React from 'react';
 import { motion } from 'motion/react';
 import { LogEntry } from '../types';
@@ -50,18 +51,18 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
       </div>
 
       <motion.div 
-        variants={containerVariants}
+        variants={containerVariants as any}
         initial="hidden"
         animate="show"
         className="space-y-1"
       >
         {logs.map(log => (
-          <motion.div key={log.id} variants={itemVariants}>
+          <motion.div key={log.id} variants={itemVariants as any}>
             <SwipeableItem 
               id={log.id}
               onDelete={async () => {
                 try {
-                  await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs', log.id));
+                  await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id));
                 } catch (err) {
                   console.error("Delete failed:", err);
                 }
@@ -79,7 +80,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-sm dark:text-white truncate">
-                    {log.value}{log.type === 'glucose' ? ' mg/dL' : log.type === 'meal' ? 'g W' : ' j.'}
+                    {typeof log.value === 'number' ? (log.type === 'glucose' ? Math.round(log.value) : log.value.toFixed(1)) : log.value}{log.type === 'glucose' ? ' mg/dL' : log.type === 'meal' ? 'g W' : ' j.'}
                     {log.type === 'meal' && (log.protein || log.fat) && (
                       <span className="text-[10px] font-bold text-slate-400 ml-2">
                          {log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T
@@ -116,7 +117,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
           </motion.div>
         ))}
         {logs.length === 0 && (
-          <motion.div variants={itemVariants} className="text-center py-20 bg-slate-100 dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+          <motion.div variants={itemVariants as any} className="text-center py-20 bg-slate-100 dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Brak wpisów</p>
           </motion.div>
         )}

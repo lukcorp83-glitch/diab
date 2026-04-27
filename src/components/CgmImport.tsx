@@ -1,3 +1,4 @@
+import { getEffectiveUid } from '../lib/utils';
 import React, { useState } from 'react';
 import { Upload, Database } from 'lucide-react';
 import { db } from '../lib/firebase';
@@ -35,7 +36,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
                 // Ensure unique ID
                 const ms = log.timestamp;
                 const firestoreId = `cgm_import_${log.type}_${ms}`;
-                const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs', firestoreId);
+                const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', firestoreId);
                 batch.set(docRef, {
                     ...log,
                     source: 'csv',

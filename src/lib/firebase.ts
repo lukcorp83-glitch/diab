@@ -11,8 +11,7 @@ if (!firebaseConfig || !firebaseConfig.projectId) {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-  databaseId: firebaseConfig.firestoreDatabaseId || undefined
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
 console.log("Firebase initialized for project:", firebaseConfig.projectId);

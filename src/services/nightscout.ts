@@ -19,6 +19,40 @@ export interface NightscoutTreatment {
   notes?: string;
 }
 
+async function fetchWithFallbacks(directUrl: string, headers: Record<string, string>): Promise<any> {
+  let errorMsg = "";
+  try {
+    const directResponse = await fetch(directUrl, { headers });
+    if (directResponse.ok) return await directResponse.json();
+    errorMsg = `Direct fetch status: ${directResponse.status}`;
+  } catch (err: any) {
+    errorMsg = err instanceof Error ? err.message : String(err);
+    console.warn("Direct fetch failed, attempted CORS proxies...", err);
+  }
+
+  // Fallback proxies in order of preference
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(directUrl)}`,
+    // thingsproxy.freeboard.io can sometimes work, but is very strict on some headers.
+  ];
+
+  for (const proxyUrl of proxies) {
+    try {
+      // For proxies, headers often don't pass through correctly, so relying on token query param
+      const proxyResponse = await fetch(proxyUrl);
+      if (proxyResponse.ok) {
+        const textData = await proxyResponse.text();
+        return JSON.parse(textData);
+      }
+    } catch (err) {
+      console.warn(`Proxy failed: ${proxyUrl}`, err);
+    }
+  }
+
+  throw new Error(`All proxies failed. Initial error: ${errorMsg}`);
+}
+
 export const nightscoutService = {
   async fetchEntries(url: string, secret?: string, count = 1000): Promise<LogEntry[]> {
     try {
@@ -34,30 +68,12 @@ export const nightscoutService = {
       const directUrl = secret && secret.includes('-') ? `${baseUrl}${baseApiPath}&token=${secret}` : `${baseUrl}${baseApiPath}`;
       
       let data: NightscoutEntry[] | null = null;
-      let usedProxy = false;
 
       try {
-        const directResponse = await fetch(directUrl, { headers });
-        if (!directResponse.ok) throw new Error(`Direct fetch failed: ${directResponse.status}`);
-        data = await directResponse.json();
-      } catch (err: any) {
-        console.warn("Direct fetch failed, attempted CORS proxy...", err);
-        try {
-          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`;
-          const proxyResponse = await fetch(proxyUrl);
-          if (!proxyResponse.ok) throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
-          const proxyData = await proxyResponse.json();
-          if (proxyData.contents) {
-             data = JSON.parse(proxyData.contents);
-          } else {
-             data = [];
-          }
-          usedProxy = true;
-        } catch (proxyErr) {
-          console.warn("Proxy fetch also failed for entries. Direct error was:", err instanceof Error ? err.message : String(err));
-          // return empty array instead of throwing
-          return [];
-        }
+        data = await fetchWithFallbacks(directUrl, headers);
+      } catch (err) {
+        console.warn("Failed fetching entries:", err);
+        return [];
       }
 
       if (!Array.isArray(data)) return [];
@@ -86,31 +102,14 @@ export const nightscoutService = {
       const cacheBust = `_t=${Date.now()}`;
       const baseApiPath = `/api/v1/treatments.json?count=${count}&${cacheBust}`;
       const directUrl = secret && secret.includes('-') ? `${baseUrl}${baseApiPath}&token=${secret}` : `${baseUrl}${baseApiPath}`;
+      
       let data: NightscoutTreatment[] | null = null;
-      let usedProxy = false;
 
       try {
-        const directResponse = await fetch(directUrl, { headers });
-        if (!directResponse.ok) throw new Error(`Direct fetch failed: ${directResponse.status}`);
-        data = await directResponse.json();
-      } catch (err: any) {
-        console.warn("Direct fetch failed, attempted CORS proxy...", err);
-        try {
-          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`;
-          const proxyResponse = await fetch(proxyUrl);
-          if (!proxyResponse.ok) throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
-          const proxyData = await proxyResponse.json();
-          if (proxyData.contents) {
-             data = JSON.parse(proxyData.contents);
-          } else {
-             data = [];
-          }
-          usedProxy = true;
-        } catch (proxyErr) {
-          console.warn("Proxy fetch also failed for treatments. Direct error was:", err instanceof Error ? err.message : String(err));
-          // return empty array instead of throwing
-          return [];
-        }
+         data = await fetchWithFallbacks(directUrl, headers);
+      } catch (err) {
+        console.warn("Failed fetching treatments:", err);
+        return [];
       }
 
       if (!Array.isArray(data)) return [];
@@ -157,3 +156,4 @@ export const nightscoutService = {
     }
   }
 };
+

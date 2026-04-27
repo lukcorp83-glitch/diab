@@ -136,7 +136,29 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
     const isDark = theme === 'dark';
     const allVals = [...dataG.map(l => l.value), ...predictions.map(p => p.value)];
-    const maxVal = Math.max(...allVals, 200, targetMax + 20);
+
+    // Dynamic Y-Axis (Zoom)
+    let chartMinY = 0;
+    let chartMaxY = Math.max(200, targetMax + 20);
+
+    // Auto-detect if we should zoom in (if variance is high or if user wants to see details)
+    // We'll calculate min/max and apply a 10% padding
+    if (allVals.length > 0) {
+      const minData = Math.min(...allVals);
+      const maxData = Math.max(...allVals);
+      
+      // If we have a significant spike or drop, dynamically adjust bounds to focus on data
+      // For zooming on large fluctuations, we can set bounds closer to the data
+      const dynamicMin = Math.max(0, minData - 20);
+      const dynamicMax = maxData + 20;
+
+      // Always ensure we see the target range if possible, but if data is extremely high, 
+      // we focus on data + targets.
+      chartMinY = Math.min(dynamicMin, targetMin - 10);
+      if (chartMinY < 0) chartMinY = 0;
+      
+      chartMaxY = Math.max(dynamicMax, targetMax + 10);
+    }
 
     const padL = 30;
     const padR = 10;
@@ -146,7 +168,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     const chartH = H - padT - padB;
 
     const getX = (time: number) => padL + ((time - start) / totalMs) * chartW;
-    const getY = (val: number) => H - padB - (val / (maxVal * 1.1)) * chartH;
+    const getY = (val: number) => H - padB - ((val - chartMinY) / (chartMaxY - chartMinY)) * chartH;
 
     ctx.clearRect(0, 0, W, H);
 
@@ -205,9 +227,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
     // Target Range Background
     ctx.fillStyle = isDark ? 'rgba(79, 70, 229, 0.1)' : 'rgba(79, 70, 229, 0.05)';
-    const yMin = getY(targetMin);
-    const yMax = getY(targetMax);
-    ctx.fillRect(padL, yMax, chartW, yMin - yMax);
+    const yMin = getY(Math.max(chartMinY, targetMin));
+    const yMax = getY(Math.min(chartMaxY, targetMax));
+    if (targetMin <= chartMaxY && targetMax >= chartMinY) {
+      ctx.fillRect(padL, yMax, chartW, yMin - yMax);
+    }
 
     // Draw Grid Lines & Labels
     ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
@@ -215,14 +239,27 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     ctx.font = '8px font-black uppercase tracking-widest';
     ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
 
-    [targetMin, targetMax, 200].forEach(val => {
-      const y = getY(val);
-      ctx.beginPath();
-      ctx.moveTo(padL, y);
-      ctx.lineTo(W - padR, y);
-      ctx.stroke();
-      ctx.textAlign = 'right';
-      ctx.fillText(val.toString(), padL - 5, y + 3);
+    let gridLinesParams = [targetMin, targetMax, 200];
+    
+    // Add dynamic grid lines based on range
+    const range = chartMaxY - chartMinY;
+    const step = range > 100 ? 50 : 20;
+    for (let v = Math.ceil(chartMinY / step) * step; v <= chartMaxY; v += step) {
+      if (!gridLinesParams.includes(v)) {
+        gridLinesParams.push(v);
+      }
+    }
+
+    gridLinesParams.forEach(val => {
+      if (val >= chartMinY && val <= chartMaxY) {
+        const y = getY(val);
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(W - padR, y);
+        ctx.stroke();
+        ctx.textAlign = 'right';
+        ctx.fillText(val.toString(), padL - 5, y + 3);
+      }
     });
 
     // Time Labels
@@ -302,6 +339,25 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         else ctx.lineTo(x, y);
       });
       ctx.stroke();
+
+      // Draw Glucose Points
+      dataG.forEach(l => {
+        const x = getX(l.timestamp);
+        const y = getY(l.value);
+        ctx.beginPath();
+        if (l.value < targetMin) {
+          ctx.fillStyle = '#ef4444'; // red
+        } else if (l.value > targetMax) {
+          ctx.fillStyle = '#f59e0b'; // amber
+        } else {
+          ctx.fillStyle = isDark ? '#818cf8' : '#4f46e5'; // match line
+        }
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
 
       // Prediction Line (Dashed)
       if (predictions.length > 0) {

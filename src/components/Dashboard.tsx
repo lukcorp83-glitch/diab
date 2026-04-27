@@ -1,7 +1,9 @@
+import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "motion/react";
 import { LogEntry, UserSettings } from "../types";
 import GlucoseChart from "./GlucoseChart";
+import VirtualPet from "./VirtualPet";
 import {
   Activity,
   Clock,
@@ -75,7 +77,7 @@ export default function Dashboard({
       "artifacts",
       "diacontrolapp",
       "users",
-      user.uid,
+      getEffectiveUid(user),
       "settings",
       "profile",
     );
@@ -96,7 +98,7 @@ export default function Dashboard({
         "artifacts",
         "diacontrolapp",
         "users",
-        user.uid,
+        getEffectiveUid(user),
         "shortcuts",
       ),
     );
@@ -127,7 +129,7 @@ export default function Dashboard({
             "artifacts",
             "diacontrolapp",
             "users",
-            user.uid,
+            getEffectiveUid(user),
             "logs",
           ),
           {
@@ -366,6 +368,82 @@ export default function Dashboard({
         </motion.div>
       )}
 
+      {/* Equipment Reminders */}
+      {(settings.sensorChangeDate || settings.infusionSetChangeDate) && (
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+          {settings.sensorChangeDate && (
+             <div className="bg-gradient-to-br from-slate-800 to-indigo-900 rounded-[2rem] p-4 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-indigo-900/20">
+               <div className="flex justify-between items-start z-10">
+                 <div className="p-2 bg-white/10 rounded-2xl">
+                   <Activity size={16} className="text-indigo-300" />
+                 </div>
+                 <span className="text-[8px] font-black text-indigo-200 uppercase tracking-widest bg-white/5 py-1 px-2 rounded-full">
+                   Sensor
+                 </span>
+               </div>
+               <div className="mt-4 z-10">
+                 {(() => {
+                   const msLeft = settings.sensorChangeDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
+                   const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
+                   const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                   const isExpired = msLeft <= 0;
+                   return (
+                     <>
+                       <div className="flex items-baseline gap-1">
+                         <span className={cn("text-2xl font-black", (daysLeft <= 0 && hoursLeft <= 12) || isExpired ? "text-rose-400" : "text-white")}>
+                           {isExpired ? "0" : daysLeft > 0 ? `${daysLeft}d` : `${hoursLeft}h`}
+                         </span>
+                         {!isExpired && daysLeft > 0 && hoursLeft > 0 && <span className="text-sm font-bold text-indigo-300">{hoursLeft}h</span>}
+                       </div>
+                       {isExpired ? (
+                         <span className="text-[8px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full uppercase mt-1 inline-block">Wymień!</span>
+                       ) : (
+                         <span className="text-[9px] font-bold text-indigo-200 uppercase">Pozostało</span>
+                       )}
+                     </>
+                   );
+                 })()}
+               </div>
+             </div>
+          )}
+          {settings.infusionSetChangeDate && (
+             <div className="bg-gradient-to-br from-slate-800 to-teal-900 rounded-[2rem] p-4 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-teal-900/20">
+               <div className="flex justify-between items-start z-10">
+                 <div className="p-2 bg-white/10 rounded-2xl">
+                   <Droplets size={16} className="text-teal-300" />
+                 </div>
+                 <span className="text-[8px] font-black text-teal-200 uppercase tracking-widest bg-white/5 py-1 px-2 rounded-full">
+                   Wkłucie
+                 </span>
+               </div>
+               <div className="mt-4 z-10">
+                 {(() => {
+                   const msLeft = settings.infusionSetChangeDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
+                   const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
+                   const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                   const isExpired = msLeft <= 0;
+                   return (
+                     <>
+                       <div className="flex items-baseline gap-1">
+                         <span className={cn("text-2xl font-black", (daysLeft <= 0 && hoursLeft <= 6) || isExpired ? "text-rose-400" : "text-white")}>
+                           {isExpired ? "0" : daysLeft > 0 ? `${daysLeft}d` : `${hoursLeft}h`}
+                         </span>
+                         {!isExpired && daysLeft > 0 && hoursLeft > 0 && <span className="text-sm font-bold text-teal-300">{hoursLeft}h</span>}
+                       </div>
+                       {isExpired ? (
+                         <span className="text-[8px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full uppercase mt-1 inline-block">Wymień!</span>
+                       ) : (
+                         <span className="text-[9px] font-bold text-teal-200 uppercase">Pozostało</span>
+                       )}
+                     </>
+                   );
+                 })()}
+               </div>
+             </div>
+          )}
+        </motion.div>
+      )}
+
       {/* Chart Card */}
       <motion.div
         variants={itemVariants}
@@ -499,7 +577,7 @@ export default function Dashboard({
                         "artifacts",
                         "diacontrolapp",
                         "users",
-                        user.uid,
+                        getEffectiveUid(user),
                         "logs",
                         log.id,
                       ),
@@ -532,7 +610,7 @@ export default function Dashboard({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-black text-sm dark:text-white truncate">
-                      {log.value}
+                      {typeof log.value === 'number' ? (log.type === 'glucose' ? Math.round(log.value) : log.value.toFixed(1)) : log.value}
                       {log.type === "glucose"
                         ? " mg/dL"
                         : log.type === "meal"
@@ -584,6 +662,9 @@ export default function Dashboard({
         onClose={() => setIsGlucoseModalOpen(false)}
         user={user}
       />
+      {settings.childMode && (
+        <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} />
+      )}
     </motion.div>
   );
 }

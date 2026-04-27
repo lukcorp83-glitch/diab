@@ -1,3 +1,4 @@
+import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, PlateItem } from "../types";
@@ -60,7 +61,7 @@ export default function MealPlate({
         "artifacts",
         "diacontrolapp",
         "users",
-        user.uid,
+        getEffectiveUid(user),
         "customProducts",
       ),
     );
@@ -126,13 +127,12 @@ export default function MealPlate({
       Uwzględnij różne warianty jeśli to możliwe. Nie pisz nic poza JSONem.`;
 
       const result = await geminiService.generateContent(prompt);
-      const cleanJson = result
-        .replace(/```json/gi, "")
-        .replace(/```/g, "")
-        .trim();
+      const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+      const cleanJson = jsonMatch ? jsonMatch[0] : result;
       const parsed = JSON.parse(cleanJson);
+      const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
       setOnlineResults(
-        parsed.map((p: any, i: number) => ({
+        resultsArray.map((p: any, i: number) => ({
           ...p,
           id: `online_${i}_${Date.now()}`,
           isOnline: true,
@@ -140,7 +140,7 @@ export default function MealPlate({
       );
     } catch (e) {
       console.error("AI Search failed:", e);
-      alert("AI nie mogło znaleźć wyników. Spróbuj inaczej.");
+      alert("AI nie mogło znaleźć wyników dla tego zapytania.");
     } finally {
       setIsSearching(false);
     }
@@ -157,7 +157,7 @@ export default function MealPlate({
           "artifacts",
           "diacontrolapp",
           "users",
-          user.uid,
+          getEffectiveUid(user),
           "customProducts",
         ),
         {
@@ -185,6 +185,11 @@ export default function MealPlate({
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
 
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
+  const [entryTime, setEntryTime] = useState(localISOTime);
+
   useEffect(() => {
     if (!user) return;
     const q = query(
@@ -193,7 +198,7 @@ export default function MealPlate({
         "artifacts",
         "diacontrolapp",
         "users",
-        user.uid,
+        getEffectiveUid(user),
         "savedMeals",
       ),
       orderBy("timestamp", "desc"),
@@ -269,7 +274,7 @@ export default function MealPlate({
           "artifacts",
           "diacontrolapp",
           "users",
-          user.uid,
+          getEffectiveUid(user),
           "savedMeals",
         ),
         {
@@ -332,13 +337,13 @@ export default function MealPlate({
     if (!user || plate.length === 0) return;
     try {
       await addDoc(
-        collection(db, "artifacts", "diacontrolapp", "users", user.uid, "logs"),
+        collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
         {
           type: "meal",
           value: totalCarbs,
           protein: totalProtein,
           fat: totalFat,
-          timestamp: Date.now(),
+          timestamp: new Date(entryTime).getTime(),
           description: plate.map((i) => i.name).join(", "),
         },
       );
@@ -431,17 +436,18 @@ export default function MealPlate({
                   category: "Skanowane",
                 };
                 openWeightModal(product);
+                setIsSearching(false);
               } else {
                 // Fallback to AI search with the EAN
                 setSearchTerm(decodedText);
-                handleOnlineSearch();
+                setIsSearching(false);
+                await performOnlineSearch(decodedText);
               }
             } catch (err) {
               console.error("Barcode data fetch error:", err);
               setSearchTerm(decodedText);
-              handleOnlineSearch();
-            } finally {
               setIsSearching(false);
+              await performOnlineSearch(decodedText);
             }
           },
           (errorMessage) => {},
@@ -719,9 +725,22 @@ export default function MealPlate({
                             AI
                           </span>
                         </div>
-                        <div className="text-[9px] font-bold text-indigo-500/60 uppercase tracking-widest">
-                          W: {p.carbs}g | B: {p.protein || 0}g | T: {p.fat || 0}
-                          g
+                        <div className="text-[9px] font-bold text-indigo-500/60 uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                          <span>
+                            W: {p.carbs}g | B: {p.protein || 0}g | T: {p.fat || 0}g
+                          </span>
+                          <span
+                            className={cn(
+                              "px-1.5 py-0.5 rounded font-black text-[8px]",
+                              p.gi && p.gi <= 55
+                                ? "bg-emerald-500/10 text-emerald-500"
+                                : p.gi && p.gi < 70
+                                  ? "bg-amber-500/10 text-amber-500"
+                                  : "bg-rose-500/10 text-rose-500",
+                            )}
+                          >
+                            IG: {p.gi || "??"}
+                          </span>
                         </div>
                       </div>
                       <ChevronRight size={16} className="text-indigo-300" />
@@ -1001,7 +1020,18 @@ export default function MealPlate({
               </span>
             </div>
           </div>
-          <div className="flex gap-2 mt-6">
+          
+          <div className="flex justify-between items-center mt-6">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Czas podania zjedzenia:</span>
+            <input 
+               type="datetime-local" 
+               value={entryTime}
+               onChange={e => setEntryTime(e.target.value)}
+               className="bg-slate-50 dark:bg-slate-800 text-slate-500 text-[10px] font-black p-2 rounded-xl border border-slate-100 dark:border-slate-700 outline-none"
+            />
+          </div>
+
+          <div className="flex gap-2 mt-4">
             <button
               onClick={handleLogMeal}
               className="flex-3 bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
@@ -1065,7 +1095,7 @@ export default function MealPlate({
                         "artifacts",
                         "diacontrolapp",
                         "users",
-                        user.uid,
+                        getEffectiveUid(user),
                         "savedMeals",
                         m.id,
                       ),

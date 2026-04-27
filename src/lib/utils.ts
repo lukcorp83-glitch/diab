@@ -18,3 +18,8 @@ export function calculateIOB(logs: LogEntry[], diaHours: number = 4) {
       return sum + (b.value * decay);
     }, 0);
 }
+
+export function getEffectiveUid(user: any): string {
+  if (!user || !user.uid) return '';
+  return localStorage.getItem('diacontrol_linked_uid') || user.uid;
+}

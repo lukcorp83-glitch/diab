@@ -57,47 +57,61 @@ function getClient(): GoogleGenAI {
 
 export const geminiService = {
   async generateContent(prompt: string, imageData?: string) {
-    try {
-      const client = getClient();
-      const model = 'gemini-3-flash-preview'; // or gemini-1.5-flash depending on support
+    const client = getClient();
+    
+    // Prefer pro models for images/vision, flash for text (faster)
+    const modelsToTry = imageData 
+      ? ['gemini-3.1-pro', 'gemini-3-flash', 'gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-1.5-flash']
+      : ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'];
 
-      let contents;
-      
-      if (imageData) {
-        contents = [
-          {
-            role: 'user',
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  data: imageData.split(',')[1] || imageData,
-                  mimeType: "image/jpeg"
-                }
+    let contents;
+    if (imageData) {
+      contents = [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                data: imageData.split(',')[1] || imageData,
+                mimeType: "image/jpeg"
               }
-            ]
-          }
-        ];
-      } else {
-        contents = [{ role: 'user', parts: [{ text: prompt }] }];
-      }
-
-      const result = await client.models.generateContent({
-        model: model,
-        contents: contents
-      });
-
-      return result.text || "";
-    } catch (error) {
-      console.error("Gemini API Error:", error);
-      
-      // If error is about invalid key, we don't wipe out things anymore or show alert
-      if (error instanceof Error && (error.message.includes("API key not valid") || error.message.includes("API_KEY_INVALID"))) {
-         console.warn("Podany klucz API Gemini jest nieprawidłowy.");
-      }
-      
-      throw error;
+            }
+          ]
+        }
+      ];
+    } else {
+      contents = [{ role: 'user', parts: [{ text: prompt }] }];
     }
+
+    let lastError = null;
+
+    for (const model of modelsToTry) {
+      try {
+        console.log(`Próba użycia modelu: ${model}...`);
+        const result = await client.models.generateContent({
+          model: model,
+          contents: contents
+        });
+        
+        console.log(`Sukces z modelem: ${model}`);
+        return result.text || "";
+      } catch (error) {
+        lastError = error;
+        console.warn(`Błąd dla modelu ${model}:`, error);
+        
+        // Zatrzymujemy od razu, jeśli klucz API jest nieważny
+        if (error instanceof Error && (error.message.includes("API key not valid") || error.message.includes("API_KEY_INVALID"))) {
+          console.warn("Podany klucz API Gemini jest nieprawidłowy.");
+          throw error;
+        }
+        // W innym przypadku kontynuujemy pętle i próbujemy następny model
+      }
+    }
+
+    // Jeśli przeszliśmy przez wszystkie modele i żaden nie zadziałał
+    console.error("Wszystkie dostepne modele zawiodly.", lastError);
+    throw lastError || new Error("Wszystkie modele AI zawiodły.");
   },
   
   async getLivePrediction(recentLogs: any[]) {
@@ -145,8 +159,8 @@ export const geminiService = {
 
     try {
       const text = await this.generateContent(prompt, imageData);
-      // Clean possible markdown backticks
-      const cleanJson = text.replace(/```json|```/g, "").trim();
+      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      const cleanJson = jsonMatch ? jsonMatch[0] : text;
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Gemini Vision Error:", error);
@@ -179,7 +193,8 @@ export const geminiService = {
 
     try {
       const text = await this.generateContent(prompt);
-      const cleanJson = text.replace(/```json|```/g, "").trim();
+      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      const cleanJson = jsonMatch ? jsonMatch[0] : text;
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Gemini Bolus Rec Error:", error);

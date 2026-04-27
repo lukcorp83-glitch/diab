@@ -1,5 +1,6 @@
+import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry } from '../types';
 import { MessageSquare, Calculator, History, TrendingUp, Sparkles, Loader2, Calendar, Trash2 } from 'lucide-react';
 import { db } from '../lib/firebase';
@@ -16,7 +17,7 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
   useEffect(() => {
     if (!user) return;
     const q = query(
-      collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'aiReports'),
+      collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'aiReports'),
       orderBy('timestamp', 'desc')
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -44,7 +45,7 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
         reportType = type === 'week' ? "Raport Tygodniowy" : "Raport Miesięczny";
       }
 
-      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'aiReports'), {
+      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'aiReports'), {
         type: reportType,
         content,
         timestamp: Date.now()
@@ -142,6 +143,8 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
                   fillOpacity={1} 
                   fill="url(#colorAvg)" 
                   animationDuration={2000}
+                  dot={{ r: 4, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 6, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -193,23 +196,40 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
               id={report.id}
               onDelete={async () => {
                 try {
-                  await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'aiReports', report.id));
+                  await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'aiReports', report.id));
                 } catch (err) {
                   console.error("Delete failed:", err);
                 }
               }}
             >
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-all mb-2">
-                <div className="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-all mb-2 cursor-pointer" onClick={() => setActiveReport(activeReport === report.id ? null : report.id)}>
+                <div className="flex justify-between items-center">
                   <div className="flex flex-col">
                     <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{report.type}</span>
                     <span className="text-[8px] font-bold text-slate-400">{new Date(report.timestamp).toLocaleString()}</span>
                   </div>
+                  <div className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 p-2 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                    {activeReport === report.id ? 'Ukryj' : 'Podgląd'}
+                  </div>
                 </div>
-                <div 
-                  className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: report.content }}
-                />
+                <AnimatePresence>
+                  {activeReport === report.id && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                      animate={{ height: 'auto', opacity: 1, marginTop: 16 }}
+                      exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+                        <div 
+                          className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                          dangerouslySetInnerHTML={{ __html: report.content }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </SwipeableItem>
           ))}

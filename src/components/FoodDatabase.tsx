@@ -1,3 +1,4 @@
+import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
@@ -39,7 +40,7 @@ export default function FoodDatabase({ user }: { user: any }) {
         "artifacts",
         "diacontrolapp",
         "users",
-        user.uid,
+        getEffectiveUid(user),
         "customProducts",
       ),
     );
@@ -81,7 +82,7 @@ export default function FoodDatabase({ user }: { user: any }) {
         fat: newProduct.fat,
         gi: newProduct.gi,
         category: newProduct.category,
-        author: user.uid,
+        author: getEffectiveUid(user),
         isCommunity: shareWithCommunity,
         id: `custom_${Date.now()}`,
       };
@@ -92,7 +93,7 @@ export default function FoodDatabase({ user }: { user: any }) {
           "artifacts",
           "diacontrolapp",
           "users",
-          user.uid,
+          getEffectiveUid(user),
           "customProducts",
         ),
         prodData,
@@ -414,7 +415,7 @@ export default function FoodDatabase({ user }: { user: any }) {
                             "artifacts",
                             "diacontrolapp",
                             "users",
-                            user.uid,
+                            getEffectiveUid(user),
                             "customProducts",
                             p.id!,
                           ),

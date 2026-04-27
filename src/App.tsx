@@ -1,3 +1,4 @@
+import { getEffectiveUid } from './lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
@@ -49,6 +50,8 @@ import { nightscoutService } from './services/nightscout';
 
 import Logo from './components/Logo';
 
+import OnboardingTutorial from './components/OnboardingTutorial';
+
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -62,6 +65,8 @@ export default function App() {
   const [nsSecret, setNsSecret] = useState('');
   const [initialAction, setInitialAction] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -73,6 +78,67 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+    const unsubscribe = onSnapshot(settingsRef, (d) => {
+      if (d.exists()) {
+        setUserSettings(d.data() as UserSettings);
+      }
+    }, (err) => {
+      console.error("Error fetching settings for notifications:", err);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    if (!userSettings?.notificationsEnabled) return;
+
+    const checkExpiries = () => {
+      if (Notification.permission !== 'granted') return;
+
+      const now = Date.now();
+      const warningThresholdMs = 12 * 60 * 60 * 1000; // 12 hours
+
+      // Sensor Notification Check
+      if (userSettings.sensorChangeDate && userSettings.sensorDurationDays) {
+         const sensorExpiryDate = userSettings.sensorChangeDate + (userSettings.sensorDurationDays * 24 * 60 * 60 * 1000);
+         const sensorMsLeft = sensorExpiryDate - now;
+         if (sensorMsLeft > 0 && sensorMsLeft <= warningThresholdMs) {
+            const notifiedKey = `notified_sensor_${userSettings.sensorChangeDate}`;
+            if (!localStorage.getItem(notifiedKey)) {
+               new Notification('Zbliża się wymiana sensora!', {
+                  body: `Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!`,
+                  icon: '/apple-touch-icon.png'
+               });
+               localStorage.setItem(notifiedKey, 'true');
+            }
+         }
+      }
+
+      // Infusion Set Notification Check
+      if (userSettings.infusionSetChangeDate && userSettings.infusionSetDurationDays) {
+         const infusionExpiryDate = userSettings.infusionSetChangeDate + (userSettings.infusionSetDurationDays * 24 * 60 * 60 * 1000);
+         const infusionMsLeft = infusionExpiryDate - now;
+         if (infusionMsLeft > 0 && infusionMsLeft <= warningThresholdMs) {
+            const notifiedKey = `notified_infusion_${userSettings.infusionSetChangeDate}`;
+            if (!localStorage.getItem(notifiedKey)) {
+               new Notification('Zbliża się wymiana wkłucia!', {
+                  body: `Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!`,
+                  icon: '/apple-touch-icon.png'
+               });
+               localStorage.setItem(notifiedKey, 'true');
+            }
+         }
+      }
+    };
+
+    checkExpiries(); // Check on mount
+    const interval = setInterval(checkExpiries, 5 * 60 * 1000); // Check every 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [userSettings]);
 
   useEffect(() => {
     // Handle PWA shortcuts
@@ -108,6 +174,13 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
+      
+      if (u) {
+         const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+         if (!hasSeenTutorial) {
+            setShowTutorial(true);
+         }
+      }
     });
     return unsubscribe;
   }, []);
@@ -115,7 +188,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     const q = query(
-      collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs'),
+      collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'),
       orderBy('timestamp', 'desc')
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -137,7 +210,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     
-    const nsSettingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'nightscout');
+    const nsSettingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'nightscout');
     const unsubscribeNs = onSnapshot(nsSettingsRef, (d) => {
       if (d.exists()) {
         setNsUrl(d.data()?.url || '');
@@ -199,7 +272,7 @@ export default function App() {
                  const { id: nsId, ...logData } = newLog;
                  const fingerprint = `${newLog.type}-${Math.floor(newLog.timestamp / 60000)}-${newLog.value}`;
                  const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
-                 const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs', firestoreId);
+                 const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', firestoreId);
                  
                  batch.set(docRef, {
                    ...logData,
@@ -540,6 +613,15 @@ export default function App() {
           <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<Settings />} label="Opcje" />
         </div>
       </nav>
+
+      <AnimatePresence>
+        {showTutorial && (
+           <OnboardingTutorial onComplete={() => {
+              setShowTutorial(false);
+              localStorage.setItem('hasSeenTutorial', 'true');
+           }} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

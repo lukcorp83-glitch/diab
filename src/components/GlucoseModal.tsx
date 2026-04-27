@@ -1,3 +1,4 @@
+import { getEffectiveUid } from '../lib/utils';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
@@ -13,15 +14,20 @@ interface GlucoseModalProps {
 export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProps) {
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
+  const [entryTime, setEntryTime] = useState(localISOTime);
 
   const handleSave = async () => {
     if (!value || !user) return;
     setLoading(true);
     try {
-      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs'), {
+      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
         type: 'glucose',
         value: parseFloat(value),
-        timestamp: Date.now(),
+        timestamp: new Date(entryTime).getTime(),
         description: 'Pomiar ręczny'
       });
       onClose();
@@ -45,6 +51,12 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight">Zapisz Cukier</h2>
+              <input 
+                type="datetime-local" 
+                value={entryTime}
+                onChange={e => setEntryTime(e.target.value)}
+                className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black p-2 rounded-xl outline-none border border-slate-200 dark:border-slate-700 mx-2"
+              />
               <button onClick={onClose} className="text-slate-300 hover:text-slate-500 p-2 text-xl font-bold transition-colors">
                 <X size={24} />
               </button>

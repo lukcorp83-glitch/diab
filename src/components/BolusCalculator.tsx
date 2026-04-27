@@ -1,7 +1,8 @@
+import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
-import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2 } from 'lucide-react';
+import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2, Edit3 } from 'lucide-react';
 import { cn, calculateIOB } from '../lib/utils';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
@@ -10,17 +11,27 @@ import { geminiService } from '../services/gemini';
 export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry[], user: any, setTab?: (t: string) => void }) {
   const [bg, setBg] = useState<string>('');
   const [carbs, setCarbs] = useState<string>('');
+  const [protein, setProtein] = useState<string>('');
+  const [fat, setFat] = useState<string>('');
+  const [isPizzaMode, setIsPizzaMode] = useState(false);
   const [trend, setTrend] = useState<'up' | 'stable' | 'down'>('stable');
   const [dose, setDose] = useState<number>(0);
+  const [manualDose, setManualDose] = useState<string | null>(null);
+  const [extendedTime, setExtendedTime] = useState<number>(0); // how many hours to extend
   const [settings, setSettings] = useState<UserSettings>({ isf: 58, wwRatio: 16, wbtRatio: 18, targetMin: 70, targetMax: 140, dia: 4 });
   const [scanning, setScanning] = useState(false);
   const [aiRec, setAiRec] = useState<{ recommendedDose: number, reasoning: string, confidence: string } | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
+  const [entryTime, setEntryTime] = useState<string>(localISOTime);
 
   useEffect(() => {
     if (!user) return;
-    getDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'profile'))
+    getDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'))
       .then(d => {
         if (d.exists()) setSettings(prev => ({ ...prev, ...d.data() }));
       })
@@ -35,24 +46,73 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     }
   }, [user, logs]);
 
+  const [activeProfileTime, setActiveProfileTime] = useState<string | null>(null);
+
   useEffect(() => {
     calculateDose();
-  }, [bg, carbs, trend, settings]);
+  }, [bg, carbs, protein, fat, isPizzaMode, trend, settings]);
 
   const calculateDose = () => {
     const bgNum = parseFloat(bg) || 0;
     const carbsNum = parseFloat(carbs) || 0;
+    const protNum = parseFloat(protein) || 0;
+    const fatNum = parseFloat(fat) || 0;
     
-    const mealDose = carbsNum / settings.wwRatio;
+    let currentIsf = settings.isf;
+    let currentWwRatio = settings.wwRatio;
+    let activeProfileStr = null;
+    
+    if (settings.hourlyProfiles && settings.hourlyProfiles.length > 0) {
+       const now = new Date();
+       const currentHourStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+       const sorted = [...settings.hourlyProfiles].sort((a,b) => a.time.localeCompare(b.time));
+       let activeProfile = sorted.slice().reverse().find(p => p.time <= currentHourStr);
+       if (!activeProfile && sorted.length > 0) activeProfile = sorted[sorted.length - 1];
+       
+       if (activeProfile) {
+         currentIsf = activeProfile.isf || currentIsf;
+         currentWwRatio = activeProfile.wwRatio || currentWwRatio;
+         activeProfileStr = activeProfile.time;
+       }
+    }
+    setActiveProfileTime(activeProfileStr);
+    
+    const mealDose = carbsNum / currentWwRatio;
+    
+    let wbtDose = 0;
+    let extendHrs = 0;
+    if (isPizzaMode) {
+      // 1 WBT = 100 kcal z białka i tłuszczu
+      const kcalFromProtFat = (protNum * 4) + (fatNum * 9);
+      const wbt = kcalFromProtFat / 100;
+      wbtDose = wbt * (settings.wbtRatio ? (10 / settings.wbtRatio) : (10 / currentWwRatio)); 
+      // Usually WBT takes same ratio as WW or custom wbtRatio. Assuming wbtRatio is defined as "1j na 1WBT" or "wbtRatio g na 1j" ? 
+      // Actually standard WBT ratio is 1 unit per 100kcal. If wbtRatio is 18, maybe it means 18g/unit. 
+      // If the user's wbt ratio is for `WW`, they use the wbtRatio like 1WBT = ... let's just use `wbt * (10 / settings.wbtRatio)` as a simple formula, or standard is: wbt/wbtRatio but WBT is an index, so if wbtRatio=1 means 1WBT = 1j.
+      // Let's assume standard: 1 WBT = 1 j. For simple model, give wbt * 1. 
+      // But typically we use the WW ratio or similar. 1 WW (10g carbs) needs X units. 1 WBT needs X units.
+      // Easiest standard: `wbtDose = wbt * (10 / settings.wwRatio)` or whatever. Let's just use `wbt * settings.wwRatio_or_something`. 
+      // We will use standard rule: 1 WBT requires insulin equal to 1 WW. So wbtDose = wbt * (10 / currentWwRatio) if 1 WW = 10g.
+      wbtDose = wbt * (10 / currentWwRatio);
+
+      // Extending time rule: 1 WBT = 3h, 2 WBT = 4h, 3 WBT = 5h...
+      if (wbt > 0) {
+        if (wbt <= 1) extendHrs = 3;
+        else if (wbt <= 2) extendHrs = 4;
+        else extendHrs = 5;
+      }
+    }
+    setExtendedTime(extendHrs);
+
     const target = (settings.targetMin + settings.targetMax) / 2;
-    const corrDose = bgNum > target ? (bgNum - target) / settings.isf : 0;
+    const corrDose = bgNum > target ? (bgNum - target) / currentIsf : 0;
     
-    // Advanced IOB calculation
     const iob = calculateIOB(logs, settings.dia || 4);
 
     const trendFactor = trend === 'up' ? 1.15 : trend === 'down' ? 0.85 : 1.0;
-    const total = Math.max(0, (mealDose + Math.max(0, corrDose - iob)) * trendFactor);
+    const total = Math.max(0, (mealDose + wbtDose + Math.max(0, corrDose - iob)) * trendFactor);
     setDose(total);
+    setManualDose(null);
   };
 
   const handleMealScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,53 +123,81 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     try {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        const result = await geminiService.analyzeMeal(base64);
-        if (result && result.carbs) {
-          setCarbs(result.carbs.toString());
-          alert(`Skanowanie zakończone: ${result.mealName} (~${result.carbs}g węgli)`);
+        try {
+          const base64 = event.target?.result as string;
+          const result = await geminiService.analyzeMeal(base64);
+          if (result && result.carbs) {
+            setCarbs(result.carbs.toString());
+            alert(`Skanowanie zakończone: ${result.mealName} (~${result.carbs}g węgli)`);
+          }
+        } catch (err) {
+          console.error("AI scan error:", err);
+          alert("Błąd skanowania posiłku.");
+        } finally {
+          setScanning(false);
         }
       };
       reader.readAsDataURL(file);
     } catch (e) {
       console.error("Meal scan error:", e);
       alert("Błąd skanowania posiłku.");
-    } finally {
       setScanning(false);
     }
   };
 
   const handleSave = async () => {
     if (!user) return;
-    const timestamp = Date.now();
-    if (dose > 0) {
-      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs'), {
+    const timestamp = new Date(entryTime).getTime();
+    const finalDose = manualDose !== null ? parseFloat(manualDose) : dose;
+    
+    let savedSomething = false;
+
+    if (finalDose > 0 && !isNaN(finalDose)) {
+      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
         type: 'bolus',
-        value: dose,
+        value: finalDose,
         timestamp,
         description: 'Kalkulator bolusa'
       });
-      
-      const bgNum = parseFloat(bg);
-      if (!isNaN(bgNum) && bgNum > 0) {
-        await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs'), {
-          type: 'glucose',
-          value: bgNum,
-          timestamp: timestamp - 20,
-          description: 'Wpisane w kalkulator'
-        });
-      }
+      savedSomething = true;
+    }
+    
+    const bgNum = parseFloat(bg);
+    if (!isNaN(bgNum) && bgNum > 0) {
+      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
+        type: 'glucose',
+        value: bgNum,
+        timestamp: timestamp - 20,
+        description: 'Wpisane w kalkulator'
+      });
+      savedSomething = true;
+    }
 
-      if (carbs) {
-        await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'logs'), {
-          type: 'meal',
-          value: parseFloat(carbs),
-          timestamp: timestamp - 10,
-          description: 'Pobrano z kalkulatora'
-        });
+    if (carbs && parseFloat(carbs) > 0) {
+      const carbsNum = parseFloat(carbs);
+      const proteinNum = parseFloat(protein) || null;
+      const fatNum = parseFloat(fat) || null;
+      
+      const payload: any = {
+        type: 'meal',
+        value: carbsNum,
+        timestamp: timestamp - 10,
+        description: 'Pobrano z kalkulatora'
+      };
+      if (proteinNum) payload.protein = proteinNum;
+      if (fatNum) payload.fat = fatNum;
+
+      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), payload);
+      savedSomething = true;
+    }
+
+    if (savedSomething) {
+      if (finalDose > 0 && !isNaN(finalDose)) {
+        alert(`Zapisano dziennik. Podano ${finalDose.toFixed(1)}j insuliny.`);
+      } else {
+        alert('Zapisano pomyślnie wpis glukozy/posiłku (bez bolusa).');
       }
-      alert(`Podano ${dose.toFixed(1)}j insuliny.`);
-      setBg(''); setCarbs('');
+      setBg(''); setCarbs(''); setProtein(''); setFat(''); setManualDose(null);
       if (setTab) setTab('dashboard');
     }
   };
@@ -130,11 +218,13 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
       const bgNum = parseFloat(bg) || 0;
       const carbsNum = parseFloat(carbs) || 0;
       const iob = calculateIOB(logs, settings.dia || 4);
-      const result = await geminiService.getBolusRecommendation(bgNum, carbsNum, dose, trend, iob, logs);
+      const currentDose = manualDose !== null ? parseFloat(manualDose) : dose;
+      const result = await geminiService.getBolusRecommendation(bgNum, carbsNum, currentDose, trend, iob, logs);
       if (result) {
         setAiRec(result);
         if (result.recommendedDose !== undefined) {
            setDose(result.recommendedDose);
+           setManualDose(null);
         }
       }
     } catch (e) {
@@ -149,7 +239,15 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
-        <h3 className="text-[12px] font-black text-slate-400 uppercase tracking-widest text-center">Kalkulator Dawki</h3>
+        <div className="flex justify-between items-center">
+           <h3 className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Kalkulator Dawki</h3>
+           <input 
+             type="datetime-local" 
+             value={entryTime}
+             onChange={e => setEntryTime(e.target.value)}
+             className="bg-slate-50 dark:bg-slate-800 text-slate-500 text-[10px] font-black p-2 rounded-xl outline-none border border-slate-100 dark:border-slate-700"
+           />
+        </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -190,6 +288,36 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+           <input type="checkbox" id="pizzaMode" checked={isPizzaMode} onChange={(e) => setIsPizzaMode(e.target.checked)} className="w-4 h-4 text-indigo-600 rounded" />
+           <label htmlFor="pizzaMode" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer">Pizza Bolus (Białko i Tłuszcz)</label>
+        </div>
+
+        {isPizzaMode && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-rose-400 uppercase block text-center">Białko (g)</label>
+               <input 
+                 type="number" 
+                 value={protein} 
+                 onChange={e => setProtein(e.target.value)}
+                 placeholder="g"
+                 className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-rose-500 transition-all dark:text-white"
+               />
+            </div>
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-amber-400 uppercase block text-center">Tłuszcz (g)</label>
+               <input 
+                 type="number" 
+                 value={fat} 
+                 onChange={e => setFat(e.target.value)}
+                 placeholder="g"
+                 className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-amber-500 transition-all dark:text-white"
+               />
+            </div>
+          </motion.div>
+        )}
+
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase block text-center">Trend</label>
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-3xl gap-1">
@@ -212,11 +340,24 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
              </div>
            )}
            <div>
-             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sugerowana Dawka</span>
-             <div className="flex items-baseline justify-center gap-2 mt-1">
-                <span className="text-5xl font-black text-indigo-400">{dose.toFixed(1)}</span>
+             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center justify-center gap-2">
+               <Edit3 size={10} className="text-indigo-400" /> Wprowadź Lub Skoryguj Dawkę
+             </span>
+             <div className="flex items-center justify-center gap-2 mt-2 mb-2">
+                <input 
+                  type="number"
+                  step="0.1"
+                  value={manualDose !== null ? manualDose : dose.toFixed(1)}
+                  onChange={e => setManualDose(e.target.value)}
+                  className="w-32 bg-indigo-500/20 text-center text-5xl font-black text-indigo-400 outline-none rounded-2xl py-2 focus:bg-indigo-500/30 transition-all border border-indigo-500/30"
+                />
                 <span className="text-xl font-bold opacity-30">j.</span>
              </div>
+             {isPizzaMode && extendedTime > 0 && (
+               <div className="mt-2 text-[10px] font-bold text-slate-400">
+                 W tym przedłużone: <span className="text-indigo-400">rozłóż na {extendedTime}h</span> (dawka WBT)
+               </div>
+             )}
            </div>
            
            {aiRec && (
@@ -247,9 +388,16 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
          <div className="p-2 bg-white dark:bg-slate-800 rounded-xl">
            <Info className="text-indigo-600 dark:text-indigo-400 shrink-0" size={20} />
          </div>
-         <p className="text-[10px] font-bold text-indigo-900 dark:text-indigo-200 leading-relaxed">
-            Kalkulacja uwzględnia <b>Zaawansowany Model IOB</b> (czas działania: {settings.dia || 4}h), współczynniki personalne oraz trend. Możesz użyć kamery do skanowania posiłków.
-         </p>
+         <div className="space-y-1">
+           <p className="text-[10px] font-bold text-indigo-900 dark:text-indigo-200 leading-relaxed">
+              Kalkulacja uwzględnia <b>Zaawansowany Model IOB</b> (czas działania: {settings.dia || 4}h), współczynniki personalne oraz trend. Możesz użyć kamery do skanowania posiłków.
+           </p>
+           {activeProfileTime && (
+             <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-2 block">
+               Aktywny profil godzinowy: od {activeProfileTime}
+             </p>
+           )}
+         </div>
       </div>
     </motion.div>
   );

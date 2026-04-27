@@ -24,6 +24,20 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
     // Time in range
     const inRange = glucoseLogs.filter(l => l.value >= 70 && l.value <= 140).length;
     const tirRatio = glucoseLogs.length > 0 ? (inRange / glucoseLogs.length) * 100 : 0;
+
+    // Time-based readings
+    const nightReadings = glucoseLogs.filter(l => {
+      const h = new Date(l.timestamp).getHours();
+      return h >= 0 && h <= 4;
+    }).length;
+
+    const morningReadings = glucoseLogs.filter(l => {
+      const h = new Date(l.timestamp).getHours();
+      return h >= 5 && h <= 7;
+    }).length;
+
+    // Detailed meals (containing fat & protein - advanced)
+    const detailedMeals = mealLogs.filter(l => (l.fat ?? 0) > 0 || (l.protein ?? 0) > 0).length;
     
     return {
       totalMeals: mealLogs.length,
@@ -31,7 +45,10 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       totalGlucose: glucoseLogs.length,
       daysWithMeals: datesWithMeals.size,
       daysWithGlucose: datesWithGlucose.size,
-      tirRatio
+      tirRatio,
+      nightReadings,
+      morningReadings,
+      detailedMeals
     };
   }, [logs]);
 
@@ -57,6 +74,16 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       max: 7
     },
     {
+      id: "detailed_meal",
+      title: "Dietetyk WBT",
+      description: "Oblicz 10 posiłków z uwzględnieniem tłuszczów i białek (WBT).",
+      icon: <Trophy className="w-8 h-8 text-orange-500" />,
+      color: "bg-orange-500",
+      unlocked: stats.detailedMeals >= 10,
+      progress: Math.min(stats.detailedMeals, 10),
+      max: 10
+    },
+    {
       id: "tir_master",
       title: "Snajper Glikemiczny",
       description: "Osiągnij ponad 75% czasu w normie.",
@@ -67,9 +94,39 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       max: 75
     },
     {
+      id: "tir_ninja",
+      title: "Cukrowy Ninja",
+      description: "Osiągnij ponad 90% czasu w normie (min. 20 pomiarów).",
+      icon: <Trophy className="w-8 h-8 text-teal-400" />,
+      color: "bg-teal-400",
+      unlocked: stats.totalGlucose >= 20 && stats.tirRatio >= 90,
+      progress: stats.totalGlucose >= 20 ? Math.min(stats.tirRatio, 90) : 0,
+      max: 90
+    },
+    {
+      id: "night_owl",
+      title: "Nocny Marek",
+      description: "Zarejestruj 5 pomiarów w nocy (00:00 - 04:00).",
+      icon: <Clock className="w-8 h-8 text-indigo-300" />,
+      color: "bg-indigo-300",
+      unlocked: stats.nightReadings >= 5,
+      progress: Math.min(stats.nightReadings, 5),
+      max: 5
+    },
+    {
+      id: "early_bird",
+      title: "Poranny Ptaszek",
+      description: "Zarejestruj 5 pomiarów wczesnym rankiem (05:00 - 07:00).",
+      icon: <Clock className="w-8 h-8 text-sky-400" />,
+      color: "bg-sky-400",
+      unlocked: stats.morningReadings >= 5,
+      progress: Math.min(stats.morningReadings, 5),
+      max: 5
+    },
+    {
       id: "glucose_tracker",
       title: "Czuwaj!",
-      description: "Znacz 50 pomiarów glikemii.",
+      description: "Zaznacz 50 pomiarów glikemii.",
       icon: <Zap className="w-8 h-8 text-indigo-500" />,
       color: "bg-indigo-500",
       unlocked: stats.totalGlucose >= 50,
@@ -85,6 +142,16 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       unlocked: stats.totalBoluses >= 10,
       progress: Math.min(stats.totalBoluses, 10),
       max: 10
+    },
+    {
+      id: "bolus_cyborg",
+      title: "Cyber Trzustka",
+      description: "Kalkuluj bolus i podaj insulinę 50 razy.",
+      icon: <Award className="w-8 h-8 text-fuchsia-500" />,
+      color: "bg-fuchsia-500",
+      unlocked: stats.totalBoluses >= 50,
+      progress: Math.min(stats.totalBoluses, 50),
+      max: 50
     },
     {
       id: "consistent",
@@ -163,7 +230,7 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
             <motion.div 
               key={acc.id}
               custom={acc.unlocked}
-              variants={itemVariants}
+              variants={itemVariants as any}
               whileHover={acc.unlocked ? { scale: 1.02 } : {}}
               className={`p-4 rounded-[2rem] border relative overflow-hidden transition-all group ${
                 acc.unlocked 

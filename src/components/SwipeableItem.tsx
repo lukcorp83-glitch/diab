@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useRef, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, useAnimation } from 'motion/react';
 import { Trash2 } from 'lucide-react';
 
@@ -13,6 +13,14 @@ interface SwipeableItemProps {
 export default function SwipeableItem({ children, onDelete, id, bgClass = "bg-[#f8fafc] dark:bg-[#020617]" }: SwipeableItemProps) {
   const x = useMotionValue(0);
   const controls = useAnimation();
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   
   // Transform x position to background color or opacity if needed
   const opacity = useTransform(x, [-80, -40, 0], [1, 0.5, 0]);
@@ -21,12 +29,20 @@ export default function SwipeableItem({ children, onDelete, id, bgClass = "bg-[#
   const handleDragEnd = async (_: any, info: any) => {
     // Determine if we should delete based on total dragged distance or velocity
     if (info.offset.x < -70 || info.velocity.x < -500) {
-      await controls.start({ x: -150, opacity: 0, transition: { duration: 0.2 } });
+      if (isMounted.current) {
+        await controls.start({ x: -150, opacity: 0, transition: { duration: 0.2 } }).catch(() => {});
+      }
       onDelete();
       // Use a timeout to reset position if the item wasn't actually removed from DOM
-      setTimeout(() => controls.start({ x: 0, opacity: 1 }), 1000);
+      setTimeout(() => {
+        if (isMounted.current) {
+          controls.start({ x: 0, opacity: 1 }).catch(() => {});
+        }
+      }, 1000);
     } else {
-      controls.start({ x: 0, transition: { type: 'spring', stiffness: 500, damping: 50 } });
+      if (isMounted.current) {
+        controls.start({ x: 0, transition: { type: 'spring', stiffness: 500, damping: 50 } }).catch(() => {});
+      }
     }
   };
 
