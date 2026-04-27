@@ -52,6 +52,7 @@ export default function MealPlate({
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("Wszystko");
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -118,6 +119,7 @@ export default function MealPlate({
   const performOnlineSearch = async (query: string) => {
     if (query.length < 3 || isSearching) return;
     setIsSearching(true);
+    setSearchError(null);
     setOnlineResults([]);
     try {
       const prompt = `Jesteś dietetykiem. Przeanalizuj zapytanie użytkownika: "${query}". Może to być nazwa produktu ze sklepu, danie domowe (np. "pierogi ruskie", "leczo"), owoc, warzywo lub konkretna marka. 
@@ -138,9 +140,12 @@ export default function MealPlate({
           isOnline: true,
         })),
       );
+      if (resultsArray.length === 0) {
+        setSearchError("Nie znaleziono produktów spełniających kryteria.");
+      }
     } catch (e) {
       console.error("AI Search failed:", e);
-      alert("AI nie mogło znaleźć wyników dla tego zapytania.");
+      setSearchError("AI nie mogło znaleźć wyników dla tego zapytania. Spróbuj sformułować je inaczej.");
     } finally {
       setIsSearching(false);
     }
@@ -669,9 +674,12 @@ export default function MealPlate({
                       },
                     ]);
                     // Notice we append with weight=100 and absolute nutrition because the AI estimates for the entire plate
-                    alert(`AI rozpoznało: ${result.description}`);
+                    setTimeout(() => {
+                      document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 50);
                   } catch (err) {
-                    alert("Błąd analizy zdjęcia.");
+                    setSearchError("Błąd analizy zdjęcia.");
                   } finally {
                     setIsAnalyzing(false);
                   }
@@ -706,6 +714,11 @@ export default function MealPlate({
         </div>
 
         <div className="max-h-[400px] overflow-y-auto pr-1 space-y-2 scrollbar-none">
+          {searchError && (
+            <div className="mb-4 bg-rose-50 dark:bg-rose-900/20 p-5 rounded-[2rem] border border-rose-100 dark:border-rose-800">
+               <p className="text-sm text-rose-600 dark:text-rose-400 font-bold text-center">{searchError}</p>
+            </div>
+          )}
           {onlineResults.length > 0 && (
             <div className="mb-4">
               <h4 className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-2 px-2">

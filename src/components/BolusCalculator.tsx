@@ -20,6 +20,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
   const [extendedTime, setExtendedTime] = useState<number>(0); // how many hours to extend
   const [settings, setSettings] = useState<UserSettings>({ isf: 58, wwRatio: 16, wbtRatio: 18, targetMin: 70, targetMax: 140, dia: 4 });
   const [scanning, setScanning] = useState(false);
+  const [scanResultMsg, setScanResultMsg] = useState<string | null>(null);
   const [aiRec, setAiRec] = useState<{ recommendedDose: number, reasoning: string, confidence: string } | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,11 +129,13 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
           const result = await geminiService.analyzeMeal(base64);
           if (result && result.carbs) {
             setCarbs(result.carbs.toString());
-            alert(`Skanowanie zakończone: ${result.mealName} (~${result.carbs}g węgli)`);
+            setScanResultMsg(`Rozpoznano: ${result.mealName} (~${result.carbs}g W)`);
+            setTimeout(() => setScanResultMsg(null), 5000);
           }
         } catch (err) {
           console.error("AI scan error:", err);
-          alert("Błąd skanowania posiłku.");
+          setScanResultMsg("Błąd skanowania posiłku.");
+          setTimeout(() => setScanResultMsg(null), 5000);
         } finally {
           setScanning(false);
         }
@@ -140,7 +143,8 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
       reader.readAsDataURL(file);
     } catch (e) {
       console.error("Meal scan error:", e);
-      alert("Błąd skanowania posiłku.");
+      setScanResultMsg("Błąd skanowania posiłku.");
+      setTimeout(() => setScanResultMsg(null), 5000);
       setScanning(false);
     }
   };
@@ -285,6 +289,11 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
                 className="hidden" 
               />
              </div>
+             {scanResultMsg && (
+               <div className="absolute top-full left-0 mt-2 z-10 w-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 p-2 rounded-xl shadow-lg">
+                  <p className="text-indigo-600 dark:text-indigo-400 font-bold text-[8px] text-center uppercase">{scanResultMsg}</p>
+               </div>
+             )}
           </div>
         </div>
 
