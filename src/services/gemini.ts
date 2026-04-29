@@ -1,5 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
+import { auth } from '../lib/firebase';
+
 let genAI: GoogleGenAI | null = null;
 
 function getApiKey(): { key: string, baseUrl?: string } {
@@ -57,7 +59,8 @@ function getClient(): GoogleGenAI {
 
 export const geminiService = {
   async generateContent(prompt: string, imageData?: string) {
-    const client = getClient();
+    const creds = getApiKey();
+    const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
     
     // Prefer pro models for images/vision, flash for text (faster)
     const modelsToTry = imageData 
@@ -84,6 +87,55 @@ export const geminiService = {
       contents = [{ role: 'user', parts: [{ text: prompt }] }];
     }
 
+    if (isProxyUrl && !localStorage.getItem('gemini_api_key')) {
+      const CLOUDFLARE_WORKER_URL = creds.baseUrl;
+      let lastError = null;
+      
+      const payload = { 
+        contents,
+        uid: auth.currentUser?.uid || 'anonymous'
+      };
+
+      for (const model of modelsToTry) {
+          try {
+              console.log(`Próba użycia modelu (Proxy): ${model}...`);
+              const response = await fetch(CLOUDFLARE_WORKER_URL!, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                      model: model, 
+                      payload: payload
+                  })
+              });
+              
+              const data = await response.json();
+
+              if (response.ok) {
+                  console.log(`Sukces z modelem (Proxy): ${model}`);
+                  if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
+                      return data.candidates[0].content.parts.map((p: any) => p.text).join('') || "";
+                  } else if (data.text) {
+                      return data.text;
+                  }
+                  
+                  return typeof data === 'string' ? data : JSON.stringify(data);
+              }
+              
+              throw new Error(data.error?.message || `Błąd modelu ${model}`);
+              
+          } catch (error) {
+              lastError = error;
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              console.warn(`Model ${model} zawiódł, próbuję kolejnego...`);
+          }
+      }
+      
+      console.error("Wszystkie modele AI(Proxy) są obecnie zajęte.");
+      throw new Error(`Wszystkie modele AI są obecnie zajęte. Ostatni błąd: ${(lastError as Error)?.message}`);
+    }
+
+    // Standardowa ścieżka z bezpośrednim kluczem API
+    const client = getClient();
     let lastError = null;
 
     for (const model of modelsToTry) {

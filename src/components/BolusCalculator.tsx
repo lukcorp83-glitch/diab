@@ -134,7 +134,14 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
           }
         } catch (err) {
           console.error("AI scan error:", err);
-          setScanResultMsg("Błąd skanowania posiłku.");
+          const errStr = String(err);
+          if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
+             setScanResultMsg("Nieprawidłowy klucz API.");
+          } else if (errStr.includes("Wszystkie modele AI są obecnie zajęte") || errStr.includes("zajęte")) {
+             setScanResultMsg("Serwery AI są przeciążone. Spróbuj ponownie.");
+          } else {
+             setScanResultMsg("Błąd skanowania posiłku.");
+          }
           setTimeout(() => setScanResultMsg(null), 5000);
         } finally {
           setScanning(false);
@@ -196,11 +203,6 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     }
 
     if (savedSomething) {
-      if (finalDose > 0 && !isNaN(finalDose)) {
-        alert(`Zapisano dziennik. Podano ${finalDose.toFixed(1)}j insuliny.`);
-      } else {
-        alert('Zapisano pomyślnie wpis glukozy/posiłku (bez bolusa).');
-      }
       setBg(''); setCarbs(''); setProtein(''); setFat(''); setManualDose(null);
       if (setTab) setTab('dashboard');
     }

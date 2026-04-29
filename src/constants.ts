@@ -26,6 +26,9 @@ export const LIB_BASE: Product[] = [
   { id: 'p12', name: "Tortilla pszenna", carbs: 50, protein: 8, fat: 7, gi: 65, category: "Zbożowe i Pieczywo" },
   { id: 'p19', name: "Komosa ryżowa (Quinoa)", carbs: 21, protein: 4.4, fat: 2, gi: 50, category: "Zbożowe i Pieczywo" },
   { id: 'p20', name: "Chleb czystoziarnisty", carbs: 12, protein: 10, fat: 20, gi: 30, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_5', name: "Płatki kukurydziane", carbs: 84, protein: 8, fat: 1, gi: 80, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_6', name: "Pieczywo chrupkie żytnie", carbs: 65, protein: 10, fat: 1.5, gi: 65, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_7', name: "Makaron pełnoziarnisty", carbs: 24, protein: 5, fat: 1, gi: 40, category: "Zbożowe i Pieczywo" },
   
   // Owoce i Warzywa
   { id: 'p2', name: "Ziemniaki gotowane", carbs: 17, protein: 1.9, fat: 0.1, gi: 70, category: "Owoce i Warzywa" },
@@ -45,6 +48,11 @@ export const LIB_BASE: Product[] = [
   { id: 'p22', name: "Gruszka", carbs: 12, protein: 0.4, fat: 0.1, gi: 30, category: "Owoce i Warzywa" },
   { id: 'p23', name: "Fasolka szparagowa", carbs: 4, protein: 2, fat: 0.2, gi: 15, category: "Owoce i Warzywa" },
   { id: 'p24', name: "Bakłażan", carbs: 3, protein: 1, fat: 0.2, gi: 15, category: "Owoce i Warzywa" },
+  { id: 'p25', name: "Śliwki", carbs: 11, protein: 0.7, fat: 0.3, gi: 35, category: "Owoce i Warzywa" },
+  { id: 'p26', name: "Brzoskwinia", carbs: 10, protein: 0.9, fat: 0.2, gi: 35, category: "Owoce i Warzywa" },
+  { id: 'p27', name: "Morele", carbs: 11, protein: 1.4, fat: 0.4, gi: 35, category: "Owoce i Warzywa" },
+  { id: 'p28', name: "Wiśnie", carbs: 12, protein: 1, fat: 0.3, gi: 25, category: "Owoce i Warzywa" },
+  { id: 'p29', name: "Kukurydza z puszki", carbs: 19, protein: 3, fat: 1, gi: 55, category: "Owoce i Warzywa" },
 
   // Nabiał
   { id: 'n1', name: "Mleko 2%", carbs: 5, protein: 3.4, fat: 2, gi: 30, category: "Nabiał" },
@@ -58,6 +66,10 @@ export const LIB_BASE: Product[] = [
   { id: 'n9', name: "Ser feta", carbs: 4, protein: 14, fat: 21, gi: 0, category: "Nabiał" },
   { id: 'n10', name: "Serek wiejski", carbs: 2.7, protein: 11, fat: 5, gi: 30, category: "Nabiał" },
   { id: 'n11', name: "Mleko owsiane", carbs: 7, protein: 1, fat: 1.5, gi: 40, category: "Nabiał" },
+  { id: 'n12', name: "Jogurt grecki", carbs: 4, protein: 9, fat: 10, gi: 35, category: "Nabiał" },
+  { id: 'n13', name: "Maślanka", carbs: 5, protein: 3, fat: 1.5, gi: 30, category: "Nabiał" },
+  { id: 'n14', name: "Camembert", carbs: 0.1, protein: 21, fat: 24, gi: 0, category: "Nabiał" },
+  { id: 'n15', name: "Mozzarella", carbs: 2, protein: 18, fat: 17, gi: 0, category: "Nabiał" },
 
   // Mięso i Ryby
   { id: 'm1', name: "Pierś z kurczaka surowa", carbs: 0, protein: 22, fat: 1.2, gi: 0, category: "Mięso i Ryby" },
@@ -70,6 +82,10 @@ export const LIB_BASE: Product[] = [
   { id: 'm8', name: "Stek wołowy", carbs: 0, protein: 26, fat: 15, gi: 0, category: "Mięso i Ryby" },
   { id: 'm9', name: "Indyk (pierś)", carbs: 0, protein: 24, fat: 1, gi: 0, category: "Mięso i Ryby" },
   { id: 'm10', name: "Makrela wędzona", carbs: 0, protein: 19, fat: 15, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm11', name: "Kiełbasa wieprzowa", carbs: 0, protein: 14, fat: 25, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm12', name: "Szynka parmeńska", carbs: 0, protein: 25, fat: 14, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm13', name: "Tuńczyk w sosie własnym", carbs: 0, protein: 23, fat: 1, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm14', name: "Śledź w oleju", carbs: 0.5, protein: 16, fat: 20, gi: 0, category: "Mięso i Ryby" },
 
   // Gotowe Posiłki
   { id: 'g1', name: "Pizza Margharita (100g)", carbs: 30, protein: 10, fat: 8, gi: 60, category: "Gotowe Posiłki" },
@@ -79,6 +95,10 @@ export const LIB_BASE: Product[] = [
   { id: 'g5', name: "Sushi (Nigiri/Maki)", carbs: 35, protein: 5, fat: 1, gi: 65, category: "Gotowe Posiłki" },
   { id: 'g6', name: "Leczo z cukinią", carbs: 6, protein: 2, fat: 4, gi: 30, category: "Gotowe Posiłki" },
   { id: 'g7', name: "Spaghetti Bolognese", carbs: 25, protein: 8, fat: 6, gi: 55, category: "Gotowe Posiłki" },
+  { id: 'g8', name: "Burger (fast food)", carbs: 25, protein: 12, fat: 15, gi: 65, category: "Gotowe Posiłki" },
+  { id: 'g9', name: "Frytki z piekarnika", carbs: 30, protein: 3, fat: 6, gi: 65, category: "Gotowe Posiłki" },
+  { id: 'g10', name: "Zapiekanka z pieczarkami", carbs: 32, protein: 10, fat: 12, gi: 70, category: "Gotowe Posiłki" },
+  { id: 'g11', name: "Lasagne", carbs: 12, protein: 8, fat: 9, gi: 55, category: "Gotowe Posiłki" },
 
   // Słodycze i Przekąski
   { id: 's1', name: "Czekolada mleczna", carbs: 55, protein: 7, fat: 30, gi: 50, category: "Słodycze i Przekąski" },
@@ -89,4 +109,10 @@ export const LIB_BASE: Product[] = [
   { id: 's6', name: "Lody waniliowe", carbs: 24, protein: 3.5, fat: 11, gi: 60, category: "Słodycze i Przekąski" },
   { id: 's7', name: "Migdały", carbs: 10, protein: 21, fat: 50, gi: 15, category: "Słodycze i Przekąski" },
   { id: 's8', name: "Popcorn", carbs: 60, protein: 12, fat: 4, gi: 55, category: "Słodycze i Przekąski" },
+  { id: 's9', name: "Żelki", carbs: 75, protein: 6, fat: 0, gi: 80, category: "Słodycze i Przekąski" },
+  { id: 's10', name: "Rodzynki", carbs: 79, protein: 3, fat: 0.5, gi: 65, category: "Słodycze i Przekąski" },
+  { id: 's11', name: "Daktyle suszone", carbs: 75, protein: 2.5, fat: 0.4, gi: 70, category: "Słodycze i Przekąski" },
+  { id: 's12', name: "Precle", carbs: 70, protein: 10, fat: 3, gi: 80, category: "Słodycze i Przekąski" },
+  { id: 's13', name: "Baton proteinowy", carbs: 35, protein: 30, fat: 12, gi: 45, category: "Słodycze i Przekąski" },
+  { id: 's14', name: "Orzeszki ziemne", carbs: 16, protein: 26, fat: 49, gi: 15, category: "Słodycze i Przekąski" },
 ];

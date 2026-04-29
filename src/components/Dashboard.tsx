@@ -8,6 +8,7 @@ import {
   Activity,
   Clock,
   Droplets,
+  Syringe,
   Utensils,
   Zap,
   Plus,
@@ -50,6 +51,14 @@ export default function Dashboard({
   onClearInitialAction,
 }: DashboardProps) {
   const [range, setRange] = useState(3);
+  const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
+    const saved = localStorage.getItem('glikosfera_loop_simulation');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('glikosfera_loop_simulation', JSON.stringify(showLoopSimulation));
+  }, [showLoopSimulation]);
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(false);
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [settings, setSettings] = useState<UserSettings>({
@@ -447,12 +456,25 @@ export default function Dashboard({
       {/* Chart Card */}
       <motion.div
         variants={itemVariants}
-        className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors"
+        className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors relative"
       >
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Wykres
-          </h3>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Wykres
+            </h3>
+            <button 
+              onClick={() => setShowLoopSimulation(!showLoopSimulation)}
+              className={cn(
+                "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase transition-all tracking-wider text-left border",
+                showLoopSimulation 
+                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30" 
+                  : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+              )}
+            >
+              {showLoopSimulation ? "Pętla (Wł.)" : "Pętla (Wył.)"}
+            </button>
+          </div>
           <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
             {[3, 6, 12, 24].map((h) => (
               <button
@@ -478,6 +500,7 @@ export default function Dashboard({
             targetMax={settings.targetMax}
             theme={theme}
             settings={settings}
+            showLoopSimulation={showLoopSimulation}
           />
         </div>
       </motion.div>
@@ -605,7 +628,7 @@ export default function Dashboard({
                       <Utensils size={18} strokeWidth={2.5} />
                     )}
                     {log.type === "bolus" && (
-                      <Droplets size={18} strokeWidth={2.5} />
+                      <Syringe size={18} strokeWidth={2.5} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

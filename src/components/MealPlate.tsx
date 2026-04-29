@@ -145,7 +145,14 @@ export default function MealPlate({
       }
     } catch (e) {
       console.error("AI Search failed:", e);
-      setSearchError("AI nie mogło znaleźć wyników dla tego zapytania. Spróbuj sformułować je inaczej.");
+      const errStr = String(e);
+      if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
+         setSearchError("Nieprawidłowy klucz API.");
+      } else if (errStr.includes("zajęte")) {
+         setSearchError("Serwery AI są obecnie przeciążone. Spróbuj później.");
+      } else {
+         setSearchError("AI nie mogło znaleźć wyników dla tego zapytania. Spróbuj sformułować je inaczej.");
+      }
     } finally {
       setIsSearching(false);
     }

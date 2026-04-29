@@ -9,9 +9,10 @@ interface GlucoseChartProps {
   targetMax: number;
   theme: 'light' | 'dark';
   settings?: UserSettings;
+  showLoopSimulation?: boolean;
 }
 
-export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme, settings }: GlucoseChartProps) {
+export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation }: GlucoseChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedPoint, setSelectedPoint] = React.useState<LogEntry | null>(null);
 
@@ -61,7 +62,9 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
     // Prediction Logic (Improved with IOB/COB)
     let predictions: { timestamp: number, value: number }[] = [];
-    if (showPrediction && dataG.length >= 2) {
+    let loopPredictions: { timestamp: number, value: number, actionType?: 'bolus' | 'suspend', actionAmount?: number }[] = [];
+    
+    if ((showPrediction || showLoopSimulation) && dataG.length >= 2) {
       const last = dataG[dataG.length - 1];
       let prev = dataG[dataG.length - 2];
       
@@ -111,6 +114,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       
       const steps = 12; // every 10 min
       let currentVal = last.value;
+      let loopVal = last.value;
+      let simulatedIob = iob;
       
       // Distribute net change non-linearly (more impact sooner)
       for (let i = 1; i <= steps; i++) {
@@ -130,12 +135,57 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         if (currentVal < 40) currentVal = 40;
         if (currentVal > 400) currentVal = 400;
         
-        predictions.push({ timestamp: pTime, value: currentVal });
+        if (showPrediction) {
+          predictions.push({ timestamp: pTime, value: currentVal });
+        }
+
+        if (showLoopSimulation) {
+          // Simulate Closed Loop Algorithm (Artificial Pancreas)
+          // Adjust based on target and current trend
+          const targetMiddle = (targetMin + targetMax) / 2;
+          let loopAdjustment = 0;
+          let actionType: 'bolus' | 'suspend' | undefined;
+          let actionAmount: number | undefined;
+          
+          if (loopVal > targetMax) {
+            // Auto bolus / basal increase
+            if (simulatedIob < 2) { // Max allowed auto-iob
+              const neededDrop = loopVal - targetMiddle;
+              const insulinNeeded = neededDrop / isf;
+              const appliedInsulin = Math.min(insulinNeeded * 0.2, 0.5); // Administer up to 0.5u
+              if (appliedInsulin > 0.05) {
+                simulatedIob += appliedInsulin;
+                actionType = 'bolus';
+                actionAmount = appliedInsulin;
+              }
+            }
+          } else if (loopVal < targetMin + 10) {
+            // Basal suspend
+            const preventedDrop = (0.2 / 6) * isf; // simulate suspending 0.2u/hr basal
+            loopAdjustment = preventedDrop; // BG goes up relative to what it would have done
+            simulatedIob = Math.max(0, simulatedIob - 0.05); // IOB decays faster due to no basal
+            actionType = 'suspend';
+            actionAmount = 0.2;
+          }
+          
+          const loopNetExpectedChange = expectedBgRise - (simulatedIob * isf);
+          const loopTheoreticalImpact = (loopNetExpectedChange / steps) * (1 - dampening * 0.5);
+          
+          loopVal += trendImpact + loopTheoreticalImpact + loopAdjustment;
+          
+          // Loop tends to stabilize faster
+          loopVal += (targetMiddle - loopVal) * 0.1;
+
+          if (loopVal < 40) loopVal = 40;
+          if (loopVal > 400) loopVal = 400;
+          
+          loopPredictions.push({ timestamp: pTime, value: loopVal, actionType, actionAmount });
+        }
       }
     }
 
     const isDark = theme === 'dark';
-    const allVals = [...dataG.map(l => l.value), ...predictions.map(p => p.value)];
+    const allVals = [...dataG.map(l => l.value), ...predictions.map(p => p.value), ...loopPredictions.map(p => p.value)];
 
     // Dynamic Y-Axis (Zoom)
     let chartMinY = 0;
@@ -264,14 +314,14 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
     // Time Labels
     ctx.textAlign = 'center';
-    const labels = showPrediction 
+    const labels = (showPrediction || showLoopSimulation) 
       ? [start, now, end]
       : [start, start + rangeMs / 2, now];
     
     labels.forEach((time, i) => {
       const x = getX(time);
       let label = '';
-      if (showPrediction) {
+      if (showPrediction || showLoopSimulation) {
         label = i === 1 ? 'NOW' : i === 0 ? `-${hours}H` : `+2H`;
       } else {
         label = i === 2 ? 'NOW' : i === 0 ? `-${hours}H` : `-${hours/2}H`;
@@ -289,7 +339,9 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
     });
 
-    // Draw Bolus Bars & Dots
+    // Draw Bolus Bars & Icons
+    ctx.textAlign = 'center';
+    ctx.font = '14px sans-serif';
     dataB.forEach(b => {
       const x = getX(b.timestamp);
       const h = Math.min(40, b.value * 5);
@@ -298,12 +350,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       ctx.fillStyle = 'rgba(79, 70, 229, 0.4)';
       ctx.fillRect(x - 2, H - padB - h, 4, h);
       
-      // Dot for Bolus
-      ctx.fillStyle = '#4f46e5';
-      ctx.beginPath(); ctx.arc(x, H - padB - 5, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      // Icon for Bolus (Syringe/Ampoule)
+      ctx.fillText('💉', x, H - padB - 5);
     });
 
     // Draw Meal Icons & Dots
@@ -372,8 +420,40 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         ctx.stroke();
         ctx.setLineDash([]);
       }
+
+      // Loop Simulation Line (Dashed + Different color)
+      if (loopPredictions.length > 0) {
+        ctx.beginPath();
+        ctx.setLineDash([3, 4]); // Different dash pattern
+        ctx.strokeStyle = '#10b981'; // Emerald color for loop simulation
+        ctx.lineWidth = 2.5;
+        const last = dataG[dataG.length - 1];
+        ctx.moveTo(getX(last.timestamp), getY(last.value));
+        loopPredictions.forEach(p => {
+          ctx.lineTo(getX(p.timestamp), getY(p.value));
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.textAlign = 'center';
+        // Draw loop actions
+        loopPredictions.forEach(p => {
+          if (p.actionType) {
+            const x = getX(p.timestamp);
+            const py = getY(p.value);
+            
+            ctx.beginPath();
+            if (p.actionType === 'bolus') {
+              ctx.fillText('💉', x, py - 8);
+            } else if (p.actionType === 'suspend') {
+              ctx.fillStyle = '#ef4444'; // Red square for suspend
+              ctx.fillRect(x - 4, py + 8, 8, 8);
+            }
+          }
+        });
+      }
     }
-  }, [logs, hours, targetMin, targetMax, theme, settings]);
+  }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation]);
 
   return (
     <div className="relative w-full h-full">

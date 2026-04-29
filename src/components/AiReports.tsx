@@ -52,6 +52,14 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
       });
     } catch (e) {
       console.error(e);
+      const errStr = String(e);
+      if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
+         alert("Nieprawidłowy klucz API.");
+      } else if (errStr.includes("zajęte")) {
+         alert("Wszystkie serwery AI są obecnie zajęte. Spróbuj ponownie później.");
+      } else {
+         alert("AI nie mogło wygenerować raportu. Spróbuj powtórzyć.");
+      }
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@ import { getEffectiveUid } from '../lib/utils';
 import React from 'react';
 import { motion } from 'motion/react';
 import { LogEntry } from '../types';
-import { Activity, Utensils, Droplets, ArrowLeft } from 'lucide-react';
+import { Activity, Utensils, Droplets, Syringe, ArrowLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 import SwipeableItem from './SwipeableItem';
 import { db } from '../lib/firebase';
@@ -76,7 +76,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                 )}>
                   {log.type === 'glucose' && <Activity size={18} strokeWidth={2.5} />}
                   {log.type === 'meal' && <Utensils size={18} strokeWidth={2.5} />}
-                  {log.type === 'bolus' && <Droplets size={18} strokeWidth={2.5} />}
+                  {log.type === 'bolus' && <Syringe size={18} strokeWidth={2.5} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-sm dark:text-white truncate">

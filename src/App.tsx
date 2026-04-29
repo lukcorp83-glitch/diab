@@ -495,7 +495,7 @@ export default function App() {
             <Logo className="w-11 h-11" />
             <div>
               <h1 className="text-xl font-black tracking-tight leading-none dark:text-white">GlikoControl</h1>
-              <p className="text-indigo-500 text-[8px] font-black uppercase tracking-widest mt-1 opacity-80">G-Pulse Active • v2.5</p>
+              <p className="text-indigo-500 text-[8px] font-black uppercase tracking-widest mt-1 opacity-80">v2.6</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

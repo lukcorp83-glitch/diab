@@ -1132,6 +1132,30 @@ export default function Profile({
             </button>
           </div>
           
+          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+            <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+              <Zap size={14} className="text-rose-400" /> Gemini API Key
+            </h4>
+            <p className="text-[8px] text-slate-500 dark:text-slate-400 mb-1 leading-tight">
+              Aplikacja do analiz i rozpoznawania jedzenia wykorzystuje AI Gemini. Jeśli korzystasz z GlikoControl p-oza oficjalną domeną (np. GitHub Pages, Vercel), wklej tutaj własny, darmowy klucz Gemini API (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-500 underline">Klucz z AI Studio</a>).
+            </p>
+            <input 
+              type="password" 
+              placeholder="Twój klucz Gemini API (zaczyna się od AIza...)" 
+              value={localStorage.getItem('gemini_api_key') || ''}
+              onChange={e => {
+                const val = e.target.value.trim();
+                if (val) {
+                  localStorage.setItem('gemini_api_key', val);
+                } else {
+                  localStorage.removeItem('gemini_api_key');
+                }
+                setSettings({ ...settings });
+              }}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
+            />
+          </div>
+
           <CgmImport user={user} onComplete={() => window.dispatchEvent(new Event('force-nightscout-sync'))} />
 
           <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
