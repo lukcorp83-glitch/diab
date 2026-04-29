@@ -62,10 +62,10 @@ export const geminiService = {
     const creds = getApiKey();
     const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
     
-    // Prefer pro models for images/vision, flash for text (faster)
+    // Prefer current stable and fast models
     const modelsToTry = imageData 
-      ? ['gemini-3.1-pro', 'gemini-3-flash', 'gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-1.5-flash']
-      : ['gemini-3-flash', 'gemini-2.0-flash', 'gemini-3.1-pro', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'];
+      ? ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-lite-preview-02-05']
+      : ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-lite-preview-02-05'];
 
     let contents;
     if (imageData) {
