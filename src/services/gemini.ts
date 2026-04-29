@@ -92,8 +92,7 @@ export const geminiService = {
       let lastError = null;
       
       const payload = { 
-        contents,
-        uid: auth.currentUser?.uid || 'anonymous'
+        contents
       };
 
       for (const model of modelsToTry) {
