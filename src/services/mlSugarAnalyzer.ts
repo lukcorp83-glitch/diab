@@ -7,14 +7,8 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     let pob = 0; // Protein on Board
     let fob = 0; // Fat on Board
     
-    // Optymalizacja: patrzymy tylko na logi z ostatnich 8h względem targetTime
-    const cutoffTime = targetTime - (8 * 60 * 60 * 1000);
-    
-    for (let i = pastLogs.length - 1; i >= 0; i--) {
-        const log = pastLogs[i];
+    for (const log of pastLogs) {
         const logTime = log.timestamp || new Date(log.createdAt).getTime();
-        
-        if (logTime < cutoffTime) break; // Skoro logi są posortowane, dalsze są jeszcze starsze
         const diffMs = targetTime - logTime;
         if (diffMs < 0) continue; 
         
@@ -56,182 +50,79 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     };
 }
 
-let _currentFullAnalysisPromise: Promise<any> | null = null;
-let _currentQuickAnalysisPromise: Promise<any> | null = null;
-let _cachedResult: any = null;
-let _lastAnalysisTime: number = 0;
-let _lastLogsFingerprint: string | null = null;
+let _isTraining = false;
 
 export const MLAnalyzer = {
   // Funkcja analizująca logi z wykorzystaniem TensorFlow.js (lokalnie/w przeglądarce)
-  analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<{ 
+  async analyzeData(logs: any[]): Promise<{ 
     predictedNextHour: number, 
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
-    analyzedPeriod?: string,
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
   }> {
-    const logsFingerprint = logs && logs.length > 0 
-      ? `v2-${mode}-${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}` 
-      : 'empty';
-
-    // 1. Sprawdź Cache w pamięci i LocalStorage
-    if (!force) {
-      if (_cachedResult && _lastLogsFingerprint === logsFingerprint) {
-        return Promise.resolve(_cachedResult);
-      }
-      
-      if (mode === 'full') {
-        const persistentCache = localStorage.getItem('glikosense_last_result');
-        const persistentFingerprint = localStorage.getItem('glikosense_last_fingerprint');
-        
-        if (persistentCache && persistentFingerprint === logsFingerprint) {
-          try {
-            const parsed = JSON.parse(persistentCache);
-            _cachedResult = parsed;
-            _lastLogsFingerprint = logsFingerprint;
-            _lastAnalysisTime = Date.now();
-            return Promise.resolve(parsed);
-          } catch (e) {
-            console.warn("Błąd odczytu cache GlikoSense");
-          }
-        }
-      }
+    if (_isTraining) {
+      console.warn("GlikoSense: Analiza już trwa, ignoruję żądanie.");
+      return { predictedNextHour: 0, riskOfHypo: false, insights: ["Obliczenia w toku..."], accuracy: 0 };
     }
 
-    if (mode === 'full' && _currentFullAnalysisPromise) {
-      return _currentFullAnalysisPromise;
-    }
-    if (mode === 'quick' && _currentQuickAnalysisPromise) {
-      return _currentQuickAnalysisPromise;
+    if(!logs || logs.length < 5) {
+      return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense. Wymagane co najmniej 5 wpisów."], accuracy: 0 };
     }
 
-    const doAnalysis = async () => {
-      if(!logs || logs.length < 3) {
-        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense."], accuracy: 0 };
-      }
+    try {
+      _isTraining = true;
+      await tf.ready();
 
-      try {
-        // Limit wait for TF to prevent total hang
-        await Promise.race([
-          tf.ready(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("TF Timeout")), 5000))
-        ]);
-      } catch (e) {
-        console.warn("TF Ready timeout or error, trying to proceed anyway", e);
-      }
-
-      const now = Date.now();
-      // Tryb szybki: ostatnie 4h. Tryb pełny: 7 dni.
-      const lookbackMs = mode === 'quick' ? (4 * 60 * 60 * 1000) : (7 * 24 * 60 * 60 * 1000);
-      const cutoffTime = now - lookbackMs;
-      
-      let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
-      
-      if (mode === 'full' && logsToAnalyze.length > 400) logsToAnalyze = logsToAnalyze.slice(-400);
-      if (logsToAnalyze.length < 3) logsToAnalyze = logs.slice(-20);
-
-      // 1. RESAMPLING & SMOOTHING (Optymalizacja wydajności)
-      const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
-      const glucoseLogsOrig = sorted.filter(l => l.type === 'glucose' || l.bg);
-      
-      if (glucoseLogsOrig.length < 5) {
-        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych glikemii do nauki."], accuracy: 0 };
-      }
-
-      // Tworzymy siatkę co 5 minut dla stabilności LSTM
-      const resampledGlucose: { timestamp: number, value: number, trend: number }[] = [];
-      let startTime = glucoseLogsOrig[0].timestamp || new Date(glucoseLogsOrig[0].createdAt).getTime();
-      // Zabezpieczenie: nie cofamy się dalej niż wybrany okres nawet jeśli logi są stare
-      if (startTime < cutoffTime) startTime = cutoffTime;
-      
-      const endTime = glucoseLogsOrig[glucoseLogsOrig.length - 1].timestamp || new Date(glucoseLogsOrig[glucoseLogsOrig.length - 1].createdAt).getTime();
-      const stepMs = 5 * 60 * 1000;
-
-      let origIdx = 0;
-      for (let t = startTime; t <= endTime; t += stepMs) {
-        // Efektywne szukanie punktów "przed" i "po"
-        while (origIdx < glucoseLogsOrig.length - 1 && (glucoseLogsOrig[origIdx + 1].timestamp || new Date(glucoseLogsOrig[origIdx + 1].createdAt).getTime()) <= t) {
-          origIdx++;
-        }
-
-        const before = glucoseLogsOrig[origIdx];
-        const beforeTime = before.timestamp || new Date(before.createdAt).getTime();
+    const twoWeeksAgoMs = Date.now() - (14 * 24 * 60 * 60 * 1000);
+    const recentLogs = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= twoWeeksAgoMs);
+    let logsToAnalyze = recentLogs.length >= 5 ? recentLogs : logs;
+    
+    // Sortowanie od najstarszych do najnowszych
+    const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+    
+    const dataset = [];
+    const glucoseLogs = sorted.filter(l => l.type === 'glucose' || l.bg);
+    
+    for(let i=0; i < glucoseLogs.length - 1; i++) {
+        const current = glucoseLogs[i];
+        const next = glucoseLogs[i+1];
         
-        // Optymalizacja: jeśli t jest znacznie dalej niż obecny log, przeskocz do przodu
-        if (t < beforeTime) {
-             t = beforeTime - stepMs;
-             continue;
-        }
+        const currentBg = current.value || current.bg;
+        const nextBg = next.value || next.bg;
+        
+        if(!currentBg || !nextBg) continue;
 
-        const after = (origIdx < glucoseLogsOrig.length - 1) ? glucoseLogsOrig[origIdx + 1] : null;
-
-        if (before && after) {
-          const t1 = beforeTime;
-          const t2 = after.timestamp || new Date(after.createdAt).getTime();
-          const v1 = before.value || before.bg;
-          const v2 = after.value || after.bg;
-          
-          const val = v1 + (v2 - v1) * ((t - t1) / (t2 - t1));
-          resampledGlucose.push({ timestamp: t, value: val, trend: 0 });
-        } else if (before) {
-          resampledGlucose.push({ timestamp: t, value: before.value || before.bg, trend: 0 });
+        let trendNum = 0;
+        let prevTrendNum = 0;
+        if(current.trend) {
+            const up = ['SingleUp', 'FortyFiveUp', 'DoubleUp'];
+            const down = ['SingleDown', 'FortyFiveDown', 'DoubleDown'];
+            if(up.includes(current.trend)) trendNum = 10;
+            if(current.trend === 'DoubleUp') trendNum = 20;
+            if(down.includes(current.trend)) trendNum = -10;
+            if(current.trend === 'DoubleDown') trendNum = -20;
+        } else if(i > 0) {
+            trendNum = currentBg - (glucoseLogs[i-1].value || glucoseLogs[i-1].bg);
+            if (i > 1) {
+                prevTrendNum = (glucoseLogs[i-1].value || glucoseLogs[i-1].bg) - (glucoseLogs[i-2].value || glucoseLogs[i-2].bg);
+            }
         }
         
-        if (resampledGlucose.length > 2016) break; // Max 7 dni danych (7 * 24 * 12)
-      }
-      
-      if (resampledGlucose.length === 0) {
-        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało poprawnych danych glikemii po przetworzeniu."], accuracy: 0 };
-      }
-
-      await new Promise(r => setTimeout(r, 0)); // Pozwól UI odetchnąć po resamplingu - setTimeout działa też w background tab, tf.nextFrame nie.
-
-      // Proste wygładzanie (EMA)
-      let smoothedValue = resampledGlucose[0].value;
-      const alpha = 0.4;
-      resampledGlucose.forEach((p, idx) => {
-        smoothedValue = (p.value * alpha) + (smoothedValue * (1 - alpha));
-        p.value = smoothedValue;
-        if (idx > 0) {
-          p.trend = p.value - resampledGlucose[idx-1].value;
-        }
-      });
-      
-      const dataset = [];
-      
-      // Optymalizacja datasetu - pre-filtrowanie logów nie-glikemicznych
-      const treatmentLogs = sorted.filter(l => l.type === 'meal' || l.type === 'bolus' || l.type === 'insulin');
-      let treatmentIdx = 0;
-
-      for(let i=0; i < resampledGlucose.length - 1; i++) {
-        if (i % 500 === 0) await new Promise(r => setTimeout(r, 0)); // UI breather dla długich pętli
-        const current = resampledGlucose[i];
-        const next = resampledGlucose[i+1];
-        const currentTimeMs = current.timestamp;
-
-        // Przesuwamy okno logów aktywnych
-        while (treatmentIdx < treatmentLogs.length && (treatmentLogs[treatmentIdx].timestamp || new Date(treatmentLogs[treatmentIdx].createdAt).getTime()) <= currentTimeMs) {
-          treatmentIdx++;
-        }
-        const relevantLogs = treatmentLogs.slice(0, treatmentIdx);
-        
-        let trendNum = current.trend;
-        let prevTrendNum = i > 0 ? resampledGlucose[i-1].trend : 0;
         let accelerationNum = trendNum - prevTrendNum;
 
-        const { iob, cob, pob, fob } = calculateActiveAtTime(currentTimeMs, relevantLogs);
+        const currentTimeMs = current.timestamp || new Date(current.createdAt).getTime();
+        const pastLogs = sorted.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) <= currentTimeMs);
+        const { iob, cob, pob, fob } = calculateActiveAtTime(currentTimeMs, pastLogs);
 
         let timeSinceMeal = 1440;
         let timeSinceBolus = 1440;
-        for (let j = relevantLogs.length - 1; j >= 0; j--) {
-             const t = relevantLogs[j].timestamp || new Date(relevantLogs[j].createdAt).getTime();
+        for (let j = pastLogs.length - 1; j >= 0; j--) {
+             const t = pastLogs[j].timestamp || new Date(pastLogs[j].createdAt).getTime();
              const minutes = (currentTimeMs - t) / 60000;
-             if (relevantLogs[j].type === 'meal' && minutes < timeSinceMeal && timeSinceMeal === 1440) timeSinceMeal = minutes;
-             if ((relevantLogs[j].type === 'bolus' || relevantLogs[j].type === 'insulin') && minutes < timeSinceBolus && timeSinceBolus === 1440) timeSinceBolus = minutes;
-             if (minutes > 480) break; // Optymalizacja wsteczna
+             if (pastLogs[j].type === 'meal' && minutes < timeSinceMeal && timeSinceMeal === 1440) timeSinceMeal = minutes;
+             if ((pastLogs[j].type === 'bolus' || pastLogs[j].type === 'insulin') && minutes < timeSinceBolus && timeSinceBolus === 1440) timeSinceBolus = minutes;
         }
 
         const date = new Date(currentTimeMs);
@@ -241,18 +132,18 @@ export const MLAnalyzer = {
         const isWeekend = (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0;
         const iobCobRatio = (iob + 0.1) / (cob + 0.1);
 
-        let nextTrendTarget = next.value - current.value;
+        let nextTrendTarget = nextBg - currentBg;
         
         dataset.push({
             timestamp: currentTimeMs,
-            inputs: [current.value, trendNum, accelerationNum, cob, iob, timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio], 
-            output: [next.value / 400, nextTrendTarget / 50]
+            inputs: [currentBg, trendNum, accelerationNum, cob, iob, timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio], 
+            output: [nextBg / 400, nextTrendTarget / 50]
         });
-      }
+    }
 
-      if(dataset.length === 0) {
+    if(dataset.length === 0) {
         return { predictedNextHour: 0, riskOfHypo: false, insights: ["Brak spójnych par odczytów dla układu neuronowego GlikoSense."], accuracy: 0};
-      }
+    }
 
     const numFeatures = 13;
     let means = new Array(numFeatures).fill(0);
@@ -295,10 +186,7 @@ export const MLAnalyzer = {
     let model: tf.LayersModel;
     let isModelLoaded = false;
     try {
-        model = await Promise.race([
-            tf.loadLayersModel('indexeddb://glikosense-lstm'),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout loading model")), 2000))
-        ]) as tf.LayersModel;
+        model = await tf.loadLayersModel('indexeddb://glikosense-lstm');
         const inputShape = model.layers[0].batchInputShape;
         const outputShape = model.outputs[0].shape;
         
@@ -333,12 +221,12 @@ export const MLAnalyzer = {
 
     try {
         await model.fit(inputsTensor, outputTensor, {
-            epochs: mode === 'quick' ? (isModelLoaded ? 3 : 8) : (isModelLoaded ? 6 : 25), 
+            epochs: isModelLoaded ? 4 : 20, 
             shuffle: true,
             verbose: 0,
             callbacks: {
               onEpochEnd: async () => {
-                if (mode !== 'quick') await new Promise(r => setTimeout(r, 0)); 
+                await tf.nextFrame(); // Release the main thread briefly
               }
             }
         });
@@ -353,13 +241,7 @@ export const MLAnalyzer = {
         });
 
         try {
-            // Zapisujemy tylko po pełnej analizie
-            if (mode === 'full') {
-              await Promise.race([
-                model.save('indexeddb://glikosense-lstm'),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout saving model")), 2000))
-              ]);
-            }
+            await model.save('indexeddb://glikosense-lstm');
         } catch(err) {
             console.warn("Zapis modelu do IndexedDB nie powiódł się", err);
         }
@@ -636,37 +518,6 @@ export const MLAnalyzer = {
     if (gmiPercentage > 0) {
         insights.push(`📊 Lokalne estymatory wyliczyły GMI (HbA1c) na ok. ${gmiPercentage.toFixed(1)}%.`);
     }
-
-    // --- Pamięć Posiłków GlikoSense ---
-    const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
-    const mealLogs = logsToAnalyze.filter(l => l.type === 'meal');
-    
-    mealLogs.forEach(m => {
-      const mealTime = m.timestamp || new Date(m.createdAt).getTime();
-      const mealName = m.note || m.name || m.description || "Posiłek";
-      if (!mealName || mealName.length < 3 || mealName === "Posiłek") return;
-
-      const postMealBg = glucoseLogsOrig.filter(g => {
-        const gt = g.timestamp || new Date(g.createdAt).getTime();
-        return gt > mealTime + 45*60*1000 && gt < mealTime + 180*60*1000;
-      });
-
-      if (postMealBg.length > 0) {
-        const maxBg = Math.max(...postMealBg.map(g => g.value || g.bg));
-        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0 };
-        mealPatterns[mealName].count++;
-        if (maxBg > 180) mealPatterns[mealName].spikes++;
-      }
-    });
-
-    const problematicMeals = Object.entries(mealPatterns)
-      .filter(([_, stats]) => stats.spikes > 0 && (stats.spikes / stats.count) >= 0.5)
-      .map(([name]) => name);
-
-    if (problematicMeals.length > 0) {
-      insights.push(`🧠 Pamięć posiłków: ${problematicMeals.slice(0, 2).join(", ")} historycznie powodują u Ciebie wysokie skoki cukru.`);
-    }
-    // ---------------------------------
     
     // Dispose the model at the end so it doesn't leak memory
     model.dispose();
@@ -675,8 +526,7 @@ export const MLAnalyzer = {
         predictedNextHour: Math.round(predictedNextHour),
         riskOfHypo,
         insights,
-        accuracy: Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80))),
-        analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 7 dni',
+        accuracy: Math.max(0, 100 - Math.min(100, Math.round((avgErrorInMgDl/100)*100))),
         predictionCurve,
         metrics: {
             iob: currentIob,
@@ -687,33 +537,9 @@ export const MLAnalyzer = {
             avgBias
         }
     };
-    };
-
-    const analysisPromise = doAnalysis().then(res => {
-      _cachedResult = res;
-      _lastAnalysisTime = Date.now();
-      _lastLogsFingerprint = logsFingerprint;
-      
-      // Zapisz do pamięci trwałej (tylko pełne wyniki)
-      if (mode === 'full') {
-        try {
-          localStorage.setItem('glikosense_last_result', JSON.stringify(res));
-          localStorage.setItem('glikosense_last_fingerprint', logsFingerprint);
-        } catch (e) {
-          console.warn("Błąd zapisu do LocalStorage GlikoSense (możliwy brak miejsca)");
-        }
-      }
-      
-      return res;
-    }).finally(() => {
-      if (mode === 'full') _currentFullAnalysisPromise = null;
-      else _currentQuickAnalysisPromise = null;
-    });
-
-    if (mode === 'full') _currentFullAnalysisPromise = analysisPromise;
-    else _currentQuickAnalysisPromise = analysisPromise;
-
-    return analysisPromise;
+    } finally {
+      _isTraining = false;
+    }
   }
 }
 

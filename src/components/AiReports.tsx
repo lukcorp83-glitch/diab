@@ -41,10 +41,7 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
       } else {
         const days = type === 'week' ? 7 : 30;
         const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-        const filteredLogs = logs.filter(l => {
-          const ts = l.timestamp || new Date(l.createdAt).getTime();
-          return ts > cutoff;
-        });
+        const filteredLogs = logs.filter(l => l.timestamp > cutoff);
         content = await geminiService.getPeriodAnalysis(type, filteredLogs);
         reportType = type === 'week' ? "Raport Tygodniowy" : "Raport Miesięczny";
       }
@@ -71,22 +68,16 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
 
   const chartData = useMemo(() => {
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const glucoseLogs = logs.filter(l => {
-      if (l.type !== 'glucose' && !l.bg) return false;
-      const ts = l.timestamp || new Date(l.createdAt).getTime();
-      return typeof ts === 'number' && ts > thirtyDaysAgo;
-    });
+    const glucoseLogs = logs.filter(l => l.type === 'glucose' && typeof l.timestamp === 'number' && l.timestamp > thirtyDaysAgo);
     
     if (glucoseLogs.length === 0) return [];
 
     const grouped = glucoseLogs.reduce((acc, log) => {
-      const ts = log.timestamp || new Date(log.createdAt).getTime();
-      const dateObj = new Date(ts);
+      const dateObj = new Date(log.timestamp);
       if (isNaN(dateObj.getTime())) return acc;
       const date = dateObj.toISOString().split('T')[0];
       if (!acc[date]) acc[date] = [];
-      const val = typeof log.value === 'number' ? log.value : log.bg;
-      if (val) acc[date].push(val);
+      acc[date].push(log.value);
       return acc;
     }, {} as Record<string, number[]>);
 

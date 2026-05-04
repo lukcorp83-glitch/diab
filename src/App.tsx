@@ -42,31 +42,13 @@ import { twMerge } from 'tailwind-merge';
 
 import Dashboard from './components/Dashboard';
 
-const lazyWithReload = (importFunc: () => Promise<any>) => {
-  return React.lazy(async () => {
-    try {
-      return await importFunc();
-    } catch (error) {
-      if (error instanceof Error && (error.name === 'ChunkLoadError' || error.message.includes('Failed to fetch dynamically imported module'))) {
-        const isReloading = sessionStorage.getItem('chunk_reload');
-        if (!isReloading) {
-          sessionStorage.setItem('chunk_reload', 'true');
-          window.location.reload();
-          return new Promise(() => {}); // prevent Error Boundary while reloading
-        }
-      }
-      throw error;
-    }
-  });
-};
-
-const BolusCalculator = lazyWithReload(() => import('./components/BolusCalculator'));
-const FoodDatabase = lazyWithReload(() => import('./components/FoodDatabase'));
-const MealPlate = lazyWithReload(() => import('./components/MealPlate'));
-const AiReports = lazyWithReload(() => import('./components/AiReports'));
-const Profile = lazyWithReload(() => import('./components/Profile'));
-const Achievements = lazyWithReload(() => import('./components/Achievements'));
-const HistoryView = lazyWithReload(() => import('./components/HistoryView'));
+const BolusCalculator = React.lazy(() => import('./components/BolusCalculator'));
+const FoodDatabase = React.lazy(() => import('./components/FoodDatabase'));
+const MealPlate = React.lazy(() => import('./components/MealPlate'));
+const AiReports = React.lazy(() => import('./components/AiReports'));
+const Profile = React.lazy(() => import('./components/Profile'));
+const Achievements = React.lazy(() => import('./components/Achievements'));
+const HistoryView = React.lazy(() => import('./components/HistoryView'));
 import Sidebar from './components/Sidebar';
 import { cn } from './lib/utils';
 import { nightscoutService } from './services/nightscout';

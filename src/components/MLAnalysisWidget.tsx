@@ -11,27 +11,13 @@ interface MLAnalysisWidgetProps {
 
 export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [mlResult, setMlResult] = useState<{
     predictedNextHour: number,
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
-    predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
-    metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number },
-    analyzedPeriod?: string
-  } | null>(() => {
-    // Inicjalizacja z cache, aby uniknąć migania loaderem
-    const cached = localStorage.getItem('glikosense_last_result');
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  });
+    metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
+  } | null>(null);
 
   const lastProcessedLogsRef = React.useRef<string>("");
 
@@ -40,68 +26,28 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
       ? `${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}`
       : "empty";
 
-    let timer: NodeJS.Timeout;
-
     if (logs && logs.length >= 5 && logsKey !== lastProcessedLogsRef.current) {
-        timer = setTimeout(() => {
-          lastProcessedLogsRef.current = logsKey;
-          runML();
-        }, 1000); // 1 second debounce
+      const timer = setTimeout(() => {
+        lastProcessedLogsRef.current = logsKey;
+        runML();
+      }, 1000); // 1 second debounce
+      return () => clearTimeout(timer);
     }
-
-    // Dodatkowy interwał do odświeżania cyklicznego co 5 minut
-    const interval = setInterval(() => {
-      runML();
-    }, 5 * 60 * 1000);
-
-    return () => {
-      if (timer) clearTimeout(timer);
-      clearInterval(interval);
-    };
   }, [logs]);
 
-  const runML = async (force: boolean = false) => {
-    if (isAnalyzing && !force) return;
-    
+  const runML = async () => {
     setIsAnalyzing(true);
-    setError(null);
-    
-    // Safety timeout in case ML analysis hangs completely (e.g. indexedDB or tfjs issues)
-    const safetyTimeout = setTimeout(() => {
-        setIsAnalyzing(false);
-        setError("Przekroczono czas oczekiwania na model.");
-    }, 40000); // 40 seconds max
-    
-    try {
-        // Start quick analysis immediately
-        const quickPromise = MLAnalyzer.analyzeData(logs, force, 'quick');
-        
-        // Wait for quick result to show something to the user
-        const qResult = await quickPromise;
-        setMlResult(qResult);
-        
-        // Now start full analysis in the background without blocking the result display
-        MLAnalyzer.analyzeData(logs, force, 'full')
-          .then(fullResult => {
-              setMlResult(fullResult);
-              setError(null);
-          })
-          .catch(e => {
-              console.error("GlikoSense Full Analysis Error:", e);
-              // Nie ustawiamy błędu globalnego jeśli mamy już wynik quick
-              if (!qResult) setError("Błąd pełnej analizy.");
-          })
-          .finally(() => {
-              clearTimeout(safetyTimeout);
-              setIsAnalyzing(false);
-          });
-          
-    } catch (e) {
-        console.error("GlikoSense Quick Analysis Error:", e);
-        setError("Nie udało się przeanalizować danych. Spróbuj później.");
-        clearTimeout(safetyTimeout);
-        setIsAnalyzing(false);
-    }
+    // Symulujemy małe opóźnienie dla UX, ale tensorflow może potrzebować chwilki
+    setTimeout(async () => {
+        try {
+            const result = await MLAnalyzer.analyzeData(logs);
+            setMlResult(result);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    }, 100);
   };
 
   const chartData = useMemo(() => {
@@ -109,18 +55,14 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
     
     // Use last 5 glucose readings
     const glucoseLogs = logs
-      .filter(l => l.type === 'glucose' || l.bg)
-      .sort((a, b) => {
-        const ta = a.timestamp || new Date(a.createdAt).getTime();
-        const tb = b.timestamp || new Date(b.createdAt).getTime();
-        return tb - ta;
-      })
+      .filter(l => l.type === 'glucose')
+      .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 5)
       .reverse();
       
     const data = glucoseLogs.map((log, i) => ({
       name: `T-${5 - i}`,
-      value: log.value || log.bg,
+      value: log.value,
       isPrediction: false
     }));
     
@@ -160,19 +102,17 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
               {isAnalyzing ? (
                 <>
-                  <Loader2 size={10} className="animate-spin text-accent-500" /> OBLICZANIE...
+                  <Loader2 size={10} className="animate-spin text-accent-500" /> W RAMACH OBLICZEŃ...
                 </>
               ) : (
-                <>
-                  {mlResult?.analyzedPeriod ? mlResult.analyzedPeriod : 'GlikoSense ENGINE'}
-                </>
+                'GlikoSense ENGINE'
               )}
             </span>
           </div>
         </div>
         
         <button 
-          onClick={() => runML(true)} 
+          onClick={runML} 
           disabled={isAnalyzing}
           className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-accent-500 dark:text-slate-400 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-50"
           title="Odśwież analizę"
@@ -182,7 +122,7 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
       </div>
 
       <AnimatePresence mode="wait">
-          {logs.filter(l => l.type === 'glucose' || l.bg).length < 5 ? (
+          {logs.length < 5 ? (
             <motion.div 
                key="nodata"
                initial={{ opacity: 0 }}
@@ -192,36 +132,7 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
             >
                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Zbyt mało danych do analizy (min. 5 wpisów)</span>
             </motion.div>
-          ) : error && !mlResult ? (
-            <motion.div 
-               key="error"
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               className="h-48 flex flex-col items-center justify-center relative z-10 bg-rose-50 dark:bg-rose-900/10 rounded-3xl border border-rose-100 dark:border-rose-900/30"
-            >
-               <AlertTriangle size={32} className="text-rose-500 mb-4" />
-               <span className="text-xs font-bold uppercase tracking-widest text-rose-500 text-center px-6">{error}</span>
-               <button 
-                 onClick={() => runML(true)}
-                 className="mt-4 text-[10px] font-bold text-accent-500 uppercase tracking-widest hover:underline"
-               >
-                 Spróbuj ponownie
-               </button>
-            </motion.div>
-          ) : isAnalyzing && !mlResult ? (
-            <motion.div 
-               key="analyzing_fresh"
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               className="h-48 flex flex-col items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700"
-            >
-               <Loader2 size={32} className="animate-spin text-accent-500 mb-4 opacity-50" />
-               <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Pierwsza analiza GlikoSense...</span>
-               <span className="text-[10px] text-slate-400 mt-2">To może potrwać kilka sekund</span>
-            </motion.div>
-          ) : mlResult ? (
+          ) : mlResult && !isAnalyzing ? (
               <motion.div 
                 key="result"
                 initial={{ opacity: 0, y: 10 }} 
