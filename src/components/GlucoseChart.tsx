@@ -157,7 +157,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start);
 
     let loopPredictions: { timestamp: number, value: number, actionType?: 'bolus' | 'suspend', actionAmount?: number }[] = [];
-    let mlPredictionData = mlPredictionDataState.filter(p => p.timestamp >= start && p.timestamp <= end);
+    let mlPredictionData = mlPredictionDataState;
     
     if ((showLoopSimulation || showMLPrediction) && dataG.length >= 2) {
       const last = dataG[dataG.length - 1];
@@ -287,6 +287,20 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     loopPredictions.forEach(p => addPoint(p.timestamp, 'loopPrediction', p.value, { loopAction: p.actionType }));
     mlPredictionData.forEach(p => addPoint(p.timestamp, 'mlPrediction', p.value));
 
+    // Stitch predictions to the last actual glucose point to ensure lines are connected
+    if (dataG.length > 0) {
+      const lastG = dataG[dataG.length - 1];
+      const lastPoint = timeMap.get(lastG.timestamp);
+      if (lastPoint) {
+        if (showLoopSimulation && loopPredictions.length > 0) {
+          lastPoint.loopPrediction = lastG.value;
+        }
+        if (showMLPrediction && mlPredictionData.length > 0) {
+          lastPoint.mlPrediction = lastG.value;
+        }
+      }
+    }
+
     if (!timeMap.has(start)) timeMap.set(start, { timestamp: start });
     if (!timeMap.has(end)) timeMap.set(end, { timestamp: end });
 
@@ -407,17 +421,29 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           )}
 
           {showMLPrediction && (
-             <Line 
-               type="linear" 
-               dataKey="mlPrediction" 
-               stroke="#fbbf24" 
-               strokeWidth={3}
-               strokeDasharray="5 5"
-               dot={<MLPredictionLabel lastMlTimestamp={lastMlTimestamp} isDark={isDark} />}
-               activeDot={false}
-               connectNulls
-               isAnimationActive={false}
-             />
+             <>
+               <Line 
+                 type="monotone" 
+                 dataKey="mlPrediction" 
+                 stroke="#fbbf24" 
+                 strokeWidth={4} 
+                 strokeLinecap="round"
+                 dot={<MLPredictionLabel lastMlTimestamp={lastMlTimestamp} isDark={isDark} />}
+                 activeDot={{ r: 7, fill: '#fbbf24', stroke: '#fff', strokeWidth: 2 }}
+                 connectNulls
+                 isAnimationActive={false}
+               />
+               <Scatter 
+                 dataKey="mlPrediction" 
+                 fill="#fbbf24"
+                 shape={(props: any) => {
+                   const { cx, cy } = props;
+                   if (isNaN(cx) || isNaN(cy)) return null;
+                   return <circle cx={cx} cy={cy} r={2.5} fill="#fbbf24" />;
+                 }}
+                 isAnimationActive={false}
+               />
+             </>
           )}
 
           {/* Scatters for Bolus and Meal Icons */}
