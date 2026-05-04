@@ -26,21 +26,32 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
       ? `${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}`
       : "empty";
 
+    let timer: NodeJS.Timeout;
+
     if (logs && logs.length >= 5 && logsKey !== lastProcessedLogsRef.current) {
-      const timer = setTimeout(() => {
-        lastProcessedLogsRef.current = logsKey;
-        runML();
-      }, 1000); // 1 second debounce
-      return () => clearTimeout(timer);
+        timer = setTimeout(() => {
+          lastProcessedLogsRef.current = logsKey;
+          runML();
+        }, 1000); // 1 second debounce
     }
+
+    // Dodatkowy interwał do odświeżania cyklicznego co 5 minut
+    const interval = setInterval(() => {
+      runML();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [logs]);
 
-  const runML = async () => {
+  const runML = async (force: boolean = false) => {
     setIsAnalyzing(true);
     // Symulujemy małe opóźnienie dla UX, ale tensorflow może potrzebować chwilki
     setTimeout(async () => {
         try {
-            const result = await MLAnalyzer.analyzeData(logs);
+            const result = await MLAnalyzer.analyzeData(logs, force);
             setMlResult(result);
         } catch (e) {
             console.error(e);
@@ -112,7 +123,7 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
         </div>
         
         <button 
-          onClick={runML} 
+          onClick={() => runML(true)} 
           disabled={isAnalyzing}
           className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-accent-500 dark:text-slate-400 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-50"
           title="Odśwież analizę"
