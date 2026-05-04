@@ -60,21 +60,24 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
   }, [logs]);
 
   const runML = async (force: boolean = false) => {
+    // Jeśli już trwa analiza 'full', nie zaczynaj nowej, chyba że force
+    if (isAnalyzing && !force) return;
+    
     setIsAnalyzing(true);
     
-    // KROK 1: Szybki rzut oka (4h danych) - Odpowiedź niemal natychmiastowa
     try {
+        // KROK 1: Szybki rzut oka (4h danych) - Odpowiedź niemal natychmiastowa
         const quickResult = await MLAnalyzer.analyzeData(logs, force, 'quick');
         setMlResult(quickResult);
         
-        // Jeśli mode był quick, loader znika wcześniej
-        setIsAnalyzing(false);
-
+        // Dajemy znać UI, że mamy już świeże (choć wstępne) dane
+        // Ale nie ustawiamy yet isAnalyzing na false, by pokazać że "full" trwa
+        
         // KROK 2: Dokładna analiza (7 dni) - W tle
         const fullResult = await MLAnalyzer.analyzeData(logs, force, 'full');
         setMlResult(fullResult);
     } catch (e) {
-        console.error(e);
+        console.error("GlikoSense Analysis Error:", e);
     } finally {
         setIsAnalyzing(false);
     }
@@ -85,14 +88,18 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
     
     // Use last 5 glucose readings
     const glucoseLogs = logs
-      .filter(l => l.type === 'glucose')
-      .sort((a, b) => b.timestamp - a.timestamp)
+      .filter(l => l.type === 'glucose' || l.bg)
+      .sort((a, b) => {
+        const ta = a.timestamp || new Date(a.createdAt).getTime();
+        const tb = b.timestamp || new Date(b.createdAt).getTime();
+        return tb - ta;
+      })
       .slice(0, 5)
       .reverse();
       
     const data = glucoseLogs.map((log, i) => ({
       name: `T-${5 - i}`,
-      value: log.value,
+      value: log.value || log.bg,
       isPrediction: false
     }));
     
@@ -132,7 +139,7 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
               {isAnalyzing ? (
                 <>
-                  <Loader2 size={10} className="animate-spin text-accent-500" /> W RAMACH OBLICZEŃ...
+                  <Loader2 size={10} className="animate-spin text-accent-500" /> OBLICZANIE...
                 </>
               ) : (
                 <>
@@ -154,7 +161,7 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
       </div>
 
       <AnimatePresence mode="wait">
-          {logs.length < 5 ? (
+          {logs.filter(l => l.type === 'glucose' || l.bg).length < 5 ? (
             <motion.div 
                key="nodata"
                initial={{ opacity: 0 }}
@@ -164,7 +171,7 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
             >
                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Zbyt mało danych do analizy (min. 5 wpisów)</span>
             </motion.div>
-          ) : mlResult && !isAnalyzing ? (
+          ) : mlResult ? (
               <motion.div 
                 key="result"
                 initial={{ opacity: 0, y: 10 }} 

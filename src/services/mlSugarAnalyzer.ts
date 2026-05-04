@@ -128,8 +128,8 @@ export const MLAnalyzer = {
       // Tworzymy siatkę co 5 minut dla stabilności LSTM
       const resampledGlucose: { timestamp: number, value: number, trend: number }[] = [];
       let startTime = glucoseLogsOrig[0].timestamp || new Date(glucoseLogsOrig[0].createdAt).getTime();
-      // Zabezpieczenie: nie cofamy się dalej niż 7 dni nawet jeśli logi są stare
-      if (startTime < sevenDaysAgoMs) startTime = sevenDaysAgoMs;
+      // Zabezpieczenie: nie cofamy się dalej niż wybrany okres nawet jeśli logi są stare
+      if (startTime < cutoffTime) startTime = cutoffTime;
       
       const endTime = glucoseLogsOrig[glucoseLogsOrig.length - 1].timestamp || new Date(glucoseLogsOrig[glucoseLogsOrig.length - 1].createdAt).getTime();
       const stepMs = 5 * 60 * 1000;
