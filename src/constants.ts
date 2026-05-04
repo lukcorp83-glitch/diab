@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const APP_VERSION = '2.7.8';
+export const APP_VERSION = '2.7.9';
 
 export const CATEGORIES = [
   "Owoce i Warzywa",

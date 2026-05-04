@@ -318,9 +318,15 @@ export const MLAnalyzer = {
     let lastTrendNum = 0;
     let prevLastTrendNum = 0;
     if(glucoseLogsOrig.length > 1) {
-        lastTrendNum = (latest.value || latest.bg) - (glucoseLogsOrig[glucoseLogsOrig.length-2].value || glucoseLogsOrig[glucoseLogsOrig.length-2].bg);
+        const l1 = glucoseLogsOrig[glucoseLogsOrig.length-1];
+        const l2 = glucoseLogsOrig[glucoseLogsOrig.length-2];
+        const tDiffMs = (l1.timestamp || new Date(l1.createdAt).getTime()) - (l2.timestamp || new Date(l2.createdAt).getTime());
+        lastTrendNum = ((l1.value || l1.bg) - (l2.value || l2.bg)) / Math.max(1, (tDiffMs / 300000));
+        
         if(glucoseLogsOrig.length > 2) {
-             prevLastTrendNum = (glucoseLogsOrig[glucoseLogsOrig.length-2].value || glucoseLogsOrig[glucoseLogsOrig.length-2].bg) - (glucoseLogsOrig[glucoseLogsOrig.length-3].value || glucoseLogsOrig[glucoseLogsOrig.length-3].bg);
+             const l3 = glucoseLogsOrig[glucoseLogsOrig.length-3];
+             const tDiffMs2 = (l2.timestamp || new Date(l2.createdAt).getTime()) - (l3.timestamp || new Date(l3.createdAt).getTime());
+             prevLastTrendNum = ((l2.value || l2.bg) - (l3.value || l3.bg)) / Math.max(1, (tDiffMs2 / 300000));
         }
     }
     
@@ -442,6 +448,7 @@ export const MLAnalyzer = {
             const inputs = zScoreNormalize([currentPredictBg, currentPredictTrend, currentPredictAcceleration, fCob, fIob, fTimeSin, fTimeCos, fPob, fFob, fIsWeekend, fTimeSinceMeal, fTimeSinceBolus, fIobCobRatio]);
             const nextPred = predictValue(model, inputs);
             let nextBg = nextPred[0] * 400;
+            if (isNaN(nextBg) || !isFinite(nextBg)) nextBg = currentPredictBg;
             nextBg = Math.max(40, Math.min(600, nextBg));
             predictionCurve.push({ timestamp: futureTimeMs, offsetMs: step * 5 * 60 * 1000, value: nextBg });
             currentPredictBg = nextBg;
@@ -479,6 +486,7 @@ export const MLAnalyzer = {
         const insulinImpact = (fIob > currentIob ? 0 : (currentIob - fIob)) * -35.0;
         
         currentPredictBg += (trend * 0.85) + (carbImpact / 6) + (insulinImpact / 6);
+        if (isNaN(currentPredictBg) || !isFinite(currentPredictBg)) currentPredictBg = 100;
         trend *= 0.92;
         currentPredictBg = Math.max(40, Math.min(600, currentPredictBg));
         predictionCurve.push({ timestamp: futureTimeMs, offsetMs: step * 5 * 60 * 1000, value: currentPredictBg });
