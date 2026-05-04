@@ -182,8 +182,12 @@ export const MLAnalyzer = {
         
         if (resampledGlucose.length > 2016) break; // Max 7 dni danych (7 * 24 * 12)
       }
+      
+      if (resampledGlucose.length === 0) {
+        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało poprawnych danych glikemii po przetworzeniu."], accuracy: 0 };
+      }
 
-      await tf.nextFrame(); // Pozwól UI odetchnąć po resamplingu
+      await new Promise(r => setTimeout(r, 0)); // Pozwól UI odetchnąć po resamplingu - setTimeout działa też w background tab, tf.nextFrame nie.
 
       // Proste wygładzanie (EMA)
       let smoothedValue = resampledGlucose[0].value;
@@ -203,7 +207,7 @@ export const MLAnalyzer = {
       let treatmentIdx = 0;
 
       for(let i=0; i < resampledGlucose.length - 1; i++) {
-        if (i % 500 === 0) await tf.nextFrame(); // UI breather dla długich pętli
+        if (i % 500 === 0) await new Promise(r => setTimeout(r, 0)); // UI breather dla długich pętli
         const current = resampledGlucose[i];
         const next = resampledGlucose[i+1];
         const currentTimeMs = current.timestamp;
@@ -291,7 +295,10 @@ export const MLAnalyzer = {
     let model: tf.LayersModel;
     let isModelLoaded = false;
     try {
-        model = await tf.loadLayersModel('indexeddb://glikosense-lstm');
+        model = await Promise.race([
+            tf.loadLayersModel('indexeddb://glikosense-lstm'),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout loading model")), 2000))
+        ]) as tf.LayersModel;
         const inputShape = model.layers[0].batchInputShape;
         const outputShape = model.outputs[0].shape;
         
@@ -331,7 +338,7 @@ export const MLAnalyzer = {
             verbose: 0,
             callbacks: {
               onEpochEnd: async () => {
-                if (mode !== 'quick') await tf.nextFrame(); 
+                if (mode !== 'quick') await new Promise(r => setTimeout(r, 0)); 
               }
             }
         });
@@ -348,7 +355,10 @@ export const MLAnalyzer = {
         try {
             // Zapisujemy tylko po pełnej analizie
             if (mode === 'full') {
-              await model.save('indexeddb://glikosense-lstm');
+              await Promise.race([
+                model.save('indexeddb://glikosense-lstm'),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout saving model")), 2000))
+              ]);
             }
         } catch(err) {
             console.warn("Zapis modelu do IndexedDB nie powiódł się", err);

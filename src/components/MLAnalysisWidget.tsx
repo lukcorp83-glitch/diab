@@ -66,6 +66,12 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
     setIsAnalyzing(true);
     setError(null);
     
+    // Safety timeout in case ML analysis hangs completely (e.g. indexedDB or tfjs issues)
+    const safetyTimeout = setTimeout(() => {
+        setIsAnalyzing(false);
+        setError("Przekroczono czas oczekiwania na model.");
+    }, 40000); // 40 seconds max
+    
     try {
         // Start quick analysis immediately
         const quickPromise = MLAnalyzer.analyzeData(logs, force, 'quick');
@@ -86,12 +92,14 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
               if (!qResult) setError("Błąd pełnej analizy.");
           })
           .finally(() => {
+              clearTimeout(safetyTimeout);
               setIsAnalyzing(false);
           });
           
     } catch (e) {
         console.error("GlikoSense Quick Analysis Error:", e);
         setError("Nie udało się przeanalizować danych. Spróbuj później.");
+        clearTimeout(safetyTimeout);
         setIsAnalyzing(false);
     }
   };
