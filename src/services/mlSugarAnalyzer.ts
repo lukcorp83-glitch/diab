@@ -57,39 +57,65 @@ let _lastLogsFingerprint: string | null = null;
 
 export const MLAnalyzer = {
   // Funkcja analizująca logi z wykorzystaniem TensorFlow.js (lokalnie/w przeglądarce)
-  analyzeData(logs: any[], force: boolean = false): Promise<{ 
+  analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<{ 
     predictedNextHour: number, 
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
+    analyzedPeriod?: string,
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
   }> {
-    const logsFingerprint = logs && logs.length > 0 ? `${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}` : 'empty';
+    const logsFingerprint = logs && logs.length > 0 
+      ? `v2-${mode}-${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}` 
+      : 'empty';
 
-    // Jeśli mamy wynik w cache i minęło mniej niż 5 minut, nie analizuj ponownie
-    if (!force && _cachedResult && (Date.now() - _lastAnalysisTime < 5 * 60 * 1000)) {
-      console.log("GlikoSense: Używam wyniku z pamięci podręcznej.");
-      return Promise.resolve(_cachedResult);
+    // 1. Sprawdź Cache w pamięci i LocalStorage
+    if (!force) {
+      // Najpierw pamięć RAM
+      if (_cachedResult && _lastLogsFingerprint === logsFingerprint) {
+        return Promise.resolve(_cachedResult);
+      }
+      
+      // Potem LocalStorage (tylko dla trybu full, aby nie nadpisywać szybkimi danymi)
+      if (mode === 'full') {
+        const persistentCache = localStorage.getItem('glikosense_last_result');
+        const persistentFingerprint = localStorage.getItem('glikosense_last_fingerprint');
+        
+        if (persistentCache && persistentFingerprint === logsFingerprint) {
+          try {
+            const parsed = JSON.parse(persistentCache);
+            _cachedResult = parsed;
+            _lastLogsFingerprint = logsFingerprint;
+            _lastAnalysisTime = Date.now();
+            return Promise.resolve(parsed);
+          } catch (e) {
+            console.warn("Błąd odczytu cache GlikoSense");
+          }
+        }
+      }
     }
 
-    if (_currentAnalysisPromise) {
-      console.warn("GlikoSense: Analiza już trwa, współdzielę trwający proces.");
+    if (_currentAnalysisPromise && mode === 'full') {
       return _currentAnalysisPromise;
     }
 
     const doAnalysis = async () => {
-      if(!logs || logs.length < 5) {
-        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense. Wymagane co najmniej 5 wpisów."], accuracy: 0 };
+      if(!logs || logs.length < 3) {
+        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense."], accuracy: 0 };
       }
 
       await tf.ready();
 
       const now = Date.now();
-      const sevenDaysAgoMs = now - (7 * 24 * 60 * 60 * 1000);
+      // Tryb szybki: ostatnie 4h. Tryb pełny: 7 dni.
+      const lookbackMs = mode === 'quick' ? (4 * 60 * 60 * 1000) : (7 * 24 * 60 * 60 * 1000);
+      const cutoffTime = now - lookbackMs;
       
-      let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= sevenDaysAgoMs);
-      if (logsToAnalyze.length < 5) logsToAnalyze = logs.slice(-200);
+      let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
+      
+      if (mode === 'full' && logsToAnalyze.length > 400) logsToAnalyze = logsToAnalyze.slice(-400);
+      if (logsToAnalyze.length < 3) logsToAnalyze = logs.slice(-20);
 
       // 1. RESAMPLING & SMOOTHING (Optymalizacja wydajności)
       const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
@@ -283,12 +309,12 @@ export const MLAnalyzer = {
 
     try {
         await model.fit(inputsTensor, outputTensor, {
-            epochs: isModelLoaded ? 4 : 20, 
+            epochs: mode === 'quick' ? (isModelLoaded ? 3 : 8) : (isModelLoaded ? 6 : 25), 
             shuffle: true,
             verbose: 0,
             callbacks: {
               onEpochEnd: async () => {
-                await tf.nextFrame(); // Release the main thread briefly
+                if (mode !== 'quick') await tf.nextFrame(); 
               }
             }
         });
@@ -303,7 +329,10 @@ export const MLAnalyzer = {
         });
 
         try {
-            await model.save('indexeddb://glikosense-lstm');
+            // Zapisujemy tylko po pełnej analizie
+            if (mode === 'full') {
+              await model.save('indexeddb://glikosense-lstm');
+            }
         } catch(err) {
             console.warn("Zapis modelu do IndexedDB nie powiódł się", err);
         }
@@ -580,6 +609,37 @@ export const MLAnalyzer = {
     if (gmiPercentage > 0) {
         insights.push(`📊 Lokalne estymatory wyliczyły GMI (HbA1c) na ok. ${gmiPercentage.toFixed(1)}%.`);
     }
+
+    // --- Pamięć Posiłków GlikoSense ---
+    const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
+    const mealLogs = logsToAnalyze.filter(l => l.type === 'meal');
+    
+    mealLogs.forEach(m => {
+      const mealTime = m.timestamp || new Date(m.createdAt).getTime();
+      const mealName = m.note || m.name || m.description || "Posiłek";
+      if (!mealName || mealName.length < 3 || mealName === "Posiłek") return;
+
+      const postMealBg = glucoseLogsOrig.filter(g => {
+        const gt = g.timestamp || new Date(g.createdAt).getTime();
+        return gt > mealTime + 45*60*1000 && gt < mealTime + 180*60*1000;
+      });
+
+      if (postMealBg.length > 0) {
+        const maxBg = Math.max(...postMealBg.map(g => g.value || g.bg));
+        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0 };
+        mealPatterns[mealName].count++;
+        if (maxBg > 180) mealPatterns[mealName].spikes++;
+      }
+    });
+
+    const problematicMeals = Object.entries(mealPatterns)
+      .filter(([_, stats]) => stats.spikes > 0 && (stats.spikes / stats.count) >= 0.5)
+      .map(([name]) => name);
+
+    if (problematicMeals.length > 0) {
+      insights.push(`🧠 Pamięć posiłków: ${problematicMeals.slice(0, 2).join(", ")} historycznie powodują u Ciebie wysokie skoki cukru.`);
+    }
+    // ---------------------------------
     
     // Dispose the model at the end so it doesn't leak memory
     model.dispose();
@@ -588,7 +648,8 @@ export const MLAnalyzer = {
         predictedNextHour: Math.round(predictedNextHour),
         riskOfHypo,
         insights,
-        accuracy: Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80))), // Logarytmiczny spadek precyzji, bardziej naturalny
+        accuracy: Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80))),
+        analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 7 dni',
         predictionCurve,
         metrics: {
             iob: currentIob,
@@ -605,6 +666,15 @@ export const MLAnalyzer = {
       _cachedResult = res;
       _lastAnalysisTime = Date.now();
       _lastLogsFingerprint = logsFingerprint;
+      
+      // Zapisz do pamięci trwałej
+      try {
+        localStorage.setItem('glikosense_last_result', JSON.stringify(res));
+        localStorage.setItem('glikosense_last_fingerprint', logsFingerprint);
+      } catch (e) {
+        console.warn("Błąd zapisu do LocalStorage GlikoSense (możliwy brak miejsca)");
+      }
+      
       return res;
     }).finally(() => {
       _currentAnalysisPromise = null;

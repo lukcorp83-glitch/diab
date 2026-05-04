@@ -16,8 +16,21 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
-    metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
-  } | null>(null);
+    predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
+    metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number },
+    analyzedPeriod?: string
+  } | null>(() => {
+    // Inicjalizacja z cache, aby uniknąć migania loaderem
+    const cached = localStorage.getItem('glikosense_last_result');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
 
   const lastProcessedLogsRef = React.useRef<string>("");
 
@@ -48,17 +61,23 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
 
   const runML = async (force: boolean = false) => {
     setIsAnalyzing(true);
-    // Symulujemy małe opóźnienie dla UX, ale tensorflow może potrzebować chwilki
-    setTimeout(async () => {
-        try {
-            const result = await MLAnalyzer.analyzeData(logs, force);
-            setMlResult(result);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsAnalyzing(false);
-        }
-    }, 100);
+    
+    // KROK 1: Szybki rzut oka (4h danych) - Odpowiedź niemal natychmiastowa
+    try {
+        const quickResult = await MLAnalyzer.analyzeData(logs, force, 'quick');
+        setMlResult(quickResult);
+        
+        // Jeśli mode był quick, loader znika wcześniej
+        setIsAnalyzing(false);
+
+        // KROK 2: Dokładna analiza (7 dni) - W tle
+        const fullResult = await MLAnalyzer.analyzeData(logs, force, 'full');
+        setMlResult(fullResult);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setIsAnalyzing(false);
+    }
   };
 
   const chartData = useMemo(() => {
@@ -116,7 +135,9 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
                   <Loader2 size={10} className="animate-spin text-accent-500" /> W RAMACH OBLICZEŃ...
                 </>
               ) : (
-                'GlikoSense ENGINE'
+                <>
+                  {mlResult?.analyzedPeriod ? mlResult.analyzedPeriod : 'GlikoSense ENGINE'}
+                </>
               )}
             </span>
           </div>
