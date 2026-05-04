@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Database, Utensils, FileText, Settings, X, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Database, Utensils, FileText, Settings, X, ChevronDown, Activity, Calculator, Plus, Search, Star, History, Brain, Trophy, Sliders, Bell, Pill } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 
 interface SidebarProps {
@@ -24,35 +24,50 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
     { 
        id: 'dashboard', 
        label: 'Pulpit (Dashboard)', 
-       icon: <Activity size={20} />,
+       icon: <LayoutDashboard size={20} />,
        subItems: [
-         { id: 'bolus_calc', label: 'Kalkulator Bolusa (Oblicz)', tab: 'bolus' },
-         { id: 'add_glucose', label: 'Szybki Pomiar (Cukier)', tab: 'dashboard', action: 'add_glucose' }
+         { id: 'bolus_calc', label: 'Kalkulator Bolusa', tab: 'bolus' },
+         { id: 'add_glucose', label: 'Szybki Pomiar (Cukier)', tab: 'dashboard', action: 'add_glucose' },
+         { id: 'add_meal', label: 'Dodaj Posiłek', tab: 'meal' }
        ]
     },
     { 
        id: 'database', 
        label: 'Baza Żywności', 
-       icon: <Database size={20} /> 
+       icon: <Database size={20} />,
+       subItems: [
+         { id: 'db_search', label: 'Katalog Produktów', tab: 'database' },
+         { id: 'db_favorites', label: 'Ulubione/Własne', tab: 'database' }
+       ]
     },
     { 
        id: 'meal', 
        label: 'Mój Talerz', 
-       icon: <Utensils size={20} /> 
+       icon: <Utensils size={20} />,
+       subItems: [
+         { id: 'meal_today', label: 'Dzisiejsze Posiłki', tab: 'meal' },
+         { id: 'meal_custom', label: 'Stwórz Własny Posiłek', tab: 'meal' }
+       ]
     },
     { 
-       id: 'ai', 
-       label: 'Raporty AI', 
-       icon: <FileText size={20} /> 
+       id: 'history', 
+       label: 'Historia & Raporty', 
+       icon: <FileText size={20} />,
+       subItems: [
+          { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history' },
+          { id: 'ai_sense', label: 'Analiza GlikoSense (AI)', tab: 'ai' },
+          { id: 'achievements', label: 'Grywalizacja & Osiągnięcia', tab: 'achievements' }
+       ]
     },
     { 
        id: 'profile', 
        label: 'Profil & Ustawienia', 
        icon: <Settings size={20} />,
        subItems: [
+         { id: 'profile_settings', label: 'Ustawienia Główne', tab: 'profile' },
          { id: 'profile_meds', label: 'Leki & Przypomnienia', tab: 'profile', action: 'meds' },
          { id: 'profile_simulator', label: 'Symulator Pompy', tab: 'profile', action: 'simulator' },
-         { id: 'profile_food', label: 'Baza Posiłków (Zarządzaj)', tab: 'profile', action: 'food' }
+         { id: 'profile_food', label: 'Zarządzanie Bazą Produktów', tab: 'profile', action: 'food' }
        ]
     },
   ];
@@ -95,7 +110,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
 
             <div className="flex flex-col gap-2">
               {menuItems.map((item) => {
-                const isActive = activeTab === item.id;
+                const isActive = activeTab === item.id || (item.subItems && item.subItems.some(sub => sub.tab === activeTab));
                 const isExpanded = expandedItems[item.id];
                 const hasSubs = item.subItems && item.subItems.length > 0;
 

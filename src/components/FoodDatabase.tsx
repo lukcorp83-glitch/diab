@@ -21,6 +21,7 @@ export default function FoodDatabase({ user }: { user: any }) {
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState("Wszystko");
+  const [activeSource, setActiveSource] = useState<'all' | 'system' | 'own' | 'community'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -135,7 +136,17 @@ export default function FoodDatabase({ user }: { user: any }) {
       .includes(searchTerm.toLowerCase());
     const matchesCategory =
       activeCategory === "Wszystko" || p.category === activeCategory;
-    return matchesSearch && matchesCategory;
+      
+    let matchesSource = true;
+    const isOwn = p.author === user?.uid;
+    const isCommunity = Boolean(p.isCommunity);
+    const isSystem = !p.author && !isCommunity;
+
+    if (activeSource === 'own') matchesSource = isOwn;
+    else if (activeSource === 'community') matchesSource = isCommunity && !isOwn;
+    else if (activeSource === 'system') matchesSource = isSystem;
+
+    return matchesSearch && matchesCategory && matchesSource;
   });
 
   return (
@@ -321,13 +332,30 @@ export default function FoodDatabase({ user }: { user: any }) {
         )}
       </AnimatePresence>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <button
-          onClick={() => setActiveCategory("Wszystko")}
-          className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
-        >
-          Wszystko
-        </button>
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-full w-full mx-auto max-w-sm">
+          {[
+            { id: 'all', label: 'Wszystkie' },
+            { id: 'system', label: 'Baza Główna' },
+            { id: 'own', label: 'Własne' },
+            { id: 'community', label: 'Społeczność' }
+          ].map((src) => (
+            <button
+              key={src.id}
+              onClick={() => setActiveSource(src.id as any)}
+              className={`flex-1 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeSource === src.id ? "bg-white dark:bg-slate-950 text-slate-800 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}
+            >
+              {src.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <button
+            onClick={() => setActiveCategory("Wszystko")}
+            className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
+          >
+            Wszystko
+          </button>
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
@@ -337,6 +365,7 @@ export default function FoodDatabase({ user }: { user: any }) {
             {cat}
           </button>
         ))}
+        </div>
       </div>
 
       <div className="grid gap-1 will-change-transform">
@@ -362,6 +391,11 @@ export default function FoodDatabase({ user }: { user: any }) {
                     {p.isCommunity && (
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-accent-50 dark:bg-accent-950 text-accent-500">
                         Społeczność
+                      </span>
+                    )}
+                    {(isCustom || isOwnCommunity) && (
+                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950 text-emerald-500">
+                        Własne
                       </span>
                     )}
                     <span

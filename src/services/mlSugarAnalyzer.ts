@@ -50,11 +50,14 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     };
 }
 
-let _isTraining = false;
+let _currentAnalysisPromise: Promise<any> | null = null;
+let _cachedResult: any = null;
+let _lastAnalysisTime: number = 0;
+let _lastLogsFingerprint: string | null = null;
 
 export const MLAnalyzer = {
   // Funkcja analizująca logi z wykorzystaniem TensorFlow.js (lokalnie/w przeglądarce)
-  async analyzeData(logs: any[]): Promise<{ 
+  analyzeData(logs: any[], force: boolean = false): Promise<{ 
     predictedNextHour: number, 
     riskOfHypo: boolean,
     insights: string[],
@@ -62,57 +65,88 @@ export const MLAnalyzer = {
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
   }> {
-    if (_isTraining) {
-      console.warn("GlikoSense: Analiza już trwa, ignoruję żądanie.");
-      return { predictedNextHour: 0, riskOfHypo: false, insights: ["Obliczenia w toku..."], accuracy: 0 };
+    const logsFingerprint = logs && logs.length > 0 ? `${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}` : 'empty';
+
+    // Jeśli mamy wynik w cache i minęło mniej niż 5 minut, nie analizuj ponownie
+    if (!force && _cachedResult && (Date.now() - _lastAnalysisTime < 5 * 60 * 1000)) {
+      console.log("GlikoSense: Używam wyniku z pamięci podręcznej.");
+      return Promise.resolve(_cachedResult);
     }
 
-    if(!logs || logs.length < 5) {
-      return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense. Wymagane co najmniej 5 wpisów."], accuracy: 0 };
+    if (_currentAnalysisPromise) {
+      console.warn("GlikoSense: Analiza już trwa, współdzielę trwający proces.");
+      return _currentAnalysisPromise;
     }
 
-    try {
-      _isTraining = true;
+    const doAnalysis = async () => {
+      if(!logs || logs.length < 5) {
+        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense. Wymagane co najmniej 5 wpisów."], accuracy: 0 };
+      }
+
       await tf.ready();
 
-    const twoWeeksAgoMs = Date.now() - (14 * 24 * 60 * 60 * 1000);
-    const recentLogs = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= twoWeeksAgoMs);
-    let logsToAnalyze = recentLogs.length >= 5 ? recentLogs : logs;
-    
-    // Sortowanie od najstarszych do najnowszych
-    const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
-    
-    const dataset = [];
-    const glucoseLogs = sorted.filter(l => l.type === 'glucose' || l.bg);
-    
-    for(let i=0; i < glucoseLogs.length - 1; i++) {
-        const current = glucoseLogs[i];
-        const next = glucoseLogs[i+1];
-        
-        const currentBg = current.value || current.bg;
-        const nextBg = next.value || next.bg;
-        
-        if(!currentBg || !nextBg) continue;
+      const now = Date.now();
+      const focusPeriodMs = 24 * 60 * 60 * 1000; // Skupiamy się na ostatnich 24h dla nauki "tu i teraz"
+      const twoWeeksAgoMs = now - (14 * 24 * 60 * 60 * 1000);
+      
+      let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= twoWeeksAgoMs);
+      if (logsToAnalyze.length < 5) logsToAnalyze = logs;
 
-        let trendNum = 0;
-        let prevTrendNum = 0;
-        if(current.trend) {
-            const up = ['SingleUp', 'FortyFiveUp', 'DoubleUp'];
-            const down = ['SingleDown', 'FortyFiveDown', 'DoubleDown'];
-            if(up.includes(current.trend)) trendNum = 10;
-            if(current.trend === 'DoubleUp') trendNum = 20;
-            if(down.includes(current.trend)) trendNum = -10;
-            if(current.trend === 'DoubleDown') trendNum = -20;
-        } else if(i > 0) {
-            trendNum = currentBg - (glucoseLogs[i-1].value || glucoseLogs[i-1].bg);
-            if (i > 1) {
-                prevTrendNum = (glucoseLogs[i-1].value || glucoseLogs[i-1].bg) - (glucoseLogs[i-2].value || glucoseLogs[i-2].bg);
-            }
+      // 1. RESAMPLING & SMOOTHING (Sercem poprawy precyzji)
+      const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+      const glucoseLogsOrig = sorted.filter(l => l.type === 'glucose' || l.bg);
+      
+      if (glucoseLogsOrig.length < 5) {
+        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych glikemii do nauki."], accuracy: 0 };
+      }
+
+      // Tworzymy siatkę co 5 minut dla stabilności LSTM
+      const resampledGlucose: { timestamp: number, value: number, trend: number }[] = [];
+      const startTime = glucoseLogsOrig[0].timestamp || new Date(glucoseLogsOrig[0].createdAt).getTime();
+      const endTime = glucoseLogsOrig[glucoseLogsOrig.length - 1].timestamp || new Date(glucoseLogsOrig[glucoseLogsOrig.length - 1].createdAt).getTime();
+      const stepMs = 5 * 60 * 1000;
+
+      for (let t = startTime; t <= endTime; t += stepMs) {
+        // Znajdź punkty przed i po
+        const before = [...glucoseLogsOrig].reverse().find(l => (l.timestamp || new Date(l.createdAt).getTime()) <= t);
+        const after = glucoseLogsOrig.find(l => (l.timestamp || new Date(l.createdAt).getTime()) > t);
+
+        if (before && after) {
+          const t1 = before.timestamp || new Date(before.createdAt).getTime();
+          const t2 = after.timestamp || new Date(after.createdAt).getTime();
+          const v1 = before.value || before.bg;
+          const v2 = after.value || after.bg;
+          
+          // Interpolacja liniowa
+          const val = v1 + (v2 - v1) * ((t - t1) / (t2 - t1));
+          resampledGlucose.push({ timestamp: t, value: val, trend: 0 });
+        } else if (before) {
+          resampledGlucose.push({ timestamp: t, value: before.value || before.bg, trend: 0 });
         }
+      }
+
+      // Proste wygładzanie (EMA) by usunąć szum sensora
+      let smoothedValue = resampledGlucose[0].value;
+      const alpha = 0.4; // Współczynnik wygładzania
+      resampledGlucose.forEach((p, idx) => {
+        smoothedValue = (p.value * alpha) + (smoothedValue * (1 - alpha));
+        p.value = smoothedValue;
+        if (idx > 0) {
+          p.trend = p.value - resampledGlucose[idx-1].value;
+        }
+      });
+      
+      const dataset = [];
+      
+      for(let i=0; i < resampledGlucose.length - 1; i++) {
+        const current = resampledGlucose[i];
+        const next = resampledGlucose[i+1];
         
+        let trendNum = current.trend;
+        let prevTrendNum = i > 0 ? resampledGlucose[i-1].trend : 0;
         let accelerationNum = trendNum - prevTrendNum;
 
-        const currentTimeMs = current.timestamp || new Date(current.createdAt).getTime();
+        const currentTimeMs = current.timestamp;
         const pastLogs = sorted.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) <= currentTimeMs);
         const { iob, cob, pob, fob } = calculateActiveAtTime(currentTimeMs, pastLogs);
 
@@ -132,18 +166,18 @@ export const MLAnalyzer = {
         const isWeekend = (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0;
         const iobCobRatio = (iob + 0.1) / (cob + 0.1);
 
-        let nextTrendTarget = nextBg - currentBg;
+        let nextTrendTarget = next.value - current.value;
         
         dataset.push({
             timestamp: currentTimeMs,
-            inputs: [currentBg, trendNum, accelerationNum, cob, iob, timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio], 
-            output: [nextBg / 400, nextTrendTarget / 50]
+            inputs: [current.value, trendNum, accelerationNum, cob, iob, timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio], 
+            output: [next.value / 400, nextTrendTarget / 50]
         });
-    }
+      }
 
-    if(dataset.length === 0) {
+      if(dataset.length === 0) {
         return { predictedNextHour: 0, riskOfHypo: false, insights: ["Brak spójnych par odczytów dla układu neuronowego GlikoSense."], accuracy: 0};
-    }
+      }
 
     const numFeatures = 13;
     let means = new Array(numFeatures).fill(0);
@@ -526,7 +560,7 @@ export const MLAnalyzer = {
         predictedNextHour: Math.round(predictedNextHour),
         riskOfHypo,
         insights,
-        accuracy: Math.max(0, 100 - Math.min(100, Math.round((avgErrorInMgDl/100)*100))),
+        accuracy: Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80))), // Logarytmiczny spadek precyzji, bardziej naturalny
         predictionCurve,
         metrics: {
             iob: currentIob,
@@ -537,9 +571,18 @@ export const MLAnalyzer = {
             avgBias
         }
     };
-    } finally {
-      _isTraining = false;
-    }
+    };
+
+    _currentAnalysisPromise = doAnalysis().then(res => {
+      _cachedResult = res;
+      _lastAnalysisTime = Date.now();
+      _lastLogsFingerprint = logsFingerprint;
+      return res;
+    }).finally(() => {
+      _currentAnalysisPromise = null;
+    });
+
+    return _currentAnalysisPromise;
   }
 }
 
