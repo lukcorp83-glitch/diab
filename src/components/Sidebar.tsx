@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LayoutDashboard, Database, Utensils, FileText, Settings, X, ChevronDown, Activity, Calculator, Plus, Search, Star, History, Brain, Trophy, Sliders, Bell, Pill } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
+import { APP_VERSION } from '../constants';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -175,7 +176,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
 
             <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                GlikoControl
+                GlikoControl v{APP_VERSION}
               </p>
             </div>
           </motion.div>

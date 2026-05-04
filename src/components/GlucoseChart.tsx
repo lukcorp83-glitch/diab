@@ -408,11 +408,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
           {showMLPrediction && (
              <Line 
-               type="monotone" 
+               type="linear" 
                dataKey="mlPrediction" 
-               stroke="#f59e0b" 
-               strokeWidth={2.5}
-               strokeDasharray="4 4"
+               stroke="#fbbf24" 
+               strokeWidth={3}
+               strokeDasharray="5 5"
                dot={<MLPredictionLabel lastMlTimestamp={lastMlTimestamp} isDark={isDark} />}
                activeDot={false}
                connectNulls
