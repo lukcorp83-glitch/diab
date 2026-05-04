@@ -86,13 +86,12 @@ export const MLAnalyzer = {
       await tf.ready();
 
       const now = Date.now();
-      const focusPeriodMs = 24 * 60 * 60 * 1000; // Skupiamy się na ostatnich 24h dla nauki "tu i teraz"
-      const twoWeeksAgoMs = now - (14 * 24 * 60 * 60 * 1000);
+      const sevenDaysAgoMs = now - (7 * 24 * 60 * 60 * 1000);
       
-      let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= twoWeeksAgoMs);
-      if (logsToAnalyze.length < 5) logsToAnalyze = logs;
+      let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= sevenDaysAgoMs);
+      if (logsToAnalyze.length < 5) logsToAnalyze = logs.slice(-200);
 
-      // 1. RESAMPLING & SMOOTHING (Sercem poprawy precyzji)
+      // 1. RESAMPLING & SMOOTHING (Optymalizacja wydajności)
       const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
       const glucoseLogsOrig = sorted.filter(l => l.type === 'glucose' || l.bg);
       
@@ -102,32 +101,51 @@ export const MLAnalyzer = {
 
       // Tworzymy siatkę co 5 minut dla stabilności LSTM
       const resampledGlucose: { timestamp: number, value: number, trend: number }[] = [];
-      const startTime = glucoseLogsOrig[0].timestamp || new Date(glucoseLogsOrig[0].createdAt).getTime();
+      let startTime = glucoseLogsOrig[0].timestamp || new Date(glucoseLogsOrig[0].createdAt).getTime();
+      // Zabezpieczenie: nie cofamy się dalej niż 7 dni nawet jeśli logi są stare
+      if (startTime < sevenDaysAgoMs) startTime = sevenDaysAgoMs;
+      
       const endTime = glucoseLogsOrig[glucoseLogsOrig.length - 1].timestamp || new Date(glucoseLogsOrig[glucoseLogsOrig.length - 1].createdAt).getTime();
       const stepMs = 5 * 60 * 1000;
 
+      let origIdx = 0;
       for (let t = startTime; t <= endTime; t += stepMs) {
-        // Znajdź punkty przed i po
-        const before = [...glucoseLogsOrig].reverse().find(l => (l.timestamp || new Date(l.createdAt).getTime()) <= t);
-        const after = glucoseLogsOrig.find(l => (l.timestamp || new Date(l.createdAt).getTime()) > t);
+        // Efektywne szukanie punktów "przed" i "po"
+        while (origIdx < glucoseLogsOrig.length - 1 && (glucoseLogsOrig[origIdx + 1].timestamp || new Date(glucoseLogsOrig[origIdx + 1].createdAt).getTime()) <= t) {
+          origIdx++;
+        }
+
+        const before = glucoseLogsOrig[origIdx];
+        const beforeTime = before.timestamp || new Date(before.createdAt).getTime();
+        
+        // Optymalizacja: jeśli t jest znacznie dalej niż obecny log, przeskocz do przodu
+        if (t < beforeTime) {
+             t = beforeTime - stepMs;
+             continue;
+        }
+
+        const after = (origIdx < glucoseLogsOrig.length - 1) ? glucoseLogsOrig[origIdx + 1] : null;
 
         if (before && after) {
-          const t1 = before.timestamp || new Date(before.createdAt).getTime();
+          const t1 = beforeTime;
           const t2 = after.timestamp || new Date(after.createdAt).getTime();
           const v1 = before.value || before.bg;
           const v2 = after.value || after.bg;
           
-          // Interpolacja liniowa
           const val = v1 + (v2 - v1) * ((t - t1) / (t2 - t1));
           resampledGlucose.push({ timestamp: t, value: val, trend: 0 });
         } else if (before) {
           resampledGlucose.push({ timestamp: t, value: before.value || before.bg, trend: 0 });
         }
+        
+        if (resampledGlucose.length > 2016) break; // Max 7 dni danych (7 * 24 * 12)
       }
 
-      // Proste wygładzanie (EMA) by usunąć szum sensora
+      await tf.nextFrame(); // Pozwól UI odetchnąć po resamplingu
+
+      // Proste wygładzanie (EMA)
       let smoothedValue = resampledGlucose[0].value;
-      const alpha = 0.4; // Współczynnik wygładzania
+      const alpha = 0.4;
       resampledGlucose.forEach((p, idx) => {
         smoothedValue = (p.value * alpha) + (smoothedValue * (1 - alpha));
         p.value = smoothedValue;
@@ -138,25 +156,35 @@ export const MLAnalyzer = {
       
       const dataset = [];
       
+      // Optymalizacja datasetu - pre-filtrowanie logów nie-glikemicznych
+      const treatmentLogs = sorted.filter(l => l.type === 'meal' || l.type === 'bolus' || l.type === 'insulin');
+      let treatmentIdx = 0;
+
       for(let i=0; i < resampledGlucose.length - 1; i++) {
         const current = resampledGlucose[i];
         const next = resampledGlucose[i+1];
+        const currentTimeMs = current.timestamp;
+
+        // Przesuwamy okno logów aktywnych
+        while (treatmentIdx < treatmentLogs.length && (treatmentLogs[treatmentIdx].timestamp || new Date(treatmentLogs[treatmentIdx].createdAt).getTime()) <= currentTimeMs) {
+          treatmentIdx++;
+        }
+        const relevantLogs = treatmentLogs.slice(0, treatmentIdx);
         
         let trendNum = current.trend;
         let prevTrendNum = i > 0 ? resampledGlucose[i-1].trend : 0;
         let accelerationNum = trendNum - prevTrendNum;
 
-        const currentTimeMs = current.timestamp;
-        const pastLogs = sorted.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) <= currentTimeMs);
-        const { iob, cob, pob, fob } = calculateActiveAtTime(currentTimeMs, pastLogs);
+        const { iob, cob, pob, fob } = calculateActiveAtTime(currentTimeMs, relevantLogs);
 
         let timeSinceMeal = 1440;
         let timeSinceBolus = 1440;
-        for (let j = pastLogs.length - 1; j >= 0; j--) {
-             const t = pastLogs[j].timestamp || new Date(pastLogs[j].createdAt).getTime();
+        for (let j = relevantLogs.length - 1; j >= 0; j--) {
+             const t = relevantLogs[j].timestamp || new Date(relevantLogs[j].createdAt).getTime();
              const minutes = (currentTimeMs - t) / 60000;
-             if (pastLogs[j].type === 'meal' && minutes < timeSinceMeal && timeSinceMeal === 1440) timeSinceMeal = minutes;
-             if ((pastLogs[j].type === 'bolus' || pastLogs[j].type === 'insulin') && minutes < timeSinceBolus && timeSinceBolus === 1440) timeSinceBolus = minutes;
+             if (relevantLogs[j].type === 'meal' && minutes < timeSinceMeal && timeSinceMeal === 1440) timeSinceMeal = minutes;
+             if ((relevantLogs[j].type === 'bolus' || relevantLogs[j].type === 'insulin') && minutes < timeSinceBolus && timeSinceBolus === 1440) timeSinceBolus = minutes;
+             if (minutes > 480) break; // Optymalizacja wsteczna
         }
 
         const date = new Date(currentTimeMs);

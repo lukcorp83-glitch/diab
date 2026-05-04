@@ -7,34 +7,34 @@ export default function OnboardingTutorial({ onComplete }: { onComplete: () => v
 
   const steps = [
     {
-      title: 'Witaj w GlikoControl',
-      description: 'Zarządzaj swoją glikemią mądrzej dzięki integracji z Nightscout i wsparciu Sztucznej Inteligencji.',
+      title: 'Witaj w ekipie GlikoControl!',
+      description: 'To projekt fanowski, tworzony z myślą o nas – diabetykach. Bez zbędnego patosu, po prostu narzędzie, które ma ułatwić nam życie z cukrzycą.',
       icon: <HeartPulse className="w-16 h-16 text-rose-500" />
     },
     {
-      title: 'Parowanie Kont (Opiekun-Dziecko)',
-      description: 'Z poziomu "Opcje > Współdzielenie konta" możesz wygenerować kod, aby rodzic/opiekun miał podgląd na żywo do danych dziecka i współdzielił z nim Talerz.',
-      icon: <Users className="w-16 h-16 text-purple-500" />
-    },
-    {
-      title: 'GlikoSense AI',
-      description: 'Wykorzystaj potęgę sieci neuronowych (LSTM) do przewidywania cukru. GlikoSense analizuje Twoje trendy, insulinę i posiłki, aby pokazać Ci przyszłość na wykresie.',
+      title: 'GlikoSense – Twój mózg offline',
+      description: 'Sercem aplikacji jest sieć neuronowa LSTM. To zaawansowany algorytm, który uczy się Twoich trendów, dawkowania i reakcji na jedzenie. Co ważne – działa w 100% offline na Twoim telefonie, dbając o Twoją prywatność.',
       icon: <Activity className="w-16 h-16 text-accent-500" />
     },
     {
-      title: 'Baza i Skaner AI',
-      description: 'W zakładce Baza możesz szukać produktów ręcznie, korzystać z gotowych składników, a na Talerzu skaner AI (kamera) przeanalizuje Twój posiłek!',
-      icon: <Scan className="w-16 h-16 text-emerald-500" />
-    },
-    {
-      title: 'Inteligentny Talerz',
-      description: 'Komponuj posiłki w zakładce Talerz. Sztuczna Inteligencja podpowie Ci jaki będzie spodziewany profil wchłaniania i zarekomenduje dawkę insuliny.',
+      title: 'Dla nowicjuszy i "chwiejnych"',
+      description: 'Dopiero zaczynasz walkę? A może masz duże wahania cukrów? GlikoSense wyłapuje wzorce, których my nie widzimy, pomagając ustabilizować glikemię i uniknąć "zjazdów".',
       icon: <Bot className="w-16 h-16 text-amber-500" />
     },
     {
-      title: 'Raporty GlikoSense',
-      description: 'Przeglądaj głębokie analizy swoich trendów i raporty generowane przez AI w zakładce GlikoSense (dawniej Raport).',
-      icon: <Activity className="w-16 h-16 text-blue-500" />
+      title: 'Własny klucz AI',
+      description: 'Zdarza się, że ogólnodostępna AI ma gorsze dni lub limity. Dlatego w Opcjach możesz dodać swój własny klucz (np. Gemini) – znajdziesz tam prostą instrukcję jak to zrobić.',
+      icon: <Scan className="w-16 h-16 text-emerald-500" />
+    },
+    {
+      title: 'Gliko – przyjaciel dla dzieciaków',
+      description: 'Dla najmłodszych (i tych starszych duchem!) mamy Gliko. Dbaj o swoje cukry, a Twój zwierzak będzie rósł, zdobywał poziomy i nowe przebrania.',
+      icon: <Star className="w-16 h-16 text-purple-500" />
+    },
+    {
+      title: 'Współdzielenie i Nightscout',
+      description: 'Sparuj konta Opiekun-Dziecko, by mieć podgląd na żywo. Aplikacja pięknie współpracuje z Nightscout, dając Ci pełną kontrolę gdziekolwiek jesteś.',
+      icon: <Users className="w-16 h-16 text-blue-500" />
     }
   ];
 

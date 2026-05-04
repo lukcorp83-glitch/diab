@@ -129,21 +129,43 @@ export default function MealPlate({
         const offData = await offRes.json();
         
         if (offData.products && offData.products.length > 0) {
-          const validOffProducts = offData.products
-            .filter((p: any) => p.nutriments && (p.nutriments.carbohydrates_100g !== undefined))
-            .map((p: any) => ({
+          const validOffProducts = offData.products.map((p: any) => {
+            // "Algorytm" - jeśli brak danych w bazie, szacujemy na podstawie słów kluczowych
+            let carbs = Number(p.nutriments?.carbohydrates_100g);
+            let protein = Number(p.nutriments?.proteins_100g);
+            let fat = Number(p.nutriments?.fat_100g);
+            let gi = 50;
+
+            const name = (p.product_name_pl || p.product_name || "").toLowerCase();
+            
+            // Heurystyka lokalna (Algorytm GlikoSense Offline)
+            if (isNaN(carbs)) {
+              if (name.includes("chleb") || name.includes("bułka")) carbs = 50;
+              else if (name.includes("ryż") || name.includes("kasza")) carbs = 25;
+              else if (name.includes("ziemniak")) carbs = 17;
+              else if (name.includes("jogurt") || name.includes("mleko")) carbs = 5;
+              else if (name.includes("mięso") || name.includes("kurczak") || name.includes("ryba")) carbs = 0;
+              else if (name.includes("jabłko") || name.includes("owoc")) carbs = 12;
+              else carbs = 0;
+            }
+
+            if (name.includes("pełnoziarnist") || name.includes("razow")) gi = 40;
+            if (name.includes("cukier") || name.includes("biał") || name.includes("miód")) gi = 70;
+
+            return {
               id: p._id || `off_${Date.now()}_${Math.random()}`,
-              name: p.product_name_pl || p.product_name || "Nieznany Produkt (OFF)",
-              carbs: Number(p.nutriments.carbohydrates_100g || 0),
-              protein: Number(p.nutriments.proteins_100g || 0),
-              fat: Number(p.nutriments.fat_100g || 0),
-              gi: 50,
-              category: "Baza Sieciowa"
-            }));
+              name: p.product_name_pl || p.product_name || "Produkt z sieci",
+              carbs: isNaN(carbs) ? 0 : carbs,
+              protein: isNaN(protein) ? 0 : protein,
+              fat: isNaN(fat) ? 0 : fat,
+              gi,
+              category: "Baza Sieciowa (Smart)"
+            };
+          });
 
           if (validOffProducts.length > 0) {
             setOnlineResults(
-              validOffProducts.map((p: any, i: number) => ({
+              validOffProducts.map((p: any) => ({
                 ...p,
                 isOnline: true,
                 isDatabase: true
@@ -159,36 +181,49 @@ export default function MealPlate({
     };
 
     try {
-      // 1. Zobaczmy najpierw z GlikoSense AI
-      const prompt = `Jesteś dietetykiem. Przeanalizuj zapytanie użytkownika: "${query}". Może to być nazwa produktu ze sklepu, danie domowe (np. "pierogi ruskie", "leczo"), owoc, warzywo lub konkretna marka. 
-      Zwróć listę pasujących produktów w formacie JSON (tylko JSON, bez markdown). 
-      Format: [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
-      Podaj wartości na 100g produktu lub na standardową porcję (zaznacz to w nazwie, np. "Jabłko (średnie)"). 
-      Uwzględnij różne warianty jeśli to możliwe. Nie pisz nic poza JSONem.`;
+      // 1. Zobaczmy najpierw z GlikoSense AI (jeśli jest klucz)
+      const hasKey = !!localStorage.getItem('gemini_api_key') || !!process.env.GEMINI_API_KEY;
+      
+      if (hasKey) {
+        const prompt = `Jesteś dietetykiem. Przeanalizuj zapytanie użytkownika: "${query}". Może to być nazwa produktu ze sklepu, danie domowe (np. "pierogi ruskie", "leczo"), owoc, warzywo lub konkretna marka. 
+        Zwróć listę pasujących produktów w formacie JSON (tylko JSON, bez markdown). 
+        Format: [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
+        Podaj wartości na 100g produktu lub na standardową porcję (zaznacz to w nazwie, np. "Jabłko (średnie)"). 
+        Uwzględnij różne warianty jeśli to możliwe. Nie pisz nic poza JSONem.`;
 
-      const result = await geminiService.generateContent(prompt);
-      const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-      let cleanJson = jsonMatch ? jsonMatch[0] : result;
-      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
-      const parsed = JSON.parse(cleanJson);
-      const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
-      setOnlineResults(
-        resultsArray.map((p: any, i: number) => ({
-          ...p,
-          id: `online_${i}_${Date.now()}`,
-          isOnline: true,
-        })),
-      );
-      if (resultsArray.length === 0) {
-        setSearchError("Nie znaleziono produktów spełniających kryteria.");
+        const result = await geminiService.generateContent(prompt);
+        const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+        let cleanJson = jsonMatch ? jsonMatch[0] : result;
+        cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
+        const parsed = JSON.parse(cleanJson);
+        const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
+        setOnlineResults(
+          resultsArray.map((p: any, i: number) => ({
+            ...p,
+            id: `online_${i}_${Date.now()}`,
+            isOnline: true,
+          })),
+        );
+        if (resultsArray.length > 0) return;
+      }
+      
+      // 2. Fallback do "Tradycyjnej Sieci" + Algorytm GlikoSense
+      const offSuccess = await runOFFSearch();
+      if (offSuccess) return;
+
+      // 3. Ostateczny Fallback Lokalny (Baza wewnętrzna)
+      const localMatches = allLocal.filter(p => 
+        p.name.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 5);
+
+      if (localMatches.length > 0) {
+        setOnlineResults(localMatches.map(p => ({ ...p, isOnline: true })));
+      } else {
+        setSearchError("Brak dostępu do AI i nie znaleziono dopasowań w bazach tradycyjnych.");
       }
     } catch (e) {
-      console.error("AI Search failed, falling back to OFF:", e);
-      // 2. Fallback do OpenFoodFacts
-      const offSuccess = await runOFFSearch();
-      if (!offSuccess) {
-        setSearchError("Brak dostępu do AI i nie znaleziono wyników w darmowych bazach sieciowych.");
-      }
+      console.error("Online search failed:", e);
+      setSearchError("Błąd wyszukiwania. Sprawdź połączenie.");
     } finally {
       setIsSearching(false);
     }

@@ -510,7 +510,7 @@ export default function Profile({
              <Baby className="text-amber-500" size={20} />
              <div>
                 <p className="text-sm font-black dark:text-amber-500 leading-tight">Tryb Dziecka</p>
-                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka (Gliko-Smoka) na ekranie głównym</p>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka (Gliko) na ekranie głównym</p>
              </div>
            </div>
            <button 
