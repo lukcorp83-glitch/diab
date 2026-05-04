@@ -23,31 +23,43 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
   const handleSave = async () => {
     if (!value || !user) return;
     setLoading(true);
+    
+    const glucoseValue = parseFloat(value);
+    const logTime = new Date(entryTime).getTime();
+    
+    // Close optimistically for better UX
+    onClose();
+    setValue('');
+    setLoading(false);
+    
     try {
       await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
         type: 'glucose',
-        value: parseFloat(value),
-        timestamp: new Date(entryTime).getTime(),
+        value: glucoseValue,
+        timestamp: logTime,
         description: 'Pomiar ręczny'
       });
-      onClose();
-      setValue('');
     } catch (e) {
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+        <motion.div 
+          initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+          animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+          exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4"
+        >
           <motion.div 
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform"
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight">Zapisz Cukier</h2>
@@ -68,6 +80,9 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
                     type="number" 
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSave();
+                    }}
                     placeholder="0" 
                     className="w-24 bg-transparent text-5xl font-black text-center outline-none dark:text-white"
                     autoFocus
@@ -78,13 +93,13 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
               <button 
                 onClick={handleSave}
                 disabled={loading}
-                className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase active:scale-95 shadow-xl transition-all disabled:opacity-50"
+                className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase active:scale-95 shadow-xl transition-all disabled:opacity-50"
               >
                 {loading ? 'Zapisywanie...' : 'Zatwierdź'}
               </button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

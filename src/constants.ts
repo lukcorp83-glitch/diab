@@ -1,5 +1,7 @@
 import { Product } from './types';
 
+export const APP_VERSION = '2.6.1';
+
 export const CATEGORIES = [
   "Owoce i Warzywa",
   "Zbożowe i Pieczywo",
@@ -71,8 +73,15 @@ export const LIB_BASE: Product[] = [
   { id: 'n14', name: "Camembert", carbs: 0.1, protein: 21, fat: 24, gi: 0, category: "Nabiał" },
   { id: 'n15', name: "Mozzarella", carbs: 2, protein: 18, fat: 17, gi: 0, category: "Nabiał" },
 
+  // Napoje i Inne
+  { id: 'i1', name: "Sok pomarańczowy (100ml)", carbs: 10, protein: 0.7, fat: 0.2, gi: 50, category: "Inne" },
+  { id: 'i2', name: "Sok jabłkowy (100ml)", carbs: 10, protein: 0.1, fat: 0.1, gi: 40, category: "Inne" },
+  { id: 'i3', name: "Kawa z mlekiem (bez cukru)", carbs: 2, protein: 1.5, fat: 1, gi: 30, category: "Inne" },
+  { id: 'i4', name: "Cukier biały (1 łyżeczka - 5g)", carbs: 5, protein: 0, fat: 0, gi: 65, category: "Inne" },
+  
   // Mięso i Ryby
-  { id: 'm1', name: "Pierś z kurczaka surowa", carbs: 0, protein: 22, fat: 1.2, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm1', name: "Pierś z kurczaka surowa", carbs: 0, protein: 22, fat: 1.3, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm1_1', name: "Pierś z kurczaka duszona/pieczona", carbs: 0, protein: 31, fat: 3.6, gi: 0, category: "Mięso i Ryby" },
   { id: 'm2', name: "Schab pieczony", carbs: 0, protein: 25, fat: 10, gi: 0, category: "Mięso i Ryby" },
   { id: 'm3', name: "Mielone wieprzowe", carbs: 0, protein: 18, fat: 20, gi: 0, category: "Mięso i Ryby" },
   { id: 'm4', name: "Łosoś surowy", carbs: 0, protein: 20, fat: 13, gi: 0, category: "Mięso i Ryby" },

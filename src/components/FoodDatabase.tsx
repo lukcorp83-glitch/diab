@@ -2,7 +2,7 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
-import { Search, Plus, Trash2, Tag, Info } from "lucide-react";
+import { Search, Plus, Trash2, Tag, Info, X } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
 import { cn } from "../lib/utils";
 import { db } from "../lib/firebase";
@@ -155,12 +155,12 @@ export default function FoodDatabase({ user }: { user: any }) {
             placeholder="Szukaj produktu..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 p-5 pl-14 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:ring-2 ring-indigo-500/20 shadow-sm"
+            className="w-full bg-white dark:bg-slate-900 p-5 pl-14 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:ring-2 ring-accent-500/20 shadow-sm"
           />
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-indigo-600 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 transition-all"
+          className="bg-accent-600 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 transition-all"
         >
           <Plus size={24} />
         </button>
@@ -168,14 +168,27 @@ export default function FoodDatabase({ user }: { user: any }) {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-4"
+          >
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-y-auto max-h-[90vh]"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-y-auto max-h-[90vh] will-change-transform relative"
             >
-              <h2 className="text-xl font-black mb-6 dark:text-white">
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
                 Dodaj własny produkt
               </h2>
               <div className="space-y-4">
@@ -285,7 +298,7 @@ export default function FoodDatabase({ user }: { user: any }) {
                     id="shareCommunity"
                     checked={shareWithCommunity}
                     onChange={(e) => setShareWithCommunity(e.target.checked)}
-                    className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500"
+                    className="w-5 h-5 rounded text-accent-600 focus:ring-accent-500"
                   />
                   <label
                     htmlFor="shareCommunity"
@@ -297,27 +310,21 @@ export default function FoodDatabase({ user }: { user: any }) {
               </div>
               <div className="flex gap-3 mt-8">
                 <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-slate-200 dark:bg-slate-800 py-4 rounded-2xl font-black text-[10px] uppercase dark:text-white"
-                >
-                  Anuluj
-                </button>
-                <button
                   onClick={handleAddProduct}
-                  className="flex-2 bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase"
+                  className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95"
                 >
                   Dodaj Produkt
                 </button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
         <button
           onClick={() => setActiveCategory("Wszystko")}
-          className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-indigo-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
+          className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
         >
           Wszystko
         </button>
@@ -325,42 +332,26 @@ export default function FoodDatabase({ user }: { user: any }) {
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? "bg-indigo-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
+            className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
           >
             {cat}
           </button>
         ))}
       </div>
 
-      <motion.div
-        variants={{
-          hidden: { opacity: 0 },
-          show: { opacity: 1, transition: { staggerChildren: 0.05 } },
-        }}
-        initial="hidden"
-        animate="show"
-        className="grid gap-1"
-      >
+      <div className="grid gap-1 will-change-transform">
         <AnimatePresence>
-          {filtered.map((p) => {
+          {filtered.slice(0, 100).map((p, idx) => {
             const isCustom = p.author === user?.uid && !p.isCommunity;
             const isOwnCommunity = p.author === user?.uid && p.isCommunity;
 
             const content = (
               <motion.div
-                layout
-                variants={{
-                  hidden: { opacity: 0, y: 15, scale: 0.95 },
-                  show: {
-                    opacity: 1,
-                    y: 0,
-                    scale: 1,
-                    transition: { type: "spring", stiffness: 350, damping: 25 },
-                  },
-                }}
-                initial="hidden"
-                animate="show"
+                key={p.id || p.name}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                transition={{ delay: Math.min(idx * 0.03, 0.3), duration: 0.2 }}
                 className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex justify-between items-center group mb-2"
               >
                 <div className="flex-1 min-w-0 pr-4">
@@ -369,7 +360,7 @@ export default function FoodDatabase({ user }: { user: any }) {
                       {p.name}
                     </h4>
                     {p.isCommunity && (
-                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-indigo-50 dark:bg-indigo-950 text-indigo-500">
+                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-accent-50 dark:bg-accent-950 text-accent-500">
                         Społeczność
                       </span>
                     )}
@@ -387,7 +378,7 @@ export default function FoodDatabase({ user }: { user: any }) {
                     </span>
                   </div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    W: {p.carbs}g | B: {p.protein || 0}g | T: {p.fat || 0}g (w
+                    W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g (w
                     100g)
                   </p>
                 </div>
@@ -446,7 +437,7 @@ export default function FoodDatabase({ user }: { user: any }) {
             );
           })}
         </AnimatePresence>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

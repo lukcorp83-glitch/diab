@@ -107,8 +107,8 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       id: "night_owl",
       title: "Nocny Marek",
       description: "Zarejestruj 5 pomiarów w nocy (00:00 - 04:00).",
-      icon: <Clock className="w-8 h-8 text-indigo-300" />,
-      color: "bg-indigo-300",
+      icon: <Clock className="w-8 h-8 text-accent-300" />,
+      color: "bg-accent-300",
       unlocked: stats.nightReadings >= 5,
       progress: Math.min(stats.nightReadings, 5),
       max: 5
@@ -127,8 +127,8 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       id: "glucose_tracker",
       title: "Czuwaj!",
       description: "Zaznacz 50 pomiarów glikemii.",
-      icon: <Zap className="w-8 h-8 text-indigo-500" />,
-      color: "bg-indigo-500",
+      icon: <Zap className="w-8 h-8 text-accent-500" />,
+      color: "bg-accent-500",
       unlocked: stats.totalGlucose >= 50,
       progress: Math.min(stats.totalGlucose, 50),
       max: 50
@@ -193,7 +193,7 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
         </button>
         <div>
           <h2 className="text-2xl font-black dark:text-white leading-none">Osiągnięcia</h2>
-          <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">
+          <p className="text-[10px] font-bold text-accent-500 uppercase tracking-widest mt-1">
             Odblokowano: {unlockedCount} / {achievements.length}
           </p>
         </div>
@@ -201,16 +201,16 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
 
       <div className="px-4">
         <motion.div 
-          className="bg-indigo-600 rounded-[2rem] p-6 mb-8 text-white relative overflow-hidden shadow-xl"
+          className="bg-accent-600 rounded-[2rem] p-6 mb-8 text-white relative overflow-hidden shadow-xl"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
         >
           <Trophy className="absolute -right-6 -bottom-6 w-32 h-32 opacity-10" />
           <h3 className="text-2xl font-black mb-2 relative z-10">Poziom: {Math.floor(unlockedCount / 2) + 1}</h3>
-          <p className="text-indigo-100 font-medium relative z-10 text-sm mb-4">
+          <p className="text-accent-100 font-medium relative z-10 text-sm mb-4">
             Każde działanie przybliża Cię do lepszej kontroli glikemii. Trzymaj tak dalej!
           </p>
-          <div className="w-full bg-indigo-900/50 rounded-full h-3 overflow-hidden relative z-10">
+          <div className="w-full bg-accent-900/50 rounded-full h-3 overflow-hidden relative z-10">
             <motion.div 
               className="bg-white h-full"
               initial={{ width: 0 }}

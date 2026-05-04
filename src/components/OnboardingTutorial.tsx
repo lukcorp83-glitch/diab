@@ -19,7 +19,7 @@ export default function OnboardingTutorial({ onComplete }: { onComplete: () => v
     {
       title: 'Zawsze na bieżąco',
       description: 'Aplikacja automatycznie synchronizuje wpisy z Nightscout. Możesz również dodawać ręcznie węglowodany i insulinę z zakładki Pulpit.',
-      icon: <Activity className="w-16 h-16 text-indigo-500" />
+      icon: <Activity className="w-16 h-16 text-accent-500" />
     },
     {
       title: 'Baza i Skaner AI',
@@ -47,21 +47,28 @@ export default function OnboardingTutorial({ onComplete }: { onComplete: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-6">
+    <motion.div 
+      initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+      animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+      exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 p-4"
+    >
       <motion.div 
         key={step}
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-        className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-8 text-center relative overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800"
+        initial={{ y: "100%", opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: "100%", opacity: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 pb-12 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform text-center relative"
       >
         <div className="flex justify-center mb-6">
-          <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-full shadow-inner">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-full shadow-inner border border-slate-100 dark:border-slate-700">
             {steps[step].icon}
           </div>
         </div>
 
-        <h2 className="text-2xl font-black mb-4 tracking-tight dark:text-white">
+        <h2 className="text-xl font-black mb-4 tracking-tight dark:text-white">
           {steps[step].title}
         </h2>
         
@@ -70,18 +77,18 @@ export default function OnboardingTutorial({ onComplete }: { onComplete: () => v
         </p>
 
         {/* Dots */}
-        <div className="absolute bottom-28 left-0 right-0 flex justify-center gap-2">
+        <div className="absolute bottom-32 left-0 right-0 flex justify-center gap-2">
           {steps.map((_, i) => (
             <div 
               key={i} 
-              className={`w-2 h-2 rounded-full transition-all ${i === step ? 'bg-indigo-600 w-6' : 'bg-slate-200 dark:bg-slate-700'}`} 
+              className={`w-2 h-2 rounded-full transition-all ${i === step ? 'bg-accent-600 w-6' : 'bg-slate-200 dark:bg-slate-700'}`} 
             />
           ))}
         </div>
 
         <button 
           onClick={handleNext}
-          className="w-full bg-indigo-600 text-white font-black uppercase tracking-widest py-4 rounded-2xl active:scale-95 transition-transform"
+          className="w-full bg-accent-600 text-white font-black uppercase tracking-widest py-5 rounded-[2rem] shadow-xl active:scale-95 transition-transform"
         >
           {step === steps.length - 1 ? 'Rozpocznij' : 'Dalej'}
         </button>
@@ -89,12 +96,13 @@ export default function OnboardingTutorial({ onComplete }: { onComplete: () => v
         {step < steps.length - 1 && (
           <button 
             onClick={onComplete}
-            className="w-full text-slate-400 text-xs mt-4 font-bold tracking-widest uppercase"
+            className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
           >
-            Pomiń
+            <span className="sr-only">Pomiń</span>
+            <span className="text-[10px] font-black uppercase">Pomiń</span>
           </button>
         )}
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

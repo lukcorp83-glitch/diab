@@ -8,6 +8,7 @@ import SwipeableItem from './SwipeableItem';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { geminiService } from '../services/gemini';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from 'recharts';
+import MLAnalysisWidget from './MLAnalysisWidget';
 
 export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] }) {
   const [reports, setReports] = useState<any[]>([]);
@@ -91,12 +92,14 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <MLAnalysisWidget logs={logs} />
+      
       {/* Glucose Trend Chart */}
       {chartData.length > 0 && (
         <div className="glass p-6 rounded-[2.5rem] dark:bg-slate-900 shadow-xl border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl">
-              <TrendingUp size={18} className="text-indigo-600 dark:text-indigo-400" />
+            <div className="p-2 bg-accent-50 dark:bg-accent-900/30 rounded-xl">
+              <TrendingUp size={18} className="text-accent-600 dark:text-accent-400" />
             </div>
             <div>
               <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Trend Miesięczny</h3>
@@ -160,10 +163,10 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
         </div>
       )}
 
-      <div className="bg-indigo-900 rounded-[2.5rem] p-8 text-white shadow-2xl text-center space-y-6 relative overflow-hidden">
-        <Sparkles className="absolute top-4 right-6 text-indigo-400 opacity-20" size={60} />
+      <div className="bg-accent-900 rounded-[2.5rem] p-8 text-white shadow-2xl text-center space-y-6 relative overflow-hidden">
+        <Sparkles className="absolute top-4 right-6 text-accent-400 opacity-20" size={60} />
         <div className="relative z-10">
-          <h2 className="text-2xl font-black mb-1 text-indigo-300">Raport</h2>
+          <h2 className="text-2xl font-black mb-1 text-accent-300">Raport</h2>
           <p className="text-white text-sm font-bold tracking-widest">Inteligentna analiza glikemii</p>
         </div>
 
@@ -177,21 +180,21 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
               boxShadow: ["0px 0px 0px 0px rgba(99,102,241,0)", "0px 0px 20px 5px rgba(99,102,241,0.5)", "0px 0px 0px 0px rgba(99,102,241,0)"]
             }}
             transition={{ repeat: Infinity, duration: 2 }}
-            className="w-full bg-white text-indigo-900 py-6 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 relative overflow-hidden"
+            className="w-full bg-white text-accent-900 py-6 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 relative overflow-hidden"
           >
-            {loading ? <Loader2 className="animate-spin" /> : <Sparkles size={24} className="text-indigo-500" />}
+            {loading ? <Loader2 className="animate-spin" /> : <Sparkles size={24} className="text-accent-500" />}
             Wygeneruj Raport Kompletny
             
             {!loading && (
               <motion.div 
                 animate={{ x: ['-100%', '200%'] }}
                 transition={{ repeat: Infinity, duration: 1.5, ease: 'linear', repeatDelay: 3 }}
-                className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-transparent via-indigo-500/10 to-transparent skew-x-12"
+                className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-transparent via-accent-500/10 to-transparent skew-x-12"
               />
             )}
           </motion.button>
           
-          <p className="text-[9px] text-indigo-300 font-bold uppercase tracking-tighter opacity-60">Analiza obejmuje: trendy, posiłki, wzorce i hba1c</p>
+          <p className="text-[9px] text-accent-300 font-bold uppercase tracking-tighter opacity-60">Analiza obejmuje: trendy, posiłki, wzorce i hba1c</p>
         </div>
       </div>
 
@@ -213,10 +216,10 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-all mb-2 cursor-pointer" onClick={() => setActiveReport(activeReport === report.id ? null : report.id)}>
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{report.type}</span>
+                    <span className="text-[9px] font-black text-accent-600 dark:text-accent-400 uppercase tracking-widest">{report.type}</span>
                     <span className="text-[8px] font-bold text-slate-400">{new Date(report.timestamp).toLocaleString()}</span>
                   </div>
-                  <div className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 p-2 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                  <div className="bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 p-2 rounded-xl text-[10px] font-black uppercase tracking-widest">
                     {activeReport === report.id ? 'Ukryj' : 'Podgląd'}
                   </div>
                 </div>

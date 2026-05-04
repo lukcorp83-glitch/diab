@@ -15,21 +15,6 @@ interface HistoryProps {
 }
 
 export default function HistoryView({ logs, user, onBack }: HistoryProps) {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-  };
-
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }} 
@@ -50,14 +35,14 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
         </div>
       </div>
 
-      <motion.div 
-        variants={containerVariants as any}
-        initial="hidden"
-        animate="show"
-        className="space-y-1"
-      >
-        {logs.map(log => (
-          <motion.div key={log.id} variants={itemVariants as any}>
+      <div className="space-y-1 will-change-transform">
+        {logs.slice(0, 100).map((log, idx) => (
+          <motion.div 
+            key={log.id} 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(idx * 0.05, 0.5), duration: 0.2 }}
+          >
             <SwipeableItem 
               id={log.id}
               onDelete={async () => {
@@ -72,7 +57,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                 <div className={cn(
                   "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950",
                   log.type === 'glucose' ? "bg-rose-500/10 text-rose-500" :
-                  log.type === 'meal' ? "bg-amber-500/10 text-amber-500" : "bg-indigo-500/10 text-indigo-500"
+                  log.type === 'meal' ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500"
                 )}>
                   {log.type === 'glucose' && <Activity size={18} strokeWidth={2.5} />}
                   {log.type === 'meal' && <Utensils size={18} strokeWidth={2.5} />}
@@ -105,7 +90,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                       {log.source === 'nightscout' ? (
                         <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
                       ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
-                        <span className="text-[8px] bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
+                        <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
                       ) : (
                         <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
                       )}
@@ -117,11 +102,11 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
           </motion.div>
         ))}
         {logs.length === 0 && (
-          <motion.div variants={itemVariants as any} className="text-center py-20 bg-slate-100 dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+          <div className="text-center py-20 bg-slate-100 dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Brak wpisów</p>
-          </motion.div>
+          </div>
         )}
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

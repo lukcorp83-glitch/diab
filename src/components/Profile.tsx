@@ -1,27 +1,33 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, Utensils, Beaker, Baby } from 'lucide-react';
+import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
 import { UserSettings } from '../types';
+import { APP_VERSION } from '../constants';
 
 import CgmImport from './CgmImport';
 import SettingsSync from './SettingsSync';
+import SettingsTransfer from './SettingsTransfer';
 
 export default function Profile({ 
   user, 
   handleLogout, 
   theme, 
   toggleTheme,
-  setTab
+  setTab,
+  initialAction,
+  onClearInitialAction
 }: { 
   user: any, 
   handleLogout: () => void,
   theme: 'light' | 'dark',
   toggleTheme: () => void,
-  setTab: (t: string) => void
+  setTab: (t: string) => void,
+  initialAction?: string | null,
+  onClearInitialAction?: () => void
 }) {
   const [settings, setSettings] = useState<UserSettings>({ isf: 58, wwRatio: 16, wbtRatio: 18, targetMin: 70, targetMax: 140, showPrediction: true });
   const [settingsLoading, setSettingsLoading] = useState(false);
@@ -31,14 +37,29 @@ export default function Profile({
   const [nsUrl, setNsUrl] = useState('');
   const [nsSecret, setNsSecret] = useState('');
   const [saveStatus, setSaveStatus] = useState<string>('');
+  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [geminiSaveStatus, setGeminiSaveStatus] = useState('');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [newShortcut, setNewShortcut] = useState({ id: '', name: '', icon: '📌', type: 'meal', carbs: 0 });
+  const [newMedication, setNewMedication] = useState({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true });
 
   const icons = ['🍎', '🍌', '🍇', '🍓', '🥪', '🍕', '🍔', '🥤', '🍬', '🥣', '🍫', '🥨', '🍪', '🥛'];
 
   const [cleaning, setCleaning] = useState(false);
   const [cleaningResult, setCleaningResult] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('therapy');
+
+  useEffect(() => {
+    if (initialAction) {
+       if (initialAction === 'meds') setActiveCategory('meds');
+       if (initialAction === 'simulator') setActiveCategory('simulator');
+       if (initialAction === 'food') setActiveCategory('food');
+       // clear action
+       setTimeout(() => {
+         onClearInitialAction && onClearInitialAction();
+       }, 100);
+    }
+  }, [initialAction]);
 
   const [simCarbs, setSimCarbs] = useState<number>(50);
   const [simFat, setSimFat] = useState<number>(30); // 3 Wymienniki Białkowo-Tłuszczowe (WBT) to 300 kcal (approx 30g tłuszczu)
@@ -154,6 +175,54 @@ export default function Profile({
     }
   };
 
+  const saveMedication = async () => {
+    if (!newMedication.name || !user) return;
+    try {
+      const updatedMeds = [...(settings.medications || [])];
+      
+      if (newMedication.id) {
+        // Edit 
+        const index = updatedMeds.findIndex(m => m.id === newMedication.id);
+        if (index >= 0) updatedMeds[index] = { ...newMedication };
+      } else {
+        // Add
+        updatedMeds.push({ ...newMedication, id: Date.now().toString() });
+      }
+      
+      const newSettings = { ...settings, medications: updatedMeds };
+      setSettings(newSettings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+      setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteMedication = async (id: string) => {
+    if (!user) return;
+    try {
+      const updatedMeds = (settings.medications || []).filter(m => m.id !== id);
+      const newSettings = { ...settings, medications: updatedMeds };
+      setSettings(newSettings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    // Live preview of settings before saving
+    const root = window.document.documentElement;
+    let activeTheme = settings.theme || theme;
+    if (activeTheme === 'system') {
+      activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    root.classList.remove('light', 'dark');
+    root.classList.add(activeTheme);
+    root.setAttribute('data-accent', settings.accentColor || 'accent');
+    root.setAttribute('data-bg', settings.bgOption || 'default');
+  }, [settings.theme, settings.accentColor, settings.bgOption, theme]);
+
   const saveSettings = async () => {
     if (!user) return;
     setSettingsLoading(true);
@@ -223,6 +292,7 @@ export default function Profile({
           { id: 'therapy', label: 'Terapia & Cele', icon: <Activity size={14} /> },
           { id: 'devices', label: 'Osprzęt & CGM', icon: <Smartphone size={14} /> },
           { id: 'food', label: 'Baza Posiłków', icon: <Utensils size={14} /> },
+          { id: 'meds', label: 'Leki & Przypomnienia', icon: <Pill size={14} /> },
           { id: 'simulator', label: 'Symulator Pompy', icon: <Beaker size={14} /> },
           { id: 'system', label: 'System & Inne', icon: <Settings size={14} /> }
         ].map(cat => (
@@ -231,7 +301,7 @@ export default function Profile({
             onClick={() => setActiveCategory(cat.id)}
             className={cn(
               "flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest snap-start transition-all",
-              activeCategory === cat.id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700"
+              activeCategory === cat.id ? "bg-accent-600 text-white shadow-lg shadow-accent-600/20" : "bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700"
             )}
           >
             {cat.icon}
@@ -259,7 +329,7 @@ export default function Profile({
         <button 
           onClick={saveSettings}
           disabled={settingsLoading}
-          className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
+          className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all disabled:opacity-50"
         >
           {settingsLoading ? 'Zapisywanie...' : 'Zatwierdź Ustawienia'}
         </button>
@@ -306,7 +376,7 @@ export default function Profile({
               <div className="flex-1 flex gap-2">
                 <div className="flex-1">
                    <label className="text-[8px] text-slate-400 uppercase">ISF</label>
-                   <input type="number" value={hp.isf} onChange={e => {
+                   <input type="number" step="0.1" value={typeof hp.isf === 'number' ? Number(hp.isf.toFixed(2)) : hp.isf} onChange={e => {
                      const newProfiles = [...(settings.hourlyProfiles || [])];
                      newProfiles[idx].isf = Number(e.target.value);
                      setSettings({ ...settings, hourlyProfiles: newProfiles });
@@ -314,7 +384,7 @@ export default function Profile({
                 </div>
                 <div className="flex-1">
                    <label className="text-[8px] text-slate-400 uppercase">WW</label>
-                   <input type="number" value={hp.wwRatio} onChange={e => {
+                   <input type="number" step="0.1" value={typeof hp.wwRatio === 'number' ? Number(hp.wwRatio.toFixed(2)) : hp.wwRatio} onChange={e => {
                      const newProfiles = [...(settings.hourlyProfiles || [])];
                      newProfiles[idx].wwRatio = Number(e.target.value);
                      setSettings({ ...settings, hourlyProfiles: newProfiles });
@@ -330,11 +400,11 @@ export default function Profile({
           <button onClick={() => {
             const newProfiles = [...(settings.hourlyProfiles || []), { time: '12:00', isf: 50, wwRatio: 10 }];
             setSettings({ ...settings, hourlyProfiles: newProfiles.sort((a,b) => a.time.localeCompare(b.time)) });
-          }} className="w-full py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-800/50">
+          }} className="w-full py-2 bg-accent-50 dark:bg-accent-900/20 text-accent-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-accent-100 dark:border-accent-800/50">
             + Dodaj Przedział Czasowy
           </button>
         </div>
-        <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-indigo-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">
+        <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all">
           Zapisz Profile Godzinowe
         </button>
       </div>
@@ -398,9 +468,9 @@ export default function Profile({
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Przypomnienia o Wkłuciach i Sensorze</h3>
         <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Ustaw czasy życia dla Twojego osprzętu. Aplikacja obliczy dokładny czas do wymiany co do godziny.</p>
         
-        <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-slate-800/50 rounded-2xl border border-indigo-100 dark:border-slate-700">
+        <div className="flex items-center justify-between p-4 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700">
            <div className="flex items-center gap-3">
-             <Bell className="text-indigo-500" size={20} />
+             <Bell className="text-accent-500" size={20} />
              <div>
                 <p className="text-sm font-black dark:text-white leading-tight">Powiadomienia Push</p>
                 <p className="text-[10px] font-medium text-slate-500">Ostrzeżenie o zbliżającej wymianie (ostrzega przy otwartej karcie)</p>
@@ -425,7 +495,7 @@ export default function Profile({
              }}
              className={cn(
                "w-12 h-6 rounded-full transition-all relative flex items-center shadow-inner",
-               settings.notificationsEnabled ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-600"
+               settings.notificationsEnabled ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-600"
              )}
            >
              <div className={cn(
@@ -461,7 +531,7 @@ export default function Profile({
            </button>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-6">
            <div className="flex-1 space-y-4">
               <div>
                 <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Żywotność Sensora (dni)</label>
@@ -486,7 +556,7 @@ export default function Profile({
                  setSettings(newSettings);
                  if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
                  alert('Zapisano wymianę sensora!');
-              }} className="w-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all">Teraz: Nowy Sensor</button>
+              }} className="w-full bg-accent-100 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all">Teraz: Nowy Sensor</button>
            </div>
 
            <div className="flex-1 space-y-4">
@@ -516,7 +586,7 @@ export default function Profile({
               }} className="w-full bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all">Teraz: Nowe Wkłucie</button>
            </div>
         </div>
-        <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-indigo-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all mt-4">
+        <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all mt-4">
           Zapisz Żywotność
         </button>
       </div>
@@ -540,7 +610,7 @@ export default function Profile({
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
                   onClick={() => setNewShortcut({ id: s.id, name: s.name, icon: s.icon, type: s.type || 'meal', carbs: s.carbs || 0 })}
-                  className="p-2 text-indigo-500 text-[10px] font-black uppercase tracking-widest"
+                  className="p-2 text-accent-500 text-[10px] font-black uppercase tracking-widest"
                 >
                   Edytuj
                 </button>
@@ -567,7 +637,7 @@ export default function Profile({
                   onClick={() => setNewShortcut({...newShortcut, icon})}
                   className={cn(
                     "w-8 h-8 flex items-center justify-center rounded-lg transition-all",
-                    newShortcut.icon === icon ? "bg-indigo-500 scale-110 shadow-lg" : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                    newShortcut.icon === icon ? "bg-accent-500 scale-110 shadow-lg" : "hover:bg-slate-100 dark:hover:bg-slate-800"
                   )}
                 >
                   {icon}
@@ -605,7 +675,7 @@ export default function Profile({
                 </div>
                 <button 
                   onClick={saveShortcut}
-                  className="bg-indigo-600 text-white px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-indigo-500/20"
+                  className="bg-accent-600 text-white px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-accent-500/20"
                 >
                   {newShortcut.id ? 'Zapisz' : 'Dodaj'}
                 </button>
@@ -622,6 +692,112 @@ export default function Profile({
           </div>
         </div>
       </div>
+      </div>
+      )}
+
+      {activeCategory === 'meds' && (
+      <div className="space-y-6">
+        <div className="glass p-8 rounded-[3rem] space-y-4">
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Pill size={14} /> Twoje Leki</h3>
+          <p className="text-[10px] text-slate-500 font-medium mb-4">Zarządzaj przyjmowanymi lekami i ustawiaj przypomnienia o ich zażyciu (otrzymasz powiadomienia w aplikacji).</p>
+          
+          <div className="space-y-3">
+            {(settings.medications || []).map(med => (
+              <div key={med.id} className="flex flex-col p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all group">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2 rounded-xl", med.active ? "bg-accent-100 text-accent-500 dark:bg-accent-900/30" : "bg-slate-200 text-slate-400 dark:bg-slate-700")}>
+                       <Pill size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black dark:text-white capitalize">{med.name} <span className="text-[10px] font-bold text-slate-400 ml-1">({med.dosage})</span></p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                         {med.reminders.map((r, i) => <span key={i} className="text-[9px] font-black bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full text-slate-500">{r}</span>)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <button onClick={async () => {
+                        const updatedMeds = settings.medications!.map(m => m.id === med.id ? { ...m, active: !m.active } : m);
+                        const newSettings = { ...settings, medications: updatedMeds };
+                        setSettings(newSettings);
+                        await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }} className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded", med.active ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10" : "text-slate-500 bg-slate-200 dark:bg-slate-700")}>
+                        {med.active ? 'Aktywny' : 'Pauzowany'}
+                    </button>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setNewMedication(med)} className="p-1 text-accent-500"><Settings size={14} /></button>
+                      <button onClick={() => deleteMedication(med.id)} className="p-1 text-rose-500"><Trash size={14} /></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">
+                {newMedication.id ? 'Edytuj Lek' : 'Dodaj Nowy Lek'}
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <input 
+                  type="text" 
+                  placeholder="Nazwa leku (np. Metformina)" 
+                  value={newMedication.name}
+                  onChange={e => setNewMedication({...newMedication, name: e.target.value})}
+                  className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl outline-none border border-slate-200 dark:border-slate-700 dark:text-white text-sm font-bold"
+                />
+                
+                <input 
+                  type="text" 
+                  placeholder="Dawka (np. 500mg)" 
+                  value={newMedication.dosage}
+                  onChange={e => setNewMedication({...newMedication, dosage: e.target.value})}
+                  className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl outline-none border border-slate-200 dark:border-slate-700 dark:text-white text-sm font-bold"
+                />
+                
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Godziny przyjmowania</p>
+                   <div className="flex flex-wrap gap-2 mb-3">
+                     {newMedication.reminders.map((rem, idx) => (
+                       <div key={idx} className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-1 pl-3 pr-1">
+                          <input type="time" value={rem} onChange={e => {
+                             const updatedRems = [...newMedication.reminders];
+                             updatedRems[idx] = e.target.value;
+                             setNewMedication({...newMedication, reminders: updatedRems});
+                          }} className="text-xs font-bold bg-transparent outline-none dark:text-white" />
+                          <button onClick={() => {
+                             const updatedRems = newMedication.reminders.filter((_, i) => i !== idx);
+                             setNewMedication({...newMedication, reminders: updatedRems});
+                          }} className="p-1 text-slate-400 hover:text-rose-500 rounded-lg"><X size={14}/></button>
+                       </div>
+                     ))}
+                     <button onClick={() => {
+                        setNewMedication({...newMedication, reminders: [...newMedication.reminders, '12:00']});
+                     }} className="bg-accent-100 dark:bg-accent-900/30 text-accent-500 p-2 rounded-xl border border-accent-200 dark:border-accent-800/50 hover:bg-accent-200 transition-colors"><Plus size={16} /></button>
+                   </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    onClick={saveMedication}
+                    className="flex-1 bg-accent-600 text-white p-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-accent-500/20"
+                  >
+                    {newMedication.id ? 'Zapisz Zmiany' : 'Dodaj Lek'}
+                  </button>
+                  {newMedication.id && (
+                    <button 
+                      onClick={() => setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true })}
+                      className="bg-slate-200 dark:bg-slate-800 p-4 rounded-2xl font-black text-[10px] uppercase dark:text-slate-400"
+                    >
+                      X
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       )}
 
@@ -722,12 +898,12 @@ export default function Profile({
             </div>
           )}
 
-          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl space-y-3">
-            <div className="flex justify-between items-center text-xs font-bold text-indigo-500">
+          <div className="p-4 bg-accent-50 dark:bg-accent-900/10 rounded-2xl space-y-3">
+            <div className="flex justify-between items-center text-xs font-bold text-accent-500">
                <span>Początkowa sugerowana dawka: {(simCarbs / Number(settings.wwRatio || 10) + simFat / Number(settings.wbtRatio || 10)).toFixed(2)} J</span>
             </div>
             <div className="space-y-2">
-              <label className="text-[8px] font-black uppercase text-indigo-400 tracking-widest ml-2">Wprowadź własną dawkę do testu błędów (J) - Zostaw puste aby użyć sugerowanej</label>
+              <label className="text-[8px] font-black uppercase text-accent-400 tracking-widest ml-2">Wprowadź własną dawkę do testu błędów (J) - Zostaw puste aby użyć sugerowanej</label>
               <input 
                 type="number"
                 placeholder="Wpisz np. 1.0 aby zobaczyć skutek niedoboru"
@@ -751,7 +927,7 @@ export default function Profile({
                     setSimStackingEnabled(e.target.checked);
                     setSimResult(false);
                   }} 
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" 
+                  className="w-4 h-4 rounded text-accent-600 focus:ring-accent-500" 
                 />
                 <label htmlFor="stackingCheck" className="text-xs font-bold text-slate-600 dark:text-slate-300">Dodaj nakładającą się dawkę (korekta IOB)</label>
              </div>
@@ -764,7 +940,7 @@ export default function Profile({
           </div>
 
           <button 
-            className="w-full bg-indigo-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all mt-4"
+            className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all mt-4"
             onClick={() => setSimResult(true)}
           >
             Symuluj Pokrycie Bolusem
@@ -772,9 +948,9 @@ export default function Profile({
 
           {simResult && (
              <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700 mt-4 space-y-4">
-                <h4 className="text-xs font-bold text-indigo-500">Wynik Symulacji:</h4>
+                <h4 className="text-xs font-bold text-accent-500">Wynik Symulacji:</h4>
                 <div className="text-[10px] text-slate-500 font-medium space-y-3">
-                  <p className="text-sm">Razem do podania: <strong className="text-indigo-500 text-lg">{((simCarbs / Number(settings.wwRatio || 10)) + (simFat / Number(settings.wbtRatio || 10))).toFixed(2)} j.</strong></p>
+                  <p className="text-sm">Razem do podania: <strong className="text-accent-500 text-lg">{((simCarbs / Number(settings.wwRatio || 10)) + (simFat / Number(settings.wbtRatio || 10))).toFixed(2)} j.</strong></p>
                   
                   <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                     <p className="font-bold text-slate-700 dark:text-slate-300 mb-1">Co widzisz na wykresie?</p>
@@ -926,10 +1102,10 @@ export default function Profile({
                                  </div>
                                )}
                                <div 
-                                 className={cn("w-full transition-all", h.dose2 === 0 && h.autoDose === 0 ? "rounded-t-lg" : "", simType === 'standard' ? "bg-indigo-400" : simType === 'extended' ? "bg-blue-400" : "bg-teal-400", h.dose1 > 0 ? "min-h-[4px]" : "min-h-[2px] bg-slate-300 dark:bg-slate-700")}
+                                 className={cn("w-full transition-all", h.dose2 === 0 && h.autoDose === 0 ? "rounded-t-lg" : "", simType === 'standard' ? "bg-accent-400" : simType === 'extended' ? "bg-blue-400" : "bg-teal-400", h.dose1 > 0 ? "min-h-[4px]" : "min-h-[2px] bg-slate-300 dark:bg-slate-700")}
                                  style={{ height: `${(h.dose1 / (maxDose * 1.5)) * 100}%` }}
                                >
-                                 {h.dose1 > 0 && <span className={"text-[9px] font-black block text-center -mt-4 " + (simType === 'standard' ? "text-indigo-600 font-bold" : simType === 'extended' ? "text-blue-600 font-bold" : "text-teal-600 font-bold")}>{h.dose1.toFixed(1)}</span>}
+                                 {h.dose1 > 0 && <span className={"text-[9px] font-black block text-center -mt-4 " + (simType === 'standard' ? "text-accent-600 font-bold" : simType === 'extended' ? "text-blue-600 font-bold" : "text-teal-600 font-bold")}>{h.dose1.toFixed(1)}</span>}
                                </div>
                                <div className="text-[8px] font-bold text-slate-500 absolute -bottom-6 flex flex-col items-center">
                                  <span>{h.label}</span>
@@ -943,7 +1119,7 @@ export default function Profile({
                 
                 <div className="flex flex-wrap items-center gap-4 justify-center mt-10 p-4 border border-rose-100 dark:border-rose-900/30 rounded-xl bg-orange-50/50 dark:bg-orange-900/10">
                    <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded-full border-2 border-rose-500 bg-white"></div> Symulowana Glukoza (mg/dL)</div>
-                   <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded bg-indigo-400"></div> Dawka główna</div>
+                   <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded bg-accent-400"></div> Dawka główna</div>
                    {simStackingEnabled && <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded bg-amber-400"></div> Dawka ręczna</div>}
                    {simAutoBasal && <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded bg-purple-400"></div> Mikrobolusy u (Auto Bazy)</div>}
                 </div>
@@ -960,40 +1136,7 @@ export default function Profile({
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Integracje i System</h3>
         
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <Zap className="text-indigo-400" size={20} />
-              <div className="flex flex-col">
-                <span className="text-xs font-bold dark:text-white">Przewidywana Glikemia</span>
-                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Model trendu i IOB</span>
-              </div>
-            </div>
-            <button 
-              onClick={async () => {
-                const newSettings = { ...settings, showPrediction: !settings.showPrediction };
-                setSettings(newSettings);
-                // Auto-save this specific setting
-                if (user) {
-                  try {
-                    await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                  } catch (e) {
-                    console.error("Auto-save prediction error:", e);
-                  }
-                }
-              }}
-              className={cn(
-                "w-12 h-6 rounded-full relative transition-colors duration-300",
-                settings.showPrediction ? "bg-indigo-600" : "bg-slate-300"
-              )}
-            >
-              <div className={cn(
-                "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300",
-                settings.showPrediction ? "left-7" : "left-1"
-              )} />
-            </button>
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
+          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3 mt-4">
             <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Czas działania insuliny (DIA)</h4>
             <div className="flex items-center justify-center gap-4">
               <button 
@@ -1002,7 +1145,7 @@ export default function Profile({
                   setSettings(newSettings);
                   if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
                 }}
-                className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-indigo-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
+                className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-accent-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
               >
                 -
               </button>
@@ -1016,7 +1159,7 @@ export default function Profile({
                   setSettings(newSettings);
                   if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
                 }}
-                className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-indigo-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
+                className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-accent-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
               >
                 +
               </button>
@@ -1024,23 +1167,94 @@ export default function Profile({
             <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-tighter opacity-60">Standardowo: 3-5h dla analogów szybko-działających</p>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              {theme === 'dark' ? <Moon className="text-indigo-400" size={20} /> : <Sun className="text-amber-500" size={20} />}
-              <span className="text-xs font-bold dark:text-white">Tryb Ciemny</span>
+          <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 space-y-4">
+            <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-2 mb-2">Wygląd aplikacji</h3>
+            
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Akcent Kolorystyczny</span>
+              <div className="flex gap-2 px-2 overflow-x-auto scrollbar-none py-1">
+                {['indigo', 'emerald', 'rose', 'amber', 'violet'].map(color => (
+                  <button
+                    key={color}
+                    onClick={async () => {
+                      const newSettings = { ...settings, accentColor: color };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-all",
+                      settings.accentColor === color || (!settings.accentColor && color === 'indigo') ? "scale-110 shadow-lg shadow-black/10 ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-800" : "opacity-60 scale-90 hover:opacity-100 hover:scale-100",
+                      color === 'indigo' ? "bg-accent-500 ring-accent-500" :
+                      color === 'emerald' ? "bg-emerald-500 ring-emerald-500" :
+                      color === 'rose' ? "bg-rose-500 ring-rose-500" :
+                      color === 'amber' ? "bg-amber-500 ring-amber-500" :
+                      "bg-violet-500 ring-violet-500"
+                    )}
+                  >
+                    {(settings.accentColor === color || (!settings.accentColor && color === 'indigo')) && <CheckCircle2 size={16} className="text-white" />}
+                  </button>
+                ))}
+              </div>
             </div>
-            <button 
-              onClick={toggleTheme}
-              className={cn(
-                "w-12 h-6 rounded-full relative transition-colors duration-300",
-                theme === 'dark' ? "bg-indigo-600" : "bg-slate-300"
-              )}
-            >
-              <div className={cn(
-                "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300",
-                theme === 'dark' ? "left-7" : "left-1"
-              )} />
-            </button>
+
+            <div className="h-px bg-slate-200 dark:bg-slate-700 mx-2" />
+            
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Motyw</span>
+              <div className="flex gap-2">
+                {['light', 'dark', 'system'].map(t => (
+                  <button
+                    key={t}
+                    onClick={async () => {
+                      const newSettings = { ...settings, theme: t as 'light' | 'dark' | 'system'};
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "flex-1 py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all text-[10px] uppercase tracking-widest",
+                      (settings.theme === t) || (!settings.theme && t === 'light') ? "bg-accent-500 text-white shadow-lg" : "bg-white dark:bg-slate-700 text-slate-500"
+                    )}
+                  >
+                    {t === 'light' ? <Sun size={16} /> : t === 'dark' ? <Moon size={16} /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-70" />}
+                    {t === 'light' ? 'Jasny' : t === 'dark' ? 'Ciemny' : 'System'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(settings.theme === 'dark' || settings.theme === 'system') && (
+              <div className="flex flex-col gap-2 mt-2">
+                <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Czerń</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      const newSettings = { ...settings, bgOption: 'default' as const };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "flex-1 py-3 rounded-xl font-bold transition-all text-[10px] uppercase tracking-widest",
+                      !settings.bgOption || settings.bgOption === 'default' ? "bg-accent-500 text-white shadow-lg" : "bg-white dark:bg-slate-700 text-slate-500"
+                    )}
+                  >
+                    Granat (Slate)
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const newSettings = { ...settings, bgOption: 'true-black' as const };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "flex-1 py-3 rounded-xl font-bold transition-all text-[10px] uppercase tracking-widest",
+                      settings.bgOption === 'true-black' ? "bg-black text-white shadow-lg border border-accent-500/50" : "bg-white dark:bg-black text-slate-500 border border-slate-200 dark:border-slate-800"
+                    )}
+                  >
+                    Prawdziwa Czerń
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <SettingsSync 
@@ -1053,9 +1267,59 @@ export default function Profile({
             }} 
           />
 
+          <SettingsTransfer 
+            settings={settings}
+            onImport={(s) => {
+              setSettings({ ...settings, ...s });
+              setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { ...settings, ...s });
+            }} 
+          />
+
           <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
             <div className="flex items-center gap-3 mb-2">
-                <Globe className="text-indigo-500" size={20} />
+                <Zap className="text-emerald-500" size={20} />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold dark:text-white">Klucz API Gemini (Własny Serwer AI)</span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-balance left-0 right-0">Omija limity publicznego serwera</span>
+                </div>
+            </div>
+            
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <p className="font-bold mb-1">Jak uzyskać i dodać klucz API:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Wejdź na stronę <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.</li>
+                <li>Zaloguj się swoim kontem Google i kliknij "Create API key".</li>
+                <li>Skopiuj nowo utworzony klucz (zaczyna się od <code>AIzaSy...</code>).</li>
+                <li>Wklej klucz poniżej. Klucz zapisuje się automatycznie na Twoim urządzeniu.</li>
+              </ol>
+            </div>
+
+            <input 
+              type="password" 
+              placeholder="Wklej klucz (AIzaSy...)" 
+              value={geminiApiKey}
+              onChange={e => setGeminiApiKey(e.target.value)}
+              onBlur={() => {
+                const val = geminiApiKey.trim();
+                setGeminiApiKey(val);
+                if (val) {
+                  localStorage.setItem('gemini_api_key', val);
+                  setGeminiSaveStatus('Zapisano lokalnie ✓');
+                } else {
+                  localStorage.removeItem('gemini_api_key');
+                  setGeminiSaveStatus('Usunięto klucz ✓');
+                }
+                setTimeout(() => setGeminiSaveStatus(''), 2000);
+              }}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
+            />
+            {geminiSaveStatus && <span className="text-[10px] text-emerald-500 font-bold">{geminiSaveStatus}</span>}
+            <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-2 font-medium">Jeżeli widzisz błąd &quot;Serwery AI są zajęte&quot;, utwórz darmowy klucz na <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-accent-500 underline font-bold">Google AI Studio</a> i wklej go tutaj. Klucz zostanie zapisany tylko w Twojej przeglądarce.</p>
+          </div>
+
+          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-3 mb-2">
+                <Globe className="text-accent-500" size={20} />
                 <span className="text-xs font-bold dark:text-white">Adres Nightscout</span>
             </div>
             <input 
@@ -1075,9 +1339,9 @@ export default function Profile({
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
             />
             
-            <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl space-y-2">
-              <p className="text-[8px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-widest">Architektura połączenia</p>
-              <div className="flex justify-between items-center text-[9px] text-indigo-600 dark:text-indigo-400 font-bold px-2 text-center">
+            <div className="bg-accent-50 dark:bg-accent-900/20 p-3 rounded-xl space-y-2">
+              <p className="text-[8px] font-black text-accent-900 dark:text-accent-300 uppercase tracking-widest">Architektura połączenia</p>
+              <div className="flex justify-between items-center text-[9px] text-accent-600 dark:text-accent-400 font-bold px-2 text-center">
                 <div className="flex flex-col items-center w-1/4">
                   <span className="leading-tight">Aplikacja CGM</span>
                   <span className="text-[7px] text-slate-500 whitespace-nowrap">(xDrip / Carelink)</span>
@@ -1108,7 +1372,7 @@ export default function Profile({
             {!saveStatus && (
               <button 
                 onClick={saveNsUrl}
-                className="text-[9px] font-black uppercase text-indigo-500 mt-1 text-left"
+                className="text-[9px] font-black uppercase text-accent-500 mt-1 text-left"
               >
                 Zapisz URL
               </button>
@@ -1132,41 +1396,30 @@ export default function Profile({
             </button>
           </div>
           
-          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-              <Zap size={14} className="text-rose-400" /> Gemini API Key
+          <div className="flex flex-col gap-2 p-4 bg-emerald-50 dark:bg-emerald-500/5 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
+            <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+              <Zap size={14} className="text-emerald-400" /> Status AI Gemini
             </h4>
-            <p className="text-[8px] text-slate-500 dark:text-slate-400 mb-1 leading-tight">
-              Aplikacja do analiz i rozpoznawania jedzenia wykorzystuje AI Gemini. Jeśli korzystasz z GlikoControl p-oza oficjalną domeną (np. GitHub Pages, Vercel), wklej tutaj własny, darmowy klucz Gemini API (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-500 underline">Klucz z AI Studio</a>).
+            <p className="text-[9px] text-slate-500 dark:text-slate-400 mb-1 leading-tight font-bold">
+              System AI jest aktywny i skonfigurowany. Korzystasz z globalnego klucza GlikoControl.
             </p>
-            <input 
-              type="password" 
-              placeholder="Twój klucz Gemini API (zaczyna się od AIza...)" 
-              value={localStorage.getItem('gemini_api_key') || ''}
-              onChange={e => {
-                const val = e.target.value.trim();
-                if (val) {
-                  localStorage.setItem('gemini_api_key', val);
-                } else {
-                  localStorage.removeItem('gemini_api_key');
-                }
-                setSettings({ ...settings });
-              }}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
-            />
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Połączono poprawnie</span>
+            </div>
           </div>
 
           <CgmImport user={user} onComplete={() => window.dispatchEvent(new Event('force-nightscout-sync'))} />
 
           <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
             <div className="flex items-center gap-3">
-              <Info className="text-indigo-400" size={20} />
+              <Info className="text-accent-400" size={20} />
               <div className="flex flex-col">
                 <span className="text-xs font-bold dark:text-white">Kontakt z Twórcami</span>
                 <span className="text-[10px] font-medium text-slate-500 mt-1">
                   Masz pytania lub sugestie? Napisz do nas:
                 </span>
-                <a href="mailto:GlikoControl@proton.me" className="text-sm font-black text-indigo-500 mt-1">
+                <a href="mailto:GlikoControl@proton.me" className="text-sm font-black text-accent-500 mt-1">
                   GlikoControl@proton.me
                 </a>
               </div>
@@ -1194,18 +1447,19 @@ export default function Profile({
             onClick={() => {
               if (navigator.vibrate) navigator.vibrate(50);
               setUpdateLoading(true);
-              setCleaningResult(null);
+              setCleaningResult("Sprawdzam nowsze wersje...");
               setTimeout(() => {
-                setUpdateLoading(false);
-                setCleaningResult("Twoja wersja 2.5 jest aktualna. System jest zoptymalizowany.");
-                setTimeout(() => setCleaningResult(null), 5000);
+                setCleaningResult(`Wersja ${APP_VERSION} jest aktualna. Odświeżam aplikację...`);
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
               }, 1500);
             }}
             disabled={updateLoading}
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {updateLoading ? <Loader2 className="animate-spin" size={14} /> : null}
-            Sprawdź Aktualizacje
+            Sprawdź Aktualizacje (v{APP_VERSION})
           </button>
         </div>
       </div>
@@ -1215,15 +1469,42 @@ export default function Profile({
   );
 }
 
-function SettingInput({ label, value, onChange }: { label: string, value: number, onChange: (v: number) => void }) {
+function SettingInput({ label, value, onChange, step = "0.01" }: { label: string, value: number, onChange: (v: number) => void, step?: string }) {
+  const [localValue, setLocalValue] = React.useState(Number.isInteger(value) ? value.toString() : Number(value).toFixed(2).replace(/\.00$/, ''));
+
+  React.useEffect(() => {
+    // Try avoiding resetting localValue while typing, only when parent value changes significantly from local
+    if (parseFloat(localValue) !== value && !isNaN(value)) {
+      setLocalValue(Number.isInteger(value) ? value.toString() : Number(value).toFixed(2).replace(/\.00$/, '').replace(/(\.[0-9])0$/, '$1'));
+    }
+  }, [value]);
+
   return (
     <div className="space-y-1.5 flex flex-col items-center">
       <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
       <input 
         type="number" 
-        value={value} 
-        onChange={e => onChange(parseFloat(e.target.value) || 0)}
-        className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-indigo-500 transition-all dark:text-white"
+        step={step}
+        value={localValue} 
+        onChange={e => {
+          setLocalValue(e.target.value);
+          const parsed = parseFloat(e.target.value);
+          if (!isNaN(parsed)) {
+            onChange(parsed);
+          }
+        }}
+        onBlur={() => {
+          const parsed = parseFloat(localValue);
+          if (isNaN(parsed)) {
+            setLocalValue("0");
+            onChange(0);
+          } else {
+            const formatted = Number.isInteger(parsed) ? parsed.toString() : Number(parsed).toFixed(2).replace(/\.00$/, '').replace(/(\.[0-9])0$/, '$1');
+            setLocalValue(formatted);
+            onChange(parseFloat(formatted));
+          }
+        }}
+        className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
       />
     </div>
   );

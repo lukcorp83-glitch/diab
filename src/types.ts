@@ -33,6 +33,14 @@ export interface HourlyProfile {
   wwRatio: number;
 }
 
+export interface Medication {
+  id: string;
+  name: string;
+  dosage: string;
+  reminders: string[]; // "HH:mm"
+  active: boolean;
+}
+
 export interface UserSettings {
   isf: number;
   wwRatio: number;
@@ -40,8 +48,8 @@ export interface UserSettings {
   targetMin: number;
   targetMax: number;
   dia?: number; // Duration of Insulin Action in hours
-  showPrediction?: boolean;
   hourlyProfiles?: HourlyProfile[];
+  medications?: Medication[];
   cgmCalibration?: number; // Calibration offset in mg/dL
   cgmTimestamp?: number; // When was the last calibration 
   sensorChangeDate?: number;
@@ -50,4 +58,7 @@ export interface UserSettings {
   infusionSetDurationDays?: number;
   notificationsEnabled?: boolean;
   childMode?: boolean;
+  accentColor?: string;
+  theme?: 'light' | 'dark' | 'system';
+  bgOption?: 'default' | 'true-black';
 }

@@ -24,7 +24,9 @@ import {
   Globe,
   Sun,
   Moon,
-  LogIn
+  LogIn,
+  Menu,
+  Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
@@ -32,25 +34,29 @@ import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndP
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { LogEntry, UserSettings, Product } from './types';
 import { geminiService } from './services/gemini';
-import { CATEGORIES, LIB_BASE } from './constants';
+import { CATEGORIES, LIB_BASE, APP_VERSION } from './constants';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 
 import Dashboard from './components/Dashboard';
-import BolusCalculator from './components/BolusCalculator';
-import FoodDatabase from './components/FoodDatabase';
-import MealPlate from './components/MealPlate';
-import AiReports from './components/AiReports';
-import Profile from './components/Profile';
-import Achievements from './components/Achievements';
-import HistoryView from './components/HistoryView';
+
+const BolusCalculator = React.lazy(() => import('./components/BolusCalculator'));
+const FoodDatabase = React.lazy(() => import('./components/FoodDatabase'));
+const MealPlate = React.lazy(() => import('./components/MealPlate'));
+const AiReports = React.lazy(() => import('./components/AiReports'));
+const Profile = React.lazy(() => import('./components/Profile'));
+const Achievements = React.lazy(() => import('./components/Achievements'));
+const HistoryView = React.lazy(() => import('./components/HistoryView'));
+import Sidebar from './components/Sidebar';
 import { cn } from './lib/utils';
 import { nightscoutService } from './services/nightscout';
 
 import Logo from './components/Logo';
 
 import OnboardingTutorial from './components/OnboardingTutorial';
+
+import NotificationCenter from './components/NotificationCenter';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -67,6 +73,15 @@ export default function App() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [direction, setDirection] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const changeTab = React.useCallback((newTab: string) => {
+    const defaultTabs = ['dashboard', 'database', 'meal', 'ai', 'profile'];
+    const getIndex = (tab: string) => defaultTabs.indexOf(tab) >= 0 ? defaultTabs.indexOf(tab) : 0;
+    setDirection(getIndex(newTab) >= getIndex(activeTab) ? 1 : -1);
+    setActiveTab(newTab);
+  }, [activeTab]);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -159,16 +174,31 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const savedTheme = (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
-    setTheme(savedTheme);
-  }, []);
+    const savedTheme = userSettings?.theme || (localStorage.getItem('theme') as 'light' | 'dark' | 'system') || 'light';
+    const savedAccent = userSettings?.accentColor || localStorage.getItem('accentColor') || 'accent';
+    
+    // Default to handling 'system' preference
+    let activeTheme = savedTheme;
+    if (savedTheme === 'system') {
+      activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else if (savedTheme !== 'light' && savedTheme !== 'dark') {
+      activeTheme = 'light';
+    }
 
-  useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
-    root.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    root.classList.add(activeTheme);
+    setTheme(activeTheme as 'light' | 'dark');
+    root.setAttribute('data-accent', savedAccent);
+    root.setAttribute('data-bg', userSettings?.bgOption || 'default');
+    
+    if (userSettings?.theme) {
+      localStorage.setItem('theme', userSettings.theme);
+    }
+    if (userSettings?.accentColor) {
+      localStorage.setItem('accentColor', userSettings.accentColor);
+    }
+  }, [userSettings?.theme, userSettings?.accentColor, userSettings?.bgOption]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -317,8 +347,19 @@ export default function App() {
     };
   }, [user, nsUrl]);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  const toggleTheme = async () => {
+    const newTheme: 'light' | 'dark' = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    if (userSettings && user) {
+      const newSettings = { ...userSettings, theme: newTheme as 'light' | 'dark' | 'system' };
+      setUserSettings(newSettings as UserSettings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+    } else {
+      localStorage.setItem('theme', newTheme);
+      const root = window.document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(newTheme);
+    }
   };
 
   const handleLogin = async () => {
@@ -362,7 +403,8 @@ export default function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
-        <Logo className="w-20 h-20 animate-pulse drop-shadow-2xl opacity-70" />
+        <Logo className="w-20 h-20 animate-pulse drop-shadow-2xl opacity-70 mb-4" />
+        <p className="text-slate-400 dark:text-slate-500 font-medium tracking-widest text-sm uppercase">powered by GlikoSense</p>
       </div>
     );
   }
@@ -386,7 +428,7 @@ export default function App() {
              <h2 className={cn("text-3xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>GlikoControl</h2>
           </div>
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Zintegrowany System Glikemii</p>
-          <p className="text-indigo-400 text-xs font-bold mb-8 italic">Zaloguj się do aplikacji (to nie jest logowanie do CareLink)</p>
+          <p className="text-accent-400 text-xs font-bold mb-8 italic">GlikoSense</p>
 
           <div className="space-y-4 mb-6">
             <input 
@@ -395,7 +437,7 @@ export default function App() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={cn(
-                "w-full p-4 rounded-2xl text-sm font-bold border outline-none focus:border-indigo-500 transition-all",
+                "w-full p-4 rounded-2xl text-sm font-bold border outline-none focus:border-accent-500 transition-all",
                 theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 text-white" : "bg-slate-50 border-slate-200 text-slate-900"
               )}
             />
@@ -405,7 +447,7 @@ export default function App() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
-                "w-full p-4 rounded-2xl text-sm font-bold border outline-none focus:border-indigo-500 transition-all",
+                "w-full p-4 rounded-2xl text-sm font-bold border outline-none focus:border-accent-500 transition-all",
                 theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 text-white" : "bg-slate-50 border-slate-200 text-slate-900"
               )}
             />
@@ -414,7 +456,10 @@ export default function App() {
           {authError && <p className="text-rose-500 text-[10px] font-bold mb-4 bg-rose-500/10 p-3 rounded-xl">{authError}</p>}
 
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <button onClick={handleLogin} className="bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-600/30 active:scale-95 transition-all">Wejdź</button>
+            <button onClick={handleLogin} className="flex items-center justify-center gap-2 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all">
+              <LogIn size={14} />
+              Wejdź
+            </button>
             <button onClick={handleRegister} className={cn(
               "py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all",
               theme === 'dark' ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"
@@ -426,13 +471,13 @@ export default function App() {
               "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all",
               theme === 'dark' ? "bg-slate-950 text-white border-slate-800" : "bg-white text-slate-700 border-slate-200"
             )}>
-              <Globe className="w-4 h-4 text-indigo-500" />
+              <Globe className="w-4 h-4 text-accent-500" />
               <span className="text-[10px] font-black uppercase tracking-wider">Kontynuuj przez Google</span>
             </button>
             
             <button onClick={handleAnonymous} className={cn(
               "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-4",
-              theme === 'dark' ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-indigo-50 text-indigo-600 border-indigo-100"
+              theme === 'dark' ? "bg-accent-500/10 text-accent-400 border-accent-500/20" : "bg-accent-50 text-accent-600 border-accent-100"
             )}>
               <Zap className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-wider">Logowanie bez konta (Gość)</span>
@@ -462,11 +507,76 @@ export default function App() {
   const handleSwipe = (_: any, info: any) => {
     const threshold = 50;
     if (info.offset.x > threshold && activeIndex > 0) {
+      setDirection(-1);
       setActiveTab(tabs[activeIndex - 1]);
     } else if (info.offset.x < -threshold && activeIndex < tabs.length - 1) {
+      setDirection(1);
       setActiveTab(tabs[activeIndex + 1]);
     }
   };
+
+  const tabVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 20 : -20,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? 20 : -20,
+      opacity: 0,
+    })
+  };
+
+  const currentTabContent = (
+    <React.Suspense fallback={
+      <div className="w-full h-full flex items-center justify-center pt-32">
+        <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-accent-500 animate-spin" />
+      </div>
+    }>
+      {activeTab === 'dashboard' && (
+        <Dashboard 
+          logs={logs} 
+          user={user} 
+          setTab={changeTab} 
+          theme={theme} 
+          initialAction={initialAction}
+          onClearInitialAction={() => setInitialAction(null)}
+        />
+      )}
+      {activeTab === 'bolus' && (
+        <BolusCalculator logs={logs} user={user} setTab={changeTab} />
+      )}
+      {activeTab === 'database' && (
+        <FoodDatabase user={user} />
+      )}
+      {activeTab === 'meal' && (
+        <MealPlate user={user} setTab={changeTab} />
+      )}
+      {activeTab === 'ai' && (
+        <AiReports user={user} logs={logs} />
+      )}
+      {activeTab === 'history' && (
+        <HistoryView logs={logs} user={user} onBack={() => changeTab('dashboard')} />
+      )}
+      {activeTab === 'profile' && (
+        <Profile 
+           user={user} 
+           handleLogout={handleLogout} 
+           theme={theme} 
+           toggleTheme={toggleTheme} 
+           setTab={changeTab}
+           initialAction={initialAction}
+           onClearInitialAction={() => setInitialAction(null)}
+        />
+      )}
+      {activeTab === 'achievements' && (
+        <Achievements logs={logs} user={user} setTab={changeTab} />
+      )}
+    </React.Suspense>
+  );
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] flex flex-col transition-colors duration-300 overflow-hidden">
@@ -492,21 +602,28 @@ export default function App() {
       <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl p-4 sticky top-0 z-40 border-b border-slate-100 dark:border-slate-800/20 pt-10 transition-all">
         <div className="flex justify-between items-center max-w-md mx-auto">
           <div className="flex items-center gap-4">
+            <button
+               onClick={() => setIsSidebarOpen(true)}
+               className="p-2 -ml-2 rounded-xl bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+               <Menu size={24} />
+            </button>
             <Logo className="w-11 h-11" />
             <div>
               <h1 className="text-xl font-black tracking-tight leading-none dark:text-white">GlikoControl</h1>
-              <p className="text-indigo-500 text-[8px] font-black uppercase tracking-widest mt-1 opacity-80">v2.6</p>
+              <p className="text-accent-500 text-[8px] font-black uppercase tracking-widest mt-1 opacity-80">v{APP_VERSION}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationCenter userSettings={userSettings} theme={theme} />
             <button 
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-indigo-400 border border-transparent dark:border-slate-700 transition-all active:scale-90"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-accent-400 border border-transparent dark:border-slate-700 transition-all active:scale-90"
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
             {user && !user.isAnonymous && user.photoURL ? (
-              <img src={user.photoURL} alt="Profile" className="w-7 h-7 rounded-full border border-indigo-500/50 shadow-sm" />
+              <img src={user.photoURL} alt="Profile" className="w-7 h-7 rounded-full border border-accent-500/50 shadow-sm" />
             ) : (
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)] ml-2" />
             )}
@@ -514,87 +631,53 @@ export default function App() {
         </div>
       </header>
 
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+        activeTab={activeTab} 
+        changeTab={changeTab} 
+        onAction={(action) => setInitialAction(action)}
+        theme={theme} 
+      />
+
       {/* Main Content with Swipe Navigation */}
-      <main className="flex-1 max-w-md mx-auto w-full relative overflow-y-auto touch-pan-y">
-        <motion.div
-           key={activeTab}
-           initial={{ opacity: 0, x: 20 }}
-           animate={{ opacity: 1, x: 0 }}
-           exit={{ opacity: 0, x: -20 }}
-           drag="x"
-           dragDirectionLock
-           dragConstraints={{ left: 0, right: 0 }}
-           dragElastic={0.05}
-           onDragEnd={handleSwipe}
-           className="w-full p-4 pb-32 will-change-transform"
-        >
-          <AnimatePresence mode="wait">
-            {activeTab === 'dashboard' && (
-              <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Dashboard 
-                  logs={logs} 
-                  user={user} 
-                  setTab={setActiveTab} 
-                  theme={theme} 
-                  initialAction={initialAction}
-                  onClearInitialAction={() => setInitialAction(null)}
-                />
-              </motion.div>
-            )}
-            {activeTab === 'bolus' && (
-              <motion.div key="bolus" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <BolusCalculator logs={logs} user={user} setTab={setActiveTab} />
-              </motion.div>
-            )}
-            {activeTab === 'database' && (
-              <motion.div key="database" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <FoodDatabase user={user} />
-              </motion.div>
-            )}
-            {activeTab === 'meal' && (
-              <motion.div key="meal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <MealPlate user={user} setTab={setActiveTab} />
-              </motion.div>
-            )}
-            {activeTab === 'ai' && (
-              <motion.div key="ai" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <AiReports user={user} logs={logs} />
-              </motion.div>
-            )}
-            {activeTab === 'history' && (
-              <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <HistoryView logs={logs} user={user} onBack={() => setActiveTab('dashboard')} />
-              </motion.div>
-            )}
-            {activeTab === 'profile' && (
-              <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Profile user={user} handleLogout={handleLogout} theme={theme} toggleTheme={toggleTheme} setTab={setActiveTab} />
-              </motion.div>
-            )}
-            {activeTab === 'achievements' && (
-              <motion.div key="achievements" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Achievements logs={logs} user={user} setTab={setActiveTab} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+      <main className="flex-1 max-w-md mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden">
+        <AnimatePresence mode="wait" custom={direction} initial={false}>
+          <motion.div
+            key={activeTab}
+            custom={direction}
+            variants={tabVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            drag="x"
+            dragDirectionLock
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.1}
+            onDragEnd={handleSwipe}
+            className="w-full h-full p-4 pb-32 will-change-transform flex flex-col"
+          >
+            {currentTabContent}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-50 pb-safe">
         <div className="max-w-md mx-auto flex items-center justify-around h-20 px-2">
-          <NavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<Activity />} label="Pulpit" />
-          <NavButton active={activeTab === 'database'} onClick={() => setActiveTab('database')} icon={<Database />} label="Baza" />
+          <NavButton active={activeTab === 'dashboard'} onClick={() => changeTab('dashboard')} icon={<Activity />} label="Pulpit" />
+          <NavButton active={activeTab === 'database'} onClick={() => changeTab('database')} icon={<Database />} label="Baza" />
           
           <div className="relative -top-6">
             <motion.button 
-              onClick={() => setActiveTab('meal')}
+              onClick={() => changeTab('meal')}
               whileTap={{ scale: 0.85 }}
               animate={{ y: activeTab === 'meal' ? -5 : 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 15 }}
               className={cn(
                 "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950",
-                activeTab === 'meal' ? "bg-indigo-600 text-white shadow-indigo-500/40" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                activeTab === 'meal' ? "bg-accent-600 text-white shadow-accent-500/40" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
               )}
             >
               <motion.div animate={{ rotate: activeTab === 'meal' ? [0, -20, 20, -10, 10, 0] : 0 }} transition={{ duration: 0.5 }}>
@@ -609,8 +692,8 @@ export default function App() {
             </motion.div>
           </div>
 
-          <NavButton active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} icon={<FileText />} label="Raport" />
-          <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<Settings />} label="Opcje" />
+          <NavButton active={activeTab === 'ai'} onClick={() => changeTab('ai')} icon={<Activity />} label="GlikoSense" />
+          <NavButton active={activeTab === 'profile'} onClick={() => changeTab('profile')} icon={<Settings />} label="Opcje" />
         </div>
       </nav>
 
@@ -632,7 +715,7 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
       onClick={onClick}
       className={cn(
         "flex flex-col items-center gap-1 relative w-16 h-full justify-center transition-colors outline-none",
-        active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+        active ? "text-accent-600 dark:text-accent-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
       )}
     >
       <motion.div
@@ -654,7 +737,7 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
       {active && (
         <motion.div
           layoutId="nav-indicator"
-          className="absolute bottom-2 w-1 h-1 rounded-full bg-indigo-600 dark:bg-indigo-400"
+          className="absolute bottom-2 w-1 h-1 rounded-full bg-accent-600 dark:bg-accent-400"
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />
       )}

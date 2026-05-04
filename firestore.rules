@@ -18,6 +18,11 @@ service cloud.firestore {
       return id is string && id.size() <= 128;
     }
 
+    match /artifacts/diacontrolapp/syncCodes/{codeId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
     match /artifacts/diacontrolapp/communityProducts/{productId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn();

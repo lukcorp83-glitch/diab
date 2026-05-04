@@ -45,7 +45,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
         }}
         className={cn(
           "absolute top-0 right-0 w-48 h-48 blur-[80px] -mr-16 -mt-16 transition-colors duration-1000",
-          (lastGlucose?.value || 100) > 180 ? 'bg-indigo-500' :
+          (lastGlucose?.value || 100) > 180 ? 'bg-accent-500' :
           (lastGlucose?.value || 100) < 70 ? 'bg-rose-500' :
           'bg-emerald-500'
         )}
@@ -65,7 +65,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
         
         <div className="bg-white/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-md border border-white/5">
           <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">EST. HbA1c</span>
-          <span className="text-[10px] font-black text-indigo-300">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span>
+          <span className="text-[10px] font-black text-accent-300">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
           <div className="text-right">
             <div className="flex items-baseline justify-end gap-1 mb-2">
                <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest block">Aktywna Insulina</span>
-               <span className="text-xl font-black text-indigo-400">{iob.toFixed(2)}<span className="text-[10px] ml-0.5 opacity-50">j</span></span>
+               <span className="text-xl font-black text-accent-400">{iob.toFixed(2)}<span className="text-[10px] ml-0.5 opacity-50">j</span></span>
             </div>
             <motion.div 
               key={lastGlucose?.value}
@@ -125,7 +125,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
           <motion.div whileHover={{ scale: 1.02 }} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Droplet size={12} className="text-indigo-400" />
+                <Droplet size={12} className="text-accent-400" />
                 <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Dziś Insulina</span>
               </div>
               <div className="flex items-baseline gap-1">
@@ -179,7 +179,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             />
             <motion.div 
               initial={{ width: 0 }} animate={{ width: `${tir.high}%` }} transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
-              className="bg-indigo-500 h-full" 
+              className="bg-orange-500 h-full" 
             />
           </div>
           <div className="flex justify-between mt-2">
@@ -192,7 +192,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
               <span className="text-[7px] font-black text-slate-600 uppercase">{tir.inRange}% OK</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-1 h-1 rounded-full bg-indigo-500" />
+              <div className="w-1 h-1 rounded-full bg-orange-500" />
               <span className="text-[7px] font-black text-slate-600 uppercase">{tir.high}% WYSOKI</span>
             </div>
           </div>

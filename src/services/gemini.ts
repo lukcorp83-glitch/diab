@@ -198,20 +198,23 @@ export const geminiService = {
   },
 
   async analyzeMeal(imageData: string) {
-    const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj orientacyjną wagę, ilość węglowodanów (g), białek (g) i tłuszczy (g). 
-    Zwróć odpowiedź w formacie JSON (tylko czysty JSON, bez markdown):
+    const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj orientacyjną wagę, ilość węglowodanów (g), białek (g), tłuszczy (g) oraz indeks glikemiczny (IG - wpisz liczbę lub tekst NISKI/ŚREDNI/WYSOKI). Dodaj szczegółową analizę dla diabetyka ("analysis") - co zawiera posiłek i jak może wpłynąć na glikemię.
+    Zwróć odpowiedź absolutnie w formacie JSON (tylko czysty JSON, bez markdown):
     {
       "mealName": "nazwa posiłku",
       "carbs": 0,
       "protein": 0,
       "fat": 0,
-      "description": "krótki opis składników"
+      "ig": "NISKI",
+      "analysis": "Krótka analiza posiłku..."
     }`;
 
     try {
       const text = await this.generateContent(prompt, imageData);
       const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      const cleanJson = jsonMatch ? jsonMatch[0] : text;
+      let cleanJson = jsonMatch ? jsonMatch[0] : text;
+      // usuwamy ewentualne wiodące znaki przed klamrami jeśli regex uchwycił za dużo
+      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Gemini Vision Error:", error);
@@ -245,7 +248,8 @@ export const geminiService = {
     try {
       const text = await this.generateContent(prompt);
       const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      const cleanJson = jsonMatch ? jsonMatch[0] : text;
+      let cleanJson = jsonMatch ? jsonMatch[0] : text;
+      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Gemini Bolus Rec Error:", error);

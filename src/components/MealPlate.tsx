@@ -19,6 +19,7 @@ import {
   BookMarked,
   Camera,
   Mic,
+  X,
 } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
 import { cn } from "../lib/utils";
@@ -122,6 +123,40 @@ export default function MealPlate({
     setSearchError(null);
     setOnlineResults([]);
     try {
+      // 1. Zobaczmy najpierw czy jest w darmowej bazie OpenFoodFacts (nie AI)
+      try {
+        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5`;
+        const offRes = await fetch(offUrl);
+        const offData = await offRes.json();
+        
+        if (offData.products && offData.products.length > 0) {
+          const validOffProducts = offData.products.filter((p: any) => p.nutriments && (p.nutriments.carbohydrates_100g || p.nutriments.proteins_100g || p.nutriments.fat_100g)).map((p: any) => ({
+            id: p._id || `off_${Date.now()}_${Math.random()}`,
+            name: p.product_name_pl || p.product_name || "Nieznany Produkt",
+            carbs: Number(p.nutriments.carbohydrates_100g || 0),
+            protein: Number(p.nutriments.proteins_100g || 0),
+            fat: Number(p.nutriments.fat_100g || 0),
+            gi: 50, // Domyślne IG jeśli brak
+            category: "Baza Sieciowa"
+          }));
+
+          if (validOffProducts.length > 0) {
+            setOnlineResults(
+              validOffProducts.map((p: any, i: number) => ({
+                ...p,
+                isOnline: true,
+                isDatabase: true // to show it's from OFF, not AI
+              }))
+            );
+            setIsSearching(false);
+            return; // Sukces z darmowej bazy, koniec
+          }
+        }
+      } catch (offError) {
+        console.warn("OpenFoodFacts search failed, continuing to AI:", offError);
+      }
+
+      // 2. Jeśli brakuje kodu kreskowego / bazy OFF nic nie ma to odpalamy AI na zapas
       const prompt = `Jesteś dietetykiem. Przeanalizuj zapytanie użytkownika: "${query}". Może to być nazwa produktu ze sklepu, danie domowe (np. "pierogi ruskie", "leczo"), owoc, warzywo lub konkretna marka. 
       Zwróć listę pasujących produktów w formacie JSON (tylko JSON, bez markdown). 
       Format: [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
@@ -130,7 +165,8 @@ export default function MealPlate({
 
       const result = await geminiService.generateContent(prompt);
       const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-      const cleanJson = jsonMatch ? jsonMatch[0] : result;
+      let cleanJson = jsonMatch ? jsonMatch[0] : result;
+      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
       const parsed = JSON.parse(cleanJson);
       const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
       setOnlineResults(
@@ -477,37 +513,59 @@ export default function MealPlate({
       {/* Weight Modal etc. */}
       <AnimatePresence>
         {isScannerOpen && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 p-4">
-            <div className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 border border-slate-800 shadow-2xl relative overflow-hidden">
-              <h2 className="text-xl font-black text-white mb-6 text-center">
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/60"
+          >
+            <motion.div 
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 border border-slate-800 shadow-2xl relative overflow-hidden will-change-transform"
+            >
+              <button onClick={() => setIsScannerOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors z-10">
+                <X size={20} />
+              </button>
+              <h2 className="text-xl font-black text-white mb-6 pr-8">
                 Skaner Produktów
               </h2>
               <div
                 id="reader"
-                className="w-full aspect-square rounded-3xl overflow-hidden bg-slate-800 mb-6"
+                className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2"
               ></div>
-              <button
-                onClick={() => setIsScannerOpen(false)}
-                className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest"
-              >
-                Zamknij
-              </button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
 
         {isWeightModalOpen && selectedProduct && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
+          >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-50 dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-slate-50 dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
             >
-              <h2 className="text-xl font-black mb-6 dark:text-white text-center">
+              <button 
+                onClick={() => setIsWeightModalOpen(false)} 
+                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
                 Dodaj: {selectedProduct.name}
               </h2>
-              <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 mb-6 text-center shadow-inner">
+              <div className="bg-white dark:bg-slate-800 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 mb-6 text-center shadow-inner">
                 <input
                   type="number"
                   pattern="[0-9]*"
@@ -521,62 +579,59 @@ export default function MealPlate({
                   Gramy (g)
                 </span>
               </div>
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={handleWeightSubmit}
-                  className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
-                >
-                  Dodaj do Talerza
-                </button>
-                <button
-                  onClick={() => setIsWeightModalOpen(false)}
-                  className="w-full bg-slate-200 dark:bg-slate-800 py-4 rounded-2xl font-black text-[10px] uppercase dark:text-white opacity-60"
-                >
-                  Anuluj
-                </button>
-              </div>
+              <button
+                onClick={handleWeightSubmit}
+                className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95"
+              >
+                Dodaj do Talerza
+              </button>
             </motion.div>
-          </div>
+          </motion.div>
         )}
 
         {isSaveModalOpen && (
-          <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
+          >
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
             >
+              <button 
+                onClick={() => setIsSaveModalOpen(false)} 
+                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
               <h2 className="text-xl font-black mb-1 dark:text-white">
                 Zapisz jako szablon
               </h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">
-                Dzięki temu szybko dodasz ten zestaw w przyszłości
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
+                Szybkie dodawanie zestawu w przyszłości
               </p>
               <input
                 type="text"
                 placeholder="Nazwa zestawu (np. Śniadanie)"
                 value={mealName}
                 onChange={(e) => setMealName(e.target.value)}
-                className="w-full bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 font-bold mb-6 outline-none dark:text-white"
+                className="w-full bg-white dark:bg-slate-800 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-700 font-bold mb-6 outline-none dark:text-white focus:border-accent-500 transition-colors"
                 autoFocus
               />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setIsSaveModalOpen(false)}
-                  className="flex-1 bg-slate-200 dark:bg-slate-800 py-4 rounded-2xl font-black text-[10px] uppercase dark:text-white"
-                >
-                  Anuluj
-                </button>
-                <button
-                  onClick={saveMealSet}
-                  className="flex-2 bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase"
-                >
-                  Zapisz
-                </button>
-              </div>
+              <button
+                onClick={saveMealSet}
+                className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase shadow-xl transition-all active:scale-95 tracking-widest"
+              >
+                Zapisz Szablon
+              </button>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -602,11 +657,11 @@ export default function MealPlate({
               placeholder="Wyszukaj produkt / danie..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-14 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:border-indigo-500 transition-all shadow-sm"
+              className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-14 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:border-accent-500 transition-all shadow-sm"
             />
             <button
               onClick={startVoiceSearch}
-              className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all ${isListening ? "bg-rose-500 text-white animate-pulse" : "text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"}`}
+              className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all ${isListening ? "bg-rose-500 text-white animate-pulse" : "text-slate-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/30"}`}
               title="Wyszukiwanie głosowe"
             >
               <Mic size={18} />
@@ -614,14 +669,14 @@ export default function MealPlate({
           </div>
           <button
             onClick={handleOnlineSearch}
-            className="bg-indigo-600 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 flex items-center justify-center min-w-[64px] transition-all"
-            title="Szukaj AI"
+            className="bg-accent-600 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 flex items-center justify-center min-w-[64px] transition-all"
+            title="Szukaj w Sieci"
             disabled={isSearching}
           >
             {isSearching ? (
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
-              <Sparkles size={24} />
+              <Globe size={24} />
             )}
           </button>
           <button
@@ -705,7 +760,7 @@ export default function MealPlate({
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
           <button
             onClick={() => setActiveCategory("Wszystko")}
-            className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-indigo-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"}`}
+            className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"}`}
           >
             Wszystko
           </button>
@@ -713,7 +768,7 @@ export default function MealPlate({
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? "bg-indigo-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"}`}
+              className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"}`}
             >
               {cat}
             </button>
@@ -728,7 +783,7 @@ export default function MealPlate({
           )}
           {onlineResults.length > 0 && (
             <div className="mb-4">
-              <h4 className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-2 px-2">
+              <h4 className="text-[9px] font-black text-accent-500 uppercase tracking-widest mb-2 px-2">
                 Wyniki AI
               </h4>
               <div className="space-y-2">
@@ -736,18 +791,18 @@ export default function MealPlate({
                   <div key={`online-${i}`} className="flex items-center gap-2">
                     <button
                       onClick={() => openWeightModal(p)}
-                      className="flex-1 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-3xl border border-indigo-100 dark:border-indigo-800 flex justify-between items-center text-left hover:border-indigo-500 transition-colors"
+                      className="flex-1 bg-accent-50 dark:bg-accent-900/20 p-4 rounded-3xl border border-accent-100 dark:border-accent-800 flex justify-between items-center text-left hover:border-accent-500 transition-colors"
                     >
                       <div>
                         <div className="font-black text-xs dark:text-white flex items-center gap-2">
                           {p.name}
-                          <span className="bg-indigo-500 text-white text-[8px] px-1 rounded font-black">
+                          <span className="bg-accent-500 text-white text-[8px] px-1 rounded font-black">
                             AI
                           </span>
                         </div>
-                        <div className="text-[9px] font-bold text-indigo-500/60 uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                        <div className="text-[9px] font-bold text-accent-500/60 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                           <span>
-                            W: {p.carbs}g | B: {p.protein || 0}g | T: {p.fat || 0}g
+                            W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
                           </span>
                           <span
                             className={cn(
@@ -763,11 +818,11 @@ export default function MealPlate({
                           </span>
                         </div>
                       </div>
-                      <ChevronRight size={16} className="text-indigo-300" />
+                      <ChevronRight size={16} className="text-accent-300" />
                     </button>
                     <button
                       onClick={() => saveToCustomDb(p)}
-                      className="bg-indigo-500 text-white p-2.5 rounded-xl active:scale-90 transition-all"
+                      className="bg-accent-500 text-white p-2.5 rounded-xl active:scale-90 transition-all"
                       title="Zapisz do bazy"
                     >
                       <Save size={16} />
@@ -785,55 +840,30 @@ export default function MealPlate({
             {searchTerm.length > 2 && (
               <button
                 onClick={handleOnlineSearch}
-                className="text-[9px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1 group"
+                className="text-[9px] font-black text-accent-500 uppercase tracking-widest flex items-center gap-1 group"
               >
                 {isSearching ? (
                   <Loader2 className="animate-spin" size={12} />
                 ) : (
                   <Globe size={12} />
                 )}
-                Szukaj AI
+                Szukaj w Sieci
               </button>
             )}
           </div>
 
           {browseResults.length > 0 ? (
-            <motion.div
-              variants={{
-                hidden: { opacity: 0 },
-                show: { opacity: 1, transition: { staggerChildren: 0.05 } },
-              }}
-              initial="hidden"
-              animate="show"
-              className="grid gap-2"
-            >
+            <div className="grid gap-2 will-change-transform">
               <AnimatePresence>
-                {browseResults.map((p, i) => (
+                {browseResults.slice(0, 50).map((p, i) => (
                   <motion.button
-                    layout
-                    variants={{
-                      hidden: { opacity: 0, y: 15, scale: 0.95 },
-                      show: {
-                        opacity: 1,
-                        y: 0,
-                        scale: 1,
-                        transition: {
-                          type: "spring",
-                          stiffness: 350,
-                          damping: 25,
-                        },
-                      },
-                    }}
-                    initial="hidden"
-                    animate="show"
-                    exit={{
-                      opacity: 0,
-                      scale: 0.9,
-                      transition: { duration: 0.2 },
-                    }}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                    transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
                     key={i}
                     onClick={() => openWeightModal(p)}
-                    className="w-full bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-left hover:border-indigo-500 transition-colors shadow-sm"
+                    className="w-full bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-left hover:border-accent-500 transition-colors shadow-sm"
                   >
                     <div>
                       <div className="font-black text-xs dark:text-white flex items-center gap-2">
@@ -846,8 +876,7 @@ export default function MealPlate({
                       </div>
                       <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                         <span>
-                          W: {p.carbs}g | B: {p.protein || 0}g | T: {p.fat || 0}
-                          g
+                          W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
                         </span>
                         <span
                           className={cn(
@@ -865,12 +894,12 @@ export default function MealPlate({
                     </div>
                     <Plus
                       size={16}
-                      className="text-indigo-500 bg-indigo-50 dark:bg-indigo-900/50 p-1 rounded-lg w-6 h-6"
+                      className="text-accent-500 bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
                     />
                   </motion.button>
                 ))}
               </AnimatePresence>
-            </motion.div>
+            </div>
           ) : (
             <div className="text-center py-12 p-8 bg-slate-100 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
               <Tag size={32} className="mx-auto text-slate-300 mb-3" />
@@ -884,16 +913,16 @@ export default function MealPlate({
 
       {/* Plate Stats */}
       {plate.length > 0 && (
-        <div className="bg-slate-900 rounded-[2.5rem] p-6 text-white shadow-2xl border-l-[6px] border-indigo-500">
-          <div className="flex justify-between items-center mb-4 border-b border-indigo-500/20 pb-4">
+        <div className="bg-slate-900 rounded-[2.5rem] p-6 text-white shadow-2xl border-l-[6px] border-accent-500">
+          <div className="flex justify-between items-center mb-4 border-b border-accent-500/20 pb-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-indigo-500/10 rounded-xl">
-                <Utensils size={16} className="text-indigo-400" />
+              <div className="p-2 bg-accent-500/10 rounded-xl">
+                <Utensils size={16} className="text-accent-400" />
               </div>
               <span className="text-xs font-black uppercase tracking-widest text-white">
                 Twój Talerz
               </span>
-              <span className="bg-indigo-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+              <span className="bg-accent-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
                 {plate.length}
               </span>
             </div>
@@ -952,7 +981,7 @@ export default function MealPlate({
                     onDelete={() => removeFromPlate(idx)}
                     bgClass="bg-slate-900"
                   >
-                    <div className="bg-white/10 p-4 rounded-[1.5rem] flex justify-between items-center text-[10px] font-bold group border border-transparent hover:border-indigo-500/30 transition-all">
+                    <div className="bg-white/10 p-4 rounded-[1.5rem] flex justify-between items-center text-[10px] font-bold group border border-transparent hover:border-accent-500/30 transition-all">
                       <div className="flex-1 pr-4">
                         <div className="text-sm font-black mb-1.5 text-white">
                           {item.name}
@@ -971,7 +1000,7 @@ export default function MealPlate({
                                   parseFloat(e.target.value) || 0,
                                 )
                               }
-                              className="bg-transparent w-10 text-center outline-none text-indigo-300 font-black"
+                              className="bg-transparent w-10 text-center outline-none text-accent-300 font-black"
                             />
                             <span className="text-[8px] opacity-40 ml-1">
                               g
@@ -980,7 +1009,7 @@ export default function MealPlate({
                         </div>
                       </div>
                       <div className="text-right flex flex-col items-end gap-1">
-                        <div className="text-indigo-400 font-black text-sm">
+                        <div className="text-accent-400 font-black text-sm">
                           {item.carbs.toFixed(1)}g
                         </div>
                         <div
@@ -1007,7 +1036,7 @@ export default function MealPlate({
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
                 Wymienniki WW
               </span>
-              <span className="text-2xl font-black text-indigo-400">
+              <span className="text-2xl font-black text-accent-400">
                 {totalWW.toFixed(1)}
                 <span className="text-xs font-bold opacity-30 ml-1">WW</span>
               </span>
@@ -1025,7 +1054,7 @@ export default function MealPlate({
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
                 Węglowodany
               </span>
-              <span className="text-xl font-black text-indigo-300">
+              <span className="text-xl font-black text-accent-300">
                 {totalCarbs.toFixed(1)}
                 <span className="text-xs font-bold opacity-30 ml-1">g</span>
               </span>
@@ -1054,14 +1083,14 @@ export default function MealPlate({
           <div className="flex gap-2 mt-4">
             <button
               onClick={handleLogMeal}
-              className="flex-3 bg-indigo-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+              className="flex-3 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
             >
               Dodaj do Dziennika
             </button>
             <button
               onClick={analyzeMeal}
               disabled={isAnalyzing}
-              className="bg-slate-800 text-indigo-400 p-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center min-w-[56px]"
+              className="bg-slate-800 text-accent-400 p-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center min-w-[56px]"
               title="Analiza AI"
             >
               {isAnalyzing ? (
@@ -1083,13 +1112,21 @@ export default function MealPlate({
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="mt-4 p-4 bg-indigo-950 border border-indigo-800 rounded-2xl text-[12px] leading-relaxed text-indigo-50 font-medium tracking-wide"
+              className="mt-4 p-4 bg-accent-950 border border-accent-800 rounded-2xl text-[12px] leading-relaxed text-accent-50 font-medium tracking-wide"
               dangerouslySetInnerHTML={{ __html: analysis }}
             />
           )}
 
           <button
-            onClick={() => setTab("bolus")}
+            onClick={() => {
+              sessionStorage.setItem('pending_meal', JSON.stringify({
+                carbs: totals.carbs,
+                protein: totals.protein,
+                fat: totals.fat,
+                name: "Mój Talerz"
+              }));
+              setTab("bolus");
+            }}
             className="w-full bg-slate-800 py-3 rounded-xl mt-3 font-black text-[9px] uppercase tracking-widest text-slate-400 active:scale-95 transition-all"
           >
             Przejdź do Kalkulatora
@@ -1127,13 +1164,13 @@ export default function MealPlate({
               >
                 <div
                   onClick={() => addSavedMeal(m)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-[2.5rem] flex justify-between items-center group hover:border-indigo-500/30 transition-all cursor-pointer shadow-sm shadow-slate-200/50 dark:shadow-none"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-[2.5rem] flex justify-between items-center group hover:border-accent-500/30 transition-all cursor-pointer shadow-sm shadow-slate-200/50 dark:shadow-none"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl flex items-center justify-center shadow-inner">
+                    <div className="w-12 h-12 bg-accent-500/10 dark:bg-accent-500/20 rounded-2xl flex items-center justify-center shadow-inner">
                       <Zap
                         size={20}
-                        className="text-indigo-600 dark:text-indigo-400"
+                        className="text-accent-600 dark:text-accent-400"
                       />
                     </div>
                     <div className="text-left">
@@ -1149,7 +1186,7 @@ export default function MealPlate({
                       </p>
                     </div>
                   </div>
-                  <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-full group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                  <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-full group-hover:bg-accent-500 group-hover:text-white transition-all">
                     <Plus size={16} />
                   </div>
                 </div>

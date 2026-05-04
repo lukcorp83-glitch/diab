@@ -17,7 +17,7 @@ import {
   ChevronRight,
   TrendingUp,
   AlertTriangle,
-  Sparkles,
+  Activity,
 } from "lucide-react";
 import { cn, calculateIOB } from "../lib/utils";
 import GlucoseModal from "./GlucoseModal";
@@ -55,10 +55,18 @@ export default function Dashboard({
     const saved = localStorage.getItem('glikosfera_loop_simulation');
     return saved ? JSON.parse(saved) : false;
   });
+  const [showMLPrediction, setShowMLPrediction] = useState(() => {
+    const saved = localStorage.getItem('glikosfera_ml_prediction');
+    return saved ? JSON.parse(saved) : true;
+  });
 
   useEffect(() => {
     localStorage.setItem('glikosfera_loop_simulation', JSON.stringify(showLoopSimulation));
   }, [showLoopSimulation]);
+
+  useEffect(() => {
+    localStorage.setItem('glikosfera_ml_prediction', JSON.stringify(showMLPrediction));
+  }, [showMLPrediction]);
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(false);
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [settings, setSettings] = useState<UserSettings>({
@@ -312,14 +320,18 @@ export default function Dashboard({
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.05,
       },
     },
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
+  const itemVariants: any = {
+    hidden: { opacity: 0, y: 15 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: { type: "tween", ease: "easeOut", duration: 0.25 }
+    },
   };
 
   return (
@@ -347,20 +359,21 @@ export default function Dashboard({
       {patternInsights.length > 0 && (
         <motion.div
           variants={itemVariants}
-          className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30 p-4 rounded-[2rem] flex items-center gap-4 group"
+          className="bg-accent-50 dark:bg-accent-900/10 border border-accent-100 dark:border-accent-800/30 p-4 rounded-[2rem] flex items-center gap-4 group"
         >
-          <div className="p-2.5 bg-indigo-500 text-white rounded-2xl shadow-lg shadow-indigo-500/30">
-            <Sparkles size={18} />
+          <div className="p-2.5 bg-accent-500 text-white rounded-2xl shadow-lg shadow-accent-500/30">
+            <Activity size={18} />
           </div>
           <div className="flex-1">
-            <p className="text-[9px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-widest mb-1">
-              Analiza Wzorców
+            <p className="text-[9px] font-black text-accent-900 dark:text-accent-300 uppercase tracking-widest mb-1 flex items-center gap-1">
+              <Activity size={10} className="text-accent-500" />
+              GlikoSense
             </p>
             <div className="space-y-1">
               {patternInsights.map((insight: any, idx: number) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 text-[10px] font-bold text-indigo-700 dark:text-indigo-200"
+                  className="flex items-center gap-2 text-[10px] font-bold text-accent-700 dark:text-accent-200"
                 >
                   {insight.icon}
                   <span>{insight.text}</span>
@@ -370,7 +383,7 @@ export default function Dashboard({
           </div>
           <button
             onClick={() => setTab("ai")}
-            className="p-2 bg-white dark:bg-slate-800 rounded-full text-indigo-600 shadow-sm active:scale-90 transition-all"
+            className="p-2 bg-white dark:bg-slate-800 rounded-full text-accent-600 shadow-sm active:scale-90 transition-all"
           >
             <ChevronRight size={16} />
           </button>
@@ -381,12 +394,12 @@ export default function Dashboard({
       {(settings.sensorChangeDate || settings.infusionSetChangeDate) && (
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
           {settings.sensorChangeDate && (
-             <div className="bg-gradient-to-br from-slate-800 to-indigo-900 rounded-[2rem] p-4 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-indigo-900/20">
+             <div className="bg-gradient-to-br from-slate-800 to-accent-900 rounded-[2rem] p-4 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-accent-900/20">
                <div className="flex justify-between items-start z-10">
                  <div className="p-2 bg-white/10 rounded-2xl">
-                   <Activity size={16} className="text-indigo-300" />
+                   <Activity size={16} className="text-accent-300" />
                  </div>
-                 <span className="text-[8px] font-black text-indigo-200 uppercase tracking-widest bg-white/5 py-1 px-2 rounded-full">
+                 <span className="text-[8px] font-black text-accent-200 uppercase tracking-widest bg-white/5 py-1 px-2 rounded-full">
                    Sensor
                  </span>
                </div>
@@ -402,12 +415,12 @@ export default function Dashboard({
                          <span className={cn("text-2xl font-black", (daysLeft <= 0 && hoursLeft <= 12) || isExpired ? "text-rose-400" : "text-white")}>
                            {isExpired ? "0" : daysLeft > 0 ? `${daysLeft}d` : `${hoursLeft}h`}
                          </span>
-                         {!isExpired && daysLeft > 0 && hoursLeft > 0 && <span className="text-sm font-bold text-indigo-300">{hoursLeft}h</span>}
+                         {!isExpired && daysLeft > 0 && hoursLeft > 0 && <span className="text-sm font-bold text-accent-300">{hoursLeft}h</span>}
                        </div>
                        {isExpired ? (
                          <span className="text-[8px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full uppercase mt-1 inline-block">Wymień!</span>
                        ) : (
-                         <span className="text-[9px] font-bold text-indigo-200 uppercase">Pozostało</span>
+                         <span className="text-[9px] font-bold text-accent-200 uppercase">Pozostało</span>
                        )}
                      </>
                    );
@@ -463,17 +476,31 @@ export default function Dashboard({
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
               Wykres
             </h3>
-            <button 
-              onClick={() => setShowLoopSimulation(!showLoopSimulation)}
-              className={cn(
-                "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase transition-all tracking-wider text-left border",
-                showLoopSimulation 
-                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30" 
-                  : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
-              )}
-            >
-              {showLoopSimulation ? "Pętla (Wł.)" : "Pętla (Wył.)"}
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowLoopSimulation(!showLoopSimulation)}
+                className={cn(
+                  "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase transition-all tracking-wider text-left border",
+                  showLoopSimulation 
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30" 
+                    : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                )}
+              >
+                {showLoopSimulation ? "Pętla (Wł.)" : "Pętla (Wył.)"}
+              </button>
+              <button 
+                onClick={() => setShowMLPrediction(!showMLPrediction)}
+                className={cn(
+                  "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase transition-all tracking-wider text-left border flex items-center gap-1",
+                  showMLPrediction 
+                    ? "bg-accent-500/10 text-accent-600 border-accent-500/20 dark:text-accent-400 dark:border-accent-500/30" 
+                    : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                )}
+              >
+                <Activity size={10} />
+                {showMLPrediction ? "GlikoSense (Wł.)" : "GlikoSense (Wył.)"}
+              </button>
+            </div>
           </div>
           <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
             {[3, 6, 12, 24].map((h) => (
@@ -483,7 +510,7 @@ export default function Dashboard({
                 className={cn(
                   "px-3 py-1.5 text-[8px] font-black rounded-lg transition-all uppercase",
                   range === h
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                    ? "bg-white dark:bg-slate-700 text-accent-600 dark:text-accent-400 shadow-sm"
                     : "text-slate-400 hover:text-slate-600",
                 )}
               >
@@ -501,6 +528,7 @@ export default function Dashboard({
             theme={theme}
             settings={settings}
             showLoopSimulation={showLoopSimulation}
+            showMLPrediction={showMLPrediction}
           />
         </div>
       </motion.div>
@@ -534,7 +562,7 @@ export default function Dashboard({
             className="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 shadow-sm transition-all"
           >
             <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-inner">
-              <Shield className="w-5 h-5 text-indigo-500" />
+              <Shield className="w-5 h-5 text-accent-500" />
             </div>
             <span className="font-black text-[10px] uppercase tracking-widest text-slate-500">
               Pomiar
@@ -542,7 +570,7 @@ export default function Dashboard({
           </button>
           <button
             onClick={() => setTab("bolus")}
-            className="bg-indigo-600 p-4 rounded-[2rem] flex flex-col items-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all text-white"
+            className="bg-accent-600 p-4 rounded-[2rem] flex flex-col items-center gap-2 shadow-lg shadow-accent-600/20 active:scale-95 transition-all text-white"
           >
             <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center">
               <Zap className="w-5 h-5" />
@@ -562,7 +590,7 @@ export default function Dashboard({
           </h3>
           <button
             onClick={() => setTab("history")}
-            className="text-[10px] font-bold text-indigo-500 flex items-center gap-1 active:scale-95 transition-all"
+            className="text-[10px] font-bold text-accent-500 flex items-center gap-1 active:scale-95 transition-all"
           >
             WSZYSTKO <ChevronRight size={12} />
           </button>
@@ -618,7 +646,7 @@ export default function Dashboard({
                         ? "bg-rose-500/10 text-rose-500"
                         : log.type === "meal"
                           ? "bg-amber-500/10 text-amber-500"
-                          : "bg-indigo-500/10 text-indigo-500",
+                          : "bg-accent-500/10 text-accent-500",
                     )}
                   >
                     {log.type === "glucose" && (
@@ -666,7 +694,7 @@ export default function Dashboard({
                         {log.source === 'nightscout' ? (
                           <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
                         ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
-                          <span className="text-[8px] bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
+                          <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
                         ) : (
                           <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
                         )}

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Share2, Download, X, Copy, Check, Users, Link as LinkIcon, Unlink } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { UserSettings } from '../types';
 
 export default function SettingsSync({ user, settings, onImport }: { user: any, settings: UserSettings, onImport: (s: UserSettings) => void }) {
@@ -62,7 +63,7 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
     <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <Users className="text-indigo-500" size={20} />
+          <Users className="text-accent-500" size={20} />
           <span className="text-xs font-bold dark:text-white">Rodzina / Parowanie</span>
         </div>
         {linkedUid && (
@@ -84,53 +85,80 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
         <div className="flex gap-2">
           <button 
             onClick={() => setShowExport(true)}
-            className="flex-1 bg-indigo-500 text-white rounded-xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+            className="flex-1 bg-accent-500 text-white rounded-xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
           >
             <Share2 size={14} /> Pokaż QR
           </button>
           <button 
             onClick={() => setShowImport(true)}
-            className="flex-1 bg-white dark:bg-slate-900 text-indigo-500 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+            className="flex-1 bg-white dark:bg-slate-900 text-accent-500 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
           >
             <Download size={14} /> Zeskanuj QR
           </button>
         </div>
       )}
 
+      <AnimatePresence>
       {showExport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 w-full max-w-sm flex flex-col items-center relative animate-in fade-in zoom-in duration-200">
-            <button onClick={() => setShowExport(false)} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500">
+        <motion.div 
+          initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+          animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+          exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60"
+        >
+          <motion.div 
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-slate-50 dark:bg-slate-900 rounded-[3rem] p-8 pb-12 w-full max-w-sm flex flex-col items-center relative shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform"
+          >
+            <button onClick={() => setShowExport(false)} className="absolute top-6 right-6 p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 transition-colors">
               <X size={20} />
             </button>
-            <h3 className="text-sm font-black dark:text-white mb-2">Sparuj Konto</h3>
-            <p className="text-xs text-slate-500 text-center mb-6 px-4">
+            <h3 className="text-xl font-black dark:text-white mb-2 self-start">Sparuj Konto</h3>
+            <p className="text-xs text-slate-500 mb-6 self-start">
               Zeskanuj ten kod na drugim telefonie używając opcji "Zeskanuj QR".
             </p>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 w-64 h-64 flex justify-center items-center">
-              <QRCode value={qrPayload} size={224} />
+            <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 mb-6 w-full flex justify-center items-center aspect-square">
+              <QRCode value={qrPayload} style={{ width: "100%", height: "100%" }} />
             </div>
             <button 
               onClick={handleCopy}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs active:scale-95 transition-all"
+              className="w-full flex items-center justify-center gap-2 py-4 bg-accent-600 text-white rounded-[2rem] font-black text-[12px] uppercase active:scale-95 transition-all shadow-xl"
             >
-              {copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />} 
+              {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />} 
               {copied ? 'Skopiowano!' : 'Kopiuj jako tekst'}
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {showImport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 w-full max-w-sm flex flex-col items-center relative animate-in fade-in zoom-in duration-200 my-auto">
-            <button onClick={() => setShowImport(false)} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500">
+        <motion.div 
+          initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+          animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+          exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 overflow-y-auto"
+        >
+          <motion.div 
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-slate-50 dark:bg-slate-900 rounded-[3rem] p-8 pb-12 w-full max-w-sm flex flex-col items-center relative shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform my-auto"
+          >
+            <button onClick={() => setShowImport(false)} className="absolute top-6 right-6 p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 transition-colors">
               <X size={20} />
             </button>
-            <h3 className="text-sm font-black dark:text-white mb-2">Skaner Parowania</h3>
-            <p className="text-xs text-slate-500 text-center mb-4 px-4">Nakieruj obiektyw na kod QR na pierwszym telefonie.</p>
+            <h3 className="text-xl font-black dark:text-white mb-2 self-start">Skaner Parowania</h3>
+            <p className="text-xs text-slate-500 mb-6 self-start">Nakieruj obiektyw na kod QR na pierwszym telefonie.</p>
             
-            <div className="w-full rounded-2xl overflow-hidden border-2 border-indigo-500/30 mb-4 bg-black relative">
+            <div className="w-full rounded-[2rem] overflow-hidden border-2 border-accent-500/30 mb-6 bg-black relative aspect-square">
               <QrScanner 
                 onResult={(res) => {
                   setImportText(res);
@@ -139,24 +167,25 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
               />
             </div>
             
-            <div className="w-full mt-2">
-              <p className="text-[10px] font-black uppercase text-slate-400 mb-2 pl-2">Albo wklej skopiowany kod tekstowy:</p>
+            <div className="w-full">
+              <p className="text-[10px] font-black uppercase text-slate-400 mb-3 pl-2">Albo wklej skopiowany kod tekstowy:</p>
               <textarea 
-                className="w-full h-20 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 flex text-xs outline-none rounded-xl dark:text-white"
+                className="w-full h-24 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 flex text-xs outline-none rounded-[2rem] dark:text-white focus:border-accent-500 transition-colors"
                 placeholder='Wklej kod parowania...'
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
               />
               <button 
                 onClick={() => handleImportText()}
-                className="w-full mt-2 bg-indigo-500 text-white rounded-xl py-3 font-black text-[10px] uppercase tracking-widest"
+                className="w-full mt-4 bg-accent-600 text-white rounded-[2rem] py-4 font-black text-[12px] uppercase tracking-widest hover:bg-accent-700 active:scale-95 transition-all shadow-xl"
               >
                 Połącz Konta
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
