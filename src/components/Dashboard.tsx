@@ -17,7 +17,9 @@ import {
   ChevronRight,
   TrendingUp,
   AlertTriangle,
-  Activity,
+  Signal,
+  Radio,
+  Droplet,
 } from "lucide-react";
 import { cn, calculateIOB } from "../lib/utils";
 import GlucoseModal from "./GlucoseModal";
@@ -397,7 +399,7 @@ export default function Dashboard({
              <div className="bg-gradient-to-br from-slate-800 to-accent-900 rounded-[2rem] p-4 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-accent-900/20">
                <div className="flex justify-between items-start z-10">
                  <div className="p-2 bg-white/10 rounded-2xl">
-                   <Activity size={16} className="text-accent-300" />
+                   <Signal size={16} className="text-accent-300" />
                  </div>
                  <span className="text-[8px] font-black text-accent-200 uppercase tracking-widest bg-white/5 py-1 px-2 rounded-full">
                    Sensor
@@ -650,7 +652,7 @@ export default function Dashboard({
                     )}
                   >
                     {log.type === "glucose" && (
-                      <Activity size={18} strokeWidth={2.5} />
+                      <Droplet size={18} strokeWidth={2.5} />
                     )}
                     {log.type === "meal" && (
                       <Utensils size={18} strokeWidth={2.5} />

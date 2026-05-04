@@ -26,7 +26,8 @@ import {
   Moon,
   LogIn,
   Menu,
-  Activity
+  Activity,
+  LayoutDashboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
@@ -666,7 +667,7 @@ export default function App() {
       {/* Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-50 pb-safe">
         <div className="max-w-md mx-auto flex items-center justify-around h-20 px-2">
-          <NavButton active={activeTab === 'dashboard'} onClick={() => changeTab('dashboard')} icon={<Activity />} label="Pulpit" />
+          <NavButton active={activeTab === 'dashboard'} onClick={() => changeTab('dashboard')} icon={<LayoutDashboard />} label="Pulpit" />
           <NavButton active={activeTab === 'database'} onClick={() => changeTab('database')} icon={<Database />} label="Baza" />
           
           <div className="relative -top-6">

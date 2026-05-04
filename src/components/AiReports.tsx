@@ -2,7 +2,7 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry } from '../types';
-import { MessageSquare, Calculator, History, TrendingUp, Sparkles, Loader2, Calendar, Trash2 } from 'lucide-react';
+import { MessageSquare, Calculator, History, TrendingUp, Activity, Loader2, Calendar, Trash2 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import SwipeableItem from './SwipeableItem';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
@@ -164,7 +164,7 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
       )}
 
       <div className="bg-accent-900 rounded-[2.5rem] p-8 text-white shadow-2xl text-center space-y-6 relative overflow-hidden">
-        <Sparkles className="absolute top-4 right-6 text-accent-400 opacity-20" size={60} />
+        <Activity className="absolute top-4 right-6 text-accent-400 opacity-20" size={60} />
         <div className="relative z-10">
           <h2 className="text-2xl font-black mb-1 text-accent-300">Raport</h2>
           <p className="text-white text-sm font-bold tracking-widest">Inteligentna analiza glikemii</p>
@@ -182,7 +182,7 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
             transition={{ repeat: Infinity, duration: 2 }}
             className="w-full bg-white text-accent-900 py-6 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 relative overflow-hidden"
           >
-            {loading ? <Loader2 className="animate-spin" /> : <Sparkles size={24} className="text-accent-500" />}
+            {loading ? <Loader2 className="animate-spin" /> : <Activity size={24} className="text-accent-500" />}
             Wygeneruj Raport Kompletny
             
             {!loading && (

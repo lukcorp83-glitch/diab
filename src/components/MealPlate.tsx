@@ -14,7 +14,6 @@ import {
   Globe,
   Loader2,
   Zap,
-  Sparkles,
   Star,
   BookMarked,
   Camera,

@@ -50,6 +50,8 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     };
 }
 
+let _isTraining = false;
+
 export const MLAnalyzer = {
   // Funkcja analizująca logi z wykorzystaniem TensorFlow.js (lokalnie/w przeglądarce)
   async analyzeData(logs: any[]): Promise<{ 
@@ -60,9 +62,18 @@ export const MLAnalyzer = {
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
   }> {
+    if (_isTraining) {
+      console.warn("GlikoSense: Analiza już trwa, ignoruję żądanie.");
+      return { predictedNextHour: 0, riskOfHypo: false, insights: ["Obliczenia w toku..."], accuracy: 0 };
+    }
+
     if(!logs || logs.length < 5) {
       return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense. Wymagane co najmniej 5 wpisów."], accuracy: 0 };
     }
+
+    try {
+      _isTraining = true;
+      await tf.ready();
 
     const twoWeeksAgoMs = Date.now() - (14 * 24 * 60 * 60 * 1000);
     const recentLogs = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= twoWeeksAgoMs);
@@ -138,6 +149,9 @@ export const MLAnalyzer = {
     let means = new Array(numFeatures).fill(0);
     let stdDevs = new Array(numFeatures).fill(1);
 
+    // Limit dataset to last 250 samples for mobile performance/stability
+    const trainingDataset = dataset.slice(-250);
+    
     const savedMeans = localStorage.getItem('glikosense_zscore_means');
     const savedStds = localStorage.getItem('glikosense_zscore_stds');
     
@@ -145,16 +159,16 @@ export const MLAnalyzer = {
         means = JSON.parse(savedMeans);
         stdDevs = JSON.parse(savedStds);
     } else {
-        dataset.forEach(d => {
+        trainingDataset.forEach(d => {
             d.inputs.forEach((val, i) => means[i] += val);
         });
-        means.forEach((_, i) => means[i] /= (dataset.length || 1));
+        means.forEach((_, i) => means[i] /= (trainingDataset.length || 1));
         
-        dataset.forEach(d => {
+        trainingDataset.forEach(d => {
             d.inputs.forEach((val, i) => stdDevs[i] += Math.pow(val - means[i], 2));
         });
         stdDevs.forEach((_, i) => {
-            stdDevs[i] = Math.sqrt(stdDevs[i] / (dataset.length || 1));
+            stdDevs[i] = Math.sqrt(stdDevs[i] / (trainingDataset.length || 1));
             if (stdDevs[i] === 0) stdDevs[i] = 1; 
         });
         localStorage.setItem('glikosense_zscore_means', JSON.stringify(means));
@@ -200,19 +214,40 @@ export const MLAnalyzer = {
         model = seqModel;
     }
 
-    const inputsTensor = tf.tensor3d(dataset.map(d => [d.inputs]));
-    const outputTensor = tf.tensor2d(dataset.map(d => d.output));
+    const inputsTensor = tf.tensor3d(trainingDataset.map(d => [d.inputs]));
+    const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
 
-    await model.fit(inputsTensor, outputTensor, {
-        epochs: isModelLoaded ? 15 : 100, 
-        shuffle: true,
-        verbose: 0
-    });
+    let errorSum = 0;
 
     try {
-        await model.save('indexeddb://glikosense-lstm');
-    } catch(err) {
-        console.warn("Zapis modelu do IndexedDB nie powiódł się", err);
+        await model.fit(inputsTensor, outputTensor, {
+            epochs: isModelLoaded ? 4 : 20, 
+            shuffle: true,
+            verbose: 0,
+            callbacks: {
+              onEpochEnd: async () => {
+                await tf.nextFrame(); // Release the main thread briefly
+              }
+            }
+        });
+
+        // Calculate error before disposing
+        tf.tidy(() => {
+          const preds = model.predict(inputsTensor) as tf.Tensor;
+          const predsArray = preds.dataSync();
+          for(let j = 0; j < trainingDataset.length; j++) {
+               errorSum += Math.abs(predsArray[j * 2] - trainingDataset[j].output[0]);
+          }
+        });
+
+        try {
+            await model.save('indexeddb://glikosense-lstm');
+        } catch(err) {
+            console.warn("Zapis modelu do IndexedDB nie powiódł się", err);
+        }
+    } finally {
+        inputsTensor.dispose();
+        outputTensor.dispose();
     }
 
     const predictValue = (mdl: tf.LayersModel, inputArr: number[]) => {
@@ -223,19 +258,7 @@ export const MLAnalyzer = {
         });
     };
 
-    let errorSum = 0;
-    tf.tidy(() => {
-        const preds = model.predict(inputsTensor) as tf.Tensor;
-        const predsArray = preds.dataSync();
-        for(let j = 0; j < dataset.length; j++) {
-             errorSum += Math.abs(predsArray[j * 2] - dataset[j].output[0]);
-        }
-    });
-
-    inputsTensor.dispose();
-    outputTensor.dispose();
-
-    const avgErrorInMgDl = (errorSum / dataset.length) * 400;
+    const avgErrorInMgDl = (errorSum / (trainingDataset.length || 1)) * 400;
 
     // Remaining Logic
     const latest = glucoseLogs[glucoseLogs.length-1];
@@ -514,6 +537,9 @@ export const MLAnalyzer = {
             avgBias
         }
     };
+    } finally {
+      _isTraining = false;
+    }
   }
 }
 

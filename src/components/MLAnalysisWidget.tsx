@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Cpu, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw } from 'lucide-react';
+import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
@@ -19,9 +19,19 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
   } | null>(null);
 
+  const lastProcessedLogsRef = React.useRef<string>("");
+
   useEffect(() => {
-    if (logs && logs.length >= 5) {
-      runML();
+    const logsKey = logs.length > 0 
+      ? `${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}`
+      : "empty";
+
+    if (logs && logs.length >= 5 && logsKey !== lastProcessedLogsRef.current) {
+      const timer = setTimeout(() => {
+        lastProcessedLogsRef.current = logsKey;
+        runML();
+      }, 1000); // 1 second debounce
+      return () => clearTimeout(timer);
     }
   }, [logs]);
 
@@ -85,7 +95,7 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
       <div className="flex items-center justify-between mb-6 relative z-10">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg ring-4 ring-indigo-50 dark:ring-indigo-900/50">
-            <Cpu size={24} className="text-white" />
+            <Activity size={24} className="text-white" />
           </div>
           <div className="flex flex-col">
             <h3 className="text-lg font-black tracking-tight text-slate-800 dark:text-white">GlikoSense</h3>

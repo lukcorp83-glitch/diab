@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Database, Utensils, FileText, Settings, HeartPulse, Sparkles, Scan, Bot, Users } from 'lucide-react';
+import { Activity, Database, Utensils, Settings, HeartPulse, Scan, Bot, Users } from 'lucide-react';
 
 export default function OnboardingTutorial({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
@@ -17,8 +17,8 @@ export default function OnboardingTutorial({ onComplete }: { onComplete: () => v
       icon: <Users className="w-16 h-16 text-purple-500" />
     },
     {
-      title: 'Zawsze na bieżąco',
-      description: 'Aplikacja automatycznie synchronizuje wpisy z Nightscout. Możesz również dodawać ręcznie węglowodany i insulinę z zakładki Pulpit.',
+      title: 'GlikoSense AI',
+      description: 'Wykorzystaj potęgę sieci neuronowych (LSTM) do przewidywania cukru. GlikoSense analizuje Twoje trendy, insulinę i posiłki, aby pokazać Ci przyszłość na wykresie.',
       icon: <Activity className="w-16 h-16 text-accent-500" />
     },
     {
@@ -32,9 +32,9 @@ export default function OnboardingTutorial({ onComplete }: { onComplete: () => v
       icon: <Bot className="w-16 h-16 text-amber-500" />
     },
     {
-      title: 'Raporty i Statystyki',
-      description: 'Śledź swoje wyniki, zdobywaj osiągnięcia i przeglądaj raporty generowane przez AI w zakładce Raport.',
-      icon: <FileText className="w-16 h-16 text-blue-500" />
+      title: 'Raporty GlikoSense',
+      description: 'Przeglądaj głębokie analizy swoich trendów i raporty generowane przez AI w zakładce GlikoSense (dawniej Raport).',
+      icon: <Activity className="w-16 h-16 text-blue-500" />
     }
   ];
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Activity, Droplet, Clock, ChevronRight, Utensils } from 'lucide-react';
+import { Radio, Droplet, Clock, ChevronRight, Utensils } from 'lucide-react';
 import { LogEntry } from '../types';
 import { cn } from '../lib/utils';
 
@@ -58,7 +58,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
             className="p-2 bg-emerald-500/20 rounded-xl"
           >
-            <Activity size={16} className="text-emerald-400" />
+            <Radio size={16} className="text-emerald-400" />
           </motion.div>
           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Status Na Żywo</span>
         </div>
