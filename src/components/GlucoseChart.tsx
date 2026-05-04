@@ -157,7 +157,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start);
 
     let loopPredictions: { timestamp: number, value: number, actionType?: 'bolus' | 'suspend', actionAmount?: number }[] = [];
-    let mlPredictionData = [...mlPredictionDataState];
+    let mlPredictionData = mlPredictionDataState.filter(p => p.timestamp >= start && p.timestamp <= end);
     
     if ((showLoopSimulation || showMLPrediction) && dataG.length >= 2) {
       const last = dataG[dataG.length - 1];
@@ -333,6 +333,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             dataKey="timestamp" 
             type="number" 
             domain={[start, end]} 
+            allowDataOverflow={true}
             ticks={xAxisTicks}
             tickFormatter={(unixTime) => {
                 const diff = Math.abs(unixTime - now);
