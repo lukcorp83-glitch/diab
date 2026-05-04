@@ -127,8 +127,8 @@ export const MLAnalyzer = {
       
       let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
       
-      if (mode === 'full' && logsToAnalyze.length > 400) logsToAnalyze = logsToAnalyze.slice(-400);
-      if (logsToAnalyze.length < 5) logsToAnalyze = logs.slice(-20);
+      if (mode === 'full' && logsToAnalyze.length > 400) logsToAnalyze = logsToAnalyze.slice(0, 400);
+      if (logsToAnalyze.length < 5) logsToAnalyze = logs.slice(0, 20);
 
       const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
       const glucoseLogsOrig = sorted.filter(l => l.type === 'glucose' || l.bg);
@@ -140,7 +140,7 @@ export const MLAnalyzer = {
       const allMeals = logs.filter(l => l.type === 'meal');
       const allGlucose = logs.filter(l => l.type === 'glucose' || l.bg).sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
       
-      allMeals.slice(-100).forEach(m => {
+      allMeals.slice(0, 100).forEach(m => {
         const mealTime = m.timestamp || new Date(m.createdAt).getTime();
         const mealName = m.note || m.name || m.description || "Posiłek";
         if (!mealName || mealName.length < 3 || mealName === "Posiłek") return;

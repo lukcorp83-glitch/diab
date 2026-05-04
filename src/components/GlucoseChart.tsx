@@ -159,6 +159,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     let loopPredictions: { timestamp: number, value: number, actionType?: 'bolus' | 'suspend', actionAmount?: number }[] = [];
     let mlPredictionData = mlPredictionDataState;
     
+    if (dataG.length > 0) {
+       const lastG = dataG[dataG.length - 1];
+       mlPredictionData = mlPredictionData.filter(p => p.timestamp >= lastG.timestamp);
+    }
+    
     if ((showLoopSimulation || showMLPrediction) && dataG.length >= 2) {
       const last = dataG[dataG.length - 1];
       let prev = dataG[dataG.length - 2];
@@ -428,6 +433,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
                  stroke="#fbbf24" 
                  strokeWidth={4} 
                  strokeLinecap="round"
+                 strokeDasharray="5 7"
                  dot={<MLPredictionLabel lastMlTimestamp={lastMlTimestamp} isDark={isDark} />}
                  activeDot={{ r: 7, fill: '#fbbf24', stroke: '#fff', strokeWidth: 2 }}
                  connectNulls
