@@ -12,7 +12,8 @@ import {
   ResponsiveContainer,
   Scatter,
   ReferenceLine,
-  Brush
+  Brush,
+  Tooltip
 } from 'recharts';
 
 interface GlucoseChartProps {
@@ -36,10 +37,10 @@ const CustomGlucoseDot = (props: any) => {
 
   return (
     <circle 
-      cx={cx} cy={cy} r={4} 
+      cx={cx} cy={cy} r={5} 
       fill={fill} 
       stroke={isDark ? '#0f172a' : '#ffffff'} 
-      strokeWidth={1.5}
+      strokeWidth={2}
       onClick={(e) => {
           e.stopPropagation();
           onDotClick && onDotClick(payload.originalG);
@@ -129,7 +130,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     }
   }, [logs, showMLPrediction]);
 
-  const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp } = useMemo(() => {
+  const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks } = useMemo(() => {
     let now = Date.now();
     if (logs.length > 0) {
       const gLogs = logs.filter(l => l.type === 'glucose');
@@ -147,7 +148,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     const predictionTime = 2 * 60 * 60 * 1000;
     const rangeMs = hours * 60 * 60 * 1000;
     
-    const totalMs = showMLPrediction ? rangeMs + predictionTime : rangeMs;
+    const totalMs = (showMLPrediction || showLoopSimulation) ? rangeMs + predictionTime : rangeMs;
     const start = now - rangeMs;
     const end = start + totalMs;
 
@@ -291,8 +292,19 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
     const sortedData = Array.from(timeMap.values()).sort((a, b) => a.timestamp - b.timestamp);
     const lastMlTimestamp = mlPredictionData.length > 0 ? mlPredictionData[mlPredictionData.length - 1].timestamp : 0;
+    
+    // Generate helpful ticks
+    const xAxisTicks = [start, now, end];
+    const step = (end - start) / 4;
+    for (let i = 1; i <= 3; i++) {
+      const t = start + i * step;
+      if (Math.abs(t - now) > step / 2) {
+        xAxisTicks.push(t);
+      }
+    }
+    xAxisTicks.sort((a, b) => a - b);
 
-    return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp };
+    return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks };
   }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction, mlPredictionDataState]);
 
   const isDark = theme === 'dark';
@@ -302,22 +314,26 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={chartData}
-          margin={{ top: 20, right: 10, left: -20, bottom: 5 }}
+          margin={{ top: 20, right: 10, left: 35, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} vertical={false} />
           <XAxis 
             dataKey="timestamp" 
             type="number" 
             domain={['dataMin', 'dataMax']} 
+            ticks={xAxisTicks}
             tickFormatter={(unixTime) => {
-                if (unixTime === chartData[0]?.timestamp) return `-${hours}H`;
-                if (Math.abs(unixTime - now) < 60000) return 'TERAZ'; // tolerance
-                if (unixTime === chartData[chartData.length - 1]?.timestamp && (showMLPrediction || showLoopSimulation)) return `+2H`;
-                return '';
+                if (Math.abs(unixTime - xAxisTicks[0]) < 60000) return `-${hours}H`;
+                if (Math.abs(unixTime - now) < 60000) return 'DZIŚ';
+                if (Math.abs(unixTime - xAxisTicks[xAxisTicks.length - 1]) < 60000) {
+                   return (showMLPrediction || showLoopSimulation) ? `+2H` : '';
+                }
+                const date = new Date(unixTime);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }}
             axisLine={{ stroke: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
             tickLine={false}
-            tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+            tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 9, fontWeight: 'bold' }}
             stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}
           />
           <YAxis 
@@ -327,6 +343,25 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
           />
           
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const data = payload[0].payload;
+                return (
+                  <div className="bg-slate-900 border border-slate-700 p-2 rounded-xl text-white text-[10px] shadow-xl backdrop-blur-md">
+                    <p className="font-black text-accent-400 mb-1">
+                      {new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {data.glucose && <p className="font-bold">Glukoza: <span className="text-white">{Math.round(data.glucose)} mg/dL</span></p>}
+                    {data.loopPrediction && <p className="text-emerald-400">Pętla: {Math.round(data.loopPrediction)} mg/dL</p>}
+                    {data.mlPrediction && <p className="text-amber-400">GlikoSense: {Math.round(data.mlPrediction)} mg/dL</p>}
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+
           <ReferenceArea y1={targetMin || 70} y2={targetMax || 140} fill={isDark ? 'rgba(79, 70, 229, 0.1)' : 'rgba(79, 70, 229, 0.05)'} />
           
           <ReferenceLine x={now} stroke={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'} strokeDasharray="3 3" />
@@ -338,7 +373,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             stroke={isDark ? '#818cf8' : '#4f46e5'} 
             strokeWidth={3} 
             dot={<CustomGlucoseDot targetMin={targetMin} targetMax={targetMax} isDark={isDark} onDotClick={setSelectedPoint} />}
-            activeDot={false}
+            activeDot={{ r: 6, fill: '#4f46e5' }}
             connectNulls
             isAnimationActive={false}
           />
@@ -378,11 +413,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           {/* Add Brush for Zooming and Panning */}
           <Brush 
             dataKey="timestamp" 
-            height={20} 
+            height={15} 
             stroke={isDark ? '#4f46e5' : '#818cf8'} 
             fill={isDark ? '#0f172a' : '#ffffff'}
             tickFormatter={() => ''}
-            style={{ opacity: 0.8 }}
+            style={{ opacity: 0.5 }}
           />
 
         </ComposedChart>
