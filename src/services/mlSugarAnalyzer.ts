@@ -7,8 +7,14 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     let pob = 0; // Protein on Board
     let fob = 0; // Fat on Board
     
-    for (const log of pastLogs) {
+    // Optymalizacja: patrzymy tylko na logi z ostatnich 8h względem targetTime
+    const cutoffTime = targetTime - (8 * 60 * 60 * 1000);
+    
+    for (let i = pastLogs.length - 1; i >= 0; i--) {
+        const log = pastLogs[i];
         const logTime = log.timestamp || new Date(log.createdAt).getTime();
+        
+        if (logTime < cutoffTime) break; // Skoro logi są posortowane, dalsze są jeszcze starsze
         const diffMs = targetTime - logTime;
         if (diffMs < 0) continue; 
         
@@ -50,79 +56,232 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     };
 }
 
-let _isTraining = false;
+let _currentFullAnalysisPromise: Promise<any> | null = null;
+let _currentQuickAnalysisPromise: Promise<any> | null = null;
+let _cachedResult: any = null;
+let _lastAnalysisTime: number = 0;
+let _lastLogsFingerprint: string | null = null;
 
 export const MLAnalyzer = {
   // Funkcja analizująca logi z wykorzystaniem TensorFlow.js (lokalnie/w przeglądarce)
-  async analyzeData(logs: any[]): Promise<{ 
+  analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<{ 
     predictedNextHour: number, 
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
+    analyzedPeriod?: string,
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
   }> {
-    if (_isTraining) {
-      console.warn("GlikoSense: Analiza już trwa, ignoruję żądanie.");
-      return { predictedNextHour: 0, riskOfHypo: false, insights: ["Obliczenia w toku..."], accuracy: 0 };
+    const logsFingerprint = logs && logs.length > 0 
+      ? `v2-${mode}-${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}` 
+      : 'empty';
+
+    // 1. Sprawdź Cache w pamięci i LocalStorage
+    if (!force) {
+      if (_cachedResult && _lastLogsFingerprint === logsFingerprint) {
+        return Promise.resolve(_cachedResult);
+      }
+      
+      if (mode === 'full') {
+        const persistentCache = localStorage.getItem('glikosense_last_result');
+        const persistentFingerprint = localStorage.getItem('glikosense_last_fingerprint');
+        
+        if (persistentCache && persistentFingerprint === logsFingerprint) {
+          try {
+            const parsed = JSON.parse(persistentCache);
+            _cachedResult = parsed;
+            _lastLogsFingerprint = logsFingerprint;
+            _lastAnalysisTime = Date.now();
+            return Promise.resolve(parsed);
+          } catch (e) {
+            console.warn("Błąd odczytu cache GlikoSense");
+          }
+        }
+      }
     }
 
-    if(!logs || logs.length < 5) {
-      return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense. Wymagane co najmniej 5 wpisów."], accuracy: 0 };
+    if (mode === 'full' && _currentFullAnalysisPromise) {
+      return _currentFullAnalysisPromise;
+    }
+    if (mode === 'quick' && _currentQuickAnalysisPromise) {
+      return _currentQuickAnalysisPromise;
     }
 
-    try {
-      _isTraining = true;
-      await tf.ready();
+    const doAnalysis = async () => {
+      // Basic checks
+      if (!logs || logs.length < 3) {
+        return { 
+          predictedNextHour: 0, 
+          riskOfHypo: false, 
+          insights: ["Zbyt mało danych dla GlikoSense."], 
+          accuracy: 0,
+          analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 7 dni'
+        };
+      }
 
-    const twoWeeksAgoMs = Date.now() - (14 * 24 * 60 * 60 * 1000);
-    const recentLogs = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= twoWeeksAgoMs);
-    let logsToAnalyze = recentLogs.length >= 5 ? recentLogs : logs;
-    
-    // Sortowanie od najstarszych do najnowszych
-    const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
-    
-    const dataset = [];
-    const glucoseLogs = sorted.filter(l => l.type === 'glucose' || l.bg);
-    
-    for(let i=0; i < glucoseLogs.length - 1; i++) {
-        const current = glucoseLogs[i];
-        const next = glucoseLogs[i+1];
-        
-        const currentBg = current.value || current.bg;
-        const nextBg = next.value || next.bg;
-        
-        if(!currentBg || !nextBg) continue;
+      const now = Date.now();
+      // Tryb szybki: ostatnie 4h. Tryb pełny: 7 dni.
+      const lookbackMs = mode === 'quick' ? (4 * 60 * 60 * 1000) : (7 * 24 * 60 * 60 * 1000);
+      const cutoffTime = now - lookbackMs;
+      
+      let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
+      
+      if (mode === 'full' && logsToAnalyze.length > 400) logsToAnalyze = logsToAnalyze.slice(-400);
+      if (logsToAnalyze.length < 5) logsToAnalyze = logs.slice(-20);
 
-        let trendNum = 0;
-        let prevTrendNum = 0;
-        if(current.trend) {
-            const up = ['SingleUp', 'FortyFiveUp', 'DoubleUp'];
-            const down = ['SingleDown', 'FortyFiveDown', 'DoubleDown'];
-            if(up.includes(current.trend)) trendNum = 10;
-            if(current.trend === 'DoubleUp') trendNum = 20;
-            if(down.includes(current.trend)) trendNum = -10;
-            if(current.trend === 'DoubleDown') trendNum = -20;
-        } else if(i > 0) {
-            trendNum = currentBg - (glucoseLogs[i-1].value || glucoseLogs[i-1].bg);
-            if (i > 1) {
-                prevTrendNum = (glucoseLogs[i-1].value || glucoseLogs[i-1].bg) - (glucoseLogs[i-2].value || glucoseLogs[i-2].bg);
-            }
+      const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+      const glucoseLogsOrig = sorted.filter(l => l.type === 'glucose' || l.bg);
+      
+      // --- HEURISTIC ANALYSIS (Always run, even if LSTM fails) ---
+      const insights: string[] = [];
+      const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
+      
+      const allMeals = logs.filter(l => l.type === 'meal');
+      const allGlucose = logs.filter(l => l.type === 'glucose' || l.bg).sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+      
+      allMeals.slice(-100).forEach(m => {
+        const mealTime = m.timestamp || new Date(m.createdAt).getTime();
+        const mealName = m.note || m.name || m.description || "Posiłek";
+        if (!mealName || mealName.length < 3 || mealName === "Posiłek") return;
+
+        const postMealBg = allGlucose.filter(g => {
+          const gt = g.timestamp || new Date(g.createdAt).getTime();
+          return gt > mealTime + 45*60*1000 && gt < mealTime + 180*60*1000;
+        });
+
+        if (postMealBg.length > 0) {
+          const maxBg = Math.max(...postMealBg.map(g => g.value || g.bg));
+          if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0 };
+          mealPatterns[mealName].count++;
+          if (maxBg > 180) mealPatterns[mealName].spikes++;
+        }
+      });
+
+      const problematicMeals = Object.entries(mealPatterns)
+        .filter(([_, stats]) => stats.spikes > 0 && (stats.spikes / stats.count) >= 0.5)
+        .map(([name]) => name);
+
+      if (problematicMeals.length > 0) {
+        insights.push(`🧠 Pamięć posiłków: ${problematicMeals.slice(0, 2).join(", ")} historycznie powodują u Ciebie wysokie skoki cukru.`);
+      }
+
+      if (glucoseLogsOrig.length < 5) {
+        return { 
+          predictedNextHour: 0, 
+          riskOfHypo: false, 
+          insights: [...insights, "Czekam na więcej odczytów glikemii..."], 
+          accuracy: 0,
+          analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 7 dni'
+        };
+      }
+
+      let useLSTM = true;
+      try {
+        await Promise.race([
+          tf.ready(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("TF Timeout")), 2500))
+        ]);
+        // Sprawdź czy WebGL jest dostępny, jeśli nie, upewnij się że CPU działa
+        if (tf.getBackend() === null) {
+           await tf.setBackend('cpu');
+        }
+      } catch (e) {
+        console.warn("TF not ready, using heuristic fallback", e);
+        useLSTM = false;
+      }
+
+      // Tworzymy siatkę co 5 minut dla stabilności LSTM
+      const resampledGlucose: { timestamp: number, value: number, trend: number }[] = [];
+      let startTime = glucoseLogsOrig[0].timestamp || new Date(glucoseLogsOrig[0].createdAt).getTime();
+      // Zabezpieczenie: nie cofamy się dalej niż wybrany okres nawet jeśli logi są stare
+      if (startTime < cutoffTime) startTime = cutoffTime;
+      
+      const endTime = glucoseLogsOrig[glucoseLogsOrig.length - 1].timestamp || new Date(glucoseLogsOrig[glucoseLogsOrig.length - 1].createdAt).getTime();
+      const stepMs = 5 * 60 * 1000;
+
+      let origIdx = 0;
+      for (let t = startTime; t <= endTime; t += stepMs) {
+        // Efektywne szukanie punktów "przed" i "po"
+        while (origIdx < glucoseLogsOrig.length - 1 && (glucoseLogsOrig[origIdx + 1].timestamp || new Date(glucoseLogsOrig[origIdx + 1].createdAt).getTime()) <= t) {
+          origIdx++;
+        }
+
+        const before = glucoseLogsOrig[origIdx];
+        const beforeTime = before.timestamp || new Date(before.createdAt).getTime();
+        
+        // Optymalizacja: jeśli t jest znacznie dalej niż obecny log, przeskocz do przodu
+        if (t < beforeTime) {
+             t = beforeTime - stepMs;
+             continue;
+        }
+
+        const after = (origIdx < glucoseLogsOrig.length - 1) ? glucoseLogsOrig[origIdx + 1] : null;
+
+        if (before && after) {
+          const t1 = beforeTime;
+          const t2 = after.timestamp || new Date(after.createdAt).getTime();
+          const v1 = before.value || before.bg;
+          const v2 = after.value || after.bg;
+          
+          const val = v1 + (v2 - v1) * ((t - t1) / (t2 - t1));
+          resampledGlucose.push({ timestamp: t, value: val, trend: 0 });
+        } else if (before) {
+          resampledGlucose.push({ timestamp: t, value: before.value || before.bg, trend: 0 });
         }
         
+        if (resampledGlucose.length > 2016) break; // Max 7 dni danych (7 * 24 * 12)
+      }
+      
+      if (resampledGlucose.length === 0) {
+        return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało poprawnych danych glikemii po przetworzeniu."], accuracy: 0 };
+      }
+
+      await new Promise(r => setTimeout(r, 0)); // Pozwól UI odetchnąć po resamplingu - setTimeout działa też w background tab, tf.nextFrame nie.
+
+      // Proste wygładzanie (EMA)
+      let smoothedValue = resampledGlucose[0].value;
+      const alpha = 0.4;
+      resampledGlucose.forEach((p, idx) => {
+        smoothedValue = (p.value * alpha) + (smoothedValue * (1 - alpha));
+        p.value = smoothedValue;
+        if (idx > 0) {
+          p.trend = p.value - resampledGlucose[idx-1].value;
+        }
+      });
+      
+      const dataset = [];
+      
+      // Optymalizacja datasetu - pre-filtrowanie logów nie-glikemicznych
+      const treatmentLogs = sorted.filter(l => l.type === 'meal' || l.type === 'bolus' || l.type === 'insulin');
+      let treatmentIdx = 0;
+
+      for(let i=0; i < resampledGlucose.length - 1; i++) {
+        if (i % 500 === 0) await new Promise(r => setTimeout(r, 0)); // UI breather dla długich pętli
+        const current = resampledGlucose[i];
+        const next = resampledGlucose[i+1];
+        const currentTimeMs = current.timestamp;
+
+        // Przesuwamy okno logów aktywnych
+        while (treatmentIdx < treatmentLogs.length && (treatmentLogs[treatmentIdx].timestamp || new Date(treatmentLogs[treatmentIdx].createdAt).getTime()) <= currentTimeMs) {
+          treatmentIdx++;
+        }
+        const relevantLogs = treatmentLogs.slice(0, treatmentIdx);
+        
+        let trendNum = current.trend;
+        let prevTrendNum = i > 0 ? resampledGlucose[i-1].trend : 0;
         let accelerationNum = trendNum - prevTrendNum;
 
-        const currentTimeMs = current.timestamp || new Date(current.createdAt).getTime();
-        const pastLogs = sorted.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) <= currentTimeMs);
-        const { iob, cob, pob, fob } = calculateActiveAtTime(currentTimeMs, pastLogs);
+        const { iob, cob, pob, fob } = calculateActiveAtTime(currentTimeMs, relevantLogs);
 
         let timeSinceMeal = 1440;
         let timeSinceBolus = 1440;
-        for (let j = pastLogs.length - 1; j >= 0; j--) {
-             const t = pastLogs[j].timestamp || new Date(pastLogs[j].createdAt).getTime();
+        for (let j = relevantLogs.length - 1; j >= 0; j--) {
+             const t = relevantLogs[j].timestamp || new Date(relevantLogs[j].createdAt).getTime();
              const minutes = (currentTimeMs - t) / 60000;
-             if (pastLogs[j].type === 'meal' && minutes < timeSinceMeal && timeSinceMeal === 1440) timeSinceMeal = minutes;
-             if ((pastLogs[j].type === 'bolus' || pastLogs[j].type === 'insulin') && minutes < timeSinceBolus && timeSinceBolus === 1440) timeSinceBolus = minutes;
+             if (relevantLogs[j].type === 'meal' && minutes < timeSinceMeal && timeSinceMeal === 1440) timeSinceMeal = minutes;
+             if ((relevantLogs[j].type === 'bolus' || relevantLogs[j].type === 'insulin') && minutes < timeSinceBolus && timeSinceBolus === 1440) timeSinceBolus = minutes;
+             if (minutes > 480) break; // Optymalizacja wsteczna
         }
 
         const date = new Date(currentTimeMs);
@@ -132,142 +291,36 @@ export const MLAnalyzer = {
         const isWeekend = (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0;
         const iobCobRatio = (iob + 0.1) / (cob + 0.1);
 
-        let nextTrendTarget = nextBg - currentBg;
+        let nextTrendTarget = next.value - current.value;
         
         dataset.push({
             timestamp: currentTimeMs,
-            inputs: [currentBg, trendNum, accelerationNum, cob, iob, timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio], 
-            output: [nextBg / 400, nextTrendTarget / 50]
+            inputs: [current.value, trendNum, accelerationNum, cob, iob, timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio], 
+            output: [next.value / 400, nextTrendTarget / 50]
         });
-    }
+      }
 
-    if(dataset.length === 0) {
+      if(dataset.length === 0) {
         return { predictedNextHour: 0, riskOfHypo: false, insights: ["Brak spójnych par odczytów dla układu neuronowego GlikoSense."], accuracy: 0};
-    }
+      }
 
-    const numFeatures = 13;
-    let means = new Array(numFeatures).fill(0);
-    let stdDevs = new Array(numFeatures).fill(1);
-
-    // Limit dataset to last 250 samples for mobile performance/stability
-    const trainingDataset = dataset.slice(-250);
-    
-    const savedMeans = localStorage.getItem('glikosense_zscore_means');
-    const savedStds = localStorage.getItem('glikosense_zscore_stds');
-    
-    if (savedMeans && savedStds) {
-        means = JSON.parse(savedMeans);
-        stdDevs = JSON.parse(savedStds);
-    } else {
-        trainingDataset.forEach(d => {
-            d.inputs.forEach((val, i) => means[i] += val);
-        });
-        means.forEach((_, i) => means[i] /= (trainingDataset.length || 1));
-        
-        trainingDataset.forEach(d => {
-            d.inputs.forEach((val, i) => stdDevs[i] += Math.pow(val - means[i], 2));
-        });
-        stdDevs.forEach((_, i) => {
-            stdDevs[i] = Math.sqrt(stdDevs[i] / (trainingDataset.length || 1));
-            if (stdDevs[i] === 0) stdDevs[i] = 1; 
-        });
-        localStorage.setItem('glikosense_zscore_means', JSON.stringify(means));
-        localStorage.setItem('glikosense_zscore_stds', JSON.stringify(stdDevs));
-    }
-
-    dataset.forEach(d => {
-        d.inputs = d.inputs.map((val, i) => (val - means[i]) / stdDevs[i]);
-    });
-
-    const zScoreNormalize = (inputs: number[]) => {
-        return inputs.map((val, i) => (val - means[i]) / stdDevs[i]);
-    };
-
-    let model: tf.LayersModel;
+    let predictedNextHour = 0;
+    const predictionCurve: { timestamp: number, offsetMs: number, value: number }[] = [];
+    let carbSensitivity = 20;
+    let insulinSensitivity = -30;
+    let accuracy = useLSTM ? 15 : 45; 
+    let avgBias = 0;
+    let avgErrorInMgDl = 50;
     let isModelLoaded = false;
-    try {
-        model = await tf.loadLayersModel('indexeddb://glikosense-lstm');
-        const inputShape = model.layers[0].batchInputShape;
-        const outputShape = model.outputs[0].shape;
-        
-        if (inputShape && inputShape[2] === 13 && outputShape && outputShape[1] === 2) {
-            isModelLoaded = true;
-            model.compile({
-                optimizer: tf.train.adam(0.001), 
-                loss: 'meanSquaredError'
-            });
-        } else {
-             throw new Error("Invalid shape, reset forced.");
-        }
-    } catch(e) {
-        // LSTM Neural Network Model
-        const seqModel = tf.sequential();
-        seqModel.add(tf.layers.lstm({inputShape: [1, 13], units: 32, returnSequences: false}));
-        seqModel.add(tf.layers.dense({units: 32, activation: 'relu'}));
-        seqModel.add(tf.layers.dense({units: 16, activation: 'relu'})); 
-        seqModel.add(tf.layers.dense({units: 2, activation: 'linear'}));
-        
-        seqModel.compile({
-            optimizer: tf.train.adam(0.005), 
-            loss: 'meanSquaredError'
-        });
-        model = seqModel;
-    }
 
-    const inputsTensor = tf.tensor3d(trainingDataset.map(d => [d.inputs]));
-    const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
-
-    let errorSum = 0;
-
-    try {
-        await model.fit(inputsTensor, outputTensor, {
-            epochs: isModelLoaded ? 4 : 20, 
-            shuffle: true,
-            verbose: 0,
-            callbacks: {
-              onEpochEnd: async () => {
-                await tf.nextFrame(); // Release the main thread briefly
-              }
-            }
-        });
-
-        // Calculate error before disposing
-        tf.tidy(() => {
-          const preds = model.predict(inputsTensor) as tf.Tensor;
-          const predsArray = preds.dataSync();
-          for(let j = 0; j < trainingDataset.length; j++) {
-               errorSum += Math.abs(predsArray[j * 2] - trainingDataset[j].output[0]);
-          }
-        });
-
-        try {
-            await model.save('indexeddb://glikosense-lstm');
-        } catch(err) {
-            console.warn("Zapis modelu do IndexedDB nie powiódł się", err);
-        }
-    } finally {
-        inputsTensor.dispose();
-        outputTensor.dispose();
-    }
-
-    const predictValue = (mdl: tf.LayersModel, inputArr: number[]) => {
-        return tf.tidy(() => {
-            const pred = mdl.predict(tf.tensor3d([[inputArr]])) as tf.Tensor;
-            const dataSync = pred.dataSync();
-            return [dataSync[0], dataSync[1]];
-        });
-    };
-
-    const avgErrorInMgDl = (errorSum / (trainingDataset.length || 1)) * 400;
-
-    // Remaining Logic
-    const latest = glucoseLogs[glucoseLogs.length-1];
+    // Remaining Logic Prep
+    const latest = glucoseLogsOrig[glucoseLogsOrig.length-1];
     let lastTrendNum = 0;
     let prevLastTrendNum = 0;
-    if(glucoseLogs.length > 1) {
-        lastTrendNum = (latest.value || latest.bg) - (glucoseLogs[glucoseLogs.length-2].value || glucoseLogs[glucoseLogs.length-2].bg);
-        if(glucoseLogs.length > 2) {
-             prevLastTrendNum = (glucoseLogs[glucoseLogs.length-2].value || glucoseLogs[glucoseLogs.length-2].bg) - (glucoseLogs[glucoseLogs.length-3].value || glucoseLogs[glucoseLogs.length-3].bg);
+    if(glucoseLogsOrig.length > 1) {
+        lastTrendNum = (latest.value || latest.bg) - (glucoseLogsOrig[glucoseLogsOrig.length-2].value || glucoseLogsOrig[glucoseLogsOrig.length-2].bg);
+        if(glucoseLogsOrig.length > 2) {
+             prevLastTrendNum = (glucoseLogsOrig[glucoseLogsOrig.length-2].value || glucoseLogsOrig[glucoseLogsOrig.length-2].bg) - (glucoseLogsOrig[glucoseLogsOrig.length-3].value || glucoseLogsOrig[glucoseLogsOrig.length-3].bg);
         }
     }
     
@@ -292,7 +345,148 @@ export const MLAnalyzer = {
         if ((sorted[j].type === 'bolus' || sorted[j].type === 'insulin') && minutes >= 0 && minutes < timeSinceBolusContext && timeSinceBolusContext === 1440) timeSinceBolusContext = minutes;
     }
     const currentIobCobRatio = (currentIob + 0.1) / (currentCob + 0.1);
-    
+
+    if (useLSTM) {
+      try {
+        const numFeatures = 13;
+        let means = new Array(numFeatures).fill(0);
+        let stdDevs = new Array(numFeatures).fill(1);
+
+        const trainingDataset = dataset.slice(-250);
+        const savedMeans = localStorage.getItem('glikosense_zscore_means');
+        const savedStds = localStorage.getItem('glikosense_zscore_stds');
+        
+        if (savedMeans && savedStds) {
+            means = JSON.parse(savedMeans);
+            stdDevs = JSON.parse(savedStds);
+        } else {
+            trainingDataset.forEach(d => d.inputs.forEach((val, i) => means[i] += val));
+            means.forEach((_, i) => means[i] /= (trainingDataset.length || 1));
+            trainingDataset.forEach(d => d.inputs.forEach((val, i) => stdDevs[i] += Math.pow(val - means[i], 2)));
+            stdDevs.forEach((_, i) => {
+                stdDevs[i] = Math.sqrt(stdDevs[i] / (trainingDataset.length || 1));
+                if (stdDevs[i] === 0) stdDevs[i] = 1; 
+            });
+            localStorage.setItem('glikosense_zscore_means', JSON.stringify(means));
+            localStorage.setItem('glikosense_zscore_stds', JSON.stringify(stdDevs));
+        }
+
+        const zScoreNormalize = (inputs: number[]) => inputs.map((val, i) => (val - (means[i] || 0)) / (stdDevs[i] || 1));
+
+        let model: tf.LayersModel;
+        try {
+            model = await Promise.race([
+                tf.loadLayersModel('indexeddb://glikosense-lstm'),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout loading model")), 1500))
+            ]) as tf.LayersModel;
+            isModelLoaded = true;
+            model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+        } catch(e) {
+            const seqModel = tf.sequential();
+            seqModel.add(tf.layers.lstm({inputShape: [1, 13], units: 24, returnSequences: false}));
+            seqModel.add(tf.layers.dense({units: 16, activation: 'relu'})); 
+            seqModel.add(tf.layers.dense({units: 2, activation: 'linear'}));
+            seqModel.compile({ optimizer: tf.train.adam(0.005), loss: 'meanSquaredError' });
+            model = seqModel;
+        }
+
+        const inputsTensor = tf.tensor3d(trainingDataset.map(d => [zScoreNormalize(d.inputs)]));
+        const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
+
+        await model.fit(inputsTensor, outputTensor, {
+            epochs: mode === 'quick' ? (isModelLoaded ? 2 : 5) : (isModelLoaded ? 5 : 15), 
+            shuffle: true,
+            verbose: 0
+        });
+
+        let errorSum = 0;
+        tf.tidy(() => {
+          const preds = model.predict(inputsTensor) as tf.Tensor;
+          const predsArray = preds.dataSync();
+          for(let j = 0; j < trainingDataset.length; j++) {
+               errorSum += Math.abs(predsArray[j * 2] - trainingDataset[j].output[0]);
+          }
+        });
+        avgErrorInMgDl = (errorSum / (trainingDataset.length || 1)) * 400;
+
+        if (mode === 'full') {
+          try { await model.save('indexeddb://glikosense-lstm'); } catch(err) {}
+        }
+
+        const predictValue = (mdl: tf.LayersModel, inputArr: number[]) => {
+            return tf.tidy(() => {
+                const pred = mdl.predict(tf.tensor3d([[inputArr]])) as tf.Tensor;
+                const d = pred.dataSync();
+                return [d[0], d[1]];
+            });
+        };
+
+        // Prediction Loop
+        let currentPredictBg = latestBg;
+        let currentPredictTrend = lastTrendNum;
+        let currentPredictAcceleration = lastAccelerationNum;
+        predictionCurve.push({ timestamp: latestTimeMs, offsetMs: 0, value: currentPredictBg });
+
+        for(let step = 1; step <= 12; step++) {
+            const futureTimeMs = latestTimeMs + (step * 5 * 60 * 1000);
+            const { iob: fIob, cob: fCob, pob: fPob, fob: fFob } = calculateActiveAtTime(futureTimeMs, sorted);
+            const fDate = new Date(futureTimeMs);
+            const fHourDec = fDate.getHours() + (fDate.getMinutes() / 60);
+            const fTimeSin = Math.sin((fHourDec / 24) * Math.PI * 2);
+            const fTimeCos = Math.cos((fHourDec / 24) * Math.PI * 2);
+            const fIsWeekend = (fDate.getDay() === 0 || fDate.getDay() === 6) ? 1 : 0;
+            const fTimeSinceMeal = Math.min(1440, timeSinceMealContext + step * 5);
+            const fTimeSinceBolus = Math.min(1440, timeSinceBolusContext + step * 5);
+            const fIobCobRatio = (fIob + 0.1) / (fCob + 0.1);
+
+            const inputs = zScoreNormalize([currentPredictBg, currentPredictTrend, currentPredictAcceleration, fCob, fIob, fTimeSin, fTimeCos, fPob, fFob, fIsWeekend, fTimeSinceMeal, fTimeSinceBolus, fIobCobRatio]);
+            const nextPred = predictValue(model, inputs);
+            let nextBg = nextPred[0] * 400;
+            nextBg = Math.max(40, Math.min(600, nextBg));
+            predictionCurve.push({ timestamp: futureTimeMs, offsetMs: step * 5 * 60 * 1000, value: nextBg });
+            currentPredictBg = nextBg;
+        }
+        predictedNextHour = currentPredictBg;
+
+        const baseInputs = zScoreNormalize([latestBg, lastTrendNum, lastAccelerationNum, currentCob, currentIob, lastTimeSin, lastTimeCos, currentPob, currentFob, isTodayWeekend, timeSinceMealContext, timeSinceBolusContext, currentIobCobRatio]);
+        const moreCarbs = [...baseInputs]; 
+        // More sophisticated sensitivity estimation
+        const nextPredNormal = predictValue(model, baseInputs);
+        // We need to re-normalize after adding 50g
+        const moreCarbsInputsRaw = [latestBg, lastTrendNum, lastAccelerationNum, currentCob + 50, currentIob, lastTimeSin, lastTimeCos, currentPob, currentFob, isTodayWeekend, timeSinceMealContext, timeSinceBolusContext, currentIobCobRatio];
+        carbSensitivity = (predictValue(model, zScoreNormalize(moreCarbsInputsRaw))[0] * 400) - (nextPredNormal[0] * 400);
+
+        const moreInsulinInputsRaw = [latestBg, lastTrendNum, lastAccelerationNum, currentCob, currentIob + 5, lastTimeSin, lastTimeCos, currentPob, currentFob, isTodayWeekend, timeSinceMealContext, timeSinceBolusContext, currentIobCobRatio];
+        insulinSensitivity = (predictValue(model, zScoreNormalize(moreInsulinInputsRaw))[0] * 400) - (nextPredNormal[0] * 400);
+
+        inputsTensor.dispose(); outputTensor.dispose(); model.dispose();
+      } catch (err) {
+        console.error("LSTM analysis failed, falling back", err);
+        useLSTM = false;
+      }
+    }
+
+    if (!useLSTM) {
+      let currentPredictBg = latestBg;
+      let trend = lastTrendNum;
+      predictionCurve.length = 0; 
+      predictionCurve.push({ timestamp: latestTimeMs, offsetMs: 0, value: currentPredictBg });
+      
+      for(let step = 1; step <= 12; step++) {
+        const futureTimeMs = latestTimeMs + (step * 5 * 60 * 1000);
+        const { iob: fIob, cob: fCob } = calculateActiveAtTime(futureTimeMs, sorted);
+        const carbImpact = (fCob > currentCob ? 0 : (currentCob - fCob)) * 2.5;
+        const insulinImpact = (fIob > currentIob ? 0 : (currentIob - fIob)) * -35.0;
+        
+        currentPredictBg += (trend * 0.85) + (carbImpact / 6) + (insulinImpact / 6);
+        trend *= 0.92;
+        currentPredictBg = Math.max(40, Math.min(600, currentPredictBg));
+        predictionCurve.push({ timestamp: futureTimeMs, offsetMs: step * 5 * 60 * 1000, value: currentPredictBg });
+      }
+      predictedNextHour = currentPredictBg;
+    }
+
+    const riskOfHypo = predictedNextHour < 80 || (latestBg < 100 && lastTrendNum < -3);
     let sumGlucose = 0;
     let countGlucose = 0;
     logsToAnalyze.forEach(l => {
@@ -307,76 +501,7 @@ export const MLAnalyzer = {
         const meanGlucose = sumGlucose / countGlucose;
         gmiPercentage = 3.31 + (0.02392 * meanGlucose);
     }
-    
-    let currentPredictBg = latestBg;
-    let currentPredictTrend = lastTrendNum;
-    let currentPredictAcceleration = lastAccelerationNum;
-    const predictionCurve: { timestamp: number, offsetMs: number, value: number }[] = [];
-    
-    predictionCurve.push({ timestamp: latestTimeMs, offsetMs: 0, value: currentPredictBg });
-    for(let step = 1; step <= 12; step++) {
-        const futureOffsetMs = step * 5 * 60 * 1000;
-        const futureTimeMs = latestTimeMs + futureOffsetMs;
-        
-        const { iob: futureIob, cob: futureCob, pob: futurePob, fob: futureFob } = calculateActiveAtTime(futureTimeMs, sorted);
-        
-        const futureDate = new Date(futureTimeMs);
-        const futureHourDec = futureDate.getHours() + (futureDate.getMinutes() / 60);
-        const futureTimeSin = Math.sin((futureHourDec / 24) * Math.PI * 2);
-        const futureTimeCos = Math.cos((futureHourDec / 24) * Math.PI * 2);
-        const futureIsWeekend = (futureDate.getDay() === 0 || futureDate.getDay() === 6) ? 1 : 0;
-        
-        let futureTimeSinceMeal = Math.min(1440, timeSinceMealContext + step * 5);
-        let futureTimeSinceBolus = Math.min(1440, timeSinceBolusContext + step * 5);
-        const futureIobCobRatio = (futureIob + 0.1) / (futureCob + 0.1);
 
-        const inputsRaw = [currentPredictBg, currentPredictTrend, currentPredictAcceleration, futureCob, futureIob, futureTimeSin, futureTimeCos, futurePob, futureFob, futureIsWeekend, futureTimeSinceMeal, futureTimeSinceBolus, futureIobCobRatio];
-        const nextPred = predictValue(model as tf.LayersModel, zScoreNormalize(inputsRaw));
-        let nextBg = nextPred[0] * 400;
-        let nextTrendTarget = nextPred[1] * 50;
-        
-        nextBg = Math.max(40, Math.min(600, nextBg));
-        predictionCurve.push({ timestamp: futureTimeMs, offsetMs: futureOffsetMs, value: nextBg });
-        
-        // Możemy wykorzystać predicted trend albo po prostu wyliczyć różnicę (blend obu dla gładkości)
-        let mathTrend = nextBg - currentPredictBg;
-        let blendedTrend = (mathTrend + nextTrendTarget) / 2;
-        currentPredictAcceleration = blendedTrend - currentPredictTrend;
-        currentPredictTrend = blendedTrend;
-        currentPredictBg = nextBg;
-    }
-    
-    let predictedNextHour = currentPredictBg;
-
-    const baseInputsRaw = [latestBg, lastTrendNum, lastAccelerationNum, currentCob, currentIob, lastTimeSin, lastTimeCos, currentPob, currentFob, isTodayWeekend, timeSinceMealContext, timeSinceBolusContext, currentIobCobRatio];
-    
-    const inputsWithMoreCarbs = [...baseInputsRaw];
-    inputsWithMoreCarbs[3] += 50; // +50g COB
-    const predictionWithMoreCarbs = predictValue(model as tf.LayersModel, zScoreNormalize(inputsWithMoreCarbs))[0] * 400;
-    const carbSensitivity = predictionWithMoreCarbs - predictedNextHour;
-
-    const inputsWithMoreInsulin = [...baseInputsRaw];
-    inputsWithMoreInsulin[4] += 5; // +5j IOB
-    const predictionWithMoreInsulin = predictValue(model as tf.LayersModel, zScoreNormalize(inputsWithMoreInsulin))[0] * 400;
-    const insulinSensitivity = predictionWithMoreInsulin - predictedNextHour;
-
-    predictedNextHour = Math.max(40, Math.min(600, predictedNextHour));
-    const riskOfHypo = predictedNextHour < 80 || latestBg < 80;
-
-    const threeHoursAgoMs = latestTimeMs - (3 * 60 * 60 * 1000);
-    const recentEvaluationSet = dataset.filter((d: any) => d.timestamp >= threeHoursAgoMs);
-    let avgBias = 0;
-    if (recentEvaluationSet.length > 3) {
-        let biasSum = 0;
-        for(let item of recentEvaluationSet) {
-            let p = predictValue(model as tf.LayersModel, item.inputs); 
-            let bias = (p[0] * 400) - (item.output[0] * 400);
-            biasSum += bias;
-        }
-        avgBias = biasSum / recentEvaluationSet.length;
-    }
-
-    const insights = [];
     
     const accuracyPhrases = [
         `🤖 Oparta o pamięć krótkotrwałą i długotrwałą (sieć LSTM) AI działa na Twoich danych. Błąd: ${Math.round(avgErrorInMgDl)} mg/dL.`,
@@ -515,31 +640,54 @@ export const MLAnalyzer = {
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
     
-    if (gmiPercentage > 0) {
-        insights.push(`📊 Lokalne estymatory wyliczyły GMI (HbA1c) na ok. ${gmiPercentage.toFixed(1)}%.`);
-    }
-    
-    // Dispose the model at the end so it doesn't leak memory
-    model.dispose();
+    const accuracyValue = Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80)));
 
     return {
         predictedNextHour: Math.round(predictedNextHour),
         riskOfHypo,
         insights,
-        accuracy: Math.max(0, 100 - Math.min(100, Math.round((avgErrorInMgDl/100)*100))),
-        predictionCurve,
+        accuracy: accuracyValue,
+        analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 7 dni',
+        predictionCurve: predictionCurve.map(p => ({
+            ...p,
+            value: Math.round(p.value)
+        })),
         metrics: {
             iob: currentIob,
             cob: currentCob,
-            carbSensitivity,
-            insulinSensitivity,
-            gmiPercentage,
-            avgBias
+            carbSensitivity: Math.round(carbSensitivity),
+            insulinSensitivity: Math.round(insulinSensitivity),
+            gmiPercentage: gmiPercentage > 0 ? parseFloat(gmiPercentage.toFixed(2)) : undefined,
+            avgBias: Math.round(avgBias)
         }
     };
-    } finally {
-      _isTraining = false;
-    }
+    };
+
+    const analysisPromise = doAnalysis().then(res => {
+      _cachedResult = res;
+      _lastAnalysisTime = Date.now();
+      _lastLogsFingerprint = logsFingerprint;
+      
+      // Zapisz do pamięci trwałej (tylko pełne wyniki)
+      if (mode === 'full') {
+        try {
+          localStorage.setItem('glikosense_last_result', JSON.stringify(res));
+          localStorage.setItem('glikosense_last_fingerprint', logsFingerprint);
+        } catch (e) {
+          console.warn("Błąd zapisu do LocalStorage GlikoSense (możliwy brak miejsca)");
+        }
+      }
+      
+      return res;
+    }).finally(() => {
+      if (mode === 'full') _currentFullAnalysisPromise = null;
+      else _currentQuickAnalysisPromise = null;
+    });
+
+    if (mode === 'full') _currentFullAnalysisPromise = analysisPromise;
+    else _currentQuickAnalysisPromise = analysisPromise;
+
+    return analysisPromise;
   }
 }
 

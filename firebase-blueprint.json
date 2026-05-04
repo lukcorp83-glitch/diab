@@ -34,11 +34,29 @@
       "properties": {
         "targetMin": { "type": "number" },
         "targetMax": { "type": "number" },
-        "tdi": { "type": "number" }
+        "tdi": { "type": "number" },
+        "apiSecretHashes": { 
+          "type": "array",
+          "items": { "type": "string" }
+        }
       }
+    },
+    "ApiSecretMapping": {
+      "title": "API Secret Mapping",
+      "description": "Maps an API secret SHA1 hash back to a userId",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "createdAt"]
     }
   },
   "firestore": {
+    "/artifacts/diacontrolapp/apiSecrets/{apiSecretHash}": {
+      "schema": "ApiSecretMapping",
+      "description": "Registry of hashed API secrets to userIds"
+    },
     "/artifacts/diacontrolapp/users/{userId}/logs/{logId}": {
       "schema": "Log",
       "description": "User activity logs"

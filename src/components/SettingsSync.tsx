@@ -5,6 +5,8 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Share2, Download, X, Copy, Check, Users, Link as LinkIcon, Unlink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserSettings } from '../types';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function SettingsSync({ user, settings, onImport }: { user: any, settings: UserSettings, onImport: (s: UserSettings) => void }) {
   const [showExport, setShowExport] = useState(false);
@@ -14,12 +16,41 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
 
   const [linkedUid, setLinkedUid] = useState<string | null>(localStorage.getItem('diacontrol_linked_uid'));
 
-  // Payload for pairing OR settings
-  const qrPayload = JSON.stringify({
-    action: 'pair',
-    uid: getEffectiveUid(user),
-    settings: settings // also pass settings if they want
-  });
+  const [qrPayload, setQrPayload] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(Number(localStorage.getItem('pairing_failed_attempts') || 0));
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  useEffect(() => {
+    const blockUntil = Number(localStorage.getItem('pairing_block_until') || 0);
+    if (blockUntil > Date.now()) {
+      setIsBlocked(true);
+      const remaining = blockUntil - Date.now();
+      setTimeout(() => setIsBlocked(false), remaining);
+    }
+  }, []);
+
+  // Refresh payload when showing export to reset timestamp
+  useEffect(() => {
+    if (showExport && user) {
+      const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user));
+      getDoc(docRef).then(d => {
+        let secret = '';
+        if (d.exists() && d.data().syncSecret) {
+          secret = d.data().syncSecret;
+        } else {
+          secret = Math.random().toString(36).substring(2, 12);
+          setDoc(docRef, { syncSecret: secret }, { merge: true });
+        }
+        setQrPayload(JSON.stringify({
+          action: 'pair',
+          uid: getEffectiveUid(user),
+          syncSecret: secret,
+          ts: Date.now(),
+          settings: settings 
+        }));
+      });
+    }
+  }, [showExport, user, settings]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(qrPayload);
@@ -34,16 +65,50 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
     }
   };
 
-  const handleImportText = (textValue?: string) => {
+  const handleImportText = async (textValue?: string) => {
+    const now = Date.now();
+    const blockUntil = Number(localStorage.getItem('pairing_block_until') || 0);
+
+    if (now < blockUntil) {
+      alert(`Przekroczono limit prób. Spróbuj ponownie za chwilę.`);
+      return;
+    }
+
     try {
       const parsed = JSON.parse(textValue || importText);
+      
+      // Check expiration if timestamp exists
+      if (parsed.action === 'pair' && parsed.ts) {
+        const age = now - parsed.ts;
+        if (age > 5 * 60 * 1000) { // 5 minutes
+          alert('Ten kod parowania wygasł. Wygeneruj nowy kod na drugim urządzeniu.');
+          return;
+        }
+      }
+
       if (parsed.action === 'pair' && parsed.uid) {
          if (parsed.uid === getEffectiveUid(user)) {
            alert('Nie możesz sparować konta ze sobą samym.');
            return;
          }
+         
+         if (user && parsed.syncSecret) {
+           try {
+             await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', parsed.uid, 'linkRequests', user.uid), {
+               syncSecret: parsed.syncSecret,
+               createdAt: serverTimestamp()
+             });
+           } catch (err) {
+             console.error("Link failed", err);
+             throw new Error('Link failed due to invalid code or permissions');
+           }
+         }
+
+         // SUCCESS
+         localStorage.removeItem('pairing_failed_attempts');
+         localStorage.removeItem('pairing_block_until');
          localStorage.setItem('diacontrol_linked_uid', parsed.uid);
-         alert('Połączono pomyślnie z danymi małżonka/dziecka! Aplikacja zostanie przeładowana.');
+         alert('Połączono pomyślnie! Aplikacja zostanie przeładowana.');
          window.location.reload();
       } else if (parsed && typeof parsed === 'object') {
         // legacy settings import
@@ -52,10 +117,22 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
         setImportText('');
         alert('Zaimportowano ustawienia pomyślnie!');
       } else {
-        alert('Nieprawidłowy format danych.');
+        throw new Error('Invalid format');
       }
     } catch (e) {
-      alert('Nie udało się odczytać kodu. Upewnij się, że to kod generowany przez aplikację GlikoControl.');
+      const newCount = failedAttempts + 1;
+      setFailedAttempts(newCount);
+      localStorage.setItem('pairing_failed_attempts', newCount.toString());
+
+      if (newCount >= 5) {
+        const lockoutTime = 5 * 60 * 1000; // 5 mins lockout
+        localStorage.setItem('pairing_block_until', (now + lockoutTime).toString());
+        setIsBlocked(true);
+        setTimeout(() => setIsBlocked(false), lockoutTime);
+        alert('Zbyt wiele nieudanych prób. Możliwość parowania zablokowana na 5 minut.');
+      } else {
+        alert(`Nieprawidłowy kod. Pozostało prób: ${5 - newCount}`);
+      }
     }
   };
 
@@ -122,8 +199,9 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
               Zeskanuj ten kod na drugim telefonie używając opcji "Zeskanuj QR".
             </p>
             <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 mb-6 w-full flex justify-center items-center aspect-square">
-              <QRCode value={qrPayload} style={{ width: "100%", height: "100%" }} />
+            <QRCode value={qrPayload} style={{ width: "100%", height: "100%" }} />
             </div>
+            <p className="text-[10px] text-rose-500 font-bold mb-4 animate-pulse">Kod wygaśnie za 5 minut</p>
             <button 
               onClick={handleCopy}
               className="w-full flex items-center justify-center gap-2 py-4 bg-accent-600 text-white rounded-[2rem] font-black text-[12px] uppercase active:scale-95 transition-all shadow-xl"
@@ -177,9 +255,10 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
               />
               <button 
                 onClick={() => handleImportText()}
-                className="w-full mt-4 bg-accent-600 text-white rounded-[2rem] py-4 font-black text-[12px] uppercase tracking-widest hover:bg-accent-700 active:scale-95 transition-all shadow-xl"
+                disabled={isBlocked}
+                className={`w-full mt-4 flex items-center justify-center gap-2 rounded-[2rem] py-4 font-black text-[12px] uppercase tracking-widest transition-all shadow-xl ${isBlocked ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-accent-600 text-white hover:bg-accent-700 active:scale-95'}`}
               >
-                Połącz Konta
+                {isBlocked ? 'Blokada czasowa...' : 'Połącz Konta'}
               </button>
             </div>
           </motion.div>

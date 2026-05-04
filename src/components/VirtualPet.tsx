@@ -39,7 +39,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
   const [gameResult, setGameResult] = useState({ coins: 0, text: '' });
   const gameDirectionRef = useRef(1);
   const gamePowerRef = useRef(0);
-  const gameRequestRef = useRef<number>();
+  const gameRequestRef = useRef<number | null>(null);
   
   const [reaction, setReaction] = useState<'idle' | 'happy' | 'eating' | 'sad'>('idle');
   const [idleVariant, setIdleVariant] = useState(0);
@@ -278,7 +278,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     return texts[Math.floor(Math.random() * texts.length)];
   };
 
-  const getPetAnimation = () => {
+  const getPetAnimation = (): any => {
     if (reaction === 'happy') return { 
         y: [0, -20, 0], 
         rotateZ: [0, -15, 15, -15, 15, 0], 

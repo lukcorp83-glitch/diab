@@ -166,14 +166,24 @@ export const geminiService = {
   },
   
   async getLivePrediction(recentLogs: any[]) {
-    const prompt = `Jesteś asystentem diabetyka. Przeanalizuj poniższe logi z ostatnich 2 godzin (najnowsze u góry): ${JSON.stringify(recentLogs)}. Zwróć odpowiedź w 3 krótkich punktach używając HTML (<b>, <ul>, <li>): 1. Sytuacja aktualna (oceń czy glikemia jest w normie, spada, rośnie, z czego to wynika). 2. Przewidywania (co może się stać przez najbliższe 2 godziny). 3. Zalecenie działania (np. podaj korektę, zjedz coś na podbicie, obserwuj). Zwięźle, naturalnie, po polsku. Bez znaków markdown typu gwiazdki.`;
+    const formattedLogs = recentLogs.map(l => ({
+      typ: l.type,
+      wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
+    }));
+    const prompt = `Jesteś asystentem diabetyka. Przeanalizuj poniższe logi z ostatnich 2 godzin (najnowsze u góry): ${JSON.stringify(formattedLogs)}. Zwróć odpowiedź w 3 krótkich punktach używając HTML (<b>, <ul>, <li>): 1. Sytuacja aktualna (oceń czy glikemia jest w normie, spada, rośnie, z czego to wynika). 2. Przewidywania (co może się stać przez najbliższe 2 godziny). 3. Zalecenie działania (np. podaj korektę, zjedz coś na podbicie, obserwuj). Zwięźle, naturalnie, po polsku. Bez znaków markdown typu gwiazdki.`;
     return this.generateContent(prompt);
   },
 
   async getPeriodAnalysis(period: 'week' | 'month', logs: any[]) {
     const days = period === 'week' ? 7 : 30;
     const periodName = period === 'week' ? 'Tygodniowy' : 'Miesięczny';
-    const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj logi z ostatnich ${days} dni: ${JSON.stringify(logs)}. 
+    const formattedLogs = logs.map(l => ({
+      typ: l.type,
+      wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
+    }));
+    const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj logi z ostatnich ${days} dni: ${JSON.stringify(formattedLogs)}. 
     Stwórz ${periodName} Raport Postępów.
     Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):
     1. <b>Podsumowanie Okresu</b> (ogólny stan, średni cukier).
@@ -185,7 +195,12 @@ export const geminiService = {
   },
 
   async getMasterAnalysis(logs: any[]) {
-    const prompt = `Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl. Przeanalizuj WSZYSTKIE dostępne dane: ${JSON.stringify(logs)}. 
+    const formattedLogs = logs.map(l => ({
+      typ: l.type,
+      wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
+    }));
+    const prompt = `Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl. Przeanalizuj WSZYSTKIE dostępne dane: ${JSON.stringify(formattedLogs)}. 
     Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego.
     Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):
     1. <b>Krótki przegląd obecnej sytuacji</b> (ostatnie wpisy).
@@ -223,6 +238,11 @@ export const geminiService = {
   },
 
   async getBolusRecommendation(currentBg: number, currentCarbs: number, calculatedDose: number, trend: string, iob: number, recentLogs: any[]) {
+    const formattedLogs = recentLogs.slice(0, 15).map(l => ({
+      typ: l.type,
+      wartosc: l.value,
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { hour: '2-digit', minute:'2-digit' })
+    }));
     const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl.
     Zadanie: Przeanalizuj obecną sytuację pacjenta i oceń, czy sugerowana przez kalkulator dawka insuliny (${calculatedDose.toFixed(2)} j.) jest optymalna.
 
@@ -234,7 +254,7 @@ export const geminiService = {
     - Dawka wyliczona z kalkulatora (matematycznie): ${calculatedDose.toFixed(2)} j.
 
     Najnowsze logi z historii (do analizy reakcji na poprzednie posiłki/bolusy): 
-    ${JSON.stringify(recentLogs.slice(0, 15))}
+    ${JSON.stringify(formattedLogs)}
 
     Przeanalizuj historię pod kątem Time In Range (TIR) - czy pacjent nie wpada po bolusach często w hipo/hiperglikemię. Zwróć wynik jako JSON (czysty JSON bez markdownu):
     {

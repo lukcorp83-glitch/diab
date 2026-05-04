@@ -1,7 +1,7 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X } from 'lucide-react';
+import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X, User } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
@@ -11,6 +11,7 @@ import { APP_VERSION } from '../constants';
 import CgmImport from './CgmImport';
 import SettingsSync from './SettingsSync';
 import SettingsTransfer from './SettingsTransfer';
+import ApiIntegration from './ApiIntegration';
 
 export default function Profile({ 
   user, 
@@ -262,8 +263,12 @@ export default function Profile({
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="glass p-8 rounded-[3rem] text-center">
-        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-           <Shield className="text-slate-400" />
+        <div className="w-20 h-20 bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400 rounded-[2rem] flex items-center justify-center mx-auto mb-4 shadow-inner">
+          {user.email ? (
+            <span className="text-3xl font-black uppercase">{user.email.charAt(0)}</span>
+          ) : (
+             <User size={32} />
+          )}
         </div>
         <h2 className="text-lg font-black dark:text-white mb-1">Twój Profil</h2>
         <p className="text-slate-400 text-xs font-bold mb-6 truncate">{user.email || 'Użytkownik Anonimowy'}</p>
@@ -294,6 +299,7 @@ export default function Profile({
           { id: 'food', label: 'Baza Posiłków', icon: <Utensils size={14} /> },
           { id: 'meds', label: 'Leki & Przypomnienia', icon: <Pill size={14} /> },
           { id: 'simulator', label: 'Symulator Pompy', icon: <Beaker size={14} /> },
+          { id: 'api', label: 'xDrip / Nightscout API', icon: <Globe size={14} /> },
           { id: 'system', label: 'System & Inne', icon: <Settings size={14} /> }
         ].map(cat => (
           <button 
@@ -510,7 +516,7 @@ export default function Profile({
              <Baby className="text-amber-500" size={20} />
              <div>
                 <p className="text-sm font-black dark:text-amber-500 leading-tight">Tryb Dziecka</p>
-                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka (Gliko-Smoka) na ekranie głównym</p>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka (Gliko) na ekranie głównym</p>
              </div>
            </div>
            <button 
@@ -1130,6 +1136,12 @@ export default function Profile({
       </div>
       )}
 
+      {activeCategory === 'api' && (
+      <div className="space-y-6">
+        <ApiIntegration user={user} />
+      </div>
+      )}
+
       {activeCategory === 'system' && (
       <div className="space-y-6">
       <div className="glass p-8 rounded-[3rem] space-y-4">
@@ -1338,6 +1350,18 @@ export default function Profile({
               onBlur={saveNsUrl}
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
             />
+            
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <p className="font-bold mb-1">Instrukcja konfiguracji z aplikacją xDrip+:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Otwórz aplikację <b>xDrip+</b>.</li>
+                <li>Wejdź w <b>Ustawienia</b> → <b>Przesyłanie do chmury</b> → <b>Synchronizacja z Nightscout</b>.</li>
+                <li>Włącz "Synchronizacja z Nightscout", aby wygenerować bazowy adres URL.</li>
+                <li>Opcjonalnie, wpisz swój klucz w polu na klucz API (jeżeli xDrip tego wymaga/obsługuje).</li>
+                <li>Skopiuj <b>Główny adres URL</b> i wklej go tutaj w polu <b>Adres Nightscout</b>.</li>
+                <li>Jeżeli w xDrip ustawiłeś klucz powiązany z Nightscout, wklej go poniżej (API_SECRET).</li>
+              </ol>
+            </div>
             
             <div className="bg-accent-50 dark:bg-accent-900/20 p-3 rounded-xl space-y-2">
               <p className="text-[8px] font-black text-accent-900 dark:text-accent-300 uppercase tracking-widest">Architektura połączenia</p>

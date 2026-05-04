@@ -50,28 +50,26 @@ const CustomGlucoseDot = (props: any) => {
 };
 
 const CustomBolusShape = (props: any) => {
-  const { cx, payload, yAxis, onDotClick } = props;
-  if (!payload.bolusVal || isNaN(cx) || !yAxis || isNaN(yAxis.y) || isNaN(yAxis.height)) return null;
+  const { cx, cy, payload, onDotClick } = props;
+  if (!payload.bolusVal || isNaN(cx) || isNaN(cy)) return null;
   
-  const bottomY = yAxis.y + yAxis.height; 
-  const val = payload.originalB.value;
+  const val = payload.originalB?.value || 0;
   const h = Math.min(40, val * 5);
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalB); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <rect x={cx - 2} y={bottomY - h} width={4} height={h} fill="rgba(79, 70, 229, 0.4)" />
-      <text x={cx} y={bottomY - h - 5} textAnchor="middle" fontSize={14}>💉</text>
+      <rect x={cx - 2} y={cy - h} width={4} height={h} fill="rgba(79, 70, 229, 0.4)" />
+      <text x={cx} y={cy - h - 5} textAnchor="middle" fontSize={14}>💉</text>
     </g>
   );
 };
 
 const CustomMealShape = (props: any) => {
-  const { cx, yAxis, payload, onDotClick } = props;
-  if (!payload.mealVal || isNaN(cx) || !yAxis || isNaN(yAxis.y)) return null;
-  const topY = yAxis.y; 
+  const { cx, cy, payload, onDotClick } = props;
+  if (!payload.mealVal || isNaN(cx) || isNaN(cy)) return null;
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalM); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <text x={cx} y={topY + 12} textAnchor="middle" fontSize={16}>🍽️</text>
-      <circle cx={cx} cy={topY + 20} r={4} fill="#f59e0b" stroke="#fff" strokeWidth={1} />
+      <text x={cx} y={cy - 10} textAnchor="middle" fontSize={16}>🍽️</text>
+      <circle cx={cx} cy={cy} r={4} fill="#f59e0b" stroke="#fff" strokeWidth={1} />
     </g>
   );
 };
@@ -300,7 +298,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
   const isDark = theme === 'dark';
 
   return (
-    <div className="relative w-full h-full select-none" onClick={() => setSelectedPoint(null)}>
+    <div className="relative w-full h-full select-none" style={{ touchAction: 'none' }} onClick={() => setSelectedPoint(null)}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={chartData}

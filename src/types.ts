@@ -16,6 +16,8 @@ export interface LogEntry {
   type: 'glucose' | 'meal' | 'bolus';
   value: number;
   timestamp: number;
+  createdAt?: any;
+  bg?: number;
   description?: string;
   notes?: string;
   source?: string;
@@ -61,4 +63,5 @@ export interface UserSettings {
   accentColor?: string;
   theme?: 'light' | 'dark' | 'system';
   bgOption?: 'default' | 'true-black';
+  showPrediction?: boolean;
 }

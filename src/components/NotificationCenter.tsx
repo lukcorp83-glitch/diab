@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, X, AlertTriangle, Info, Clock, CheckCircle2, Pill } from 'lucide-react';
 import { UserSettings } from '../types';
@@ -181,103 +182,106 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
         )}
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <div className="fixed inset-0 z-[100] flex justify-end">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm"
-            />
-            
-            <motion.div
-              initial={{ x: '100%', opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '100%', opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className={cn(
-                "w-full max-w-sm h-full shadow-2xl relative flex flex-col border-l z-10",
-                theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
-              )}
-            >
-              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-950">
-                <div className="flex items-center gap-2">
-                  <Bell size={20} className="text-accent-500" />
-                  <h2 className="font-black text-lg dark:text-white tracking-tight">Powiadomienia</h2>
-                  {unreadCount > 0 && (
-                    <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      {unreadCount} nowe
-                    </span>
-                  )}
-                </div>
-                <button 
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {unreadCount > 0 && (
-                <div className="p-2 px-4 flex justify-end shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50">
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <div className="fixed inset-0 z-[100] flex justify-end">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsOpen(false)}
+                className="absolute inset-0 bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm"
+              />
+              
+              <motion.div
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className={cn(
+                  "w-full max-w-sm h-full shadow-2xl relative flex flex-col border-l z-10",
+                  theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
+                )}
+              >
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-950">
+                  <div className="flex items-center gap-2">
+                    <Bell size={20} className="text-accent-500" />
+                    <h2 className="font-black text-lg dark:text-white tracking-tight">Powiadomienia</h2>
+                    {unreadCount > 0 && (
+                      <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {unreadCount} nowe
+                      </span>
+                    )}
+                  </div>
                   <button 
-                    onClick={markAllAsRead}
-                    className="text-[10px] font-black uppercase tracking-wider text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500"
                   >
-                    Przeczytane
+                    <X size={20} />
                   </button>
                 </div>
-              )}
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {notifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-slate-400">
-                    <Bell size={32} className="mb-2 opacity-50" />
-                    <p className="text-sm font-medium">Brak powiadomień</p>
-                  </div>
-                ) : (
-                  notifications.map(notification => (
-                    <motion.div 
-                      key={notification.id}
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className={cn(
-                        "p-3 rounded-2xl border transition-all relative overflow-hidden",
-                        notification.read 
-                          ? (theme === 'dark' ? 'bg-slate-800/50 border-slate-800' : 'bg-white border-slate-200 opacity-70')
-                          : (theme === 'dark' ? 'bg-slate-800 border-slate-700 shadow-lg' : 'bg-white border-slate-300 shadow-md')
-                      )}
+                {unreadCount > 0 && (
+                  <div className="p-2 px-4 flex justify-end shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50">
+                    <button 
+                      onClick={markAllAsRead}
+                      className="text-[10px] font-black uppercase tracking-wider text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 transition-colors"
                     >
-                      {!notification.read && (
-                        <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-accent-500 m-3" />
-                      )}
-                      <div className="flex gap-3">
-                        <div className="mt-0.5 shrink-0">
-                          {getIcon(notification.type)}
-                        </div>
-                        <div>
-                          <h4 className={cn("text-sm font-bold", theme === 'dark' ? 'text-white' : 'text-slate-900')}>
-                            {notification.title}
-                          </h4>
-                          <p className={cn("text-xs mt-1 leading-relaxed", theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center gap-1 mt-2 text-[10px] text-slate-400 font-medium">
-                            <Clock size={10} />
-                            {new Date(notification.timestamp).toLocaleString()}
+                      Przeczytane
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                      <Bell size={32} className="mb-2 opacity-50" />
+                      <p className="text-sm font-medium">Brak powiadomień</p>
+                    </div>
+                  ) : (
+                    notifications.map(notification => (
+                      <motion.div 
+                        key={notification.id}
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className={cn(
+                          "p-3 rounded-2xl border transition-all relative overflow-hidden",
+                          notification.read 
+                            ? (theme === 'dark' ? 'bg-slate-800/50 border-slate-800' : 'bg-white border-slate-200 opacity-70')
+                            : (theme === 'dark' ? 'bg-slate-800 border-slate-700 shadow-lg' : 'bg-white border-slate-300 shadow-md')
+                        )}
+                      >
+                        {!notification.read && (
+                          <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-accent-500 m-3" />
+                        )}
+                        <div className="flex gap-3">
+                          <div className="mt-0.5 shrink-0">
+                            {getIcon(notification.type)}
+                          </div>
+                          <div>
+                            <h4 className={cn("text-sm font-bold", theme === 'dark' ? 'text-white' : 'text-slate-900')}>
+                              {notification.title}
+                            </h4>
+                            <p className={cn("text-xs mt-1 leading-relaxed", theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
+                              {notification.message}
+                            </p>
+                            <div className="flex items-center gap-1 mt-2 text-[10px] text-slate-400 font-medium">
+                              <Clock size={10} />
+                              {new Date(notification.timestamp).toLocaleString()}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }

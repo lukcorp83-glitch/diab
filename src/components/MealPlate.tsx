@@ -39,11 +39,16 @@ import { Html5Qrcode } from "html5-qrcode";
 export default function MealPlate({
   user,
   setTab,
+  sharedPlate = [],
+  setSharedPlate,
 }: {
   user: any;
   setTab: (t: string) => void;
+  sharedPlate?: PlateItem[];
+  setSharedPlate?: React.Dispatch<React.SetStateAction<PlateItem[]>>;
 }) {
-  const [plate, setPlate] = useState<PlateItem[]>([]);
+  const plate = sharedPlate;
+  const setPlate = setSharedPlate || (() => {});
   const [searchTerm, setSearchTerm] = useState("");
   const [onlineResults, setOnlineResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -114,80 +119,116 @@ export default function MealPlate({
     const matchesCategory =
       activeCategory === "Wszystko" || p.category === activeCategory;
     return matchesSearch && matchesCategory;
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name, 'pl'));
 
   const performOnlineSearch = async (query: string) => {
     if (query.length < 3 || isSearching) return;
     setIsSearching(true);
     setSearchError(null);
     setOnlineResults([]);
-    try {
-      // 1. Zobaczmy najpierw czy jest w darmowej bazie OpenFoodFacts (nie AI)
+
+    const runOFFSearch = async () => {
       try {
-        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5`;
+        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`;
         const offRes = await fetch(offUrl);
         const offData = await offRes.json();
         
         if (offData.products && offData.products.length > 0) {
-          const validOffProducts = offData.products.filter((p: any) => p.nutriments && (p.nutriments.carbohydrates_100g || p.nutriments.proteins_100g || p.nutriments.fat_100g)).map((p: any) => ({
-            id: p._id || `off_${Date.now()}_${Math.random()}`,
-            name: p.product_name_pl || p.product_name || "Nieznany Produkt",
-            carbs: Number(p.nutriments.carbohydrates_100g || 0),
-            protein: Number(p.nutriments.proteins_100g || 0),
-            fat: Number(p.nutriments.fat_100g || 0),
-            gi: 50, // Domyślne IG jeśli brak
-            category: "Baza Sieciowa"
-          }));
+          const validOffProducts = offData.products.map((p: any) => {
+            // "Algorytm" - jeśli brak danych w bazie, szacujemy na podstawie słów kluczowych
+            let carbs = Number(p.nutriments?.carbohydrates_100g);
+            let protein = Number(p.nutriments?.proteins_100g);
+            let fat = Number(p.nutriments?.fat_100g);
+            let gi = 50;
+
+            const name = (p.product_name_pl || p.product_name || "").toLowerCase();
+            
+            // Heurystyka lokalna (Algorytm GlikoSense Offline)
+            if (isNaN(carbs)) {
+              if (name.includes("chleb") || name.includes("bułka")) carbs = 50;
+              else if (name.includes("ryż") || name.includes("kasza")) carbs = 25;
+              else if (name.includes("ziemniak")) carbs = 17;
+              else if (name.includes("jogurt") || name.includes("mleko")) carbs = 5;
+              else if (name.includes("mięso") || name.includes("kurczak") || name.includes("ryba")) carbs = 0;
+              else if (name.includes("jabłko") || name.includes("owoc")) carbs = 12;
+              else carbs = 0;
+            }
+
+            if (name.includes("pełnoziarnist") || name.includes("razow")) gi = 40;
+            if (name.includes("cukier") || name.includes("biał") || name.includes("miód")) gi = 70;
+
+            return {
+              id: p._id || `off_${Date.now()}_${Math.random()}`,
+              name: p.product_name_pl || p.product_name || "Produkt z sieci",
+              carbs: isNaN(carbs) ? 0 : carbs,
+              protein: isNaN(protein) ? 0 : protein,
+              fat: isNaN(fat) ? 0 : fat,
+              gi,
+              category: "Baza Sieciowa (Smart)"
+            };
+          });
 
           if (validOffProducts.length > 0) {
             setOnlineResults(
-              validOffProducts.map((p: any, i: number) => ({
+              validOffProducts.map((p: any) => ({
                 ...p,
                 isOnline: true,
-                isDatabase: true // to show it's from OFF, not AI
+                isDatabase: true
               }))
             );
-            setIsSearching(false);
-            return; // Sukces z darmowej bazy, koniec
+            return true;
           }
         }
       } catch (offError) {
-        console.warn("OpenFoodFacts search failed, continuing to AI:", offError);
+        console.warn("OpenFoodFacts search failed:", offError);
       }
+      return false;
+    };
 
-      // 2. Jeśli brakuje kodu kreskowego / bazy OFF nic nie ma to odpalamy AI na zapas
-      const prompt = `Jesteś dietetykiem. Przeanalizuj zapytanie użytkownika: "${query}". Może to być nazwa produktu ze sklepu, danie domowe (np. "pierogi ruskie", "leczo"), owoc, warzywo lub konkretna marka. 
-      Zwróć listę pasujących produktów w formacie JSON (tylko JSON, bez markdown). 
-      Format: [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
-      Podaj wartości na 100g produktu lub na standardową porcję (zaznacz to w nazwie, np. "Jabłko (średnie)"). 
-      Uwzględnij różne warianty jeśli to możliwe. Nie pisz nic poza JSONem.`;
+    try {
+      // 1. Zobaczmy najpierw z GlikoSense AI (jeśli jest klucz)
+      const hasKey = !!localStorage.getItem('gemini_api_key') || !!process.env.GEMINI_API_KEY;
+      
+      if (hasKey) {
+        const prompt = `Jesteś dietetykiem. Przeanalizuj zapytanie użytkownika: "${query}". Może to być nazwa produktu ze sklepu, danie domowe (np. "pierogi ruskie", "leczo"), owoc, warzywo lub konkretna marka. 
+        Zwróć listę pasujących produktów w formacie JSON (tylko JSON, bez markdown). 
+        Format: [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
+        Podaj wartości na 100g produktu lub na standardową porcję (zaznacz to w nazwie, np. "Jabłko (średnie)"). 
+        Uwzględnij różne warianty jeśli to możliwe. Nie pisz nic poza JSONem.`;
 
-      const result = await geminiService.generateContent(prompt);
-      const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-      let cleanJson = jsonMatch ? jsonMatch[0] : result;
-      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
-      const parsed = JSON.parse(cleanJson);
-      const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
-      setOnlineResults(
-        resultsArray.map((p: any, i: number) => ({
-          ...p,
-          id: `online_${i}_${Date.now()}`,
-          isOnline: true,
-        })),
-      );
-      if (resultsArray.length === 0) {
-        setSearchError("Nie znaleziono produktów spełniających kryteria.");
+        const result = await geminiService.generateContent(prompt);
+        const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+        let cleanJson = jsonMatch ? jsonMatch[0] : result;
+        cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
+        const parsed = JSON.parse(cleanJson);
+        const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
+        setOnlineResults(
+          resultsArray.map((p: any, i: number) => ({
+            ...p,
+            id: `online_${i}_${Date.now()}`,
+            isOnline: true,
+          })),
+        );
+        if (resultsArray.length > 0) return;
+      }
+      
+      // 2. Fallback do "Tradycyjnej Sieci" + Algorytm GlikoSense
+      const offSuccess = await runOFFSearch();
+      if (offSuccess) return;
+
+      // 3. Ostateczny Fallback Lokalny (Baza wewnętrzna)
+      const localMatches = allLocal.filter(p => 
+        p.name.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 5);
+
+      if (localMatches.length > 0) {
+        setOnlineResults(localMatches.map(p => ({ ...p, isOnline: true })));
+      } else {
+        setSearchError("Brak dostępu do AI i nie znaleziono dopasowań w bazach tradycyjnych.");
       }
     } catch (e) {
-      console.error("AI Search failed:", e);
-      const errStr = String(e);
-      if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
-         setSearchError("Nieprawidłowy klucz API.");
-      } else if (errStr.includes("zajęte")) {
-         setSearchError("Serwery AI są obecnie przeciążone. Spróbuj później.");
-      } else {
-         setSearchError("AI nie mogło znaleźć wyników dla tego zapytania. Spróbuj sformułować je inaczej.");
-      }
+      console.error("Online search failed:", e);
+      setSearchError("Błąd wyszukiwania. Sprawdź połączenie.");
     } finally {
       setIsSearching(false);
     }
@@ -349,9 +390,6 @@ export default function MealPlate({
     newPlate[idx] = {
       ...item,
       weight,
-      carbs: (item.carbs / item.weight) * weight,
-      protein: ((item.protein || 0) / item.weight) * weight,
-      fat: ((item.fat || 0) / item.weight) * weight,
     };
     setPlate(newPlate);
   };
@@ -362,9 +400,6 @@ export default function MealPlate({
       {
         ...product,
         weight,
-        carbs: (product.carbs * weight) / 100,
-        protein: ((product.protein || 0) * weight) / 100,
-        fat: ((product.fat || 0) * weight) / 100,
       },
     ]);
     // Don't clear search automatically so user can add more
@@ -374,9 +409,9 @@ export default function MealPlate({
     setPlate(plate.filter((_, i) => i !== idx));
   };
 
-  const totalCarbs = plate.reduce((s, i) => s + i.carbs, 0);
-  const totalProtein = plate.reduce((s, i) => s + (i.protein || 0), 0);
-  const totalFat = plate.reduce((s, i) => s + (i.fat || 0), 0);
+  const totalCarbs = plate.reduce((s, i) => s + (i.carbs * i.weight) / 100, 0);
+  const totalProtein = plate.reduce((s, i) => s + ((i.protein || 0) * i.weight) / 100, 0);
+  const totalFat = plate.reduce((s, i) => s + ((i.fat || 0) * i.weight) / 100, 0);
   const totalWW = totalCarbs / 10;
   const totalWBT = (totalProtein * 4 + totalFat * 9) / 100;
 
@@ -437,11 +472,11 @@ export default function MealPlate({
     };
 
     recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
+      console.warn("Speech recognition error:", event.error);
       if (event.error === "not-allowed") {
-        alert(
-          "Brak dostępu do mikrofonu. Upewnij się, że udzieliłeś uprawnień.",
-        );
+        setSearchError("Brak dostępu do mikrofonu. Uprawnienia mogą być blokowane przez przeglądarkę.");
+      } else {
+        setSearchError("Błąd rozpoznawania mowy. Spróbuj powtórzyć.");
       }
       setIsListening(false);
     };
@@ -577,6 +612,16 @@ export default function MealPlate({
                 <span className="text-sm font-black text-slate-400 mt-2 block uppercase tracking-widest">
                   Gramy (g)
                 </span>
+                {parseFloat(weightInput) > 0 && selectedProduct && (
+                  <div className="mt-4 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-2xl flex justify-center gap-4 text-xs font-black">
+                    <span className="text-accent-600 dark:text-accent-400">
+                      Węgle: {((selectedProduct.carbs * parseFloat(weightInput)) / 100).toFixed(1)}g
+                    </span>
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      B+T: {(((selectedProduct.protein || 0) + (selectedProduct.fat || 0)) * parseFloat(weightInput) / 100).toFixed(1)}g
+                    </span>
+                  </div>
+                )}
               </div>
               <button
                 onClick={handleWeightSubmit}
@@ -645,8 +690,8 @@ export default function MealPlate({
 
       {/* Search & Browser */}
       <div className="space-y-4">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-3">
+          <div className="relative w-full">
             <Search
               className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"
               size={18}
@@ -656,7 +701,10 @@ export default function MealPlate({
               placeholder="Wyszukaj produkt / danie..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-14 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:border-accent-500 transition-all shadow-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleOnlineSearch();
+              }}
+              className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-14 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:border-accent-500 transition-all shadow-sm"
             />
             <button
               onClick={startVoiceSearch}
@@ -666,38 +714,41 @@ export default function MealPlate({
               <Mic size={18} />
             </button>
           </div>
-          <button
-            onClick={handleOnlineSearch}
-            className="bg-accent-600 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 flex items-center justify-center min-w-[64px] transition-all"
-            title="Szukaj w Sieci"
-            disabled={isSearching}
-          >
-            {isSearching ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              <Globe size={24} />
-            )}
-          </button>
-          <button
-            onClick={() => {
-              const elem = document.getElementById("meal-photo-input");
-              if (elem) elem.click();
-            }}
-            className="bg-emerald-600 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 flex items-center justify-center min-w-[64px] transition-all"
-            title="Zrób zdjęcie (Analiza AI)"
-          >
-            {isAnalyzing ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              <Camera size={24} />
-            )}
-          </button>
-          <button
-            onClick={startScanner}
-            className="bg-slate-800 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 transition-all"
-          >
-            <Scan size={24} />
-          </button>
+          
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={handleOnlineSearch}
+              className="flex-1 bg-accent-600 text-white p-4 rounded-[2rem] shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest"
+              title="Szukaj z GlikoSense AI"
+              disabled={isSearching}
+            >
+              {isSearching ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Szukam...</>
+              ) : (
+                <><Globe size={20} /> GlikoSense AI</>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                const elem = document.getElementById("meal-photo-input");
+                if (elem) elem.click();
+              }}
+              className="bg-emerald-600 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center justify-center transition-all"
+              title="Zrób zdjęcie (Analiza AI)"
+            >
+              {isAnalyzing ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Camera size={20} />
+              )}
+            </button>
+            <button
+              onClick={startScanner}
+              className="bg-slate-800 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center transition-all justify-center"
+            >
+              <Scan size={20} />
+            </button>
+          </div>
           <input
             type="file"
             id="meal-photo-input"
@@ -801,7 +852,7 @@ export default function MealPlate({
                         </div>
                         <div className="text-[9px] font-bold text-accent-500/60 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                           <span>
-                            W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
+                            Węgle: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
                           </span>
                           <span
                             className={cn(
@@ -856,11 +907,11 @@ export default function MealPlate({
               <AnimatePresence>
                 {browseResults.slice(0, 50).map((p, i) => (
                   <motion.button
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                    transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
-                    key={i}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
+                    transition={{ duration: 0.2 }}
+                    key={p.id || p.name}
                     onClick={() => openWeightModal(p)}
                     className="w-full bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-left hover:border-accent-500 transition-colors shadow-sm"
                   >
@@ -875,7 +926,7 @@ export default function MealPlate({
                       </div>
                       <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                         <span>
-                          W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
+                          Węgle: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
                         </span>
                         <span
                           className={cn(
@@ -926,10 +977,7 @@ export default function MealPlate({
               </span>
             </div>
             <button
-              onClick={() => {
-                if (confirm("Czy na pewno chcesz wyczyścić talerz?"))
-                  setPlate([]);
-              }}
+              onClick={() => setPlate([])}
               className="text-[9px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 px-4 py-2 rounded-xl active:bg-rose-500 active:text-white transition-all"
             >
               Wyczyść
@@ -1009,7 +1057,7 @@ export default function MealPlate({
                       </div>
                       <div className="text-right flex flex-col items-end gap-1">
                         <div className="text-accent-400 font-black text-sm">
-                          {item.carbs.toFixed(1)}g
+                          {((item.carbs * item.weight) / 100).toFixed(1)}g
                         </div>
                         <div
                           className={cn(
@@ -1119,9 +1167,9 @@ export default function MealPlate({
           <button
             onClick={() => {
               sessionStorage.setItem('pending_meal', JSON.stringify({
-                carbs: totals.carbs,
-                protein: totals.protein,
-                fat: totals.fat,
+                carbs: totalCarbs,
+                protein: totalProtein,
+                fat: totalFat,
                 name: "Mój Talerz"
               }));
               setTab("bolus");

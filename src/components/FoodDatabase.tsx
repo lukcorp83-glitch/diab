@@ -1,5 +1,6 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
 import { Search, Plus, Trash2, Tag, Info, X } from "lucide-react";
@@ -16,11 +17,12 @@ import {
 } from "firebase/firestore";
 import { LIB_BASE, CATEGORIES } from "../constants";
 
-export default function FoodDatabase({ user }: { user: any }) {
+export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddToPlate?: (p: Product) => void }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState("Wszystko");
+  const [activeSource, setActiveSource] = useState<'all' | 'system' | 'own' | 'community'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -135,8 +137,18 @@ export default function FoodDatabase({ user }: { user: any }) {
       .includes(searchTerm.toLowerCase());
     const matchesCategory =
       activeCategory === "Wszystko" || p.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
+      
+    let matchesSource = true;
+    const isOwn = p.author === user?.uid;
+    const isCommunity = Boolean(p.isCommunity);
+    const isSystem = !p.author && !isCommunity;
+
+    if (activeSource === 'own') matchesSource = isOwn;
+    else if (activeSource === 'community') matchesSource = isCommunity && !isOwn;
+    else if (activeSource === 'system') matchesSource = isSystem;
+
+    return matchesSearch && matchesCategory && matchesSource;
+  }).sort((a, b) => a.name.localeCompare(b.name, 'pl'));
 
   return (
     <motion.div
@@ -166,31 +178,32 @@ export default function FoodDatabase({ user }: { user: any }) {
         </button>
       </div>
 
-      <AnimatePresence>
-        {isModalOpen && (
-          <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-4"
-          >
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-y-auto max-h-[90vh] will-change-transform relative"
+      {typeof document !== 'undefined' ? createPortal(
+        <AnimatePresence>
+          {isModalOpen && (
+            <motion.div 
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-4"
             >
-              <button 
-                onClick={() => setIsModalOpen(false)} 
-                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-y-auto max-h-[90vh] will-change-transform relative"
               >
-                <X size={20} />
-              </button>
-              <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
-                Dodaj własny produkt
-              </h2>
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
+                  Dodaj własny produkt
+                </h2>
               <div className="space-y-4">
                 <div>
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
@@ -319,15 +332,32 @@ export default function FoodDatabase({ user }: { user: any }) {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>, document.body) : null}
 
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <button
-          onClick={() => setActiveCategory("Wszystko")}
-          className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
-        >
-          Wszystko
-        </button>
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-full w-full mx-auto max-w-sm">
+          {[
+            { id: 'all', label: 'Wszystkie' },
+            { id: 'system', label: 'Baza Główna' },
+            { id: 'own', label: 'Własne' },
+            { id: 'community', label: 'Społeczność' }
+          ].map((src) => (
+            <button
+              key={src.id}
+              onClick={() => setActiveSource(src.id as any)}
+              className={`flex-1 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeSource === src.id ? "bg-white dark:bg-slate-950 text-slate-800 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}
+            >
+              {src.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <button
+            onClick={() => setActiveCategory("Wszystko")}
+            className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
+          >
+            Wszystko
+          </button>
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
@@ -337,6 +367,7 @@ export default function FoodDatabase({ user }: { user: any }) {
             {cat}
           </button>
         ))}
+        </div>
       </div>
 
       <div className="grid gap-1 will-change-transform">
@@ -348,11 +379,12 @@ export default function FoodDatabase({ user }: { user: any }) {
             const content = (
               <motion.div
                 key={p.id || p.name}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                transition={{ delay: Math.min(idx * 0.03, 0.3), duration: 0.2 }}
-                className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex justify-between items-center group mb-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
+                transition={{ duration: 0.2 }}
+                onClick={() => onAddToPlate?.(p)}
+                className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex justify-between items-center group mb-2 cursor-pointer hover:border-accent-500 transition-colors"
               >
                 <div className="flex-1 min-w-0 pr-4">
                   <div className="flex items-center gap-2 mb-1">
@@ -362,6 +394,11 @@ export default function FoodDatabase({ user }: { user: any }) {
                     {p.isCommunity && (
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-accent-50 dark:bg-accent-950 text-accent-500">
                         Społeczność
+                      </span>
+                    )}
+                    {(isCustom || isOwnCommunity) && (
+                      <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950 text-emerald-500">
+                        Własne
                       </span>
                     )}
                     <span

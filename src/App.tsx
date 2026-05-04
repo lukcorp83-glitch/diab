@@ -26,7 +26,6 @@ import {
   Moon,
   LogIn,
   Menu,
-  Activity,
   LayoutDashboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -42,13 +41,31 @@ import { twMerge } from 'tailwind-merge';
 
 import Dashboard from './components/Dashboard';
 
-const BolusCalculator = React.lazy(() => import('./components/BolusCalculator'));
-const FoodDatabase = React.lazy(() => import('./components/FoodDatabase'));
-const MealPlate = React.lazy(() => import('./components/MealPlate'));
-const AiReports = React.lazy(() => import('./components/AiReports'));
-const Profile = React.lazy(() => import('./components/Profile'));
-const Achievements = React.lazy(() => import('./components/Achievements'));
-const HistoryView = React.lazy(() => import('./components/HistoryView'));
+const lazyWithReload = (importFunc: () => Promise<any>) => {
+  return React.lazy(async () => {
+    try {
+      return await importFunc();
+    } catch (error) {
+      if (error instanceof Error && (error.name === 'ChunkLoadError' || error.message.includes('Failed to fetch dynamically imported module'))) {
+        const isReloading = sessionStorage.getItem('chunk_reload');
+        if (!isReloading) {
+          sessionStorage.setItem('chunk_reload', 'true');
+          window.location.reload();
+          return new Promise(() => {}); // prevent Error Boundary while reloading
+        }
+      }
+      throw error;
+    }
+  });
+};
+
+const BolusCalculator = lazyWithReload(() => import('./components/BolusCalculator'));
+const FoodDatabase = lazyWithReload(() => import('./components/FoodDatabase'));
+const MealPlate = lazyWithReload(() => import('./components/MealPlate'));
+const AiReports = lazyWithReload(() => import('./components/AiReports'));
+const Profile = lazyWithReload(() => import('./components/Profile'));
+const Achievements = lazyWithReload(() => import('./components/Achievements'));
+const HistoryView = lazyWithReload(() => import('./components/HistoryView'));
 import Sidebar from './components/Sidebar';
 import { cn } from './lib/utils';
 import { nightscoutService } from './services/nightscout';
@@ -76,6 +93,7 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sharedPlate, setSharedPlate] = useState<any[]>([]);
 
   const changeTab = React.useCallback((newTab: string) => {
     const defaultTabs = ['dashboard', 'database', 'meal', 'ai', 'profile'];
@@ -551,10 +569,13 @@ export default function App() {
         <BolusCalculator logs={logs} user={user} setTab={changeTab} />
       )}
       {activeTab === 'database' && (
-        <FoodDatabase user={user} />
+        <FoodDatabase user={user} onAddToPlate={(product) => {
+          setSharedPlate(prev => [...prev, { ...product, id: Math.random().toString(36).substr(2, 9), weight: 100 }]);
+          changeTab('meal');
+        }} />
       )}
       {activeTab === 'meal' && (
-        <MealPlate user={user} setTab={changeTab} />
+        <MealPlate user={user} setTab={changeTab} sharedPlate={sharedPlate} setSharedPlate={setSharedPlate} />
       )}
       {activeTab === 'ai' && (
         <AiReports user={user} logs={logs} />

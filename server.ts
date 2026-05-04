@@ -1,152 +1,151 @@
 import express from "express";
-import "dotenv/config";
 import { createServer as createViteServer } from "vite";
+import * as path from "path";
 import admin from "firebase-admin";
-import path from "path";
-import { fileURLToPath } from "url";
-import { GoogleGenAI } from "@google/genai";
+import crypto from "crypto";
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize Firebase Admin
+// Users need to configure FIREBASE_SERVICE_ACCOUNT in the settings panel format: '{"project_id": "...", ...}'
+let db: admin.firestore.Firestore | null = null;
+try {
+  let cert;
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    cert = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } else {
+    console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT is missing. Fallback to Application Default Credentials.");
+  }
+  
+  if (admin.apps.length === 0) {
+    admin.initializeApp({
+      credential: cert ? admin.credential.cert(cert) : admin.credential.applicationDefault()
+    });
+  }
+  db = admin.firestore();
+  console.log("Firebase Admin Initialized successfully.");
+} catch (e) {
+  console.error("Failed to initialize Firebase Admin:", e);
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '10mb' })); // Increased limit for image uploads
+  // Needed for receiving xDrip payloads (often in JSON)
+  app.use(express.json());
 
-  // Lazy Firebase Admin Initialization
-  let firebaseAdminApp: admin.app.App | null = null;
-
-  function getFirebaseAdmin() {
-    if (!firebaseAdminApp) {
-      const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
-      if (!serviceAccountVar) {
-        console.warn("FIREBASE_SERVICE_ACCOUNT is not defined. Server-side Firebase features may be limited.");
-        return null;
-      }
-
-      try {
-        const serviceAccount = JSON.parse(serviceAccountVar);
-        firebaseAdminApp = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount)
-        });
-        console.log("Firebase Admin initialized successfully.");
-      } catch (error) {
-        console.error("Failed to initialize Firebase Admin:", error);
-        return null;
-      }
-    }
-    return firebaseAdminApp;
-  }
-
-  // Example API route using Firebase Admin
+  // Health route
   app.get("/api/health", (req, res) => {
-    const adminApp = getFirebaseAdmin();
-    res.json({ 
-      status: "ok", 
-      firebaseAdmin: !!adminApp 
-    });
+    res.json({ status: "ok" });
   });
 
-  // Nightscout Proxy to bypass CORS
-  app.get("/api/nightscout-proxy", async (req, res) => {
-    const { url, path: apiPath } = req.query;
-    
-    if (!url || typeof url !== 'string') {
-      return res.status(400).json({ error: "Missing Nightscout URL" });
+  // API route to manage API secrets securely (Admin SDK bypasses broken rules)
+  app.post("/api/server/apiSecrets", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Missing token" });
+      }
+      
+      const token = authHeader.split(" ")[1];
+      const decoded = await admin.auth().verifyIdToken(token);
+      
+      const { newHash, oldHash, userId } = req.body;
+      
+      if (!db) return res.status(500).json({ error: "Firebase DB not connected" });
+      
+      if (oldHash) {
+        await db.doc(`/artifacts/diacontrolapp/apiSecrets/${oldHash}`).delete();
+      }
+      
+      if (newHash) {
+        await db.doc(`/artifacts/diacontrolapp/apiSecrets/${newHash}`).set({
+          userId: decoded.uid,
+          createdAt: Date.now()
+        });
+      }
+      
+      res.json({ success: true });
+    } catch(e) {
+      console.error("Failed executing apiSecrets action", e);
+      res.status(500).json({ error: "Internal error" });
+    }
+  });
+
+  // ========== NIGHTSCOUT COMPATIBILITY API ========== //
+  app.post("/api/v1/entries", async (req, res) => {
+    // xDrip+ sends an array of entries or a single entry
+    const secretHash = req.headers['api-secret'] || req.headers['x-nitroscalenid']; // standard or fallback
+
+    if (!secretHash || typeof secretHash !== 'string') {
+      return res.status(401).json({ error: "Missing or invalid api-secret header" });
+    }
+
+    if (!db) {
+      return res.status(500).json({ error: "Firebase DB not connected" });
     }
 
     try {
-      const baseUrl = url.replace(/\/$/, '');
-      const targetUrl = `${baseUrl}${apiPath || ''}`;
-      let finalUrl = targetUrl;
-      const secret = req.headers['api-secret'];
-      const headers: Record<string, string> = {
-        'Accept': 'application/json',
-      };
+      // Find the user mapping for this hashed secret
+      const mappingDoc = await db.doc(`/artifacts/diacontrolapp/apiSecrets/${secretHash}`).get();
       
-      if (secret && typeof secret === 'string') {
-        let hashedSecret = secret;
-        // Nightscout expects SHA-1 hash of the secret if it's the admin API_SECRET
-        if (!/^[a-f0-9]{40}$/i.test(secret) && !secret.includes('-')) {
-             const crypto = await import('crypto');
-             hashedSecret = crypto.createHash('sha1').update(secret).digest('hex');
-             headers['api-secret'] = hashedSecret;
-        } else {
-             headers['api-secret'] = secret;
-             // If it's a token (usually contains a dash), also append to URL
-             if (secret.includes('-')) {
-                 const separator = finalUrl.includes('?') ? '&' : '?';
-                 finalUrl = `${finalUrl}${separator}token=${secret}`;
-             }
+      if (!mappingDoc.exists) {
+        return res.status(401).json({ error: "Unauthorized: Invalid API Secret" });
+      }
+
+      const userId = mappingDoc.data()?.userId;
+      if (!userId) {
+        return res.status(500).json({ error: "Invalid mapping document" });
+      }
+
+      let entries = req.body;
+      if (!Array.isArray(entries)) {
+        entries = [entries];
+      }
+
+      const batch = db.batch();
+      let count = 0;
+
+      for (const entry of entries) {
+        if (!entry.type && !entry.sgv) continue; // Skip invalid entries
+
+        const bgValue = entry.sgv || entry.value;
+        const timestamp = entry.date || new Date().getTime();
+        
+        let type = 'glucose';
+        // Some Nightscout entries might have 'mbg' etc, but xDrip typical push is just sgv
+        if (entry.type === 'mbg') type = 'glucose';
+
+        const customId = crypto.randomUUID();
+        const logsRef = db.doc(`/artifacts/diacontrolapp/users/${userId}/logs/${customId}`);
+        
+        const savePayload: any = {
+          type,
+          value: Number(bgValue),
+          timestamp: Number(timestamp),
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        // Standard direction map from NS
+        if (entry.direction) {
+          savePayload.direction = entry.direction;
         }
-      }
-      
-      console.log(`Proxying request to: ${finalUrl}`);
-      
-      const response = await fetch(finalUrl, { headers });
-      if (!response.ok) {
-        throw new Error(`Nightscout responded with ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      res.json(data);
-    } catch (error) {
-      console.error("Nightscout Proxy Error:", error);
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal Server Error" });
-    }
-  });
 
-  // Gemini AI Proxy
-  app.post("/api/ai-analyze", async (req, res) => {
-    const { prompt, imageData, model = "gemini-3-flash-preview" } = req.body;
-    
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
-    }
-
-    try {
-      const genAI = new GoogleGenAI({ apiKey });
-
-      let contents;
-      if (imageData) {
-        // Image analysis
-        contents = [
-          {
-            role: 'user',
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  data: imageData.split(',')[1] || imageData,
-                  mimeType: "image/jpeg"
-                }
-              }
-            ]
-          }
-        ];
-      } else {
-        // Text only
-        contents = [
-          {
-            role: 'user',
-            parts: [{ text: prompt }]
-          }
-        ];
+        batch.set(logsRef, savePayload);
+        count++;
       }
 
-      const result = await genAI.models.generateContent({
-        model: model,
-        contents: contents
-      });
-      const text = result.text;
-      
-      res.json({ text });
-    } catch (error) {
-      console.error("Gemini Proxy Error:", error);
-      res.status(500).json({ error: error instanceof Error ? error.message : "AI Analysis failed" });
+      await batch.commit();
+
+      console.log(`[Nightscout API] Successfully received & saved ${count} entries for user ${userId}`);
+      res.status(200).json({ status: "ok", processed: count });
+
+    } catch (e) {
+      console.error("Error processing Nightscout /api/v1/entries:", e);
+      res.status(500).json({ error: "Server error" });
     }
   });
 
@@ -158,6 +157,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
+    // Production Fallback
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
