@@ -130,7 +130,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     }
   }, [logs, showMLPrediction]);
 
-  const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks } = useMemo(() => {
+  const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end } = useMemo(() => {
     let now = Date.now();
     if (logs.length > 0) {
       const gLogs = logs.filter(l => l.type === 'glucose');
@@ -291,56 +291,69 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     if (!timeMap.has(end)) timeMap.set(end, { timestamp: end });
 
     const sortedData = Array.from(timeMap.values()).sort((a, b) => a.timestamp - b.timestamp);
-    const lastMlTimestamp = mlPredictionData.length > 0 ? mlPredictionData[mlPredictionData.length - 1].timestamp : 0;
+    const lastMlTimestamp = mlPredictionDataState.length > 0 ? mlPredictionDataState[mlPredictionDataState.length - 1].timestamp : 0;
     
-    // Generate helpful ticks
-    const xAxisTicks = [start, now, end];
-    const step = (end - start) / 4;
-    for (let i = 1; i <= 3; i++) {
-      const t = start + i * step;
-      if (Math.abs(t - now) > step / 2) {
-        xAxisTicks.push(t);
+    // Generate helpful ticks: Every hour or 2, Now
+    const xAxisTicks: number[] = [];
+    const interval = hours > 12 ? 4 * 60 * 60000 : (hours > 6 ? 2 * 60 * 60000 : 60 * 60000);
+    
+    let currentTick = Math.ceil(start / interval) * interval;
+    while (currentTick < end) {
+      if (Math.abs(currentTick - now) > 20 * 60000) { 
+        xAxisTicks.push(currentTick);
+      }
+      currentTick += interval;
+    }
+    xAxisTicks.push(now);
+    
+    // Ensure we have space for prediction labeling if enabled
+    if (showMLPrediction || showLoopSimulation) {
+      const predLabel = end - (10 * 60000);
+      if (Math.abs(predLabel - now) > 30 * 60000) {
+        xAxisTicks.push(end);
       }
     }
+
     xAxisTicks.sort((a, b) => a - b);
 
-    return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks };
+    return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end };
   }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction, mlPredictionDataState]);
 
   const isDark = theme === 'dark';
 
   return (
-    <div className="relative w-full h-full select-none" style={{ touchAction: 'none' }} onClick={() => setSelectedPoint(null)}>
+    <div className="relative w-full h-full select-none" style={{ touchAction: 'pan-y' }} onClick={() => setSelectedPoint(null)}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={chartData}
-          margin={{ top: 20, right: 10, left: 35, bottom: 0 }}
+          margin={{ top: 10, right: 10, left: -25, bottom: -10 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} vertical={false} />
           <XAxis 
             dataKey="timestamp" 
             type="number" 
-            domain={['dataMin', 'dataMax']} 
+            domain={[start, end]} 
             ticks={xAxisTicks}
             tickFormatter={(unixTime) => {
-                if (Math.abs(unixTime - xAxisTicks[0]) < 60000) return `-${hours}H`;
-                if (Math.abs(unixTime - now) < 60000) return 'DZIŚ';
-                if (Math.abs(unixTime - xAxisTicks[xAxisTicks.length - 1]) < 60000) {
-                   return (showMLPrediction || showLoopSimulation) ? `+2H` : '';
+                const diff = Math.abs(unixTime - now);
+                if (diff < 30000) return 'TERAZ';
+                if (unixTime > now + 30000) {
+                   const futureDiffMin = Math.round((unixTime - now) / 60000);
+                   if (futureDiffMin >= 110) return '+2H';
+                   return '';
                 }
                 const date = new Date(unixTime);
                 return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }}
             axisLine={{ stroke: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
             tickLine={false}
-            tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 9, fontWeight: 'bold' }}
-            stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}
+            tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 8, fontWeight: 'bold' }}
           />
           <YAxis 
             domain={[chartMinY, chartMaxY]} 
             axisLine={false}
             tickLine={false}
-            tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+            tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 9, fontWeight: 'bold' }}
           />
           
           <Tooltip 
@@ -409,16 +422,6 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           {/* Scatters for Bolus and Meal Icons */}
           <Scatter dataKey="bolusY" shape={<CustomBolusShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
           <Scatter dataKey="mealY" shape={<CustomMealShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
-
-          {/* Add Brush for Zooming and Panning */}
-          <Brush 
-            dataKey="timestamp" 
-            height={15} 
-            stroke={isDark ? '#4f46e5' : '#818cf8'} 
-            fill={isDark ? '#0f172a' : '#ffffff'}
-            tickFormatter={() => ''}
-            style={{ opacity: 0.5 }}
-          />
 
         </ComposedChart>
       </ResponsiveContainer>

@@ -521,7 +521,7 @@ export default function Dashboard({
             ))}
           </div>
         </div>
-        <div className="h-64">
+        <div className="h-56">
           <GlucoseChart
             logs={logs}
             hours={range}
