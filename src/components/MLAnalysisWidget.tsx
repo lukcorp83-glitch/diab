@@ -11,6 +11,7 @@ interface MLAnalysisWidgetProps {
 
 export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [mlResult, setMlResult] = useState<{
     predictedNextHour: number,
     riskOfHypo: boolean,
@@ -60,25 +61,37 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
   }, [logs]);
 
   const runML = async (force: boolean = false) => {
-    // Jeśli już trwa analiza 'full', nie zaczynaj nowej, chyba że force
     if (isAnalyzing && !force) return;
     
     setIsAnalyzing(true);
+    setError(null);
     
     try {
-        // KROK 1: Szybki rzut oka (4h danych) - Odpowiedź niemal natychmiastowa
-        const quickResult = await MLAnalyzer.analyzeData(logs, force, 'quick');
-        setMlResult(quickResult);
+        // Start quick analysis immediately
+        const quickPromise = MLAnalyzer.analyzeData(logs, force, 'quick');
         
-        // Dajemy znać UI, że mamy już świeże (choć wstępne) dane
-        // Ale nie ustawiamy yet isAnalyzing na false, by pokazać że "full" trwa
+        // Wait for quick result to show something to the user
+        const qResult = await quickPromise;
+        setMlResult(qResult);
         
-        // KROK 2: Dokładna analiza (7 dni) - W tle
-        const fullResult = await MLAnalyzer.analyzeData(logs, force, 'full');
-        setMlResult(fullResult);
+        // Now start full analysis in the background without blocking the result display
+        MLAnalyzer.analyzeData(logs, force, 'full')
+          .then(fullResult => {
+              setMlResult(fullResult);
+              setError(null);
+          })
+          .catch(e => {
+              console.error("GlikoSense Full Analysis Error:", e);
+              // Nie ustawiamy błędu globalnego jeśli mamy już wynik quick
+              if (!qResult) setError("Błąd pełnej analizy.");
+          })
+          .finally(() => {
+              setIsAnalyzing(false);
+          });
+          
     } catch (e) {
-        console.error("GlikoSense Analysis Error:", e);
-    } finally {
+        console.error("GlikoSense Quick Analysis Error:", e);
+        setError("Nie udało się przeanalizować danych. Spróbuj później.");
         setIsAnalyzing(false);
     }
   };
@@ -170,6 +183,35 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
                className="h-48 flex items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50"
             >
                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Zbyt mało danych do analizy (min. 5 wpisów)</span>
+            </motion.div>
+          ) : error && !mlResult ? (
+            <motion.div 
+               key="error"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="h-48 flex flex-col items-center justify-center relative z-10 bg-rose-50 dark:bg-rose-900/10 rounded-3xl border border-rose-100 dark:border-rose-900/30"
+            >
+               <AlertTriangle size={32} className="text-rose-500 mb-4" />
+               <span className="text-xs font-bold uppercase tracking-widest text-rose-500 text-center px-6">{error}</span>
+               <button 
+                 onClick={() => runML(true)}
+                 className="mt-4 text-[10px] font-bold text-accent-500 uppercase tracking-widest hover:underline"
+               >
+                 Spróbuj ponownie
+               </button>
+            </motion.div>
+          ) : isAnalyzing && !mlResult ? (
+            <motion.div 
+               key="analyzing_fresh"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="h-48 flex flex-col items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700"
+            >
+               <Loader2 size={32} className="animate-spin text-accent-500 mb-4 opacity-50" />
+               <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Pierwsza analiza GlikoSense...</span>
+               <span className="text-[10px] text-slate-400 mt-2">To może potrwać kilka sekund</span>
             </motion.div>
           ) : mlResult ? (
               <motion.div 

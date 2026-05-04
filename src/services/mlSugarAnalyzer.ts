@@ -7,8 +7,14 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     let pob = 0; // Protein on Board
     let fob = 0; // Fat on Board
     
-    for (const log of pastLogs) {
+    // Optymalizacja: patrzymy tylko na logi z ostatnich 8h względem targetTime
+    const cutoffTime = targetTime - (8 * 60 * 60 * 1000);
+    
+    for (let i = pastLogs.length - 1; i >= 0; i--) {
+        const log = pastLogs[i];
         const logTime = log.timestamp || new Date(log.createdAt).getTime();
+        
+        if (logTime < cutoffTime) break; // Skoro logi są posortowane, dalsze są jeszcze starsze
         const diffMs = targetTime - logTime;
         if (diffMs < 0) continue; 
         
@@ -50,7 +56,8 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     };
 }
 
-let _currentAnalysisPromise: Promise<any> | null = null;
+let _currentFullAnalysisPromise: Promise<any> | null = null;
+let _currentQuickAnalysisPromise: Promise<any> | null = null;
 let _cachedResult: any = null;
 let _lastAnalysisTime: number = 0;
 let _lastLogsFingerprint: string | null = null;
@@ -72,12 +79,10 @@ export const MLAnalyzer = {
 
     // 1. Sprawdź Cache w pamięci i LocalStorage
     if (!force) {
-      // Najpierw pamięć RAM
       if (_cachedResult && _lastLogsFingerprint === logsFingerprint) {
         return Promise.resolve(_cachedResult);
       }
       
-      // Potem LocalStorage (tylko dla trybu full, aby nie nadpisywać szybkimi danymi)
       if (mode === 'full') {
         const persistentCache = localStorage.getItem('glikosense_last_result');
         const persistentFingerprint = localStorage.getItem('glikosense_last_fingerprint');
@@ -96,8 +101,11 @@ export const MLAnalyzer = {
       }
     }
 
-    if (_currentAnalysisPromise && mode === 'full') {
-      return _currentAnalysisPromise;
+    if (mode === 'full' && _currentFullAnalysisPromise) {
+      return _currentFullAnalysisPromise;
+    }
+    if (mode === 'quick' && _currentQuickAnalysisPromise) {
+      return _currentQuickAnalysisPromise;
     }
 
     const doAnalysis = async () => {
@@ -105,7 +113,15 @@ export const MLAnalyzer = {
         return { predictedNextHour: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense."], accuracy: 0 };
       }
 
-      await tf.ready();
+      try {
+        // Limit wait for TF to prevent total hang
+        await Promise.race([
+          tf.ready(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("TF Timeout")), 5000))
+        ]);
+      } catch (e) {
+        console.warn("TF Ready timeout or error, trying to proceed anyway", e);
+      }
 
       const now = Date.now();
       // Tryb szybki: ostatnie 4h. Tryb pełny: 7 dni.
@@ -187,6 +203,7 @@ export const MLAnalyzer = {
       let treatmentIdx = 0;
 
       for(let i=0; i < resampledGlucose.length - 1; i++) {
+        if (i % 500 === 0) await tf.nextFrame(); // UI breather dla długich pętli
         const current = resampledGlucose[i];
         const next = resampledGlucose[i+1];
         const currentTimeMs = current.timestamp;
@@ -662,25 +679,31 @@ export const MLAnalyzer = {
     };
     };
 
-    _currentAnalysisPromise = doAnalysis().then(res => {
+    const analysisPromise = doAnalysis().then(res => {
       _cachedResult = res;
       _lastAnalysisTime = Date.now();
       _lastLogsFingerprint = logsFingerprint;
       
-      // Zapisz do pamięci trwałej
-      try {
-        localStorage.setItem('glikosense_last_result', JSON.stringify(res));
-        localStorage.setItem('glikosense_last_fingerprint', logsFingerprint);
-      } catch (e) {
-        console.warn("Błąd zapisu do LocalStorage GlikoSense (możliwy brak miejsca)");
+      // Zapisz do pamięci trwałej (tylko pełne wyniki)
+      if (mode === 'full') {
+        try {
+          localStorage.setItem('glikosense_last_result', JSON.stringify(res));
+          localStorage.setItem('glikosense_last_fingerprint', logsFingerprint);
+        } catch (e) {
+          console.warn("Błąd zapisu do LocalStorage GlikoSense (możliwy brak miejsca)");
+        }
       }
       
       return res;
     }).finally(() => {
-      _currentAnalysisPromise = null;
+      if (mode === 'full') _currentFullAnalysisPromise = null;
+      else _currentQuickAnalysisPromise = null;
     });
 
-    return _currentAnalysisPromise;
+    if (mode === 'full') _currentFullAnalysisPromise = analysisPromise;
+    else _currentQuickAnalysisPromise = analysisPromise;
+
+    return analysisPromise;
   }
 }
 
