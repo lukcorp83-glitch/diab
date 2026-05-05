@@ -2,7 +2,7 @@ import { SKINS, PetSkin } from '../constants';
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, AlertCircle, ShoppingBag, Store, X, Coins, Gamepad2, Target, Trophy } from 'lucide-react';
+import { Heart, Sparkles, AlertCircle, ShoppingBag, Store, X, Coins, Gamepad2, Target, Trophy, CheckCircle2, Utensils } from 'lucide-react';
 import { doc, onSnapshot, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { LogEntry } from '../types';
@@ -36,7 +36,14 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
   const [reaction, setReaction] = useState<'idle' | 'happy' | 'eating' | 'sad'>('idle');
   const [idleVariant, setIdleVariant] = useState(0);
   const [particles, setParticles] = useState<{id: number, x: number}[]>([]);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
+  const [imageError, setImageError] = useState<string | null>(null);
   const prevLogsRef = useRef(logs.length);
+
+  useEffect(() => {
+    setImageError(null);
+  }, [petData?.skin, petData?.level, glucose]);
 
   const triggerParticles = () => {
     const newParticles = Array.from({ length: 3 }).map((_, i) => ({ id: Date.now() + i, x: Math.random() * 40 - 20 }));
@@ -60,6 +67,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
           level: 1,
           xp: 0,
           happiness: 100,
+          hunger: 100,
           lastFed: Date.now(),
           coins: 0,
           skin: 'default',
@@ -124,7 +132,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
   const petCount = petData.lastPettedDate === todayStr ? (petData.petCountToday || 0) : 0;
   const maxPets = 5;
 
-  const handleFeed = async () => {
+  const handlePet = async () => {
      if (!user) return;
      if (petCount >= maxPets) {
        alert('Twój zwierzak jest już dzisiaj wystarczająco wygłaskany!');
@@ -148,17 +156,49 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
        lastFed: Date.now(),
        xp: nextXp,
        level: newLevel,
-       coins: (petData.coins || 0) + 5, // Small coin reward for petting
+       coins: (petData.coins || 0) + 2,
        petCountToday: petCount + 1,
        lastPettedDate: todayStr
      });
   };
 
-  const [imageError, setImageError] = useState<string | null>(null);
+  const handleFeed = async () => {
+    if (!user || !petData) return;
+    const foodCost = 15;
+    if ((petData.coins || 0) < foodCost) {
+      alert('Nie masz wystarczająco monet na jedzenie! (Potrzeba 15)');
+      return;
+    }
 
-  useEffect(() => {
-    setImageError(null);
-  }, [petData.skin, petData.level, glucose]);
+    setReaction('eating');
+    triggerParticles();
+    setTimeout(() => setReaction('idle'), 2000);
+
+    const newXp = petData.xp + 40;
+    let newLevel = petData.level;
+    let nextXp = newXp;
+    if (newXp >= xpRequired) {
+       newLevel++;
+       nextXp = newXp - xpRequired;
+    }
+
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+      coins: (petData.coins || 0) - foodCost,
+      happiness: Math.min(100, petData.happiness + 40),
+      hunger: Math.min(100, (petData.hunger || 0) + 50),
+      xp: nextXp,
+      level: newLevel,
+      lastFed: Date.now()
+    });
+  };
+
+  const updatePetName = async () => {
+    if (!tempName.trim()) return;
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+      name: tempName.trim()
+    });
+    setIsEditingName(false);
+  };
 
   const getPetVisual = (skinId?: string) => {
     let src = '';
@@ -283,6 +323,11 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
   };
 
   const getPetAnimation = (): any => {
+    if (reaction === 'eating') return {
+        scale: [1, 1.2, 1, 1.2, 1],
+        rotateZ: [0, 5, -5, 5, 0],
+        transition: { duration: 0.5, repeat: 3 }
+    };
     if (reaction === 'happy') return { 
         y: [0, -20, 0], 
         rotateZ: [0, -15, 15, -15, 15, 0], 
@@ -542,10 +587,28 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
               <div className="p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h4 className="font-black text-sm dark:text-white flex items-center gap-1">
-                      {petData.name === 'Gliko-Smok' || petData.name === 'Gliko-Zwierz' ? 'Gliko' : petData.name} <span className="text-xs font-bold text-accent-500 bg-accent-50 dark:bg-accent-500/10 px-1.5 py-0.5 rounded-md">Lvl {petData.level}</span>
-                    </h4>
-                    <p className="text-[10px] text-slate-500 font-medium">Twój wirtualny przyjaciel</p>
+                    <div className="flex items-center gap-1">
+                      {isEditingName ? (
+                        <div className="flex items-center gap-1">
+                          <input 
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            className="bg-slate-50 dark:bg-slate-800 border-b-2 border-accent-500 font-black text-sm outline-none px-1 w-24 dark:text-white"
+                            autoFocus
+                          />
+                          <button onClick={updatePetName} className="text-emerald-500 hover:scale-110 transition-transform"><CheckCircle2 size={16} /></button>
+                          <button onClick={() => setIsEditingName(false)} className="text-rose-500 hover:scale-110 transition-transform"><X size={16} /></button>
+                        </div>
+                      ) : (
+                        <h4 
+                          className="font-black text-sm dark:text-white flex items-center gap-1 cursor-pointer hover:text-accent-500 transition-colors" 
+                          onClick={() => { setTempName(petData.name); setIsEditingName(true); }}
+                        >
+                          {petData.name} <span className="text-[10px] opacity-30 group-hover:opacity-100">✎</span> <span className="text-xs font-bold text-accent-500 bg-accent-50 dark:bg-accent-500/10 px-1.5 py-0.5 rounded-md">Lvl {petData.level}</span>
+                        </h4>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium">Twój przyjaciel</p>
                   </div>
                   <motion.div 
                     className="text-3xl origin-bottom"
@@ -583,21 +646,37 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                       <div className={`h-full rounded-full transition-all duration-500 ${petData.happiness > 30 ? 'bg-rose-400' : 'bg-slate-400'}`} style={{ width: `${petData.happiness}%` }} />
                     </div>
                   </div>
+
+                  <div>
+                    <div className="flex justify-between text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                      <span>Nasycenie</span>
+                      <span className="flex items-center gap-0.5"><Utensils size={8} className="text-amber-600" /> {petData.hunger || 0}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${petData.hunger || 0}%` }} />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex gap-2 overflow-x-auto no-scrollbar">
                   <button 
                     onClick={handleFeed}
-                    disabled={petCount >= maxPets}
-                    className={`flex-[2] font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 transition-all ${petCount >= maxPets ? 'bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500' : 'bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 active:scale-95'}`}
+                    className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all whitespace-nowrap"
                   >
-                    <Sparkles size={12} /> Pogłaszcz ({petCount}/{maxPets})
+                    <Utensils size={12} /> Jedzenie (15)
+                  </button>
+                  <button 
+                    onClick={handlePet}
+                    disabled={petCount >= maxPets}
+                    className={`flex-1 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 transition-all whitespace-nowrap ${petCount >= maxPets ? 'bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500' : 'bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 active:scale-95'}`}
+                  >
+                    <Sparkles size={12} /> Głaskanie ({petCount}/{maxPets})
                   </button>
                   <button 
                     onClick={() => { setShowShop(false); setShowGame(true); setGameState('idle'); }}
-                    className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                    className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all whitespace-nowrap"
                   >
-                    <Gamepad2 size={12} /> Zagraj
+                    <Gamepad2 size={12} /> Gra
                   </button>
                   {petData.level >= 10 && (
                     <button 

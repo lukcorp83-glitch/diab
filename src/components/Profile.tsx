@@ -41,8 +41,11 @@ export default function Profile({
     skin: string, 
     unlockedSkins: string[],
     level?: number,
-    xp?: number
-  }>({ coins: 0, skin: 'default', unlockedSkins: ['default'] });
+    xp?: number,
+    name?: string,
+    streak?: number,
+    lastLoginDate?: string
+  }>({ coins: 0, skin: 'default', unlockedSkins: ['default'], name: 'Gliko' });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [nsSyncLoading, setNsSyncLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -160,10 +163,41 @@ export default function Profile({
           skin: data.skin || 'default',
           unlockedSkins: data.unlockedSkins || ['default'],
           level: data.level || 1,
-          xp: data.xp || 0
+          xp: data.xp || 0,
+          name: data.name || 'Gliko',
+          streak: data.streak || 0,
+          lastLoginDate: data.lastLoginDate || ''
         });
+
+        // Daily Streak Logic
+        const today = new Date().toISOString().split('T')[0];
+        if (data.lastLoginDate !== today) {
+           handleDailyStreak(data);
+        }
       }
     });
+
+    const handleDailyStreak = async (data: any) => {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      let newStreak = 1;
+      let bonus = 10;
+
+      if (data.lastLoginDate === yesterdayStr) {
+        newStreak = (data.streak || 0) + 1;
+        bonus = Math.min(50, 10 + (newStreak * 5)); // Gradually increase bonus
+      }
+
+      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+        lastLoginDate: today,
+        streak: newStreak,
+        coins: (data.coins || 0) + bonus
+      });
+      console.log(`Daily Bonus! Streak: ${newStreak}, Coins: +${bonus}`);
+    };
 
     const nsSettingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'nightscout');
     const unsubscribeNs = onSnapshot(nsSettingsRef, (d) => {
@@ -189,7 +223,39 @@ export default function Profile({
     };
   }, [user]);
 
-  // Achievement logic for shop integration
+  const weeklyStats = useMemo(() => {
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weekLogs = logs.filter(l => new Date(l.timestamp).getTime() > oneWeekAgo);
+    
+    const glucoseLogs = weekLogs.filter(l => l.type === 'glucose');
+    const mealLogs = weekLogs.filter(l => l.type === 'meal');
+    
+    const avgGlucose = glucoseLogs.length > 0 
+      ? Math.round(glucoseLogs.reduce((acc, l) => acc + (l.value || 0), 0) / glucoseLogs.length) 
+      : 0;
+      
+    const inRange = glucoseLogs.filter(l => l.value >= 70 && l.value <= 140).length;
+    const tir = glucoseLogs.length > 0 ? Math.round((inRange / glucoseLogs.length) * 100) : 0;
+    
+    const activeDays = new Set(weekLogs.map(l => new Date(l.timestamp).toLocaleDateString())).size;
+
+    return { avgGlucose, tir, activeDays, totalLogs: weekLogs.length, mealCount: mealLogs.length };
+  }, [logs]);
+
+  const [editingName, setEditingName] = useState(false);
+  const [newName, setNewName] = useState(petData.name || 'Gliko');
+
+  const updatePetName = async () => {
+    if (!newName.trim()) return;
+    try {
+      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+        name: newName.trim()
+      });
+      setEditingName(false);
+    } catch(e) {
+      console.error(e);
+    }
+  };
   const stats = useMemo(() => {
     const mealLogs = logs.filter(l => l.type === 'meal');
     const glucoseLogs = logs.filter(l => l.type === 'glucose');
@@ -374,9 +440,79 @@ export default function Profile({
         </div>
         <h2 className="text-lg font-black dark:text-white mb-1">Twój Profil</h2>
         <p className="text-slate-400 text-xs font-bold mb-6 truncate">{user.email || 'Użytkownik Anonimowy'}</p>
-        <button onClick={handleLogout} className="bg-rose-500/10 text-rose-500 font-black text-[10px] px-6 py-3 rounded-2xl uppercase tracking-widest active:scale-95 transition-all">
-          Wyloguj się
-        </button>
+        <div className="flex gap-2 justify-center">
+          <button onClick={handleLogout} className="bg-rose-500/10 text-rose-500 font-black text-[10px] px-6 py-3 rounded-2xl uppercase tracking-widest active:scale-95 transition-all">
+            Wyloguj
+          </button>
+          <div className="bg-amber-500/10 text-amber-600 font-black text-[10px] px-4 py-3 rounded-2xl uppercase tracking-widest flex items-center gap-2">
+            <Zap size={14} />
+            <span>Streak: {petData.streak || 0} dni</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Weekly Summary Card (Feature 2) */}
+      <div className="bg-slate-900 dark:bg-accent-950 rounded-[3rem] p-8 text-white relative overflow-hidden shadow-2xl">
+         <div className="absolute top-0 right-0 p-8 opacity-10">
+           <Activity size={120} />
+         </div>
+         <div className="relative z-10">
+           <div className="flex justify-between items-start mb-6">
+             <div>
+               <h3 className="text-xl font-black mb-1">Raport Tygodniowy</h3>
+               <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Ostatnie 7 dni aktywności</p>
+             </div>
+             <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold">
+               {weeklyStats.activeDays}/7 aktywnych dni
+             </div>
+           </div>
+
+           <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/5 rounded-[2rem] p-5 border border-white/10">
+                 <p className="text-slate-400 text-[9px] font-black uppercase mb-1">Czas w normie (TIR)</p>
+                 <div className="flex items-baseline gap-1">
+                   <h4 className="text-3xl font-black">{weeklyStats.tir}%</h4>
+                   <span className="text-[10px] font-bold text-emerald-400">Cel: 70%</span>
+                 </div>
+                 <div className="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${weeklyStats.tir}%` }}
+                      className="h-full bg-emerald-500"
+                    />
+                 </div>
+              </div>
+
+              <div className="bg-white/5 rounded-[2rem] p-5 border border-white/10">
+                 <p className="text-slate-400 text-[9px] font-black uppercase mb-1">Średnia Glikemia</p>
+                 <div className="flex items-baseline gap-1">
+                   <h4 className="text-3xl font-black">{weeklyStats.avgGlucose}</h4>
+                   <span className="text-[10px] font-bold text-slate-400">mg/dL</span>
+                 </div>
+                 <div className="mt-3 flex items-center gap-1">
+                    <CheckCircle2 size={12} className={weeklyStats.avgGlucose < 150 ? "text-emerald-400" : "text-amber-400"} />
+                    <span className="text-[9px] font-bold text-slate-400">
+                      {weeklyStats.avgGlucose < 150 ? 'Dobry wynik!' : 'Wymaga uwagi'}
+                    </span>
+                 </div>
+              </div>
+           </div>
+
+           <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="text-center">
+                 <p className="text-[20px] font-black">{weeklyStats.mealCount}</p>
+                 <p className="text-[8px] font-bold text-slate-500 uppercase">Posiłki</p>
+              </div>
+              <div className="text-center border-x border-white/10">
+                 <p className="text-[20px] font-black">{weeklyStats.totalLogs}</p>
+                 <p className="text-[8px] font-bold text-slate-500 uppercase">Wpisy</p>
+              </div>
+              <div className="text-center">
+                 <p className="text-[20px] font-black">{petData.coins}</p>
+                 <p className="text-[8px] font-bold text-slate-500 uppercase">Monety</p>
+              </div>
+           </div>
+         </div>
       </div>
 
       <button 
