@@ -16,6 +16,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     xp: number, 
     happiness: number, 
     lastFed: number,
+    hunger?: number,
     coins?: number,
     skin?: string,
     unlockedSkins?: string[],
@@ -131,13 +132,11 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
   const todayStr = new Date().toISOString().split('T')[0];
   const petCount = petData.lastPettedDate === todayStr ? (petData.petCountToday || 0) : 0;
   const maxPets = 5;
+  const isMaxPetted = petCount >= maxPets;
 
   const handlePet = async () => {
      if (!user) return;
-     if (petCount >= maxPets) {
-       alert('Twój zwierzak jest już dzisiaj wystarczająco wygłaskany!');
-       return;
-     }
+     if (isMaxPetted) return;
 
      setReaction('happy');
      triggerParticles();
@@ -153,7 +152,6 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
 
      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
        happiness: Math.min(100, petData.happiness + 20),
-       lastFed: Date.now(),
        xp: nextXp,
        level: newLevel,
        coins: (petData.coins || 0) + 2,
@@ -667,10 +665,12 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                   </button>
                   <button 
                     onClick={handlePet}
-                    disabled={petCount >= maxPets}
-                    className={`flex-1 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 transition-all whitespace-nowrap ${petCount >= maxPets ? 'bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500' : 'bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 active:scale-95'}`}
+                    disabled={isMaxPetted}
+                    className={`flex-1 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 transition-all whitespace-nowrap ${isMaxPetted ? 'bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500 cursor-not-allowed opacity-60' : 'bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 active:scale-95 hover:bg-accent-100 dark:hover:bg-accent-500/20'}`}
+                    title={isMaxPetted ? "Limit głaskania osiągnięty" : "Pogłaszcz zwierzaka"}
                   >
-                    <Sparkles size={12} /> Głaskanie ({petCount}/{maxPets})
+                    <Sparkles size={12} className={isMaxPetted ? "" : "animate-pulse"} /> 
+                    {isMaxPetted ? 'Limit głaskania' : `Głaskanie (${petCount}/${maxPets})`}
                   </button>
                   <button 
                     onClick={() => { setShowShop(false); setShowGame(true); setGameState('idle'); }}
