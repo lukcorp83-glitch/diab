@@ -1,13 +1,14 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X, User, ChevronLeft, ChevronRight, Cloud, ShoppingBag, Coins, Star, Sparkles, Check } from 'lucide-react';
+import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, History, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X, User, ChevronLeft, ChevronRight, Cloud, ShoppingBag, Coins, Star, Sparkles, Check, Calendar } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { notificationService } from '../services/notificationService';
 import { UserSettings, LogEntry } from '../types';
-import { APP_VERSION, SKINS, PetSkin } from '../constants';
+import { APP_VERSION, SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground } from '../constants';
+import { VERSIONS } from '../constants/versions';
 
 import CgmImport from './CgmImport';
 import SettingsSync from './SettingsSync';
@@ -43,21 +44,41 @@ export default function Profile({
     level?: number,
     xp?: number,
     name?: string,
-    streak?: number,
-    lastLoginDate?: string
-  }>({ coins: 0, skin: 'default', unlockedSkins: ['default'], name: 'Gliko' });
+    lastLoginDate?: string,
+    currentAccessory?: string,
+    unlockedAccessories?: string[],
+    currentBackground?: string,
+    unlockedBackgrounds?: string[]
+  }>({ 
+    coins: 0, 
+    skin: 'default', 
+    unlockedSkins: ['default'], 
+    name: 'Gliko',
+    unlockedAccessories: ['none'],
+    currentAccessory: 'none',
+    unlockedBackgrounds: ['room'],
+    currentBackground: 'room'
+  });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [nsSyncLoading, setNsSyncLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [cleaningLoading, setCleaningLoading] = useState(false);
   const [nsUrl, setNsUrl] = useState('');
   const [nsSecret, setNsSecret] = useState('');
+  const [shopTab, setShopTab] = useState<'skins' | 'accessories' | 'backgrounds'>('skins');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [geminiSaveStatus, setGeminiSaveStatus] = useState('');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [newShortcut, setNewShortcut] = useState({ id: '', name: '', icon: '📌', type: 'meal', carbs: 0 });
-  const [newMedication, setNewMedication] = useState({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true });
+  const [newMedication, setNewMedication] = useState<{
+    id: string;
+    name: string;
+    dosage: string;
+    reminders: string[];
+    active: boolean;
+    expiryDate?: string;
+  }>({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true, expiryDate: '' });
 
   const icons = ['🍎', '🍌', '🍇', '🍓', '🥪', '🍕', '🍔', '🥤', '🍬', '🥣', '🍫', '🥨', '🍪', '🥛'];
 
@@ -165,39 +186,14 @@ export default function Profile({
           level: data.level || 1,
           xp: data.xp || 0,
           name: data.name || 'Gliko',
-          streak: data.streak || 0,
-          lastLoginDate: data.lastLoginDate || ''
+          lastLoginDate: data.lastLoginDate || '',
+          unlockedAccessories: data.unlockedAccessories || ['none'],
+          currentAccessory: data.currentAccessory || 'none',
+          unlockedBackgrounds: data.unlockedBackgrounds || ['room'],
+          currentBackground: data.currentBackground || 'room'
         });
-
-        // Daily Streak Logic
-        const today = new Date().toISOString().split('T')[0];
-        if (data.lastLoginDate !== today) {
-           handleDailyStreak(data);
-        }
       }
     });
-
-    const handleDailyStreak = async (data: any) => {
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-      let newStreak = 1;
-      let bonus = 10;
-
-      if (data.lastLoginDate === yesterdayStr) {
-        newStreak = (data.streak || 0) + 1;
-        bonus = Math.min(50, 10 + (newStreak * 5)); // Gradually increase bonus
-      }
-
-      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
-        lastLoginDate: today,
-        streak: newStreak,
-        coins: (data.coins || 0) + bonus
-      });
-      console.log(`Daily Bonus! Streak: ${newStreak}, Coins: +${bonus}`);
-    };
 
     const nsSettingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'nightscout');
     const unsubscribeNs = onSnapshot(nsSettingsRef, (d) => {
@@ -245,6 +241,12 @@ export default function Profile({
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(petData.name || 'Gliko');
 
+  useEffect(() => {
+    if (petData.name) {
+      setNewName(petData.name);
+    }
+  }, [petData.name]);
+
   const updatePetName = async () => {
     if (!newName.trim()) return;
     try {
@@ -284,7 +286,6 @@ export default function Profile({
   const unlockedAchievementIds = useMemo(() => {
     const ids = [];
     if (stats.totalMeals >= 1) ids.push('first_meal');
-    if (stats.daysWithMeals >= 7) ids.push('meal_streak');
     if (stats.totalGlucose > 8 && stats.tirRatio >= 65) ids.push('tir_master');
     if (stats.totalGlucose >= 12 && stats.tirRatio >= 80) ids.push('tir_ninja');
     if (stats.nightReadings >= 5) ids.push('night_owl');
@@ -315,6 +316,59 @@ export default function Profile({
       await updateDoc(petRef, { skin: skinId });
     } catch (err) {
       console.error("Error equipping skin:", err);
+    }
+  };
+
+  const handleBuyAccessory = async (acc: PetAccessory) => {
+    if (petData.coins < acc.price) return;
+    const unlocked = petData.unlockedAccessories || ['none'];
+    if (unlocked.includes(acc.id)) return;
+
+    try {
+      const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+      await updateDoc(petRef, {
+        coins: petData.coins - acc.price,
+        unlockedAccessories: [...unlocked, acc.id],
+        currentAccessory: acc.id
+      });
+    } catch (err) {
+      console.error("Error buying accessory:", err);
+    }
+  };
+
+  const handleEquipAccessory = async (accId: string) => {
+    try {
+      const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+      await updateDoc(petRef, { currentAccessory: accId });
+    } catch (err) {
+      console.error("Error equipping accessory:", err);
+    }
+  };
+
+  const handleBuyBackground = async (bg: PetBackground) => {
+    if (petData.coins < bg.price) return;
+    const unlocked = petData.unlockedBackgrounds || ['room'];
+    if (unlocked.includes(bg.id)) return;
+    if (bg.rewardTir) return;
+
+    try {
+      const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+      await updateDoc(petRef, {
+        coins: petData.coins - bg.price,
+        unlockedBackgrounds: [...unlocked, bg.id],
+        currentBackground: bg.id
+      });
+    } catch (err) {
+      console.error("Error buying background:", err);
+    }
+  };
+
+  const handleEquipBackground = async (bgId: string) => {
+    try {
+      const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+      await updateDoc(petRef, { currentBackground: bgId });
+    } catch (err) {
+      console.error("Error equipping background:", err);
     }
   };
 
@@ -361,7 +415,7 @@ export default function Profile({
       const newSettings = { ...settings, medications: updatedMeds };
       setSettings(newSettings);
       await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-      setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true });
+      setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true, expiryDate: '' });
     } catch (e) {
       console.error(e);
     }
@@ -444,10 +498,6 @@ export default function Profile({
           <button onClick={handleLogout} className="bg-rose-500/10 text-rose-500 font-black text-[10px] px-6 py-3 rounded-2xl uppercase tracking-widest active:scale-95 transition-all">
             Wyloguj
           </button>
-          <div className="bg-amber-500/10 text-amber-600 font-black text-[10px] px-4 py-3 rounded-2xl uppercase tracking-widest flex items-center gap-2">
-            <Zap size={14} />
-            <span>Streak: {petData.streak || 0} dni</span>
-          </div>
         </div>
       </div>
 
@@ -582,122 +632,184 @@ export default function Profile({
           {/* Balance Card */}
           <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
             <Sparkles className="absolute -right-6 -bottom-6 w-32 h-32 opacity-20 rotate-12" />
-            <div className="relative z-10">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Twój portfel</p>
+            <div className="relative z-10 text-left">
+              <div className="flex items-center justify-between mb-4">
+                {editingName ? (
+                   <div className="flex items-center gap-2 bg-white/20 p-2 rounded-2xl backdrop-blur-md">
+                     <input 
+                       value={newName}
+                       onChange={e => setNewName(e.target.value)}
+                       className="bg-transparent border-b border-white outline-none w-32 font-black text-sm"
+                       autoFocus
+                     />
+                     <button onClick={updatePetName} className="p-1 hover:bg-white/20 rounded-lg"><Check size={16} /></button>
+                     <button onClick={() => setEditingName(false)} className="p-1 hover:bg-white/20 rounded-lg"><X size={16} /></button>
+                   </div>
+                ) : (
+                  <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setNewName(petData.name); setEditingName(true); }}>
+                    <h2 className="text-2xl font-black">{petData.name}</h2>
+                    <Zap size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Twój portfel</p>
+              </div>
               <div className="flex items-end gap-2">
                 <h3 className="text-4xl font-black">{petData.coins}</h3>
                 <span className="text-xl font-bold mb-1 opacity-90">monet</span>
               </div>
-              <div className="mt-4 flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-2xl p-3 w-fit">
-                <Trophy size={16} className="text-amber-200" />
-                <span className="text-xs font-bold">Poziom Gliko: {petData.level}</span>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3 flex items-center gap-2">
+                  <Trophy size={16} className="text-amber-200" />
+                  <span className="text-xs font-bold">Lvl: {petData.level}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Skins Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {SKINS.map(skin => {
-              const isUnlocked = petData.unlockedSkins.includes(skin.id);
-              const isEquipped = petData.skin === skin.id;
-              const canUnlockViaAchievement = skin.unlockedBy && unlockedAchievementIds.includes(skin.unlockedBy);
-              const isAchievementSkin = !!skin.unlockedBy;
-
-              return (
-                <motion.div 
-                  key={skin.id}
-                  whileTap={{ scale: 0.98 }}
-                  className={cn(
-                    "p-5 rounded-[2.5rem] border-2 transition-all relative overflow-hidden flex flex-col items-center text-center",
-                    isEquipped 
-                      ? 'bg-accent-50/50 dark:bg-accent-500/10 border-accent-500' 
-                      : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800'
-                  )}
-                >
-                  {isEquipped && (
-                    <div className="absolute top-4 right-4 bg-accent-500 text-white rounded-full p-1 ring-4 ring-white dark:ring-slate-900 z-10">
-                      <Check size={10} strokeWidth={4} />
-                    </div>
-                  )}
-
-                  <div className="w-20 h-20 rounded-[2rem] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-4xl mb-4 shadow-inner relative overflow-hidden">
-                    {skin.imageUrl ? (
-                      <img 
-                        src={skin.imageUrl} 
-                        alt={skin.name} 
-                        className="w-14 h-14 object-contain" 
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          const parent = (e.target as HTMLElement).parentElement;
-                          if (parent) {
-                            const span = document.createElement('span');
-                            span.className = 'text-4xl';
-                            span.innerText = skin.icon;
-                            parent.appendChild(span);
-                          }
-                        }}
-                      />
-                    ) : (
-                      <span className="text-4xl">{skin.icon}</span>
+          {/* Shop Tabs */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800">
+             <div className="flex gap-2 mb-8 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl">
+                {['skins', 'accessories', 'backgrounds'].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setShopTab(t as any)}
+                    className={cn(
+                      "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                      shopTab === t 
+                        ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
+                        : "text-slate-500"
                     )}
-                  </div>
+                  >
+                    {t === 'skins' ? 'Skórki' : t === 'accessories' ? 'Dodatki' : 'Tła'}
+                  </button>
+                ))}
+             </div>
 
-                  <h4 className="text-xs font-black dark:text-white leading-tight mb-1">{skin.name}</h4>
-                  
-                  {isUnlocked ? (
-                    <button 
-                      onClick={() => handleEquipSkin(skin.id)}
-                      disabled={isEquipped}
-                      className={cn(
-                        "mt-3 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all",
-                        isEquipped 
-                          ? 'bg-accent-100 dark:bg-accent-950 text-accent-500 cursor-default' 
-                          : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 active:scale-95'
-                      )}
-                    >
-                      {isEquipped ? 'Wybrany' : 'Wybierz'}
-                    </button>
-                  ) : skin.unlockedBy ? (
-                    <div className="mt-auto w-full">
-                       {canUnlockViaAchievement ? (
-                         <button 
-                            onClick={() => handleBuySkin(skin)}
-                            className="mt-3 w-full py-2.5 rounded-xl bg-emerald-500 text-white text-[10px] font-black uppercase tracking-tight active:scale-95"
-                         >
-                           Odblokuj
-                         </button>
-                       ) : (
-                         <div className="mt-3 w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 text-[9px] font-bold px-2 flex flex-col items-center gap-1">
-                           <Shield size={12} />
-                           <span>Wymaga osiągnięcia</span>
-                         </div>
-                       )}
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={() => handleBuySkin(skin)}
-                      disabled={petData.coins < skin.price}
-                      className={cn(
-                        "mt-auto w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight flex items-center justify-center gap-1 transition-all",
-                        petData.coins >= skin.price 
-                          ? 'bg-amber-500 text-white active:scale-95 shadow-lg shadow-amber-500/20' 
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-                      )}
-                    >
-                      <Coins size={12} />
-                      {skin.price}
-                    </button>
-                  )}
+             {shopTab === 'skins' && (
+               <div className="grid grid-cols-2 gap-4">
+                 {SKINS.map(skin => {
+                   const isUnlocked = petData.unlockedSkins.includes(skin.id);
+                   const isEquipped = petData.skin === skin.id;
+                   const canUnlockViaAchievement = skin.unlockedBy && unlockedAchievementIds.includes(skin.unlockedBy);
+                   const isAchievementSkin = !!skin.unlockedBy;
 
-                  {isAchievementSkin && !isUnlocked && (
-                    <div className="absolute top-0 left-0 px-3 py-1 bg-accent-500 text-white text-[7px] font-black uppercase tracking-widest rounded-br-2xl">
-                      Specjalna
-                    </div>
-                  )}
-                </motion.div>
-              );
-            })}
+                   return (
+                     <div key={skin.id} className={cn("p-4 rounded-[2rem] border-2 transition-all relative", isEquipped ? 'bg-accent-50/50 dark:bg-accent-500/5 border-accent-500' : 'bg-slate-50 dark:bg-slate-800/50 border-transparent')}>
+                        <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-3xl mx-auto mb-3 shadow-sm overflow-hidden">
+                           {skin.imageUrl ? (
+                             <img 
+                               src={skin.imageUrl} 
+                               className="w-10 h-10 object-contain" 
+                               onError={(e) => {
+                                 (e.target as HTMLImageElement).style.display = 'none';
+                                 const p = (e.target as HTMLElement).parentElement;
+                                 if (p && !p.querySelector('.fallback-icon')) {
+                                   const s = document.createElement('span');
+                                   s.className = 'fallback-icon';
+                                   s.innerText = skin.icon;
+                                   p.appendChild(s);
+                                 }
+                               }}
+                             />
+                           ) : skin.icon}
+                        </div>
+                        <h4 className="text-[10px] font-black dark:text-white mb-3 capitalize">{skin.name}</h4>
+                        {isUnlocked ? (
+                          <button onClick={() => handleEquipSkin(skin.id)} disabled={isEquipped} className={cn("w-full py-2 rounded-xl text-[9px] font-black uppercase", isEquipped ? "bg-accent-100 dark:bg-accent-950 text-accent-600" : "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950")}>
+                            {isEquipped ? 'Używasz' : 'Wybierz'}
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleBuySkin(skin)} 
+                            disabled={isAchievementSkin ? !canUnlockViaAchievement : petData.coins < skin.price}
+                            className={cn("w-full py-2 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1", (isAchievementSkin ? canUnlockViaAchievement : petData.coins >= skin.price) ? "bg-amber-500 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-400")}
+                          >
+                            <Coins size={10} /> {skin.price || 'FREE'}
+                          </button>
+                        )}
+                     </div>
+                   );
+                 })}
+               </div>
+             )}
+
+             {shopTab === 'accessories' && (
+               <div className="grid grid-cols-2 gap-4">
+                 {ACCESSORIES.map(acc => {
+                   const isUnlocked = (petData.unlockedAccessories || ['none']).includes(acc.id);
+                   const isEquipped = petData.currentAccessory === acc.id;
+
+                   return (
+                     <div key={acc.id} className={cn("p-4 rounded-[2rem] border-2 transition-all relative", isEquipped ? 'bg-accent-50/50 dark:bg-accent-500/5 border-accent-500' : 'bg-slate-50 dark:bg-slate-800/50 border-transparent')}>
+                        <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-3xl mx-auto mb-3 shadow-sm overflow-hidden">
+                           {acc.imageUrl ? (
+                             <img 
+                               src={acc.imageUrl} 
+                               className="w-10 h-10 object-contain" 
+                               onError={(e) => {
+                                 (e.target as HTMLImageElement).style.display = 'none';
+                                 const p = (e.target as HTMLElement).parentElement;
+                                 if (p && !p.querySelector('.fallback-icon')) {
+                                    const s = document.createElement('span');
+                                    s.className = 'fallback-icon';
+                                    s.innerText = acc.icon;
+                                    p.appendChild(s);
+                                 }
+                               }}
+                             />
+                           ) : acc.icon}
+                        </div>
+                        <h4 className="text-[10px] font-black dark:text-white mb-3 capitalize">{acc.name}</h4>
+                        {isUnlocked ? (
+                          <button onClick={() => handleEquipAccessory(acc.id)} disabled={isEquipped} className={cn("w-full py-2 rounded-xl text-[9px] font-black uppercase", isEquipped ? "bg-accent-100 dark:bg-accent-950 text-accent-600" : "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950")}>
+                            {isEquipped ? 'Nosisz' : 'Załóż'}
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleBuyAccessory(acc)} 
+                            disabled={petData.coins < acc.price}
+                            className={cn("w-full py-2 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1", petData.coins >= acc.price ? "bg-amber-500 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-400")}
+                          >
+                            <Coins size={10} /> {acc.price}
+                          </button>
+                        )}
+                     </div>
+                   );
+                 })}
+               </div>
+             )}
+
+             {shopTab === 'backgrounds' && (
+               <div className="grid grid-cols-2 gap-4">
+                 {BACKGROUNDS.map(bg => {
+                   const isUnlocked = (petData.unlockedBackgrounds || ['room']).includes(bg.id);
+                   const isEquipped = petData.currentBackground === bg.id;
+                   const isReward = !!bg.rewardTir;
+
+                   return (
+                     <div key={bg.id} className={cn("p-4 rounded-[2rem] border-2 transition-all relative", isEquipped ? 'bg-accent-50/50 dark:bg-accent-500/5 border-accent-500' : 'bg-slate-50 dark:bg-slate-800/50 border-transparent')}>
+                        <div className={cn("w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center text-3xl mx-auto mb-3 shadow-sm border border-white/20", bg.gradient)}>
+                           {bg.icon}
+                        </div>
+                        <h4 className="text-[10px] font-black dark:text-white mb-3 capitalize">{bg.name}</h4>
+                        {isUnlocked ? (
+                          <button onClick={() => handleEquipBackground(bg.id)} disabled={isEquipped} className={cn("w-full py-2 rounded-xl text-[9px] font-black uppercase", isEquipped ? "bg-accent-100 dark:bg-accent-950 text-accent-600" : "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950")}>
+                            {isEquipped ? 'Ustawione' : 'Ustaw'}
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleBuyBackground(bg)} 
+                            disabled={isReward || petData.coins < bg.price}
+                            className={cn("w-full py-2 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1", (!isReward && petData.coins >= bg.price) ? "bg-amber-500 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-400")}
+                          >
+                            {isReward ? 'Cel TIR' : <><Coins size={10} /> {bg.price}</>}
+                          </button>
+                        )}
+                     </div>
+                   );
+                 })}
+               </div>
+             )}
           </div>
 
           <div className="bg-slate-100 dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800">
@@ -1191,6 +1303,16 @@ export default function Profile({
                       <div className="flex flex-wrap gap-1 mt-1">
                          {med.reminders.map((r, i) => <span key={i} className="text-[9px] font-black bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full text-slate-500">{r}</span>)}
                       </div>
+                      {med.expiryDate && (
+                        <p className={`text-[9px] font-bold mt-2 flex items-center gap-1 ${
+                          new Date(med.expiryDate).getTime() < Date.now() + 7 * 24 * 60 * 60 * 1000 
+                            ? 'text-rose-500 animate-pulse' 
+                            : 'text-slate-400'
+                        }`}>
+                          <Calendar size={10} />
+                          Ważny do: {med.expiryDate}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -1203,7 +1325,14 @@ export default function Profile({
                         {med.active ? 'Aktywny' : 'Pauzowany'}
                     </button>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setNewMedication(med)} className="p-1 text-accent-500"><Settings size={14} /></button>
+                      <button onClick={() => setNewMedication({ 
+                        id: med.id,
+                        name: med.name,
+                        dosage: med.dosage,
+                        reminders: med.reminders,
+                        active: med.active,
+                        expiryDate: med.expiryDate || '' 
+                      })} className="p-1 text-accent-500"><Settings size={14} /></button>
                       <button onClick={() => deleteMedication(med.id)} className="p-1 text-rose-500"><Trash size={14} /></button>
                     </div>
                   </div>
@@ -1234,6 +1363,16 @@ export default function Profile({
                 />
                 
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-2 block">Data ważności leku</label>
+                  <input 
+                    type="date" 
+                    value={newMedication.expiryDate}
+                    onChange={e => setNewMedication({...newMedication, expiryDate: e.target.value})}
+                    className="w-full bg-transparent outline-none dark:text-white text-sm font-bold"
+                  />
+                </div>
+                
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Godziny przyjmowania</p>
                    <div className="flex flex-wrap gap-2 mb-3">
                      {newMedication.reminders.map((rem, idx) => (
@@ -1262,9 +1401,9 @@ export default function Profile({
                   >
                     {newMedication.id ? 'Zapisz Zmiany' : 'Dodaj Lek'}
                   </button>
-                  {newMedication.id && (
+                    {newMedication.id && (
                     <button 
-                      onClick={() => setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true })}
+                      onClick={() => setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true, expiryDate: '' })}
                       className="bg-slate-200 dark:bg-slate-800 p-4 rounded-2xl font-black text-[10px] uppercase dark:text-slate-400"
                     >
                       X
@@ -1949,11 +2088,46 @@ export default function Profile({
               }, 1500);
             }}
             disabled={updateLoading}
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 py-3 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
           >
             {updateLoading ? <Loader2 className="animate-spin" size={14} /> : null}
             Sprawdź Aktualizacje (v{APP_VERSION})
           </button>
+
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800/50">
+            <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
+              <History size={14} /> Historia zmian
+            </h4>
+            <div className="space-y-6">
+              {VERSIONS.map((v, i) => (
+                <div key={v.version} className={cn(
+                  "relative pl-6 border-l-2",
+                  i === 0 ? "border-accent-500" : "border-slate-200 dark:border-slate-800"
+                )}>
+                  <div className={cn(
+                    "absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 bg-white dark:bg-slate-900",
+                    i === 0 ? "border-accent-500" : "border-slate-200 dark:border-slate-800"
+                  )} />
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-black dark:text-white">v{v.version}</span>
+                    <span className="text-[9px] font-bold text-slate-400">{v.date}</span>
+                  </div>
+                  <p className="text-[10px] font-bold text-accent-500 mb-2">{v.title}</p>
+                  <ul className="space-y-1">
+                    {v.changes.slice(0, 3).map((change, idx) => (
+                      <li key={idx} className="text-[9px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
+                        <span className="mt-1 w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
+                        {change}
+                      </li>
+                    ))}
+                    {v.changes.length > 3 && (
+                      <li className="text-[8px] font-black text-slate-400 italic mt-1">+ {v.changes.length - 3} więcej zmian...</li>
+                    )}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
       </div>

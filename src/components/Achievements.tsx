@@ -1,15 +1,16 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Medal, Trophy, Star, Target, Zap, ChevronLeft, Flame, Award, Clock } from 'lucide-react';
+import { Medal, Trophy, Star, Target, Zap, ChevronLeft, Flame, Award, Clock, Coins, CheckCircle2 } from 'lucide-react';
 import { LogEntry } from '../types';
 
 interface AchievementsProps {
   logs: LogEntry[];
   user: any;
   setTab: (t: string) => void;
+  petData?: any;
 }
 
-export default function Achievements({ logs, user, setTab }: AchievementsProps) {
+export default function Achievements({ logs, user, setTab, petData }: AchievementsProps) {
   
   // Calculate stats to determine unlocked achievements
   const stats = useMemo(() => {
@@ -17,7 +18,7 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
     const glucoseLogs = logs.filter(l => l.type === 'glucose');
     const bolusLogs = logs.filter(l => l.type === 'bolus');
     
-    // Streaks
+    // Dates grouped by day
     const datesWithMeals = new Set(mealLogs.map(l => new Date(l.timestamp).toLocaleDateString()));
     const datesWithGlucose = new Set(glucoseLogs.map(l => new Date(l.timestamp).toLocaleDateString()));
     
@@ -48,9 +49,12 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       tirRatio,
       nightReadings,
       morningReadings,
-      detailedMeals
+      detailedMeals,
+      petLevel: petData?.level || 0,
+      petCoins: petData?.coins || 0,
+      completedQuests: petData?.completedQuests?.length || 0
     };
-  }, [logs]);
+  }, [logs, petData]);
 
   const achievements = useMemo(() => [
     {
@@ -62,16 +66,6 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       unlocked: stats.totalMeals >= 1,
       progress: Math.min(stats.totalMeals, 1),
       max: 1
-    },
-    {
-      id: "meal_streak",
-      title: "Szef Kuchni",
-      description: "Zapisz posiłki przez 7 różnych dni.",
-      icon: <Flame className="w-8 h-8 text-rose-500" />,
-      color: "bg-rose-500",
-      unlocked: stats.daysWithMeals >= 7,
-      progress: Math.min(stats.daysWithMeals, 7),
-      max: 7
     },
     {
       id: "detailed_meal",
@@ -162,6 +156,26 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
       unlocked: stats.totalMeals > 0 && stats.totalGlucose > 0 && stats.totalBoluses > 0,
       progress: (stats.totalMeals > 0 ? 1 : 0) + (stats.totalGlucose > 0 ? 1 : 0) + (stats.totalBoluses > 0 ? 1 : 0),
       max: 3
+    },
+    {
+      id: "rich_pet",
+      title: "Zamożny Gliko",
+      description: "Zebierz 500 monet w grze i zadaniach.",
+      icon: <Coins className="w-8 h-8 text-amber-500" />,
+      color: "bg-amber-500",
+      unlocked: stats.petCoins >= 500,
+      progress: Math.min(stats.petCoins, 500),
+      max: 500
+    },
+    {
+      id: "level_5",
+      title: "Mentor",
+      description: "Rozwiń swojego stworka do 5 poziomu.",
+      icon: <Star className="w-8 h-8 text-indigo-500" />,
+      color: "bg-indigo-500",
+      unlocked: stats.petLevel >= 5,
+      progress: Math.min(stats.petLevel, 5),
+      max: 5
     }
   ], [stats]);
 

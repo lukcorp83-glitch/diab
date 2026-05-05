@@ -21,11 +21,13 @@ import {
   Signal,
   Radio,
   Droplet,
+  CheckCircle2,
 } from "lucide-react";
 import { cn, calculateIOB } from "../lib/utils";
 import GlucoseModal from "./GlucoseModal";
 import SwipeableItem from "./SwipeableItem";
 import GlikoWidget from "./GlikoWidget";
+import GlikoSenseTips from "./GlikoSenseTips";
 import { db } from "../lib/firebase";
 import {
   collection,
@@ -44,6 +46,10 @@ interface DashboardProps {
   initialAction?: string | null;
   onClearInitialAction?: () => void;
   pumpStatus?: any;
+  nsUrl?: string;
+  nsSecret?: string;
+  petData?: any;
+  syncStatus?: { status: 'idle' | 'syncing' | 'success' | 'error', lastSync?: number };
 }
 
 export default function Dashboard({
@@ -54,6 +60,10 @@ export default function Dashboard({
   initialAction,
   onClearInitialAction,
   pumpStatus,
+  nsUrl,
+  nsSecret,
+  petData,
+  syncStatus
 }: DashboardProps) {
   const [range, setRange] = useState(3);
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
@@ -358,6 +368,11 @@ export default function Dashboard({
           tir={tir}
           hba1c={hba1c}
         />
+      </motion.div>
+
+      {/* AI Health Tips */}
+      <motion.div variants={itemVariants}>
+        <GlikoSenseTips logs={logs} />
       </motion.div>
 
       {/* Pattern Analysis Alert */}
@@ -725,9 +740,28 @@ export default function Dashboard({
         onClose={() => setIsGlucoseModalOpen(false)}
         user={user}
       />
-      {settings.childMode && (
-        <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} />
-      )}
+      
+      {/* Gliko Virtual Pet & Sync Status */}
+      <div className="fixed bottom-24 right-4 z-[45]">
+         <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} />
+         {nsUrl && syncStatus && (
+           <motion.div 
+             initial={{ opacity: 0, scale: 0.8 }}
+             animate={{ opacity: 1, scale: 1 }}
+             className={cn(
+               "absolute -top-1 -left-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center shadow-lg",
+               syncStatus.status === 'syncing' ? 'bg-indigo-500' : 
+               syncStatus.status === 'success' ? 'bg-emerald-500' : 
+               syncStatus.status === 'error' ? 'bg-rose-500' : 'bg-slate-400'
+             )}
+             title={syncStatus.status === 'syncing' ? 'Synchronizacja...' : `Ostatnia synchronizacja: ${syncStatus.lastSync ? new Date(syncStatus.lastSync).toLocaleTimeString() : 'brak'}`}
+           >
+             {syncStatus.status === 'syncing' && <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />}
+             {syncStatus.status === 'success' && <CheckCircle2 size={8} className="text-white" />}
+             {syncStatus.status === 'error' && <Zap size={8} className="text-white fill-current" />}
+           </motion.div>
+         )}
+      </div>
     </motion.div>
   );
 }

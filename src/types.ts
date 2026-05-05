@@ -41,6 +41,7 @@ export interface Medication {
   dosage: string;
   reminders: string[]; // "HH:mm"
   active: boolean;
+  expiryDate?: string; // "YYYY-MM-DD"
 }
 
 export interface UserSettings {

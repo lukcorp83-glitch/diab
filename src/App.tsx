@@ -74,8 +74,9 @@ import { nightscoutService } from './services/nightscout';
 import Logo from './components/Logo';
 
 import OnboardingTutorial from './components/OnboardingTutorial';
-
 import NotificationCenter from './components/NotificationCenter';
+import ChangelogPopup from './components/ChangelogPopup';
+import { CURRENT_VERSION } from './constants/versions';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -92,10 +93,32 @@ export default function App() {
   const [initialAction, setInitialAction] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [petData, setPetData] = useState<any>(null);
+  const [syncStatus, setSyncStatus] = useState<{ status: 'idle' | 'syncing' | 'success' | 'error', lastSync?: number }>({ status: 'idle' });
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sharedPlate, setSharedPlate] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Check version for changelog
+    const lastSeen = localStorage.getItem('lastSeenVersion');
+    if (lastSeen !== CURRENT_VERSION) {
+      // Only show if it's not the very first visit (we show tutorial then)
+      if (lastSeen || localStorage.getItem('hasSeenTutorial')) {
+        setShowChangelog(true);
+      } else {
+        // First visit - set the version so we don't show changelog right after tutorial
+        localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
+      }
+    }
+  }, []);
+
+  const handleCloseChangelog = () => {
+    setShowChangelog(false);
+    localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -110,6 +133,15 @@ export default function App() {
     setDirection(getIndex(newTab) >= getIndex(activeTab) ? 1 : -1);
     setActiveTab(newTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!user) return;
+    const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+    const unsub = onSnapshot(petRef, (d) => {
+      if (d.exists()) setPetData(d.data());
+    });
+    return unsub;
+  }, [user]);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -174,6 +206,27 @@ export default function App() {
                localStorage.setItem(notifiedKey, 'true');
             }
          }
+      }
+
+      // Medication Expiry Notification Check
+      if (userSettings.medications) {
+         userSettings.medications.forEach(med => {
+            if (med.expiryDate && med.active) {
+               const expiryTime = new Date(med.expiryDate).getTime();
+               const daysToExpiry = (expiryTime - now) / (1000 * 60 * 60 * 24);
+               
+               if (daysToExpiry <= 7 && daysToExpiry > 0) {
+                  const notifiedKey = `notified_expiry_${med.id}_${med.expiryDate}`;
+                  if (!localStorage.getItem(notifiedKey)) {
+                     new Notification(`Kończy się ważność: ${med.name}`, {
+                        body: `Lek straci ważność za ${Math.ceil(daysToExpiry)} dni (${med.expiryDate}). Pamiętaj o uzupełnieniu zapasów!`,
+                        icon: '/apple-touch-icon.png'
+                     });
+                     localStorage.setItem(notifiedKey, 'true');
+                  }
+               }
+            }
+         });
       }
     };
 
@@ -309,6 +362,7 @@ export default function App() {
       syncTaskRef.current = true;
       
       try {
+        setSyncStatus(prev => ({ ...prev, status: 'syncing' }));
         console.log("Starting Nightscout sync...");
         // Fetch fewer entries periodically to prevent quota issues
         const entries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 300); 
@@ -359,8 +413,10 @@ export default function App() {
            console.log(`Nightscout: Pobrano ${allNewLogs.length} wpisów, ale wszystkie są już zsynchronizowane.`);
         }
         console.log("Nightscout sync complete.");
+        setSyncStatus({ status: 'success', lastSync: Date.now() });
       } catch (err) {
         console.error("Nightscout sync error:", err);
+        setSyncStatus({ status: 'error', lastSync: Date.now() });
         if (manual) {
            console.error("Nightscout: Wystąpił nieoczekiwany błąd podczas synchronizacji.");
         }
@@ -583,6 +639,10 @@ export default function App() {
           initialAction={initialAction}
           onClearInitialAction={() => setInitialAction(null)}
           pumpStatus={pumpStatus}
+          nsUrl={nsUrl}
+          nsSecret={nsSecret}
+          petData={petData}
+          syncStatus={syncStatus}
         />
       )}
       {activeTab === 'bolus' && (
@@ -616,7 +676,7 @@ export default function App() {
         />
       )}
       {activeTab === 'achievements' && (
-        <Achievements logs={logs} user={user} setTab={changeTab} />
+        <Achievements logs={logs} user={user} setTab={changeTab} petData={petData} />
       )}
     </React.Suspense>
   );
@@ -752,6 +812,9 @@ export default function App() {
               setShowTutorial(false);
               localStorage.setItem('hasSeenTutorial', 'true');
            }} />
+        )}
+        {showChangelog && (
+           <ChangelogPopup onClose={handleCloseChangelog} />
         )}
       </AnimatePresence>
     </div>

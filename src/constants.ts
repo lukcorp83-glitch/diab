@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const APP_VERSION = '2.8';
+export const APP_VERSION = '3.1.0';
 
 export const CATEGORIES = [
   "Owoce i Warzywa",
@@ -146,4 +146,45 @@ export const SKINS: PetSkin[] = [
   { id: 'ninja', name: 'Ninja Cukru', icon: '🥷', price: 0, unlockedBy: 'tir_ninja', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Ninja.png' },
   { id: 'fire', name: 'Ognisty Potworek', icon: '🔥', price: 1000, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Heart%20on%20Fire.png' },
   { id: 'unicorn', name: 'Jednorożec', icon: '🦄', price: 0, unlockedBy: 'tir_master', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Unicorn.png' },
+  { id: 'dragon', name: 'Smok Gnom', icon: '🐲', price: 2000, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Dragon%20Face.png' },
+  { id: 'panda', name: 'Panda Spokoju', icon: '🐼', price: 450, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Panda.png' },
+  { id: 'superman', name: 'SuperGliko', icon: '🦸', price: 1500, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Supervillain.png' },
+];
+
+export interface PetAccessory {
+  id: string;
+  name: string;
+  icon: string;
+  imageUrl: string;
+  price: number;
+}
+
+export const ACCESSORIES: PetAccessory[] = [
+  { id: 'none', name: 'Brak', icon: '❌', imageUrl: '', price: 0 },
+  { id: 'hat_top', name: 'Cylinder', icon: '🎩', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Top%20Hat.png', price: 150 },
+  { id: 'glasses_cool', name: 'Okulary VIP', icon: '🕶️', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Sunglasses.png', price: 200 },
+  { id: 'crown', name: 'Korona', icon: '👑', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Crown.png', price: 500 },
+  { id: 'scarf', name: 'Szalik', icon: '🧣', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Scarf.png', price: 100 },
+  { id: 'ribbon', name: 'Kokarda', icon: '🎀', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Ribbon.png', price: 75 },
+  { id: 'magic_wand', name: 'Różdżka', icon: '🪄', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Magic%20Wand.png', price: 300 },
+  { id: 'shield', name: 'Tarcza', icon: '🛡️', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Shield.png', price: 400 },
+  { id: 'balloon', name: 'Balon', icon: '🎈', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Balloon.png', price: 50 },
+];
+
+export interface PetBackground {
+  id: string;
+  name: string;
+  icon: string;
+  gradient: string;
+  price: number;
+  rewardTir?: number;
+}
+
+export const BACKGROUNDS: PetBackground[] = [
+  { id: 'room', name: 'Pokój', icon: '🏠', gradient: 'from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900', price: 0 },
+  { id: 'forest', name: 'Las', icon: '🌲', gradient: 'from-emerald-50 to-green-100 dark:from-emerald-900/40 dark:to-green-900/20', price: 300 },
+  { id: 'space', name: 'Kosmos', icon: '🚀', gradient: 'from-indigo-900 to-slate-900 dark:from-indigo-950 dark:to-black', price: 750 },
+  { id: 'beach', name: 'Plaża', icon: '🏖️', gradient: 'from-sky-100 to-amber-50 dark:from-sky-900/30 dark:to-amber-900/20', price: 500 },
+  { id: 'candy', name: 'Kraina Słodyczy', icon: '🍭', gradient: 'from-pink-50 to-purple-100 dark:from-pink-900/20 dark:to-purple-900/30', price: 1000 },
+  { id: 'champion', name: 'Arena Mistrza', icon: '🏆', gradient: 'from-amber-200 via-yellow-100 to-amber-200 dark:from-amber-900 dark:via-yellow-900 dark:to-amber-900', price: 0, rewardTir: 90 },
 ];

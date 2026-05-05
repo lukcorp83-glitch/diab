@@ -1,11 +1,14 @@
-import { SKINS, PetSkin } from '../constants';
-import { getEffectiveUid } from '../lib/utils';
-import React, { useState, useEffect, useRef } from 'react';
+import { SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground } from '../constants';
+import { getEffectiveUid, cn, calculateIOB } from '../lib/utils';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, AlertCircle, ShoppingBag, Store, X, Coins, Gamepad2, Target, Trophy, CheckCircle2, Utensils } from 'lucide-react';
+import { Heart, Sparkles, AlertCircle, ShoppingBag, Store, X, Coins, Gamepad2, Target, Trophy, CheckCircle2, Utensils, Mountain, Book, HelpCircle, Activity, Flower2 } from 'lucide-react';
 import { doc, onSnapshot, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { LogEntry } from '../types';
+import GlikoDiary from './GlikoDiary';
+import GlikoQuiz from './GlikoQuiz';
+import GlikoGarden from './GlikoGarden';
 
 
 export default function VirtualPet({ user, logs, glucose }: { user: any, logs: LogEntry[], glucose: number | null }) {
@@ -20,13 +23,25 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     coins?: number,
     skin?: string,
     unlockedSkins?: string[],
+    currentAccessory?: string,
+    unlockedAccessories?: string[],
+    currentBackground?: string,
+    unlockedBackgrounds?: string[],
     petCountToday?: number,
     lastPettedDate?: string,
+    completedQuests?: string[],
+    lastQuestReset?: string,
   } | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showQuests, setShowQuests] = useState(false);
+  const [shopTab, setShopTab] = useState<'skins' | 'accessories' | 'backgrounds'>('skins');
   const [showGame, setShowGame] = useState(false);
+  const [showDiary, setShowDiary] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [showGarden, setShowGarden] = useState(false);
+  const [activeQuiz, setActiveQuiz] = useState<any>(null);
   const [gameState, setGameState] = useState<'idle' | 'aiming' | 'result'>('idle');
   const [gamePower, setGamePower] = useState(0);
   const [gameResult, setGameResult] = useState({ coins: 0, text: '' });
@@ -40,11 +55,13 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [imageError, setImageError] = useState<string | null>(null);
+  const [accError, setAccError] = useState<string | null>(null);
   const prevLogsRef = useRef(logs.length);
 
   useEffect(() => {
     setImageError(null);
-  }, [petData?.skin, petData?.level, glucose]);
+    setAccError(null);
+  }, [petData?.skin, petData?.level, petData?.currentAccessory, glucose]);
 
   const triggerParticles = () => {
     const newParticles = Array.from({ length: 3 }).map((_, i) => ({ id: Date.now() + i, x: Math.random() * 40 - 20 }));
@@ -73,6 +90,10 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
           coins: 0,
           skin: 'default',
           unlockedSkins: ['default'],
+          currentAccessory: 'none',
+          unlockedAccessories: ['none'],
+          currentBackground: 'room',
+          unlockedBackgrounds: ['room'],
           petCountToday: 0,
           lastPettedDate: new Date().toISOString().split('T')[0]
         });
@@ -80,6 +101,136 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     });
     return unsub;
   }, [user]);
+
+  const dailyQuests = [
+    { id: 'pet_3_times', title: 'Przyjaciel Gliko', desc: 'Pogłaszcz Gliko 3 razy dzisiaj', goal: 3, rewardXp: 50, rewardCoins: 10 },
+    { id: 'log_3_times', title: 'Dziennikarz', desc: 'Zapisz 3 dowolne wpisy (posiłek, cukier itp.)', goal: 3, rewardXp: 100, rewardCoins: 25 },
+    { id: 'check_sugar', title: 'Cukrowy Mistrz', desc: 'Sprawdź cukier rano (5:00 - 10:00)', goal: 1, rewardXp: 150, rewardCoins: 50 },
+  ];
+
+  const getQuestProgress = (questId: string) => {
+    if (!petData) return 0;
+    if (questId === 'pet_3_times') return petData.petCountToday || 0;
+    if (questId === 'log_3_times') {
+      const today = new Date().setHours(0,0,0,0);
+      return logs.filter(l => l.timestamp >= today).length;
+    }
+    if (questId === 'check_sugar') {
+      const today = new Date().setHours(0,0,0,0);
+      const morningGlucose = logs.filter(l => {
+        const d = new Date(l.timestamp);
+        const h = d.getHours();
+        return l.type === 'glucose' && l.timestamp >= today && h >= 5 && h <= 10;
+      });
+      return morningGlucose.length > 0 ? 1 : 0;
+    }
+    return 0;
+  };
+
+  const handleClaimQuest = async (questId: string) => {
+    if (!user || !petData) return;
+    const quest = dailyQuests.find(q => q.id === questId);
+    const progress = getQuestProgress(questId);
+    
+    if (quest && progress >= quest.goal && !(petData.completedQuests || []).includes(questId)) {
+      const xpReq = petData.level * 100;
+      let newXp = (petData.xp || 0) + quest.rewardXp;
+      let newLevel = petData.level;
+      
+      if (newXp >= xpReq) {
+        newLevel++;
+        newXp -= xpReq;
+      }
+
+      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+        xp: newXp,
+        level: newLevel,
+        coins: (petData.coins || 0) + quest.rewardCoins,
+        completedQuests: [...(petData.completedQuests || []), questId],
+        happiness: Math.min(100, (petData.happiness || 0) + 15)
+      });
+      triggerParticles();
+      setReaction('happy');
+      setTimeout(() => setReaction('idle'), 2000);
+    }
+  };
+
+  const handleClaimQuestRewards = async (rewardCoins: number, rewardXp: number) => {
+    if (!user || !petData) return;
+    const xpReq = petData.level * 100;
+    let newXp = (petData.xp || 0) + rewardXp;
+    let newLevel = petData.level;
+    
+    if (newXp >= xpReq) {
+      newLevel++;
+      newXp -= xpReq;
+    }
+
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+      xp: newXp,
+      level: newLevel,
+      coins: (petData.coins || 0) + rewardCoins,
+      happiness: Math.min(100, (petData.happiness || 0) + 15)
+    });
+    triggerParticles();
+    setReaction('happy');
+    setShowQuiz(false);
+    setTimeout(() => setReaction('idle'), 2000);
+  };
+
+  const getReactionEmoji = () => {
+    if (glucose !== null) {
+      if (glucose < 70) return '😨'; // Przestraszony/Niska glikemia
+      if (glucose > 250) return '😴'; // Senny/Wysoka glikemia
+    }
+    if ((reaction as string) === 'happy') return '😊';
+    if ((reaction as string) === 'eating') return '😋';
+    if ((reaction as string) === 'playing') return '🎮';
+    return '😃';
+  };
+
+  // Reset daily quests
+  useEffect(() => {
+    if (!user || !petData) return;
+    const today = new Date().toISOString().split('T')[0];
+    if (petData.lastQuestReset !== today) {
+      updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+        completedQuests: [],
+        lastQuestReset: today
+      });
+    }
+  }, [user, petData?.lastQuestReset]);
+
+  // Handle TIR reward for backgrounds
+  useEffect(() => {
+    if (!user || !logs.length || !petData) return;
+    
+    const checkRewards = async () => {
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const recentLogs = logs.filter(l => l.type === 'glucose' && new Date(l.timestamp).getTime() > thirtyDaysAgo);
+      
+      if (recentLogs.length >= 20) { // Minimum readings for monthly TIR record
+        const inRange = recentLogs.filter(l => l.value >= 70 && l.value <= 140).length;
+        const tir = (inRange / recentLogs.length) * 100;
+        
+        const unlocked = petData.unlockedBackgrounds || ['room'];
+        const rewardsToUnlock = BACKGROUNDS.filter(bg => 
+          bg.rewardTir && 
+          tir >= bg.rewardTir && 
+          !unlocked.includes(bg.id)
+        );
+        
+        if (rewardsToUnlock.length > 0) {
+          await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+            unlockedBackgrounds: [...unlocked, ...rewardsToUnlock.map(r => r.id)]
+          });
+          alert(`Gratulacje! Odblokowano nowe tło: ${rewardsToUnlock[0].name} za świetny TIR (${Math.round(tir)}%)!`);
+        }
+      }
+    };
+    
+    checkRewards();
+  }, [logs.length, user, petData?.unlockedBackgrounds]);
 
   // Auto XP when user logs data
   useEffect(() => {
@@ -124,6 +275,20 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
       if (gameRequestRef.current) cancelAnimationFrame(gameRequestRef.current);
     }
   }, []);
+
+  const glucoseStatusText = useMemo(() => {
+    if (glucose === null) return null;
+    if (glucose < 70) return "Gliko potrzebuje soku! 🧃";
+    if (glucose > 250) return "Gliko jest senny przez wysoki cukier... 💧";
+    return null;
+  }, [glucose]);
+
+  const currentIOB = useMemo(() => {
+    // Basic IOB calculation for visuals
+    const bolusLogs = logs.filter(l => l.type === 'bolus');
+    const result = calculateIOB(bolusLogs, 3);
+    return typeof result === 'number' ? result : (result as any).iob || 0;
+  }, [logs]);
 
   if (!petData) return null;
 
@@ -198,7 +363,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     setIsEditingName(false);
   };
 
-  const getPetVisual = (skinId?: string) => {
+  const getPetVisual = (skinId?: string, accessoryId?: string) => {
     let src = '';
     let emoji = '';
     
@@ -238,7 +403,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
             emoji = '🥚';
         } else if (lvl < 10) {
             src = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Turtle.png';
-            emoji = '🐢'; // Lizard isn't readily available, turtle is cuter
+            emoji = '🐢'; 
         } else if (lvl < 15) {
             src = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Sauropod.png';
             emoji = '🦕';
@@ -251,6 +416,9 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
         }
     }
 
+    const currentAccId = accessoryId || petData.currentAccessory || 'none';
+    const accessory = ACCESSORIES.find(a => a.id === currentAccId);
+
     if (src && imageError !== src) {
       return (
         <div className="relative w-full h-full flex items-center justify-center p-1">
@@ -261,6 +429,33 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
             referrerPolicy="no-referrer"
             onError={() => setImageError(src)}
           />
+          {accessory && accessory.imageUrl && accError !== accessory.imageUrl ? (
+             <img 
+               src={accessory.imageUrl} 
+               alt="accessory" 
+               className={`absolute z-20 w-1/2 h-1/2 object-contain pointer-events-none drop-shadow-md ${
+                 accessory.id.includes('hat') ? 'top-[-5%] left-1/2 -translate-x-1/2' : 
+                 accessory.id.includes('glasses') ? 'top-[30%] left-1/2 -translate-x-1/2 scale-110' :
+                 accessory.id.includes('crown') ? 'top-[-15%] left-1/2 -translate-x-1/2 scale-125' :
+                 accessory.id.includes('ribbon') ? 'top-[10%] right-[0%]' :
+                 'bottom-[10%] left-1/2 -translate-x-1/2'
+               }`}
+               referrerPolicy="no-referrer"
+               onError={() => setAccError(accessory.imageUrl)}
+             />
+          ) : (
+            accessory && accessory.icon && accessory.id !== 'none' && (
+              <span className={`absolute z-20 pointer-events-none text-xl ${
+                accessory.id.includes('hat') ? 'top-[-15%] scale-110' : 
+                accessory.id.includes('glasses') ? 'top-[22%]' :
+                accessory.id.includes('crown') ? 'top-[-20%] scale-125' :
+                accessory.id.includes('ribbon') ? 'top-[0%] right-[0%]' :
+                'bottom-[5%]'
+              }`}>
+                {accessory.icon}
+              </span>
+            )
+          )}
         </div>
       );
     }
@@ -268,6 +463,17 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     return (
       <div className="relative w-full h-full flex items-center justify-center p-1 font-emoji text-3xl drop-shadow-lg">
         {emoji || '🐾'}
+        {accessory && accessory.icon && accessory.id !== 'none' && (
+          <span className={`absolute text-xl pointer-events-none ${
+             accessory.id.includes('hat') ? 'top-[-10%]' : 
+             accessory.id.includes('glasses') ? 'top-[20%]' :
+             accessory.id.includes('crown') ? 'top-[-20%] scale-125' :
+             accessory.id.includes('ribbon') ? 'top-[0%] right-[0%]' :
+             'bottom-[0%]'
+          }`}>
+            {accessory.icon}
+          </span>
+        )}
       </div>
     );
   };
@@ -276,19 +482,19 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     if (glucose !== null) {
       if (glucose < 70) {
         const texts = [
-          'Brrr, zamarzam! Potrzebuję węgielków ratunkowych! 🥶',
-          'Słuchaj, cukier nam spada! Czas na małą przekąskę?',
-          'Oj, coś słabo się czuję. Ratujmy sytuację węglami!',
-          'Hipo alarm! Gdzie jest soczek?!',
+          'Brrr, zamarzam! Potrzebuję węgla ratunkowego! 🥶',
+          'Słuchaj, cukier nam spada! Czas na małą przekąskę? 🍎',
+          'Oj, coś słabo się czuję. Ratujmy sytuację węglami! 📉',
+          'Hipo alarm! Gdzie jest soczek?! 🧃',
         ];
         return texts[Math.floor(Math.random() * texts.length)];
       }
       if (glucose > 180) {
         const texts = [
           'Uff, ale gorąco! Ten cukier mnie obciąża... 🥵',
-          'Wysoko latamy! Czas na korektę, bo zaraz pęknę!',
-          'Czuję się jak balon wypełniony syropem. Zbijmy to trochę!',
-          'Pikny cukier, szkoda że nie w normie! Odczekajmy bolusa.',
+          'Wysoko latamy! Czas na korektę, bo zaraz pęknę! 🚀',
+          'Czuję się jak balon wypełniony syropem. Zbijmy to! 🎈',
+          'Piękny cukier, szkoda że nie w normie! Czas na bolus? 💉',
         ];
         return texts[Math.floor(Math.random() * texts.length)];
       }
@@ -296,26 +502,26 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     if (petData.happiness < 30) {
       const texts = [
         'Smutno mi bez Ciebie... Pogłaszcz mnie! 🥺',
-        'Zostałem sam... Pamiętasz o moich głaskach?',
-        'Czuję się zaniedbany. Może mała interakcja?',
+        'Zostałem sam... Pamiętasz o moich głaskach? ❤️',
+        'Czuję się zaniedbany. Pobawisz się ze mną? 🏠',
       ];
       return texts[Math.floor(Math.random() * texts.length)];
     }
     if (petData.happiness < 60) {
       const texts = [
-        'Pobawimy się? Brakuje mi trochę atencji!',
-        'Jest okej, ale mogłoby być weselej!',
-        'Co tam u Ciebie? Mnie trochę nudno.',
+        'Pobawimy się? Brakuje mi trochę atencji! 🎾',
+        'Jest okej, ale mogłoby być weselej! 🙂',
+        'Co tam u Ciebie? Mnie trochę nudno. 💤',
       ];
       return texts[Math.floor(Math.random() * texts.length)];
     }
     
     const texts = [
       'Czuję się dzisiaj absolutnie fantastycznie! ✨',
-      'Mamy świetny dzień! Tak trzymać uśmiech!',
-      'Jestem pełen energii! Razem damy radę cukrzycy!',
-      'Wyglądasz dzisiaj super! Ja też się tak czuję!',
-      'TIR na poziomie? Ja mam nastrój na 100%!',
+      'Mamy świetny dzień! Tak trzymać! 😊',
+      'Jestem pełen energii! Razem damy radę! 💪',
+      'Wyglądasz dzisiaj super! Ja też się tak czuję! 😎',
+      'TIR w normie? Ja mam nastrój na 100%! 📈',
     ];
     return texts[Math.floor(Math.random() * texts.length)];
   };
@@ -400,6 +606,52 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
         skin: skinId
      });
   };
+
+  const handleBuyAccessory = async (acc: PetAccessory) => {
+    if (!user || (petData.unlockedAccessories || []).includes(acc.id)) return;
+    if ((petData.coins || 0) < acc.price) return;
+    
+    const unlocked = petData.unlockedAccessories || ['none'];
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+       coins: (petData.coins || 0) - acc.price,
+       unlockedAccessories: [...unlocked, acc.id],
+       currentAccessory: acc.id
+    });
+  };
+
+  const handleEquipAccessory = async (accId: string) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+       currentAccessory: accId
+    });
+  };
+
+  const handleBuyBackground = async (bg: PetBackground) => {
+    if (!user || (petData.unlockedBackgrounds || []).includes(bg.id)) return;
+    if (bg.rewardTir) {
+      alert(`To tło jest specjalne! Utrzymaj TIR powyżej ${bg.rewardTir}% przez dłuższy czas, aby je otrzymać.`);
+      return;
+    }
+    if ((petData.coins || 0) < bg.price) return;
+    
+    const unlocked = petData.unlockedBackgrounds || ['room'];
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+       coins: (petData.coins || 0) - bg.price,
+       unlockedBackgrounds: [...unlocked, bg.id],
+       currentBackground: bg.id
+    });
+  };
+
+  const handleEquipBackground = async (bgId: string) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+       currentBackground: bgId
+    });
+  };
+
+  const currentBg = BACKGROUNDS.find(b => b.id === (petData?.currentBackground || 'room')) || BACKGROUNDS[0];
+  
+  const energyLevel = Math.max(0, Math.min(100, (1 - currentIOB / 10) * 100)); // Just a visual scale
 
   const startMiniGame = () => {
     setShowGame(true);
@@ -520,32 +772,152 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                    )}
                 </div>
               </div>
-            ) : showShop ? (
+            ) : showQuests ? (
+               <div className="p-4">
+                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Trophy size={16} className="text-emerald-500" /> Misje Dnia</h4>
+                    <button onClick={() => setShowQuests(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
+                 </div>
+                 
+                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 no-scrollbar pb-2">
+                    {dailyQuests.map(quest => {
+                      const progress = getQuestProgress(quest.id);
+                      const isCompleted = (petData.completedQuests || []).includes(quest.id);
+                      const canClaim = progress >= quest.goal && !isCompleted;
+                      
+                      return (
+                        <div key={quest.id} className={cn("p-3 rounded-2xl border transition-all", isCompleted ? 'bg-emerald-50 dark:bg-emerald-500/5 border-emerald-500/20 opacity-60' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800')}>
+                           <div className="flex justify-between items-start mb-2">
+                             <div className="pr-2">
+                               <h5 className="text-[11px] font-black dark:text-white leading-tight">{quest.title}</h5>
+                               <p className="text-[9px] text-slate-500 font-medium">{quest.desc}</p>
+                             </div>
+                             <div className="text-right shrink-0">
+                               <div className="flex items-center gap-1 text-[9px] font-black text-amber-500"><Coins size={10} /> +{quest.rewardCoins}</div>
+                               <div className="flex items-center gap-1 text-[9px] font-black text-accent-500"><Sparkles size={10} /> +{quest.rewardXp}</div>
+                             </div>
+                           </div>
+                           
+                           <div className="space-y-1">
+                             <div className="flex justify-between text-[8px] font-bold text-slate-400 lowercase">
+                               <span>Postęp</span>
+                               <span>{progress} / {quest.goal}</span>
+                             </div>
+                             <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                               <motion.div 
+                                 initial={{ width: 0 }}
+                                 animate={{ width: `${Math.min(100, (progress/quest.goal)*100)}%` }}
+                                 className="h-full bg-emerald-500" 
+                               />
+                             </div>
+                           </div>
+                           
+                           {canClaim && (
+                             <button 
+                               onClick={() => handleClaimQuest(quest.id)}
+                               className="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] py-1.5 rounded-xl shadow-lg shadow-emerald-500/20 uppercase tracking-widest active:scale-95 transition-all"
+                             >
+                               Odbierz
+                             </button>
+                           )}
+                           
+                           {isCompleted && <div className="text-emerald-500 text-center mt-2 flex justify-center"><CheckCircle2 size={16} /></div>}
+                        </div>
+                      );
+                    })}
+                 </div>
+               </div>
+            ) : showGarden ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Flower2 size={16} className="text-emerald-500" /> Twój Ogród</h4>
+                  <button onClick={() => setShowGarden(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto no-scrollbar">
+                  <GlikoGarden logs={logs} />
+                </div>
+              </div>
+            ) : showDiary ? (
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Book size={16} className="text-indigo-500" /> Dziennik Gliko</h4>
+                  <button onClick={() => setShowDiary(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
+                </div>
+                <div className="max-h-[350px] overflow-y-auto pr-1 no-scrollbar">
+                  <GlikoDiary logs={logs} petName={petData.name} />
+                </div>
+              </div>
+            ) : showQuiz ? (
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><HelpCircle size={16} className="text-amber-500" /> Quiz Edu</h4>
+                  <button onClick={() => setShowQuiz(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto no-scrollbar">
+                  <GlikoQuiz onComplete={handleClaimQuestRewards} />
+                </div>
+              </div>
+            ) : showShop ? (
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                    <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Store size={16} className="text-accent-500" /> Sklepik</h4>
                    <div className="flex items-center gap-3">
                      <span className="text-xs font-bold text-amber-500 flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full"><Coins size={12} /> {petData.coins || 0}</span>
                      <button onClick={() => setShowShop(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
                    </div>
                 </div>
+
+                <div className="flex gap-1 mb-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                  <button 
+                    onClick={() => setShopTab('skins')}
+                    className={`flex-1 text-[9px] font-black py-1.5 rounded-md transition-all ${shopTab === 'skins' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
+                  >
+                    SKÓRKI
+                  </button>
+                  <button 
+                    onClick={() => setShopTab('accessories')}
+                    className={`flex-1 text-[9px] font-black py-1.5 rounded-md transition-all ${shopTab === 'accessories' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
+                  >
+                    DODATKI
+                  </button>
+                  <button 
+                    onClick={() => setShopTab('backgrounds')}
+                    className={`flex-1 text-[9px] font-black py-1.5 rounded-md transition-all ${shopTab === 'backgrounds' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
+                  >
+                    TŁA
+                  </button>
+                </div>
                 
-                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 pb-2 custom-scrollbar">
-                    {SKINS.map(skin => {
+                <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 pb-2 custom-scrollbar">
+                    {shopTab === 'skins' && SKINS.map(skin => {
                       const isUnlocked = (petData.unlockedSkins || ['default']).includes(skin.id);
                       const isEquipped = (petData.skin || 'default') === skin.id;
                       const canAfford = (petData.coins || 0) >= skin.price;
                       const isAchievementSkin = !!skin.unlockedBy;
 
                       return (
-                        <div key={skin.id} className={`flex items-center justify-between p-3 rounded-xl border ${isEquipped ? 'border-accent-500 bg-accent-50 dark:bg-accent-500/5' : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'}`}>
-                          <div className="flex items-center gap-3">
-                             <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                        <div key={skin.id} className={`flex items-center justify-between p-2 rounded-xl border ${isEquipped ? 'border-accent-500 bg-accent-50 dark:bg-accent-500/5' : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <div className="flex items-center gap-2">
+                             <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
                                {skin.imageUrl ? (
-                                 <img src={skin.imageUrl} alt={skin.name} className="w-6 h-6 object-contain" />
-                               ) : (
-                                 <span className="text-xl">{skin.icon}</span>
-                               )}
+                                  <img 
+                                    src={skin.imageUrl} 
+                                    alt={skin.name} 
+                                    className="w-6 h-6 object-contain" 
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      const p = (e.target as HTMLElement).parentElement;
+                                      if (p && !p.querySelector('.fallback-icon')) {
+                                        const s = document.createElement('span');
+                                        s.className = 'text-xl fallback-icon';
+                                        s.innerText = skin.icon;
+                                        p.appendChild(s);
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-xl">{skin.icon}</span>
+                                )}
                              </div>
                              <div>
                                 <p className="text-[10px] font-black dark:text-white capitalize">{skin.name}</p>
@@ -554,25 +926,125 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                                     ? <span className="text-[9px] font-bold text-accent-500 flex items-center gap-1"><Trophy size={10} /> Specjalna</span>
                                     : <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-1"><Coins size={10} /> {skin.price}</span>
                                 )}
-                                {isUnlocked && <span className="text-[9px] font-bold text-emerald-500">W twojej kolekcji</span>}
                              </div>
                           </div>
                           <div>
                              {isEquipped ? (
-                                <span className="text-[9px] font-black text-white bg-accent-500 px-3 py-1.5 rounded-full">UZYWASZ</span>
+                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">UZYWASZ</span>
                              ) : isUnlocked ? (
-                                <button onClick={() => handleEquipSkin(skin.id)} className="text-[9px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-3 py-1.5 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">WYBIERZ</button>
+                                <button onClick={() => handleEquipSkin(skin.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">WYBIERZ</button>
                              ) : (
                                 <button 
                                   disabled={!canAfford || isAchievementSkin} 
                                   onClick={() => handleBuySkin(skin)} 
-                                  className={`text-[9px] font-black px-3 py-1.5 rounded-full shadow-sm transition-all ${
+                                  className={`text-[8px] font-black px-2 py-1 rounded-full shadow-sm transition-all ${
                                     canAfford && !isAchievementSkin 
                                       ? 'bg-amber-400 text-amber-950 hover:scale-105' 
                                       : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
                                   }`}
                                 >
-                                  {isAchievementSkin ? 'ZDOBĄDŹ' : 'KUP'}
+                                  KUP
+                                </button>
+                             )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {shopTab === 'accessories' && ACCESSORIES.map(acc => {
+                      const isUnlocked = (petData.unlockedAccessories || ['none']).includes(acc.id);
+                      const isEquipped = (petData.currentAccessory || 'none') === acc.id;
+                      const canAfford = (petData.coins || 0) >= acc.price;
+
+                      return (
+                        <div key={acc.id} className={`flex items-center justify-between p-2 rounded-xl border ${isEquipped ? 'border-accent-500 bg-accent-50 dark:bg-accent-500/5' : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <div className="flex items-center gap-2">
+                             <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
+                               {acc.imageUrl ? (
+                                  <img 
+                                    src={acc.imageUrl} 
+                                    alt={acc.name} 
+                                    className="w-6 h-6 object-contain" 
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      const p = (e.target as HTMLElement).parentElement;
+                                      if (p && !p.querySelector('.fallback-icon')) {
+                                        const s = document.createElement('span');
+                                        s.className = 'text-xl fallback-icon';
+                                        s.innerText = acc.icon;
+                                        p.appendChild(s);
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-xl">{acc.icon}</span>
+                                )}
+                             </div>
+                             <div>
+                                <p className="text-[10px] font-black dark:text-white capitalize">{acc.name}</p>
+                                {!isUnlocked && <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-1"><Coins size={10} /> {acc.price}</span>}
+                             </div>
+                          </div>
+                          <div>
+                             {isEquipped ? (
+                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">NOSISZ</span>
+                             ) : isUnlocked ? (
+                                <button onClick={() => handleEquipAccessory(acc.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">ZAŁÓŻ</button>
+                             ) : (
+                                <button 
+                                  disabled={!canAfford} 
+                                  onClick={() => handleBuyAccessory(acc)} 
+                                  className={`text-[8px] font-black px-2 py-1 rounded-full shadow-sm transition-all ${
+                                    canAfford 
+                                      ? 'bg-amber-400 text-amber-950 hover:scale-105' 
+                                      : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
+                                  }`}
+                                >
+                                  KUP
+                                </button>
+                             )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {shopTab === 'backgrounds' && BACKGROUNDS.map(bg => {
+                      const isUnlocked = (petData.unlockedBackgrounds || ['room']).includes(bg.id);
+                      const isEquipped = (petData.currentBackground || 'room') === bg.id;
+                      const canAfford = (petData.coins || 0) >= bg.price;
+                      const isReward = !!bg.rewardTir;
+
+                      return (
+                        <div key={bg.id} className={`flex items-center justify-between p-2 rounded-xl border ${isEquipped ? 'border-accent-500 bg-accent-50 dark:bg-accent-500/5' : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <div className="flex items-center gap-2">
+                             <div className={`w-10 h-10 flex items-center justify-center bg-gradient-to-br ${bg.gradient} rounded-lg shadow-sm border border-slate-100 dark:border-slate-700`}>
+                                <span className="text-xl">{bg.icon}</span>
+                             </div>
+                             <div>
+                                <p className="text-[10px] font-black dark:text-white capitalize">{bg.name}</p>
+                                {!isUnlocked && (
+                                  isReward 
+                                    ? <span className="text-[9px] font-bold text-accent-500 flex items-center gap-1"><Trophy size={10} /> TBR {bg.rewardTir}%</span>
+                                    : <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-1"><Coins size={10} /> {bg.price}</span>
+                                )}
+                             </div>
+                          </div>
+                          <div>
+                             {isEquipped ? (
+                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">USTAWIONE</span>
+                             ) : isUnlocked ? (
+                                <button onClick={() => handleEquipBackground(bg.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">USTAW</button>
+                             ) : (
+                                <button 
+                                  disabled={!canAfford || isReward} 
+                                  onClick={() => handleBuyBackground(bg)} 
+                                  className={`text-[8px] font-black px-2 py-1 rounded-full shadow-sm transition-all ${
+                                    canAfford && !isReward
+                                      ? 'bg-amber-400 text-amber-950 hover:scale-105' 
+                                      : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
+                                  }`}
+                                >
+                                  {isReward ? 'CEL' : 'KUP'}
                                 </button>
                              )}
                           </div>
@@ -606,21 +1078,56 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                         </h4>
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-500 font-medium">Twój przyjaciel</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest font-black">Twój przyjaciel</p>
                   </div>
+                </div>
+
+                {/* Energy Bar (IOB) */}
+                <div className="mt-1 mb-4 space-y-1">
+                  <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-400">
+                    <span className="flex items-center gap-1"><Activity size={8} className="text-amber-500" /> Energia Gliko (IOB)</span>
+                    <span>{energyLevel.toFixed(0)}%</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${energyLevel}%` }}
+                      className={cn("h-full transition-colors", energyLevel < 30 ? "bg-rose-500" : energyLevel < 70 ? "bg-amber-500" : "bg-emerald-500")}
+                    />
+                  </div>
+                </div>
+
+                {glucoseStatusText && (
                   <motion.div 
-                    className="text-3xl origin-bottom"
-                    animate={getPetAnimation()}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mb-4 text-[9px] font-black text-rose-500 italic bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1.5 rounded-xl border border-rose-100 dark:border-rose-500/20 flex items-center gap-2"
                   >
-                    {getPetVisual()}
+                    <AlertCircle size={10} /> {glucoseStatusText}
+                  </motion.div>
+                )}
+
+                <div className="flex justify-center mb-6 relative">
+                  <div className="absolute inset-0 bg-accent-500/5 blur-3xl rounded-full scale-150"></div>
+                  <motion.div
+                    animate={reaction !== 'idle' ? { scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] } : {}}
+                    className="relative z-10 select-none flex flex-col items-center gap-2 cursor-pointer"
+                    onClick={handlePet}
+                  >
+                    <div className="text-5xl">{getReactionEmoji()}</div>
+                    <div className="scale-125 origin-bottom">
+                      {getPetVisual()}
+                    </div>
                   </motion.div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl mb-4 border border-slate-100 dark:border-slate-800 relative">
-                  <div className="absolute -left-1 top-3 w-0 h-0 border-t-[6px] border-t-transparent border-r-[6px] border-r-slate-50 dark:border-r-slate-800/50 border-b-[6px] border-b-transparent"></div>
-                  <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 italic flex items-center justify-between">
+                <div className={`p-2.5 rounded-xl mb-4 border border-slate-100 dark:border-slate-800 relative bg-gradient-to-br ${currentBg.gradient} shadow-inner`}>
+                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] pointer-events-none"></div>
+                  {currentBg.id === 'space' && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none"></div>}
+                  <div className="absolute -left-1 top-3 w-0 h-0 border-t-[6px] border-t-transparent border-r-[6px] border-r-white/20 border-b-[6px] border-b-transparent"></div>
+                  <p className="text-[11px] font-bold text-slate-700 dark:text-white drop-shadow-sm italic flex items-center justify-between relative z-10">
                     <span>"{getPetMessage()}"</span>
-                    <span className="flex items-center gap-1 text-amber-500 font-bold bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded"><Coins size={10} /> {petData.coins || 0}</span>
+                    <span className="flex items-center gap-1 text-amber-500 font-bold bg-white/80 dark:bg-slate-900/80 px-1.5 py-0.5 rounded backdrop-blur-sm shadow-sm border border-white/20"><Coins size={10} /> {petData.coins || 0}</span>
                   </p>
                 </div>
 
@@ -678,14 +1185,39 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                   >
                     <Gamepad2 size={12} /> Gra
                   </button>
-                  {petData.level >= 10 && (
-                    <button 
-                      onClick={() => setShowShop(true)}
-                      className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
-                    >
-                      <ShoppingBag size={12} /> Sklep
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => { setShowShop(true); setShowQuests(false); setShowGame(false); }}
+                    className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <ShoppingBag size={12} /> Sklep
+                  </button>
+                  <button 
+                    onClick={() => { setShowQuests(true); setShowShop(false); setShowGame(false); setShowDiary(false); setShowQuiz(false); }}
+                    className="flex-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <Trophy size={12} /> Misje
+                  </button>
+                </div>
+                
+                <div className="flex gap-2 mb-2">
+                  <button 
+                    onClick={() => { setShowDiary(true); setShowShop(false); setShowQuests(false); setShowGame(false); setShowQuiz(false); }}
+                    className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <Book size={12} /> Dziennik
+                  </button>
+                  <button 
+                    onClick={() => { setShowQuiz(true); setShowShop(false); setShowQuests(false); setShowGame(false); setShowDiary(false); setShowGarden(false); }}
+                    className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <HelpCircle size={12} /> Quiz
+                  </button>
+                  <button 
+                    onClick={() => { setShowGarden(true); setShowShop(false); setShowQuests(false); setShowGame(false); setShowDiary(false); setShowQuiz(false); }}
+                    className="flex-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <Flower2 size={12} /> Ogród
+                  </button>
                 </div>
               </div>
             )}
