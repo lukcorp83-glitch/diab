@@ -1,3 +1,4 @@
+import { SKINS, PetSkin } from '../constants';
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -6,15 +7,6 @@ import { doc, onSnapshot, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { LogEntry } from '../types';
 
-const SKINS = [
-  { id: 'default', name: 'Domowy Zwierzak', icon: 'default', price: 0 },
-  { id: 'cat', name: 'Puszysty Kot', icon: '😺', price: 100 },
-  { id: 'dog', name: 'Wierny Pies', icon: '🐶', price: 200 },
-  { id: 'pig', name: 'Świnka Skarbonka', icon: '🐷', price: 250 },
-  { id: 'robot', name: 'Robo-Zwierz', icon: '🤖', price: 400 },
-  { id: 'alien', name: 'Kosmita', icon: '👽', price: 600 },
-  { id: 'fire', name: 'Ognisty Potworek', icon: '🔥', price: 1000 },
-];
 
 export default function VirtualPet({ user, logs, glucose }: { user: any, logs: LogEntry[], glucose: number | null }) {
   const [petData, setPetData] = useState<{ 
@@ -162,6 +154,12 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
      });
   };
 
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setImageError(null);
+  }, [petData.skin, petData.level, glucose]);
+
   const getPetVisual = (skinId?: string) => {
     let src = '';
     let emoji = '';
@@ -184,7 +182,9 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
             const foundSkin = SKINS.find(s => s.id === targetSkin);
             if (foundSkin) {
                emoji = foundSkin.icon;
-               if (targetSkin === 'robot') src = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Robot.png';
+               if (foundSkin.imageUrl) {
+                 src = foundSkin.imageUrl;
+               } else if (targetSkin === 'robot') src = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Robot.png';
                else if (targetSkin === 'alien') src = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Alien.png';
                else if (targetSkin === 'ghost') src = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Ghost.png';
                else if (targetSkin === 'ninja') src = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Ninja.png';
@@ -213,19 +213,23 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
         }
     }
 
-    return (
-      <div className="relative w-full h-full flex items-center justify-center p-1">
-        {src && (
+    if (src && imageError !== src) {
+      return (
+        <div className="relative w-full h-full flex items-center justify-center p-1">
           <img 
             src={src} 
             alt="pet" 
             className="relative z-10 w-full h-full object-contain drop-shadow-xl" 
             referrerPolicy="no-referrer"
-            onError={(e) => {
-               (e.target as HTMLImageElement).style.opacity = '0';
-            }}
+            onError={() => setImageError(src)}
           />
-        )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative w-full h-full flex items-center justify-center p-1 font-emoji text-3xl drop-shadow-lg">
+        {emoji || '🐾'}
       </div>
     );
   };
@@ -331,13 +335,19 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     return variants[idleVariant] || variants[0];
   };
 
-  const handleBuySkin = async (skinId: string, price: number) => {
-     if (!user || (petData.coins || 0) < price) return;
+  const handleBuySkin = async (skin: PetSkin) => {
+     if (!user || (petData.unlockedSkins || []).includes(skin.id)) return;
+     if (skin.unlockedBy) {
+        alert("Ta skórka jest specjalna! Odblokuj ją zdobywając osiągnięcia w zakładce Profil.");
+        return;
+     }
+     if ((petData.coins || 0) < skin.price) return;
+     
      const unlocked = petData.unlockedSkins || ['default'];
      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
-        coins: (petData.coins || 0) - price,
-        unlockedSkins: [...unlocked, skinId],
-        skin: skinId
+        coins: (petData.coins || 0) - skin.price,
+        unlockedSkins: [...unlocked, skin.id],
+        skin: skin.id
      });
   };
 
@@ -478,33 +488,54 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                 </div>
                 
                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 pb-2 custom-scrollbar">
-                   {SKINS.map(skin => {
-                     const isUnlocked = (petData.unlockedSkins || ['default']).includes(skin.id);
-                     const isEquipped = (petData.skin || 'default') === skin.id;
-                     const canAfford = (petData.coins || 0) >= skin.price;
+                    {SKINS.map(skin => {
+                      const isUnlocked = (petData.unlockedSkins || ['default']).includes(skin.id);
+                      const isEquipped = (petData.skin || 'default') === skin.id;
+                      const canAfford = (petData.coins || 0) >= skin.price;
+                      const isAchievementSkin = !!skin.unlockedBy;
 
-                     return (
-                       <div key={skin.id} className={`flex items-center justify-between p-3 rounded-xl border ${isEquipped ? 'border-accent-500 bg-accent-50 dark:bg-accent-500/5' : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'}`}>
-                         <div className="flex items-center gap-3">
-                            <span className="text-2xl drop-shadow-sm">{getPetVisual(skin.id)}</span>
-                            <div>
-                               <p className="text-xs font-bold dark:text-white">{skin.name}</p>
-                               {!isUnlocked && <span className="text-[10px] font-semibold text-amber-500 flex items-center gap-1"><Coins size={10} /> {skin.price}</span>}
-                               {isUnlocked && <span className="text-[10px] font-bold text-emerald-500">Odblokowane</span>}
-                            </div>
-                         </div>
-                         <div>
-                            {isEquipped ? (
-                               <span className="text-[10px] font-black text-white bg-accent-500 px-3 py-1.5 rounded-full">WYBRANE</span>
-                            ) : isUnlocked ? (
-                               <button onClick={() => handleEquipSkin(skin.id)} className="text-[10px] font-bold text-accent-600 bg-white border border-accent-200 dark:bg-slate-800 dark:border-slate-700 dark:text-accent-400 px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition-all">WYBIERZ</button>
-                            ) : (
-                               <button disabled={!canAfford} onClick={() => handleBuySkin(skin.id, skin.price)} className={`text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm transition-all ${canAfford ? 'bg-amber-400 text-amber-950 hover:scale-105' : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'}`}>KUP</button>
-                            )}
-                         </div>
-                       </div>
-                     );
-                   })}
+                      return (
+                        <div key={skin.id} className={`flex items-center justify-between p-3 rounded-xl border ${isEquipped ? 'border-accent-500 bg-accent-50 dark:bg-accent-500/5' : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <div className="flex items-center gap-3">
+                             <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                               {skin.imageUrl ? (
+                                 <img src={skin.imageUrl} alt={skin.name} className="w-6 h-6 object-contain" />
+                               ) : (
+                                 <span className="text-xl">{skin.icon}</span>
+                               )}
+                             </div>
+                             <div>
+                                <p className="text-[10px] font-black dark:text-white capitalize">{skin.name}</p>
+                                {!isUnlocked && (
+                                  isAchievementSkin 
+                                    ? <span className="text-[9px] font-bold text-accent-500 flex items-center gap-1"><Trophy size={10} /> Specjalna</span>
+                                    : <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-1"><Coins size={10} /> {skin.price}</span>
+                                )}
+                                {isUnlocked && <span className="text-[9px] font-bold text-emerald-500">W twojej kolekcji</span>}
+                             </div>
+                          </div>
+                          <div>
+                             {isEquipped ? (
+                                <span className="text-[9px] font-black text-white bg-accent-500 px-3 py-1.5 rounded-full">UZYWASZ</span>
+                             ) : isUnlocked ? (
+                                <button onClick={() => handleEquipSkin(skin.id)} className="text-[9px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-3 py-1.5 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">WYBIERZ</button>
+                             ) : (
+                                <button 
+                                  disabled={!canAfford || isAchievementSkin} 
+                                  onClick={() => handleBuySkin(skin)} 
+                                  className={`text-[9px] font-black px-3 py-1.5 rounded-full shadow-sm transition-all ${
+                                    canAfford && !isAchievementSkin 
+                                      ? 'bg-amber-400 text-amber-950 hover:scale-105' 
+                                      : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
+                                  }`}
+                                >
+                                  {isAchievementSkin ? 'ZDOBĄDŹ' : 'KUP'}
+                                </button>
+                             )}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             ) : (

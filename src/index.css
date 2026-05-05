@@ -156,3 +156,28 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.scrollbar-custom {
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (pointer: fine) {
+  .scrollbar-custom::-webkit-scrollbar {
+    height: 4px;
+    display: block;
+  }
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.2);
+    border-radius: 10px;
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.4);
+  }
+}
+
+.mask-fade-right {
+  mask-image: linear-gradient(to right, black 85%, transparent 100%);
+}

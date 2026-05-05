@@ -1,36 +1,48 @@
 import { getEffectiveUid } from '../lib/utils';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X, User } from 'lucide-react';
+import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X, User, ChevronLeft, ChevronRight, Cloud, ShoppingBag, Coins, Star, Sparkles, Check } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
-import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
-import { UserSettings } from '../types';
-import { APP_VERSION } from '../constants';
+import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { notificationService } from '../services/notificationService';
+import { UserSettings, LogEntry } from '../types';
+import { APP_VERSION, SKINS, PetSkin } from '../constants';
 
 import CgmImport from './CgmImport';
 import SettingsSync from './SettingsSync';
 import SettingsTransfer from './SettingsTransfer';
 import ApiIntegration from './ApiIntegration';
 
+interface ProfileProps {
+  user: any;
+  logs: LogEntry[];
+  handleLogout: () => void;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+  setTab: (t: string) => void;
+  initialAction?: string | null;
+  onClearInitialAction?: () => void;
+}
+
 export default function Profile({ 
   user, 
+  logs = [],
   handleLogout, 
   theme, 
   toggleTheme,
   setTab,
   initialAction,
   onClearInitialAction
-}: { 
-  user: any, 
-  handleLogout: () => void,
-  theme: 'light' | 'dark',
-  toggleTheme: () => void,
-  setTab: (t: string) => void,
-  initialAction?: string | null,
-  onClearInitialAction?: () => void
-}) {
+}: ProfileProps) {
   const [settings, setSettings] = useState<UserSettings>({ isf: 58, wwRatio: 16, wbtRatio: 18, targetMin: 70, targetMax: 140, showPrediction: true });
+  const [petData, setPetData] = useState<{ 
+    coins: number, 
+    skin: string, 
+    unlockedSkins: string[],
+    level?: number,
+    xp?: number
+  }>({ coins: 0, skin: 'default', unlockedSkins: ['default'] });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [nsSyncLoading, setNsSyncLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -49,12 +61,22 @@ export default function Profile({
   const [cleaning, setCleaning] = useState(false);
   const [cleaningResult, setCleaningResult] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('therapy');
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const scrollTabs = (dir: 'left' | 'right') => {
+    if (tabsRef.current) {
+      const scrollAmount = 200;
+      tabsRef.current.scrollBy({ left: dir === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     if (initialAction) {
        if (initialAction === 'meds') setActiveCategory('meds');
        if (initialAction === 'simulator') setActiveCategory('simulator');
        if (initialAction === 'food') setActiveCategory('food');
+       if (initialAction === 'api') setActiveCategory('api');
+       if (initialAction === 'devices') setActiveCategory('devices');
        // clear action
        setTimeout(() => {
          onClearInitialAction && onClearInitialAction();
@@ -124,9 +146,25 @@ export default function Profile({
   useEffect(() => {
     if (!user) return;
     const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+    const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+    
     const unsubscribe = onSnapshot(settingsRef, (d) => {
       if (d.exists()) setSettings({ showPrediction: true, ...d.data() } as UserSettings);
     });
+
+    const unsubscribePet = onSnapshot(petRef, (d) => {
+      if (d.exists()) {
+        const data = d.data();
+        setPetData({
+          coins: data.coins || 0,
+          skin: data.skin || 'default',
+          unlockedSkins: data.unlockedSkins || ['default'],
+          level: data.level || 1,
+          xp: data.xp || 0
+        });
+      }
+    });
+
     const nsSettingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'nightscout');
     const unsubscribeNs = onSnapshot(nsSettingsRef, (d) => {
       if (d.exists()) {
@@ -147,8 +185,72 @@ export default function Profile({
       unsubscribe();
       unsubscribeNs();
       unsubscribeShortcuts();
+      unsubscribePet();
     };
   }, [user]);
+
+  // Achievement logic for shop integration
+  const stats = useMemo(() => {
+    const mealLogs = logs.filter(l => l.type === 'meal');
+    const glucoseLogs = logs.filter(l => l.type === 'glucose');
+    const bolusLogs = logs.filter(l => l.type === 'bolus');
+    
+    const datesWithMeals = new Set(mealLogs.map(l => new Date(l.timestamp).toLocaleDateString()));
+    const inRange = glucoseLogs.filter(l => l.value >= 70 && l.value <= 140).length;
+    const tirRatio = glucoseLogs.length > 0 ? (inRange / glucoseLogs.length) * 100 : 0;
+
+    const nightReadings = glucoseLogs.filter(l => {
+      const h = new Date(l.timestamp).getHours();
+      return h >= 0 && h <= 4;
+    }).length;
+
+    return {
+      totalMeals: mealLogs.length,
+      totalBoluses: bolusLogs.length,
+      totalGlucose: glucoseLogs.length,
+      daysWithMeals: datesWithMeals.size,
+      tirRatio,
+      nightReadings,
+      isConsistent: mealLogs.length > 0 && glucoseLogs.length > 0 && bolusLogs.length > 0
+    };
+  }, [logs]);
+
+  const unlockedAchievementIds = useMemo(() => {
+    const ids = [];
+    if (stats.totalMeals >= 1) ids.push('first_meal');
+    if (stats.daysWithMeals >= 7) ids.push('meal_streak');
+    if (stats.totalGlucose > 8 && stats.tirRatio >= 65) ids.push('tir_master');
+    if (stats.totalGlucose >= 12 && stats.tirRatio >= 80) ids.push('tir_ninja');
+    if (stats.nightReadings >= 5) ids.push('night_owl');
+    if (stats.isConsistent) ids.push('consistent');
+    return ids;
+  }, [stats]);
+
+  const handleBuySkin = async (skin: PetSkin) => {
+    if (petData.coins < skin.price) return;
+    if (petData.unlockedSkins.includes(skin.id)) return;
+
+    try {
+      const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+      await updateDoc(petRef, {
+        coins: petData.coins - skin.price,
+        unlockedSkins: [...petData.unlockedSkins, skin.id],
+        skin: skin.id
+      });
+    } catch (err) {
+      console.error("Error buying skin:", err);
+    }
+  };
+
+  const handleEquipSkin = async (skinId: string) => {
+    if (!petData.unlockedSkins.includes(skinId)) return;
+    try {
+      const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+      await updateDoc(petRef, { skin: skinId });
+    } catch (err) {
+      console.error("Error equipping skin:", err);
+    }
+  };
 
   const saveShortcut = async () => {
     if (!newShortcut.name) return;
@@ -292,29 +394,202 @@ export default function Profile({
         </div>
       </button>
 
-      <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-none snap-x">
-        {[
-          { id: 'therapy', label: 'Terapia & Cele', icon: <Activity size={14} /> },
-          { id: 'devices', label: 'Osprzęt & CGM', icon: <Smartphone size={14} /> },
-          { id: 'food', label: 'Baza Posiłków', icon: <Utensils size={14} /> },
-          { id: 'meds', label: 'Leki & Przypomnienia', icon: <Pill size={14} /> },
-          { id: 'simulator', label: 'Symulator Pompy', icon: <Beaker size={14} /> },
-          { id: 'api', label: 'xDrip / Nightscout API', icon: <Globe size={14} /> },
-          { id: 'system', label: 'System & Inne', icon: <Settings size={14} /> }
-        ].map(cat => (
-          <button 
-            key={cat.id} 
-            onClick={() => setActiveCategory(cat.id)}
-            className={cn(
-              "flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest snap-start transition-all",
-              activeCategory === cat.id ? "bg-accent-600 text-white shadow-lg shadow-accent-600/20" : "bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700"
-            )}
-          >
-            {cat.icon}
-            {cat.label}
-          </button>
-        ))}
+      <div className="relative group/tabs">
+        <button 
+          onClick={() => scrollTabs('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow-xl opacity-0 group-hover/tabs:opacity-100 transition-opacity hidden md:flex items-center justify-center border border-slate-100 dark:border-slate-700 -ml-2"
+        >
+          <ChevronLeft size={16} className="text-slate-600 dark:text-slate-300" />
+        </button>
+        
+        <div ref={tabsRef} className="flex overflow-x-auto gap-2 pb-4 scrollbar-custom snap-x -mx-4 px-4 mask-fade-right">
+          {[
+            { id: 'therapy', label: 'Terapia & Cele', icon: <Activity size={14} /> },
+            { id: 'shop', label: 'Sklepik Gliko', icon: <ShoppingBag size={14} /> },
+            { id: 'devices', label: 'Osprzęt & CGM', icon: <Smartphone size={14} /> },
+            { id: 'food', label: 'Skróty Posiłków', icon: <Utensils size={14} /> },
+            { id: 'meds', label: 'Leki & Przypomnienia', icon: <Pill size={14} /> },
+            { id: 'simulator', label: 'Symulator Pompy', icon: <Beaker size={14} /> },
+
+            { id: 'api', label: ' Integracje & API', icon: <Globe size={14} /> },
+            { id: 'system', label: 'System & Inne', icon: <Settings size={14} /> }
+          ].map(cat => (
+            <button 
+              key={cat.id} 
+              onClick={() => setActiveCategory(cat.id)}
+              className={cn(
+                "flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest snap-start transition-all",
+                activeCategory === cat.id ? "bg-accent-600 text-white shadow-lg shadow-accent-600/20" : "bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700"
+              )}
+            >
+              {cat.icon}
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        <button 
+          onClick={() => scrollTabs('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow-xl opacity-0 group-hover/tabs:opacity-100 transition-opacity hidden md:flex items-center justify-center border border-slate-100 dark:border-slate-700 -mr-2"
+        >
+          <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />
+        </button>
       </div>
+
+      {/* Shop Category */}
+      {activeCategory === 'shop' && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6 pb-20"
+        >
+          {/* Balance Card */}
+          <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
+            <Sparkles className="absolute -right-6 -bottom-6 w-32 h-32 opacity-20 rotate-12" />
+            <div className="relative z-10">
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Twój portfel</p>
+              <div className="flex items-end gap-2">
+                <h3 className="text-4xl font-black">{petData.coins}</h3>
+                <span className="text-xl font-bold mb-1 opacity-90">monet</span>
+              </div>
+              <div className="mt-4 flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-2xl p-3 w-fit">
+                <Trophy size={16} className="text-amber-200" />
+                <span className="text-xs font-bold">Poziom Gliko: {petData.level}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Skins Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {SKINS.map(skin => {
+              const isUnlocked = petData.unlockedSkins.includes(skin.id);
+              const isEquipped = petData.skin === skin.id;
+              const canUnlockViaAchievement = skin.unlockedBy && unlockedAchievementIds.includes(skin.unlockedBy);
+              const isAchievementSkin = !!skin.unlockedBy;
+
+              return (
+                <motion.div 
+                  key={skin.id}
+                  whileTap={{ scale: 0.98 }}
+                  className={cn(
+                    "p-5 rounded-[2.5rem] border-2 transition-all relative overflow-hidden flex flex-col items-center text-center",
+                    isEquipped 
+                      ? 'bg-accent-50/50 dark:bg-accent-500/10 border-accent-500' 
+                      : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800'
+                  )}
+                >
+                  {isEquipped && (
+                    <div className="absolute top-4 right-4 bg-accent-500 text-white rounded-full p-1 ring-4 ring-white dark:ring-slate-900 z-10">
+                      <Check size={10} strokeWidth={4} />
+                    </div>
+                  )}
+
+                  <div className="w-20 h-20 rounded-[2rem] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-4xl mb-4 shadow-inner relative overflow-hidden">
+                    {skin.imageUrl ? (
+                      <img 
+                        src={skin.imageUrl} 
+                        alt={skin.name} 
+                        className="w-14 h-14 object-contain" 
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLElement).parentElement;
+                          if (parent) {
+                            const span = document.createElement('span');
+                            span.className = 'text-4xl';
+                            span.innerText = skin.icon;
+                            parent.appendChild(span);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span className="text-4xl">{skin.icon}</span>
+                    )}
+                  </div>
+
+                  <h4 className="text-xs font-black dark:text-white leading-tight mb-1">{skin.name}</h4>
+                  
+                  {isUnlocked ? (
+                    <button 
+                      onClick={() => handleEquipSkin(skin.id)}
+                      disabled={isEquipped}
+                      className={cn(
+                        "mt-3 w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all",
+                        isEquipped 
+                          ? 'bg-accent-100 dark:bg-accent-950 text-accent-500 cursor-default' 
+                          : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 active:scale-95'
+                      )}
+                    >
+                      {isEquipped ? 'Wybrany' : 'Wybierz'}
+                    </button>
+                  ) : skin.unlockedBy ? (
+                    <div className="mt-auto w-full">
+                       {canUnlockViaAchievement ? (
+                         <button 
+                            onClick={() => handleBuySkin(skin)}
+                            className="mt-3 w-full py-2.5 rounded-xl bg-emerald-500 text-white text-[10px] font-black uppercase tracking-tight active:scale-95"
+                         >
+                           Odblokuj
+                         </button>
+                       ) : (
+                         <div className="mt-3 w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 text-[9px] font-bold px-2 flex flex-col items-center gap-1">
+                           <Shield size={12} />
+                           <span>Wymaga osiągnięcia</span>
+                         </div>
+                       )}
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => handleBuySkin(skin)}
+                      disabled={petData.coins < skin.price}
+                      className={cn(
+                        "mt-auto w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight flex items-center justify-center gap-1 transition-all",
+                        petData.coins >= skin.price 
+                          ? 'bg-amber-500 text-white active:scale-95 shadow-lg shadow-amber-500/20' 
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                      )}
+                    >
+                      <Coins size={12} />
+                      {skin.price}
+                    </button>
+                  )}
+
+                  {isAchievementSkin && !isUnlocked && (
+                    <div className="absolute top-0 left-0 px-3 py-1 bg-accent-500 text-white text-[7px] font-black uppercase tracking-widest rounded-br-2xl">
+                      Specjalna
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <div className="bg-slate-100 dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800">
+             <div className="flex items-center gap-3 mb-4">
+               <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600">
+                 <Star size={20} />
+               </div>
+               <div className="text-left">
+                  <h4 className="text-sm font-black dark:text-white">Jak zdobywać monety?</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Każdy wpis w dzienniku zasila Twój portfel!</p>
+               </div>
+             </div>
+             <div className="grid grid-cols-2 gap-3 text-left">
+                {[
+                  { label: 'Glikemia', val: '+5' },
+                  { label: 'Posiłek', val: '+10' },
+                  { label: 'Bolus', val: '+8' },
+                  { label: 'Aktywność', val: '+15' }
+                ].map(item => (
+                  <div key={item.label} className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex justify-between items-center shadow-sm">
+                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">{item.label}</span>
+                    <span className="text-[10px] font-black text-amber-600">{item.val}</span>
+                  </div>
+                ))}
+             </div>
+          </div>
+        </motion.div>
+      )}
 
       {activeCategory === 'therapy' && (
         <div className="space-y-6">
@@ -330,6 +605,37 @@ export default function Profile({
           <SettingInput label="Cel Min" value={settings.targetMin} onChange={v => setSettings({ ...settings, targetMin: v })} />
           <SettingInput label="Cel Max" value={settings.targetMax} onChange={v => setSettings({ ...settings, targetMax: v })} />
           <SettingInput label="Ratio WBT" value={settings.wbtRatio} onChange={v => setSettings({ ...settings, wbtRatio: v })} />
+        </div>
+
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
+          <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Czas działania insuliny (DIA)</h4>
+          <div className="flex items-center justify-center gap-4">
+            <button 
+              onClick={async () => {
+                const newSettings = { ...settings, dia: Math.max(2, (settings.dia || 4) - 0.5) };
+                setSettings(newSettings);
+                if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+              }}
+              className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-accent-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
+            >
+              -
+            </button>
+            <div className="text-center">
+              <span className="text-2xl font-black dark:text-white">{settings.dia || 4}</span>
+              <span className="text-[10px] font-bold text-slate-400 block uppercase">godziny</span>
+            </div>
+            <button 
+              onClick={async () => {
+                const newSettings = { ...settings, dia: Math.min(8, (settings.dia || 4) + 0.5) };
+                setSettings(newSettings);
+                if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+              }}
+              className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-accent-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
+            >
+              +
+            </button>
+          </div>
+          <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-tighter opacity-60">Standardowo: 3-5h dla analogów szybko-działających</p>
         </div>
 
         <button 
@@ -485,15 +791,18 @@ export default function Profile({
            <button 
              onClick={async () => {
                if (!settings.notificationsEnabled) {
-                  if ('Notification' in window) {
-                     const perm = await Notification.requestPermission();
-                     if (perm === 'granted') {
-                        setSettings({ ...settings, notificationsEnabled: true });
-                     } else {
-                        alert('Musisz zezwolić na powiadomienia w przeglądarce.');
-                     }
+                  if (window.self !== window.top) {
+                    alert('UWAGA: Powiadomienia Push zazwyczaj nie działają wewnątrz podglądu (iframe). Otwórz aplikację w NOWEJ KARCIE (przycisk w prawym górnym rogu), aby włączyć powiadomienia.');
+                  }
+                  const token = await notificationService.requestPermission();
+                  if (token) {
+                     setSettings({ 
+                       ...settings, 
+                       notificationsEnabled: true,
+                       notificationPrefs: settings.notificationPrefs || { hypo: true, hyper: true, reminders: true, predictions: true }
+                     });
                   } else {
-                     alert('Twoja przeglądarka nie wspiera powiadomień.');
+                     alert('Nie udało się włączyć powiadomień. Sprawdź ustawienia przeglądarki i czy nie blokujesz powiadomień dla tej domeny.');
                   }
                } else {
                   setSettings({ ...settings, notificationsEnabled: false });
@@ -511,85 +820,111 @@ export default function Profile({
            </button>
         </div>
 
-        <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-500/10 rounded-2xl border border-amber-100 dark:border-amber-900/30">
-           <div className="flex items-center gap-3">
-             <Baby className="text-amber-500" size={20} />
-             <div>
-                <p className="text-sm font-black dark:text-amber-500 leading-tight">Tryb Dziecka</p>
-                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka (Gliko) na ekranie głównym</p>
-             </div>
-           </div>
-           <button 
-             onClick={async () => {
-               const newSettings = { ...settings, childMode: !settings.childMode };
-               setSettings(newSettings);
-               if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-             }}
-             className={cn(
-               "w-12 h-6 rounded-full transition-all relative flex items-center shadow-inner",
-               settings.childMode ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-600"
-             )}
-           >
-             <div className={cn(
-               "w-4 h-4 rounded-full bg-white transition-all absolute shadow",
-               settings.childMode ? "left-7" : "left-1"
-             )} />
-           </button>
+        <div className={cn("space-y-4 transition-all", !settings.notificationsEnabled && "opacity-50 grayscale-[0.5]")}>
+           {!settings.notificationsEnabled && (
+             <p className="text-[10px] font-bold text-slate-500 pl-12">Włącz powiadomienia powyżej, aby skonfigurować rodzaje alertów.</p>
+           )}
+           <div className="grid grid-cols-2 gap-3 pl-12">
+            {[
+              { id: 'hypo', label: 'Niedocukrzenia', icon: <Activity size={14} className="text-rose-500" /> },
+              { id: 'hyper', label: 'Przecukrzenia', icon: <Activity size={14} className="text-amber-500" /> },
+              { id: 'reminders', label: 'Przypomnienia', icon: <Bell size={14} className="text-blue-500" /> },
+              { id: 'predictions', label: 'Przewidywania AI', icon: <Zap size={14} className="text-emerald-500" /> }
+            ].map((pref) => {
+              const prefs = settings.notificationPrefs || { hypo: true, hyper: true, reminders: true, predictions: true };
+              const isActive = prefs[pref.id as keyof typeof prefs];
+              return (
+                <button
+                  key={pref.id}
+                  disabled={!settings.notificationsEnabled}
+                  onClick={() => {
+                    setSettings({
+                      ...settings,
+                      notificationPrefs: { ...prefs, [pref.id]: !isActive }
+                    });
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 p-3 rounded-xl border transition-all text-left",
+                    isActive && settings.notificationsEnabled
+                      ? "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm" 
+                      : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60"
+                  )}
+                >
+                  {pref.icon}
+                  <span className={cn("text-[10px] font-black uppercase tracking-tight", (isActive && settings.notificationsEnabled) ? "text-slate-700 dark:text-white" : "text-slate-400")}>
+                    {pref.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-6">
-           <div className="flex-1 space-y-4">
-              <div>
-                <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Żywotność Sensora (dni)</label>
-                <input type="number" min="1" value={settings.sensorDurationDays || 10} onChange={e => {
-                  const val = Number(e.target.value);
-                  setSettings({ ...settings, sensorDurationDays: val > 0 ? val : 1 });
-                }} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div className="space-y-4 bg-slate-50/50 dark:bg-slate-900/30 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <Smartphone size={16} className="text-accent-500" />
+                <h4 className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Sensor CGM</h4>
               </div>
-              <div>
-                <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Data założenia</label>
-                <input type="datetime-local" 
-                  value={settings.sensorChangeDate ? new Date(settings.sensorChangeDate - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''} 
-                  onChange={e => {
-                    const d = new Date(e.target.value).getTime();
-                    if (!isNaN(d)) setSettings({ ...settings, sensorChangeDate: d });
-                  }} 
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-xs outline-none dark:text-white" 
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Żywotność (dni)</label>
+                  <input type="number" min="1" value={settings.sensorDurationDays || 10} onChange={e => {
+                    const val = Number(e.target.value);
+                    setSettings({ ...settings, sensorDurationDays: val > 0 ? val : 1 });
+                  }} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Data założenia</label>
+                  <input type="datetime-local" 
+                    value={settings.sensorChangeDate ? new Date(settings.sensorChangeDate - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''} 
+                    onChange={e => {
+                      const d = new Date(e.target.value).getTime();
+                      if (!isNaN(d)) setSettings({ ...settings, sensorChangeDate: d });
+                    }} 
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-xs outline-none dark:text-white" 
+                  />
+                </div>
+                <button onClick={async () => {
+                   const newSettings = { ...settings, sensorChangeDate: Date.now() };
+                   setSettings(newSettings);
+                   if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                   alert('Zapisano wymianę sensora!');
+                }} className="w-full bg-accent-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all shadow-lg shadow-accent-600/20">Wymiana Teraz</button>
               </div>
-              <button onClick={async () => {
-                 const newSettings = { ...settings, sensorChangeDate: Date.now() };
-                 setSettings(newSettings);
-                 if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                 alert('Zapisano wymianę sensora!');
-              }} className="w-full bg-accent-100 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all">Teraz: Nowy Sensor</button>
            </div>
 
-           <div className="flex-1 space-y-4">
-              <div>
-                <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Żywotność Wkłucia (dni)</label>
-                <input type="number" min="1" value={settings.infusionSetDurationDays || 3} onChange={e => {
-                  const val = Number(e.target.value);
-                  setSettings({ ...settings, infusionSetDurationDays: val > 0 ? val : 1 });
-                }} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white" />
+           <div className="space-y-4 bg-slate-50/50 dark:bg-slate-900/30 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity size={16} className="text-teal-500" />
+                <h4 className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Wkłucie / Zestaw</h4>
               </div>
-              <div>
-                <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Data założenia</label>
-                <input type="datetime-local" 
-                  value={settings.infusionSetChangeDate ? new Date(settings.infusionSetChangeDate - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''} 
-                  onChange={e => {
-                    const d = new Date(e.target.value).getTime();
-                    if (!isNaN(d)) setSettings({ ...settings, infusionSetChangeDate: d });
-                  }} 
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-xs outline-none dark:text-white" 
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Żywotność (dni)</label>
+                  <input type="number" min="1" value={settings.infusionSetDurationDays || 3} onChange={e => {
+                    const val = Number(e.target.value);
+                    setSettings({ ...settings, infusionSetDurationDays: val > 0 ? val : 1 });
+                  }} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Data założenia</label>
+                  <input type="datetime-local" 
+                    value={settings.infusionSetChangeDate ? new Date(settings.infusionSetChangeDate - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''} 
+                    onChange={e => {
+                      const d = new Date(e.target.value).getTime();
+                      if (!isNaN(d)) setSettings({ ...settings, infusionSetChangeDate: d });
+                    }} 
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-xs outline-none dark:text-white" 
+                  />
+                </div>
+                <button onClick={async () => {
+                   const newSettings = { ...settings, infusionSetChangeDate: Date.now() };
+                   setSettings(newSettings);
+                   if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                   alert('Zapisano wymianę wkłucia!');
+                }} className="w-full bg-teal-500 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all shadow-lg shadow-teal-500/20">Wymiana Teraz</button>
               </div>
-              <button onClick={async () => {
-                 const newSettings = { ...settings, infusionSetChangeDate: Date.now() };
-                 setSettings(newSettings);
-                 if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                 alert('Zapisano wymianę wkłucia!');
-              }} className="w-full bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all">Teraz: Nowe Wkłucie</button>
            </div>
         </div>
         <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all mt-4">
@@ -1139,44 +1474,190 @@ export default function Profile({
       {activeCategory === 'api' && (
       <div className="space-y-6">
         <ApiIntegration user={user} />
+        
+        <div className="glass p-8 rounded-[3rem] space-y-4">
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pobieranie Danych (Klient)</h3>
+
+          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-3 mb-2">
+                <Globe className="text-accent-500" size={20} />
+                <span className="text-xs font-bold dark:text-white">Adres Nightscout</span>
+            </div>
+            <input 
+              type="text" 
+              placeholder="https://tvoja-strona.herokuapp.com" 
+              value={nsUrl}
+              onChange={e => setNsUrl(e.target.value)}
+              onBlur={saveNsUrl}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
+            />
+            <input 
+              type="password" 
+              placeholder="API_SECRET (opcjonalnie)" 
+              value={nsSecret}
+              onChange={e => setNsSecret(e.target.value)}
+              onBlur={saveNsUrl}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
+            />
+            
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <p className="font-bold mb-1">Instrukcja konfiguracji z aplikacją xDrip+:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Otwórz aplikację <b>xDrip+</b>.</li>
+                <li>Wejdź w <b>Ustawienia</b> → <b>Przesyłanie do chmury</b> → <b>Synchronizacja z Nightscout</b>.</li>
+                <li>Włącz "Synchronizacja z Nightscout", aby wygenerować bazowy adres URL.</li>
+                <li>Opcjonalnie, wpisz swój klucz w polu na klucz API (jeżeli xDrip tego wymaga/obsługuje).</li>
+                <li>Skopiuj <b>Główny adres URL</b> i wklej go tutaj w polu <b>Adres Nightscout</b>.</li>
+                <li>Jeżeli w xDrip ustawiłeś klucz powiązany z Nightscout, wklej go poniżej (API_SECRET).</li>
+              </ol>
+            </div>
+            
+            <div className="bg-accent-50 dark:bg-accent-900/20 p-3 rounded-xl space-y-2">
+              <p className="text-[8px] font-black text-accent-900 dark:text-accent-300 uppercase tracking-widest">Architektura połączenia</p>
+              <div className="flex justify-between items-center text-[9px] text-accent-600 dark:text-accent-400 font-bold px-2 text-center">
+                <div className="flex flex-col items-center w-1/4">
+                  <span className="leading-tight">Aplikacja CGM</span>
+                  <span className="text-[7px] text-slate-500 whitespace-nowrap">(xDrip / Carelink)</span>
+                  <span className="text-xs">☁️/📱</span>
+                </div>
+                <span className="text-slate-400">➜</span>
+                <div className="flex flex-col items-center w-1/4">
+                  <span className="leading-tight">Nightscout / Local IP</span>
+                  <span className="text-xs">🌐/🏠</span>
+                </div>
+                <span className="text-slate-400">➜</span>
+                <div className="flex flex-col items-center w-1/4">
+                  <span className="leading-tight">GlikoControl</span>
+                  <span className="text-xs">📱</span>
+                </div>
+              </div>
+              <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">
+                Możesz podać URL do <b>Nightscout</b> lub lokalny adres <b>xDrip+</b> (np. http://192.168.1.x:1751). 
+                Dla połączeń lokalnych upewnij się, że oba urządzenia są w tym samym Wi-Fi.
+              </p>
+            </div>
+
+            {saveStatus && (
+              <div className="text-[9px] font-black uppercase text-emerald-500 mt-1 text-left animate-pulse">
+                {saveStatus}
+              </div>
+            )}
+            {!saveStatus && (
+              <button 
+                onClick={saveNsUrl}
+                className="text-[9px] font-black uppercase text-accent-500 mt-1 text-left"
+              >
+                Zapisz URL
+              </button>
+            )}
+            <button 
+              onClick={async () => {
+                if (!nsUrl) return;
+                setNsSyncLoading(true);
+                await saveNsUrl();
+                window.dispatchEvent(new Event('force-nightscout-sync'));
+                setTimeout(() => setNsSyncLoading(false), 2000);
+              }}
+              disabled={nsSyncLoading}
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 group mt-2 disabled:opacity-50"
+            >
+              <Zap size={14} className={nsSyncLoading ? "animate-pulse" : "group-active:animate-ping"} />
+              <span className="text-[10px] font-black uppercase tracking-widest">{nsSyncLoading ? "Synchronizacja..." : "Wymuś synchronizację"}</span>
+            </button>
+          </div>
+
+          <CgmImport user={user} onComplete={() => window.dispatchEvent(new Event('force-nightscout-sync'))} />
+
+          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-3 mb-2">
+                <Zap className="text-emerald-500" size={20} />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold dark:text-white">Klucz API Gemini (Własny Serwer AI)</span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-balance left-0 right-0">Omija limity publicznego serwera</span>
+                </div>
+            </div>
+            
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <p className="font-bold mb-1">Jak uzyskać i dodać klucz API:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Wejdź na stronę <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.</li>
+                <li>Zaloguj się swoim kontem Google i kliknij "Create API key".</li>
+                <li>Skopiuj nowo utworzony klucz (zaczyna się od <code>AIzaSy...</code>).</li>
+                <li>Wklej klucz poniżej. Klucz zapisuje się automatycznie na Twoim urządzeniu.</li>
+              </ol>
+            </div>
+
+            <input 
+              type="password" 
+              placeholder="Wklej klucz (AIzaSy...)" 
+              value={geminiApiKey}
+              onChange={e => setGeminiApiKey(e.target.value)}
+              onBlur={() => {
+                const val = geminiApiKey.trim();
+                setGeminiApiKey(val);
+                if (val) {
+                  localStorage.setItem('gemini_api_key', val);
+                  setGeminiSaveStatus('Zapisano lokalnie ✓');
+                } else {
+                  localStorage.removeItem('gemini_api_key');
+                  setGeminiSaveStatus('Usunięto klucz ✓');
+                }
+                setTimeout(() => setGeminiSaveStatus(''), 2000);
+              }}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
+            />
+            {geminiSaveStatus && <span className="text-[10px] text-emerald-500 font-bold">{geminiSaveStatus}</span>}
+            <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-2 font-medium">Jeżeli widzisz błąd &quot;Serwery AI są zajęte&quot;, utwórz darmowy klucz i wklej go tutaj. Klucz zostanie zapisany tylko w Twojej przeglądarce.</p>
+          </div>
+          
+          <div className="flex flex-col gap-2 p-4 bg-emerald-50 dark:bg-emerald-500/5 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
+            <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+              <Zap size={14} className="text-emerald-400" /> Status AI Gemini
+            </h4>
+            <p className="text-[9px] text-slate-500 dark:text-slate-400 mb-1 leading-tight font-bold">
+              System AI jest aktywny i skonfigurowany. Korzystasz z globalnego klucza GlikoControl.
+            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Połączono poprawnie</span>
+            </div>
+          </div>
+        </div>
       </div>
       )}
+
+
 
       {activeCategory === 'system' && (
       <div className="space-y-6">
       <div className="glass p-8 rounded-[3rem] space-y-4">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Integracje i System</h3>
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">System i Wygląd</h3>
         
         <div className="space-y-3">
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3 mt-4">
-            <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Czas działania insuliny (DIA)</h4>
-            <div className="flex items-center justify-center gap-4">
-              <button 
-                onClick={async () => {
-                  const newSettings = { ...settings, dia: Math.max(2, (settings.dia || 4) - 0.5) };
-                  setSettings(newSettings);
-                  if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                }}
-                className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-accent-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
-              >
-                -
-              </button>
-              <div className="text-center">
-                <span className="text-2xl font-black dark:text-white">{settings.dia || 4}</span>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">godziny</span>
-              </div>
-              <button 
-                onClick={async () => {
-                  const newSettings = { ...settings, dia: Math.min(8, (settings.dia || 4) + 0.5) };
-                  setSettings(newSettings);
-                  if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                }}
-                className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-accent-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
-              >
-                +
-              </button>
-            </div>
-            <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-tighter opacity-60">Standardowo: 3-5h dla analogów szybko-działających</p>
+          <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-500/10 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+             <div className="flex items-center gap-3">
+               <Baby className="text-amber-500" size={20} />
+               <div>
+                  <p className="text-sm font-black dark:text-amber-500 leading-tight">Tryb Dziecka</p>
+                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka (Gliko) na ekranie głównym</p>
+               </div>
+             </div>
+             <button 
+               onClick={async () => {
+                 const newSettings = { ...settings, childMode: !settings.childMode };
+                 setSettings(newSettings);
+                 if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+               }}
+               className={cn(
+                 "w-12 h-6 rounded-full transition-all relative flex items-center shadow-inner",
+                 settings.childMode ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-600"
+               )}
+             >
+               <div className={cn(
+                 "w-4 h-4 rounded-full bg-white transition-all absolute shadow",
+                 settings.childMode ? "left-7" : "left-1"
+               )} />
+             </button>
           </div>
 
           <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 space-y-4">
@@ -1286,154 +1767,6 @@ export default function Profile({
               setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { ...settings, ...s });
             }} 
           />
-
-          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3 mb-2">
-                <Zap className="text-emerald-500" size={20} />
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold dark:text-white">Klucz API Gemini (Własny Serwer AI)</span>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-balance left-0 right-0">Omija limity publicznego serwera</span>
-                </div>
-            </div>
-            
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-              <p className="font-bold mb-1">Jak uzyskać i dodać klucz API:</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Wejdź na stronę <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.</li>
-                <li>Zaloguj się swoim kontem Google i kliknij "Create API key".</li>
-                <li>Skopiuj nowo utworzony klucz (zaczyna się od <code>AIzaSy...</code>).</li>
-                <li>Wklej klucz poniżej. Klucz zapisuje się automatycznie na Twoim urządzeniu.</li>
-              </ol>
-            </div>
-
-            <input 
-              type="password" 
-              placeholder="Wklej klucz (AIzaSy...)" 
-              value={geminiApiKey}
-              onChange={e => setGeminiApiKey(e.target.value)}
-              onBlur={() => {
-                const val = geminiApiKey.trim();
-                setGeminiApiKey(val);
-                if (val) {
-                  localStorage.setItem('gemini_api_key', val);
-                  setGeminiSaveStatus('Zapisano lokalnie ✓');
-                } else {
-                  localStorage.removeItem('gemini_api_key');
-                  setGeminiSaveStatus('Usunięto klucz ✓');
-                }
-                setTimeout(() => setGeminiSaveStatus(''), 2000);
-              }}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
-            />
-            {geminiSaveStatus && <span className="text-[10px] text-emerald-500 font-bold">{geminiSaveStatus}</span>}
-            <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-2 font-medium">Jeżeli widzisz błąd &quot;Serwery AI są zajęte&quot;, utwórz darmowy klucz na <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-accent-500 underline font-bold">Google AI Studio</a> i wklej go tutaj. Klucz zostanie zapisany tylko w Twojej przeglądarce.</p>
-          </div>
-
-          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3 mb-2">
-                <Globe className="text-accent-500" size={20} />
-                <span className="text-xs font-bold dark:text-white">Adres Nightscout</span>
-            </div>
-            <input 
-              type="text" 
-              placeholder="https://tvoja-strona.herokuapp.com" 
-              value={nsUrl}
-              onChange={e => setNsUrl(e.target.value)}
-              onBlur={saveNsUrl}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
-            />
-            <input 
-              type="password" 
-              placeholder="API_SECRET (opcjonalnie)" 
-              value={nsSecret}
-              onChange={e => setNsSecret(e.target.value)}
-              onBlur={saveNsUrl}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
-            />
-            
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-              <p className="font-bold mb-1">Instrukcja konfiguracji z aplikacją xDrip+:</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Otwórz aplikację <b>xDrip+</b>.</li>
-                <li>Wejdź w <b>Ustawienia</b> → <b>Przesyłanie do chmury</b> → <b>Synchronizacja z Nightscout</b>.</li>
-                <li>Włącz "Synchronizacja z Nightscout", aby wygenerować bazowy adres URL.</li>
-                <li>Opcjonalnie, wpisz swój klucz w polu na klucz API (jeżeli xDrip tego wymaga/obsługuje).</li>
-                <li>Skopiuj <b>Główny adres URL</b> i wklej go tutaj w polu <b>Adres Nightscout</b>.</li>
-                <li>Jeżeli w xDrip ustawiłeś klucz powiązany z Nightscout, wklej go poniżej (API_SECRET).</li>
-              </ol>
-            </div>
-            
-            <div className="bg-accent-50 dark:bg-accent-900/20 p-3 rounded-xl space-y-2">
-              <p className="text-[8px] font-black text-accent-900 dark:text-accent-300 uppercase tracking-widest">Architektura połączenia</p>
-              <div className="flex justify-between items-center text-[9px] text-accent-600 dark:text-accent-400 font-bold px-2 text-center">
-                <div className="flex flex-col items-center w-1/4">
-                  <span className="leading-tight">Aplikacja CGM</span>
-                  <span className="text-[7px] text-slate-500 whitespace-nowrap">(xDrip / Carelink)</span>
-                  <span className="text-xs">☁️/📱</span>
-                </div>
-                <span className="text-slate-400">➜</span>
-                <div className="flex flex-col items-center w-1/4">
-                  <span className="leading-tight">Nightscout / Local IP</span>
-                  <span className="text-xs">🌐/🏠</span>
-                </div>
-                <span className="text-slate-400">➜</span>
-                <div className="flex flex-col items-center w-1/4">
-                  <span className="leading-tight">GlikoControl</span>
-                  <span className="text-xs">📱</span>
-                </div>
-              </div>
-              <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">
-                Możesz podać URL do <b>Nightscout</b> lub lokalny adres <b>xDrip+</b> (np. http://192.168.1.x:1751). 
-                Dla połączeń lokalnych upewnij się, że oba urządzenia są w tym samym Wi-Fi.
-              </p>
-            </div>
-
-            {saveStatus && (
-              <div className="text-[9px] font-black uppercase text-emerald-500 mt-1 text-left animate-pulse">
-                {saveStatus}
-              </div>
-            )}
-            {!saveStatus && (
-              <button 
-                onClick={saveNsUrl}
-                className="text-[9px] font-black uppercase text-accent-500 mt-1 text-left"
-              >
-                Zapisz URL
-              </button>
-            )}
-            <button 
-              onClick={async () => {
-                if (!nsUrl) return;
-                setNsSyncLoading(true);
-                // Synchronizacja jest wyzwalana w App.tsx przy zmianie ustawień lub okresowo.
-                // Zapisujemy URL, co zainicjuje synchronizację w App.tsx.
-                await saveNsUrl();
-                // Trigger event to force sync immediately
-                window.dispatchEvent(new Event('force-nightscout-sync'));
-                setTimeout(() => setNsSyncLoading(false), 2000);
-              }}
-              disabled={nsSyncLoading}
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 group mt-2 disabled:opacity-50"
-            >
-              <Zap size={14} className={nsSyncLoading ? "animate-pulse" : "group-active:animate-ping"} />
-              <span className="text-[10px] font-black uppercase tracking-widest">{nsSyncLoading ? "Synchronizacja..." : "Wymuś synchronizację"}</span>
-            </button>
-          </div>
-          
-          <div className="flex flex-col gap-2 p-4 bg-emerald-50 dark:bg-emerald-500/5 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
-            <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-              <Zap size={14} className="text-emerald-400" /> Status AI Gemini
-            </h4>
-            <p className="text-[9px] text-slate-500 dark:text-slate-400 mb-1 leading-tight font-bold">
-              System AI jest aktywny i skonfigurowany. Korzystasz z globalnego klucza GlikoControl.
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Połączono poprawnie</span>
-            </div>
-          </div>
-
-          <CgmImport user={user} onComplete={() => window.dispatchEvent(new Event('force-nightscout-sync'))} />
 
           <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
             <div className="flex items-center gap-3">

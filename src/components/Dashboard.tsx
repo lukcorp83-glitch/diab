@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { LogEntry, UserSettings } from "../types";
 import GlucoseChart from "./GlucoseChart";
 import VirtualPet from "./VirtualPet";
+import { PumpStatusCard } from "./PumpStatusCard";
 import {
   Activity,
   Clock,
@@ -42,6 +43,7 @@ interface DashboardProps {
   theme: "light" | "dark";
   initialAction?: string | null;
   onClearInitialAction?: () => void;
+  pumpStatus?: any;
 }
 
 export default function Dashboard({
@@ -51,6 +53,7 @@ export default function Dashboard({
   theme,
   initialAction,
   onClearInitialAction,
+  pumpStatus,
 }: DashboardProps) {
   const [range, setRange] = useState(3);
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
@@ -534,6 +537,13 @@ export default function Dashboard({
           />
         </div>
       </motion.div>
+
+      {/* Pump Status Section */}
+      {pumpStatus && (
+        <motion.div variants={itemVariants}>
+          <PumpStatusCard data={pumpStatus} />
+        </motion.div>
+      )}
 
       {/* Action Buttons */}
       <motion.div variants={itemVariants}>

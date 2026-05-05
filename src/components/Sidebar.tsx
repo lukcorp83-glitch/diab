@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutDashboard, Database, Utensils, FileText, Settings, X, ChevronDown, Activity, Calculator, Plus, Search, Star, History, Brain, Trophy, Sliders, Bell, Pill } from 'lucide-react';
+import { LayoutDashboard, Database, Utensils, FileText, Settings, X, ChevronDown, Activity, Calculator, Plus, Search, Star, History, Brain, Trophy, Sliders, Bell, Pill, Globe, Beaker, HelpCircle, Smartphone, Home, LayoutGrid } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION } from '../constants';
 
@@ -24,51 +24,54 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
   const menuItems = [
     { 
        id: 'dashboard', 
-       label: 'Pulpit (Dashboard)', 
+       label: 'Pulpit & Narzędzia', 
        icon: <LayoutDashboard size={20} />,
        subItems: [
-         { id: 'bolus_calc', label: 'Kalkulator Bolusa', tab: 'bolus' },
-         { id: 'add_glucose', label: 'Szybki Pomiar (Cukier)', tab: 'dashboard', action: 'add_glucose' },
-         { id: 'add_meal', label: 'Dodaj Posiłek', tab: 'meal' }
+         { id: 'dash_home', label: 'Strona Główna', tab: 'dashboard', icon: <LayoutGrid size={14} /> },
+         { id: 'bolus_calc', label: 'Kalkulator Bolusa', tab: 'bolus', icon: <Calculator size={14} /> },
+         { id: 'add_glucose', label: 'Szybki Pomiar (Cukier)', tab: 'dashboard', action: 'add_glucose', icon: <Plus size={14} /> }
        ]
     },
     { 
        id: 'database', 
-       label: 'Baza Żywności', 
+       label: 'Baza Produktów', 
        icon: <Database size={20} />,
        subItems: [
-         { id: 'db_search', label: 'Katalog Produktów', tab: 'database' },
-         { id: 'db_favorites', label: 'Ulubione/Własne', tab: 'database' }
+         { id: 'db_search', label: 'Katalog Produktów', tab: 'database', icon: <Search size={14} /> },
+         { id: 'db_favorites', label: 'Ulubione Produkty', tab: 'database', icon: <Star size={14} /> },
+         { id: 'profile_food', label: 'Menedżer Produktów', tab: 'profile', action: 'food', icon: <Settings size={14} /> }
        ]
     },
     { 
        id: 'meal', 
-       label: 'Mój Talerz', 
+       label: 'Posiłki & Talerz', 
        icon: <Utensils size={20} />,
        subItems: [
-         { id: 'meal_today', label: 'Dzisiejsze Posiłki', tab: 'meal' },
-         { id: 'meal_custom', label: 'Stwórz Własny Posiłek', tab: 'meal' }
+         { id: 'meal_plate', label: 'Mój Talerz (Kreator)', tab: 'meal', icon: <Utensils size={14} /> },
+         { id: 'meal_today', label: 'Dzisiejsze Posiłki', tab: 'meal', icon: <History size={14} /> },
+         { id: 'meal_custom', label: 'Szybkie Wybory', tab: 'meal', icon: <Plus size={14} /> }
        ]
     },
     { 
        id: 'history', 
-       label: 'Historia & Raporty', 
+       label: 'Analiza & Dane', 
        icon: <FileText size={20} />,
        subItems: [
-          { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history' },
-          { id: 'ai_sense', label: 'Analiza GlikoSense (AI)', tab: 'ai' },
-          { id: 'achievements', label: 'Grywalizacja & Osiągnięcia', tab: 'achievements' }
+          { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history', icon: <History size={14} /> },
+          { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <Home size={14} /> },
+          { id: 'achievements', label: 'Nagrody & Grywalizacja', tab: 'achievements', icon: <Trophy size={14} /> }
        ]
     },
     { 
        id: 'profile', 
-       label: 'Profil & Ustawienia', 
+       label: 'System & Urządzenia', 
        icon: <Settings size={20} />,
        subItems: [
-         { id: 'profile_settings', label: 'Ustawienia Główne', tab: 'profile' },
-         { id: 'profile_meds', label: 'Leki & Przypomnienia', tab: 'profile', action: 'meds' },
-         { id: 'profile_simulator', label: 'Symulator Pompy', tab: 'profile', action: 'simulator' },
-         { id: 'profile_food', label: 'Zarządzanie Bazą Produktów', tab: 'profile', action: 'food' }
+         { id: 'profile_settings', label: 'Ustawienia Profilu', tab: 'profile', icon: <Sliders size={14} /> },
+         { id: 'profile_devices', label: 'Osprzęt & CGM', tab: 'profile', action: 'devices', icon: <Smartphone size={14} /> },
+         { id: 'profile_meds', label: 'Leki & Przypomnienia', tab: 'profile', action: 'meds', icon: <Pill size={14} /> },
+         { id: 'profile_api', label: 'Integracje (Nightscout)', tab: 'profile', action: 'api', icon: <Globe size={14} /> }, 
+         { id: 'profile_simulator', label: 'Symulator Pompy', tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
        ]
     },
   ];
@@ -162,8 +165,9 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                                   onAction && onAction(sub.action || sub.id);
                                   onClose();
                                 }}
-                                className="text-left py-3 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                className="flex items-center gap-3 text-left py-3 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                              >
+                                <span className="opacity-60">{sub.icon}</span>
                                 {sub.label}
                              </button>
                           ))}
@@ -174,10 +178,23 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
               })}
             </div>
 
-            <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                GlikoControl v{APP_VERSION}
-              </p>
+            <div className="mt-auto space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+              <button 
+                onClick={() => {
+                  onAction && onAction('tutorial');
+                  onClose();
+                }}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 font-black text-[10px] uppercase tracking-widest hover:bg-accent-100 transition-all border border-accent-100 dark:border-accent-800/30 shadow-sm"
+              >
+                <HelpCircle size={18} />
+                Pomoc / Tutorial
+              </button>
+
+              <div className="text-center">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                  GlikoControl v{APP_VERSION}
+                </p>
+              </div>
             </div>
           </motion.div>
         </>

@@ -86,22 +86,22 @@ export default function Achievements({ logs, user, setTab }: AchievementsProps) 
     {
       id: "tir_master",
       title: "Snajper Glikemiczny",
-      description: "Osiągnij ponad 75% czasu w normie.",
+      description: "Osiągnij ponad 65% czasu w normie.",
       icon: <Target className="w-8 h-8 text-emerald-500" />,
       color: "bg-emerald-500",
-      unlocked: stats.totalGlucose > 10 && stats.tirRatio >= 75,
-      progress: stats.totalGlucose > 0 ? Math.min(stats.tirRatio, 75) : 0,
-      max: 75
+      unlocked: stats.totalGlucose > 8 && stats.tirRatio >= 65,
+      progress: stats.totalGlucose > 0 ? Math.min(stats.tirRatio, 65) : 0,
+      max: 65
     },
     {
       id: "tir_ninja",
       title: "Cukrowy Ninja",
-      description: "Osiągnij ponad 90% czasu w normie (min. 20 pomiarów).",
+      description: "Osiągnij ponad 80% czasu w normie (min. 12 pomiarów).",
       icon: <Trophy className="w-8 h-8 text-teal-400" />,
       color: "bg-teal-400",
-      unlocked: stats.totalGlucose >= 20 && stats.tirRatio >= 90,
-      progress: stats.totalGlucose >= 20 ? Math.min(stats.tirRatio, 90) : 0,
-      max: 90
+      unlocked: stats.totalGlucose >= 12 && stats.tirRatio >= 80,
+      progress: stats.totalGlucose >= 12 ? Math.min(stats.tirRatio, 80) : 0,
+      max: 80
     },
     {
       id: "night_owl",

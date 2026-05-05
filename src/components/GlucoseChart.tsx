@@ -382,9 +382,16 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
                 const data = payload[0].payload;
                 return (
                   <div className="bg-slate-900 border border-slate-700 p-2 rounded-xl text-white text-[10px] shadow-xl backdrop-blur-md">
-                    <p className="font-black text-accent-400 mb-1">
-                      {new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                    <div className="flex justify-between items-center gap-4 mb-1">
+                      <p className="font-black text-accent-400">
+                        {new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {data.originalG?.source && (
+                        <span className="text-[7px] font-black bg-white/10 px-1.5 py-0.5 rounded text-slate-300 uppercase">
+                          {data.originalG.source === 'nightscout' ? 'Nightscout' : 'Manual'}
+                        </span>
+                      )}
+                    </div>
                     {data.glucose && <p className="font-bold">Glukoza: <span className="text-white">{Math.round(data.glucose)} mg/dL</span></p>}
                     {data.loopPrediction && <p className="text-emerald-400">Pętla: {Math.round(data.loopPrediction)} mg/dL</p>}
                     {data.mlPrediction && <p className="text-amber-400">GlikoSense: {Math.round(data.mlPrediction)} mg/dL</p>}
@@ -470,9 +477,14 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             className="absolute top-2 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white p-4 rounded-[2rem] border border-slate-700 shadow-2xl backdrop-blur-md z-10 min-w-[160px]"
           >
             <div className="flex justify-between items-center mb-2">
-              <span className="text-[9px] font-black text-accent-400 uppercase tracking-widest">
-                {selectedPoint.type === 'meal' ? 'Posiłek' : selectedPoint.type === 'bolus' ? 'Insulina' : 'Glukoza'}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black text-accent-400 uppercase tracking-widest">
+                  {selectedPoint.type === 'meal' ? 'Posiłek' : selectedPoint.type === 'bolus' ? 'Insulina' : 'Glukoza'}
+                </span>
+                {selectedPoint.source && (
+                  <span className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter">Źródło: {selectedPoint.source}</span>
+                )}
+              </div>
               <button 
                 onClick={(e) => { e.stopPropagation(); setSelectedPoint(null); }} 
                 className="text-slate-500 hover:text-white p-1 ml-2"

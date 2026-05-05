@@ -35,6 +35,26 @@
         "targetMin": { "type": "number" },
         "targetMax": { "type": "number" },
         "tdi": { "type": "number" },
+        "notificationsEnabled": { "type": "boolean" },
+        "carelink": {
+          "type": "object",
+          "properties": {
+            "username": { "type": "string" },
+            "password": { "type": "string" },
+            "region": { "type": "string", "enum": ["US", "EU", "JP", "CN", "AU"] },
+            "enabled": { "type": "boolean" },
+            "lastSync": { "type": "number" }
+          }
+        },
+        "notificationPrefs": {
+          "type": "object",
+          "properties": {
+            "hypo": { "type": "boolean" },
+            "hyper": { "type": "boolean" },
+            "reminders": { "type": "boolean" },
+            "predictions": { "type": "boolean" }
+          }
+        },
         "apiSecretHashes": { 
           "type": "array",
           "items": { "type": "string" }

@@ -37,6 +37,7 @@ import { geminiService } from './services/gemini';
 import { CATEGORIES, LIB_BASE, APP_VERSION } from './constants';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { notificationService } from './services/notificationService';
 
 
 import Dashboard from './components/Dashboard';
@@ -78,6 +79,7 @@ import NotificationCenter from './components/NotificationCenter';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
+  const [pumpStatus, setPumpStatus] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +96,13 @@ export default function App() {
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sharedPlate, setSharedPlate] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    return onSnapshot(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump'), (doc) => {
+      if (doc.exists()) setPumpStatus(doc.data());
+    });
+  }, [user]);
 
   const changeTab = React.useCallback((newTab: string) => {
     const defaultTabs = ['dashboard', 'database', 'meal', 'ai', 'profile'];
@@ -229,10 +238,20 @@ export default function App() {
          if (!hasSeenTutorial) {
             setShowTutorial(true);
          }
+         
+         // Initialize FCM if enabled in userSettings (or just try to get token)
+         // Note: userSettings might not be loaded yet, so we also check in userSettings useEffect
+         notificationService.setupForegroundListener();
       }
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (user && userSettings?.notificationsEnabled) {
+       notificationService.registerToken();
+    }
+  }, [user, userSettings?.notificationsEnabled]);
 
   useEffect(() => {
     if (!user) return;
@@ -563,6 +582,7 @@ export default function App() {
           theme={theme} 
           initialAction={initialAction}
           onClearInitialAction={() => setInitialAction(null)}
+          pumpStatus={pumpStatus}
         />
       )}
       {activeTab === 'bolus' && (
@@ -586,6 +606,7 @@ export default function App() {
       {activeTab === 'profile' && (
         <Profile 
            user={user} 
+           logs={logs}
            handleLogout={handleLogout} 
            theme={theme} 
            toggleTheme={toggleTheme} 
@@ -658,7 +679,13 @@ export default function App() {
         onClose={() => setIsSidebarOpen(false)} 
         activeTab={activeTab} 
         changeTab={changeTab} 
-        onAction={(action) => setInitialAction(action)}
+        onAction={(action) => {
+          if (action === 'tutorial') {
+            setShowTutorial(true);
+          } else {
+            setInitialAction(action);
+          }
+        }}
         theme={theme} 
       />
 

@@ -59,6 +59,12 @@ export interface UserSettings {
   sensorDurationDays?: number;
   infusionSetDurationDays?: number;
   notificationsEnabled?: boolean;
+  notificationPrefs?: {
+    hypo: boolean;
+    hyper: boolean;
+    reminders: boolean;
+    predictions: boolean;
+  };
   childMode?: boolean;
   accentColor?: string;
   theme?: 'light' | 'dark' | 'system';

@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const APP_VERSION = '2.7.9';
+export const APP_VERSION = '2.8';
 
 export const CATEGORIES = [
   "Owoce i Warzywa",
@@ -124,4 +124,26 @@ export const LIB_BASE: Product[] = [
   { id: 's12', name: "Precle", carbs: 70, protein: 10, fat: 3, gi: 80, category: "Słodycze i Przekąski" },
   { id: 's13', name: "Baton proteinowy", carbs: 35, protein: 30, fat: 12, gi: 45, category: "Słodycze i Przekąski" },
   { id: 's14', name: "Orzeszki ziemne", carbs: 16, protein: 26, fat: 49, gi: 15, category: "Słodycze i Przekąski" },
+];
+
+export interface PetSkin {
+  id: string;
+  name: string;
+  icon: string;
+  price: number;
+  unlockedBy?: string; // id of achievement
+  imageUrl?: string;
+}
+
+export const SKINS: PetSkin[] = [
+  { id: 'default', name: 'Domowy Zwierzak', icon: '🐾', price: 0 },
+  { id: 'cat', name: 'Puszysty Kot', icon: '😺', price: 100, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Cat%20Face.png' },
+  { id: 'dog', name: 'Wierny Pies', icon: '🐶', price: 200, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Dog%20Face.png' },
+  { id: 'pig', name: 'Świnka Skarbonka', icon: '🐷', price: 250, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Pig%20Face.png' },
+  { id: 'robot', name: 'Robo-Zwierz', icon: '🤖', price: 400, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Robot.png' },
+  { id: 'alien', name: 'Kosmita', icon: '👽', price: 600, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Alien.png' },
+  { id: 'ghost', name: 'Duch Gliko', icon: '👻', price: 0, unlockedBy: 'night_owl', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Ghost.png' },
+  { id: 'ninja', name: 'Ninja Cukru', icon: '🥷', price: 0, unlockedBy: 'tir_ninja', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Ninja.png' },
+  { id: 'fire', name: 'Ognisty Potworek', icon: '🔥', price: 1000, imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Heart%20on%20Fire.png' },
+  { id: 'unicorn', name: 'Jednorożec', icon: '🦄', price: 0, unlockedBy: 'tir_master', imageUrl: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Animals/Unicorn.png' },
 ];
