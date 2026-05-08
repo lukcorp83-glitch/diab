@@ -35,14 +35,13 @@ Aby to naprawić:
         return null;
       }
 
-      // Check if service worker is already registered
-      let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+      // Use base URL for service worker to handle subdirectories (like GitHub Pages)
+      const swPath = `${import.meta.env.BASE_URL}firebase-messaging-sw.js`.replace(/\/+/g, '/');
+      let registration = await navigator.serviceWorker.getRegistration(swPath);
       
       if (!registration) {
-        console.log('Registering new service worker...');
-        registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-          scope: '/'
-        });
+        console.log('Registering new service worker:', swPath);
+        registration = await navigator.serviceWorker.register(swPath);
       }
 
       const token = await getToken(msg, { 
@@ -99,7 +98,7 @@ Aby to naprawić:
         const registration = await navigator.serviceWorker.ready;
         registration.showNotification(payload.notification?.title || 'GlikoSense', {
           body: payload.notification?.body,
-          icon: '/pwa-icon.svg',
+          icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
           vibrate: [200, 100, 200],
           tag: 'glikosense-alert'
         } as any);

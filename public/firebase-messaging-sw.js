@@ -19,7 +19,7 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/logo192.png' // Make sure this exists or use a generic one
+    icon: 'pwa-icon.svg' // Path relative to service worker location
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
