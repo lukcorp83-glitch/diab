@@ -11,7 +11,7 @@ import GlikoQuiz from './GlikoQuiz';
 import GlikoGarden from './GlikoGarden';
 
 
-export default function VirtualPet({ user, logs, glucose }: { user: any, logs: LogEntry[], glucose: number | null }) {
+export default function VirtualPet({ user, logs, glucose, setTab }: { user: any, logs: LogEntry[], glucose: number | null, setTab?: (t: string) => void }) {
   const [petData, setPetData] = useState<{ 
     type: string, 
     name: string, 
@@ -102,11 +102,11 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     return unsub;
   }, [user]);
 
-  const dailyQuests = [
-    { id: 'pet_3_times', title: 'Przyjaciel Gliko', desc: 'Pogłaszcz Gliko 3 razy dzisiaj', goal: 3, rewardXp: 50, rewardCoins: 10 },
+  const dailyQuests = useMemo(() => [
+    { id: 'pet_3_times', title: `Przyjaciel ${petData?.name || 'Gliko'}`, desc: `Pogłaszcz ${petData?.name || 'Gliko'} 3 razy dzisiaj`, goal: 3, rewardXp: 50, rewardCoins: 10 },
     { id: 'log_3_times', title: 'Dziennikarz', desc: 'Zapisz 3 dowolne wpisy (posiłek, cukier itp.)', goal: 3, rewardXp: 100, rewardCoins: 25 },
     { id: 'check_sugar', title: 'Cukrowy Mistrz', desc: 'Sprawdź cukier rano (5:00 - 10:00)', goal: 1, rewardXp: 150, rewardCoins: 50 },
-  ];
+  ], [petData?.name]);
 
   const getQuestProgress = (questId: string) => {
     if (!petData) return 0;
@@ -277,11 +277,11 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
   }, []);
 
   const glucoseStatusText = useMemo(() => {
-    if (glucose === null) return null;
-    if (glucose < 70) return "Gliko potrzebuje soku! 🧃";
-    if (glucose > 250) return "Gliko jest senny przez wysoki cukier... 💧";
+    if (glucose === null || !petData) return null;
+    if (glucose < 70) return `${petData.name} potrzebuje soku! 🧃`;
+    if (glucose > 250) return `${petData.name} jest senny przez wysoki cukier... 💧`;
     return null;
-  }, [glucose]);
+  }, [glucose, petData]);
 
   const currentIOB = useMemo(() => {
     // Basic IOB calculation for visuals
@@ -421,11 +421,11 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
 
     if (src && imageError !== src) {
       return (
-        <div className="relative w-full h-full flex items-center justify-center p-1">
+        <div className="relative aspect-square w-full max-w-full flex items-center justify-center p-1 mx-auto">
           <img 
             src={src} 
             alt="pet" 
-            className="relative z-10 w-full h-full object-contain drop-shadow-xl" 
+            className="w-full h-full object-contain drop-shadow-xl relative z-10" 
             referrerPolicy="no-referrer"
             onError={() => setImageError(src)}
           />
@@ -434,23 +434,23 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                src={accessory.imageUrl} 
                alt="accessory" 
                className={`absolute z-20 w-1/2 h-1/2 object-contain pointer-events-none drop-shadow-md ${
-                 accessory.id.includes('hat') ? 'top-[-5%] left-1/2 -translate-x-1/2' : 
-                 accessory.id.includes('glasses') ? 'top-[30%] left-1/2 -translate-x-1/2 scale-110' :
-                 accessory.id.includes('crown') ? 'top-[-15%] left-1/2 -translate-x-1/2 scale-125' :
-                 accessory.id.includes('ribbon') ? 'top-[10%] right-[0%]' :
-                 'bottom-[10%] left-1/2 -translate-x-1/2'
+                 accessory.id.includes('hat') ? 'top-[-10%] left-1/2 -translate-x-1/2' : 
+                 accessory.id.includes('glasses') ? 'top-[25%] left-1/2 -translate-x-1/2 scale-110' :
+                 accessory.id.includes('crown') ? 'top-[-18%] left-1/2 -translate-x-1/2 scale-125' :
+                 accessory.id.includes('ribbon') ? 'top-[5%] right-[5%]' :
+                 'bottom-[5%] left-1/2 -translate-x-1/2'
                }`}
                referrerPolicy="no-referrer"
                onError={() => setAccError(accessory.imageUrl)}
              />
           ) : (
             accessory && accessory.icon && accessory.id !== 'none' && (
-              <span className={`absolute z-20 pointer-events-none text-xl ${
-                accessory.id.includes('hat') ? 'top-[-15%] scale-110' : 
-                accessory.id.includes('glasses') ? 'top-[22%]' :
-                accessory.id.includes('crown') ? 'top-[-20%] scale-125' :
-                accessory.id.includes('ribbon') ? 'top-[0%] right-[0%]' :
-                'bottom-[5%]'
+              <span className={`absolute z-20 pointer-events-none ${
+                accessory.id.includes('hat') ? 'top-[-10%] left-1/2 -translate-x-1/2 text-2xl' : 
+                accessory.id.includes('glasses') ? 'top-[25%] left-1/2 -translate-x-1/2 text-xl' :
+                accessory.id.includes('crown') ? 'top-[-20%] left-1/2 -translate-x-1/2 text-3xl' :
+                accessory.id.includes('ribbon') ? 'top-[0%] right-[0%] text-xl' :
+                'bottom-[5%] left-1/2 -translate-x-1/2 text-xl'
               }`}>
                 {accessory.icon}
               </span>
@@ -461,15 +461,15 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
     }
 
     return (
-      <div className="relative w-full h-full flex items-center justify-center p-1 font-emoji text-3xl drop-shadow-lg">
+      <div className="relative aspect-square w-full max-w-full flex items-center justify-center p-1 mx-auto font-emoji text-3xl drop-shadow-lg">
         {emoji || '🐾'}
         {accessory && accessory.icon && accessory.id !== 'none' && (
-          <span className={`absolute text-xl pointer-events-none ${
-             accessory.id.includes('hat') ? 'top-[-10%]' : 
-             accessory.id.includes('glasses') ? 'top-[20%]' :
-             accessory.id.includes('crown') ? 'top-[-20%] scale-125' :
-             accessory.id.includes('ribbon') ? 'top-[0%] right-[0%]' :
-             'bottom-[0%]'
+          <span className={`absolute pointer-events-none ${
+             accessory.id.includes('hat') ? 'top-[-10%] left-1/2 -translate-x-1/2 text-2xl' : 
+             accessory.id.includes('glasses') ? 'top-[20%] left-1/2 -translate-x-1/2 text-xl' :
+             accessory.id.includes('crown') ? 'top-[-20%] left-1/2 -translate-x-1/2 text-3xl' :
+             accessory.id.includes('ribbon') ? 'top-[0%] right-[0%] text-xl' :
+             'bottom-[0%] left-1/2 -translate-x-1/2 text-xl'
           }`}>
             {accessory.icon}
           </span>
@@ -725,7 +725,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
             {showGame ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                   <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Gamepad2 size={16} className="text-indigo-500" /> Basen z piłkami</h4>
+                   <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Gamepad2 size={16} className="text-indigo-500" /> Rzut Plecakiem</h4>
                    <div className="flex items-center gap-3">
                      <span className="text-xs font-bold text-amber-500 flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full"><Coins size={12} /> {petData.coins || 0}</span>
                      <button onClick={() => setShowGame(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
@@ -840,7 +840,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
             ) : showDiary ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Book size={16} className="text-indigo-500" /> Dziennik Gliko</h4>
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Book size={16} className="text-indigo-500" /> Dziennik {petData.name}</h4>
                   <button onClick={() => setShowDiary(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
                 </div>
                 <div className="max-h-[350px] overflow-y-auto pr-1 no-scrollbar">
@@ -1085,7 +1085,7 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                 {/* Energy Bar (IOB) */}
                 <div className="mt-1 mb-4 space-y-1">
                   <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-400">
-                    <span className="flex items-center gap-1"><Activity size={8} className="text-amber-500" /> Energia Gliko (IOB)</span>
+                    <span className="flex items-center gap-1"><Activity size={8} className="text-amber-500" /> Energia {petData.name} (IOB)</span>
                     <span>{energyLevel.toFixed(0)}%</span>
                   </div>
                   <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -1179,11 +1179,20 @@ export default function VirtualPet({ user, logs, glucose }: { user: any, logs: L
                     <Sparkles size={12} className={isMaxPetted ? "" : "animate-pulse"} /> 
                     {isMaxPetted ? 'Limit głaskania' : `Głaskanie (${petCount}/${maxPets})`}
                   </button>
-                  <button 
-                    onClick={() => { setShowShop(false); setShowGame(true); setGameState('idle'); }}
+                   <button 
+                    onClick={() => { 
+                      if (setTab) {
+                        setTab('games');
+                        setIsOpen(false);
+                      } else {
+                        setShowShop(false); 
+                        setShowGame(true); 
+                        setGameState('idle'); 
+                      }
+                    }}
                     className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all whitespace-nowrap"
                   >
-                    <Gamepad2 size={12} /> Gra
+                    <Gamepad2 size={12} /> Gry
                   </button>
                   <button 
                     onClick={() => { setShowShop(true); setShowQuests(false); setShowGame(false); }}

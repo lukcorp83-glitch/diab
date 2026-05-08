@@ -1,9 +1,14 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Lightbulb, TrendingUp, TrendingDown, Clock, Info, CheckCircle2, AlertCircle, Activity, Sparkles } from 'lucide-react';
+import { Lightbulb, TrendingUp, TrendingDown, Clock, Info, CheckCircle2, AlertCircle, Activity, Sparkles, X } from 'lucide-react';
 import { LogEntry } from '../types';
 
 export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
+  const [dismissedTips, setDismissedTips] = React.useState<string[]>(() => {
+    const saved = localStorage.getItem('dismissed_tips');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const tips = useMemo(() => {
     const today = new Date().setHours(0,0,0,0);
     const todayLogs = logs.filter(l => l.timestamp >= today);
@@ -52,9 +57,9 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
       });
     }
 
-    // Weather / Temperature sensitivity (Mock logic)
+    // Weather / Temperature sensitivity
     const currentMonth = new Date().getMonth();
-    if (currentMonth >= 5 && currentMonth <= 8) { // Summer months
+    if (currentMonth >= 5 && currentMonth <= 8) {
       results.push({
         id: 'weather_heat',
         type: 'weather',
@@ -100,8 +105,16 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
       });
     }
 
-    return results.slice(0, 2); // Show only top 2 tips
-  }, [logs]);
+    return results
+      .filter(t => !dismissedTips.includes(t.id))
+      .slice(0, 2);
+  }, [logs, dismissedTips]);
+
+  const handleDismiss = (id: string) => {
+    const newDismissed = [...dismissedTips, id];
+    setDismissedTips(newDismissed);
+    localStorage.setItem('dismissed_tips', JSON.stringify(newDismissed));
+  };
 
   if (tips.length === 0) return null;
 
@@ -113,12 +126,19 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
-          className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-4"
+          className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-4 relative group"
         >
+          <button 
+            onClick={() => handleDismiss(tip.id)}
+            className="absolute top-2 right-2 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100/50 dark:bg-slate-800/50 rounded-full transition-all"
+            aria-label="Dismiss tip"
+          >
+            <X size={14} />
+          </button>
           <div className={`p-2.5 rounded-2xl bg-${tip.color}-50 dark:bg-${tip.color}-500/10 shrink-0`}>
             {tip.icon}
           </div>
-          <div>
+          <div className="pr-6">
             <h4 className="font-black text-sm dark:text-white mb-1">{tip.title}</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
               {tip.content}

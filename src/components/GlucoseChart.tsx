@@ -420,7 +420,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           
           {showLoopSimulation && (
              <Line 
-               type="monotone" 
+               type="natural" 
                dataKey="loopPrediction" 
                stroke="#10b981" 
                strokeWidth={2.5}
@@ -434,7 +434,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
           {showMLPrediction && (
              <Line 
-                 type="monotone" 
+                 type="natural" 
                  dataKey="mlPrediction" 
                  stroke="#fbbf24" 
                  strokeWidth={3} 

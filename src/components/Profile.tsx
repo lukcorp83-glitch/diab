@@ -1,7 +1,7 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, History, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X, User, ChevronLeft, ChevronRight, Cloud, ShoppingBag, Coins, Star, Sparkles, Check, Calendar } from 'lucide-react';
+import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, History, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X, User, ChevronLeft, ChevronRight, Cloud, ShoppingBag, Coins, Star, Sparkles, Check, Calendar, Brain } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -69,6 +69,7 @@ export default function Profile({
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [geminiSaveStatus, setGeminiSaveStatus] = useState('');
+  const [telemetryEnabled, setTelemetryEnabled] = useState(() => localStorage.getItem('glikosense_telemetry') === 'true');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [newShortcut, setNewShortcut] = useState({ id: '', name: '', icon: '📌', type: 'meal', carbs: 0 });
   const [newMedication, setNewMedication] = useState<{
@@ -101,6 +102,7 @@ export default function Profile({
        if (initialAction === 'food') setActiveCategory('food');
        if (initialAction === 'api') setActiveCategory('api');
        if (initialAction === 'devices') setActiveCategory('devices');
+       if (initialAction === 'shop') setActiveCategory('shop');
        // clear action
        setTimeout(() => {
          onClearInitialAction && onClearInitialAction();
@@ -499,71 +501,72 @@ export default function Profile({
             Wyloguj
           </button>
         </div>
-      </div>
-
-      {/* Weekly Summary Card (Feature 2) */}
-      <div className="bg-slate-900 dark:bg-accent-950 rounded-[3rem] p-8 text-white relative overflow-hidden shadow-2xl">
-         <div className="absolute top-0 right-0 p-8 opacity-10">
-           <Activity size={120} />
-         </div>
-         <div className="relative z-10">
-           <div className="flex justify-between items-start mb-6">
-             <div>
-               <h3 className="text-xl font-black mb-1">Raport Tygodniowy</h3>
-               <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Ostatnie 7 dni aktywności</p>
-             </div>
-             <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold">
-               {weeklyStats.activeDays}/7 aktywnych dni
-             </div>
-           </div>
-
-           <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 rounded-[2rem] p-5 border border-white/10">
-                 <p className="text-slate-400 text-[9px] font-black uppercase mb-1">Czas w normie (TIR)</p>
-                 <div className="flex items-baseline gap-1">
-                   <h4 className="text-3xl font-black">{weeklyStats.tir}%</h4>
-                   <span className="text-[10px] font-bold text-emerald-400">Cel: 70%</span>
-                 </div>
-                 <div className="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${weeklyStats.tir}%` }}
-                      className="h-full bg-emerald-500"
+        
+        <div className="flex flex-col gap-2 p-4 bg-purple-50 dark:bg-purple-500/5 rounded-2xl border border-purple-100 dark:border-purple-900/20 mt-6 text-left">
+          <div className="flex items-center justify-between pointer-events-none">
+              <h4 className="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+                <Brain size={14} className="text-purple-400" /> Program Badawczy GlikoSense
+              </h4>
+              <div className="pointer-events-auto">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={telemetryEnabled}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setTelemetryEnabled(val);
+                        localStorage.setItem('glikosense_telemetry', val ? 'true' : 'false');
+                      }}
                     />
-                 </div>
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-purple-500"></div>
+                  </label>
               </div>
-
-              <div className="bg-white/5 rounded-[2rem] p-5 border border-white/10">
-                 <p className="text-slate-400 text-[9px] font-black uppercase mb-1">Średnia Glikemia</p>
-                 <div className="flex items-baseline gap-1">
-                   <h4 className="text-3xl font-black">{weeklyStats.avgGlucose}</h4>
-                   <span className="text-[10px] font-bold text-slate-400">mg/dL</span>
-                 </div>
-                 <div className="mt-3 flex items-center gap-1">
-                    <CheckCircle2 size={12} className={weeklyStats.avgGlucose < 150 ? "text-emerald-400" : "text-amber-400"} />
-                    <span className="text-[9px] font-bold text-slate-400">
-                      {weeklyStats.avgGlucose < 150 ? 'Dobry wynik!' : 'Wymaga uwagi'}
-                    </span>
-                 </div>
-              </div>
-           </div>
-
-           <div className="mt-4 grid grid-cols-3 gap-3">
-              <div className="text-center">
-                 <p className="text-[20px] font-black">{weeklyStats.mealCount}</p>
-                 <p className="text-[8px] font-bold text-slate-500 uppercase">Posiłki</p>
-              </div>
-              <div className="text-center border-x border-white/10">
-                 <p className="text-[20px] font-black">{weeklyStats.totalLogs}</p>
-                 <p className="text-[8px] font-bold text-slate-500 uppercase">Wpisy</p>
-              </div>
-              <div className="text-center">
-                 <p className="text-[20px] font-black">{petData.coins}</p>
-                 <p className="text-[8px] font-bold text-slate-500 uppercase">Monety</p>
-              </div>
-           </div>
-         </div>
+          </div>
+          <p className="text-[9px] text-slate-500 dark:text-slate-400 mb-1 leading-tight font-medium">
+            Chcesz pomóc społeczności GlikoControl? Włącz anonimowe udostępnianie wiedzy wyuczonej przez GlikoSense wg trendów glikemii (bez jakichkolwiek identyfikatorów, logów czy danych uzytkownika). Pozwoli to anonimowym globalnym sieciom AI efektywniej przewidywać krzywą u innych cukrzyków.
+          </p>
+        </div>
       </div>
+
+      {/* Pet Header Section */}
+      <div className="flex items-center justify-between mb-6 px-2">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-[2rem] bg-accent-500 flex items-center justify-center text-white shadow-lg shadow-accent-500/20">
+             <Baby size={32} />
+          </div>
+          <div>
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <input 
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="bg-slate-100 dark:bg-slate-800 border-2 border-accent-500 rounded-xl px-3 py-1 font-black text-lg outline-none w-32 dark:text-white"
+                  autoFocus
+                />
+                <button onClick={updatePetName} className="text-emerald-500 p-2 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all"><Check size={20} /></button>
+                <button onClick={() => setEditingName(false)} className="text-rose-500 p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all"><X size={20} /></button>
+              </div>
+            ) : (
+              <div 
+                className="flex items-center gap-2 group cursor-pointer hover:opacity-80 transition-opacity" 
+                onClick={() => { setNewName(petData.name || 'Gliko'); setEditingName(true); }}
+              >
+                <h2 className="text-2xl font-black dark:text-white">{petData.name || 'Gliko'}</h2>
+                <div className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-30 group-hover:opacity-100 transition-all">
+                  <Smartphone size={10} />
+                </div>
+              </div>
+            )}
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Poziom {petData.level}</p>
+          </div>
+        </div>
+        <div className="bg-amber-100/50 dark:bg-amber-500/5 px-4 py-2 rounded-2xl flex items-center gap-2 border border-amber-100 dark:border-amber-500/20">
+          <Coins size={16} className="text-amber-500" />
+          <span className="text-lg font-black text-amber-600">{petData.coins}</span>
+        </div>
+      </div>
+
 
       <button 
         onClick={() => setTab('achievements')}
@@ -591,7 +594,7 @@ export default function Profile({
         <div ref={tabsRef} className="flex overflow-x-auto gap-2 pb-4 scrollbar-custom snap-x -mx-4 px-4 mask-fade-right">
           {[
             { id: 'therapy', label: 'Terapia & Cele', icon: <Activity size={14} /> },
-            { id: 'shop', label: 'Sklepik Gliko', icon: <ShoppingBag size={14} /> },
+            { id: 'shop', label: `Sklepik ${petData.name}`, icon: <ShoppingBag size={14} /> },
             { id: 'devices', label: 'Osprzęt & CGM', icon: <Smartphone size={14} /> },
             { id: 'food', label: 'Skróty Posiłków', icon: <Utensils size={14} /> },
             { id: 'meds', label: 'Leki & Przypomnienia', icon: <Pill size={14} /> },
@@ -1040,7 +1043,8 @@ export default function Profile({
              onClick={async () => {
                if (!settings.notificationsEnabled) {
                   if (window.self !== window.top) {
-                    alert('UWAGA: Powiadomienia Push zazwyczaj nie działają wewnątrz podglądu (iframe). Otwórz aplikację w NOWEJ KARCIE (przycisk w prawym górnym rogu), aby włączyć powiadomienia.');
+                    alert('📢 WAŻNE: Przeglądarki blokują powiadomienia PUSH wewnątrz podglądu (iframe).\n\nAby włączyć powiadomienia, kliknij przycisk "Otwórz w nowej karcie" (prawy górny róg) i spróbuj tam jesze raz.');
+                    return;
                   }
                   const token = await notificationService.requestPermission();
                   if (token) {
@@ -1050,7 +1054,7 @@ export default function Profile({
                        notificationPrefs: settings.notificationPrefs || { hypo: true, hyper: true, reminders: true, predictions: true }
                      });
                   } else {
-                     alert('Nie udało się włączyć powiadomień. Sprawdź ustawienia przeglądarki i czy nie blokujesz powiadomień dla tej domeny.');
+                     setSettings({ ...settings, notificationsEnabled: false });
                   }
                } else {
                   setSettings({ ...settings, notificationsEnabled: false });
@@ -1751,12 +1755,30 @@ export default function Profile({
         <ApiIntegration user={user} />
         
         <div className="glass p-8 rounded-[3rem] space-y-4">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pobieranie Danych (Klient)</h3>
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pobieranie Danych (CGM)</h3>
+
+          <div className="flex flex-col gap-2 p-4 bg-sky-50 dark:bg-sky-900/20 rounded-2xl border border-sky-100 dark:border-sky-800">
+            <div className="flex items-center gap-3 mb-2">
+                <Smartphone className="text-sky-500" size={20} />
+                <span className="text-xs font-bold dark:text-white">Użytkownicy Dexcom i Freestyle Libre</span>
+            </div>
+            <p className="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed">
+              Z powodu ograniczeń technologicznych nałożonych przez firmy Abbott i Dexcom (blokady CORS w przeglądarkach), bezpośrednie logowanie kontem Libre / Dexcom Share do aplikacji webowych jest zablokowane przez producenta.
+            </p>
+            <p className="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed font-bold mt-1">
+              GlikoControl obsługuje te sensory poprzez darmowy mostek Nightscout.
+            </p>
+            <ul className="text-[9px] text-slate-500 dark:text-slate-400 list-disc list-inside mt-1 space-y-1">
+              <li>Zarejestruj darmowy darmowy mostek Nightscout (np. na NightscoutPro / T1Pal).</li>
+              <li>Podłącz do niego swoje konto Dexcom Share lub LibreLinkUp.</li>
+              <li>Wklej poniżej adres swojego Nightscouta, a GlikoControl zacznie pobierać dane Live co 5 minut.</li>
+            </ul>
+          </div>
 
           <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
             <div className="flex items-center gap-3 mb-2">
                 <Globe className="text-accent-500" size={20} />
-                <span className="text-xs font-bold dark:text-white">Adres Nightscout</span>
+                <span className="text-xs font-bold dark:text-white">Adres Nightscout / xDrip</span>
             </div>
             <input 
               type="text" 
@@ -1914,7 +1936,7 @@ export default function Profile({
                <Baby className="text-amber-500" size={20} />
                <div>
                   <p className="text-sm font-black dark:text-amber-500 leading-tight">Tryb Dziecka</p>
-                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka (Gliko) na ekranie głównym</p>
+                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka ({petData.name}) na ekranie głównym</p>
                </div>
              </div>
              <button 
@@ -2081,18 +2103,22 @@ export default function Profile({
               setUpdateLoading(true);
               setCleaningResult("Sprawdzam nowsze wersje...");
               setTimeout(() => {
-                setCleaningResult(`Wersja ${APP_VERSION} jest aktualna. Odświeżam aplikację...`);
+                setCleaningResult(`Wersja ${APP_VERSION} oraz GlikoSense v2.5 są aktualne. Odświeżam aplikację...`);
                 setTimeout(() => {
                   window.location.reload();
                 }, 1500);
               }, 1500);
             }}
             disabled={updateLoading}
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 py-3 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 py-3 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {updateLoading ? <Loader2 className="animate-spin" size={14} /> : null}
             Sprawdź Aktualizacje (v{APP_VERSION})
           </button>
+          
+          <div className="text-[8px] font-black uppercase text-slate-400 text-center tracking-[0.3em] mb-4 opacity-50">
+            GlikoSense Engine v2.5
+          </div>
 
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800/50">
             <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">

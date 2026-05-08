@@ -5,34 +5,48 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 const VAPID_KEY = 'BDpTWMeEWqqbg9i1S4P33GC51S2TgPs_cozqFLQrYJl0y6RXMXUym50gG-1d3xvGsSH7EjVGRyERPQ1i-K2h3D4';
 
 export const notificationService = {
-  async requestPermission() {
+  async requestPermission(): Promise<string | null> {
     try {
+      if (!('Notification' in window)) {
+        alert("Twoja przeglądarka (lub urządzenie) nie obsługuje powiadomień. Na iOS upewnij się, że masz system w wersji 16.4+ oraz aplikację dodaną do ekranu głównego.");
+        return null;
+      }
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         return await this.registerToken();
       }
-      return false;
+      alert(`Odmowa dostępu do powiadomień. 
+Aby to naprawić:
+- Android: Ustawienia -> Aplikacje lub Chrome -> Uprawnienia -> Powiadomienia.
+- iOS (iPhone): Ustawienia -> GlikoControl (lub Safari) -> Powiadomienia -> 'Zezwalaj'.`);
+      return null;
     } catch (error) {
+      alert(`Błąd podczas żądania uprawnień: ${error instanceof Error ? error.message : String(error)}`);
       console.error('Permission request failed:', error);
-      return false;
+      return null;
     }
   },
 
-  async registerToken() {
+  async registerToken(): Promise<string | null> {
     try {
       const msg = await messaging();
-      if (!msg) return false;
+      if (!msg) {
+        alert("Twoja przeglądarka nie obsługuje powiadomień Firebase PUSH.");
+        return null;
+      }
 
+      await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       const token = await getToken(msg, { vapidKey: VAPID_KEY });
       if (token) {
         console.log('FCM Token:', token);
         await this.saveTokenToFirestore(token);
         return token;
       }
-      return false;
+      return null;
     } catch (error) {
+      alert(`Błąd rejestracji tokena Push: ${error instanceof Error ? error.message : String(error)}`);
       console.error('Token registration failed:', error);
-      return false;
+      return null;
     }
   },
 

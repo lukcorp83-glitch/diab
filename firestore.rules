@@ -41,6 +41,11 @@ service cloud.firestore {
       allow create, update: if isSignedIn();
     }
 
+    match /artifacts/diacontrolapp/glikosense_training/{docId} {
+      allow create: if isSignedIn();
+      allow read: if false;
+    }
+
     match /artifacts/diacontrolapp/users/{userId} {
       allow read: if false;
       allow write: if false;

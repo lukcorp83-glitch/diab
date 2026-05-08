@@ -67,6 +67,8 @@ const AiReports = lazyWithReload(() => import('./components/AiReports'));
 const Profile = lazyWithReload(() => import('./components/Profile'));
 const Achievements = lazyWithReload(() => import('./components/Achievements'));
 const HistoryView = lazyWithReload(() => import('./components/HistoryView'));
+const GlikoGames = lazyWithReload(() => import('./components/GlikoGames'));
+const GlikoChat = lazyWithReload(() => import('./components/GlikoChat'));
 import Sidebar from './components/Sidebar';
 import { cn } from './lib/utils';
 import { nightscoutService } from './services/nightscout';
@@ -128,7 +130,7 @@ export default function App() {
   }, [user]);
 
   const changeTab = React.useCallback((newTab: string) => {
-    const defaultTabs = ['dashboard', 'database', 'meal', 'ai', 'profile'];
+    const defaultTabs = ['dashboard', 'database', 'meal', 'chat', 'ai', 'profile', 'games'];
     const getIndex = (tab: string) => defaultTabs.indexOf(tab) >= 0 ? defaultTabs.indexOf(tab) : 0;
     setDirection(getIndex(newTab) >= getIndex(activeTab) ? 1 : -1);
     setActiveTab(newTab);
@@ -595,7 +597,10 @@ export default function App() {
     );
   }
 
-  const tabs = ['dashboard', 'database', 'meal', 'ai', 'profile'];
+  const tabs = userSettings?.childMode 
+    ? ['dashboard', 'database', 'meal', 'chat', 'ai', 'profile', 'games']
+    : ['dashboard', 'database', 'meal', 'ai', 'profile'];
+    
   const activeIndex = tabs.indexOf(activeTab);
 
   const handleSwipe = (_: any, info: any) => {
@@ -657,6 +662,9 @@ export default function App() {
       {activeTab === 'meal' && (
         <MealPlate user={user} setTab={changeTab} sharedPlate={sharedPlate} setSharedPlate={setSharedPlate} />
       )}
+      {activeTab === 'chat' && (
+        <GlikoChat petData={petData} />
+      )}
       {activeTab === 'ai' && (
         <AiReports user={user} logs={logs} />
       )}
@@ -677,6 +685,9 @@ export default function App() {
       )}
       {activeTab === 'achievements' && (
         <Achievements logs={logs} user={user} setTab={changeTab} petData={petData} />
+      )}
+      {activeTab === 'games' && (
+        <GlikoGames logs={logs} user={user} setTab={changeTab} />
       )}
     </React.Suspense>
   );
@@ -747,6 +758,7 @@ export default function App() {
           }
         }}
         theme={theme} 
+        isChildMode={userSettings?.childMode}
       />
 
       {/* Main Content with Swipe Navigation */}

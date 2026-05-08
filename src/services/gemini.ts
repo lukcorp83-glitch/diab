@@ -175,9 +175,9 @@ export const geminiService = {
     return this.generateContent(prompt);
   },
 
-  async getPeriodAnalysis(period: 'week' | 'month', logs: any[]) {
-    const days = period === 'week' ? 7 : 30;
-    const periodName = period === 'week' ? 'Tygodniowy' : 'Miesięczny';
+  async getPeriodAnalysis(period: 'day' | 'week' | 'month', logs: any[]) {
+    const days = period === 'day' ? 1 : period === 'week' ? 7 : 30;
+    const periodName = period === 'day' ? 'Dzienny' : period === 'week' ? 'Tygodniowy' : 'Miesięczny';
     const formattedLogs = logs.map(l => ({
       typ: l.type,
       wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
@@ -274,6 +274,39 @@ export const geminiService = {
     } catch (error) {
       console.error("Gemini Bolus Rec Error:", error);
       return null;
+    }
+  },
+
+  async getGlikoChatResponse(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], petData: any) {
+    const petName = petData?.name || 'Gliko';
+    const petType = petData?.type || 'standard';
+    
+    const systemInstruction = `Jesteś ${petName} - wesołym i mądrym stworkiem (typ: ${petType}), który opiekuje się dziećmi z cukrzycą. 
+    Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). 
+    Pamiętaj, że rozmawiasz z dzieckiem. Twoje odpowiedzi powinny być krótkie, pomocne i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). 
+    Jeśli pytanie dotyczy bezpośrednio medycyny lub dawkowania, zawsze zachęcaj do rozmowy z rodzicami lub lekarzem. 
+    Nie podawaj konkretnych dawek insuliny, tylko ogólne zasady i wsparcie.`;
+
+    const client = getClient();
+    const model = 'gemini-3.1-flash-lite-preview';
+
+    try {
+      const response = await client.models.generateContent({
+        model: model,
+        contents: [
+          ...history,
+          { role: 'user', parts: [{ text: message }] }
+        ],
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.8,
+        }
+      });
+      return response.text || "Ojej, coś mi się pomieszało w brzuszku! Spróbuj jeszcze raz! 🐾";
+    } catch (error) {
+      console.error("Gliko Chat Error:", error);
+      // Fallback if SDK fails or rate limited
+      return "Przepraszam, chyba na chwilę zasnąłem... Możesz powtórzyć? ✨";
     }
   }
 };

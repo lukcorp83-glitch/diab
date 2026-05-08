@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutDashboard, Database, Utensils, FileText, Settings, X, ChevronDown, Activity, Calculator, Plus, Search, Star, History, Brain, Trophy, Sliders, Bell, Pill, Globe, Beaker, HelpCircle, Smartphone, Home, LayoutGrid } from 'lucide-react';
+import { LayoutDashboard, Database, Utensils, FileText, Settings, X, ChevronDown, Activity, Calculator, Plus, Search, Star, History, Brain, Trophy, Sliders, Bell, Pill, Globe, Beaker, HelpCircle, Smartphone, Home, LayoutGrid, Gamepad2, MessageSquare, PawPrint, ShoppingBag } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION } from '../constants';
 
@@ -11,9 +11,10 @@ interface SidebarProps {
   changeTab: (tab: string) => void;
   onAction?: (action: string) => void;
   theme: 'light' | 'dark';
+  isChildMode?: boolean;
 }
 
-export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onAction, theme }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onAction, theme, isChildMode }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({});
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -58,10 +59,20 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        icon: <FileText size={20} />,
        subItems: [
           { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history', icon: <History size={14} /> },
-          { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <Home size={14} /> },
-          { id: 'achievements', label: 'Nagrody & Grywalizacja', tab: 'achievements', icon: <Trophy size={14} /> }
+          { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <Brain size={14} /> }
        ]
     },
+    ...(isChildMode ? [{ 
+       id: 'gliko', 
+       label: 'Świat Gliko', 
+       icon: <PawPrint size={20} className="text-indigo-500" />,
+       subItems: [
+          { id: 'gliko_chat', label: 'Rozmowa z Gliko (AI)', tab: 'chat', icon: <MessageSquare size={14} /> },
+          { id: 'gliko_shop', label: 'Sklep Gliko', tab: 'profile', action: 'shop', icon: <ShoppingBag size={14} /> },
+          { id: 'gliko_arcade', label: 'Salon Gier Gliko', tab: 'games', icon: <Gamepad2 size={14} /> },
+          { id: 'achievements', label: 'Nagrody & Grywalizacja', tab: 'achievements', icon: <Trophy size={14} /> }
+       ]
+    }] : []),
     { 
        id: 'profile', 
        label: 'System & Urządzenia', 

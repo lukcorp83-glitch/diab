@@ -1,4 +1,68 @@
 import * as tf from '@tensorflow/tfjs';
+import { db } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
+export const GlikoSenseLearner = {
+  async sendTelemetry(learnedRule: string, contextString: string) {
+    if (localStorage.getItem('glikosense_telemetry') === 'true') {
+      try {
+        await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'glikosense_training'), {
+          ruleLearned: learnedRule,
+          context: contextString,
+          timestamp: serverTimestamp(),
+          source: 'GlikoSense Client',
+          model: 'v2.4.1'
+        });
+        console.log("GlikoSense: Anonimowe dane o uczeniu wysłane z powodzeniem.");
+      } catch (e) {
+        console.warn("GlikoSense: Błąd wysyłania telemetrii", e);
+      }
+    }
+  },
+  learnFromGemini(analysisText: string) {
+    const text = analysisText.toLowerCase();
+    try {
+      let rules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+      
+      if (text.includes('insulinooporność') || text.includes('oporność na insulinę') || text.includes('wysokie dawki')) {
+        rules.insulinResistanceMultiplier = (rules.insulinResistanceMultiplier || 1.0) * 1.05;
+        this.sendTelemetry("insulinResistanceMultiplier_increase", "Wykryto słowo-klucz oporności w raporcie AI.");
+        console.log("GlikoSense: Nauczyłem się o insulinooporności z raportu AI Gemini.");
+      }
+      if (text.includes('zwiększona wrażliwość') || text.includes('bardzo spada') || text.includes('szybki spadek')) {
+        rules.insulinResistanceMultiplier = Math.max(0.5, (rules.insulinResistanceMultiplier || 1.0) * 0.95);
+        this.sendTelemetry("insulinResistanceMultiplier_decrease", "Wykryto słowo-klucz wrażliwości w raporcie AI.");
+        console.log("GlikoSense: Nauczyłem się o zwiększonej wrażliwości z raportu AI Gemini.");
+      }
+      if (text.includes('brzask') || text.includes('wzrosty poranne')) {
+        rules.dawnPhenomenonEnabled = true;
+        this.sendTelemetry("dawnPhenomenonEnabled_true", "Aktywowano regułę poranną.");
+        console.log("GlikoSense: Aktywowano regułę Zjawiska Brzasku na podstawie rad z Gemini.");
+      }
+      if (text.includes('somogyi') || text.includes('odbicie po hipo')) {
+        rules.somogyiEnabled = true;
+        this.sendTelemetry("somogyiEnabled_true", "Aktywowano zjawisko somogyi z porad Gemini.");
+        console.log("GlikoSense: Aktywowano czujność efektu Somogyi z medycznych porad.");
+      }
+      if (text.includes('pizza') || text.includes('tłuste posiłki') || text.includes('przedłużone wchłanianie')) {
+        rules.pizzaEffectMultiplier = 1.2;
+        this.sendTelemetry("pizzaEffectMultiplier_1.2", "Korekta bazy wchłaniania (Efekt Pizzy).");
+        console.log("GlikoSense: Zaadaptowano algorytm do dłuższego wchłaniania tłuszczy z AI.");
+      }
+      
+      localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
+    } catch (e) {
+      console.warn("GlikoSense Learner error", e);
+    }
+  },
+  getRules() {
+    try {
+      return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+    } catch {
+      return {};
+    }
+  }
+};
 
 // Funkcja pomocnicza do obliczania aktywnych węglowodanów, insuliny, tłuszczu i białka
 function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
@@ -6,6 +70,9 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
     let cob = 0; // Carbs on Board
     let pob = 0; // Protein on Board
     let fob = 0; // Fat on Board
+    
+    const rules = GlikoSenseLearner.getRules();
+    const pizzaMult = rules.pizzaEffectMultiplier || 1.0;
     
     // Optymalizacja: patrzymy tylko na logi z ostatnich 8h względem targetTime
     const cutoffTime = targetTime - (8 * 60 * 60 * 1000);
@@ -29,22 +96,25 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
             iob += insulin * Math.max(0, remaining);
         }
         
-        // Węglowodany (szybkie - 2 do 3h)
+        // Węglowodany (szybkie - 2 do 3h), adaptacja do tłuszczy
         const carbs = log.type === 'meal' ? log.value : (log.carbs || 0);
-        if (carbs && diffHours < 3) {
-            cob += carbs * Math.max(0, (1 - (diffHours / 3)));
+        const carbDuration = 3 * pizzaMult;
+        if (carbs && diffHours < carbDuration) {
+            cob += carbs * Math.max(0, (1 - (diffHours / carbDuration)));
         }
 
         // Białko (Wolniejsze - do 4-5h)
         const protein = log.type === 'meal' ? (log.protein || 0) : 0;
-        if (protein && diffHours < 5) {
-            pob += protein * Math.max(0, (1 - (diffHours / 5)));
+        const protDuration = 5 * pizzaMult;
+        if (protein && diffHours < protDuration) {
+            pob += protein * Math.max(0, (1 - (diffHours / protDuration)));
         }
 
         // Tłuszcz (Bardzo powolne działanie - do 6-8h)
         const fat = log.type === 'meal' ? (log.fat || 0) : 0;
-        if (fat && diffHours < 7) {
-            fob += fat * Math.max(0, (1 - (diffHours / 7)));
+        const fatDuration = 7 * pizzaMult;
+        if (fat && diffHours < fatDuration) {
+            fob += fat * Math.max(0, (1 - (diffHours / fatDuration)));
         }
     }
     
@@ -84,7 +154,7 @@ export const MLAnalyzer = {
       }
       
       if (mode === 'full') {
-        const persistentCache = localStorage.getItem('glikosense_last_result');
+        const persistentCache = localStorage.getItem('glikosense_last_result_v2');
         const persistentFingerprint = localStorage.getItem('glikosense_last_fingerprint');
         
         if (persistentCache && persistentFingerprint === logsFingerprint) {
@@ -116,18 +186,18 @@ export const MLAnalyzer = {
           riskOfHypo: false, 
           insights: ["Zbyt mało danych dla GlikoSense."], 
           accuracy: 0,
-          analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 7 dni'
+          analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni'
         };
       }
 
       const now = Date.now();
-      // Tryb szybki: ostatnie 4h. Tryb pełny: 7 dni.
-      const lookbackMs = mode === 'quick' ? (4 * 60 * 60 * 1000) : (7 * 24 * 60 * 60 * 1000);
+      // Tryb szybki: ostatnie 4h. Tryb pełny: 14 dni.
+      const lookbackMs = mode === 'quick' ? (4 * 60 * 60 * 1000) : (14 * 24 * 60 * 60 * 1000);
       const cutoffTime = now - lookbackMs;
       
       let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
       
-      if (mode === 'full' && logsToAnalyze.length > 400) logsToAnalyze = logsToAnalyze.slice(0, 400);
+      if (mode === 'full' && logsToAnalyze.length > 1500) logsToAnalyze = logsToAnalyze.slice(0, 1500);
       if (logsToAnalyze.length < 5) logsToAnalyze = logs.slice(0, 20);
 
       const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
@@ -137,9 +207,65 @@ export const MLAnalyzer = {
       const insights: string[] = [];
       const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
       
+      // Feature F: Daily Sensitivity Analysis
+      const timeBlocks = {
+        morning: { label: 'Poranek', starts: 6, ends: 11, sensitivity: 0, count: 0, drops: [] as number[] },
+        afternoon: { label: 'Popołudnie', starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
+        evening: { label: 'Wieczór', starts: 17, ends: 23, sensitivity: 0, count: 0, drops: [] as number[] },
+        night: { label: 'Noc', starts: 23, ends: 6, sensitivity: 0, count: 0, drops: [] as number[] }
+      };
+
       const allMeals = logs.filter(l => l.type === 'meal');
+      const allBoluses = logs.filter(l => l.type === 'bolus' || l.type === 'insulin');
       const allGlucose = logs.filter(l => l.type === 'glucose' || l.bg).sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
       
+      // Analyze time blocks sensitivity
+      allBoluses.forEach(b => {
+        const bTime = b.timestamp || new Date(b.createdAt).getTime();
+        const bHour = new Date(bTime).getHours();
+        const bVal = b.value || b.insulin || 0;
+        if (bVal <= 0) return;
+
+        // Found sugar 2-3h after bolus
+        const targetSugar = allGlucose.find(g => {
+          const gt = g.timestamp || new Date(g.createdAt).getTime();
+          return gt > bTime + 110*60*1000 && gt < bTime + 190*60*1000;
+        });
+
+        const startSugar = allGlucose.find(g => {
+          const gt = g.timestamp || new Date(g.createdAt).getTime();
+          return gt > bTime - 15*60*1000 && gt < bTime + 15*60*1000;
+        });
+
+        if (targetSugar && startSugar) {
+          const drop = (startSugar.value || startSugar.bg) - (targetSugar.value || targetSugar.bg);
+          const block = Object.values(timeBlocks).find(tb => 
+            tb.starts <= tb.ends ? (bHour >= tb.starts && bHour < tb.ends) : (bHour >= tb.starts || bHour < tb.ends)
+          );
+          if (block) {
+            block.drops.push(drop / bVal); // drops per 1 unit
+          }
+        }
+      });
+
+      // Calculate averages for blocks
+      Object.values(timeBlocks).forEach(tb => {
+        if (tb.drops.length > 0) {
+          tb.sensitivity = tb.drops.reduce((a, b) => a + b, 0) / tb.drops.length;
+          tb.count = tb.drops.length;
+        }
+      });
+
+      const mostSensitive = Object.values(timeBlocks).reduce((prev, current) => (prev.sensitivity > current.sensitivity) ? prev : current);
+      const leastSensitive = Object.values(timeBlocks).reduce((prev, current) => (prev.sensitivity < current.sensitivity && current.count > 0) ? prev : current);
+
+      if (mostSensitive.count > 1 && leastSensitive.count > 1 && mostSensitive !== leastSensitive) {
+        const ratio = mostSensitive.sensitivity / (leastSensitive.sensitivity || 1);
+        if (ratio > 1.4) {
+          insights.push(`🕰️ Pora dnia ma znaczenie. Na podstawie ostatnich dni widzę, że w fazie "${mostSensitive.label}" Twoja wrażliwość na insulinę jest o ${Math.round((ratio-1)*100)}% wyższa niż w fazie "${leastSensitive.label}". Pamiętaj o tym dobierając dawki!`);
+        }
+      }
+
       allMeals.slice(0, 100).forEach(m => {
         const mealTime = m.timestamp || new Date(m.createdAt).getTime();
         const mealName = m.note || m.name || m.description || "Posiłek";
@@ -163,7 +289,39 @@ export const MLAnalyzer = {
         .map(([name]) => name);
 
       if (problematicMeals.length > 0) {
-        insights.push(`🧠 Pamięć posiłków: ${problematicMeals.slice(0, 2).join(", ")} historycznie powodują u Ciebie wysokie skoki cukru.`);
+        insights.push(`🧠 Z moich obserwacji z 14 dni: pozycje takie jak: ${problematicMeals.slice(0, 2).join(", ")} powtarzały się z wyższymi poziomami cukru potem. Możesz tu rozważyć wcześniejszy bolus.`);
+      }
+
+      // 0. Weekly day analysis (Tuesdays etc)
+      if (mode === 'full') {
+        const daysStats: { [day: string]: { sum: number, count: number } } = {
+          "Niedziela": { sum: 0, count: 0 },
+          "Poniedziałek": { sum: 0, count: 0 },
+          "Wtorek": { sum: 0, count: 0 },
+          "Środa": { sum: 0, count: 0 },
+          "Czwartek": { sum: 0, count: 0 },
+          "Piątek": { sum: 0, count: 0 },
+          "Sobota": { sum: 0, count: 0 }
+        };
+        const dayNames = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
+
+        allGlucose.forEach(g => {
+          const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
+          const dayName = dayNames[d.getDay()];
+          daysStats[dayName].sum += (g.value || g.bg);
+          daysStats[dayName].count++;
+        });
+
+        const activeDays = Object.entries(daysStats).filter(([_, s]) => s.count > 10);
+        if (activeDays.length >= 3) {
+           activeDays.sort((a,b) => (b[1].sum / b[1].count) - (a[1].sum / a[1].count));
+           const worstDay = activeDays[0];
+           const bestDay = activeDays[activeDays.length - 1];
+           
+           if ((worstDay[1].sum / worstDay[1].count) - (bestDay[1].sum / bestDay[1].count) > 25) {
+               insights.push(`📅 Analiza 14-dniowa ujawnia: Twój cukier jest stale niższy w te dni tygodnia: ${bestDay[0]} (prawdopodobnie większa wrażliwość, może regularny trening?). Z kolei ${worstDay[0]} często bywa trudny i wymaga więcej insuliny lub ostrożności.`);
+           }
+        }
       }
 
       if (glucoseLogsOrig.length < 5) {
@@ -172,7 +330,7 @@ export const MLAnalyzer = {
           riskOfHypo: false, 
           insights: [...insights, "Czekam na więcej odczytów glikemii..."], 
           accuracy: 0,
-          analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 7 dni'
+          analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni'
         };
       }
 
@@ -447,8 +605,18 @@ export const MLAnalyzer = {
 
             const inputs = zScoreNormalize([currentPredictBg, currentPredictTrend, currentPredictAcceleration, fCob, fIob, fTimeSin, fTimeCos, fPob, fFob, fIsWeekend, fTimeSinceMeal, fTimeSinceBolus, fIobCobRatio]);
             const nextPred = predictValue(model, inputs);
-            let nextBg = nextPred[0] * 400;
-            if (isNaN(nextBg) || !isFinite(nextBg)) nextBg = currentPredictBg;
+            let rawNextBg = nextPred[0] * 400;
+            if (isNaN(rawNextBg) || !isFinite(rawNextBg)) rawNextBg = currentPredictBg;
+            
+            // Zastosuj łagodne przejście między aktualnym przewidywaniem a wyjściem sieci
+            let bgDiff = rawNextBg - currentPredictBg;
+            // Limit the maximum jump per 5 minutes to avoid sharp vertical spikes
+            const maxJump = 12; 
+            if (bgDiff > maxJump) bgDiff = maxJump;
+            if (bgDiff < -maxJump) bgDiff = -maxJump;
+            
+            let nextBg = currentPredictBg + (bgDiff * 0.5); // Ewma smoothing factor 0.5
+            
             nextBg = Math.max(40, Math.min(600, nextBg));
             predictionCurve.push({ timestamp: futureTimeMs, offsetMs: step * 5 * 60 * 1000, value: nextBg });
             currentPredictBg = nextBg;
@@ -512,23 +680,23 @@ export const MLAnalyzer = {
 
     
     const accuracyPhrases = [
-        `🤖 Oparta o pamięć krótkotrwałą i długotrwałą (sieć LSTM) AI działa na Twoich danych. Błąd: ${Math.round(avgErrorInMgDl)} mg/dL.`,
-        `🤖 GlikoSense połączył cache IndexedDB ze strukturą LSTM by nie tracić pamięci. ${isModelLoaded ? "Wczytano wagi!" : "Utworzono n. model."} Odchylenie: ~${Math.round(avgErrorInMgDl)} mg/dL.`,
-        `🤖 System LSTM przeanalizował zależności glikemiczne i uczy się z każdym posiłkiem. Margines błędu to obecnie ${Math.round(avgErrorInMgDl)} mg/dL.`
+        `🧠 Oparłem się o moje doświadczenie z Twoich ostatnich dni. Mój margines błędu w tej chwili to około ${Math.round(avgErrorInMgDl)} mg/dL.`,
+        `🧠 Wciąż zbieram dane żeby dobrze Ci doradzać. Moje odchylenie na tę chwilę to ok. ${Math.round(avgErrorInMgDl)} mg/dL. Im więcej danych, tym mniejszy margines.`,
+        `🧠 Przeanalizowałem Twoje wykresy i powoli rozumiem jak działa Twój cukier. Uśredniony błąd w moich przewidywaniach to ${Math.round(avgErrorInMgDl)} mg/dL.`
     ];
     insights.push(accuracyPhrases[Math.floor(Math.random() * accuracyPhrases.length)]);
 
     const predictionPhrases = [
-        `🔮 GlikoSense prognozuje: za 60 minut znajdziemy się na poziomie ${Math.round(predictedNextHour)} mg/dL.`,
-        `🔮 GlikoSense Neural Net: spodziewaj się wartości wokół ${Math.round(predictedNextHour)} mg/dL za godzinę.`,
-        `🔮 AI offline wygenerowało wynik rzędu ${Math.round(predictedNextHour)} mg/dL. Reaguj z wyprzedzeniem.`
+        `🔮 Jeżeli trend się nie zmieni, w ciągu godziny powinniśmy dotrzeć do punktu około ${Math.round(predictedNextHour)} mg/dL.`,
+        `🔮 Wybiegając do przodu - przewiduję, że zmierzamy w okolice ${Math.round(predictedNextHour)} mg/dL za godzinkę.`,
+        `🔮 Analizując tempo, spodziewam się poziomic ok. ${Math.round(predictedNextHour)} mg/dL w ciągu 60 minut.`
     ];
     insights.push(predictionPhrases[Math.floor(Math.random() * predictionPhrases.length)]);
     
     if (currentCob > 0 || currentIob > 0 || currentPob > 0 || currentFob > 0) {
-        let text = `Aktywne substancje: `;
+        let text = `Twoje aktywne substancje w tle to teraz: `;
         const parts = [];
-        if (currentCob > 0) parts.push(`🥪 ${Math.round(currentCob)}g węgli`);
+        if (currentCob > 0) parts.push(`🥪 ${Math.round(currentCob)}g wębli`);
         if (currentIob > 0) parts.push(`💉 ${currentIob.toFixed(1)}j insuliny`);
         if (currentPob > 0) parts.push(`🥩 ${Math.round(currentPob)}g białka`);
         if (currentFob > 0) parts.push(`🧀 ${Math.round(currentFob)}g tłuszczu`);
@@ -537,42 +705,54 @@ export const MLAnalyzer = {
     }
 
     if (carbSensitivity > 30) {
-        insights.push(`💡 Jesteś w fazie sporej wrażliwości na węglowodany. Dodatkowe 50g mogłoby wybić cukier o ok. ${Math.round(carbSensitivity)} mg/dL.`);
+        insights.push(`💡 Wydaje mi się, że węglowodany dość szybko wchłaniają się teraz u Ciebie do krwi. Porcja np. 50g może mieć duży wpływ na obecny cukier!`);
     } else if (carbSensitivity > 10) {
-        insights.push(`💡 Węglowodany z posiłku wchłaniają się wolno i stabilnie według algorytmów GlikoSense.`);
+        insights.push(`💡 To co zjadłeś, uwalnia się moim zdaniem bardzo spokojnie i bez skoków. Dobra nasza!`);
     }
 
     if (insulinSensitivity < -30) {
-        insights.push(`💉 Uważaj przy podawaniu insuliny – model AI wskazuje rzadką wrażliwość komórkową (korekta zbije wykres o ok. ${Math.abs(Math.round(insulinSensitivity))} mg/dL ponad normę).`);
+        insights.push(`💉 Masz w tym momencie podwyższoną wrażliwość na insulinę. Postaraj się delikatniej podejść do ewentualnych korekt, bo zbije Ci glikemię bardziej niż przypuszczasz!`);
     }
 
     // 1. Zwiększona oporność / Wysiłek fizyczny
     if (avgBias < -15) {
-        insights.push(`🚨 Model głęboki wykrył nieznaczną oporność - cukry są wyżej, niż obliczył procesor (różnica ok. ${Math.abs(Math.round(avgBias))} mg/dL). Infekcja, stres?`);
+        insights.push(`🚨 Z moich szacunków wynika, że pomimo odpowiedniego zliczenia insuliny masz lekką oporność (byłem o ${Math.abs(Math.round(avgBias))} mg/dL w błędzie w dół). Jakieś emocje, stres, a może infekcja za rogiem?`);
     } else if (avgBias > 15) {
-        insights.push(`🏃‍♂️ Pomyślny test "AI Bias" - masz niespodziewane spadki, głęboki model sugeruje aktywność fizyczną lub niedawną zmianę bazy.`);
+        insights.push(`🏃‍♂️ Bywam omylny, bo Twój cukier trzyma się niżej niż przewidywałem! Miałeś ukryty wysiłek fizyczny, czy sprzątanie, o którym mi nie powiedziałeś?`);
     }
 
     // 2. Efekt Brzasku
-    if (lastHourDec > 3 && lastHourDec < 8 && lastTrendNum > 5 && currentCob === 0 && currentPob === 0) {
-        insights.push(`🌅 Detekcja GlikoSense: V-Trend Poranny! (Zjawisko Brzasku - wyrzut hormonów).`);
+    const rules = GlikoSenseLearner.getRules();
+    
+    if (rules.dawnPhenomenonEnabled && lastHourDec > 2 && lastHourDec < 9 && lastTrendNum > 3) {
+         insights.push(`🌅 Poranne wstawanie... Twój organizm włącza Zjawisko Brzasku. Zapisuję, że w ostatnich dniach u Ciebie to częste.`);
+    } else if (lastHourDec > 3 && lastHourDec < 8 && lastTrendNum > 5 && currentCob === 0 && currentPob === 0) {
+        insights.push(`🌅 Prawdopodobnie organizm budzi Cię właśnie hormonami porannymi. Tzw. zjawisko brzasku, rośniemy nawet bez jedzenia.`);
     }
 
     // 3. Efekt odbicia (Somogyi)
     const twoHoursAgoMs = latestTimeMs - (2 * 60 * 60 * 1000);
     const recentHypos = sorted.filter(l => (l.type === 'glucose' && (l.value || l.bg) < 70 && (l.timestamp || new Date(l.createdAt).getTime()) >= twoHoursAgoMs));
-    if (recentHypos.length > 0 && lastTrendNum > 6) {
-        insights.push(`🔄 Wzrasta ryzyko efektu Somogyi (zjawisko z odbicia po głębokiej hipoglikemii). GlikoSense odradza agresywną korektę.`);
+    if (rules.somogyiEnabled && recentHypos.length > 0 && lastTrendNum > 3) {
+        insights.push(`🔄 Uwaga! Ostatnio miałeś hipo, więc widzę jak Twój organizm zaczął walczyć wypuszczając zapasy glukozy (tzw. efekt Somogyi). Powolnie i bez nerwów z korektami.`);
+    } else if (recentHypos.length > 0 && lastTrendNum > 6) {
+        insights.push(`🔄 Miałeś przed chwilą dość głęboki spadek. Ten gwałtowny wzrost to odbicie po-hipowe. Uważnie z potężną korektą, by znów nie spaść!`);
+    }
+
+    if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier > 1.1) {
+        insights.push(`💪 W moim cenniku Twojego uodpornienia, widnieje lekka blokada na insulinę. Licz się z trochę chłodniejszą reakcją organizmu na dodane jednostki.`);
+    } else if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier < 0.9) {
+        insights.push(`📉 Moje ukryte wagi mówią, że powinieneś w najbliższym czasie być podwójnie ostrożny z dawkami. Będziesz zbijał cukier skuteczniej!`);
     }
 
     // 4. Nakładanie insuliny (Insulin Stacking)
     if (latestBg > 160 && currentIob > 1.5 && predictedNextHour > 160) {
-        insights.push(`📉 GlikoSense sygnalizuje "Insulin Stacking". Aktywny IOB to ok ${currentIob.toFixed(1)}j. Bądź cierpliwy, insulina wciąż robi swoje.`);
+        insights.push(`📉 Jest wysoko, ale uwaga! - ustrzeż się nawarstwienia insuliny, masz już zgromadzoną u siebie aktywną porcję. Wymaga to tylko chwili cierpliwości.`);
     }
 
     // 5. Stabilność nocna
     if ((lastHourDec > 23 || lastHourDec < 5) && Math.abs(lastTrendNum) < 3 && latestBg > 90 && latestBg < 140) {
-        insights.push(`🌙 Model nocny GlikoSense: Idealnie płaska baza i równe parametry oddychania komórkowego.`);
+        insights.push(`🌙 Widzę spokojną i udaną nockę. Parametry ucięte jak od sznurka do snu!`);
     }
 
     // 6. Rollercoaster / Zmienność (Standard Deviation i Wstęgi Bollingera)
@@ -592,62 +772,77 @@ export const MLAnalyzer = {
         const bollingerLower = Math.max(40, Math.round(meanGlucose - (2 * stdDev)));
 
         if (latestBg > bollingerUpper && lastTrendNum > 3) {
-            insights.push(`📈 Cukier wybił się znacznie powyżej korytarza zmienności (wstęga Bollingera GlikoSense: ${bollingerUpper}). Glikemia szuka nowego, wyższego oporu.`);
+            insights.push(`📈 Oho, poszliśmy wyżej niż zakładałem w swoich wskaźnikach stabilności! Cukier chyba poszukuje nowego miejsca żeby odpocząć, musisz zareagować.`);
         } else if (latestBg < bollingerLower && lastTrendNum < -3) {
-             insights.push(`📉 Nastąpiło wybicie glikemii u dołu (dolna wstęga Bollingera: ${bollingerLower}). Gwałtowne wsparcie węglowodanami rekomendowane.`);
+             insights.push(`📉 Cukier zapikował ostrzej niż można by sądzić! Polecam szybko zabezpieczyć się węglowodanami byśmy się nie obudzili w gorszym miejscu.`);
         }
 
         if (cv > 33 && meanGlucose > 80 && countGlucose > 30) {
-            insights.push(`🎢 Sztuczna Inteligencja ostrzega przed Rollercoasterem (CV: ${cv.toFixed(1)}%). Konieczna lepsza zbieżność między podaniem bolusa a zjedzeniem węgli.`);
+            insights.push(`🎢 Hej, jedziemy nieco zbyt sporym roller-coasterem. Zwróć większą uwagę na wcześniejsze podanie insuliny by ograniczyć piki po węglowodanach :)`);
         } else if (cv < 15 && countGlucose > 30) {
-            insights.push(`🏆 GlikoSense klasyfikuje twój wykres jako wzór! (Zmienność glikemii CV ledwie ${cv.toFixed(1)}%).`);
+            insights.push(`🏆 Chciałbym Ci bardzo podziękować w imieniu organizmu - Twoje wykresy trzymają tak mało huśtawek, to powód do zadowolenia dla nas obu!`);
         }
     }
 
     // 7. Przekarmienie (High COB, High BG, rośnie)
     if (currentCob > 50 && latestBg > 150 && lastTrendNum > 4 && currentIob < Math.max(1, currentCob / 15)) {
-         insights.push(`🚀 Sieć neuronowa alarmuje o dysproporcji: Dużo Węglowodanów (${Math.round(currentCob)}g), za mało Insuliny na pokładzie! Reaguj szybko przed pikiem.`);
+         insights.push(`🚀 Ostrzegam! Zauważyłem, że masz sporo węgli zgromadzonych do zjedzenia (${Math.round(currentCob)}g), ale brak ubezpieczenia insulinowego, i idzie do góry. Działaj!`);
     }
 
     // 8. Ostrzeżenie o luce bazowej (Basal Gap)
     const threeHoursAgoForBasal = latestTimeMs - (3 * 60 * 60 * 1000);
     const recentMealsOrBoluses = sorted.filter(l => (l.type === 'meal' || l.type === 'bolus' || l.type === 'insulin') && (l.timestamp || new Date(l.createdAt).getTime()) >= threeHoursAgoForBasal);
     if (recentMealsOrBoluses.length === 0 && lastTrendNum > 3 && latestBg > 130 && latestBg < 200 && currentIob === 0 && currentCob === 0) {
-        insights.push(`🧗 GlikoSense analizując Twoją krzywą widzi klasyczną Lukę Bazową. Parametry insulinowe mogły ulec osłabieniu (sprawdź bazę!).`);
+        insights.push(`🧗 Nic nie było jedzone, nie było insuliny, a mimo to pomalutku brniemy w góry. Tzw. pusta luka - sprawdź, czy Ci lekko baza nie nawala!`);
     }
 
     if (currentFob > 15 || currentPob > 20) {
-        insights.push(`⚠️ Neural Net rozpoznaje wysoką ilość Białek/Tłuszczów uwalnianych w tle ("Efekt Pizzy"). Możliwy wylew insulinooporności poposiłkowej.`);
+        insights.push(`⚠️ Mam u siebie zapisaną masę tłuszczów lub białek czekającą by się strawić! Zwracaj uwagę na ukryte wyskoki potraw za ok. 3-4 godziny - efekt pizzy wisi w powietrzu!`);
+    }
+
+    // 10. Wykrywanie zużytego wkłucia (delivery failure)
+    const last4h = sorted.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) > (latestTimeMs - 4 * 3600000));
+    const recentBolusesIn4h = last4h.filter(l => l.type === 'bolus' || l.type === 'insulin');
+    const totalRecentBolus = recentBolusesIn4h.reduce((sum, b) => sum + (b.value || b.insulin || 0), 0);
+    
+    if (latestBg > 200 && totalRecentBolus > 1.5 && lastTrendNum >= -1 && currentIob > 0.5) {
+        // Dodatkowo sprawdź czy cukier był wysoki przez większość czasu w tych 4h mimo bolusów
+        const highCounts = last4h.filter(l => (l.type === 'glucose' || l.bg) && (l.value || l.bg) > 180).length;
+        const totalCounts = last4h.filter(l => l.type === 'glucose' || l.bg).length;
+        
+        if (highCounts > 0 && highCounts / (totalCounts || 1) > 0.8) {
+            insights.push(`🚨 UWAGA! Cukier utknął wysoko i nie idzie w dół nawet przy podanych ${totalRecentBolus}j insuliny od 4 godzin. Istnieje powód by zerknąć na miejsce wkłucia, mogła wygiąć się kaniula!`);
+        }
     }
 
     // 9. Over-bolus (Przeinsulinowanie)
     if (currentIob > 3 && latestBg < 110 && lastTrendNum < -5 && currentCob < 10) {
-        insights.push(`🎯 Predykcja krzyżowa GlikoSense obawia się zderzenia dużej insuliny z brakiem glikogenu w wątrobie. Zjedz ok 15g!`);
+        insights.push(`🎯 Trend leci! Masz solidny ładunek aktywnej insuliny w ciele i ani trochę zabezpieczonych węglowodanów w żołądku. Koniecznie zjedz ok. 15g soku lub glukozy!`);
     }
 
     if (riskOfHypo) {
         const hypoPhrases = [
-            "⚠️ Ostrzeżenie Sieci: Hipoglikemia puka do drzwi. Dostarcz cukry proste w ciągu 10 minut.",
-            "⚠️ Analizator GlikoSense zapala czerwoną lampkę. Gwałtowna ścieżka w dół, reaguj sokiem i jedzeniem.",
-            "⚠️ GlikoSense wyrzucił krytyczny ALERT! Skrzyżowanie spadku i małego cukru. Zabezpiecz glikemię."
+            "⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały.",
+            "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku by nie pogorszyć tego wyniku.",
+            "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą, trzymam kciuki!"
         ];
         insights.push(hypoPhrases[Math.floor(Math.random() * hypoPhrases.length)]);
     } else if (predictedNextHour > 180) {
         const hyperPhrases = [
-            "📈 Algorytm Deep Learning przewiduje tendencję zwyżkową.",
-            "📈 Sieć GlikoSense wykryła, że cukry idą ku Hiperglikemii.",
-            "📈 Predykcja jest dość wysoka, sugeruję analizę niedawnych węglowodanów."
+            "📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem.",
+            "📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę.",
+            "📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Biorąc trend w opiekę - spodziewaj się lotu powyżej linii :)"
         ];
         insights.push(hyperPhrases[Math.floor(Math.random() * hyperPhrases.length)]);
     } else {
         const normalPhrases = [
-            "✨ Sieć wskazuje całkowitą i piękną homeostazę. Jest idealnie.",
-            "✨ Obliczenia matrycowe nie stwierdzają żadnych obaw. Płaski wykres w normie.",
-            "✨ Wszystkie warstwy ukryte modelu układają się w optymalny wzorzec, brawo."
+            "✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!",
+            "✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!",
+            "✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!"
         ];
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
-    
+
     const accuracyValue = Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80)));
 
     return {
@@ -655,7 +850,7 @@ export const MLAnalyzer = {
         riskOfHypo,
         insights,
         accuracy: accuracyValue,
-        analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 7 dni',
+        analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni',
         predictionCurve: predictionCurve.map(p => ({
             ...p,
             value: Math.round(p.value)
@@ -679,7 +874,7 @@ export const MLAnalyzer = {
       // Zapisz do pamięci trwałej (tylko pełne wyniki)
       if (mode === 'full') {
         try {
-          localStorage.setItem('glikosense_last_result', JSON.stringify(res));
+          localStorage.setItem('glikosense_last_result_v2', JSON.stringify(res));
           localStorage.setItem('glikosense_last_fingerprint', logsFingerprint);
         } catch (e) {
           console.warn("Błąd zapisu do LocalStorage GlikoSense (możliwy brak miejsca)");

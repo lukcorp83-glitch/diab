@@ -1,8 +1,8 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Share2, Download, X, Copy, Check, Users, Link as LinkIcon, Unlink } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { Share2, Download, X, Copy, Check, Users, Link as LinkIcon, Unlink, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserSettings } from '../types';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -236,8 +236,8 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
             <h3 className="text-xl font-black dark:text-white mb-2 self-start">Skaner Parowania</h3>
             <p className="text-xs text-slate-500 mb-6 self-start">Nakieruj obiektyw na kod QR na pierwszym telefonie.</p>
             
-            <div className="w-full rounded-[2rem] overflow-hidden border-2 border-accent-500/30 mb-6 bg-black relative aspect-square">
-              <QrScanner 
+            <div className="w-full rounded-[2rem] overflow-hidden border-2 border-accent-500/30 mb-6 bg-black relative aspect-square shadow-inner">
+               <QrScanner 
                 onResult={(res) => {
                   setImportText(res);
                   handleImportText(res);
@@ -270,27 +270,120 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
 }
 
 function QrScanner({ onResult }: { onResult: (res: string) => void }) {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [cameras, setCameras] = useState<any[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        const scanner = new Html5QrcodeScanner('reader-qr', { fps: 10, qrbox: 250, aspectRatio: 1.0 }, false);
-        scanner.render((result) => {
-          scanner.clear();
-          onResult(result);
-        }, (err) => {
-          // ignore scan errors
-        });
-        
-        return () => {
-          scanner.clear().catch(e => console.error(e));
-        };
-      } catch (e) {
-        console.error("QR scanner error: ", e);
+    const html5QrCode = new Html5Qrcode("reader-qr");
+    setScanner(html5QrCode);
+
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length > 0) {
+        setCameras(devices);
+        // Prefer back camera if available
+        const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('tył'));
+        setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
+        setHasPermission(true);
+      } else {
+        setHasPermission(false);
       }
-    }, 100);
-    
-    return () => clearTimeout(timer);
+    }).catch(err => {
+      console.error("Camera permission error", err);
+      setHasPermission(false);
+    });
+
+    return () => {
+      if (html5QrCode.isScanning) {
+        html5QrCode.stop().catch(e => console.error(e));
+      }
+    };
   }, []);
 
-  return <div id="reader-qr" className="w-full h-64 bg-black flex items-center justify-center text-white text-xs">Ładowanie aparatu...</div>;
+  useEffect(() => {
+    if (scanner && selectedCameraId && !scanner.isScanning) {
+      scanner.start(
+        selectedCameraId,
+        {
+          fps: 10,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+             // Dynamic qrbox - 70% of smaller dimension
+             const minDim = Math.min(viewfinderWidth, viewfinderHeight);
+             const size = Math.floor(minDim * 0.7);
+             return { width: size, height: size };
+          }
+        },
+        (decodedText) => {
+          scanner.stop().then(() => onResult(decodedText)).catch(e => console.error(e));
+        },
+        () => {} // scan error
+      ).catch(err => {
+        console.error("Scanner start error", err);
+      });
+    }
+  }, [scanner, selectedCameraId]);
+
+  const switchCamera = () => {
+    if (!scanner) return;
+    const currentIndex = cameras.findIndex(c => c.id === selectedCameraId);
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    
+    if (scanner.isScanning) {
+      scanner.stop().then(() => {
+        setSelectedCameraId(cameras[nextIndex].id);
+      }).catch(e => console.error(e));
+    } else {
+      setSelectedCameraId(cameras[nextIndex].id);
+    }
+  };
+
+  if (hasPermission === false) {
+    return (
+      <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+        <X className="text-rose-500 mb-2" size={32} />
+        <p className="text-[10px] font-bold text-white uppercase tracking-widest">Brak dostępu do aparatu</p>
+        <p className="text-[10px] text-slate-400 mt-2">Sprawdź uprawnienia w ustawieniach przeglądarki.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full group">
+      <div id="reader-qr" className="w-full h-full bg-black"></div>
+      
+      {/* Overlay UI */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <div className="w-[70%] aspect-square border-2 border-accent-500 rounded-3xl relative">
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-accent-500 -mt-1 -ml-1 rounded-tl-xl"></div>
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-accent-500 -mt-1 -mr-1 rounded-tr-xl"></div>
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-accent-500 -mb-1 -ml-1 rounded-bl-xl"></div>
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-accent-500 -mb-1 -mr-1 rounded-br-xl"></div>
+          
+          {/* Scanning Line Animation */}
+          <motion.div 
+            animate={{ top: ["0%", "100%", "0%"] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            className="absolute left-0 right-0 h-0.5 bg-accent-500/50 shadow-[0_0_15px_rgba(var(--accent-500),0.5)] z-10"
+          />
+        </div>
+      </div>
+
+      {/* Camera Switch Button */}
+      {cameras.length > 1 && (
+        <button 
+          onClick={switchCamera}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white/30 transition-all pointer-events-auto shadow-lg"
+        >
+          <Camera size={20} />
+        </button>
+      )}
+
+      {hasPermission === null && (
+        <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
+          <p className="text-[10px] font-black text-white uppercase tracking-widest animate-pulse">Inicjalizacja aparatu...</p>
+        </div>
+      )}
+    </div>
+  );
 }

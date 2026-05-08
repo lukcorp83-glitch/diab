@@ -11,6 +11,7 @@ import {
   Scan,
   Save,
   ChevronRight,
+  ChevronUp,
   Globe,
   Loader2,
   Zap,
@@ -412,6 +413,12 @@ export default function MealPlate({
   const totalCarbs = plate.reduce((s, i) => s + (i.carbs * i.weight) / 100, 0);
   const totalProtein = plate.reduce((s, i) => s + ((i.protein || 0) * i.weight) / 100, 0);
   const totalFat = plate.reduce((s, i) => s + ((i.fat || 0) * i.weight) / 100, 0);
+  
+  const totalCalsFromMacros = (totalCarbs * 4) + (totalProtein * 4) + (totalFat * 9);
+  const carbsPct = totalCalsFromMacros > 0 ? (totalCarbs * 4 / totalCalsFromMacros) * 100 : 0;
+  const proteinPct = totalCalsFromMacros > 0 ? (totalProtein * 4 / totalCalsFromMacros) * 100 : 0;
+  const fatPct = totalCalsFromMacros > 0 ? (totalFat * 9 / totalCalsFromMacros) * 100 : 0;
+
   const totalWW = totalCarbs / 10;
   const totalWBT = (totalProtein * 4 + totalFat * 9) / 100;
 
@@ -484,58 +491,6 @@ export default function MealPlate({
 
   const startScanner = () => {
     setIsScannerOpen(true);
-    setTimeout(() => {
-      const element = document.getElementById("reader");
-      if (!element) return;
-
-      const html5QrCode = new Html5Qrcode("reader");
-      html5QrCode
-        .start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          async (decodedText) => {
-            console.log(`Scan result: ${decodedText}`);
-            await html5QrCode.stop();
-            setIsScannerOpen(false);
-
-            setIsSearching(true);
-            try {
-              // Try Open Food Facts first for real data
-              const response = await fetch(
-                `https://world.openfoodfacts.org/api/v2/product/${decodedText}.json`,
-              );
-              const data = await response.json();
-
-              if (data.status === 1 && data.product) {
-                const p = data.product;
-                const product: Product = {
-                  id: `scan_${Date.now()}`,
-                  name: p.product_name || "Produkt nieznany",
-                  carbs: p.nutriments?.carbohydrates_100g || 0,
-                  protein: p.nutriments?.proteins_100g || 0,
-                  fat: p.nutriments?.fat_100g || 0,
-                  gi: 50, // Default GI
-                  category: "Skanowane",
-                };
-                openWeightModal(product);
-                setIsSearching(false);
-              } else {
-                // Fallback to AI search with the EAN
-                setSearchTerm(decodedText);
-                setIsSearching(false);
-                await performOnlineSearch(decodedText);
-              }
-            } catch (err) {
-              console.error("Barcode data fetch error:", err);
-              setSearchTerm(decodedText);
-              setIsSearching(false);
-              await performOnlineSearch(decodedText);
-            }
-          },
-          (errorMessage) => {},
-        )
-        .catch((err) => console.error("Scanner failed:", err));
-    }, 100);
   };
 
   return (
@@ -567,10 +522,43 @@ export default function MealPlate({
               <h2 className="text-xl font-black text-white mb-6 pr-8">
                 Skaner Produktów
               </h2>
-              <div
-                id="reader"
-                className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2"
-              ></div>
+              <div className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2 relative shadow-inner">
+                <MealScanner 
+                  onResult={async (decodedText) => {
+                    setIsScannerOpen(false);
+                    setIsSearching(true);
+                    try {
+                      const response = await fetch(
+                        `https://world.openfoodfacts.org/api/v2/product/${decodedText}.json`,
+                      );
+                      const data = await response.json();
+
+                      if (data.status === 1 && data.product) {
+                        const p = data.product;
+                        const product: Product = {
+                          id: `scan_${Date.now()}`,
+                          name: p.product_name_pl || p.product_name || "Produkt nieznany",
+                          carbs: p.nutriments?.carbohydrates_100g || 0,
+                          protein: p.nutriments?.proteins_100g || 0,
+                          fat: p.nutriments?.fat_100g || 0,
+                          gi: 50,
+                          category: "Skanowane",
+                        };
+                        openWeightModal(product);
+                      } else {
+                        setSearchTerm(decodedText);
+                        await performOnlineSearch(decodedText);
+                      }
+                    } catch (err) {
+                      setSearchTerm(decodedText);
+                      await performOnlineSearch(decodedText);
+                    } finally {
+                      setIsSearching(false);
+                    }
+                  }}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 text-center mt-4 uppercase tracking-[0.2em] font-black opacity-50">Nakieruj na kod kreskowy</p>
             </motion.div>
           </motion.div>
         )}
@@ -1078,6 +1066,51 @@ export default function MealPlate({
               ))}
             </AnimatePresence>
           </motion.div>
+
+          {/* Makroskładniki Procentowo */}
+          <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+             <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Balans Posiłku (Energia %)</span>
+                <span className="text-[10px] font-black text-accent-400">{Math.round(totalCalsFromMacros)} kcal</span>
+             </div>
+             
+             <div className="flex h-3 w-full rounded-full overflow-hidden mb-4">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${carbsPct}%` }}
+                  className="bg-accent-500 h-full"
+                  title={`Węgle: ${Math.round(carbsPct)}%`}
+                />
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${proteinPct}%` }}
+                  className="bg-emerald-500 h-full"
+                  title={`Białka: ${Math.round(proteinPct)}%`}
+                />
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${fatPct}%` }}
+                  className="bg-amber-500 h-full"
+                  title={`Tłuszcze: ${Math.round(fatPct)}%`}
+                />
+             </div>
+
+             <div className="flex flex-wrap gap-4 justify-between">
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-accent-500" />
+                   <span className="text-[9px] font-bold text-slate-300">W: {carbsPct.toFixed(0)}%</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                   <span className="text-[9px] font-bold text-slate-300">B: {proteinPct.toFixed(0)}%</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                   <span className="text-[9px] font-bold text-slate-300">T: {fatPct.toFixed(0)}%</span>
+                </div>
+             </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4 mb-6 border-t border-white/10 pt-4">
             <div>
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
@@ -1242,6 +1275,124 @@ export default function MealPlate({
           </div>
         </div>
       )}
+
     </motion.div>
+  );
+}
+
+function MealScanner({ onResult }: { onResult: (res: string) => void }) {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [cameras, setCameras] = useState<any[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
+
+  useEffect(() => {
+    const html5QrCode = new Html5Qrcode("reader-meal");
+    setScanner(html5QrCode);
+
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length > 0) {
+        setCameras(devices);
+        const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('tył'));
+        setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
+        setHasPermission(true);
+      } else {
+        setHasPermission(false);
+      }
+    }).catch(err => {
+      console.error("Camera permission error", err);
+      setHasPermission(false);
+    });
+
+    return () => {
+      if (html5QrCode.isScanning) {
+        html5QrCode.stop().catch(e => console.error(e));
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (scanner && selectedCameraId && !scanner.isScanning) {
+      scanner.start(
+        selectedCameraId,
+        {
+          fps: 10,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+             // For barcodes, a wider box is often better, but dynamic 70% works well for general
+             const width = Math.floor(viewfinderWidth * 0.8);
+             const height = Math.floor(viewfinderHeight * 0.5);
+             return { width, height };
+          }
+        },
+        (decodedText) => {
+          scanner.stop().then(() => onResult(decodedText)).catch(e => console.error(e));
+        },
+        () => {} // scan error
+      ).catch(err => {
+        console.error("Scanner start error", err);
+      });
+    }
+  }, [scanner, selectedCameraId]);
+
+  const switchCamera = () => {
+    if (!scanner) return;
+    const currentIndex = cameras.findIndex(c => c.id === selectedCameraId);
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    
+    if (scanner.isScanning) {
+      scanner.stop().then(() => {
+        setSelectedCameraId(cameras[nextIndex].id);
+      }).catch(e => console.error(e));
+    } else {
+      setSelectedCameraId(cameras[nextIndex].id);
+    }
+  };
+
+  if (hasPermission === false) {
+    return (
+      <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+        <X className="text-rose-500 mb-2" size={32} />
+        <p className="text-[10px] font-bold text-white uppercase tracking-widest">Brak dostępu do aparatu</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      <div id="reader-meal" className="w-full h-full bg-black"></div>
+      
+      {/* Overlay UI */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <div className="w-[80%] h-[50%] border-2 border-accent-500 rounded-3xl relative">
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-accent-500 -mt-1 -ml-1 rounded-tl-xl"></div>
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-accent-500 -mt-1 -mr-1 rounded-tr-xl"></div>
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-accent-500 -mb-1 -ml-1 rounded-bl-xl"></div>
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-accent-500 -mb-1 -mr-1 rounded-br-xl"></div>
+          
+          {/* Scanning Line Animation */}
+          <motion.div 
+            animate={{ top: ["0%", "100%", "0%"] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="absolute left-0 right-0 h-0.5 bg-accent-500/50 shadow-[0_0_15px_rgba(var(--accent-500),0.5)] z-10"
+          />
+        </div>
+      </div>
+
+      {/* Camera Switch Button */}
+      {cameras.length > 1 && (
+        <button 
+          onClick={switchCamera}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white/30 transition-all pointer-events-auto shadow-lg"
+        >
+          <Camera size={20} />
+        </button>
+      )}
+
+      {hasPermission === null && (
+        <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
+          <p className="text-[10px] font-black text-white uppercase tracking-widest animate-pulse">Ładowanie...</p>
+        </div>
+      )}
+    </div>
   );
 }

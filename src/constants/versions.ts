@@ -7,40 +7,66 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.3.0",
+    date: "2026-05-08",
+    title: "GlikoSense 2.5 - Deep Analysis & UI",
+    changes: [
+      "Nowy, ekskluzywny wygląd widgetu GlikoSense (Glassmorphism, dynamiczne tło, animacje predykcji)",
+      "Rozszerzenie okresu wyciągania wniosków przez GlikoSense z 7 do 14 dni",
+      "Przebudowany układ najważniejszych metryk: 'Kierunek za 1h' i 'Pewność Modelu' mają teraz wyższy priorytet",
+      "Bardziej precyzyjne komunikaty algorytmu i poprawki gramatyczne",
+      "Nowe, ulepszone metryki rozkładu dni (analiza dni w których cukier bywa trudniejszy)"
+    ]
+  },
+  {
+    version: "3.2.0",
+    date: "2026-05-05",
+    title: "GlikoSense Engine 2.4 – Inteligencja Offline",
+    changes: [
+      "Nowy detektor zużytego wkłucia: Alert przy braku reakcji na insulinę przez 4h",
+      "Analiza cyklu dobowego: Wykrywanie zmiennej wrażliwości w ciągu dnia (Feature F)",
+      "Branding GlikoSense: Wszystkie analizy algorytmu są teraz wyraźnie oznaczone",
+      "Wersja silnika GlikoSense (v2.4.1) widoczna w ustawieniach profilu",
+      "Nowy salon gier: Gliko Arcade (Sky Higher, Zagadka Talerzy, Memory, Ogród TIR)",
+      "MealPlate UX: Wykres makroskładników (%) oraz pływający przycisk nawigacji do talerza",
+      "Ulepszona predykcja krzyżowa (zjawisko brzasku i modelowanie nocne)"
+    ]
+  },
+  {
     version: "3.1.0",
     date: "2026-05-05",
-    title: "Aktualizacja Edukacyjna - Mądry Gliko",
+    title: "Aktualizacja Majowa - Mądry Gliko & UX",
     changes: [
-      "Nowy interaktywny Quiz Edukacyjny z nagrodami (monety i XP)",
-      "Rozszerzona baza pytań o cukrzycy przyjaznych dzieciom",
-      "Magiczny Ogród TIR - hoduj rośliny dzięki dobrym cukrom",
-      "Dziennik Przygód Gliko - historia Twoich pomiarów z animacjami",
-      "Wskaźnik Energii Gliko (IOB) - zobacz ile insuliny ma Twój przyjaciel",
-      "Poprawiona stabilność i nowe animacje reakcji",
-      "Dodano system historii zmian v3.1"
+      "Nowy interaktywny Quiz Edukacyjny dla dzieci o cukrzycy (Gliko Quiz)",
+      "System historii zmian (Changelog) dostępny w profilu",
+      "Wskaźnik energii Gliko bazujący na Aktywnej Insulinie (IOB)",
+      "Nowe animacje reakcji Gliko na poziomy cukru",
+      "Poprawiona stabilność bazy danych i synchronizacji",
+      "Optymalizacja interfejsu użytkownika i poprawki wizualne",
+      "Dodano możliwość zamykania powiadomień systemowych GlikoSense"
     ]
   },
   {
     version: "2.8.0",
-    date: "2024-11-20",
-    title: "System Skinów i Akcesoriów",
+    date: "2026-05-04",
+    title: "System Personalizacji i Sklep",
     changes: [
-      "Wprowadzenie sklepu z akcesoriami",
-      "Nowe skórki: Robot, Alien, Duch, Ninja",
-      "System misji dziennych i poziomów XP",
-      "Mini-gra 'Celuj w Cukier'"
+      "Wprowadzenie sklepu z akcesoriami i nowymi skórkami",
+      "System misji dziennych i poziomów doświadczenia XP",
+      "Dodano mini-grę 'Celuj w Cukier'",
+      "Możliwość zmiany tła pokoju Gliko"
     ]
   },
   {
     version: "1.0.0",
-    date: "2024-01-15",
-    title: "Pierwsze spotkanie z Gliko",
+    date: "2026-04-15",
+    title: "Start aplikacji GlikoControl",
     changes: [
-      "Podstawowy system opieki nad Gliko",
-      "Integracja z pomiarami glukozy",
-      "Podstawowe karmienie i interakcje"
+      "Podstawowy system opieki nad wirtualnym przyjacielem",
+      "Integracja z logami glukozy i posiłków",
+      "System powiadomień o niskim i wysokim cukrze"
     ]
   }
 ];
 
-export const CURRENT_VERSION = "3.1.0";
+export const CURRENT_VERSION = "3.3.0";

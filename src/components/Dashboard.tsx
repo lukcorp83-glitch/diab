@@ -28,6 +28,7 @@ import GlucoseModal from "./GlucoseModal";
 import SwipeableItem from "./SwipeableItem";
 import GlikoWidget from "./GlikoWidget";
 import GlikoSenseTips from "./GlikoSenseTips";
+import GlikoSenseNeural from "./GlikoSenseNeural";
 import { db } from "../lib/firebase";
 import {
   collection,
@@ -287,29 +288,34 @@ export default function Dashboard({
         icon: <ChevronRight className="-rotate-90" />,
         color: "text-rose-500",
         text: "Szybko rośnie",
+        direction: "UP_FAST"
       };
     if (diff > 5)
       return {
         icon: <ChevronRight className="-rotate-45" />,
         color: "text-rose-400",
         text: "Rośnie",
+        direction: "UP"
       };
     if (diff < -15)
       return {
         icon: <ChevronRight className="rotate-90" />,
         color: "text-rose-500",
         text: "Szybko spada",
+        direction: "DOWN_FAST"
       };
     if (diff < -5)
       return {
         icon: <ChevronRight className="rotate-45" />,
         color: "text-rose-400",
         text: "Spada",
+        direction: "DOWN"
       };
     return {
       icon: <ChevronRight />,
       color: "text-emerald-500",
       text: "Stabilnie",
+      direction: "STABLE"
     };
   };
 
@@ -367,6 +373,16 @@ export default function Dashboard({
           trend={trend}
           tir={tir}
           hba1c={hba1c}
+        />
+      </motion.div>
+
+      {/* GlikoSense Neural Heart */}
+      <motion.div variants={itemVariants}>
+        <GlikoSenseNeural 
+          glucose={lastG ? Math.round(lastG.value) : null}
+          trend={trend?.direction || null}
+          isChildMode={settings.childMode || false}
+          petName={petData?.name}
         />
       </motion.div>
 
@@ -743,7 +759,9 @@ export default function Dashboard({
       
       {/* Gliko Virtual Pet & Sync Status */}
       <div className="fixed bottom-24 right-4 z-[45]">
-         <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} />
+         {settings.childMode && (
+           <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} />
+         )}
          {nsUrl && syncStatus && (
            <motion.div 
              initial={{ opacity: 0, scale: 0.8 }}
