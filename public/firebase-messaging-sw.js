@@ -1,8 +1,8 @@
-// Scripts for firebase and firebase messaging
-importScripts('https://www.gstatic.com/firebasejs/10.12.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.1/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// Initialize the Firebase app in the service worker by passing in the messagingSenderId.
+// This will be replaced or you can hardcode your config here if needed, 
+// but Firebase usually handles the initialization of the SW if it's in the root.
 firebase.initializeApp({
   apiKey: "AIzaSyDYYDnRl9zIZmCySB6lk0yQweY6uosWuD4",
   authDomain: "diacontrolapp.firebaseapp.com",
@@ -12,18 +12,15 @@ firebase.initializeApp({
   appId: "1:259157952763:web:4ef74475f9042575ad885e"
 });
 
-// Retrieve an instance of Firebase Messaging so that it can handle background messages.
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  // Customize notification here
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/pwa-icon.svg'
+    icon: '/logo192.png' // Make sure this exists or use a generic one
   };
 
-  self.registration.showNotification(notificationTitle,
-    notificationOptions);
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });

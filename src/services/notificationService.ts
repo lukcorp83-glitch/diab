@@ -35,8 +35,21 @@ Aby to naprawić:
         return null;
       }
 
-      await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      const token = await getToken(msg, { vapidKey: VAPID_KEY });
+      // Check if service worker is already registered
+      let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+      
+      if (!registration) {
+        console.log('Registering new service worker...');
+        registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          scope: '/'
+        });
+      }
+
+      const token = await getToken(msg, { 
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: registration 
+      });
+
       if (token) {
         console.log('FCM Token:', token);
         await this.saveTokenToFirestore(token);
@@ -44,8 +57,16 @@ Aby to naprawić:
       }
       return null;
     } catch (error) {
-      alert(`Błąd rejestracji tokena Push: ${error instanceof Error ? error.message : String(error)}`);
       console.error('Token registration failed:', error);
+      // More descriptive error for common issues
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (errMsg.includes('Permission denied')) {
+        alert("Dostęp do powiadomień został zablokowany. Zresetuj uprawnienia w ustawieniach przeglądarki.");
+      } else if (errMsg.includes('bad HTTP response code (404)')) {
+        alert("Błąd serwera (404) przy pobieraniu pliku powiadomień. Spróbuj odświeżyć stronę.");
+      } else {
+        alert(`Błąd rejestracji tokena Push: ${errMsg}`);
+      }
       return null;
     }
   },
@@ -71,14 +92,17 @@ Aby to naprawić:
     const msg = await messaging();
     if (!msg) return;
 
-    onMessage(msg, (payload) => {
+    onMessage(msg, async (payload) => {
       console.log('Message received in foreground:', payload);
-      // You can show a custom UI or a toast here
+      
       if (Notification.permission === 'granted') {
-        new Notification(payload.notification?.title || 'GlikoSense', {
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification(payload.notification?.title || 'GlikoSense', {
           body: payload.notification?.body,
-          icon: '/pwa-icon.svg'
-        });
+          icon: '/pwa-icon.svg',
+          vibrate: [200, 100, 200],
+          tag: 'glikosense-alert'
+        } as any);
       }
     });
   }

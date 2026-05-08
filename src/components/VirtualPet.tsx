@@ -34,6 +34,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     completedQuests?: string[],
     lastQuestReset?: string,
     inventory?: { id: string, count: number }[],
+    baseReaction?: string,
   } | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
