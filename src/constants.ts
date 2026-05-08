@@ -188,3 +188,25 @@ export const BACKGROUNDS: PetBackground[] = [
   { id: 'candy', name: 'Kraina Słodyczy', icon: '🍭', gradient: 'from-pink-50 to-purple-100 dark:from-pink-900/20 dark:to-purple-900/30', price: 1000 },
   { id: 'champion', name: 'Arena Mistrza', icon: '🏆', gradient: 'from-amber-200 via-yellow-100 to-amber-200 dark:from-amber-900 dark:via-yellow-900 dark:to-amber-900', price: 0, rewardTir: 90 },
 ];
+
+export interface PetItem {
+  id: string;
+  name: string;
+  type: 'food' | 'toy' | 'medicine';
+  price: number;
+  icon: string;
+  effect: {
+    hunger?: number;
+    happiness?: number;
+    xp?: number;
+  };
+  specialEffect?: 'hypo' | 'hyper';
+}
+
+export const ITEMS: PetItem[] = [
+  { id: 'apple', name: 'Złote Jabłko', type: 'food', price: 10, icon: '🍎', effect: { hunger: 30, xp: 10 } },
+  { id: 'juice', name: 'Sok Ratunkowy', type: 'medicine', price: 15, icon: '🧃', effect: { hunger: 10, happiness: 10 }, specialEffect: 'hypo' },
+  { id: 'water', name: 'Woda Mineralna', type: 'medicine', price: 15, icon: '💧', effect: { happiness: 10 }, specialEffect: 'hyper' },
+  { id: 'ball', name: 'Piłeczka', type: 'toy', price: 20, icon: '🎾', effect: { happiness: 30, xp: 15 } },
+  { id: 'cake', name: 'Pyszne Ciastko', type: 'food', price: 25, icon: '🍰', effect: { hunger: 50, happiness: 20, xp: 20 } },
+];

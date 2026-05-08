@@ -383,7 +383,11 @@ export default function Dashboard({
           trend={trend?.direction || null}
           isChildMode={settings.childMode || false}
           petName={petData?.name}
-        />
+        >
+          {settings.childMode && (
+             <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} embedded={true} />
+          )}
+        </GlikoSenseNeural>
       </motion.div>
 
       {/* AI Health Tips */}
@@ -757,11 +761,8 @@ export default function Dashboard({
         user={user}
       />
       
-      {/* Gliko Virtual Pet & Sync Status */}
+      {/* Sync Status */}
       <div className="fixed bottom-24 right-4 z-[45]">
-         {settings.childMode && (
-           <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} />
-         )}
          {nsUrl && syncStatus && (
            <motion.div 
              initial={{ opacity: 0, scale: 0.8 }}

@@ -14,9 +14,10 @@ interface GlikoSenseNeuralProps {
   trend: string | null;
   isChildMode: boolean;
   petName?: string;
+  children?: React.ReactNode;
 }
 
-export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko' }: GlikoSenseNeuralProps) {
+export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', children }: GlikoSenseNeuralProps) {
   // Generate stable random nodes for the background animation
   const nodes = useMemo(() => {
     return Array.from({ length: 15 }).map((_, i) => ({
@@ -101,6 +102,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
 
         {isChildMode ? (
           <div className="space-y-4">
+            {children}
             <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                <div className="flex items-start gap-3">
                  <div className="mt-1">

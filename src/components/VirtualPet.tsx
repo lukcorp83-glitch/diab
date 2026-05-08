@@ -1,5 +1,6 @@
-import { SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground } from '../constants';
+import { SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground, ITEMS, PetItem } from '../constants';
 import { getEffectiveUid, cn, calculateIOB } from '../lib/utils';
+import { playPetSound, playFeedSound, playLowGlucoseSound, playHighGlucoseSound, playNormalGlucoseSound, playLevelUpSound, playBuySound } from '../lib/audioUtils';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Sparkles, AlertCircle, ShoppingBag, Store, X, Coins, Gamepad2, Target, Trophy, CheckCircle2, Utensils, Mountain, Book, HelpCircle, Activity, Flower2 } from 'lucide-react';
@@ -11,7 +12,7 @@ import GlikoQuiz from './GlikoQuiz';
 import GlikoGarden from './GlikoGarden';
 
 
-export default function VirtualPet({ user, logs, glucose, setTab }: { user: any, logs: LogEntry[], glucose: number | null, setTab?: (t: string) => void }) {
+export default function VirtualPet({ user, logs, glucose, setTab, embedded = false }: { user: any, logs: LogEntry[], glucose: number | null, setTab?: (t: string) => void, embedded?: boolean }) {
   const [petData, setPetData] = useState<{ 
     type: string, 
     name: string, 
@@ -19,6 +20,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
     xp: number, 
     happiness: number, 
     lastFed: number,
+    lastDecay?: number,
     hunger?: number,
     coins?: number,
     skin?: string,
@@ -31,12 +33,14 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
     lastPettedDate?: string,
     completedQuests?: string[],
     lastQuestReset?: string,
+    inventory?: { id: string, count: number }[],
   } | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
-  const [shopTab, setShopTab] = useState<'skins' | 'accessories' | 'backgrounds'>('skins');
+  const [shopTab, setShopTab] = useState<'skins' | 'accessories' | 'backgrounds' | 'items'>('skins');
   const [showGame, setShowGame] = useState(false);
   const [showDiary, setShowDiary] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -87,6 +91,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
           happiness: 100,
           hunger: 100,
           lastFed: Date.now(),
+          lastDecay: Date.now(),
           coins: 0,
           skin: 'default',
           unlockedSkins: ['default'],
@@ -95,6 +100,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
           currentBackground: 'room',
           unlockedBackgrounds: ['room'],
           petCountToday: 0,
+          inventory: [{ id: 'apple', count: 3 }, { id: 'ball', count: 1 }],
           lastPettedDate: new Date().toISOString().split('T')[0]
         });
       }
@@ -186,8 +192,73 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
     if ((reaction as string) === 'happy') return '😊';
     if ((reaction as string) === 'eating') return '😋';
     if ((reaction as string) === 'playing') return '🎮';
-    return '😃';
+    return petData.baseReaction || '😃';
   };
+
+  const getGlikoAnimation = () => {
+    if (reaction !== 'idle') return { scale: [1, 1.2, 1], rotate: [0, 5, -5, 0], transition: { duration: 0.3 } };
+    if (glucose !== null) {
+      if (glucose < 70) return { x: [-2, 2, -3, 3, -2, 2, 0], transition: { repeat: Infinity, duration: 0.5 } };
+      if (glucose > 250) return { y: [0, 4, 0], scale: [1, 0.95, 1], transition: { repeat: Infinity, duration: 3 } };
+    }
+    return { y: [0, -3, 0], transition: { repeat: Infinity, duration: 3 } };
+  };
+
+  const isVisible = embedded || isOpen;
+
+  // Sound reactions to glucose
+  const prevGlucoseZone = useRef<string | null>(null);
+  useEffect(() => {
+    if (glucose === null) return;
+    
+    let currentZone = 'normal';
+    if (glucose < 70) currentZone = 'low';
+    if (glucose > 180) currentZone = 'high';
+
+    if (prevGlucoseZone.current !== null && prevGlucoseZone.current !== currentZone) {
+      if (currentZone === 'low') {
+         playLowGlucoseSound();
+      } else if (currentZone === 'high') {
+         playHighGlucoseSound();
+      } else if (currentZone === 'normal') {
+         playNormalGlucoseSound();
+      }
+    }
+    prevGlucoseZone.current = currentZone;
+  }, [glucose]);
+
+  // Handle regular decay of hunger and happiness
+  useEffect(() => {
+    if (!user || !petData) return;
+    
+    const checkDecay = () => {
+      const now = Date.now();
+      // If lastDecay is not set, use lastFed, else use now as a starting point.
+      const lastDecay = petData.lastDecay || petData.lastFed || now;
+      const hoursPassed = (now - lastDecay) / (1000 * 60 * 60);
+
+      // Apply 5 points of decay per hour
+      if (hoursPassed >= 1) {
+        const decayAmount = Math.floor(hoursPassed); 
+        const newHunger = Math.max(0, (petData.hunger || 100) - decayAmount * 5);
+        const newHappiness = Math.max(0, (petData.happiness || 100) - decayAmount * 5);
+        
+        updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+          hunger: newHunger,
+          happiness: newHappiness,
+          // Update lastDecay adding exactly the hours we accounted for to preserve remainders
+          lastDecay: lastDecay + (decayAmount * 60 * 60 * 1000) 
+        });
+      }
+    };
+
+    // Check immediately on mount or dependency change
+    checkDecay();
+
+    // And then check every minute while the app is active
+    const interval = setInterval(checkDecay, 60000);
+    return () => clearInterval(interval);
+  }, [user, petData?.lastDecay, petData?.lastFed, petData?.hunger, petData?.happiness]);
 
   // Reset daily quests
   useEffect(() => {
@@ -303,6 +374,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
      if (!user) return;
      if (isMaxPetted) return;
 
+     playPetSound();
      setReaction('happy');
      triggerParticles();
      setTimeout(() => setReaction('idle'), 1500);
@@ -311,6 +383,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
      let newLevel = petData.level;
      let nextXp = newXp;
      if (newXp >= xpRequired) {
+        playLevelUpSound();
         newLevel++;
         nextXp = newXp - xpRequired;
      }
@@ -333,6 +406,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
       return;
     }
 
+    playFeedSound();
     setReaction('eating');
     triggerParticles();
     setTimeout(() => setReaction('idle'), 2000);
@@ -341,6 +415,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
     let newLevel = petData.level;
     let nextXp = newXp;
     if (newXp >= xpRequired) {
+       playLevelUpSound();
        newLevel++;
        nextXp = newXp - xpRequired;
     }
@@ -592,6 +667,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
      }
      if ((petData.coins || 0) < skin.price) return;
      
+     playBuySound();
      const unlocked = petData.unlockedSkins || ['default'];
      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
         coins: (petData.coins || 0) - skin.price,
@@ -611,6 +687,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
     if (!user || (petData.unlockedAccessories || []).includes(acc.id)) return;
     if ((petData.coins || 0) < acc.price) return;
     
+    playBuySound();
     const unlocked = petData.unlockedAccessories || ['none'];
     await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
        coins: (petData.coins || 0) - acc.price,
@@ -634,6 +711,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
     }
     if ((petData.coins || 0) < bg.price) return;
     
+    playBuySound();
     const unlocked = petData.unlockedBackgrounds || ['room'];
     await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
        coins: (petData.coins || 0) - bg.price,
@@ -646,6 +724,63 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
     if (!user) return;
     await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
        currentBackground: bgId
+    });
+  };
+
+  const handleBuyItem = async (item: PetItem) => {
+    if (!user) return;
+    if ((petData.coins || 0) < item.price) return;
+    
+    playBuySound();
+    const inventory = petData.inventory || [];
+    const existing = inventory.find(i => i.id === item.id);
+    const newInventory = existing 
+      ? inventory.map(i => i.id === item.id ? { ...i, count: i.count + 1 } : i)
+      : [...inventory, { id: item.id, count: 1 }];
+
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+       coins: (petData.coins || 0) - item.price,
+       inventory: newInventory
+    });
+  };
+
+  const handleUseItem = async (item: PetItem) => {
+    if (!user) return;
+    const inventory = petData.inventory || [];
+    const currentCount = inventory.find(i => i.id === item.id)?.count || 0;
+    
+    if (currentCount <= 0) return;
+
+    if (item.type === 'food') {
+      playFeedSound();
+      setReaction('eating');
+    } else {
+      playPetSound();
+      setReaction('happy');
+    }
+    
+    triggerParticles();
+    setTimeout(() => setReaction('idle'), 2000);
+
+    const xpReq = petData.level * 100;
+    let newXp = (petData.xp || 0) + (item.effect.xp || 0);
+    let newLevel = petData.level;
+    
+    if (newXp >= xpReq) {
+      playLevelUpSound();
+      newLevel++;
+      newXp -= xpReq;
+    }
+
+    const newInventory = inventory.map(i => i.id === item.id ? { ...i, count: i.count - 1 } : i).filter(i => i.count > 0);
+
+    await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+       inventory: newInventory,
+       happiness: Math.min(100, (petData.happiness || 0) + (item.effect.happiness || 0)),
+       hunger: Math.min(100, (petData.hunger || 0) + (item.effect.hunger || 0)),
+       xp: newXp,
+       level: newLevel,
+       lastFed: item.type === 'food' ? Date.now() : petData.lastFed
     });
   };
 
@@ -713,14 +848,14 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
   };
 
   return (
-    <div className="fixed bottom-24 left-6 z-40">
+    <div className={embedded ? "relative w-full z-10" : "fixed bottom-24 left-6 z-40"}>
       <AnimatePresence>
-        {isOpen && (
+        {isVisible && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8, x: -20, y: 20 }}
-            animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, x: -20, y: 20 }}
-            className="absolute bottom-16 left-0 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-[280px] overflow-hidden"
+            initial={embedded ? { opacity: 0 } : { opacity: 0, scale: 0.8, x: -20, y: 20 }}
+            animate={embedded ? { opacity: 1 } : { opacity: 1, scale: 1, x: 0, y: 0 }}
+            exit={embedded ? { opacity: 0 } : { opacity: 0, scale: 0.8, x: -20, y: 20 }}
+            className={embedded ? "relative w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden" : "absolute bottom-16 left-0 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-[280px] overflow-hidden"}
           >
             {showGame ? (
               <div className="p-4">
@@ -870,25 +1005,61 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
                 <div className="flex gap-1 mb-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
                   <button 
                     onClick={() => setShopTab('skins')}
-                    className={`flex-1 text-[9px] font-black py-1.5 rounded-md transition-all ${shopTab === 'skins' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
+                    className={`flex-1 text-[8px] font-black py-1.5 rounded-md transition-all ${shopTab === 'skins' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
                   >
                     SKÓRKI
                   </button>
                   <button 
                     onClick={() => setShopTab('accessories')}
-                    className={`flex-1 text-[9px] font-black py-1.5 rounded-md transition-all ${shopTab === 'accessories' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
+                    className={`flex-1 text-[8px] font-black py-1.5 rounded-md transition-all ${shopTab === 'accessories' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
                   >
                     DODATKI
                   </button>
                   <button 
                     onClick={() => setShopTab('backgrounds')}
-                    className={`flex-1 text-[9px] font-black py-1.5 rounded-md transition-all ${shopTab === 'backgrounds' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
+                    className={`flex-1 text-[8px] font-black py-1.5 rounded-md transition-all ${shopTab === 'backgrounds' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
                   >
                     TŁA
+                  </button>
+                  <button 
+                    onClick={() => setShopTab('items')}
+                    className={`flex-1 text-[8px] font-black py-1.5 rounded-md transition-all ${shopTab === 'items' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
+                  >
+                    JEDZENIE
                   </button>
                 </div>
                 
                 <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 pb-2 custom-scrollbar">
+                    {shopTab === 'items' && ITEMS.map(item => {
+                      const canAfford = (petData.coins || 0) >= item.price;
+                      return (
+                        <div key={item.id} className="flex items-center justify-between p-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                          <div className="flex items-center gap-2">
+                             <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
+                                <span className="text-xl">{item.icon}</span>
+                             </div>
+                             <div>
+                                <p className="text-[10px] font-black dark:text-white capitalize">{item.name}</p>
+                                <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-1"><Coins size={10} /> {item.price}</span>
+                             </div>
+                          </div>
+                          <div>
+                            <button 
+                              disabled={!canAfford} 
+                              onClick={() => handleBuyItem(item)} 
+                              className={`text-[8px] font-black px-2 py-1 rounded-full shadow-sm transition-all ${
+                                canAfford 
+                                  ? 'bg-amber-400 text-amber-950 hover:scale-105' 
+                                  : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
+                              }`}
+                            >
+                              KUP
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+
                     {shopTab === 'skins' && SKINS.map(skin => {
                       const isUnlocked = (petData.unlockedSkins || ['default']).includes(skin.id);
                       const isEquipped = (petData.skin || 'default') === skin.id;
@@ -1053,6 +1224,52 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
                     })}
                 </div>
               </div>
+            ) : showInventory ? (
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Book size={16} className="text-emerald-500" /> Twój Ekwipunek</h4>
+                  <button onClick={() => setShowInventory(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
+                </div>
+                
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 pb-2 custom-scrollbar">
+                  {(!petData.inventory || petData.inventory.length === 0) ? (
+                    <div className="text-center py-6 text-slate-400">
+                      <p className="text-xs font-bold mb-1">Pusty ekwipunek</p>
+                      <p className="text-[10px]">Kup nowe przemioty w sklepiku!</p>
+                    </div>
+                  ) : (
+                    petData.inventory.map(invItem => {
+                      const item = ITEMS.find(i => i.id === invItem.id);
+                      if (!item) return null;
+                      return (
+                        <div key={item.id} className="flex items-center justify-between p-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                          <div className="flex items-center gap-2">
+                             <div className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 relative">
+                                <span className="text-xl">{item.icon}</span>
+                                <span className="absolute -bottom-1 -right-1 bg-indigo-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800">{invItem.count}</span>
+                             </div>
+                             <div>
+                                <p className="text-[10px] font-black dark:text-white capitalize">{item.name}</p>
+                                <p className="text-[8px] text-slate-500">
+                                  {item.effect.hunger && `+${item.effect.hunger} głodu `}
+                                  {item.effect.happiness && `+${item.effect.happiness} humoru `}
+                                </p>
+                             </div>
+                          </div>
+                          <div>
+                            <button 
+                              onClick={() => handleUseItem(item)} 
+                              className="text-[8px] font-black px-2 py-1 rounded-full shadow-sm transition-all bg-emerald-400 text-emerald-950 hover:scale-105"
+                            >
+                              UŻYJ
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="p-4">
                 <div className="flex justify-between items-start mb-3">
@@ -1107,27 +1324,60 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
                   </motion.div>
                 )}
 
-                <div className="flex justify-center mb-6 relative">
-                  <div className="absolute inset-0 bg-accent-500/5 blur-3xl rounded-full scale-150"></div>
+                <div className={`flex justify-center mb-6 relative py-8 mt-2 rounded-2xl bg-gradient-to-br ${currentBg.gradient} overflow-hidden shadow-inner border border-white/20 dark:border-slate-700/50 transition-colors duration-1000`}>
+                  <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] pointer-events-none"></div>
+                  {currentBg.id === 'space' && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none"></div>}
+                  
+                  {currentBg.id === 'forest' && (
+                     <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-end justify-between px-1 pb-1">
+                        <span className="text-4xl drop-shadow-sm opacity-90 saturate-75">🌲</span>
+                        <span className="text-3xl drop-shadow-sm opacity-80 saturate-75 mb-2">🌳</span>
+                        <span className="text-5xl drop-shadow-sm opacity-95 saturate-75">🌲</span>
+                     </div>
+                  )}
+                  {currentBg.id === 'beach' && (
+                     <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-end px-2 pb-2">
+                        <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-amber-200/50 dark:bg-amber-800/50 backdrop-blur-sm -z-10"></div>
+                        <span className="text-5xl opacity-90 drop-shadow-md z-1">🌴</span>
+                        <div className="absolute bottom-1 right-2 text-3xl opacity-80 z-1 drop-shadow-md">🏖️</div>
+                     </div>
+                  )}
+                  {currentBg.id === 'candy' && (
+                     <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-end justify-around px-2 pb-2 opacity-80 saturate-150">
+                        <span className="text-4xl mb-4 ml-2 drop-shadow-sm">🍭</span>
+                        <span className="absolute top-2 right-4 text-3xl drop-shadow-sm">🍬</span>
+                        <span className="text-4xl mb-2 mr-2 drop-shadow-sm">🍩</span>
+                        <span className="text-5xl -mb-2 drop-shadow-sm">🍡</span>
+                     </div>
+                  )}
+                  {currentBg.id === 'champion' && (
+                     <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden flex items-end justify-center px-2 pb-0 opacity-90 saturate-150">
+                        <div className="absolute bottom-0 w-3/4 h-12 bg-amber-400/20 blur-xl rounded-[100%]"></div>
+                        <span className="text-5xl drop-shadow-xl z-0 mb-4 opacity-30 mt-6 absolute top-2 right-4 text-amber-500">✨</span>
+                        <span className="text-6xl text-amber-500 drop-shadow-xl z-0 mb-4 animate-[pulse_3s_ease-in-out_infinite]">🏆</span>
+                     </div>
+                  )}
+
+                  <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/10 to-transparent pointer-events-none"></div>
+                  
                   <motion.div
-                    animate={reaction !== 'idle' ? { scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] } : {}}
+                    animate={getGlikoAnimation()}
                     className="relative z-10 select-none flex flex-col items-center gap-2 cursor-pointer"
                     onClick={handlePet}
                   >
-                    <div className="text-5xl">{getReactionEmoji()}</div>
-                    <div className="scale-125 origin-bottom">
+                    <div className="text-5xl drop-shadow-md">{getReactionEmoji()}</div>
+                    <div className="scale-125 origin-bottom drop-shadow-xl relative">
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-4 bg-black/20 rounded-[100%] blur-sm -z-10"></div>
                       {getPetVisual()}
                     </div>
                   </motion.div>
                 </div>
 
-                <div className={`p-2.5 rounded-xl mb-4 border border-slate-100 dark:border-slate-800 relative bg-gradient-to-br ${currentBg.gradient} shadow-inner`}>
-                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] pointer-events-none"></div>
-                  {currentBg.id === 'space' && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none"></div>}
-                  <div className="absolute -left-1 top-3 w-0 h-0 border-t-[6px] border-t-transparent border-r-[6px] border-r-white/20 border-b-[6px] border-b-transparent"></div>
-                  <p className="text-[11px] font-bold text-slate-700 dark:text-white drop-shadow-sm italic flex items-center justify-between relative z-10">
+                <div className="p-2.5 rounded-xl mb-4 border border-slate-100 dark:border-slate-800 relative bg-slate-50 dark:bg-slate-800/50 shadow-sm">
+                  <div className="absolute -left-1 top-3 w-0 h-0 border-t-[6px] border-t-transparent border-r-[6px] border-r-slate-50 dark:border-r-slate-800/50 border-b-[6px] border-b-transparent"></div>
+                  <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 italic flex items-center justify-between relative z-10">
                     <span>"{getPetMessage()}"</span>
-                    <span className="flex items-center gap-1 text-amber-500 font-bold bg-white/80 dark:bg-slate-900/80 px-1.5 py-0.5 rounded backdrop-blur-sm shadow-sm border border-white/20"><Coins size={10} /> {petData.coins || 0}</span>
+                    <span className="flex items-center gap-1 text-amber-500 font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 dark:border-slate-800"><Coins size={10} /> {petData.coins || 0}</span>
                   </p>
                 </div>
 
@@ -1186,6 +1436,7 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
                         setIsOpen(false);
                       } else {
                         setShowShop(false); 
+                        setShowInventory(false);
                         setShowGame(true); 
                         setGameState('idle'); 
                       }
@@ -1195,13 +1446,13 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
                     <Gamepad2 size={12} /> Gry
                   </button>
                   <button 
-                    onClick={() => { setShowShop(true); setShowQuests(false); setShowGame(false); }}
+                    onClick={() => { setShowShop(true); setShowInventory(false); setShowQuests(false); setShowGame(false); }}
                     className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
                     <ShoppingBag size={12} /> Sklep
                   </button>
                   <button 
-                    onClick={() => { setShowQuests(true); setShowShop(false); setShowGame(false); setShowDiary(false); setShowQuiz(false); }}
+                    onClick={() => { setShowQuests(true); setShowShop(false); setShowInventory(false); setShowGame(false); setShowDiary(false); setShowQuiz(false); }}
                     className="flex-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
                     <Trophy size={12} /> Misje
@@ -1210,19 +1461,25 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
                 
                 <div className="flex gap-2 mb-2">
                   <button 
-                    onClick={() => { setShowDiary(true); setShowShop(false); setShowQuests(false); setShowGame(false); setShowQuiz(false); }}
+                    onClick={() => { setShowInventory(true); setShowDiary(false); setShowShop(false); setShowQuests(false); setShowGame(false); setShowQuiz(false); setShowGarden(false); }}
+                    className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <Book size={12} /> Ekwipunek
+                  </button>
+                  <button 
+                    onClick={() => { setShowDiary(true); setShowInventory(false); setShowShop(false); setShowQuests(false); setShowGame(false); setShowQuiz(false); setShowGarden(false); }}
                     className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
                     <Book size={12} /> Dziennik
                   </button>
                   <button 
-                    onClick={() => { setShowQuiz(true); setShowShop(false); setShowQuests(false); setShowGame(false); setShowDiary(false); setShowGarden(false); }}
+                    onClick={() => { setShowQuiz(true); setShowInventory(false); setShowShop(false); setShowQuests(false); setShowGame(false); setShowDiary(false); setShowGarden(false); }}
                     className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
                     <HelpCircle size={12} /> Quiz
                   </button>
                   <button 
-                    onClick={() => { setShowGarden(true); setShowShop(false); setShowQuests(false); setShowGame(false); setShowDiary(false); setShowQuiz(false); }}
+                    onClick={() => { setShowGarden(true); setShowInventory(false); setShowShop(false); setShowQuests(false); setShowGame(false); setShowDiary(false); setShowQuiz(false); }}
                     className="flex-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
                     <Flower2 size={12} /> Ogród
@@ -1249,35 +1506,37 @@ export default function VirtualPet({ user, logs, glucose, setTab }: { user: any,
         ))}
       </AnimatePresence>
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className={`w-16 h-16 ${isOpen ? 'bg-slate-100 dark:bg-slate-700 scale-95 border-emerald-400 dark:border-emerald-500' : 'bg-gradient-to-br from-white to-accent-100 dark:from-slate-700 dark:to-slate-900 border-accent-200 dark:border-slate-600 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.1),_0_8px_30px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3),_0_8px_30px_rgba(0,0,0,0.4)]'} rounded-full border-4 flex flex-col items-center justify-center relative z-10 transition-colors duration-300 overflow-hidden`}
-        onClick={() => {
-           if (!isOpen) setIdleVariant(Math.floor(Math.random() * 4));
-           setIsOpen(!isOpen);
-           if (isOpen) {
-             setShowShop(false);
-             setShowGame(false);
-             if (gameRequestRef.current) cancelAnimationFrame(gameRequestRef.current);
-           }
-        }}
-      >
-        {/* Adds a glossy highlight to the icon background to make it look like a 3D bubble */}
-        <div className="absolute top-0 right-1 w-6 h-4 bg-white/40 dark:bg-white/10 rounded-full blur-[2px] rotate-[30deg]"></div>
-        <motion.div 
-           className="text-3xl drop-shadow-sm origin-bottom"
-           animate={getPetAnimation()}
+      {!embedded && (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`w-16 h-16 ${isOpen ? 'bg-slate-100 dark:bg-slate-700 scale-95 border-emerald-400 dark:border-emerald-500' : 'bg-gradient-to-br from-white to-accent-100 dark:from-slate-700 dark:to-slate-900 border-accent-200 dark:border-slate-600 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.1),_0_8px_30px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3),_0_8px_30px_rgba(0,0,0,0.4)]'} rounded-full border-4 flex flex-col items-center justify-center relative z-10 transition-colors duration-300 overflow-hidden`}
+          onClick={() => {
+             if (!isOpen) setIdleVariant(Math.floor(Math.random() * 4));
+             setIsOpen(!isOpen);
+             if (isOpen) {
+               setShowShop(false);
+               setShowGame(false);
+               if (gameRequestRef.current) cancelAnimationFrame(gameRequestRef.current);
+             }
+          }}
         >
-          {getPetVisual()}
-        </motion.div>
-        {petData.happiness < 50 && (
-           <span className="absolute -top-1 -right-1 bg-rose-500 rounded-full w-4 h-4 flex items-center justify-center text-[8px] text-white font-bold border-2 border-white dark:border-slate-800">!</span>
-        )}
-        {glucose !== null && (glucose > 180 || glucose < 70) && (
-           <span className="absolute -bottom-1 -left-1 bg-amber-500 rounded-full w-5 h-5 flex items-center justify-center text-white border-2 border-white dark:border-slate-800"><AlertCircle size={10} /></span>
-        )}
-      </motion.button>
+          {/* Adds a glossy highlight to the icon background to make it look like a 3D bubble */}
+          <div className="absolute top-0 right-1 w-6 h-4 bg-white/40 dark:bg-white/10 rounded-full blur-[2px] rotate-[30deg]"></div>
+          <motion.div 
+             className="text-3xl drop-shadow-sm origin-bottom"
+             animate={getPetAnimation()}
+          >
+            {getPetVisual()}
+          </motion.div>
+          {petData.happiness < 50 && (
+             <span className="absolute -top-1 -right-1 bg-rose-500 rounded-full w-4 h-4 flex items-center justify-center text-[8px] text-white font-bold border-2 border-white dark:border-slate-800">!</span>
+          )}
+          {glucose !== null && (glucose > 180 || glucose < 70) && (
+             <span className="absolute -bottom-1 -left-1 bg-amber-500 rounded-full w-5 h-5 flex items-center justify-center text-white border-2 border-white dark:border-slate-800"><AlertCircle size={10} /></span>
+          )}
+        </motion.button>
+      )}
     </div>
   );
 }
