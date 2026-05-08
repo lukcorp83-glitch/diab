@@ -6,8 +6,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const basePath = process.env.NODE_ENV === 'production' ? '/diab/' : '/';
+  
   return {
-    base: process.env.NODE_ENV === 'production' ? '/diab/' : '/',
+    base: basePath,
     plugins: [
       react(),
       tailwindcss(),
@@ -45,7 +47,8 @@ export default defineConfig(({ mode }) => {
           theme_color: '#0f172a',
           background_color: '#0f172a',
           display: 'standalone',
-          start_url: '.',
+          start_url: basePath,
+          scope: basePath,
           icons: [
             {
               src: 'pwa-icon.svg',
@@ -59,21 +62,21 @@ export default defineConfig(({ mode }) => {
               name: 'Dodaj Cukier',
               short_name: 'Cukier',
               description: 'Szybkie wpisanie poziomu glukozy',
-              url: './?action=add_glucose',
+              url: `${basePath}?action=add_glucose`,
               icons: [{ src: 'pwa-icon.svg', sizes: 'any' }]
             },
             {
               name: 'Dodaj Bolus',
               short_name: 'Bolus',
               description: 'Szybkie wpisanie insuliny',
-              url: './?action=add_bolus',
+              url: `${basePath}?action=add_bolus`,
               icons: [{ src: 'pwa-icon.svg', sizes: 'any' }]
             },
             {
               name: 'Dodaj Posiłek',
               short_name: 'Posiłek',
               description: 'Szybkie wpisanie posiłku',
-              url: './?action=add_meal',
+              url: `${basePath}?action=add_meal`,
               icons: [{ src: 'pwa-icon.svg', sizes: 'any' }]
             }
           ]

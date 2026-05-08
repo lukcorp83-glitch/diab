@@ -7,6 +7,15 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.3.1",
+    date: "2026-05-08",
+    title: "Poprawki Instalacji (PWA)",
+    changes: [
+      "Naprawiono błąd z niepoprawnym adresem URL przy instalacji aplikacji PWA z uciętym `/diab/`.",
+      "Aktualizacja silnika i drobne poprawki."
+    ]
+  },
+  {
     version: "3.3.0",
     date: "2026-05-08",
     title: "GlikoSense 2.5 - Deep Analysis & UI",
@@ -69,4 +78,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.3.0";
+export const CURRENT_VERSION = "3.3.1";
