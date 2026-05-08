@@ -185,9 +185,11 @@ export default function App() {
          if (sensorMsLeft > 0 && sensorMsLeft <= warningThresholdMs) {
             const notifiedKey = `notified_sensor_${userSettings.sensorChangeDate}`;
             if (!localStorage.getItem(notifiedKey)) {
-               new Notification('Zbliża się wymiana sensora!', {
-                  body: `Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!`,
-                  icon: '/apple-touch-icon.png'
+               navigator.serviceWorker.ready.then(registration => {
+                 registration.showNotification('Zbliża się wymiana sensora!', {
+                    body: `Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!`,
+                    icon: '/apple-touch-icon.png'
+                 });
                });
                localStorage.setItem(notifiedKey, 'true');
             }
@@ -201,9 +203,11 @@ export default function App() {
          if (infusionMsLeft > 0 && infusionMsLeft <= warningThresholdMs) {
             const notifiedKey = `notified_infusion_${userSettings.infusionSetChangeDate}`;
             if (!localStorage.getItem(notifiedKey)) {
-               new Notification('Zbliża się wymiana wkłucia!', {
-                  body: `Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!`,
-                  icon: '/apple-touch-icon.png'
+               navigator.serviceWorker.ready.then(registration => {
+                 registration.showNotification('Zbliża się wymiana wkłucia!', {
+                    body: `Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!`,
+                    icon: '/apple-touch-icon.png'
+                 });
                });
                localStorage.setItem(notifiedKey, 'true');
             }
@@ -220,9 +224,11 @@ export default function App() {
                if (daysToExpiry <= 7 && daysToExpiry > 0) {
                   const notifiedKey = `notified_expiry_${med.id}_${med.expiryDate}`;
                   if (!localStorage.getItem(notifiedKey)) {
-                     new Notification(`Kończy się ważność: ${med.name}`, {
-                        body: `Lek straci ważność za ${Math.ceil(daysToExpiry)} dni (${med.expiryDate}). Pamiętaj o uzupełnieniu zapasów!`,
-                        icon: '/apple-touch-icon.png'
+                     navigator.serviceWorker.ready.then(registration => {
+                       registration.showNotification(`Kończy się ważność: ${med.name}`, {
+                          body: `Lek straci ważność za ${Math.ceil(daysToExpiry)} dni (${med.expiryDate}). Pamiętaj o uzupełnieniu zapasów!`,
+                          icon: '/apple-touch-icon.png'
+                       });
                      });
                      localStorage.setItem(notifiedKey, 'true');
                   }
