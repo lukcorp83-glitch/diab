@@ -696,7 +696,7 @@ export const MLAnalyzer = {
     if (currentCob > 0 || currentIob > 0 || currentPob > 0 || currentFob > 0) {
         let text = `Twoje aktywne substancje w tle to teraz: `;
         const parts = [];
-        if (currentCob > 0) parts.push(`🥪 ${Math.round(currentCob)}g wębli`);
+        if (currentCob > 0) parts.push(`🥪 ${Math.round(currentCob)}g węgli`);
         if (currentIob > 0) parts.push(`💉 ${currentIob.toFixed(1)}j insuliny`);
         if (currentPob > 0) parts.push(`🥩 ${Math.round(currentPob)}g białka`);
         if (currentFob > 0) parts.push(`🧀 ${Math.round(currentFob)}g tłuszczu`);

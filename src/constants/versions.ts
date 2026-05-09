@@ -7,6 +7,23 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.3.3",
+    date: "2026-05-09",
+    title: "Poprawki wyświetlania (Zaokrąglanie)",
+    changes: [
+      "Poprawiono zaokrąglanie wartości insuliny (bolusów, bazy) oraz jednostek na wykresie i statusie pompy, ukrywając niepotrzebne liczby po przecinku."
+    ]
+  },
+  {
+    version: "3.3.2",
+    date: "2026-05-09",
+    title: "Poprawka API Gemini",
+    changes: [
+      "Naprawiono priorytetyzację i zapisywanie własnego klucza API Gemini.",
+      "Poprawki drobnych błędów z instalacją i stabilnością."
+    ]
+  },
+  {
     version: "3.3.1",
     date: "2026-05-08",
     title: "Poprawki Instalacji (PWA)",
@@ -78,4 +95,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.3.1";
+export const CURRENT_VERSION = "3.3.3";

@@ -376,6 +376,12 @@ export default function App() {
         const entries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 300); 
         const treatments = await nightscoutService.fetchTreatments(nsUrl, nsSecret, 100); 
         
+        const devicestatus = await nightscoutService.fetchDeviceStatus(nsUrl, nsSecret);
+        if (devicestatus) {
+          const pumpRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump');
+          await setDoc(pumpRef, devicestatus, { merge: true });
+        }
+        
         const allNewLogs = [...entries, ...treatments];
         
         if (manual && allNewLogs.length === 0) {

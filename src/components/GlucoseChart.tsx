@@ -491,7 +491,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
               >✕</button>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black">{selectedPoint.value}</span>
+              <span className="text-2xl font-black">
+                {selectedPoint.type === 'glucose' 
+                  ? Math.round(Number(selectedPoint.value)) 
+                  : +Number(selectedPoint.value).toFixed(2)}
+              </span>
               <span className="text-[10px] font-bold text-slate-400">
                 {selectedPoint.type === 'glucose' ? 'mg/dL' : selectedPoint.type === 'bolus' ? 'j' : 'g WW'}
               </span>

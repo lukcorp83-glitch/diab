@@ -529,59 +529,63 @@ export default function Profile({
         </div>
       </div>
 
-      {/* Pet Header Section */}
-      <div className="flex items-center justify-between mb-6 px-2">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-[2rem] bg-accent-500 flex items-center justify-center text-white shadow-lg shadow-accent-500/20">
-             <Baby size={32} />
-          </div>
-          <div>
-            {editingName ? (
-              <div className="flex items-center gap-2">
-                <input 
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="bg-slate-100 dark:bg-slate-800 border-2 border-accent-500 rounded-xl px-3 py-1 font-black text-lg outline-none w-32 dark:text-white"
-                  autoFocus
-                />
-                <button onClick={updatePetName} className="text-emerald-500 p-2 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all"><Check size={20} /></button>
-                <button onClick={() => setEditingName(false)} className="text-rose-500 p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all"><X size={20} /></button>
+      {settings.childMode && (
+        <>
+          {/* Pet Header Section */}
+          <div className="flex items-center justify-between mb-6 px-2">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-[2rem] bg-accent-500 flex items-center justify-center text-white shadow-lg shadow-accent-500/20">
+                 <Baby size={32} />
               </div>
-            ) : (
-              <div 
-                className="flex items-center gap-2 group cursor-pointer hover:opacity-80 transition-opacity" 
-                onClick={() => { setNewName(petData.name || 'Gliko'); setEditingName(true); }}
-              >
-                <h2 className="text-2xl font-black dark:text-white">{petData.name || 'Gliko'}</h2>
-                <div className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-30 group-hover:opacity-100 transition-all">
-                  <Smartphone size={10} />
-                </div>
+              <div>
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <input 
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="bg-slate-100 dark:bg-slate-800 border-2 border-accent-500 rounded-xl px-3 py-1 font-black text-lg outline-none w-32 dark:text-white"
+                      autoFocus
+                    />
+                    <button onClick={updatePetName} className="text-emerald-500 p-2 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all"><Check size={20} /></button>
+                    <button onClick={() => setEditingName(false)} className="text-rose-500 p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all"><X size={20} /></button>
+                  </div>
+                ) : (
+                  <div 
+                    className="flex items-center gap-2 group cursor-pointer hover:opacity-80 transition-opacity" 
+                    onClick={() => { setNewName(petData.name || 'Gliko'); setEditingName(true); }}
+                  >
+                    <h2 className="text-2xl font-black dark:text-white">{petData.name || 'Gliko'}</h2>
+                    <div className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-30 group-hover:opacity-100 transition-all">
+                      <Smartphone size={10} />
+                    </div>
+                  </div>
+                )}
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Poziom {petData.level}</p>
               </div>
-            )}
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Poziom {petData.level}</p>
+            </div>
+            <div className="bg-amber-100/50 dark:bg-amber-500/5 px-4 py-2 rounded-2xl flex items-center gap-2 border border-amber-100 dark:border-amber-500/20">
+              <Coins size={16} className="text-amber-500" />
+              <span className="text-lg font-black text-amber-600">{petData.coins}</span>
+            </div>
           </div>
-        </div>
-        <div className="bg-amber-100/50 dark:bg-amber-500/5 px-4 py-2 rounded-2xl flex items-center gap-2 border border-amber-100 dark:border-amber-500/20">
-          <Coins size={16} className="text-amber-500" />
-          <span className="text-lg font-black text-amber-600">{petData.coins}</span>
-        </div>
-      </div>
 
 
-      <button 
-        onClick={() => setTab('achievements')}
-        className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 rounded-[3rem] shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-between"
-      >
-        <div className="flex items-center gap-4 text-left">
-          <div className="bg-white/20 p-3 rounded-[1.5rem] shrink-0">
-            <Trophy size={28} />
-          </div>
-          <div>
-            <h3 className="font-black text-lg leading-tight">System Osiągnięć</h3>
-            <p className="text-white/80 text-xs font-medium">Sprawdź swoje postępy i zdobyte odznaki</p>
-          </div>
-        </div>
-      </button>
+          <button 
+            onClick={() => setTab('achievements')}
+            className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 rounded-[3rem] shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-between"
+          >
+            <div className="flex items-center gap-4 text-left">
+              <div className="bg-white/20 p-3 rounded-[1.5rem] shrink-0">
+                <Trophy size={28} />
+              </div>
+              <div>
+                <h3 className="font-black text-lg leading-tight">System Osiągnięć</h3>
+                <p className="text-white/80 text-xs font-medium">Sprawdź swoje postępy i zdobyte odznaki</p>
+              </div>
+            </div>
+          </button>
+        </>
+      )}
 
       <div className="relative group/tabs">
         <button 
@@ -594,12 +598,11 @@ export default function Profile({
         <div ref={tabsRef} className="flex overflow-x-auto gap-2 pb-4 scrollbar-custom snap-x -mx-4 px-4 mask-fade-right">
           {[
             { id: 'therapy', label: 'Terapia & Cele', icon: <Activity size={14} /> },
-            { id: 'shop', label: `Sklepik ${petData.name}`, icon: <ShoppingBag size={14} /> },
+            ...(settings.childMode ? [{ id: 'shop', label: `Sklepik ${petData.name}`, icon: <ShoppingBag size={14} /> }] : []),
             { id: 'devices', label: 'Osprzęt & CGM', icon: <Smartphone size={14} /> },
             { id: 'food', label: 'Skróty Posiłków', icon: <Utensils size={14} /> },
             { id: 'meds', label: 'Leki & Przypomnienia', icon: <Pill size={14} /> },
             { id: 'simulator', label: 'Symulator Pompy', icon: <Beaker size={14} /> },
-
             { id: 'api', label: ' Integracje & API', icon: <Globe size={14} /> },
             { id: 'system', label: 'System & Inne', icon: <Settings size={14} /> }
           ].map(cat => (

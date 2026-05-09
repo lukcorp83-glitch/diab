@@ -67,12 +67,12 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
             <Database size={10} /> Zbiornik
           </div>
           <div className={cn("text-lg font-black", getReservoirColor(data.reservoir))}>
-            {data.reservoir} <span className="text-[10px] opacity-70">U</span>
+            {data.reservoir != null ? Number(data.reservoir).toFixed(0) : '--'} <span className="text-[10px] opacity-70">U</span>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
-              animate={{ width: `${Math.min((data.reservoir / 300) * 100, 100)}%` }}
+              animate={{ width: `${Math.min(((data.reservoir || 0) / 300) * 100, 100)}%` }}
               className="bg-blue-500 h-full"
             />
           </div>
@@ -84,13 +84,13 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
             <Battery size={10} /> Bateria
           </div>
           <div className={cn("text-lg font-black", getBatteryColor(data.battery))}>
-            {data.battery}<span className="text-[10px] opacity-70">%</span>
+            {data.battery != null ? Math.round(data.battery) : '--'}<span className="text-[10px] opacity-70">%</span>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
-              animate={{ width: `${data.battery}%` }}
-              className={cn("h-full", data.battery > 20 ? 'bg-emerald-500' : 'bg-rose-500')}
+              animate={{ width: `${data.battery || 0}%` }}
+              className={cn("h-full", (data.battery || 0) > 20 ? 'bg-emerald-500' : 'bg-rose-500')}
             />
           </div>
         </div>
@@ -101,7 +101,7 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
             <Zap size={10} /> Baza
           </div>
           <div className="text-lg font-black text-purple-500">
-            {data.basal?.rate ?? '--'} <span className="text-[10px] opacity-70">U/h</span>
+            {data.basal?.rate != null ? Number(data.basal.rate).toFixed(2) : '--'} <span className="text-[10px] opacity-70">U/h</span>
           </div>
           <div className="text-[8px] font-bold text-slate-400 uppercase">
             {data.basal?.isTemp ? 'Tymczasowa' : 'Standardowa'}
@@ -112,7 +112,7 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
       <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
         <div>
           <span className="text-[8px] font-black text-slate-400 uppercase block">Aktywna Insulina (IOB)</span>
-          <span className="text-sm font-black text-slate-700 dark:text-slate-200">{data.activeInsulin} U</span>
+          <span className="text-sm font-black text-slate-700 dark:text-slate-200">{data.activeInsulin != null ? Number(data.activeInsulin).toFixed(2) : '--'} U</span>
         </div>
         <div className="text-right">
           <span className="text-[8px] font-black text-slate-400 uppercase block">Auto-Tryb</span>

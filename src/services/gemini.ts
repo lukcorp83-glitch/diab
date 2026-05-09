@@ -2,15 +2,14 @@ import { GoogleGenAI } from "@google/genai";
 
 import { auth } from '../lib/firebase';
 
-let genAI: GoogleGenAI | null = null;
+let genAITuple: { key: string, baseUrl?: string, client: GoogleGenAI } | null = null;
 
 function getApiKey(): { key: string, baseUrl?: string } {
-  // First check env variables (Vite build)
-  let key = import.meta.env.VITE_GEMINI_API_KEY;
-  let baseUrl = import.meta.env.VITE_GEMINI_BASE_URL;
+  let key = '';
+  let baseUrl: string | undefined = undefined;
 
-  // Then check localStorage as fallback
-  if (!key) {
+  // 1. FIRST check localStorage (user override)
+  if (typeof window !== 'undefined') {
     let rawValue = localStorage.getItem('gemini_api_key');
     if (rawValue) {
       if (rawValue.includes('|')) {
@@ -23,7 +22,13 @@ function getApiKey(): { key: string, baseUrl?: string } {
     }
   }
 
-  // Fallback check process.env if available
+  // 2. THEN check env variables (Vite build)
+  if (!key && import.meta.env.VITE_GEMINI_API_KEY) {
+    key = import.meta.env.VITE_GEMINI_API_KEY;
+    baseUrl = import.meta.env.VITE_GEMINI_BASE_URL;
+  }
+
+  // 3. Fallback check process.env if available
   if (!key) {
     try {
       if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
@@ -34,7 +39,7 @@ function getApiKey(): { key: string, baseUrl?: string } {
     }
   }
 
-  // Fallback to Cloudflare AI Gateway/Worker if no key is provided
+  // 4. Fallback to Cloudflare AI Gateway/Worker if no key is provided
   if (!key) {
     return {
       key: "proxy", // SDK requires a non-empty string
@@ -48,13 +53,14 @@ function getApiKey(): { key: string, baseUrl?: string } {
 function getClient(): GoogleGenAI {
   const credentials = getApiKey();
   
-  if (!genAI) {
-     genAI = new GoogleGenAI({ 
+  if (!genAITuple || genAITuple.key !== credentials.key || genAITuple.baseUrl !== credentials.baseUrl) {
+     const client = new GoogleGenAI({ 
        apiKey: credentials.key,
        ...(credentials.baseUrl ? { baseUrl: credentials.baseUrl } : {})
      });
+     genAITuple = { ...credentials, client };
   }
-  return genAI;
+  return genAITuple.client;
 }
 
 export const geminiService = {

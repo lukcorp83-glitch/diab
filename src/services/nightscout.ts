@@ -154,6 +154,50 @@ export const nightscoutService = {
       console.error("Nightscout treatments error:", error instanceof Error ? error.message : error);
       return [];
     }
+  },
+
+  async fetchDeviceStatus(url: string, secret?: string, count = 1): Promise<any> {
+    try {
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (secret) {
+        headers['api-secret'] = secret;
+      }
+
+      const baseUrl = url.replace(/\/$/, '');
+      const cacheBust = `_t=${Date.now()}`;
+      const baseApiPath = `/api/v1/devicestatus.json?count=${count}&${cacheBust}`;
+      const directUrl = secret && secret.includes('-') ? `${baseUrl}${baseApiPath}&token=${secret}` : `${baseUrl}${baseApiPath}`;
+      
+      let data: any[] | null = null;
+
+      try {
+         data = await fetchWithFallbacks(directUrl, headers);
+      } catch (err) {
+        console.warn("Failed fetching devicestatus:", err);
+        return null;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) return null;
+      
+      const latest = data[0];
+      const pumpInfo = latest.pump;
+
+      if (!pumpInfo) return null;
+      
+      return {
+        battery: pumpInfo.battery?.percent ?? pumpInfo.battery?.voltage ?? 0,
+        reservoir: pumpInfo.reservoir ?? 0,
+        activeInsulin: pumpInfo.iob?.iob ?? 0,
+        basal: {
+           rate: pumpInfo.status?.currentbasal ?? 0,
+           isTemp: !!pumpInfo.status?.tempbasal
+        },
+        lastUpdate: { seconds: Math.floor(new Date(latest.created_at).getTime() / 1000) }
+      };
+    } catch (error) {
+      console.error("Nightscout devicestatus error:", error instanceof Error ? error.message : error);
+      return null;
+    }
   }
 };
 
