@@ -181,17 +181,30 @@ export const nightscoutService = {
       
       const latest = data[0];
       const pumpInfo = latest.pump;
+      const uploaderInfo = latest.uploader;
 
-      if (!pumpInfo) return null;
+      // Try to find battery in different common places (standard Nightscout vs xDrip vs different pump drivers)
+      const batteryPercent = pumpInfo?.battery?.percent ?? 
+                            uploaderInfo?.battery ?? 
+                            latest.battery ?? 
+                            pumpInfo?.battery?.voltage ?? // fallback to voltage if percent missing
+                            0;
+
+      // If no pump info, but we have uploader info, still return something
+      if (!pumpInfo && !uploaderInfo) return null;
       
       return {
-        battery: pumpInfo.battery?.percent ?? pumpInfo.battery?.voltage ?? 0,
-        reservoir: pumpInfo.reservoir ?? 0,
-        activeInsulin: pumpInfo.iob?.iob ?? 0,
+        battery: batteryPercent,
+        reservoir: pumpInfo?.reservoir ?? 0,
+        activeInsulin: pumpInfo?.iob?.iob ?? 0,
         basal: {
-           rate: pumpInfo.status?.currentbasal ?? 0,
-           isTemp: !!pumpInfo.status?.tempbasal
+           rate: pumpInfo?.status?.currentbasal ?? 0,
+           isTemp: !!pumpInfo?.status?.tempbasal
         },
+        uploader: uploaderInfo ? {
+           battery: uploaderInfo.battery,
+           type: uploaderInfo.type
+        } : null,
         lastUpdate: { seconds: Math.floor(new Date(latest.created_at).getTime() / 1000) }
       };
     } catch (error) {

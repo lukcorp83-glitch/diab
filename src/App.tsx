@@ -124,8 +124,15 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    return onSnapshot(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump'), (doc) => {
-      if (doc.exists()) setPumpStatus(doc.data());
+    return onSnapshot(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump'), (docSnap) => {
+      if (docSnap.exists()) {
+        console.log("[Firestore] Received pump status data:", docSnap.data());
+        setPumpStatus(docSnap.data());
+      } else {
+        console.log("[Firestore] Pump status document does not exist for UID:", getEffectiveUid(user));
+      }
+    }, (error) => {
+      console.error("Firestore onSnapshot error (pump status):", error);
     });
   }, [user]);
 
@@ -141,6 +148,8 @@ export default function App() {
     const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
     const unsub = onSnapshot(petRef, (d) => {
       if (d.exists()) setPetData(d.data());
+    }, (error) => {
+      console.error("Firestore onSnapshot error (pet):", error);
     });
     return unsub;
   }, [user]);
@@ -379,7 +388,14 @@ export default function App() {
         const devicestatus = await nightscoutService.fetchDeviceStatus(nsUrl, nsSecret);
         if (devicestatus) {
           const pumpRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump');
-          await setDoc(pumpRef, devicestatus, { merge: true });
+          console.log("[Nightscout Sync] Saving devicestatus to Firestore:", devicestatus);
+          try {
+            await setDoc(pumpRef, devicestatus, { merge: true });
+          } catch (fsErr) {
+            console.error("[Nightscout Sync] Firestore setDoc FAILED for pump status:", fsErr);
+          }
+        } else {
+          console.log("No device status found in Nightscout data.");
         }
         
         const allNewLogs = [...entries, ...treatments];
