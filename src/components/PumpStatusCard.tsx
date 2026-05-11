@@ -13,6 +13,10 @@ interface PumpStatusProps {
       isTemp: boolean;
     };
     lastUpdate?: any;
+    uploader?: {
+      battery?: number;
+      type?: string;
+    } | null;
   } | null;
   loading?: boolean;
 }
@@ -32,6 +36,12 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
     return 'text-rose-500';
   };
 
+  // Determine what device we are actually showing
+  // If we have reservoir or active insulin, it's likely a pump. Otherwise, maybe just CGM/Uploader.
+  const isPump = data.reservoir > 0 || data.basal?.rate > 0 || data.activeInsulin > 0;
+  const deviceName = isPump ? "MiniMed 780G / Pompa" : (data.uploader?.type || "xDrip / Uploader");
+  const deviceSource = isPump ? "CareLink Live" : "Nightscout";
+
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
@@ -45,10 +55,12 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
 
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h3 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] mb-1">Status Pompy</h3>
+          <h3 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] mb-1">
+            {isPump ? 'Status Pompy' : 'Status Urządzenia'}
+          </h3>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-black dark:text-white">MiniMed 780G</span>
-            <div className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black rounded-full uppercase">CareLink Live</div>
+            <span className="text-xl font-black dark:text-white">{deviceName}</span>
+            <div className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black rounded-full uppercase">{deviceSource}</div>
           </div>
         </div>
         
@@ -62,51 +74,89 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
 
       <div className="grid grid-cols-3 gap-4">
         {/* Reservoir */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-            <Database size={10} /> Zbiornik
+        {isPump ? (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+              <Database size={10} /> Zbiornik
+            </div>
+            <div className={cn("text-lg font-black", getReservoirColor(data.reservoir))}>
+              {data.reservoir != null ? Number(data.reservoir).toFixed(0) : '--'} <span className="text-[10px] opacity-70">U</span>
+            </div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(((data.reservoir || 0) / 300) * 100, 100)}%` }}
+                className="bg-blue-500 h-full"
+              />
+            </div>
           </div>
-          <div className={cn("text-lg font-black", getReservoirColor(data.reservoir))}>
-            {data.reservoir != null ? Number(data.reservoir).toFixed(0) : '--'} <span className="text-[10px] opacity-70">U</span>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+              <Activity size={10} /> Rodzaj
+            </div>
+            <div className="text-sm font-black text-slate-600 dark:text-slate-300">
+              CGM Only
+            </div>
+            <div className="text-[8px] font-bold text-slate-400 uppercase">Brak pompy</div>
           </div>
-          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min(((data.reservoir || 0) / 300) * 100, 100)}%` }}
-              className="bg-blue-500 h-full"
-            />
-          </div>
-        </div>
+        )}
 
         {/* Battery */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-            <Battery size={10} /> Bateria
+        {(isPump || data.battery !== data.uploader?.battery) && (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+              <Battery size={10} /> {isPump ? 'Bateria Pompy' : 'Bateria'}
+            </div>
+            <div className={cn("text-lg font-black", getBatteryColor((data.battery || 0) > 10 ? Math.min(data.battery || 0, 100) : ((data.battery || 0)/1.5)*100))}>
+              {data.battery != null ? (
+                 data.battery <= 10 && data.battery > 0 ? (
+                   <>{Number(data.battery).toFixed(2)}<span className="text-[10px] opacity-70">V</span></>
+                 ) : (
+                   <>{Math.min(Math.round(data.battery), 100)}<span className="text-[10px] opacity-70">%</span></>
+                 )
+              ) : '--'}
+            </div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${(data.battery || 0) <= 10 && (data.battery || 0) > 0 ? ((data.battery || 0)/1.5)*100 : Math.min(data.battery || 0, 100)}%` }}
+                className={cn("h-full", ((data.battery || 0) <= 10 ? ((data.battery || 0)/1.5)*100 : (data.battery || 0)) > 20 ? 'bg-emerald-500' : 'bg-rose-500')}
+              />
+            </div>
           </div>
-          <div className={cn("text-lg font-black", getBatteryColor(data.battery))}>
-            {data.battery != null ? Math.round(data.battery) : '--'}<span className="text-[10px] opacity-70">%</span>
-          </div>
-          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${data.battery || 0}%` }}
-              className={cn("h-full", (data.battery || 0) > 20 ? 'bg-emerald-500' : 'bg-rose-500')}
-            />
-          </div>
-        </div>
+        )}
 
-        {/* Basal */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-            <Zap size={10} /> Baza
+        {/* Uploader Battery or Basal */}
+        {data.uploader?.battery != null && (!isPump || data.battery !== data.uploader.battery) ? (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+              <Battery size={10} /> Telefon
+            </div>
+            <div className={cn("text-lg font-black", getBatteryColor(Math.min(data.uploader.battery, 100)))}>
+              {Math.min(Math.round(data.uploader.battery), 100)}<span className="text-[10px] opacity-70">%</span>
+            </div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(data.uploader.battery, 100)}%` }}
+                className={cn("h-full", data.uploader.battery > 20 ? 'bg-emerald-500' : 'bg-rose-500')}
+              />
+            </div>
           </div>
-          <div className="text-lg font-black text-purple-500">
-            {data.basal?.rate != null ? Number(data.basal.rate).toFixed(2) : '--'} <span className="text-[10px] opacity-70">U/h</span>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+              <Zap size={10} /> Baza
+            </div>
+            <div className="text-lg font-black text-purple-500">
+              {data.basal?.rate != null ? Number(data.basal.rate).toFixed(2) : '--'} <span className="text-[10px] opacity-70">U/h</span>
+            </div>
+            <div className="text-[8px] font-bold text-slate-400 uppercase">
+              {data.basal?.isTemp ? 'Tymczasowa' : 'Standardowa'}
+            </div>
           </div>
-          <div className="text-[8px] font-bold text-slate-400 uppercase">
-            {data.basal?.isTemp ? 'Tymczasowa' : 'Standardowa'}
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
@@ -116,7 +166,9 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
         </div>
         <div className="text-right">
           <span className="text-[8px] font-black text-slate-400 uppercase block">Auto-Tryb</span>
-          <span className="text-[10px] font-black text-emerald-500">AKTYWNY</span>
+          <span className={cn("text-[10px] font-black", isPump ? "text-emerald-500" : "text-slate-400")}>
+            {isPump ? 'AKTYWNY' : 'N/A'}
+          </span>
         </div>
       </div>
     </motion.div>

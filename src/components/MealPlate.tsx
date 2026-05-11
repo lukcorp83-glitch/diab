@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -187,10 +188,8 @@ export default function MealPlate({
     };
 
     try {
-      // 1. Zobaczmy najpierw z GlikoSense AI (jeśli jest klucz)
-      const hasKey = !!localStorage.getItem('gemini_api_key') || !!process.env.GEMINI_API_KEY;
-      
-      if (hasKey) {
+      // 1. Zobaczmy najpierw z GlikoSense AI
+      try {
         const prompt = `Jesteś dietetykiem. Przeanalizuj zapytanie użytkownika: "${query}". Może to być nazwa produktu ze sklepu, danie domowe (np. "pierogi ruskie", "leczo"), owoc, warzywo lub konkretna marka. 
         Zwróć listę pasujących produktów w formacie JSON (tylko JSON, bez markdown). 
         Format: [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
@@ -211,6 +210,8 @@ export default function MealPlate({
           })),
         );
         if (resultsArray.length > 0) return;
+      } catch (aiError) {
+        console.warn("AI search failed, falling back to OFF:", aiError);
       }
       
       // 2. Fallback do "Tradycyjnej Sieci" + Algorytm GlikoSense
@@ -254,11 +255,11 @@ export default function MealPlate({
           carbs: product.carbs,
           protein: product.protein || 0,
           fat: product.fat || 0,
-          gi: product.gi || 50,
+          gi: typeof product.gi === 'number' ? product.gi : 50,
           category: "Z Sieci",
         },
       );
-      alert(`Zapisano ${product.name} do bazy produktów.`);
+      toast(`Zapisano ${product.name} do bazy produktów.`);
     } catch (e) {
       console.error(e);
       alert("Błąd zapisu.");
@@ -278,6 +279,8 @@ export default function MealPlate({
   const tzOffset = now.getTimezoneOffset() * 60000;
   const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
   const [entryTime, setEntryTime] = useState(localISOTime);
+  const [cookingMethod, setCookingMethod] = useState<'raw' | 'boiled' | 'baked' | 'fried' | 'blended'>('raw');
+
 
   useEffect(() => {
     if (!user) return;
@@ -334,16 +337,19 @@ export default function MealPlate({
     setAnalysis(null);
     try {
       const prompt = `Jesteś zaawansowanym asystentem diabetologicznym. Przeanalizuj poniższy skład posiłku pacjenta:
-      ${JSON.stringify(plate)}
+      ${JSON.stringify(plate.map(p => ({ nazwa: p.name, waga: p.weight, wegle: p.carbs, bialko: p.protein, tluszcz: p.fat, IG: p.gi })))}
+      
+      Wybrana obróbka termiczna całego posiłku: ${cookingMethod === 'raw' ? 'Surowe / Brak' : cookingMethod === 'boiled' ? 'Gotowane' : cookingMethod === 'baked' ? 'Pieczone' : cookingMethod === 'fried' ? 'Smażone' : 'Zblendowane'}
       
       Zwróć szczegółową analizę w czytelnym formacie HTML (używaj <b>, <ul>, <li>, <br>, ale ZABRANIAM używania markdown, w szczególności gwazdek).
       
       Uwzględnij:
-      1. <b>Profil Wchłaniania</b>: Oceń przybliżony Indeks Glikemiczny (IG) zestawu i jak obecność białek/tłuszczy opóźni wchłanianie cukrów. Wskaż produkty, które mogą powodować późniejsze skoki glikemii (efekt pizzy/tłuszczu).
-      2. <b>Rekomendacja Bolusa (w tym WBT)</b>: Zaleć typ bolusa (np. prosty, złożony, przedłużony). Jeśli posiłek ma dużo WW i WBT, określ ile % insuliny podać od razu, a ile przedłużyć na ile godzin. Wspomnij o pre-bolusie jeśli jest wymagany (szybkie węglowodany).
-      3. <b>Ostrzeżenia</b>: Krótko (1 zdanie) na co uważać w ciągu najbliższych kilku godzin w związku z trwającym wchłanianiem tego konkretnego posiłku.
+      1. <b>Szczegółowy Wpływ Składników i Obróbki</b>: Wytłumacz, jak obecność białek/tłuszczy oraz dodanie płynów (np. wody, mleka - co rozcieńcza węglowodany na objętość) wpływa na ładunek glikemiczny (ŁG). Przeanalizuj również wpływ wybranej obróbki termicznej (np. gotowanie, smażenie, pieczenie, blendowanie) na wchłanianie i Indeks Glikemiczny (IG). Dodanie tłuszczu spowalnia trawienie (efekt pizzy), a blendowanie/rozgotowanie je przyspiesza.
+      2. <b>Profil Wchłaniania</b>: Oceń wypadkowy Indeks Glikemiczny (IG) oraz całkowity Ładunek Glikemiczny (ŁG) zestawu. Wskaż produkty obciążające układ i mogące powodować późniejsze skoki glikemii.
+      3. <b>Rekomendacja Bolusa (w tym WBT)</b>: Zaleć typ bolusa (np. prosty, złożony, przedłużony). Jeśli posiłek ma dużo WW i WBT, określ ile % insuliny podać od razu, a ile przedłużyć na ile godzin. Wspomnij o pre-bolusie.
+      4. <b>Ostrzeżenia</b>: Krótko (1 zdanie) na co uważać w ciągu najbliższych kilku godzin w związku z trwającym wchłanianiem tego konkretnego posiłku.
       
-      Odpowiedź ma być konkretna, rzetelna i pomocna w codziennym prowadzeniu glikemii.`;
+      Odpowiedź ma być konkretna, rzetelna i dostosowana do specyfiki użytych składników (np. mąki, jajek, mleka w przypadku ciasta naleśnikowego).`;
       const result = await geminiService.generateContent(prompt);
       setAnalysis(result);
     } catch (e) {
@@ -369,6 +375,7 @@ export default function MealPlate({
         {
           name: mealName,
           items: plate,
+          cookingMethod: cookingMethod,
           timestamp: Date.now(),
         },
       );
@@ -382,6 +389,9 @@ export default function MealPlate({
 
   const addSavedMeal = (meal: any) => {
     setPlate([...plate, ...meal.items]);
+    if (meal.cookingMethod) {
+      setCookingMethod(meal.cookingMethod);
+    }
     alert(`Dodano zestaw: ${meal.name}`);
   };
 
@@ -410,9 +420,15 @@ export default function MealPlate({
     setPlate(plate.filter((_, i) => i !== idx));
   };
 
-  const totalCarbs = plate.reduce((s, i) => s + (i.carbs * i.weight) / 100, 0);
-  const totalProtein = plate.reduce((s, i) => s + ((i.protein || 0) * i.weight) / 100, 0);
-  const totalFat = plate.reduce((s, i) => s + ((i.fat || 0) * i.weight) / 100, 0);
+  const totalWeight = plate.reduce((s, i) => s + i.weight, 0);
+
+  const rawCarbs = plate.reduce((s, i) => s + (i.carbs * i.weight) / 100, 0);
+  const rawProtein = plate.reduce((s, i) => s + ((i.protein || 0) * i.weight) / 100, 0);
+  const rawFat = plate.reduce((s, i) => s + ((i.fat || 0) * i.weight) / 100, 0);
+
+  const totalCarbs = rawCarbs;
+  const totalProtein = rawProtein;
+  const totalFat = cookingMethod === 'fried' ? rawFat + (totalWeight / 100) * 10 : rawFat;
   
   const totalCalsFromMacros = (totalCarbs * 4) + (totalProtein * 4) + (totalFat * 9);
   const carbsPct = totalCalsFromMacros > 0 ? (totalCarbs * 4 / totalCalsFromMacros) * 100 : 0;
@@ -421,6 +437,19 @@ export default function MealPlate({
 
   const totalWW = totalCarbs / 10;
   const totalWBT = (totalProtein * 4 + totalFat * 9) / 100;
+  
+  const rawGL = plate.reduce((s, i) => {
+    if (!i.gi) return s;
+    return s + (((i.carbs * i.weight) / 100) * i.gi) / 100;
+  }, 0);
+
+  let avgGI = rawCarbs > 0 ? (rawGL * 100) / rawCarbs : 0;
+  if (cookingMethod === 'boiled') avgGI = Math.min(100, avgGI * 1.3);
+  if (cookingMethod === 'baked') avgGI = Math.min(100, avgGI * 1.15);
+  if (cookingMethod === 'blended') avgGI = Math.min(100, avgGI * 1.2);
+  if (cookingMethod === 'fried') avgGI = avgGI * 0.9;
+  
+  const totalGL = (totalCarbs * avgGI) / 100;
 
   const handleLogMeal = async () => {
     if (!user || plate.length === 0) return;
@@ -601,13 +630,24 @@ export default function MealPlate({
                   Gramy (g)
                 </span>
                 {parseFloat(weightInput) > 0 && selectedProduct && (
-                  <div className="mt-4 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-2xl flex justify-center gap-4 text-xs font-black">
+                  <div className="mt-4 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-2xl flex justify-center gap-4 text-xs font-black flex-wrap">
                     <span className="text-accent-600 dark:text-accent-400">
                       Węgle: {((selectedProduct.carbs * parseFloat(weightInput)) / 100).toFixed(1)}g
                     </span>
                     <span className="text-emerald-600 dark:text-emerald-400">
                       B+T: {(((selectedProduct.protein || 0) + (selectedProduct.fat || 0)) * parseFloat(weightInput) / 100).toFixed(1)}g
                     </span>
+                    {(() => {
+                      if (typeof selectedProduct.gi !== 'number') return null;
+                      const glV = (((selectedProduct.carbs * parseFloat(weightInput)) / 100) * selectedProduct.gi / 100);
+                      return (
+                        <span className={cn(
+                          glV <= 10 ? "text-emerald-600 dark:text-emerald-400" : glV < 20 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
+                        )}>
+                          ŁG: {glV.toFixed(1)}
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -845,15 +885,32 @@ export default function MealPlate({
                           <span
                             className={cn(
                               "px-1.5 py-0.5 rounded font-black text-[8px]",
-                              p.gi && p.gi <= 55
+                              typeof p.gi === 'number' && p.gi <= 55
                                 ? "bg-emerald-500/10 text-emerald-500"
-                                : p.gi && p.gi < 70
+                                : typeof p.gi === 'number' && p.gi < 70
                                   ? "bg-amber-500/10 text-amber-500"
                                   : "bg-rose-500/10 text-rose-500",
                             )}
                           >
-                            IG: {p.gi || "??"}
+                            IG: {typeof p.gi === 'number' ? p.gi : "??"}
                           </span>
+                          {typeof p.gi === 'number' ? (() => {
+                            const lgVal = (Number(p.carbs || 0) * Number(p.gi)) / 100;
+                            return (
+                              <span
+                                className={cn(
+                                  "px-1.5 py-0.5 rounded font-black text-[8px]",
+                                  lgVal <= 10
+                                    ? "bg-emerald-500/10 text-emerald-500"
+                                    : lgVal < 20
+                                      ? "bg-amber-500/10 text-amber-500"
+                                      : "bg-rose-500/10 text-rose-500",
+                                )}
+                              >
+                                ŁG: {lgVal.toFixed(1)}
+                              </span>
+                            );
+                          })() : null}
                         </div>
                       </div>
                       <ChevronRight size={16} className="text-accent-300" />
@@ -919,15 +976,32 @@ export default function MealPlate({
                         <span
                           className={cn(
                             "px-1.5 py-0.5 rounded font-black text-[8px]",
-                            p.gi && p.gi <= 55
+                            typeof p.gi === 'number' && p.gi <= 55
                               ? "bg-emerald-500/10 text-emerald-500"
-                              : p.gi && p.gi < 70
+                              : typeof p.gi === 'number' && p.gi < 70
                                 ? "bg-amber-500/10 text-amber-500"
                                 : "bg-rose-500/10 text-rose-500",
                           )}
                         >
-                          IG: {p.gi || "??"}
+                          IG: {typeof p.gi === 'number' ? p.gi : "??"}
                         </span>
+                        {typeof p.gi === 'number' ? (() => {
+                          const lgVal = (Number(p.carbs || 0) * Number(p.gi)) / 100;
+                          return (
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.5 rounded font-black text-[8px]",
+                                lgVal <= 10
+                                  ? "bg-emerald-500/10 text-emerald-500"
+                                  : lgVal < 20
+                                    ? "bg-amber-500/10 text-amber-500"
+                                    : "bg-rose-500/10 text-rose-500",
+                              )}
+                            >
+                              ŁG: {lgVal.toFixed(1)}
+                            </span>
+                          );
+                        })() : null}
                       </div>
                     </div>
                     <Plus
@@ -1047,17 +1121,37 @@ export default function MealPlate({
                         <div className="text-accent-400 font-black text-sm">
                           {((item.carbs * item.weight) / 100).toFixed(1)}g
                         </div>
-                        <div
-                          className={cn(
-                            "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                            item.gi && item.gi <= 55
-                              ? "bg-emerald-500/20 text-emerald-400"
-                              : item.gi && item.gi < 70
-                                ? "bg-amber-500/20 text-amber-400"
-                                : "bg-rose-500/20 text-rose-400",
-                          )}
-                        >
-                          IG: {item.gi || "??"}
+                        <div className="flex gap-1">
+                          <div
+                            className={cn(
+                              "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                              typeof item.gi === 'number' && item.gi <= 55
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : typeof item.gi === 'number' && item.gi < 70
+                                  ? "bg-amber-500/20 text-amber-400"
+                                  : "bg-rose-500/20 text-rose-400",
+                            )}
+                          >
+                            IG: {typeof item.gi === 'number' ? item.gi : "??"}
+                          </div>
+                          {(() => {
+                            if (typeof item.gi !== 'number') return null;
+                            const glValue = (((item.carbs * item.weight) / 100) * item.gi / 100);
+                            return (
+                              <div
+                                className={cn(
+                                  "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                                  glValue <= 10
+                                    ? "bg-emerald-500/20 text-emerald-400"
+                                    : glValue < 20
+                                      ? "bg-amber-500/20 text-amber-400"
+                                      : "bg-rose-500/20 text-rose-400",
+                                )}
+                              >
+                                ŁG: {glValue.toFixed(1)}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -1066,6 +1160,54 @@ export default function MealPlate({
               ))}
             </AnimatePresence>
           </motion.div>
+
+          <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+              Obróbka Termiczna Posiłku
+            </h5>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'raw', label: 'Brak / Surowe' },
+                { id: 'boiled', label: 'Gotowane' },
+                { id: 'baked', label: 'Pieczone' },
+                { id: 'fried', label: 'Smażone na tłuszczu' },
+                { id: 'blended', label: 'Zblendowane' },
+              ].map(method => (
+                <button
+                  key={method.id}
+                  onClick={() => setCookingMethod(method.id as any)}
+                  className={cn(
+                    "text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider transition-all",
+                    cookingMethod === method.id
+                      ? "bg-accent-500 text-white"
+                      : "bg-white/5 text-slate-400 hover:bg-white/10"
+                  )}
+                >
+                  {method.label}
+                </button>
+              ))}
+            </div>
+            {cookingMethod === 'fried' && (
+              <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
+                Uwaga: Smażenie automatycznie dodaje ~10g tłuszczu na 100g składników. Obniża IG, ale podbija WBT i Kcal.
+              </p>
+            )}
+            {cookingMethod === 'boiled' && (
+              <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
+                Gotowanie może mocno podnieść IG węglowodanów (np. stają się szybciej przyswajalne).
+              </p>
+            )}
+            {cookingMethod === 'baked' && (
+               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
+                 Pieczenie podnosi Indeks Glikemiczny potrawy.
+               </p>
+            )}
+            {cookingMethod === 'blended' && (
+               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
+                 Rozdrabnianie (blendowanie) ułatwia trawienie i podnosi IG.
+               </p>
+            )}
+          </div>
 
           {/* Makroskładniki Procentowo */}
           <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
@@ -1130,6 +1272,9 @@ export default function MealPlate({
                 <span className="text-xs font-bold opacity-30 ml-1">WBT</span>
               </span>
             </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2 mb-6 border-t border-white/10 pt-4">
             <div>
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
                 Węglowodany
@@ -1139,13 +1284,22 @@ export default function MealPlate({
                 <span className="text-xs font-bold opacity-30 ml-1">g</span>
               </span>
             </div>
-            <div className="text-right">
+            <div className="text-center">
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Białko + Tłuszcz
+                Białko + Tł.
               </span>
               <span className="text-xl font-black text-emerald-400">
                 {(totalProtein + totalFat).toFixed(1)}
                 <span className="text-xs font-bold opacity-30 ml-1">g</span>
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
+                Ładunek Gl.
+              </span>
+              <span className={cn("text-xl font-black", totalGL <= 10 ? "text-emerald-400" : totalGL < 20 ? "text-amber-400" : "text-rose-400")}>
+                {totalGL.toFixed(1)}
+                <span className="text-xs font-bold opacity-30 ml-1">ŁG</span>
               </span>
             </div>
           </div>

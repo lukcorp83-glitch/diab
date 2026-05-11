@@ -7,6 +7,16 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.3.4",
+    date: "2026-05-10",
+    title: "Notatnik, Ładunek Glikemiczny i Inteligentniejszy GlikoSense",
+    changes: [
+      "Nowość: Osobisty notatnik i kompendium wiedzy do szybkiego zapisywania przemyśleń.",
+      "Poprawienie logiki GlikoSense – trafniejsze i skuteczniejsze wnioski i alerty.",
+      "Dodano wyliczanie Ładunku Glikemicznego (ŁG) dla posiłków i produktów – dla jeszcze lepszej kontroli."
+    ]
+  },
+  {
     version: "3.3.3",
     date: "2026-05-09",
     title: "Poprawki wyświetlania (Zaokrąglanie)",
@@ -95,4 +105,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.3.3";
+export const CURRENT_VERSION = "3.3.4";

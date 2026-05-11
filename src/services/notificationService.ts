@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import { getToken, onMessage } from 'firebase/messaging';
 import { messaging, auth, db } from '../lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -8,7 +9,7 @@ export const notificationService = {
   async requestPermission(): Promise<string | null> {
     try {
       if (!('Notification' in window)) {
-        alert("Twoja przeglądarka (lub urządzenie) nie obsługuje powiadomień. Na iOS upewnij się, że masz system w wersji 16.4+ oraz aplikację dodaną do ekranu głównego.");
+        toast("Twoja przeglądarka (lub urządzenie) nie obsługuje powiadomień. Na iOS upewnij się, że masz system w wersji 16.4+ oraz aplikację dodaną do ekranu głównego.");
         return null;
       }
       const permission = await Notification.requestPermission();

@@ -68,10 +68,15 @@ export const geminiService = {
     const creds = getApiKey();
     const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
     
-    // Prefer current stable and fast models
-    const modelsToTry = imageData 
-      ? ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-lite-preview-02-05']
-      : ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-lite-preview-02-05'];
+    // Zaktualizowane modele zgodnie z nowymi wytycznymi
+    let modelsToTry = imageData 
+      ? ['gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest']
+      : ['gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
+
+    // Proxy obsługuje tylko flash, nie doliczmy kosztów PRO do konta globalnego
+    if (isProxyUrl) {
+      modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'];
+    }
 
     let contents;
     if (imageData) {
@@ -219,7 +224,7 @@ export const geminiService = {
   },
 
   async analyzeMeal(imageData: string) {
-    const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj orientacyjną wagę, ilość węglowodanów (g), białek (g), tłuszczy (g) oraz indeks glikemiczny (IG - wpisz liczbę lub tekst NISKI/ŚREDNI/WYSOKI). Dodaj szczegółową analizę dla diabetyka ("analysis") - co zawiera posiłek i jak może wpłynąć na glikemię.
+    const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj orientacyjną wagę, ilość węglowodanów (g), białek (g), tłuszczy (g) oraz ładunek glikemiczny (ŁG - jeśli to możliwe) i indeks glikemiczny (IG - wpisz liczbę lub tekst NISKI/ŚREDNI/WYSOKI). Dodaj szczegółową analizę dla diabetyka ("analysis") - co zawiera posiłek i jak może wpłynąć na glikemię uwzględniając ŁG i IG.
     Zwróć odpowiedź absolutnie w formacie JSON (tylko czysty JSON, bez markdown):
     {
       "mealName": "nazwa posiłku",
@@ -293,16 +298,43 @@ export const geminiService = {
     Jeśli pytanie dotyczy bezpośrednio medycyny lub dawkowania, zawsze zachęcaj do rozmowy z rodzicami lub lekarzem. 
     Nie podawaj konkretnych dawek insuliny, tylko ogólne zasady i wsparcie.`;
 
+    const creds = getApiKey();
+    const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+    
+    const fullHistory = [
+      ...history,
+       { role: 'user', parts: [{ text: message }] }
+    ];
+
+    if (isProxyUrl && !localStorage.getItem('gemini_api_key')) {
+      try {
+        const response = await fetch(creds.baseUrl!, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                model: 'gemini-1.5-flash', 
+                payload: { contents: fullHistory, systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] } }
+            })
+        });
+        const data = await response.json();
+        if (response.ok) {
+           if (data.candidates && data.candidates[0]?.content) return data.candidates[0].content.parts.map((p:any)=>p.text).join('');
+           if (data.text) return data.text;
+           return typeof data === 'string' ? data : JSON.stringify(data);
+        }
+      } catch (e) {
+        console.error("Chat proxy error", e);
+        return "Przepraszam, chyba na chwilę zasnąłem... Możesz powtórzyć? ✨";
+      }
+    }
+
     const client = getClient();
-    const model = 'gemini-3.1-flash-lite-preview';
+    const model = 'gemini-2.5-flash';
 
     try {
       const response = await client.models.generateContent({
         model: model,
-        contents: [
-          ...history,
-          { role: 'user', parts: [{ text: message }] }
-        ],
+        contents: fullHistory,
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.8,

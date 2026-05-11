@@ -70,5 +70,6 @@ export interface UserSettings {
   accentColor?: string;
   theme?: 'light' | 'dark' | 'system';
   bgOption?: 'default' | 'true-black';
+  showPumpWidget?: boolean;
   showPrediction?: boolean;
 }

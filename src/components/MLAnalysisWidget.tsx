@@ -1,15 +1,16 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles } from 'lucide-react';
+import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { LogEntry } from '../types';
+import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 
 interface MLAnalysisWidgetProps {
   logs: LogEntry[];
+  settings?: UserSettings;
 }
 
-export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
+export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mlResult, setMlResult] = useState<{
@@ -144,6 +145,54 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
     
     return data;
   }, [logs, mlResult]);
+
+  const dailyStats = useMemo(() => {
+    const now = new Date();
+    const days = [0, 1, 2].map(offset => {
+        const d = new Date(now);
+        d.setDate(d.getDate() - offset);
+        d.setHours(0, 0, 0, 0);
+        return {
+            date: d.getTime(),
+            label: offset === 0 ? 'Dzis' : offset === 1 ? 'Wczor' : d.toLocaleDateString('pl-PL', { weekday: 'short' }),
+            glucoseLogs: [] as LogEntry[],
+            bolusTotal: 0
+        };
+    });
+
+    logs.forEach(log => {
+        const logTime = log.timestamp || (log.createdAt && new Date(log.createdAt).getTime()) || 0;
+        if (!logTime) return;
+        
+        for (const day of days) {
+           if (logTime >= day.date && logTime < day.date + 86400000) {
+              if (log.type === 'glucose' || log.bg) {
+                  day.glucoseLogs.push(log);
+              } else if (log.type === 'bolus') {
+                  day.bolusTotal += log.value || 0;
+              }
+           }
+        }
+    });
+
+    return days.map(day => {
+        let tir = 0;
+        if (day.glucoseLogs.length > 0) {
+            const inRange = day.glucoseLogs.filter(l => {
+                const v = l.value || l.bg || 0;
+                const min = settings?.targetMin ?? 70;
+                const max = settings?.targetMax ?? 180;
+                return v >= min && v <= max;
+            }).length;
+            tir = Math.round((inRange / day.glucoseLogs.length) * 100);
+        }
+        return {
+            label: day.label,
+            tir: day.glucoseLogs.length > 0 ? tir : null,
+            bolus: day.bolusTotal
+        };
+    });
+  }, [logs, settings]);
 
   return (
     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 md:p-8 rounded-[2.5rem] shadow-2xl border border-accent-100 dark:border-accent-900/40 relative overflow-hidden group">
@@ -371,6 +420,27 @@ export default function MLAnalysisWidget({ logs }: MLAnalysisWidgetProps) {
                                 </motion.div>
                             );
                         })}
+                      </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
+                      <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <CalendarDays size={14} className="text-indigo-500" /> Ostatnie 3 Dni
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {dailyStats.map((stat, idx) => (
+                           <div key={idx} className="bg-white dark:bg-slate-800/80 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center gap-2">
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stat.label}</span>
+                             <div className="flex items-center gap-1">
+                               <Target size={14} className="text-emerald-500" />
+                               <span className="text-lg font-black text-slate-800 dark:text-slate-100 whitespace-nowrap">{stat.tir != null ? `${stat.tir}%` : '--'}</span>
+                             </div>
+                             <div className="flex items-center gap-1 text-slate-400 whitespace-nowrap">
+                               <Syringe size={12} className="text-indigo-400" />
+                               <span className="text-[10px] font-bold">{stat.bolus > 0 ? stat.bolus.toFixed(1) : '0'} j</span>
+                             </div>
+                           </div>
+                        ))}
                       </div>
                   </div>
               </motion.div>

@@ -203,7 +203,7 @@ export const nightscoutService = {
         },
         uploader: uploaderInfo ? {
            battery: uploaderInfo.battery,
-           type: uploaderInfo.type
+           type: uploaderInfo.type || uploaderInfo.name || 'Uploader'
         } : null,
         lastUpdate: { seconds: Math.floor(new Date(latest.created_at).getTime() / 1000) }
       };

@@ -280,21 +280,28 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     const isFastCarb = cPct > 65 && fPct < 15 && pPct < 15;
 
     let igEstimate = "ŚREDNI";
+    let igNumerical = 55;
     let behavior = "Posiłek zbalansowany. Umiarkowane tempo wchłaniania.";
     
     if (isFastCarb) {
       igEstimate = "WYSOKI";
+      igNumerical = 80;
       behavior = "Posiłek węglowodanowy, szybko wchłanialny. Może powodować nagły skok glikemii. Zalecane podanie insuliny na kilkanaście minut przed jedzeniem.";
     } else if (isHighFat && isHighProtein) {
       igEstimate = "NISKI";
+      igNumerical = 30;
       behavior = "Wysoka zawartość białka i tłuszczu (typu Pizza). Wchłanianie mocno opóźnione. Polecany bolus przedłużony lub złożony na wiele godzin.";
     } else if (isHighFat) {
       igEstimate = "NISKI/ŚREDNI";
+      igNumerical = 40;
       behavior = "Proporcja tłuszczu opóźni szczyt glikemii węglowodanowej. Obserwuj cukier po 2-4 godzinach.";
     } else if (isHighProtein) {
       igEstimate = "NISKI/ŚREDNI";
+      igNumerical = 45;
       behavior = "Podniesiona ilość białka. Może skutkować późnym - wolnym wzrostem poziomu glikemii w skutek glukoneogenezy.";
     }
+
+    const glEstimate = (cNum * igNumerical) / 100;
 
     return {
       kcal: tkcal.toFixed(0),
@@ -302,6 +309,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
       proteinPct: pPct.toFixed(0),
       fatPct: fPct.toFixed(0),
       ig: igEstimate,
+      gl: glEstimate.toFixed(1),
       analysis: behavior
     };
   };
@@ -397,6 +405,9 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
 
               <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 border-t border-emerald-100 dark:border-emerald-800/30 pt-3">
                  <span className="opacity-70">Szacowany Indeks Glikemiczny (IG):</span> <span className="bg-emerald-200 dark:bg-emerald-800 px-2 py-0.5 rounded text-[10px]">{algoMeal.ig}</span>
+              </p>
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                 <span className="opacity-70">Przybliżony Ładunek Glikemiczny (ŁG):</span> <span className={cn("px-2 py-0.5 rounded text-[10px] text-white", Number(algoMeal.gl) <= 10 ? "bg-emerald-500" : Number(algoMeal.gl) < 20 ? "bg-amber-500" : "bg-rose-500")}>{algoMeal.gl}</span>
               </p>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                  {algoMeal.analysis}

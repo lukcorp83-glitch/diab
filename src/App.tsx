@@ -26,7 +26,8 @@ import {
   Moon,
   LogIn,
   Menu,
-  LayoutDashboard
+  LayoutDashboard,
+  Beaker
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
@@ -38,7 +39,7 @@ import { CATEGORIES, LIB_BASE, APP_VERSION } from './constants';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { notificationService } from './services/notificationService';
-
+import { Toaster, toast } from 'react-hot-toast';
 
 import Dashboard from './components/Dashboard';
 
@@ -64,6 +65,7 @@ const BolusCalculator = lazyWithReload(() => import('./components/BolusCalculato
 const FoodDatabase = lazyWithReload(() => import('./components/FoodDatabase'));
 const MealPlate = lazyWithReload(() => import('./components/MealPlate'));
 const AiReports = lazyWithReload(() => import('./components/AiReports'));
+const PumpSimulator = lazyWithReload(() => import('./components/PumpSimulator'));
 const Profile = lazyWithReload(() => import('./components/Profile'));
 const Achievements = lazyWithReload(() => import('./components/Achievements'));
 const HistoryView = lazyWithReload(() => import('./components/HistoryView'));
@@ -77,6 +79,7 @@ import Logo from './components/Logo';
 
 import OnboardingTutorial from './components/OnboardingTutorial';
 import NotificationCenter from './components/NotificationCenter';
+import NotebookManager from './components/NotebookManager';
 import ChangelogPopup from './components/ChangelogPopup';
 import { CURRENT_VERSION } from './constants/versions';
 
@@ -507,7 +510,7 @@ export default function App() {
       await signInAnonymously(auth);
     } catch (e: any) {
       if (e.code === 'auth/operation-not-allowed') {
-         alert("Logowanie jako gość (Anonymous Auth) jest wyłączone w Twoim projekcie Firebase. Włącz je w konsoli Firebase lub użyj konta Google.");
+         toast.error("Logowanie jako gość (Anonymous Auth) jest wyłączone w Twoim projekcie Firebase. Włącz je w konsoli Firebase lub użyj konta Google.", { duration: 6000 });
       }
       setAuthError(e.message);
     }
@@ -694,7 +697,7 @@ export default function App() {
         <GlikoChat petData={petData} />
       )}
       {activeTab === 'ai' && (
-        <AiReports user={user} logs={logs} />
+        <AiReports user={user} logs={logs} settings={userSettings} />
       )}
       {activeTab === 'history' && (
         <HistoryView logs={logs} user={user} onBack={() => changeTab('dashboard')} />
@@ -757,6 +760,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <NotebookManager user={user} />
             <NotificationCenter userSettings={userSettings} theme={theme} />
             <button 
               onClick={toggleTheme}
@@ -846,6 +850,7 @@ export default function App() {
         </div>
       </nav>
 
+      <Toaster position="top-center" toastOptions={{ className: 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl text-[10px] font-bold uppercase tracking-widest' }} />
       <AnimatePresence>
         {showTutorial && (
            <OnboardingTutorial onComplete={() => {

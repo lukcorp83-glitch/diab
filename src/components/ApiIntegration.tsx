@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
@@ -83,7 +84,7 @@ export default function ApiIntegration({ user }: { user: any }) {
       localStorage.setItem('diacontrol_api_secret', newSecret);
     } catch (e: any) {
       console.error("Failed to generate API secret", e);
-      alert("Failed to generate API secret. " + (e?.message || 'Please try again.'));
+      toast("Failed to generate API secret. " + (e?.message || 'Please try again.'));
     }
     setLoading(false);
   };

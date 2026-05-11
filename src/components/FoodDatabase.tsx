@@ -404,15 +404,33 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                     <span
                       className={cn(
                         "text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
-                        p.gi <= 55
+                        typeof p.gi === 'number' && p.gi <= 55
                           ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-500"
-                          : p.gi < 70
+                          : typeof p.gi === 'number' && p.gi < 70
                             ? "bg-amber-50 dark:bg-amber-950 text-amber-500"
                             : "bg-rose-50 dark:bg-rose-950 text-rose-500",
                       )}
                     >
-                      IG: {p.gi}
+                      IG: {typeof p.gi === 'number' ? p.gi : "??"}
                     </span>
+                    {(() => {
+                      if (typeof p.gi !== 'number') return null;
+                      const glValue = (Number(p.carbs) * Number(p.gi)) / 100;
+                      return (
+                        <span
+                          className={cn(
+                            "text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
+                            glValue <= 10
+                              ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-500"
+                              : glValue < 20
+                                ? "bg-amber-50 dark:bg-amber-950 text-amber-500"
+                                : "bg-rose-50 dark:bg-rose-950 text-rose-500",
+                          )}
+                        >
+                          ŁG: {glValue.toFixed(1)}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g (w

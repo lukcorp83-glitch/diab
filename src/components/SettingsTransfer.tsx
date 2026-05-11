@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import React, { useState } from 'react';
 import { Download, Upload, Copy, Check, Info, Loader2 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -37,7 +38,7 @@ export default function SettingsTransfer({
       setSyncCode(code);
     } catch (e) {
       console.error(e);
-      alert('Błąd podczas generowania kodu.');
+      toast('Błąd podczas generowania kodu.');
     } finally {
       setLoading(false);
     }

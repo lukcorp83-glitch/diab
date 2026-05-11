@@ -10,6 +10,7 @@ import { LogEntry } from '../types';
 import GlikoDiary from './GlikoDiary';
 import GlikoQuiz from './GlikoQuiz';
 import GlikoGarden from './GlikoGarden';
+import { toast } from 'react-hot-toast';
 
 
 export default function VirtualPet({ user, logs, glucose, setTab, embedded = false }: { user: any, logs: LogEntry[], glucose: number | null, setTab?: (t: string) => void, embedded?: boolean }) {
@@ -296,7 +297,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
           await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
             unlockedBackgrounds: [...unlocked, ...rewardsToUnlock.map(r => r.id)]
           });
-          alert(`Gratulacje! Odblokowano nowe tło: ${rewardsToUnlock[0].name} za świetny TIR (${Math.round(tir)}%)!`);
+          toast.success(`Gratulacje! Odblokowano nowe tło: ${rewardsToUnlock[0].name} za świetny TIR (${Math.round(tir)}%)!`, { duration: 5000 });
         }
       }
     };
@@ -403,7 +404,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     if (!user || !petData) return;
     const foodCost = 15;
     if ((petData.coins || 0) < foodCost) {
-      alert('Nie masz wystarczająco monet na jedzenie! (Potrzeba 15)');
+      toast.error('Nie masz wystarczająco monet na jedzenie! (Potrzeba 15)', { duration: 4000 });
       return;
     }
 
@@ -663,7 +664,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
   const handleBuySkin = async (skin: PetSkin) => {
      if (!user || (petData.unlockedSkins || []).includes(skin.id)) return;
      if (skin.unlockedBy) {
-        alert("Ta skórka jest specjalna! Odblokuj ją zdobywając osiągnięcia w zakładce Profil.");
+        toast.error("Ta skórka jest specjalna! Odblokuj ją zdobywając osiągnięcia w zakładce Profil.", { duration: 6000 });
         return;
      }
      if ((petData.coins || 0) < skin.price) return;
@@ -707,7 +708,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
   const handleBuyBackground = async (bg: PetBackground) => {
     if (!user || (petData.unlockedBackgrounds || []).includes(bg.id)) return;
     if (bg.rewardTir) {
-      alert(`To tło jest specjalne! Utrzymaj TIR powyżej ${bg.rewardTir}% przez dłuższy czas, aby je otrzymać.`);
+      toast.error(`To tło jest specjalne! Utrzymaj TIR powyżej ${bg.rewardTir}% przez dłuższy czas, aby je otrzymać.`, { duration: 6000 });
       return;
     }
     if ((petData.coins || 0) < bg.price) return;

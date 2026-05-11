@@ -574,7 +574,7 @@ export default function Dashboard({
       </motion.div>
 
       {/* Pump Status Section */}
-      {pumpStatus && (
+      {pumpStatus && settings?.showPumpWidget !== false && (
         <motion.div variants={itemVariants}>
           <PumpStatusCard data={pumpStatus} />
         </motion.div>

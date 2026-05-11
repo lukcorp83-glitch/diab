@@ -693,13 +693,13 @@ export const MLAnalyzer = {
     ];
     insights.push(predictionPhrases[Math.floor(Math.random() * predictionPhrases.length)]);
     
-    if (currentCob > 0 || currentIob > 0 || currentPob > 0 || currentFob > 0) {
+    if (Math.round(currentCob) > 0 || currentIob > 0.05 || Math.round(currentPob) > 0 || Math.round(currentFob) > 0) {
         let text = `Twoje aktywne substancje w tle to teraz: `;
         const parts = [];
-        if (currentCob > 0) parts.push(`🥪 ${Math.round(currentCob)}g węgli`);
-        if (currentIob > 0) parts.push(`💉 ${currentIob.toFixed(1)}j insuliny`);
-        if (currentPob > 0) parts.push(`🥩 ${Math.round(currentPob)}g białka`);
-        if (currentFob > 0) parts.push(`🧀 ${Math.round(currentFob)}g tłuszczu`);
+        if (Math.round(currentCob) > 0) parts.push(`🥪 ${Math.round(currentCob)}g węgli`);
+        if (currentIob > 0.05) parts.push(`💉 ${currentIob.toFixed(1)}j insuliny`);
+        if (Math.round(currentPob) > 0) parts.push(`🥩 ${Math.round(currentPob)}g białka`);
+        if (Math.round(currentFob) > 0) parts.push(`🧀 ${Math.round(currentFob)}g tłuszczu`);
         text += parts.join(', ') + '.';
         insights.push(text);
     }

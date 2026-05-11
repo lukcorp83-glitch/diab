@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
@@ -70,7 +71,7 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
     const blockUntil = Number(localStorage.getItem('pairing_block_until') || 0);
 
     if (now < blockUntil) {
-      alert(`Przekroczono limit prób. Spróbuj ponownie za chwilę.`);
+      toast(`Przekroczono limit prób. Spróbuj ponownie za chwilę.`);
       return;
     }
 

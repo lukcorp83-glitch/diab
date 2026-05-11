@@ -1,7 +1,7 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogEntry } from '../types';
+import { LogEntry, UserSettings } from '../types';
 import { MessageSquare, Calculator, History, TrendingUp, Activity, Loader2, Calendar, Trash2 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import SwipeableItem from './SwipeableItem';
@@ -10,8 +10,9 @@ import { geminiService } from '../services/gemini';
 import { GlikoSenseLearner } from '../services/mlSugarAnalyzer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from 'recharts';
 import MLAnalysisWidget from './MLAnalysisWidget';
+import { toast } from 'react-hot-toast';
 
-export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] }) {
+export default function AiReports({ user, logs, settings }: { user: any, logs: LogEntry[], settings?: UserSettings }) {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeReport, setActiveReport] = useState<string | null>(null);
@@ -65,11 +66,11 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
       console.error(e);
       const errStr = String(e);
       if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
-         alert("Nieprawidłowy klucz API.");
+         toast.error("Nieprawidłowy klucz API.");
       } else if (errStr.includes("zajęte")) {
-         alert("Wszystkie serwery AI są obecnie zajęte. Spróbuj ponownie później.");
+         toast.error("Wszystkie serwery AI są obecnie zajęte. Spróbuj ponownie później.");
       } else {
-         alert("AI nie mogło wygenerować raportu. Spróbuj powtórzyć.");
+         toast.error("AI nie mogło wygenerować raportu. Spróbuj powtórzyć.");
       }
     } finally {
       setLoading(false);
@@ -135,7 +136,7 @@ export default function AiReports({ user, logs }: { user: any, logs: LogEntry[] 
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <MLAnalysisWidget logs={logs} />
+      <MLAnalysisWidget logs={logs} settings={settings} />
 
       {/* 3-Day Comparison */}
       <div className="grid grid-cols-3 gap-3">
