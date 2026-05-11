@@ -150,7 +150,7 @@ export const geminiService = {
 
     // Use AbortSignal to timeout hanging generateContent calls
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(new Error("Request Timeout")), 15000);
+    const timeoutId = setTimeout(() => abortController.abort(new Error("Request Timeout")), 60000);
 
     for (const model of modelsToTry) {
       try {
@@ -166,7 +166,7 @@ export const geminiService = {
              const id = setTimeout(() => {
                 clearTimeout(id);
                 reject(new Error("Timeout_AI"));
-             }, 20000);
+             }, 65000);
           })
         ]);
         

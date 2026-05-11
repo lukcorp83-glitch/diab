@@ -33,6 +33,8 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
 
   const generateReport = async (type: 'master' | 'day' | 'month' = 'master') => {
     setLoading(true);
+    // Instead we use a toast to indicate background processing.
+    const loadingToastId = toast.loading("Generowanie raportu w tle...");
     try {
       let content = "";
       let reportType = "";
@@ -62,17 +64,18 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
         content,
         timestamp: Date.now()
       });
+      toast.success("Raport wygenerowany pomyślnie!", { id: loadingToastId });
     } catch (e) {
       console.error(e);
       const errStr = String(e);
       if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
-         toast.error("Nieprawidłowy klucz API.");
+         toast.error("Nieprawidłowy klucz API.", { id: loadingToastId });
       } else if (errStr.includes("zajęte")) {
-         toast.error("Wszystkie serwery AI są obecnie zajęte. Spróbuj ponownie później.");
-      } else if (errStr.includes("Timeout_AI")) {
-         toast.error("Przekroczono czas oczekiwania na odpowiedź AI (Timeout).");
+         toast.error("Serwery AI zapchane. Spróbuj później.", { id: loadingToastId });
+      } else if (errStr.includes("Timeout_AI") || errStr.includes("Request Timeout")) {
+         toast.error("Przekroczono czas (Timeout). Zbyt wiele danych do przetworzenia.", { id: loadingToastId });
       } else {
-         toast.error("AI nie mogło wygenerować raportu. Spróbuj powtórzyć.");
+         toast.error("Błąd generowania raportu AI.", { id: loadingToastId });
       }
     } finally {
       setLoading(false);
