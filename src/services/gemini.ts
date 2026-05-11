@@ -148,30 +148,47 @@ export const geminiService = {
     const client = getClient();
     let lastError = null;
 
+    // Use AbortSignal to timeout hanging generateContent calls
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(new Error("Request Timeout")), 15000);
+
     for (const model of modelsToTry) {
       try {
         console.log(`Próba użycia modelu: ${model}...`);
-        const result = await client.models.generateContent({
-          model: model,
-          contents: contents
-        });
         
+        // Race the actual call against a Rejecting Promise wrapped in timeout
+        const result = await Promise.race([
+          client.models.generateContent({
+             model: model,
+             contents: contents
+          }),
+          new Promise<never>((_, reject) => {
+             const id = setTimeout(() => {
+                clearTimeout(id);
+                reject(new Error("Timeout_AI"));
+             }, 20000);
+          })
+        ]);
+        
+        clearTimeout(timeoutId);
         console.log(`Sukces z modelem: ${model}`);
         return result.text || "";
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
         console.warn(`Błąd dla modelu ${model}:`, error);
         
+        const errMessage = error?.message || String(error) || "";
         // Zatrzymujemy od razu, jeśli klucz API jest nieważny
-        if (error instanceof Error && (error.message.includes("API key not valid") || error.message.includes("API_KEY_INVALID"))) {
+        if (errMessage.includes("API key not valid") || errMessage.includes("API_KEY_INVALID")) {
+          clearTimeout(timeoutId);
           console.warn("Podany klucz API Gemini jest nieprawidłowy.");
           throw error;
         }
         // W innym przypadku kontynuujemy pętle i próbujemy następny model
       }
     }
-
-    // Jeśli przeszliśmy przez wszystkie modele i żaden nie zadziałał
+    
+    clearTimeout(timeoutId);
     console.error("Wszystkie dostepne modele zawiodly.", lastError);
     throw lastError || new Error("Wszystkie modele AI zawiodły.");
   },
@@ -189,12 +206,22 @@ export const geminiService = {
   async getPeriodAnalysis(period: 'day' | 'week' | 'month', logs: any[]) {
     const days = period === 'day' ? 1 : period === 'week' ? 7 : 30;
     const periodName = period === 'day' ? 'Dzienny' : period === 'week' ? 'Tygodniowy' : 'Miesięczny';
-    const formattedLogs = logs.map(l => ({
+    
+    let logsToAnalyze = logs;
+    if (logsToAnalyze.length > 500) {
+       const important = logs.filter(l => l.type !== 'glucose' && !l.bg);
+       const bgLogs = logs.filter(l => l.type === 'glucose' || l.bg);
+       const decimationFactor = Math.ceil(bgLogs.length / (500 - important.length));
+       const sampledBg = bgLogs.filter((_, i) => i % (decimationFactor > 0 ? decimationFactor : 1) === 0);
+       logsToAnalyze = [...important, ...sampledBg].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime())).slice(0, 500);
+    }
+
+    const formattedLogs = logsToAnalyze.map(l => ({
       typ: l.type,
       wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
       czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
     }));
-    const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj logi z ostatnich ${days} dni: ${JSON.stringify(formattedLogs)}. 
+    const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj logi z ostatnich ${days} dni (próbka ${formattedLogs.length} wpisów): ${JSON.stringify(formattedLogs)}. 
     Stwórz ${periodName} Raport Postępów.
     Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):
     1. <b>Podsumowanie Okresu</b> (ogólny stan, średni cukier).
@@ -206,12 +233,26 @@ export const geminiService = {
   },
 
   async getMasterAnalysis(logs: any[]) {
-    const formattedLogs = logs.map(l => ({
+    let logsToAnalyze = logs;
+    // Podobieństwo heurystyczne z GlikoSense: ograniczamy ilość by uchronić AI przed Payload Too Large.
+    if (logsToAnalyze.length > 800) {
+       // Starajmy się brać nowsze wpisy, ew. dając priorytet posiłkom i bolusom, oraz pomijając niektóre CGMy.
+       const important = logs.filter(l => l.type !== 'glucose' && !l.bg);
+       const bgLogs = logs.filter(l => l.type === 'glucose' || l.bg);
+       
+       // Decimate BG logs jeśli jest ich dużo
+       const decimationFactor = Math.ceil(bgLogs.length / (800 - important.length));
+       const sampledBg = bgLogs.filter((_, i) => i % (decimationFactor > 0 ? decimationFactor : 1) === 0);
+       
+       logsToAnalyze = [...important, ...sampledBg].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime())).slice(0, 800);
+    }
+    
+    const formattedLogs = logsToAnalyze.map(l => ({
       typ: l.type,
       wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
       czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
     }));
-    const prompt = `Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl. Przeanalizuj WSZYSTKIE dostępne dane: ${JSON.stringify(formattedLogs)}. 
+    const prompt = `Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl. Przeanalizuj reprezentatywną próbkę danych (${formattedLogs.length} wpisów): ${JSON.stringify(formattedLogs)}. 
     Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego.
     Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):
     1. <b>Krótki przegląd obecnej sytuacji</b> (ostatnie wpisy).

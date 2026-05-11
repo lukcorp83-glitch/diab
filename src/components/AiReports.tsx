@@ -69,6 +69,8 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
          toast.error("Nieprawidłowy klucz API.");
       } else if (errStr.includes("zajęte")) {
          toast.error("Wszystkie serwery AI są obecnie zajęte. Spróbuj ponownie później.");
+      } else if (errStr.includes("Timeout_AI")) {
+         toast.error("Przekroczono czas oczekiwania na odpowiedź AI (Timeout).");
       } else {
          toast.error("AI nie mogło wygenerować raportu. Spróbuj powtórzyć.");
       }
