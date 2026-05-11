@@ -11,9 +11,11 @@ export const VERSIONS: VersionEntry[] = [
     date: "2026-05-11",
     title: "Wirtualny Asystent i Kalkulator Alkoholu",
     changes: [
-      "Nowość: Czat z inteligentnym asystentem AI posiadającym wiedzę na temat Twoich dziennych wyników, pomiarów i wyborów dietetycznych.",
-      "Nowość: Kalkulator Alkoholu pomagający ustalić wpływ poszczególnych rodzajów alkoholu na Glikemię.",
-      "Ulepszenia: Dokładniejsze i bardziej przemyślane generowanie raportów o dziennej glikemii przez GlikoSense."
+      "Nowość: Czat z inteligentnym asystentem AI posiadającym wiedzę na temat Twoich dziennych wyników i pomiarów (analiza do 24h wstecz).",
+      "Nowość: Kalkulator Alkoholu pomagający ustalić wpływ poszczególnych rodzajów alkoholu na Glikemię i dawkę insuliny.",
+      "Poprawka: Stabilizacja połączenia z modelem AI – wyeliminowano błędy 'initial-message' i poprawiono wydajność odpowiedzi.",
+      "Ulepszenie: GlikoSense generuje teraz bardziej spersonalizowane i precyzyjne dziennie raporty.",
+      "Optymalizacja: Przyspieszono ładowanie modułów asystenta i zaktualizowano listę modeli rezerwowych."
     ]
   },
   {

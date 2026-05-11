@@ -393,17 +393,21 @@ export const geminiService = {
   },
 
   async getAssistantResponse(message: string, history: any[], logs: any[], settings: any) {
-    const lastLogs = logs.slice(0, 30).map(l => ({
-      typ: l.type,
-      wartosc: l.value,
-      jednostka: l.type === 'glucose' ? 'mg/dL' : (l.type === 'meal' ? 'g węgli' : 'j. insuliny'),
-      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
-    }));
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).getTime();
+    const lastLogs = logs
+      .filter(l => new Date(l.timestamp || l.createdAt).getTime() >= twentyFourHoursAgo)
+      .slice(0, 100) // Zabezpieczenie przed zbyt dużą ilością danych, bierzemy 100 najnowszych z doby
+      .map(l => ({
+        typ: l.type,
+        wartosc: l.value,
+        jednostka: l.type === 'glucose' ? 'mg/dL' : (l.type === 'meal' ? 'g węgli' : 'j. insuliny'),
+        czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
+      }));
 
     const systemInstruction = `Jesteś Eksperckim Asystentem Diabetologicznym AI w aplikacji GlikoControl. 
     Twoim zadaniem jest merytoryczne wspieranie użytkownika w codziennym zarządzaniu cukrzycą (dieta, insulina, wysiłek, trendy).
     
-    MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA:
+    MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA (z ostatnich 24 godzin):
     - Ostatnie logi: ${JSON.stringify(lastLogs)}
     - Ustawienia (ISF, WW): ${JSON.stringify(settings)}
     
