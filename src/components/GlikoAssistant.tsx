@@ -71,10 +71,14 @@ export default function GlikoAssistant({
     setIsTyping(true);
 
     try {
-      const history = messages.slice(-10).map(m => ({
-        role: m.role,
-        parts: [{ text: m.text }]
-      }));
+      // Usuń powitalne wiadomości modelu, ponieważ Gemini API wymaga, aby pierwszym elementem tablicy components była rola 'user'
+      const history = messages
+        .filter(m => m.id !== 'initial' && !m.id.startsWith('initial-'))
+        .slice(-10)
+        .map(m => ({
+          role: m.role,
+          parts: [{ text: m.text }]
+        }));
 
       const response = await geminiService.getAssistantResponse(
         messageText, 

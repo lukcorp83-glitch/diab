@@ -415,10 +415,34 @@ export const geminiService = {
     5. Jeśli glikemia jest poza zakresem (${settings.targetMin}-${settings.targetMax} mg/dL), zwróć na to uwagę.
     6. Język: Polski.`;
 
-    const fullContents = [
+    let fullContents = [
       ...history,
       { role: 'user', parts: [{ text: message }] }
     ];
+
+    // Safety checks for Gemini API:
+    // 1. Must alternate 'user' and 'model'
+    // 2. Must start with 'user'
+    let validContents = [];
+    let expectedRole = 'user';
+    
+    // We traverse from end to start to keep the most recent messages, ensuring the last is 'user'
+    for (let i = fullContents.length - 1; i >= 0; i--) {
+      if (fullContents[i].role === expectedRole) {
+        validContents.unshift(fullContents[i]);
+        expectedRole = expectedRole === 'user' ? 'model' : 'user';
+      } else if (fullContents[i].role === 'user' && expectedRole === 'user') {
+         // Consecutive user messages? Merge them or just keep the latest user message
+         // Here we just ignore older consecutive messages to maintain alternation
+      }
+    }
+    
+    // If we wound up with a first message being 'model', remove it (shouldn't happen with the logic above unless we added something weird)
+    if (validContents.length > 0 && validContents[0].role !== 'user') {
+      validContents.shift();
+    }
+    
+    fullContents = validContents;
 
     const creds = getApiKey();
     const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
@@ -450,21 +474,27 @@ export const geminiService = {
     }
 
     const client = getClient();
-    const model = 'gemini-1.5-flash';
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
+    let lastError = null;
 
-    try {
-      const response = await client.models.generateContent({
-        model: model,
-        contents: fullContents,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.4,
-        }
-      });
-      return response.text || "Nie udało mi się wygenerować odpowiedzi. Spróbuj zadać pytanie inaczej.";
-    } catch (error) {
-      console.error("Assistant API Error:", error);
-      return "Wystąpił błąd podczas komunikacji z AI. Sprawdź swoje połączenie lub klucz API.";
+    for (const model of modelsToTry) {
+      try {
+        const response = await client.models.generateContent({
+          model: model,
+          contents: fullContents,
+          config: {
+            systemInstruction: systemInstruction,
+            temperature: 0.4,
+          }
+        });
+        return response.text || "Nie udało mi się wygenerować odpowiedzi.";
+      } catch (error) {
+        console.warn(`Assistant - błąd dla modelu ${model}:`, error);
+        lastError = error;
+      }
     }
+    
+    console.error("Assistant API Error:", lastError);
+    return "Wystąpił błąd podczas komunikacji z AI. Sprawdź swoje połączenie lub klucz API.";
   }
 };
