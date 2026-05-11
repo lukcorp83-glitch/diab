@@ -35,6 +35,19 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
     setLoading(true);
     // Instead we use a toast to indicate background processing.
     const loadingToastId = toast.loading("Generowanie raportu w tle...");
+    
+    const progressTexts = [
+      "Analiza danych na serwerze...",
+      "Wykrywanie trendów i wzorców...",
+      "Przygotowywanie wniosków AI...",
+      "Prawie gotowe..."
+    ];
+    let ptIdx = 0;
+    const progressInterval = setInterval(() => {
+      ptIdx = (ptIdx + 1) % progressTexts.length;
+      toast.loading(progressTexts[ptIdx], { id: loadingToastId });
+    }, 4000);
+
     try {
       let content = "";
       let reportType = "";
@@ -64,8 +77,10 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
         content,
         timestamp: Date.now()
       });
+      clearInterval(progressInterval);
       toast.success("Raport wygenerowany pomyślnie!", { id: loadingToastId });
     } catch (e) {
+      clearInterval(progressInterval);
       console.error(e);
       const errStr = String(e);
       if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
@@ -78,6 +93,7 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
          toast.error("Błąd generowania raportu AI.", { id: loadingToastId });
       }
     } finally {
+      clearInterval(progressInterval);
       setLoading(false);
     }
   };

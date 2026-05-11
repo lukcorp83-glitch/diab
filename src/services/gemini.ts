@@ -150,7 +150,7 @@ export const geminiService = {
 
     // Use AbortSignal to timeout hanging generateContent calls
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(new Error("Request Timeout")), 60000);
+    const timeoutId = setTimeout(() => abortController.abort(new Error("Request Timeout")), 120000);
 
     for (const model of modelsToTry) {
       try {
@@ -166,7 +166,7 @@ export const geminiService = {
              const id = setTimeout(() => {
                 clearTimeout(id);
                 reject(new Error("Timeout_AI"));
-             }, 65000);
+             }, 125000);
           })
         ]);
         
@@ -208,12 +208,13 @@ export const geminiService = {
     const periodName = period === 'day' ? 'Dzienny' : period === 'week' ? 'Tygodniowy' : 'Miesięczny';
     
     let logsToAnalyze = logs;
-    if (logsToAnalyze.length > 500) {
+    const MAX_PERIOD_LOGS = 300;
+    if (logsToAnalyze.length > MAX_PERIOD_LOGS) {
        const important = logs.filter(l => l.type !== 'glucose' && !l.bg);
        const bgLogs = logs.filter(l => l.type === 'glucose' || l.bg);
-       const decimationFactor = Math.ceil(bgLogs.length / (500 - important.length));
+       const decimationFactor = Math.ceil(bgLogs.length / Math.max(1, (MAX_PERIOD_LOGS - important.length)));
        const sampledBg = bgLogs.filter((_, i) => i % (decimationFactor > 0 ? decimationFactor : 1) === 0);
-       logsToAnalyze = [...important, ...sampledBg].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime())).slice(0, 500);
+       logsToAnalyze = [...important, ...sampledBg].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime())).slice(0, MAX_PERIOD_LOGS);
     }
 
     const formattedLogs = logsToAnalyze.map(l => ({
@@ -234,17 +235,18 @@ export const geminiService = {
 
   async getMasterAnalysis(logs: any[]) {
     let logsToAnalyze = logs;
+    const MAX_MASTER_LOGS = 400;
     // Podobieństwo heurystyczne z GlikoSense: ograniczamy ilość by uchronić AI przed Payload Too Large.
-    if (logsToAnalyze.length > 800) {
+    if (logsToAnalyze.length > MAX_MASTER_LOGS) {
        // Starajmy się brać nowsze wpisy, ew. dając priorytet posiłkom i bolusom, oraz pomijając niektóre CGMy.
        const important = logs.filter(l => l.type !== 'glucose' && !l.bg);
        const bgLogs = logs.filter(l => l.type === 'glucose' || l.bg);
        
        // Decimate BG logs jeśli jest ich dużo
-       const decimationFactor = Math.ceil(bgLogs.length / (800 - important.length));
+       const decimationFactor = Math.ceil(bgLogs.length / Math.max(1, (MAX_MASTER_LOGS - important.length)));
        const sampledBg = bgLogs.filter((_, i) => i % (decimationFactor > 0 ? decimationFactor : 1) === 0);
        
-       logsToAnalyze = [...important, ...sampledBg].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime())).slice(0, 800);
+       logsToAnalyze = [...important, ...sampledBg].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime())).slice(0, MAX_MASTER_LOGS);
     }
     
     const formattedLogs = logsToAnalyze.map(l => ({
