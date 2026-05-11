@@ -71,6 +71,7 @@ const Achievements = lazyWithReload(() => import('./components/Achievements'));
 const HistoryView = lazyWithReload(() => import('./components/HistoryView'));
 const GlikoGames = lazyWithReload(() => import('./components/GlikoGames'));
 const GlikoChat = lazyWithReload(() => import('./components/GlikoChat'));
+const GlikoAssistant = lazyWithReload(() => import('./components/GlikoAssistant'));
 import Sidebar from './components/Sidebar';
 import { cn } from './lib/utils';
 import { nightscoutService } from './services/nightscout';
@@ -629,8 +630,8 @@ export default function App() {
   }
 
   const tabs = userSettings?.childMode 
-    ? ['dashboard', 'database', 'meal', 'chat', 'ai', 'profile', 'games']
-    : ['dashboard', 'database', 'meal', 'ai', 'profile'];
+    ? ['dashboard', 'database', 'meal', 'chat', 'assistant', 'ai', 'profile', 'games']
+    : ['dashboard', 'database', 'meal', 'assistant', 'ai', 'profile'];
     
   const activeIndex = tabs.indexOf(activeTab);
 
@@ -695,6 +696,9 @@ export default function App() {
       )}
       {activeTab === 'chat' && (
         <GlikoChat petData={petData} />
+      )}
+      {activeTab === 'assistant' && (
+        <GlikoAssistant user={user} logs={logs} settings={userSettings || undefined} />
       )}
       {activeTab === 'ai' && (
         <AiReports user={user} logs={logs} settings={userSettings} />

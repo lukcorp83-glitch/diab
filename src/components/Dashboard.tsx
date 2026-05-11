@@ -22,6 +22,7 @@ import {
   Radio,
   Droplet,
   CheckCircle2,
+  Sparkles
 } from "lucide-react";
 import { cn, calculateIOB } from "../lib/utils";
 import GlucoseModal from "./GlucoseModal";
@@ -393,6 +394,30 @@ export default function Dashboard({
       {/* AI Health Tips */}
       <motion.div variants={itemVariants}>
         <GlikoSenseTips logs={logs} />
+      </motion.div>
+
+      {/* Virtual Assistant CTA */}
+      <motion.div 
+        variants={itemVariants}
+        onClick={() => setTab('assistant')}
+        className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[1px] rounded-[2rem] shadow-lg shadow-indigo-500/20 cursor-pointer active:scale-[0.98] transition-all group"
+      >
+        <div className="bg-white dark:bg-slate-900 rounded-[21.9rem] rounded-[2rem] p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:rotate-12 transition-transform">
+            <Sparkles size={24} />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">
+              Wirtualny Asystent Gliko
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight">
+              Zadaj pytanie o swoje wyniki, dietę lub trendy glikemii. AI przeanalizuje Twoje dane.
+            </p>
+          </div>
+          <div className="p-2 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400">
+            <ChevronRight size={18} />
+          </div>
+        </div>
       </motion.div>
 
       {/* Pattern Analysis Alert */}

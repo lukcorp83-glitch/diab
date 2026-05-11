@@ -389,5 +389,80 @@ export const geminiService = {
       // Fallback if SDK fails or rate limited
       return "Przepraszam, chyba na chwilę zasnąłem... Możesz powtórzyć? ✨";
     }
+  },
+
+  async getAssistantResponse(message: string, history: any[], logs: any[], settings: any) {
+    const lastLogs = logs.slice(0, 30).map(l => ({
+      typ: l.type,
+      wartosc: l.value,
+      jednostka: l.type === 'glucose' ? 'mg/dL' : (l.type === 'meal' ? 'g węgli' : 'j. insuliny'),
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
+    }));
+
+    const systemInstruction = `Jesteś Eksperckim Asystentem Diabetologicznym AI w aplikacji GlikoControl. 
+    Twoim zadaniem jest merytoryczne wspieranie użytkownika w codziennym zarządzaniu cukrzycą (dieta, insulina, wysiłek, trendy).
+    
+    MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA:
+    - Ostatnie logi: ${JSON.stringify(lastLogs)}
+    - Ustawienia (ISF, WW): ${JSON.stringify(settings)}
+    
+    ZASADY ODPOWIADANIA:
+    1. Odpowiadaj profesjonalnie, konkretnie i pomocnie.
+    2. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown (gwiazdek).
+    3. Analizuj dane: jeśli użytkownik pyta "jak minął dzień?", sprawdź logi.
+    4. Bezpieczeństwo: Nigdy nie podawaj wiążących dawek leków. Sugeruj konsultację z lekarzem przy poważnych wątpliwościach.
+    5. Jeśli glikemia jest poza zakresem (${settings.targetMin}-${settings.targetMax} mg/dL), zwróć na to uwagę.
+    6. Język: Polski.`;
+
+    const fullContents = [
+      ...history,
+      { role: 'user', parts: [{ text: message }] }
+    ];
+
+    const creds = getApiKey();
+    const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+
+    if (isProxyUrl && !localStorage.getItem('gemini_api_key')) {
+      try {
+        const response = await fetch(creds.baseUrl!, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            model: 'gemini-1.5-flash', 
+            payload: { 
+              contents: fullContents, 
+              systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] } 
+            }
+          })
+        });
+        const data = await response.json();
+        if (response.ok) {
+           if (data.candidates && data.candidates[0]?.content) return data.candidates[0].content.parts.map((p:any)=>p.text).join('');
+           if (data.text) return data.text;
+           return typeof data === 'string' ? data : JSON.stringify(data);
+        }
+      } catch (e) {
+        console.error("Assistant proxy error", e);
+        return "Przepraszam, mam problem z połączeniem z moją bazą wiedzy. Spróbuj później.";
+      }
+    }
+
+    const client = getClient();
+    const model = 'gemini-1.5-flash';
+
+    try {
+      const response = await client.models.generateContent({
+        model: model,
+        contents: fullContents,
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.4,
+        }
+      });
+      return response.text || "Nie udało mi się wygenerować odpowiedzi. Spróbuj zadać pytanie inaczej.";
+    } catch (error) {
+      console.error("Assistant API Error:", error);
+      return "Wystąpił błąd podczas komunikacji z AI. Sprawdź swoje połączenie lub klucz API.";
+    }
   }
 };

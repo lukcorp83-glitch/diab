@@ -1547,7 +1547,7 @@ export default function Profile({
                 <li>Wejdź na stronę <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.</li>
                 <li>Zaloguj się swoim kontem Google i kliknij "Create API key".</li>
                 <li>Skopiuj nowo utworzony klucz (zaczyna się od <code>AIzaSy...</code>).</li>
-                <li>Wklej klucz poniżej. Klucz zapisuje się automatycznie na Twoim urządzeniu.</li>
+                <li><span className="text-rose-500 dark:text-rose-400 font-bold">Ważne!</span> Wklej klucz poniżej. Zapisze się on lokalnie w Twojej przeglądarce. Używaj tej opcji <b>tylko na swoim zaufanym, prywatnym urządzeniu</b> (nie podawaj klucza logując się na współdzielonych komputerach lub cudzych telefonach).</li>
               </ol>
             </div>
 

@@ -23,6 +23,10 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
   const [scanResultMsg, setScanResultMsg] = useState<string | null>(null);
   const [aiRec, setAiRec] = useState<{ recommendedDose: number, reasoning: string, confidence: string } | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [isAlcoholMode, setIsAlcoholMode] = useState(false);
+  const [alcoholType, setAlcoholType] = useState<string | null>(null);
+  const [alcoholWarning, setAlcoholWarning] = useState<string | null>(null);
+  const [alcoholReduction, setAlcoholReduction] = useState<number>(1.0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const now = new Date();
@@ -127,7 +131,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     const iob = calculateIOB(logs, settings.dia || 4);
 
     const trendFactor = trend === 'up' ? 1.15 : trend === 'down' ? 0.85 : 1.0;
-    const total = Math.max(0, (mealDose + wbtDose + Math.max(0, corrDose - iob)) * trendFactor);
+    const total = Math.max(0, (mealDose + wbtDose + Math.max(0, corrDose - iob)) * trendFactor * alcoholReduction);
     setDose(total);
     setManualDose(null);
   };
@@ -225,6 +229,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
 
     if (savedSomething) {
       setBg(''); setCarbs(''); setProtein(''); setFat(''); setManualDose(null);
+      setIsAlcoholMode(false); setAlcoholType(null); setAlcoholWarning(null); setAlcoholReduction(1.0);
       if (setTab) setTab('dashboard');
     }
   };
@@ -442,6 +447,61 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
                  className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-amber-500 transition-all dark:text-white"
                />
             </div>
+          </motion.div>
+        )}
+
+        {!settings.childMode && (
+          <div className="flex items-center gap-2 mt-4">
+             <input type="checkbox" id="alcoholMode" checked={isAlcoholMode} onChange={(e) => {
+               setIsAlcoholMode(e.target.checked);
+               if (!e.target.checked) {
+                 setAlcoholType(null);
+                 setAlcoholWarning(null);
+                 setAlcoholReduction(1.0);
+               }
+             }} className="w-4 h-4 text-accent-600 rounded" />
+             <label htmlFor="alcoholMode" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer flex items-center gap-1">Kalkulator Alkoholu 🍹</label>
+          </div>
+        )}
+
+        {isAlcoholMode && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button onClick={() => {
+                setAlcoholType('piwo');
+                setCarbs('15');
+                setAlcoholReduction(0.7); // 30% reduction
+                setAlcoholWarning("Piwo początkowo podbija cukier (ok. 15g węgli/500ml), ale alkohol po czasie spowoduje spadek. Dawka zredukowana zapobiegawczo o 30%. Uważaj na noc!");
+              }} className={cn("p-2 text-[9px] font-black uppercase tracking-wider rounded-xl border transition-all", alcoholType === 'piwo' ? "bg-amber-100 text-amber-700 border-amber-400 dark:bg-amber-900/30 dark:border-amber-500" : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700")}>🍺 Piwo</button>
+              
+              <button onClick={() => {
+                setAlcoholType('wino');
+                setCarbs('2');
+                setAlcoholReduction(0.5); // 50% reduction
+                setAlcoholWarning("Wino wytrawne prawie nie ma węglowodanów (ok. 2g), ale alkohol będzie powoli blokował wątrobę. Dawka znacznie zredukowana.");
+              }} className={cn("p-2 text-[9px] font-black uppercase tracking-wider rounded-xl border transition-all", alcoholType === 'wino' ? "bg-rose-100 text-rose-700 border-rose-400 dark:bg-rose-900/30 dark:border-rose-500" : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700")}>🍷 Wino (Wytrawne)</button>
+
+              <button onClick={() => {
+                setAlcoholType('wodka');
+                setCarbs('0');
+                setAlcoholReduction(0.0); // 100% reduction for purely vodka
+                setAlcoholWarning("Czysty alkohol silnie blokuje wyrzut glukozy z wątroby. BARDZO DUŻE RYZYKO ciężkiego niedocukrzenia w nocy! Najlepiej zjedz coś bez obstawy insuliny.");
+              }} className={cn("p-2 text-[9px] font-black uppercase tracking-wider rounded-xl border transition-all", alcoholType === 'wodka' ? "bg-blue-100 text-blue-700 border-blue-400 dark:bg-blue-900/30 dark:border-blue-500" : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700")}>🥃 Czysta</button>
+
+              <button onClick={() => {
+                setAlcoholType('drink');
+                setCarbs('25');
+                setAlcoholReduction(0.7);
+                setAlcoholWarning("Soki i syropy w drinku szybko podbiją cukier, a alkohol później go obniży. Zredukowano dawkę o 30%. Uważaj na nocne spadki.");
+              }} className={cn("p-2 text-[9px] font-black uppercase tracking-wider rounded-xl border transition-all", alcoholType === 'drink' ? "bg-purple-100 text-purple-700 border-purple-400 dark:bg-purple-900/30 dark:border-purple-500" : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700")}>🍹 Słodki Drink</button>
+            </div>
+
+            {alcoholWarning && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-xl flex items-start gap-2">
+                <span className="text-xl">⚠️</span>
+                <p className="text-[10px] font-bold text-yellow-800 dark:text-yellow-400">{alcoholWarning}</p>
+              </div>
+            )}
           </motion.div>
         )}
 

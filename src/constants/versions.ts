@@ -7,6 +7,16 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.3.5",
+    date: "2026-05-11",
+    title: "Wirtualny Asystent i Kalkulator Alkoholu",
+    changes: [
+      "Nowość: Czat z inteligentnym asystentem AI posiadającym wiedzę na temat Twoich dziennych wyników, pomiarów i wyborów dietetycznych.",
+      "Nowość: Kalkulator Alkoholu pomagający ustalić wpływ poszczególnych rodzajów alkoholu na Glikemię.",
+      "Ulepszenia: Dokładniejsze i bardziej przemyślane generowanie raportów o dziennej glikemii przez GlikoSense."
+    ]
+  },
+  {
     version: "3.3.4",
     date: "2026-05-10",
     title: "Notatnik, Ładunek Glikemiczny i Inteligentniejszy GlikoSense",
@@ -105,4 +115,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.3.4";
+export const CURRENT_VERSION = "3.3.5";

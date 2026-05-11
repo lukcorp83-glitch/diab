@@ -1,6 +1,36 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutDashboard, Database, Utensils, FileText, Settings, X, ChevronDown, Activity, Calculator, Plus, Search, Star, History, Brain, Trophy, Sliders, Bell, Pill, Globe, Beaker, HelpCircle, Smartphone, Home, LayoutGrid, Gamepad2, MessageSquare, PawPrint, ShoppingBag } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Database, 
+  Utensils, 
+  FileText, 
+  Settings, 
+  X, 
+  ChevronDown, 
+  Activity, 
+  Calculator, 
+  Plus, 
+  Search, 
+  Star, 
+  History, 
+  Brain, 
+  Trophy, 
+  Sliders, 
+  Bell, 
+  Pill, 
+  Globe, 
+  Beaker, 
+  HelpCircle, 
+  Smartphone, 
+  Home, 
+  LayoutGrid, 
+  Gamepad2, 
+  MessageSquare, 
+  PawPrint, 
+  ShoppingBag,
+  Sparkles
+} from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION } from '../constants';
 
@@ -59,7 +89,8 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        icon: <FileText size={20} />,
        subItems: [
           { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history', icon: <History size={14} /> },
-          { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <Brain size={14} /> }
+          { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <Brain size={14} /> },
+          { id: 'assistant_ai', label: 'Wirtualny Asystent', tab: 'assistant', icon: <Sparkles size={14} /> }
        ]
     },
     ...(isChildMode ? [{ 
