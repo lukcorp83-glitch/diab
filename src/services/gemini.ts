@@ -365,6 +365,7 @@ export const geminiService = {
            if (data.text) return data.text;
            return typeof data === 'string' ? data : JSON.stringify(data);
         }
+        throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
         console.error("Chat proxy error", e);
         return "Przepraszam, chyba na chwilę zasnąłem... Możesz powtórzyć? ✨";
@@ -441,6 +442,7 @@ export const geminiService = {
            if (data.text) return data.text;
            return typeof data === 'string' ? data : JSON.stringify(data);
         }
+        throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
         console.error("Assistant proxy error", e);
         return "Przepraszam, mam problem z połączeniem z moją bazą wiedzy. Spróbuj później.";
