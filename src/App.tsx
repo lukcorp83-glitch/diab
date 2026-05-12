@@ -106,16 +106,19 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
+  const [privacyLoading, setPrivacyLoading] = useState(true);
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sharedPlate, setSharedPlate] = useState<any[]>([]);
 
   useEffect(() => {
-    // Check privacy acceptance
+    // Check privacy acceptance locally first
     const hasAcceptedPrivacy = localStorage.getItem('hasAcceptedPrivacy');
     if (!hasAcceptedPrivacy) {
       setShowPrivacyPopup(true);
-      return;
+      setPrivacyLoading(false);
+    } else {
+      setPrivacyLoading(false);
     }
 
     // Check version for changelog
@@ -131,10 +134,56 @@ export default function App() {
     }
   }, []);
 
-  const handleAcceptPrivacy = () => {
+  useEffect(() => {
+    if (!user) return;
+    
+    // Check privacy in firestore
+    const checkPrivacy = async () => {
+      const uid = getEffectiveUid(user);
+      const privacyRef = doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'settings', 'privacy');
+      try {
+        const d = await getDoc(privacyRef);
+        if (d.exists() && d.data().accepted) {
+          localStorage.setItem('hasAcceptedPrivacy', 'true');
+          setShowPrivacyPopup(false);
+        } else {
+          // If Firestore doesn't have it but localStorage does, sync it
+          if (localStorage.getItem('hasAcceptedPrivacy') === 'true') {
+            await setDoc(privacyRef, { 
+              accepted: true, 
+              acceptedAt: serverTimestamp(),
+              version: CURRENT_VERSION 
+            }, { merge: true });
+          } else {
+            setShowPrivacyPopup(true);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking privacy in Firestore:", err);
+      }
+    };
+
+    checkPrivacy();
+  }, [user]);
+
+  const handleAcceptPrivacy = async () => {
     setShowPrivacyPopup(false);
     localStorage.setItem('hasAcceptedPrivacy', 'true');
     localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
+
+    if (user) {
+      const uid = getEffectiveUid(user);
+      const privacyRef = doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'settings', 'privacy');
+      try {
+        await setDoc(privacyRef, { 
+          accepted: true, 
+          acceptedAt: serverTimestamp(),
+          version: CURRENT_VERSION 
+        }, { merge: true });
+      } catch (err) {
+        console.error("Error saving privacy to Firestore:", err);
+      }
+    }
     
     // After privacy, if it's first run, tutorial might trigger elsewhere
     // If not first run but version changed, show changelog
