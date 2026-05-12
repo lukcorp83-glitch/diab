@@ -13,8 +13,32 @@ import {
   Scatter,
   ReferenceLine,
   Brush,
-  Tooltip
+  Tooltip,
+  Area
 } from 'recharts';
+
+// Insulin on Board calculation using a more realistic decay model
+const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => {
+  const diaMs = diaHours * 60 * 60 * 1000;
+  return boluses.reduce((sum, b) => {
+    const timeSince = time - b.timestamp;
+    if (timeSince < 0 || timeSince >= diaMs) return sum;
+    // Basic linear decay for visual representation, could be improved with curve
+    const remaining = 1 - (timeSince / diaMs);
+    return sum + b.value * remaining;
+  }, 0);
+};
+
+const StackingWarning = (props: any) => {
+  const { cx, cy, payload } = props;
+  if (!payload.stackingWarning || isNaN(cx) || isNaN(cy)) return null;
+  return (
+    <g>
+      <circle cx={cx} cy={cy - 25} r={10} fill="#ef4444" className="animate-pulse" />
+      <text x={cx} y={cy - 21} textAnchor="middle" fontSize={12} fontWeight="black" fill="white">!</text>
+    </g>
+  );
+};
 
 interface GlucoseChartProps {
   logs: LogEntry[];
@@ -67,10 +91,16 @@ const CustomBolusShape = (props: any) => {
 const CustomMealShape = (props: any) => {
   const { cx, cy, payload, onDotClick } = props;
   if (!payload.mealVal || isNaN(cx) || isNaN(cy)) return null;
+
+  const hasBolus = !!payload.bolusVal;
+  const bolusVal = payload.originalB?.value || 0;
+  const h = hasBolus ? Math.min(40, bolusVal * 5) : 0;
+  
+  const baseCy = cy - h - (hasBolus ? 20 : 10);
+
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalM); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <text x={cx} y={cy - 10} textAnchor="middle" fontSize={16}>🍽️</text>
-      <circle cx={cx} cy={cy} r={4} fill="#f59e0b" stroke="#fff" strokeWidth={1} />
+      <text x={cx} y={baseCy} textAnchor="middle" fontSize={16}>🍽️</text>
     </g>
   );
 };
@@ -153,8 +183,24 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     const end = start + totalMs;
 
     const dataG = logs.filter(l => l.type === 'glucose' && l.timestamp >= start).sort((a, b) => a.timestamp - b.timestamp);
-    const dataB = logs.filter(l => l.type === 'bolus' && l.timestamp >= start);
+    const dataB = logs.filter(l => l.type === 'bolus' && l.timestamp >= start).sort((a, b) => a.timestamp - b.timestamp);
     const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start);
+
+    const diaHours = settings?.dia || 4;
+    const diaMs = diaHours * 60 * 60 * 1000;
+
+    // Detect insulin stacking (overlapping boluses)
+    const stackingEvents = new Set<number>();
+    for (let i = 1; i < dataB.length; i++) {
+      const current = dataB[i];
+      const previousBoluses = dataB.slice(0, i);
+      const activeInsulinBefore = calculateIOBAt(current.timestamp - 1000, previousBoluses, diaHours);
+      
+      // If we take a bolus while more than 0.5 units or 20% of previous dose is active
+      if (activeInsulinBefore > 0.5) {
+        stackingEvents.add(current.timestamp);
+      }
+    }
 
     let loopPredictions: { timestamp: number, value: number, actionType?: 'bolus' | 'suspend', actionAmount?: number }[] = [];
     let mlPredictionData = mlPredictionDataState;
@@ -286,8 +332,27 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     };
 
     dataG.forEach(d => addPoint(d.timestamp, 'glucose', d.value, { originalG: d }));
-    dataB.forEach(d => addPoint(d.timestamp, 'bolusVal', true, { originalB: d, bolusY: chartMinY }));
-    dataM.forEach(d => addPoint(d.timestamp, 'mealVal', true, { originalM: d, mealY: chartMaxY }));
+    dataB.forEach(d => {
+      addPoint(d.timestamp, 'bolusVal', true, { 
+        originalB: d, 
+        bolusY: chartMinY,
+        stackingWarning: stackingEvents.has(d.timestamp)
+      });
+      if (d.linkedMeal && d.linkedMeal.carbs > 0) {
+        addPoint(d.timestamp, 'mealVal', true, { 
+          originalM: { ...d, type: 'meal', value: d.linkedMeal.carbs }, 
+          mealY: chartMinY 
+        });
+      }
+    });
+
+    // Calculate IOB for many points to draw a smooth curve
+    // Every 10 minutes
+    for (let t = start; t <= end; t += 10 * 60000) {
+      const iobValue = calculateIOBAt(t, logs.filter(l => l.type === 'bolus'), diaHours);
+      addPoint(t, 'iob', iobValue);
+    }
+    dataM.forEach(d => addPoint(d.timestamp, 'mealVal', true, { originalM: d, mealY: chartMinY }));
 
     loopPredictions.forEach(p => addPoint(p.timestamp, 'loopPrediction', p.value, { loopAction: p.actionType }));
     mlPredictionData.forEach(p => addPoint(p.timestamp, 'mlPrediction', p.value));
@@ -370,6 +435,12 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 8, fontWeight: 'bold' }}
           />
           <YAxis 
+            yAxisId="right"
+            orientation="right"
+            domain={[0, (data) => Math.max(5, data * 1.2)]} 
+            hide={true}
+          />
+          <YAxis 
             domain={[chartMinY, chartMaxY]} 
             axisLine={false}
             tickLine={false}
@@ -393,8 +464,10 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
                       )}
                     </div>
                     {data.glucose && <p className="font-bold">Glukoza: <span className="text-white">{Math.round(data.glucose)} mg/dL</span></p>}
+                    {data.iob !== undefined && <p className="text-pink-400">Aktywna insulina (IOB): {data.iob.toFixed(1)} j.</p>}
                     {data.loopPrediction && <p className="text-emerald-400">Pętla: {Math.round(data.loopPrediction)} mg/dL</p>}
                     {data.mlPrediction && <p className="text-amber-400">GlikoSense: {Math.round(data.mlPrediction)} mg/dL</p>}
+                    {data.stackingWarning && <p className="text-red-400 font-black mt-1 uppercase text-[8px]">Ostrzeżenie: Nakładanie dawek!</p>}
                   </div>
                 );
               }
@@ -407,6 +480,23 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           <ReferenceLine x={now} stroke={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'} strokeDasharray="3 3" />
 
           {/* Lines */}
+          <Area
+            type="monotone"
+            dataKey="iob"
+            yAxisId="right"
+            stroke="none"
+            fill="url(#iobGradient)"
+            fillOpacity={0.3}
+            isAnimationActive={false}
+          />
+          
+          <defs>
+            <linearGradient id="iobGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+
           <Line 
             type="monotone" 
             dataKey="glucose" 
@@ -448,6 +538,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
           {/* Scatters for Bolus and Meal Icons */}
           <Scatter dataKey="bolusY" shape={<CustomBolusShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
+          <Scatter dataKey="bolusY" shape={<StackingWarning />} isAnimationActive={false} />
           <Scatter dataKey="mealY" shape={<CustomMealShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
 
         </ComposedChart>

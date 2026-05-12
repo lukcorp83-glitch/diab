@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Lightbulb, TrendingUp, TrendingDown, Clock, Info, CheckCircle2, AlertCircle, Activity, Sparkles, X } from 'lucide-react';
+import { Lightbulb, TrendingUp, TrendingDown, Clock, Info, CheckCircle2, AlertCircle, Activity, Sparkles, X, Zap } from 'lucide-react';
 import { LogEntry } from '../types';
+import { calculateIOB, calculateCOB } from '../lib/utils';
 
 export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
   const [dismissedTips, setDismissedTips] = React.useState<string[]>(() => {
@@ -11,10 +12,37 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
 
   const tips = useMemo(() => {
     const today = new Date().setHours(0,0,0,0);
-    const todayLogs = logs.filter(l => l.timestamp >= today);
+    const todayLogs = logs.filter(l => (l.timestamp || 0) >= today);
     const recentGlucose = logs.filter(l => l.type === 'glucose').slice(-10);
     
+    // Calculate REAL values from central engine
+    const iob = calculateIOB(logs);
+    const cob = calculateCOB(logs);
+    
     const results = [];
+
+    // Real-time data based tips
+    if (iob > 0.5) {
+      results.push({
+        id: 'real_iob',
+        type: 'data',
+        title: 'Aktywna insulina (IOB)',
+        content: `W Twoim organizmie pracuje teraz ok. ${iob.toFixed(1)} j. insuliny. Weź to pod uwagę przy planowaniu kolejnych kroków.`,
+        icon: <Zap size={20} className="text-pink-500" />,
+        color: 'pink'
+      });
+    }
+
+    if (cob > 5) {
+      results.push({
+        id: 'real_cob',
+        type: 'data',
+        title: 'Aktywne węglowodany (COB)',
+        content: `Masz jeszcze ok. ${Math.round(cob)}g aktywnych węglowodanów, które nadal się wchłaniają.`,
+        icon: <Activity size={20} className="text-amber-500" />,
+        color: 'amber'
+      });
+    }
 
     // Trend analysis
     if (recentGlucose.length >= 3) {

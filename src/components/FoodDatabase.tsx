@@ -27,6 +27,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
   const [newProduct, setNewProduct] = useState({
     name: "",
     carbs: 0,
+    polyols: 0,
     protein: 0,
     fat: 0,
     gi: 50,
@@ -80,6 +81,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
       const prodData = {
         name: newProduct.name,
         carbs: newProduct.carbs,
+        polyols: newProduct.polyols,
         protein: newProduct.protein,
         fat: newProduct.fat,
         gi: newProduct.gi,
@@ -112,6 +114,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
       setNewProduct({
         name: "",
         carbs: 0,
+        polyols: 0,
         protein: 0,
         fat: 0,
         gi: 50,
@@ -235,6 +238,24 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                       className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white"
                     />
                   </div>
+                  <div>
+                    <label className="text-[8px] font-black uppercase text-accent-500 tracking-widest ml-2 mb-1 block">
+                      Poliole (g)
+                    </label>
+                    <input
+                      type="number"
+                      value={newProduct.polyols}
+                      onChange={(e) =>
+                        setNewProduct({
+                          ...newProduct,
+                          polyols: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
                       IG (Indeks)
@@ -433,7 +454,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                     })()}
                   </div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g (w
+                    W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g {p.polyols ? `(w tym ${p.polyols}g pol.) ` : ''}| B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g (w
                     100g)
                   </p>
                 </div>

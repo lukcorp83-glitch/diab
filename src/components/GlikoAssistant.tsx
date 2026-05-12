@@ -7,14 +7,15 @@ import {
   Sparkles, 
   Trash2, 
   ChevronRight,
-  Brain,
   Search,
   Activity,
   Settings as SettingsIcon,
-  X
+  X,
+  Workflow,
+  Cpu
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
-import { cn } from '../lib/utils';
+import { cn, calculateIOB, calculateCOB } from '../lib/utils';
 import { LogEntry, UserSettings } from '../types';
 
 interface Message {
@@ -33,13 +34,19 @@ export default function GlikoAssistant({
   logs: LogEntry[]; 
   settings?: UserSettings 
 }) {
+  const isChild = settings?.childMode ?? true;
+  const assistantName = "Asystent AI";
+  const AssistantIcon = isChild ? Sparkles : Cpu;
+
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem('gliko_assistant_history');
     return saved ? JSON.parse(saved) : [
       {
         id: 'initial',
         role: 'model',
-        text: `Cześć! Jestem Twoim Wirtualnym Asystentem Gliko. 🧠 Przeanalizowałem Twoje ostatnie dane i jestem gotowy pomóc. O co chcesz zapytać? Mogę przeanalizować trendy, odpowiedzieć na pytania o dietę lub pomóc zrozumieć wyniki.`,
+        text: isChild 
+          ? `Cześć! Jestem Twoim Wirtualnym Asystentem Gliko. 🧠 Przeanalizowałem Twoje ostatnie dane i jestem gotowy pomóc. O co chcesz zapytać? Mogę przeanalizować trendy, odpowiedzieć na pytania o dietę lub pomóc zrozumieć wyniki.`
+          : `Witaj. Jestem Twoim Asystentem AI. Przeanalizowałem dostępne wpisy glikemii i posiłków. W czym mogę Ci dzisiaj pomóc w procesie optymalizacji leczenia? (Interpretacja bazalna, kalkulacja bolusów, raport trendów?)`,
         timestamp: Date.now()
       }
     ];
@@ -80,11 +87,16 @@ export default function GlikoAssistant({
           parts: [{ text: m.text }]
         }));
 
+      const iob = calculateIOB(logs);
+      const cob = calculateCOB(logs);
+      const lastGlucose = logs.filter(l => l.type === 'glucose').slice(-1)[0]?.value || 0;
+
       const response = await geminiService.getAssistantResponse(
         messageText, 
         history, 
         logs, 
-        settings || { targetMin: 70, targetMax: 140 }
+        settings || { targetMin: 70, targetMax: 140 },
+        { iob, cob, glucose: lastGlucose }
       );
       
       const modelMessage: Message = {
@@ -107,18 +119,24 @@ export default function GlikoAssistant({
       setMessages([{
         id: 'initial-' + Date.now(),
         role: 'model',
-        text: `Cześć! W czym mogę Ci dzisiaj pomóc? 🧠`,
+        text: isChild ? `Cześć! W czym mogę Ci dzisiaj pomóc? 🧠` : `Jestem gotowy do dalszej analizy. O co chcesz zapytać?`,
         timestamp: Date.now()
       }]);
     }
   };
 
-  const suggestions = [
+  const suggestions = isChild ? [
     "Jak minął mój ostatni dzień?",
     "Czy moje bolusy są skuteczne?",
     "Zinterpretuj moje ostatnie wyniki",
     "Co jeść na kolację przy niskim IG?",
     "Dlaczego mam skoki cukru rano?"
+  ] : [
+    "Analiza Time In Range (TIR)",
+    "Korelacja posiłków z glikemią",
+    "Optymalizacja bazy (ISF/WW)",
+    "Identyfikacja hipoglikemii reaktywnej",
+    "Podsumowanie 24h (eksperckie)"
   ];
 
   return (
@@ -126,14 +144,17 @@ export default function GlikoAssistant({
       {/* Header */}
       <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Brain size={20} />
+          <div className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg",
+            isChild ? "bg-indigo-500 shadow-indigo-500/20" : "bg-emerald-600 shadow-emerald-500/20"
+          )}>
+            <AssistantIcon size={20} className="text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white">Smart Asystent Gliko</h2>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white">{assistantName}</h2>
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">AI Aktywne • Dostęp do danych</p>
+              <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isChild ? "bg-indigo-500" : "bg-emerald-400")} />
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">AI Aktywne • Tryb {isChild ? 'Edukacyjny' : 'Ekspercki'}</p>
             </div>
           </div>
         </div>
@@ -168,8 +189,13 @@ export default function GlikoAssistant({
                     <User size={16} />
                   </div>
                 ) : (
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                    <Brain size={16} />
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center",
+                    isChild 
+                      ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+                      : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                  )}>
+                    <AssistantIcon size={16} />
                   </div>
                 )}
               </div>
@@ -197,13 +223,18 @@ export default function GlikoAssistant({
         
         {isTyping && (
           <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <Brain size={16} className="animate-spin-slow" />
+            <div className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center",
+              isChild 
+                ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+                : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+            )}>
+              <AssistantIcon size={16} className="animate-spin-slow" />
             </div>
             <div className="flex gap-1.5 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
-              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
-              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
+              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
+              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
+              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
             </div>
           </div>
         )}
@@ -216,9 +247,9 @@ export default function GlikoAssistant({
             <button
               key={i}
               onClick={() => handleSend(s)}
-              className="whitespace-nowrap px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2 shrink-0 shadow-sm"
+              className="whitespace-nowrap px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-indigo-600 transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2 shrink-0 shadow-sm"
             >
-              <Sparkles size={12} className="text-yellow-500" /> {s}
+              <AssistantIcon size={12} className={isChild ? "text-yellow-500" : "text-emerald-500"} /> {s}
             </button>
           ))}
         </div>

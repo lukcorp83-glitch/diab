@@ -604,7 +604,7 @@ export default function App() {
             </button>
             
             <button onClick={handleAnonymous} className={cn(
-              "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-4",
+              "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-2",
               theme === 'dark' ? "bg-accent-500/10 text-accent-400 border-accent-500/20" : "bg-accent-50 text-accent-600 border-accent-100"
             )}>
               <Zap className="w-4 h-4" />

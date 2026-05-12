@@ -2,6 +2,7 @@ export interface Product {
   id?: string;
   name: string;
   carbs: number;
+  polyols?: number;
   protein?: number;
   fat?: number;
   gi: number;
@@ -22,7 +23,16 @@ export interface LogEntry {
   notes?: string;
   source?: string;
   protein?: number;
+  polyols?: number;
   fat?: number;
+  linkedMeal?: {
+    carbs: number;
+    polyols?: number;
+    protein?: number;
+    fat?: number;
+  };
+  isExtended?: boolean;
+  extendedTime?: number;
 }
 
 export interface PlateItem extends Product {

@@ -29,7 +29,8 @@ import {
   MessageSquare, 
   PawPrint, 
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  Cpu
 } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION } from '../constants';
@@ -90,7 +91,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        subItems: [
           { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history', icon: <History size={14} /> },
           { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <Brain size={14} /> },
-          { id: 'assistant_ai', label: 'Wirtualny Asystent', tab: 'assistant', icon: <Sparkles size={14} /> }
+          { id: 'assistant_ai', label: 'Asystent AI', tab: 'assistant', icon: isChildMode ? <Sparkles size={14} /> : <Cpu size={14} /> }
        ]
     },
     ...(isChildMode ? [{ 
@@ -113,7 +114,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
          { id: 'profile_devices', label: 'Osprzęt & CGM', tab: 'profile', action: 'devices', icon: <Smartphone size={14} /> },
          { id: 'profile_meds', label: 'Leki & Przypomnienia', tab: 'profile', action: 'meds', icon: <Pill size={14} /> },
          { id: 'profile_api', label: 'Integracje (Nightscout)', tab: 'profile', action: 'api', icon: <Globe size={14} /> }, 
-         { id: 'profile_simulator', label: 'Symulator Pompy', tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
+         { id: 'profile_simulator', label: 'Symulator Bolusa', tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
        ]
     },
   ];

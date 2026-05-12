@@ -1,12 +1,13 @@
 import { getEffectiveUid } from '../lib/utils';
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry } from '../types';
-import { Activity, Utensils, Droplets, Syringe, ArrowLeft } from 'lucide-react';
+import { Activity, Utensils, Droplets, Syringe, ArrowLeft, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import SwipeableItem from './SwipeableItem';
 import { db } from '../lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
+import MealEditModal from './MealEditModal';
 
 interface HistoryProps {
   logs: LogEntry[];
@@ -15,6 +16,9 @@ interface HistoryProps {
 }
 
 export default function HistoryView({ logs, user, onBack }: HistoryProps) {
+  const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
+  const [listFilter, setListFilter] = useState<'all' | 'glucose' | 'treatment'>('treatment');
+
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }} 
@@ -22,7 +26,17 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
-      <div className="flex items-center gap-4 mb-6">
+      <AnimatePresence>
+        {editingLog && (
+          <MealEditModal 
+            log={editingLog} 
+            user={user} 
+            onClose={() => setEditingLog(null)} 
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="flex items-center gap-4 mb-4">
         <button 
           onClick={onBack}
           className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm active:scale-95 transition-all text-slate-500"
@@ -35,8 +49,33 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-4 no-scrollbar">
+        <button
+          onClick={() => setListFilter('all')}
+          className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl transition-all whitespace-nowrap", listFilter === 'all' ? "bg-slate-800 text-white dark:bg-white dark:text-slate-900" : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500")}
+        >
+          Wszystkie
+        </button>
+        <button
+          onClick={() => setListFilter('glucose')}
+          className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl transition-all whitespace-nowrap", listFilter === 'glucose' ? "bg-rose-500 text-white" : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500")}
+        >
+          Tylko Glukoza
+        </button>
+        <button
+          onClick={() => setListFilter('treatment')}
+          className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl transition-all whitespace-nowrap", listFilter === 'treatment' ? "bg-amber-500 text-white" : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500")}
+        >
+          Posiłki i Leki
+        </button>
+      </div>
+
       <div className="space-y-1 will-change-transform">
-        {logs.slice(0, 100).map((log, idx) => (
+        {logs.filter(log => {
+          if (listFilter === 'glucose') return log.type === 'glucose';
+          if (listFilter === 'treatment') return log.type === 'bolus' || log.type === 'meal';
+          return true;
+        }).slice(0, 100).map((log, idx) => (
           <motion.div 
             key={log.id} 
             initial={{ opacity: 0, y: 10 }}
@@ -53,25 +92,50 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                 }
               }}
             >
-              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all mb-2">
+              <div 
+                onClick={() => {
+                  if (log.type === 'meal' || log.type === 'bolus') {
+                    setEditingLog(log);
+                  }
+                }}
+                className={cn(
+                  "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all mb-2 cursor-pointer",
+                  (log.type === 'meal' || log.type === 'bolus') && "hover:bg-amber-50/10"
+                )}
+              >
                 <div className={cn(
-                  "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950",
+                  "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950 px-1",
                   log.type === 'glucose' ? "bg-rose-500/10 text-rose-500" :
                   log.type === 'meal' ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500"
                 )}>
                   {log.type === 'glucose' && <Activity size={18} strokeWidth={2.5} />}
                   {log.type === 'meal' && <Utensils size={18} strokeWidth={2.5} />}
-                  {log.type === 'bolus' && <Syringe size={18} strokeWidth={2.5} />}
+                  {log.type === 'bolus' && (
+                    <div className="flex items-center gap-0.5">
+                      <Syringe size={log.linkedMeal ? 14 : 18} strokeWidth={2.5} />
+                      {log.linkedMeal && <Utensils size={12} className="text-amber-500" />}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-black text-sm dark:text-white truncate">
-                    {typeof log.value === 'number' ? (log.type === 'glucose' ? Math.round(log.value) : log.value.toFixed(1)) : log.value}{log.type === 'glucose' ? ' mg/dL' : log.type === 'meal' ? 'g W' : ' j.'}
-                    {log.type === 'meal' && (log.protein || log.fat) && (
-                      <span className="text-[10px] font-bold text-slate-400 ml-2">
-                         {log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T
-                      </span>
+                  <div className="flex items-center gap-2 justify-between">
+                    <p className="font-black text-sm dark:text-white truncate">
+                      {typeof log.value === 'number' ? (log.type === 'glucose' ? Math.round(log.value) : log.value.toFixed(1)) : log.value}{log.type === 'glucose' ? ' mg/dL' : log.type === 'meal' ? 'g W' : ' j.'}
+                      {log.type === 'meal' && (log.polyols || log.protein || log.fat) && (
+                        <span className="text-[10px] font-bold text-slate-400 ml-2">
+                           {log.polyols ? `${log.polyols.toFixed(0)}P / ` : ''}{log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T
+                        </span>
+                      )}
+                      {log.type === 'bolus' && log.linkedMeal && (
+                        <span className="text-[10px] font-bold text-amber-500 ml-2">
+                           (+{log.linkedMeal.carbs}g W{log.linkedMeal.polyols ? `, ${log.linkedMeal.polyols}P` : ''})
+                        </span>
+                      )}
+                    </p>
+                    {(log.type === 'meal' || log.type === 'bolus') && (
+                      <Edit2 size={12} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                     )}
-                  </p>
+                  </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleDateString()} {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -83,7 +147,11 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                         if (n.toLowerCase() === 'glucose') return 'Glukoza';
                         if (n.toLowerCase() === 'meal' || n.toLowerCase() === 'carbs') return 'Posiłek';
                         if (n.toLowerCase() === 'bolus' || n.toLowerCase() === 'insulin') return 'Insulina';
-                        return n || (log.type === 'glucose' ? 'Glukoza' : log.type === 'meal' ? 'Posiłek' : 'Bolus');
+                        let baseLabel = n || (log.type === 'glucose' ? 'Glukoza' : log.type === 'meal' ? 'Posiłek' : 'Bolus');
+                        if (log.isExtended) {
+                          baseLabel = `Łączony (${log.extendedTime}h)`;
+                        }
+                        return baseLabel;
                       })()}
                     </span>
                     <div className="flex items-center gap-1 ml-auto">

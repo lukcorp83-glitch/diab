@@ -19,6 +19,19 @@ export function calculateIOB(logs: LogEntry[], diaHours: number = 4) {
     }, 0);
 }
 
+export function calculateCOB(logs: LogEntry[], absorptionMinutes: number = 180) {
+  const now = Date.now();
+  const absMs = absorptionMinutes * 60 * 1000;
+  
+  return logs
+    .filter(l => l.type === 'meal' && now - (l.timestamp || 0) < absMs)
+    .reduce((sum, m) => {
+      const timeSince = now - (m.timestamp || 0);
+      const decay = Math.max(0, 1 - (timeSince / absMs));
+      return sum + ((m.value || 0) * decay);
+    }, 0);
+}
+
 export function getEffectiveUid(user: any): string {
   if (!user || !user.uid) return '';
   return localStorage.getItem('diacontrol_linked_uid') || user.uid;

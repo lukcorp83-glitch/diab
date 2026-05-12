@@ -2,15 +2,18 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
-import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2, Edit3, X } from 'lucide-react';
+import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2, Edit3, X, Bell } from 'lucide-react';
 import { cn, calculateIOB } from '../lib/utils';
-import { db } from '../lib/firebase';
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+import { collection, addDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
 import { geminiService } from '../services/gemini';
+import { toast } from 'react-hot-toast';
+import { notificationService } from '../services/notificationService';
 
 export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry[], user: any, setTab?: (t: string) => void }) {
   const [bg, setBg] = useState<string>('');
   const [carbs, setCarbs] = useState<string>('');
+  const [polyols, setPolyols] = useState<string>('');
   const [protein, setProtein] = useState<string>('');
   const [fat, setFat] = useState<string>('');
   const [isPizzaMode, setIsPizzaMode] = useState(false);
@@ -23,10 +26,12 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
   const [scanResultMsg, setScanResultMsg] = useState<string | null>(null);
   const [aiRec, setAiRec] = useState<{ recommendedDose: number, reasoning: string, confidence: string } | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [isAlcoholMode, setIsAlcoholMode] = useState(false);
   const [alcoholType, setAlcoholType] = useState<string | null>(null);
   const [alcoholWarning, setAlcoholWarning] = useState<string | null>(null);
   const [alcoholReduction, setAlcoholReduction] = useState<number>(1.0);
+  const [reminderActive, setReminderActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const now = new Date();
@@ -71,13 +76,17 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
 
   useEffect(() => {
     calculateDose();
-  }, [bg, carbs, protein, fat, isPizzaMode, trend, settings]);
+  }, [bg, carbs, polyols, protein, fat, isPizzaMode, trend, settings]);
 
   const calculateDose = () => {
     const bgNum = parseFloat(bg) || 0;
     const carbsNum = parseFloat(carbs) || 0;
+    const polyolsNum = parseFloat(polyols) || 0;
     const protNum = parseFloat(protein) || 0;
     const fatNum = parseFloat(fat) || 0;
+    
+    // Net carbs calculation
+    const netCarbs = Math.max(0, carbsNum - polyolsNum);
     
     let currentIsf = settings.isf;
     let currentWwRatio = settings.wwRatio;
@@ -98,25 +107,14 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     }
     setActiveProfileTime(activeProfileStr);
     
-    const mealDose = carbsNum / currentWwRatio;
+    const mealDose = netCarbs / currentWwRatio;
     
     let wbtDose = 0;
     let extendHrs = 0;
     if (isPizzaMode) {
-      // 1 WBT = 100 kcal z białka i tłuszczu
       const kcalFromProtFat = (protNum * 4) + (fatNum * 9);
       const wbt = kcalFromProtFat / 100;
-      wbtDose = wbt * (settings.wbtRatio ? (10 / settings.wbtRatio) : (10 / currentWwRatio)); 
-      // Usually WBT takes same ratio as WW or custom wbtRatio. Assuming wbtRatio is defined as "1j na 1WBT" or "wbtRatio g na 1j" ? 
-      // Actually standard WBT ratio is 1 unit per 100kcal. If wbtRatio is 18, maybe it means 18g/unit. 
-      // If the user's wbt ratio is for `WW`, they use the wbtRatio like 1WBT = ... let's just use `wbt * (10 / settings.wbtRatio)` as a simple formula, or standard is: wbt/wbtRatio but WBT is an index, so if wbtRatio=1 means 1WBT = 1j.
-      // Let's assume standard: 1 WBT = 1 j. For simple model, give wbt * 1. 
-      // But typically we use the WW ratio or similar. 1 WW (10g carbs) needs X units. 1 WBT needs X units.
-      // Easiest standard: `wbtDose = wbt * (10 / settings.wwRatio)` or whatever. Let's just use `wbt * settings.wwRatio_or_something`. 
-      // We will use standard rule: 1 WBT requires insulin equal to 1 WW. So wbtDose = wbt * (10 / currentWwRatio) if 1 WW = 10g.
       wbtDose = wbt * (10 / currentWwRatio);
-
-      // Extending time rule: 1 WBT = 3h, 2 WBT = 4h, 3 WBT = 5h...
       if (wbt > 0) {
         if (wbt <= 1) extendHrs = 3;
         else if (wbt <= 2) extendHrs = 4;
@@ -132,7 +130,10 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
 
     const trendFactor = trend === 'up' ? 1.15 : trend === 'down' ? 0.85 : 1.0;
     const total = Math.max(0, (mealDose + wbtDose + Math.max(0, corrDose - iob)) * trendFactor * alcoholReduction);
-    setDose(total);
+    
+    // Zapobieganie problemom z precyzją (np. 0.200000000004)
+    const roundedTotal = Math.round(total * 10) / 10;
+    setDose(roundedTotal);
     setManualDose(null);
   };
 
@@ -182,55 +183,101 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
   };
 
   const handleSave = async () => {
-    if (!user) return;
-    const timestamp = new Date(entryTime).getTime();
+    if (!user || saving) return;
+    
     const finalDose = manualDose !== null ? parseFloat(manualDose) : dose;
-    
-    let savedSomething = false;
+    const bgNum = parseFloat(bg) || 0;
+    const carbsNum = parseFloat(carbs) || 0;
+    const protNum = parseFloat(protein) || 0;
+    const fNum = parseFloat(fat) || 0;
 
-    if (finalDose > 0 && !isNaN(finalDose)) {
-      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
-        type: 'bolus',
-        value: finalDose,
-        timestamp,
-        description: 'Kalkulator bolusa'
-      });
-      savedSomething = true;
-    }
-    
-    const bgNum = parseFloat(bg);
-    if (!isNaN(bgNum) && bgNum > 0) {
-      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
-        type: 'glucose',
-        value: bgNum,
-        timestamp: timestamp - 20,
-        description: 'Wpisane w kalkulator'
-      });
-      savedSomething = true;
+    if (finalDose <= 0 && bgNum <= 0 && carbsNum <= 0) {
+      toast.error("Wpisz dawkę, węglowodany lub cukier");
+      return;
     }
 
-    if (carbs && parseFloat(carbs) > 0) {
-      const carbsNum = parseFloat(carbs);
-      const proteinNum = parseFloat(protein) || null;
-      const fatNum = parseFloat(fat) || null;
+    setSaving(true);
+    let tId: string | undefined;
+    
+    try {
+      tId = toast.loading("Przetwarzanie...");
+      const effectiveUid = getEffectiveUid(user);
       
-      const payload: any = {
-        type: 'meal',
-        value: carbsNum,
-        timestamp: timestamp - 10,
-        description: 'Pobrano z kalkulatora'
-      };
-      if (proteinNum) payload.protein = proteinNum;
-      if (fatNum) payload.fat = fatNum;
+      const timestamp = new Date(entryTime).getTime();
+      const logsRef = collection(db, 'artifacts', 'diacontrolapp', 'users', effectiveUid, 'logs');
+      const batch = writeBatch(db);
+      let ops = 0;
 
-      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), payload);
-      savedSomething = true;
-    }
+      // 1. Bolus + Metadata
+      if (finalDose > 0) {
+        const payload: any = {
+          type: 'bolus',
+          value: Math.round(finalDose * 10) / 10,
+          timestamp,
+          description: isPizzaMode ? 'Łączony' : 'Kalkulator bolusa'
+        };
+        if (carbsNum > 0) {
+          payload.linkedMeal = { 
+            carbs: carbsNum, 
+            polyols: parseFloat(polyols) || 0,
+            protein: protNum, 
+            fat: fNum 
+          };
+        }
+        if (isPizzaMode && extendedTime > 0) {
+          payload.isExtended = true;
+          payload.extendedTime = extendedTime;
+        }
+        batch.set(doc(logsRef), payload);
+        ops++;
+      }
+      
+      // 2. Glucose
+      if (bgNum > 0) {
+        batch.set(doc(logsRef), {
+          type: 'glucose',
+          value: Math.round(bgNum * 10) / 10,
+          timestamp: timestamp - 10,
+          description: 'Wpisane w kalkulator'
+        });
+        ops++;
+      }
 
-    if (savedSomething) {
-      setBg(''); setCarbs(''); setProtein(''); setFat(''); setManualDose(null);
-      setIsAlcoholMode(false); setAlcoholType(null); setAlcoholWarning(null); setAlcoholReduction(1.0);
+      // 3. Separate Meal Entry (ONLY if no bolus)
+      if (carbsNum > 0 && finalDose <= 0) {
+        const payload: any = {
+          type: 'meal',
+          value: Math.max(0, carbsNum - (parseFloat(polyols) || 0)),
+          timestamp: timestamp - 5,
+          description: 'Pobrano z kalkulatora'
+        };
+        if (parseFloat(polyols) > 0) payload.polyols = parseFloat(polyols);
+        if (protNum > 0) payload.protein = Math.round(protNum * 10) / 10;
+        if (fNum > 0) payload.fat = Math.round(fNum * 10) / 10;
+        batch.set(doc(logsRef), payload);
+        ops++;
+      }
+
+      if (ops === 0) throw new Error("Brak operacji");
+
+      // OPTIMISTIC UPDATE: Close first, save in background
+      if (tId) toast.success("Zapisano (Synchronizacja w tle...)", { id: tId });
       if (setTab) setTab('dashboard');
+      
+      // Background save - if it fails (e.g. Guest), we don't block the UI
+      batch.commit().catch(err => {
+        console.warn("[BolusCalculator] Background sync failed (likely Guest/No Auth):", err);
+      });
+
+      // Clear local state
+      setBg(''); setCarbs(''); setProtein(''); setFat(''); setManualDose(null);
+      setIsAlcoholMode(false);
+      
+    } catch (err: any) {
+      console.error("[BolusCalculator] Error:", err);
+      if (tId) toast.error(err.message || "Błąd zapisu", { id: tId });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -248,10 +295,10 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     setLoadingAi(true);
     try {
       const bgNum = parseFloat(bg) || 0;
-      const carbsNum = parseFloat(carbs) || 0;
       const iob = calculateIOB(logs, settings.dia || 4);
       const currentDose = manualDose !== null ? parseFloat(manualDose) : dose;
-      const result = await geminiService.getBolusRecommendation(bgNum, carbsNum, currentDose, trend, iob, logs);
+      const netCarbsNum = Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0));
+      const result = await geminiService.getBolusRecommendation(bgNum, netCarbsNum, currentDose, trend, iob, logs);
       if (result) {
         setAiRec(result);
         if (result.recommendedDose !== undefined) {
@@ -381,6 +428,26 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
                </div>
              )}
           </div>
+        </div>
+
+        <div className="flex gap-4">
+          <div className="flex-1 space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase block text-center">Poliole (g)</label>
+            <input 
+              type="number" 
+              value={polyols} 
+              onChange={e => setPolyols(e.target.value)}
+              placeholder="0"
+              className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
+            />
+          </div>
+          {parseFloat(polyols) > 0 && (
+            <div className="flex-1 flex items-center justify-center pt-8">
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest text-center">
+                Netto: {(Math.max(0, parseFloat(carbs) - parseFloat(polyols))).toFixed(1)}g
+              </span>
+            </div>
+          )}
         </div>
 
         {algoMeal && (
@@ -522,8 +589,32 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
 
         <div className="bg-slate-900 text-white rounded-[2rem] p-6 text-center space-y-4 relative overflow-hidden">
            {advice && (
-             <div className={`text-[10px] font-black uppercase tracking-widest p-2 bg-white/5 rounded-xl mb-2 ${advice.color}`}>
-               {advice.text}
+             <div className="space-y-2 mb-2">
+               <div className={`text-[10px] font-black uppercase tracking-widest p-2 bg-white/5 rounded-xl ${advice.color}`}>
+                 {advice.text}
+               </div>
+               {(parseFloat(bg) >= 150 || (advice.text && (advice.text.includes('15 min') || advice.text.includes('30 min')))) && (
+                 <button 
+                   onClick={() => {
+                     const minutes = advice.text.includes('30 min') ? 30 : 15;
+                     notificationService.scheduleLocalNotification(
+                       "Czas na posiłek! 🍽️",
+                       `Minęło ${minutes} minut od bolusa. Twoja glikemia powinna już zacząć spadać.`,
+                       minutes
+                     );
+                     setReminderActive(true);
+                     setTimeout(() => setReminderActive(false), 5000);
+                   }}
+                   disabled={reminderActive}
+                   className={cn(
+                     "flex items-center justify-center gap-2 w-full py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border border-white/5",
+                     reminderActive ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-white/5 hover:bg-white/10 text-accent-300"
+                   )}
+                 >
+                   <Bell size={12} className={reminderActive ? "" : "animate-bounce"} />
+                   {reminderActive ? "Przypomnienie ustawione!" : `Przypomnij mi za ${advice.text.includes('30 min') ? '30' : '15'} min`}
+                 </button>
+               )}
              </div>
            )}
            <div>
@@ -566,8 +657,13 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
            </button>
         </div>
 
-        <button onClick={handleSave} className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all">
-           Podaj Insulinę
+        <button 
+          onClick={handleSave} 
+          disabled={saving || (dose === 0 && !bg && !carbs)}
+          className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+           {saving && <Loader2 size={18} className="animate-spin" />}
+           {saving ? 'Zapisywanie...' : 'Podaj Insulinę'}
         </button>
       </div>
 

@@ -392,7 +392,7 @@ export const geminiService = {
     }
   },
 
-  async getAssistantResponse(message: string, history: any[], logs: any[], settings: any) {
+  async getAssistantResponse(message: string, history: any[], logs: any[], settings: any, currentStatus?: { iob: number, cob: number, glucose: number }) {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).getTime();
     const lastLogs = logs
       .filter(l => new Date(l.timestamp || l.createdAt).getTime() >= twentyFourHoursAgo)
@@ -404,19 +404,41 @@ export const geminiService = {
         czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
       }));
 
-    const systemInstruction = `Jesteś Eksperckim Asystentem Diabetologicznym AI w aplikacji GlikoControl. 
-    Twoim zadaniem jest merytoryczne wspieranie użytkownika w codziennym zarządzaniu cukrzycą (dieta, insulina, wysiłek, trendy).
-    
+    const isChild = settings?.childMode ?? true;
+
+    const currentDataStr = currentStatus ? `
+    AKTUALNY STATUS (Z SILNIKA APLIKACJI):
+    - Bieżąca glikemia: ${currentStatus.glucose} mg/dL
+    - Aktywna insulina (IOB): ${currentStatus.iob.toFixed(2)} j.
+    - Aktywne węglowodany (COB): ${currentStatus.cob.toFixed(0)} g
+    ` : '';
+
+    const systemInstruction = isChild ? `Jesteś Smart Asystentem Gliko w aplikacji GlikoControl. 
+    Twoim zadaniem jest pomaganie dzieciom i ich rodzicom w codziennym zarządzaniu cukrzycą w sposób przyjazny, cierpliwy i zachęcający.
+    ${currentDataStr}
     MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA (z ostatnich 24 godzin):
     - Ostatnie logi: ${JSON.stringify(lastLogs)}
     - Ustawienia (ISF, WW): ${JSON.stringify(settings)}
     
     ZASADY ODPOWIADANIA:
-    1. Odpowiadaj profesjonalnie, konkretnie i pomocnie.
+    1. Odpowiadaj w sposób przystępny, używając prostego języka, ale rzetelnie.
     2. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown (gwiazdek).
-    3. Analizuj dane: jeśli użytkownik pyta "jak minął dzień?", sprawdź logi.
-    4. Bezpieczeństwo: Nigdy nie podawaj wiążących dawek leków. Sugeruj konsultację z lekarzem przy poważnych wątpliwościach.
-    5. Jeśli glikemia jest poza zakresem (${settings.targetMin}-${settings.targetMax} mg/dL), zwróć na to uwagę.
+    3. Wspieraj dziecko: chwal za dobre wyniki, pocieszaj przy gorszych dniach.
+    4. Bezpieczeństwo: Zawsze przypominaj o konsultacji z rodzicami przy zmianach dawkowania.
+    5. Język: Polski.` : `Jesteś Eksperckim Systemem Analizy Medycznej AI w aplikacji Diacontrol. 
+    Twoim zadaniem jest zaawansowana analiza danych diabetologicznych dla dorosłego użytkownika. 
+    Skupiasz się na trendach, korelacji insuliny z glikemią i optymalizacji parametrów ISF/WW.
+    ${currentDataStr}
+    MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA (z ostatnich 24 godzin):
+    - Ostatnie logi: ${JSON.stringify(lastLogs)}
+    - Ustawienia (ISF, WW): ${JSON.stringify(settings)}
+    
+    ZASADY ODPOWIADANIA:
+    1. Odpowiadaj profesjonalnie, analitycznie i merytorycznie. Unikaj infantylnego tonu.
+    2. UŻYWAJ DANYCH Z SESJI: Jeśli w sekcji AKTUALNY STATUS podano IOB lub COB, używaj tych wartości jako nadrzędnych wobec swoich obliczeń.
+    3. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown (gwiazdek).
+    4. Podawaj konkretne wnioski z danych (np. "Twoja wrażliwość na insulinę rano wydaje się niższa niż wieczorem").
+    5. Bezpieczeństwo: Sugeruj konsultację z lekarzem przed zmianą schematu leczenia.
     6. Język: Polski.`;
 
     let fullContents = [

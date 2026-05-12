@@ -192,8 +192,10 @@ export default function MealPlate({
       try {
         const prompt = `Jesteś dietetykiem. Przeanalizuj zapytanie użytkownika: "${query}". Może to być nazwa produktu ze sklepu, danie domowe (np. "pierogi ruskie", "leczo"), owoc, warzywo lub konkretna marka. 
         Zwróć listę pasujących produktów w formacie JSON (tylko JSON, bez markdown). 
-        Format: [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
+        Format: [{"name": string, "carbs": number, "polyols": number, "protein": number, "fat": number, "gi": number}]. 
         Podaj wartości na 100g produktu lub na standardową porcję (zaznacz to w nazwie, np. "Jabłko (średnie)"). 
+        Jeśli produkt zawiera poliole (np. gumy, słodziki, niektóre fit-batony), uwzględnij je w polu "polyols". 
+        W polu "carbs" podaj CAŁKOWITĄ ilość węglowodanów (wraz z poliolami).
         Uwzględnij różne warianty jeśli to możliwe. Nie pisz nic poza JSONem.`;
 
         const result = await geminiService.generateContent(prompt);
@@ -423,10 +425,11 @@ export default function MealPlate({
   const totalWeight = plate.reduce((s, i) => s + i.weight, 0);
 
   const rawCarbs = plate.reduce((s, i) => s + (i.carbs * i.weight) / 100, 0);
+  const rawPolyols = plate.reduce((s, i) => s + ((i.polyols || 0) * i.weight) / 100, 0);
   const rawProtein = plate.reduce((s, i) => s + ((i.protein || 0) * i.weight) / 100, 0);
   const rawFat = plate.reduce((s, i) => s + ((i.fat || 0) * i.weight) / 100, 0);
 
-  const totalCarbs = rawCarbs;
+  const totalCarbs = Math.max(0, rawCarbs - rawPolyols); // Net carbs
   const totalProtein = rawProtein;
   const totalFat = cookingMethod === 'fried' ? rawFat + (totalWeight / 100) * 10 : rawFat;
   
@@ -440,7 +443,8 @@ export default function MealPlate({
   
   const rawGL = plate.reduce((s, i) => {
     if (!i.gi) return s;
-    return s + (((i.carbs * i.weight) / 100) * i.gi) / 100;
+    const itemNetCarbs = Math.max(0, i.carbs - (i.polyols || 0));
+    return s + ((itemNetCarbs * i.weight / 100) * i.gi) / 100;
   }, 0);
 
   let avgGI = rawCarbs > 0 ? (rawGL * 100) / rawCarbs : 0;
@@ -459,6 +463,7 @@ export default function MealPlate({
         {
           type: "meal",
           value: totalCarbs,
+          polyols: rawPolyols,
           protein: totalProtein,
           fat: totalFat,
           timestamp: new Date(entryTime).getTime(),
@@ -633,6 +638,7 @@ export default function MealPlate({
                   <div className="mt-4 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-2xl flex justify-center gap-4 text-xs font-black flex-wrap">
                     <span className="text-accent-600 dark:text-accent-400">
                       Węgle: {((selectedProduct.carbs * parseFloat(weightInput)) / 100).toFixed(1)}g
+                      {selectedProduct.polyols ? ` (w tym ${((selectedProduct.polyols * parseFloat(weightInput)) / 100).toFixed(1)}g poliole)` : ''}
                     </span>
                     <span className="text-emerald-600 dark:text-emerald-400">
                       B+T: {(((selectedProduct.protein || 0) + (selectedProduct.fat || 0)) * parseFloat(weightInput) / 100).toFixed(1)}g

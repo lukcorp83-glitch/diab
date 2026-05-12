@@ -71,6 +71,38 @@ Aby to naprawić:
     }
   },
 
+  async scheduleLocalNotification(title: string, body: string, delayMinutes: number) {
+    if (!('Notification' in window)) {
+      toast.error("Powiadomienia nie są obsługiwane na tym urządzeniu.");
+      return;
+    }
+
+    if (Notification.permission !== 'granted') {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        toast.error("Brak uprawnień do powiadomień. Nie można ustawić przypomnienia.");
+        return;
+      }
+    }
+
+    const delayMs = delayMinutes * 60 * 1000;
+    toast.success(`Przypomnienie ustawione na za ${delayMinutes} minut! ⏰`);
+
+    setTimeout(async () => {
+      const registration = await navigator.serviceWorker.ready;
+      registration.showNotification(title, {
+        body,
+        icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+        vibrate: [200, 100, 200, 100, 200],
+        tag: 'glikocontrol-reminder',
+        requireInteraction: true
+      } as any);
+      
+      // Also play a sound if possible or a toast if the app is open
+      toast(body, { icon: '🍽️', duration: 10000 });
+    }, delayMs);
+  },
+
   async saveTokenToFirestore(token: string) {
     const user = auth.currentUser;
     if (!user) return;

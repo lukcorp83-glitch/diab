@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Brain, Zap, Shield, TrendingUp, AlertCircle, Heart } from 'lucide-react';
+import { Cpu, Zap, Shield, TrendingUp, AlertCircle, Heart } from 'lucide-react';
 
 interface NeuralNode {
   id: number;
@@ -76,12 +76,12 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-xl ${statusColor} bg-opacity-20`}>
-              <Brain className={statusColor.replace('bg-', 'text-')} size={20} />
+              <Cpu className={statusColor.replace('bg-', 'text-')} size={20} />
             </div>
             <div>
               <h3 className="text-sm font-black dark:text-white leading-tight">GlikoSense</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {isChildMode ? `Neuralny Opiekun ${petName}` : 'GlikoSense AI'}
+                {isChildMode ? `Neuralny Opiekun ${petName}` : 'Analiza Systemowa AI'}
               </p>
             </div>
           </div>

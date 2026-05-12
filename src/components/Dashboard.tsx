@@ -11,7 +11,6 @@ import {
   Droplets,
   Syringe,
   Utensils,
-  Zap,
   Plus,
   Shield,
   Trash2,
@@ -22,11 +21,20 @@ import {
   Radio,
   Droplet,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Edit3,
+  Cpu,
+  Zap,
+  X,
+  Info,
+  Calendar,
+  Gift
 } from "lucide-react";
 import { cn, calculateIOB } from "../lib/utils";
+import { APP_VERSION } from "../constants";
 import GlucoseModal from "./GlucoseModal";
 import SwipeableItem from "./SwipeableItem";
+import MealEditModal from "./MealEditModal";
 import GlikoWidget from "./GlikoWidget";
 import GlikoSenseTips from "./GlikoSenseTips";
 import GlikoSenseNeural from "./GlikoSenseNeural";
@@ -85,6 +93,21 @@ export default function Dashboard({
     localStorage.setItem('glikosfera_ml_prediction', JSON.stringify(showMLPrediction));
   }, [showMLPrediction]);
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  useEffect(() => {
+    const seenVersion = localStorage.getItem('glikosfera_seen_version');
+    if (seenVersion !== APP_VERSION) {
+      setShowUpdateModal(true);
+    }
+  }, []);
+
+  const closeUpdateModal = () => {
+    localStorage.setItem('glikosfera_seen_version', APP_VERSION);
+    setShowUpdateModal(false);
+  };
+  const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
+  const [listFilter, setListFilter] = useState<'all' | 'glucose' | 'treatment'>('treatment');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [settings, setSettings] = useState<UserSettings>({
     isf: 58,
@@ -396,6 +419,14 @@ export default function Dashboard({
         <GlikoSenseTips logs={logs} />
       </motion.div>
 
+      {editingLog && (
+        <MealEditModal 
+          log={editingLog} 
+          user={user} 
+          onClose={() => setEditingLog(null)} 
+        />
+      )}
+
       {/* Virtual Assistant CTA */}
       <motion.div 
         variants={itemVariants}
@@ -403,15 +434,20 @@ export default function Dashboard({
         className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[1px] rounded-[2rem] shadow-lg shadow-indigo-500/20 cursor-pointer active:scale-[0.98] transition-all group"
       >
         <div className="bg-white dark:bg-slate-900 rounded-[21.9rem] rounded-[2rem] p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:rotate-12 transition-transform">
-            <Sparkles size={24} />
+          <div className={cn(
+            "w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-lg transition-transform group-hover:rotate-12",
+            settings.childMode ? "bg-indigo-500 shadow-indigo-500/30" : "bg-emerald-600 shadow-emerald-500/30"
+          )}>
+            {settings.childMode ? <Sparkles size={24} /> : <Cpu size={24} />}
           </div>
           <div className="flex-1">
             <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">
-              Wirtualny Asystent Gliko
+              Asystent AI
             </h4>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight">
-              Zadaj pytanie o swoje wyniki, dietę lub trendy glikemii. AI przeanalizuje Twoje dane.
+              {settings.childMode 
+                ? "Zadaj pytanie o swoje wyniki, dietę lub trendy glikemii. AI przeanalizuje Twoje dane."
+                : "Profesjonalna analiza trendów, predykcja i optymalizacja parametrów leczenia bazująca na danych."}
             </p>
           </div>
           <div className="p-2 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400">
@@ -654,137 +690,367 @@ export default function Dashboard({
         </div>
       </motion.div>
 
-      {/* Recent History Mini */}
-      <motion.div variants={itemVariants} className="space-y-4">
-        <div className="flex justify-between items-center px-2">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Ostatnia aktywność
-          </h3>
-          <button
-            onClick={() => setTab("history")}
-            className="text-[10px] font-bold text-accent-500 flex items-center gap-1 active:scale-95 transition-all"
-          >
-            WSZYSTKO <ChevronRight size={12} />
-          </button>
-        </div>
-        <motion.div
-          className="space-y-1"
-          variants={{
-            hidden: { opacity: 0 },
-            show: { opacity: 1, transition: { staggerChildren: 0.1 } },
-          }}
-          initial="hidden"
-          animate="show"
-        >
-          {logs.slice(0, 5).map((log) => (
-            <motion.div
-              key={log.id}
-              layout
-              variants={{
-                hidden: { opacity: 0, y: 15, scale: 0.95 },
-                show: {
-                  opacity: 1,
-                  y: 0,
-                  scale: 1,
-                  transition: { type: "spring", stiffness: 350, damping: 25 },
-                },
+      {/* Recent History Mini - Split into sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Recent Glucose Measurements */}
+        <motion.div variants={itemVariants} className="space-y-4">
+          <div className="flex justify-between items-center px-2">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <div className="w-1 h-1 rounded-full bg-rose-500" />
+              Ostatnie pomiary
+            </h3>
+            <button
+              onClick={() => {
+                setListFilter('glucose');
+                setTab("history");
               }}
+              className="text-[10px] font-bold text-accent-500 flex items-center gap-1 active:scale-95 transition-all"
             >
-              <SwipeableItem
-                id={log.id}
-                onDelete={async () => {
-                  try {
-                    await deleteDoc(
-                      doc(
-                        db,
-                        "artifacts",
-                        "diacontrolapp",
-                        "users",
-                        getEffectiveUid(user),
-                        "logs",
-                        log.id,
-                      ),
-                    );
-                  } catch (err) {
-                    console.error("Delete failed:", err);
-                  }
+              WIĘCEJ <ChevronRight size={10} />
+            </button>
+          </div>
+
+          <motion.div
+            className="space-y-1"
+            variants={{
+              hidden: { opacity: 0 },
+              show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+            }}
+            initial="hidden"
+            animate="show"
+          >
+            {logs.filter(log => log.type === 'glucose').slice(0, 4).map((log) => (
+              <motion.div
+                key={log.id}
+                layout
+                variants={{
+                  hidden: { opacity: 0, y: 15, scale: 0.95 },
+                  show: {
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    transition: { type: "spring", stiffness: 350, damping: 25 },
+                  },
                 }}
               >
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-                  <div
+                <SwipeableItem
+                  id={log.id}
+                  onDelete={async () => {
+                    try {
+                      await deleteDoc(
+                        doc(
+                          db,
+                          "artifacts",
+                          "diacontrolapp",
+                          "users",
+                          getEffectiveUid(user),
+                          "logs",
+                          log.id,
+                        ),
+                      );
+                    } catch (err) {
+                      console.error("Delete failed:", err);
+                    }
+                  }}
+                >
+                  <div 
                     className={cn(
-                      "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950",
-                      log.type === "glucose"
-                        ? "bg-rose-500/10 text-rose-500"
-                        : log.type === "meal"
-                          ? "bg-amber-500/10 text-amber-500"
-                          : "bg-accent-500/10 text-accent-500",
+                      "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer"
                     )}
                   >
-                    {log.type === "glucose" && (
-                      <Droplet size={18} strokeWidth={2.5} />
-                    )}
-                    {log.type === "meal" && (
-                      <Utensils size={18} strokeWidth={2.5} />
-                    )}
-                    {log.type === "bolus" && (
-                      <Syringe size={18} strokeWidth={2.5} />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm dark:text-white truncate">
-                      {typeof log.value === 'number' ? (log.type === 'glucose' ? Math.round(log.value) : log.value.toFixed(1)) : log.value}
-                      {log.type === "glucose"
-                        ? " mg/dL"
-                        : log.type === "meal"
-                          ? "g W"
-                          : " j."}
-                      {log.type === "meal" && (log.protein || log.fat) && (
-                        <span className="text-[10px] font-bold text-slate-400 ml-2">
-                          {log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T
-                        </span>
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950",
+                        "bg-rose-500/10 text-rose-500"
                       )}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                        {new Date(log.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-                      <span className="text-[9px] font-bold text-slate-500 truncate italic">
-                        {(() => {
-                          const n = log.notes || log.description || '';
-                          if (n.toLowerCase() === 'glucose') return 'Glukoza';
-                          if (n.toLowerCase() === 'meal' || n.toLowerCase() === 'carbs') return 'Posiłek';
-                          if (n.toLowerCase() === 'bolus' || n.toLowerCase() === 'insulin') return 'Insulina';
-                          return n || (log.type === 'glucose' ? 'Glukoza' : log.type === 'meal' ? 'Posiłek' : 'Bolus');
-                        })()}
-                      </span>
-                      <div className="flex items-center gap-1 ml-auto">
-                        {log.source === 'nightscout' ? (
-                          <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
-                        ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
-                          <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
-                        ) : (
-                          <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
-                        )}
+                    >
+                      <Droplet size={18} strokeWidth={2.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm dark:text-white truncate">
+                        {typeof log.value === 'number' ? Math.round(log.value) : log.value} mg/dL
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                          {new Date(log.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                        <span className="text-[9px] font-bold text-slate-500 truncate italic">
+                          {log.notes || 'Glukoza'}
+                        </span>
+                        <div className="flex items-center gap-1 ml-auto">
+                          {log.source === 'nightscout' ? (
+                            <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
+                          ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
+                            <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
+                          ) : (
+                            <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </SwipeableItem>
-            </motion.div>
-          ))}
+                </SwipeableItem>
+              </motion.div>
+            ))}
+            {logs.filter(log => log.type === 'glucose').length === 0 && (
+              <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Brak pomiarów</span>
+              </div>
+            )}
+          </motion.div>
         </motion.div>
-      </motion.div>
+
+        {/* Recent Treatments (Meals & Bolus) */}
+        <motion.div variants={itemVariants} className="space-y-4">
+          <div className="flex justify-between items-center px-2">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <div className="w-1 h-1 rounded-full bg-amber-500" />
+              Posiłki i Leki
+            </h3>
+            <button
+              onClick={() => {
+                setListFilter('treatment');
+                setTab("history");
+              }}
+              className="text-[10px] font-bold text-accent-500 flex items-center gap-1 active:scale-95 transition-all"
+            >
+              WIĘCEJ <ChevronRight size={10} />
+            </button>
+          </div>
+
+          <motion.div
+            className="space-y-1"
+            variants={{
+              hidden: { opacity: 0 },
+              show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+            }}
+            initial="hidden"
+            animate="show"
+          >
+            {logs.filter(log => log.type === 'bolus' || log.type === 'meal').slice(0, 4).map((log) => (
+              <motion.div
+                key={log.id}
+                layout
+                variants={{
+                  hidden: { opacity: 0, y: 15, scale: 0.95 },
+                  show: {
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    transition: { type: "spring", stiffness: 350, damping: 25 },
+                  },
+                }}
+              >
+                <SwipeableItem
+                  id={log.id}
+                  onDelete={async () => {
+                    try {
+                      await deleteDoc(
+                        doc(
+                          db,
+                          "artifacts",
+                          "diacontrolapp",
+                          "users",
+                          getEffectiveUid(user),
+                          "logs",
+                          log.id,
+                        ),
+                      );
+                    } catch (err) {
+                      console.error("Delete failed:", err);
+                    }
+                  }}
+                >
+                  <div 
+                    onClick={() => {
+                      if (log.type === 'meal' || log.type === 'bolus') {
+                        setEditingLog(log);
+                      }
+                    }}
+                    className={cn(
+                      "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer",
+                      "hover:bg-amber-50/10"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950",
+                        log.type === "meal"
+                          ? "bg-amber-500/10 text-amber-500"
+                          : "bg-accent-500/10 text-accent-500",
+                      )}
+                    >
+                      {log.type === "meal" && (
+                        <Utensils size={18} strokeWidth={2.5} />
+                      )}
+                      {log.type === "bolus" && (
+                        <div className="flex items-center gap-0.5">
+                          <Syringe size={log.linkedMeal ? 14 : 18} strokeWidth={2.5} />
+                          {log.linkedMeal && <Utensils size={12} className="text-amber-500" />}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm dark:text-white truncate">
+                        {typeof log.value === 'number' ? (log.type === 'meal' ? log.value.toFixed(1) : log.value.toFixed(1)) : log.value}
+                        {log.type === "meal" ? "g W" : " j."}
+                        {log.type === "meal" && (log.polyols || log.protein || log.fat) && (
+                          <span className="text-[10px] font-bold text-slate-400 ml-2">
+                            {log.polyols ? `${log.polyols.toFixed(0)}P / ` : ''}{log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T
+                          </span>
+                        )}
+                        {log.type === 'bolus' && log.linkedMeal && (
+                          <span className="text-[10px] font-bold text-amber-500 ml-2">
+                             (+{log.linkedMeal.carbs}g W{log.linkedMeal.polyols ? `, ${log.linkedMeal.polyols}P` : ''})
+                          </span>
+                        )}
+                      </p>
+                      {(log.type === 'meal' || log.type === 'bolus') && (
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <Edit3 size={12} className="text-slate-300" />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                          {new Date(log.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                        <span className="text-[9px] font-bold text-slate-500 truncate italic">
+                          {(() => {
+                            const n = log.notes || log.description || '';
+                            if (n.toLowerCase() === 'meal' || n.toLowerCase() === 'carbs') return 'Posiłek';
+                            if (n.toLowerCase() === 'bolus' || n.toLowerCase() === 'insulin') return 'Insulina';
+                            let baseLabel = n || (log.type === 'meal' ? 'Posiłek' : 'Bolus');
+                            if (log.isExtended) {
+                              baseLabel = `Łączony (${log.extendedTime}h)`;
+                            }
+                            return baseLabel;
+                          })()}
+                        </span>
+                        <div className="flex items-center gap-1 ml-auto">
+                          {log.source === 'nightscout' ? (
+                            <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
+                          ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
+                            <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
+                          ) : (
+                            <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </SwipeableItem>
+              </motion.div>
+            ))}
+            {logs.filter(log => log.type === 'bolus' || log.type === 'meal').length === 0 && (
+              <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Brak aktywności</span>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      </div>
 
       <GlucoseModal
         isOpen={isGlucoseModalOpen}
         onClose={() => setIsGlucoseModalOpen(false)}
         user={user}
       />
+
+      {/* Update Popup (What's New) */}
+      {showUpdateModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800"
+          >
+            <div className="relative h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-full opacity-10">
+                <div className="grid grid-cols-6 gap-2 rotate-12 scale-150">
+                  {Array.from({ length: 24 }).map((_, i) => (
+                    <Sparkles key={i} size={24} className="text-white" />
+                  ))}
+                </div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-md p-4 rounded-3xl z-10">
+                <Gift size={40} className="text-white animate-bounce" />
+              </div>
+              <button 
+                onClick={closeUpdateModal}
+                className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors backdrop-blur-md"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="p-8">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                  Aktualizacja
+                </span>
+                <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold">
+                  v{APP_VERSION}
+                </span>
+              </div>
+              
+              <h3 className="text-xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">
+                Co nowego w GlikoControl?
+              </h3>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <Cpu size={16} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Silnik GlikoSense v2</p>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">Optymalizacja predykcji i poprawiona stabilność analizy danych AI.</p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-pink-500/10 flex items-center justify-center shrink-0">
+                    <Zap size={16} className="text-pink-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">System IOB & COB</p>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">Nowe obliczenia aktywnej insuliny i węglowodanów w czasie rzeczywistym.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                    <Sparkles size={16} className="text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Spójny interfejs</p>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">Poprawiona identyfikacja wizualna Asystenta we wszystkich widokach.</p>
+                  </div>
+                </div>
+              </div>
+              
+              <button
+                onClick={closeUpdateModal}
+                className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                Zaczynamy!
+              </button>
+              
+              <p className="text-center mt-4 text-[9px] text-slate-400 font-medium">
+                Masz uwagi? Napisz do nas w sekcji feedbacku!
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      )}
       
       {/* Sync Status */}
       <div className="fixed bottom-24 right-4 z-[45]">
