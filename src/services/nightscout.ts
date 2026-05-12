@@ -118,13 +118,16 @@ export const nightscoutService = {
 
       data.forEach(t => {
         // Nightscout treatments can have created_at as string or date as number
-        const ts = t.created_at ? new Date(t.created_at).getTime() : (t as any).date;
+        let ts = t.created_at ? new Date(t.created_at).getTime() : ((t as any).date || (t as any).timestamp);
         if (!ts) return;
+        
+        // If timestamp is in seconds (Unix convention), convert to ms
+        if (ts < 10000000000) ts *= 1000;
         
         const timestamp = ts;
         
         // Comprehensive check for insulin - some systems use 'amount' or 'insulin'
-        const insulin = t.insulin || (t as any).amount || 0;
+        const insulin = Number(t.insulin || (t as any).amount || 0);
         
         if (insulin > 0) {
           logs.push({
@@ -137,11 +140,12 @@ export const nightscoutService = {
           });
         }
         
-        if (t.carbs && t.carbs > 0) {
+        const carbs = Number(t.carbs || 0);
+        if (carbs > 0) {
           logs.push({
             id: `ns-meal-${t._id || timestamp}`,
             type: 'meal',
-            value: t.carbs,
+            value: carbs,
             timestamp,
             notes: t.notes || t.eventType,
             source: 'nightscout'

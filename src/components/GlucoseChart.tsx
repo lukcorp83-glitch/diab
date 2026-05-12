@@ -346,12 +346,17 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
     });
 
-    // Calculate IOB for many points to draw a smooth curve
-    // Every 10 minutes
+    // Add points for the IOB curve every 10 minutes to ensure smoothness
     for (let t = start; t <= end; t += 10 * 60000) {
-      const iobValue = calculateIOBAt(t, logs.filter(l => l.type === 'bolus'), diaHours);
-      addPoint(t, 'iob', iobValue);
+      if (!timeMap.has(t)) timeMap.set(t, { timestamp: t });
     }
+
+    // Now calculate IOB for EVERY point in the map to prevent gaps
+    const bolusLogs = logs.filter(l => l.type === 'bolus');
+    timeMap.forEach((point, t) => {
+      point.iob = calculateIOBAt(t, bolusLogs, diaHours);
+    });
+
     dataM.forEach(d => addPoint(d.timestamp, 'mealVal', true, { originalM: d, mealY: chartMinY }));
 
     loopPredictions.forEach(p => addPoint(p.timestamp, 'loopPrediction', p.value, { loopAction: p.actionType }));
@@ -487,6 +492,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             stroke="none"
             fill="url(#iobGradient)"
             fillOpacity={0.3}
+            connectNulls
             isAnimationActive={false}
           />
           
