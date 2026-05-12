@@ -26,54 +26,53 @@ export default function PrivacyPopup({ onAccept }: { onAccept: () => void }) {
 
         {/* Content */}
         <div className="p-8 overflow-y-auto no-scrollbar space-y-6">
-          {/* Update Info Block */}
-          <div className="bg-accent-50 dark:bg-accent-500/5 rounded-3xl p-5 border border-accent-100 dark:border-accent-500/20">
-            <h4 className="text-[10px] font-black text-accent-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <Info size={14} /> Giga-Aktualizacja Bento 2.0
-            </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              Wprowadziliśmy całkowicie nowy interfejs użytkownika, który jest jeszcze szybszy i bardziej przejrzysty. Twoje dane zostały bezpiecznie zmigrowane do nowego formatu.
-            </p>
+          {/* Informacja RODO - Oficjalna Sekcja */}
+          <div className="space-y-4">
+            <section>
+              <h4 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest mb-2 flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-500" /> Klauzula Informacyjna (RODO)
+              </h4>
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
+                <p>
+                  <span className="font-bold">1. Administrator Danych:</span> Administratorem danych osobowych i medycznych wprowadzanych do aplikacji jest Użytkownik. Infrastrukturę techniczną (przechowywanie) zapewnia GlikoControl w oparciu o usługi Google Firebase.
+                </p>
+                <p>
+                  <span className="font-bold">2. Cel Przetwarzania:</span> Twoje dane są przetwarzane wyłącznie w celu prowadzenia cyfrowego dzienniczka samokontroli cukrzycy, analizy trendów oraz (opcjonalnie) synchronizacji między Twoimi urządzeniami.
+                </p>
+                <p>
+                  <span className="font-bold">3. Brak Profilowania Reklamowego:</span> Twoje dane <span className="text-rose-500 font-bold uppercase">nie są</span> sprzedawane, udostępniane podmiotom trzecim ani wykorzystywane do profilowania marketingowego.
+                </p>
+                <p>
+                  <span className="font-bold">4. Twoje Prawa:</span> Przysługuje Ci prawo do dostępu do swoich danych, ich sprostowania, przenoszenia oraz <span className="font-bold italic">całkowitego usunięcia</span>. Możesz to zrobić w dowolnym momencie w sekcji Profil.
+                </p>
+                <p>
+                  <span className="font-bold">5. Okres Przechowywania:</span> Dane są przechowywane tak długo, jak posiadasz aktywne konto lub do momentu skorzystania przez Ciebie z funkcji "Usuń Wszystkie Dane".
+                </p>
+              </div>
+            </section>
+
+            {/* Inne korzyści */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-3">
+                  <Lock size={18} />
+                </div>
+                <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">Szyfrowanie TLS</h5>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Dane przesyłane są bezpiecznym kanałem, identycznym jak w bankowości.</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-sky-50 dark:bg-sky-500/5 border border-sky-100 dark:border-sky-500/20">
+                <div className="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-500/10 flex items-center justify-center text-sky-600 mb-3">
+                  <EyeOff size={18} />
+                </div>
+                <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">Prywatność AI</h5>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Analiza GlikoSense odbywa się lokalnie lub w zaufanej chmurze bez dostępu osób postronnych.</p>
+              </div>
+            </div>
           </div>
 
-          {/* Privacy Points */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20">
-              <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-3">
-                <Lock size={18} />
-              </div>
-              <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">Pełne Szyfrowanie</h5>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Wszystkie dane są przesyłane bezpiecznym kanałem TLS i przechowywane w Firebase.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20">
-              <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-500/10 flex items-center justify-center text-amber-600 mb-3">
-                <EyeOff size={18} />
-              </div>
-              <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">Zero Przetwarzania</h5>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Dane NIE są przetwarzane do reklam ani profilowania. Służą tylko do Twojej samokontroli.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-sky-50 dark:bg-sky-500/5 border border-sky-100 dark:border-sky-500/20">
-              <div className="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-500/10 flex items-center justify-center text-sky-600 mb-3">
-                <CloudOff size={18} />
-              </div>
-              <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">Prawo do Zapomnienia</h5>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">W każdej chwili możesz usunąć 100% swoich danych w ustawieniach Profilu.</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-              <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 mb-3">
-                <Database size={18} />
-              </div>
-              <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1">Lokalność Danych</h5>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Aplikacja wykorzystuje IndexedDB do szybkiego dostępu offline bez transferu danych.</p>
-            </div>
-          </div>
-
-          {/* Legal Small Text */}
-          <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl text-[9px] text-slate-400 dark:text-slate-500 font-medium leading-relaxed italic">
-            Klikając przycisk poniżej, oświadczasz, że zapoznałeś się z zasadami przetwarzania danych osobowych (RODO) zawartymi wewnątrz aplikacji. Twoje dane medyczne są chronione zgodnie z RODO, a Ty pozostajesz ich jedynym administratorem.
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl text-[9px] text-slate-400 dark:text-slate-500 font-medium leading-relaxed">
+            Potwierdzając, wyrażasz zgodę na powyższe zasady. Masz również prawo do wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych (UODO), jeśli uznasz, że Twoje dane są przetwarzane niezgodnie z prawem.
           </div>
         </div>
 

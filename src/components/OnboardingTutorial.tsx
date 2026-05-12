@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Database, Utensils, Settings, HeartPulse, Scan, Bot, Users, Star, ShieldAlert } from 'lucide-react';
+import { Activity, Database, Utensils, Settings, HeartPulse, Scan, Bot, Users, Star, ShieldAlert, ShieldCheck, EyeOff } from 'lucide-react';
 
 export default function OnboardingTutorial({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
@@ -13,8 +13,18 @@ export default function OnboardingTutorial({ onComplete }: { onComplete: () => v
       icon: <HeartPulse className="w-16 h-16 text-rose-500" />
     },
     {
+      title: 'Twoja Prywatność (RODO)',
+      description: 'Twoje dane medyczne są święte. NIE są one przetwarzane w celach reklamowych ani udostępniane nikomu bez Twojej wyraźnej zgody. Wszystko jest szyfrowane i bezpieczne.',
+      icon: <ShieldCheck className="w-16 h-16 text-emerald-500" />
+    },
+    {
+      title: 'Dane pozostają u Ciebie',
+      description: 'Zastosowaliśmy technologię GlikoSense, która analizuje Twoje cukry bezpośrednio na telefonie (offline). Żadne wrażliwe dane o trendach nie opuszczają Twojego urządzenia.',
+      icon: <EyeOff className="w-16 h-16 text-sky-500" />
+    },
+    {
       title: 'GlikoSense – Twój mózg offline',
-      description: 'Sercem aplikacji jest sieć neuronowa LSTM. To zaawansowany algorytm, który uczy się Twoich trendów, dawkowania i reakcji na jedzenie. Co ważne – działa w 100% offline na Twoim telefonie, dbając o Twoją prywatność.',
+      description: 'Sercem aplikacji jest sieć neuronowa LSTM. To zaawansowany algorytm, który uczy się Twoich trendów, dawkowania i reakcji na jedzenie.',
       icon: <Activity className="w-16 h-16 text-accent-500" />
     },
     {
