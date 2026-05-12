@@ -83,6 +83,7 @@ import OnboardingTutorial from './components/OnboardingTutorial';
 import NotificationCenter from './components/NotificationCenter';
 import NotebookManager from './components/NotebookManager';
 import ChangelogPopup from './components/ChangelogPopup';
+import PrivacyPopup from './components/PrivacyPopup';
 import { CURRENT_VERSION } from './constants/versions';
 
 export default function App() {
@@ -104,11 +105,19 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<{ status: 'idle' | 'syncing' | 'success' | 'error', lastSync?: number }>({ status: 'idle' });
   const [showTutorial, setShowTutorial] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sharedPlate, setSharedPlate] = useState<any[]>([]);
 
   useEffect(() => {
+    // Check privacy acceptance
+    const hasAcceptedPrivacy = localStorage.getItem('hasAcceptedPrivacy');
+    if (!hasAcceptedPrivacy) {
+      setShowPrivacyPopup(true);
+      return;
+    }
+
     // Check version for changelog
     const lastSeen = localStorage.getItem('lastSeenVersion');
     if (lastSeen !== CURRENT_VERSION) {
@@ -121,6 +130,19 @@ export default function App() {
       }
     }
   }, []);
+
+  const handleAcceptPrivacy = () => {
+    setShowPrivacyPopup(false);
+    localStorage.setItem('hasAcceptedPrivacy', 'true');
+    localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
+    
+    // After privacy, if it's first run, tutorial might trigger elsewhere
+    // If not first run but version changed, show changelog
+    const lastSeen = localStorage.getItem('lastSeenVersion');
+    if (lastSeen && lastSeen !== CURRENT_VERSION && localStorage.getItem('hasSeenTutorial')) {
+      setShowChangelog(true);
+    }
+  };
 
   const handleCloseChangelog = () => {
     setShowChangelog(false);
@@ -751,19 +773,24 @@ export default function App() {
         </motion.div>
       )}
       {/* Header */}
-      <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl p-4 sticky top-0 z-40 border-b border-slate-100 dark:border-slate-800/20 pt-10 transition-all">
+      <header className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-slate-100 dark:border-slate-800/20 pt-12 transition-all">
         <div className="flex justify-between items-center max-w-md mx-auto">
           <div className="flex items-center gap-4">
             <button
                onClick={() => setIsSidebarOpen(true)}
-               className="p-2 -ml-2 rounded-xl bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+               className="p-2.5 -ml-2 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent dark:border-slate-800 shadow-sm active:scale-90"
             >
-               <Menu size={24} />
+               <Menu size={20} strokeWidth={2.5} />
             </button>
-            <Logo className="w-11 h-11" />
-            <div>
-              <h1 className="text-xl font-black tracking-tight leading-none dark:text-white">GlikoControl</h1>
-              <p className="text-accent-500 text-[8px] font-black uppercase tracking-widest mt-1 opacity-80">v{APP_VERSION}</p>
+            <div className="flex items-center gap-3" onClick={() => changeTab('dashboard')}>
+              <Logo className="w-10 h-10 drop-shadow-sm" />
+              <div>
+                <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">GlikoControl</h1>
+                <p className="text-accent-500 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono">
+                  <span className="w-1 h-1 rounded-full bg-accent-500 animate-pulse" />
+                  SENSE v{APP_VERSION}
+                </p>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -864,6 +891,9 @@ export default function App() {
               setShowTutorial(false);
               localStorage.setItem('hasSeenTutorial', 'true');
            }} />
+        )}
+        {showPrivacyPopup && (
+           <PrivacyPopup onAccept={handleAcceptPrivacy} />
         )}
         {showChangelog && (
            <ChangelogPopup onClose={handleCloseChangelog} />

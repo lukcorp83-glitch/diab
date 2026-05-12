@@ -428,7 +428,7 @@ export default function Dashboard({
             {settings.childMode ? <Sparkles size={24} /> : <Cpu size={24} />}
           </div>
           <div className="flex-1">
-            <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">
+            <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight font-display">
               Asystent AI
             </h4>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight">
@@ -628,62 +628,61 @@ export default function Dashboard({
         </motion.div>
       )}
 
-      {/* Action Buttons */}
-      <motion.div variants={itemVariants}>
-        <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 mb-3">
-          Szybkie skróty
-        </h4>
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-none px-1">
-          {shortcuts.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => quickAdd(s)}
-              className="shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl flex items-center gap-2 font-bold text-xs shadow-sm active:scale-95 transition-all dark:text-white"
-            >
-              <span className="text-lg">{s.icon || "📌"}</span>
-              <span>{s.name}</span>
-            </button>
-          ))}
-          {shortcuts.length === 0 && (
-            <p className="text-[10px] font-medium text-slate-400 italic px-2">
-              Brak skrótów. Dodaj w opcjach.
-            </p>
-          )}
+      <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+        <div className="col-span-2 space-y-3">
+          <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 font-display">
+            Szybkie skróty
+          </h4>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none px-1 mask-fade-right">
+            {shortcuts.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => quickAdd(s)}
+                className="shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 p-3 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-tight shadow-sm active:scale-95 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all dark:text-white"
+              >
+                <span className="text-sm">{s.icon || "📌"}</span>
+                <span>{s.name}</span>
+              </button>
+            ))}
+            {shortcuts.length === 0 && (
+              <p className="text-[10px] font-medium text-slate-400 italic px-2">
+                Brak skrótów. Dodaj w opcjach.
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button
-            onClick={() => setIsGlucoseModalOpen(true)}
-            className="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-2 active:scale-95 shadow-sm transition-all"
-          >
-            <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-inner">
-              <Shield className="w-5 h-5 text-accent-500" />
-            </div>
-            <span className="font-black text-[10px] uppercase tracking-widest text-slate-500">
-              Pomiar
-            </span>
-          </button>
-          <button
-            onClick={() => setTab("bolus")}
-            className="bg-accent-600 p-4 rounded-[2rem] flex flex-col items-center gap-2 shadow-lg shadow-accent-600/20 active:scale-95 transition-all text-white"
-          >
-            <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center">
-              <Zap className="w-5 h-5" />
-            </div>
-            <span className="font-black text-[10px] uppercase tracking-widest">
-              Bolus
-            </span>
-          </button>
-        </div>
+        <button
+          onClick={() => setIsGlucoseModalOpen(true)}
+          className="bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 flex flex-col items-center justify-center gap-3 active:scale-95 shadow-sm hover:shadow-md transition-all group"
+        >
+          <div className="w-12 h-12 bg-rose-500/10 dark:bg-rose-500/20 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+            <Shield className="w-6 h-6 text-rose-500" />
+          </div>
+          <span className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-display">
+            Pomiar
+          </span>
+        </button>
+        <button
+          onClick={() => setTab("bolus")}
+          className="bg-accent-600 p-5 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-lg shadow-accent-600/20 active:scale-95 hover:shadow-xl transition-all text-white group"
+        >
+          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Zap className="w-6 h-6" />
+          </div>
+          <span className="font-black text-[10px] uppercase tracking-widest font-display">
+            Bolus
+          </span>
+        </button>
       </motion.div>
 
       {/* Recent History Mini - Split into sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Recent Glucose Measurements */}
-        <motion.div variants={itemVariants} className="space-y-4">
+        <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex justify-between items-center px-2">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-              <div className="w-1 h-1 rounded-full bg-rose-500" />
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 font-display">
+              <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
               Ostatnie pomiary
             </h3>
             <button
@@ -691,7 +690,7 @@ export default function Dashboard({
                 setListFilter('glucose');
                 setTab("history");
               }}
-              className="text-[10px] font-bold text-accent-500 flex items-center gap-1 active:scale-95 transition-all"
+              className="text-[10px] font-bold text-accent-500 flex items-center gap-1 hover:underline transition-all"
             >
               WIĘCEJ <ChevronRight size={10} />
             </button>
@@ -710,13 +709,14 @@ export default function Dashboard({
               <motion.div
                 key={log.id}
                 layout
+                whileHover={{ scale: 1.01, x: 2 }}
                 variants={{
-                  hidden: { opacity: 0, y: 15, scale: 0.95 },
+                  hidden: { opacity: 0, y: 10, scale: 0.98 },
                   show: {
                     opacity: 1,
                     y: 0,
                     scale: 1,
-                    transition: { type: "spring", stiffness: 350, damping: 25 },
+                    transition: { type: "spring", stiffness: 400, damping: 30 },
                   },
                 }}
               >
@@ -742,23 +742,23 @@ export default function Dashboard({
                 >
                   <div 
                     className={cn(
-                      "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer"
+                      "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/40 p-3.5 rounded-[1.8rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer shadow-sm active:scale-[0.99]"
                     )}
                   >
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950",
+                        "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors",
                         "bg-rose-500/10 text-rose-500"
                       )}
                     >
                       <Droplet size={18} strokeWidth={2.5} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-black text-sm dark:text-white truncate">
-                        {typeof log.value === 'number' ? Math.round(log.value) : log.value} mg/dL
+                      <p className="font-black text-sm dark:text-white truncate font-display">
+                        {typeof log.value === 'number' ? Math.round(log.value) : log.value} <span className="text-[10px] text-slate-400 font-bold ml-0.5">mg/dL</span>
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap font-mono">
                           {new Date(log.timestamp).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -770,11 +770,11 @@ export default function Dashboard({
                         </span>
                         <div className="flex items-center gap-1 ml-auto">
                           {log.source === 'nightscout' ? (
-                            <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
+                            <span className="text-[7px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
                           ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
-                            <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
+                            <span className="text-[7px] bg-accent-500/10 text-accent-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
                           ) : (
-                            <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
+                            <span className="text-[7px] bg-slate-500/10 text-slate-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
                           )}
                         </div>
                       </div>
@@ -785,17 +785,17 @@ export default function Dashboard({
             ))}
             {logs.filter(log => log.type === 'glucose').length === 0 && (
               <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Brak pomiarów</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-display">Brak pomiarów</span>
               </div>
             )}
           </motion.div>
         </motion.div>
 
         {/* Recent Treatments (Meals & Bolus) */}
-        <motion.div variants={itemVariants} className="space-y-4">
+        <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex justify-between items-center px-2">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-              <div className="w-1 h-1 rounded-full bg-amber-500" />
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 font-display">
+              <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
               Posiłki i Leki
             </h3>
             <button
@@ -803,7 +803,7 @@ export default function Dashboard({
                 setListFilter('treatment');
                 setTab("history");
               }}
-              className="text-[10px] font-bold text-accent-500 flex items-center gap-1 active:scale-95 transition-all"
+              className="text-[10px] font-bold text-accent-500 flex items-center gap-1 hover:underline transition-all"
             >
               WIĘCEJ <ChevronRight size={10} />
             </button>
@@ -822,13 +822,14 @@ export default function Dashboard({
               <motion.div
                 key={log.id}
                 layout
+                whileHover={{ scale: 1.01, x: 2 }}
                 variants={{
-                  hidden: { opacity: 0, y: 15, scale: 0.95 },
+                  hidden: { opacity: 0, y: 10, scale: 0.98 },
                   show: {
                     opacity: 1,
                     y: 0,
                     scale: 1,
-                    transition: { type: "spring", stiffness: 350, damping: 25 },
+                    transition: { type: "spring", stiffness: 400, damping: 30 },
                   },
                 }}
               >
@@ -859,13 +860,12 @@ export default function Dashboard({
                       }
                     }}
                     className={cn(
-                      "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer",
-                      "hover:bg-amber-50/10"
+                      "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/40 p-3.5 rounded-[1.8rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer shadow-sm active:scale-[0.99]",
                     )}
                   >
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950",
+                        "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors",
                         log.type === "meal"
                           ? "bg-amber-500/10 text-amber-500"
                           : "bg-accent-500/10 text-accent-500",
@@ -882,27 +882,17 @@ export default function Dashboard({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-black text-sm dark:text-white truncate">
+                      <p className="font-black text-sm dark:text-white truncate font-display">
                         {typeof log.value === 'number' ? (log.type === 'meal' ? log.value.toFixed(1) : log.value.toFixed(1)) : log.value}
-                        {log.type === "meal" ? "g W" : " j."}
+                        <span className="text-[10px] text-slate-400 font-bold ml-1">{log.type === "meal" ? "g W" : " j."}</span>
                         {log.type === "meal" && (log.polyols || log.protein || log.fat) && (
-                          <span className="text-[10px] font-bold text-slate-400 ml-2">
-                            {log.polyols ? `${log.polyols.toFixed(0)}P / ` : ''}{log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T
-                          </span>
-                        )}
-                        {log.type === 'bolus' && log.linkedMeal && (
-                          <span className="text-[10px] font-bold text-amber-500 ml-2">
-                             (+{log.linkedMeal.carbs}g W{log.linkedMeal.polyols ? `, ${log.linkedMeal.polyols}P` : ''})
+                          <span className="text-[9px] font-bold text-slate-400 ml-2 font-mono">
+                            {log.polyols ? `${log.polyols.toFixed(0)}P/` : ''}{log.protein?.toFixed(0)}B/{log.fat?.toFixed(0)}T
                           </span>
                         )}
                       </p>
-                      {(log.type === 'meal' || log.type === 'bolus') && (
-                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                           <Edit3 size={12} className="text-slate-300" />
-                        </div>
-                      )}
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap font-mono">
                           {new Date(log.timestamp).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -923,11 +913,11 @@ export default function Dashboard({
                         </span>
                         <div className="flex items-center gap-1 ml-auto">
                           {log.source === 'nightscout' ? (
-                            <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
+                            <span className="text-[7px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
                           ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
-                            <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
+                            <span className="text-[7px] bg-accent-500/10 text-accent-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
                           ) : (
-                            <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
+                            <span className="text-[7px] bg-slate-500/10 text-slate-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
                           )}
                         </div>
                       </div>
@@ -938,7 +928,7 @@ export default function Dashboard({
             ))}
             {logs.filter(log => log.type === 'bolus' || log.type === 'meal').length === 0 && (
               <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Brak aktywności</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-display">Brak aktywności</span>
               </div>
             )}
           </motion.div>

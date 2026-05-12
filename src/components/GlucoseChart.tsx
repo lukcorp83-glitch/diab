@@ -23,8 +23,11 @@ const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => 
   return boluses.reduce((sum, b) => {
     const timeSince = time - b.timestamp;
     if (timeSince < 0 || timeSince >= diaMs) return sum;
-    // Basic linear decay for visual representation, could be improved with curve
-    const remaining = 1 - (timeSince / diaMs);
+    
+    const x = timeSince / diaMs;
+    // Cubic decay for realistic sigmoid shape
+    const remaining = Math.max(0, 1 - (3 * Math.pow(x, 2) - 2 * Math.pow(x, 3)));
+    
     return sum + b.value * remaining;
   }, 0);
 };
@@ -234,7 +237,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         .filter(l => l.type === 'bolus' && nowMs - l.timestamp < diaMs && nowMs - l.timestamp >= 0)
         .reduce((sum, b) => {
           const timeSince = nowMs - b.timestamp;
-          const decay = Math.max(0, 1 - (timeSince / diaMs));
+          const x = timeSince / diaMs;
+          const decay = Math.max(0, 1 - (3 * Math.pow(x, 2) - 2 * Math.pow(x, 3)));
           return sum + (b.value * decay);
         }, 0);
         

@@ -115,6 +115,51 @@ export default function Profile({
 
 
 
+  const [nukeLoading, setNukeLoading] = useState(false);
+  const [showRodo, setShowRodo] = useState(false);
+
+  const nukeAllData = async () => {
+    if (!window.confirm("UWAGA! Ta operacja jest NIEODWRACALNA. Wszystkie Twoje dane (pomiaru, posiłki, ustawienia, postępy zwierzaka) zostaną bezpowrotnie usunięte z serwera. Czy na pewno chcesz kontynuować?")) {
+      return;
+    }
+    
+    if (!window.confirm("OSTATNIE OSTRZEŻENIE: Potwierdź usunięcie wszystkich danych.")) {
+      return;
+    }
+
+    setNukeLoading(true);
+    try {
+      const uid = getEffectiveUid(user);
+      const userDocPath = `artifacts/diacontrolapp/users/${uid}`;
+      
+      // List of collections/docs to delete
+      const collectionsToDelete = ['logs', 'shortcuts', 'customProducts', 'notifications', 'achievements'];
+      const docsToDelete = ['settings/profile', 'settings/nightscout', 'pet/status', 'achievements/stats'];
+
+      for (const collName of collectionsToDelete) {
+        const collRef = collection(db, userDocPath, collName);
+        const snapshot = await getDocs(collRef);
+        for (const d of snapshot.docs) {
+          await deleteDoc(doc(db, userDocPath, collName, d.id));
+        }
+      }
+
+      for (const docPath of docsToDelete) {
+        await deleteDoc(doc(db, userDocPath, ...docPath.split('/')));
+      }
+
+      toast.success("Wszystkie dane zostały usunięte.");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error("Nuke failed:", err);
+      toast.error("Błąd podczas usuwania danych.");
+    } finally {
+      setNukeLoading(false);
+    }
+  };
+
   const cleanupDatabase = async () => {
     setCleaning(true);
     setCleaningResult(null);
@@ -1812,6 +1857,56 @@ export default function Profile({
           
           <div className="text-[8px] font-black uppercase text-slate-400 text-center tracking-[0.3em] mb-4 opacity-50">
             GlikoSense Engine v2.5
+          </div>
+
+          <div className="bg-rose-500/5 border border-rose-500/20 rounded-[2rem] p-6 mt-4">
+            <h4 className="flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-2">
+              <Trash size={14} /> Strefa Niebezpieczeństwa
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-4 leading-tight">
+              Możesz usunąć wszystkie swoje dane z naszych serwerów. Operacja ta jest zgodna z Twoim prawem do bycia zapomnianym (RODO).
+            </p>
+            <button 
+              onClick={nukeAllData}
+              disabled={nukeLoading}
+              className="w-full bg-rose-500 text-white py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {nukeLoading ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
+              Usuń Wszystkie Moje Dane
+            </button>
+          </div>
+
+          <div className="bg-slate-100 dark:bg-slate-900/50 rounded-[2rem] p-6 border border-slate-200 dark:border-slate-800 mt-4">
+            <button 
+              onClick={() => setShowRodo(!showRodo)}
+              className="w-full flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]"
+            >
+              <div className="flex items-center gap-2">
+                <Shield size={14} /> Klauzula RODO / Prywatność
+              </div>
+              <ChevronRight size={14} className={cn("transition-transform", showRodo && "rotate-90")} />
+            </button>
+            {showRodo && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                className="pt-4 space-y-3 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed text-left"
+              >
+                <div className="h-px bg-slate-200 dark:bg-slate-800 mb-2" />
+                <p>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase text-[9px]">Administrator Danych:</span> Korzystając z GlikoControl, administratorem Twoich danych jestes Ty sam. Dane są przechowywane w bezpiecznej infrastrukturze Firebase (Google Cloud) na terenie UE/USA zgodnie z rygorystycznymi normami bezpieczeństwa.
+                </p>
+                <p>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase text-[9px]">Cel przetwarzania:</span> Dane glikemii, posiłków i leków są przechowywane wyłącznie w celu prowadzenia dzienniczka samokontroli i analizy trendów przez algorytmy AI (tylko na Twoje życzenie).
+                </p>
+                <p>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase text-[9px]">Udostępnianie:</span> Twoje dane nie są sprzedawane ani udostępniane podmiotom trzecim. Wyjątkiem jest dobrowolna funkcja "Programu Badawczego GlikoSense", która przesyła całkowicie zanonimizowane wzorce trendów (bez identyfikatorów) do globalnej bazy wiedzy.
+                </p>
+                <p>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase text-[9px]">Twoje prawa:</span> Masz prawo do wglądu w swoje dane, ich poprawiania oraz całkowitego usunięcia (używając przycisku powyżej). Możesz również wyeksportować swoje dane do pliku CSV w sekcji Historia.
+                </p>
+              </motion.div>
+            )}
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800/50">

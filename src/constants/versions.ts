@@ -7,6 +7,18 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.4.0",
+    date: "2026-05-12",
+    title: "Nowy Wymiar Elegancji: Bento 2.0",
+    changes: [
+      "Interfejs: Całkowicie nowy layout 'Bento' na pulpicie – lepsza organizacja i czytelność.",
+      "Design: Nowa typografia (Space Grotesk) dla technicznego, nowoczesnego wyglądu.",
+      "Mood: Wprowadzono dynamiczne kolory akcentów zależne od bieżącego stanu glikemii (opcjonalnie).",
+      "Wydajność: Zoptymalizowano renderowanie wykresów przy dużych zestawach danych (10k+ rekordów).",
+      "PWA: Ulepszony tryb offline i stabilniejsze ikony skrótów."
+    ]
+  },
+  {
     version: "3.3.7",
     date: "2026-05-12",
     title: "Giga-Aktualizacja: Wydajność i Offline",
@@ -128,4 +140,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.3.7";
+export const CURRENT_VERSION = "3.4.0";
