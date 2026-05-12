@@ -93,19 +93,6 @@ export default function Dashboard({
     localStorage.setItem('glikosfera_ml_prediction', JSON.stringify(showMLPrediction));
   }, [showMLPrediction]);
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-
-  useEffect(() => {
-    const seenVersion = localStorage.getItem('glikosfera_seen_version');
-    if (seenVersion !== APP_VERSION) {
-      setShowUpdateModal(true);
-    }
-  }, []);
-
-  const closeUpdateModal = () => {
-    localStorage.setItem('glikosfera_seen_version', APP_VERSION);
-    setShowUpdateModal(false);
-  };
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [listFilter, setListFilter] = useState<'all' | 'glucose' | 'treatment'>('treatment');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
@@ -963,94 +950,6 @@ export default function Dashboard({
         onClose={() => setIsGlucoseModalOpen(false)}
         user={user}
       />
-
-      {/* Update Popup (What's New) */}
-      {showUpdateModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800"
-          >
-            <div className="relative h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-full opacity-10">
-                <div className="grid grid-cols-6 gap-2 rotate-12 scale-150">
-                  {Array.from({ length: 24 }).map((_, i) => (
-                    <Sparkles key={i} size={24} className="text-white" />
-                  ))}
-                </div>
-              </div>
-              <div className="bg-white/20 backdrop-blur-md p-4 rounded-3xl z-10">
-                <Gift size={40} className="text-white animate-bounce" />
-              </div>
-              <button 
-                onClick={closeUpdateModal}
-                className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors backdrop-blur-md"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            
-            <div className="p-8">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
-                  Aktualizacja
-                </span>
-                <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold">
-                  v{APP_VERSION}
-                </span>
-              </div>
-              
-              <h3 className="text-xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">
-                Co nowego w GlikoControl?
-              </h3>
-              
-              <div className="space-y-4 mb-8">
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                    <Cpu size={16} className="text-emerald-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Silnik GlikoSense v2</p>
-                    <p className="text-[10px] text-slate-500 leading-relaxed">Optymalizacja predykcji i poprawiona stabilność analizy danych AI.</p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-xl bg-pink-500/10 flex items-center justify-center shrink-0">
-                    <Zap size={16} className="text-pink-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">System IOB & COB</p>
-                    <p className="text-[10px] text-slate-500 leading-relaxed">Nowe obliczenia aktywnej insuliny i węglowodanów w czasie rzeczywistym.</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                    <Sparkles size={16} className="text-amber-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Spójny interfejs</p>
-                    <p className="text-[10px] text-slate-500 leading-relaxed">Poprawiona identyfikacja wizualna Asystenta we wszystkich widokach.</p>
-                  </div>
-                </div>
-              </div>
-              
-              <button
-                onClick={closeUpdateModal}
-                className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                Zaczynamy!
-              </button>
-              
-              <p className="text-center mt-4 text-[9px] text-slate-400 font-medium">
-                Masz uwagi? Napisz do nas w sekcji feedbacku!
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      )}
       
       {/* Sync Status */}
       <div className="fixed bottom-24 right-4 z-[45]">

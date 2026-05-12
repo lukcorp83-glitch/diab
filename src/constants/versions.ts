@@ -7,6 +7,17 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.3.7",
+    date: "2026-05-12",
+    title: "Giga-Aktualizacja: Wydajność i Offline",
+    changes: [
+      "Nowość: Tryb Offline – dzięki IndexedDB aplikacja działa bez internetu i oszczędza transfer (pobiera tylko nowe dane).",
+      "Analityka: Pełne 30-dniowe statystyki TIR na ekranie głównym (zwiększony limit do 10 000 rekordów).",
+      "Stabilność: Naprawiono krytyczne błędy połączenia z bazą danych i poprawiono buforowanie widoków.",
+      "Poprawka: Stabilizacja wyświetlania danych z Nightscout i precyzyjniejsza konwersja jednostek czasu."
+    ]
+  },
+  {
     version: "3.3.5",
     date: "2026-05-11",
     title: "Wirtualny Asystent i Kalkulator Alkoholu",
@@ -117,4 +128,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.3.5";
+export const CURRENT_VERSION = "3.3.7";

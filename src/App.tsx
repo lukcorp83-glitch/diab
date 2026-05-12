@@ -32,7 +32,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, setDoc, deleteDoc, writeBatch, limit } from 'firebase/firestore';
 import { LogEntry, UserSettings, Product } from './types';
 import { geminiService } from './services/gemini';
 import { CATEGORIES, LIB_BASE, APP_VERSION } from './constants';
@@ -75,6 +75,7 @@ const GlikoAssistant = lazyWithReload(() => import('./components/GlikoAssistant'
 import Sidebar from './components/Sidebar';
 import { cn } from './lib/utils';
 import { nightscoutService } from './services/nightscout';
+import { maintenanceService } from './services/maintenanceService';
 
 import Logo from './components/Logo';
 
@@ -308,6 +309,7 @@ export default function App() {
       setLoading(false);
       
       if (u) {
+         maintenanceService.cleanupOldData(getEffectiveUid(u), 30);
          const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
          if (!hasSeenTutorial) {
             setShowTutorial(true);
@@ -331,7 +333,8 @@ export default function App() {
     if (!user) return;
     const q = query(
       collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'),
-      orderBy('timestamp', 'desc')
+      orderBy('timestamp', 'desc'),
+      limit(10000)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as LogEntry[];

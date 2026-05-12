@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
-import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -9,15 +9,38 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Connectivity fix for restricted environments
-// Connectivity fix for restricted environments
 // Try to get databaseId from environment or fallback to (default)
-const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || '(default)';
+let databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || '(default)';
+
+// Sanitize databaseId - if it contains spaces or braces, it's likely a misconfigured env var
+if (databaseId.includes(' ') || databaseId.includes('{') || databaseId.length > 64) {
+  console.warn(`[Firebase] Invalid databaseId detected: "${databaseId}". Falling back to "(default)".`);
+  databaseId = '(default)';
+}
 
 console.log(`[Firebase Initializing] Project: ${firebaseConfig.projectId}, Requested DB: ${databaseId}`);
 
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 }, databaseId);
+
+// Enable offline persistence with better error handling
+const enablePersistence = async () => {
+    try {
+        await enableMultiTabIndexedDbPersistence(db);
+        console.log('[Firestore] Multi-tab persistence enabled');
+    } catch (err: any) {
+        if (err.code === 'failed-precondition') {
+            console.warn('[Firestore] Persistence failed: Multiple tabs open');
+        } else if (err.code === 'unimplemented') {
+            console.warn('[Firestore] Persistence failed: Browser not supported');
+        } else {
+            console.error('[Firestore] Persistence unexpected error:', err.message);
+        }
+    }
+};
+
+enablePersistence();
 
 // Test connection to Firestore
 const testConnection = async () => {
