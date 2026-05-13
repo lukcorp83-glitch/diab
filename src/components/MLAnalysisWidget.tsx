@@ -4,6 +4,7 @@ import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loade
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
+import { cn } from '../lib/utils';
 
 interface MLAnalysisWidgetProps {
   logs: LogEntry[];
@@ -177,6 +178,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
 
     return days.map(day => {
         let tir = 0;
+        let avg = 0;
         if (day.glucoseLogs.length > 0) {
             const inRange = day.glucoseLogs.filter(l => {
                 const v = l.value || l.bg || 0;
@@ -185,10 +187,12 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                 return v >= min && v <= max;
             }).length;
             tir = Math.round((inRange / day.glucoseLogs.length) * 100);
+            avg = Math.round(day.glucoseLogs.reduce((sum, l) => sum + (l.value || l.bg || 0), 0) / day.glucoseLogs.length);
         }
         return {
             label: day.label,
             tir: day.glucoseLogs.length > 0 ? tir : null,
+            avg: day.glucoseLogs.length > 0 ? avg : null,
             bolus: day.bolusTotal
         };
     });
@@ -248,10 +252,10 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
-               className="h-48 flex flex-col items-center justify-center relative z-10 bg-rose-50 dark:bg-rose-900/10 rounded-3xl border border-rose-100 dark:border-rose-900/30"
+               className="h-48 flex flex-col items-center justify-center relative z-10 bg-amber-50 dark:bg-amber-900/10 rounded-3xl border border-amber-100 dark:border-amber-900/30"
             >
-               <AlertTriangle size={32} className="text-rose-500 mb-4" />
-               <span className="text-xs font-bold uppercase tracking-widest text-rose-500 text-center px-6">{error}</span>
+               <AlertTriangle size={32} className="text-amber-500 mb-4" />
+               <span className="text-xs font-bold uppercase tracking-widest text-amber-500 text-center px-6">{error}</span>
                <button 
                  onClick={() => runML(true)}
                  className="mt-4 text-[10px] font-bold text-accent-500 uppercase tracking-widest hover:underline"
@@ -326,7 +330,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
 
                       {/* Confidence & Alerts Box */}
                       <div className="flex flex-col gap-3 md:gap-5">
-                          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 md:p-8 rounded-[2rem] border border-slate-200/60 dark:border-slate-700/60 shadow-lg flex-1 flex flex-col justify-center relative overflow-hidden group">
+                          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 md:p-8 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-700/60 shadow-lg flex-1 flex flex-col justify-center relative overflow-hidden group">
                               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                               <div className="flex items-center gap-2 mb-2 md:mb-3 relative z-10">
                                   <div className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 md:p-2 rounded-xl">
@@ -349,9 +353,9 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                           
                           {mlResult.riskOfHypo && (
                              <motion.div 
-                               initial={{ opacity: 0, scale: 0.9 }}
-                               animate={{ opacity: 1, scale: 1 }}
-                               className="bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-900/40 dark:to-rose-900/20 border-2 border-rose-200 dark:border-rose-800/50 p-3 md:p-4 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center gap-2 md:gap-3 text-rose-600 dark:text-rose-400 shadow-sm"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/40 dark:to-amber-900/20 border-2 border-amber-200 dark:border-amber-800/50 p-3 md:p-4 rounded-[2rem] flex items-center justify-center gap-2 md:gap-3 text-amber-600 dark:text-amber-400 shadow-sm"
                              >
                                 <div className="bg-white/50 dark:bg-black/20 p-1.5 md:p-2 rounded-full">
                                   <AlertTriangle size={16} className="animate-pulse" />
@@ -364,31 +368,36 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
 
                   {mlResult.metrics && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-[1.5rem] border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
-                              <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-indigo-500 transition-colors">Aktywna Insulina</span>
-                              <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.iob.toFixed(1)} <span className="text-xs font-bold text-slate-400 tracking-normal">j</span></span>
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                              <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-indigo-500 transition-colors">Profil Działania Insuliny</span>
+                              <div className="flex flex-col">
+                                <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.iob.toFixed(1)} <span className="text-xs font-bold text-slate-400 tracking-normal">j</span></span>
+                                {mlResult.metrics.iob > 0 && (
+                                  <span className="text-[7px] font-bold text-pink-500/80 uppercase mt-0.5 tracking-tighter">Start: ~20m • Szczyt: ~75m</span>
+                                )}
+                              </div>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-[1.5rem] border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">Aktywne Węglow.</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.cob.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">g</span></span>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-[1.5rem] border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
-                              <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-rose-500 transition-colors">Oporność (Bias)</span>
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                              <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">Oporność (Bias)</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
                                 {mlResult.metrics.avgBias > 0 ? '+' : ''}{mlResult.metrics.avgBias.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">mg/dL</span>
                               </span>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-[1.5rem] border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-emerald-500 transition-colors">GMI (Wskaźnik)</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.gmiPercentage > 0 ? mlResult.metrics.gmiPercentage.toFixed(1) : '--'} <span className="text-xs font-bold text-slate-400 tracking-normal">%</span></span>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-[1.5rem] border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-orange-500 transition-colors">Czułość (Węg.)</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
                                 {mlResult.metrics.carbSensitivity > 0 ? '+' : ''}{mlResult.metrics.carbSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">/ 50g</span>
                               </span>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-[1.5rem] border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-cyan-500 transition-colors">Wrażliwość (Ins.)</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
                                 {mlResult.metrics.insulinSensitivity > 0 ? '+' : ''}{mlResult.metrics.insulinSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">/ 1j</span>
@@ -397,7 +406,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                       </div>
                   )}
 
-                  <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
                       <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                         <Sparkles size={14} className="text-amber-500" /> Wnioski Systemu
                       </h4>
@@ -409,10 +418,10 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: 0.3 + (idx * 0.1) }}
-                                  key={idx} 
-                                  className={`p-4 rounded-[1.5rem] flex gap-3 text-sm font-medium leading-relaxed shadow-sm ${
+                                  key={`insight-text-${idx}`} 
+                                  className={`p-4 rounded-3xl flex gap-3 text-sm font-medium leading-relaxed shadow-sm ${
                                     isWarning 
-                                    ? 'bg-gradient-to-br from-rose-50 to-rose-100/50 text-rose-800 border-rose-200 dark:from-rose-950/40 dark:to-rose-900/20 dark:text-rose-300 dark:border-rose-900/50' 
+                                    ? 'bg-gradient-to-br from-amber-50 to-amber-100/50 text-amber-800 border-amber-200 dark:from-amber-950/40 dark:to-amber-900/20 dark:text-amber-300 dark:border-amber-900/50' 
                                     : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-700/50'
                                   } border`}
                                 >
@@ -423,21 +432,32 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                       </div>
                   </div>
                   
-                  <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
                       <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                         <CalendarDays size={14} className="text-indigo-500" /> Ostatnie 3 Dni
                       </h4>
                       <div className="grid grid-cols-3 gap-3">
                         {dailyStats.map((stat, idx) => (
-                           <div key={idx} className="bg-white dark:bg-slate-800/80 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center gap-2">
-                             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stat.label}</span>
-                             <div className="flex items-center gap-1">
-                               <Target size={14} className="text-emerald-500" />
-                               <span className="text-lg font-black text-slate-800 dark:text-slate-100 whitespace-nowrap">{stat.tir != null ? `${stat.tir}%` : '--'}</span>
+                           <div key={`insight-${idx}`} className="bg-white dark:bg-slate-800/80 p-4 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center gap-1.5 transition-all hover:border-indigo-500/30">
+                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</span>
+                             <div className="flex flex-col items-center">
+                               <span className={cn(
+                                 "text-lg font-black leading-none",
+                                 stat.avg ? (stat.avg > 180 || stat.avg < 70 ? 'text-amber-500' : 'text-emerald-500') : 'text-slate-300'
+                               )}>
+                                 {stat.avg || '--'}
+                               </span>
+                               <span className="text-[8px] font-bold text-slate-400 uppercase">mg/dL</span>
                              </div>
-                             <div className="flex items-center gap-1 text-slate-400 whitespace-nowrap">
-                               <Syringe size={12} className="text-indigo-400" />
-                               <span className="text-[10px] font-bold">{stat.bolus > 0 ? stat.bolus.toFixed(1) : '0'} j</span>
+                             <div className="flex flex-col items-center w-full pt-1 border-t border-slate-50 dark:border-slate-700/30">
+                               <div className="flex items-center gap-1">
+                                 <Target size={10} className="text-emerald-500" />
+                                 <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">{stat.tir != null ? `${stat.tir}%` : '--'}</span>
+                               </div>
+                               <div className="flex items-center gap-1 text-slate-400">
+                                 <Syringe size={10} className="text-indigo-400" />
+                                 <span className="text-[9px] font-bold">{stat.bolus > 0 ? stat.bolus.toFixed(1) : '0'} j</span>
+                               </div>
                              </div>
                            </div>
                         ))}

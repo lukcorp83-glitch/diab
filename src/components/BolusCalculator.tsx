@@ -391,6 +391,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
              <label className="text-[10px] font-black text-slate-400 uppercase block text-center">Cukier</label>
              <input 
                type="number" 
+               min="0"
                value={bg} 
                onChange={e => setBg(e.target.value)}
                placeholder="mg/dL"
@@ -402,6 +403,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
              <div className="relative">
               <input 
                 type="number" 
+                min="0"
                 value={carbs} 
                 onChange={e => setCarbs(e.target.value)}
                 placeholder="g"
@@ -435,6 +437,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
             <label className="text-[10px] font-black text-slate-400 uppercase block text-center">Poliole (g)</label>
             <input 
               type="number" 
+              min="0"
               value={polyols} 
               onChange={e => setPolyols(e.target.value)}
               placeholder="0"
@@ -498,6 +501,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
                <label className="text-[10px] font-black text-rose-400 uppercase block text-center">Białko (g)</label>
                <input 
                  type="number" 
+                 min="0"
                  value={protein} 
                  onChange={e => setProtein(e.target.value)}
                  placeholder="g"
@@ -508,6 +512,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
                <label className="text-[10px] font-black text-amber-400 uppercase block text-center">Tłuszcz (g)</label>
                <input 
                  type="number" 
+                 min="0"
                  value={fat} 
                  onChange={e => setFat(e.target.value)}
                  placeholder="g"
@@ -624,6 +629,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
              <div className="flex items-center justify-center gap-2 mt-2 mb-2">
                 <input 
                   type="number"
+                  min="0"
                   step="0.1"
                   value={manualDose !== null ? manualDose : dose.toFixed(1)}
                   onChange={e => setManualDose(e.target.value)}
@@ -673,7 +679,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
          </div>
          <div className="space-y-1">
            <p className="text-[10px] font-bold text-accent-900 dark:text-accent-200 leading-relaxed">
-              Kalkulacja uwzględnia <b>Zaawansowany Model IOB</b> (czas działania: {settings.dia || 4}h), współczynniki personalne oraz trend. Możesz użyć kamery do skanowania posiłków.
+              Kalkulacja uwzględnia <b>Profil Działania Insuliny (IOB)</b> (czas działania: {settings.dia || 4}h), współczynniki personalne oraz trend. Możesz użyć kamery do skanowania posiłków.
            </p>
            {activeProfileTime && (
              <p className="text-[9px] font-black text-accent-500 uppercase tracking-widest mt-2 block">

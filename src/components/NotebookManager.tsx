@@ -313,7 +313,7 @@ export default function NotebookManager({ user }: { user: any }) {
                   </p>
                 </div>
                 {compendium.map((item, i) => (
-                  <div key={i} className="p-5 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm relative">
+                  <div key={`notebook-skeleton-${i}`} className="p-5 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm relative">
                     <h5 className="font-black text-slate-800 dark:text-slate-100 text-sm mb-2">{item.title}</h5>
                     <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed whitespace-pre-wrap">{item.content}</p>
                   </div>

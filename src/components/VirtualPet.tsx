@@ -57,7 +57,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
   
   const [reaction, setReaction] = useState<'idle' | 'happy' | 'eating' | 'sad'>('idle');
   const [idleVariant, setIdleVariant] = useState(0);
-  const [particles, setParticles] = useState<{id: number, x: number}[]>([]);
+  const [particles, setParticles] = useState<{id: string | number, x: number}[]>([]);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [imageError, setImageError] = useState<string | null>(null);
@@ -70,10 +70,13 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
   }, [petData?.skin, petData?.level, petData?.currentAccessory, glucose]);
 
   const triggerParticles = () => {
-    const newParticles = Array.from({ length: 3 }).map((_, i) => ({ id: Date.now() + i, x: Math.random() * 40 - 20 }));
+    const newParticles = Array.from({ length: 3 }).map((_, i) => ({ 
+      id: `part-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`, 
+      x: Math.random() * 40 - 20 
+    }));
     setParticles(prev => [...prev, ...newParticles]);
     setTimeout(() => {
-      setParticles(prev => prev.filter(p => !newParticles.find(n => n.id === p.id)));
+      setParticles(prev => prev.filter(p => !newParticles.some(n => n.id === p.id)));
     }, 2000);
   };
 

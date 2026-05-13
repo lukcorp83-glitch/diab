@@ -1,6 +1,6 @@
 import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, PlateItem } from "../types";
 import {
@@ -21,6 +21,7 @@ import {
   Camera,
   Mic,
   X,
+  Database,
 } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
 import { cn } from "../lib/utils";
@@ -43,11 +44,13 @@ export default function MealPlate({
   setTab,
   sharedPlate = [],
   setSharedPlate,
+  mode = "both",
 }: {
   user: any;
   setTab: (t: string) => void;
   sharedPlate?: PlateItem[];
   setSharedPlate?: React.Dispatch<React.SetStateAction<PlateItem[]>>;
+  mode?: "search" | "plate" | "both";
 }) {
   const plate = sharedPlate;
   const setPlate = setSharedPlate || (() => {});
@@ -106,22 +109,27 @@ export default function MealPlate({
     };
   }, [user]);
 
-  const allLocalRaw = [...customProducts, ...communityProducts, ...LIB_BASE];
-  const allLocal = Array.from(
-    new Map(
-      allLocalRaw
-        .filter((item) => item && item.name)
-        .map((item) => [item.name.toLowerCase(), item]),
-    ).values(),
-  );
-  const browseResults = allLocal.filter((p) => {
-    const matchesSearch =
-      searchTerm.length < 2 ||
-      p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      activeCategory === "Wszystko" || p.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  }).sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+  const allLocal = useMemo(() => {
+    const allLocalRaw = [...customProducts, ...communityProducts, ...LIB_BASE];
+    return Array.from(
+      new Map(
+        allLocalRaw
+          .filter((item) => item && item.name)
+          .map((item) => [`${item.id || item.name.toLowerCase()}`, item]),
+      ).values(),
+    ).sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+  }, [customProducts, communityProducts]);
+
+  const browseResults = useMemo(() => {
+    return allLocal.filter((p) => {
+      const matchesSearch =
+        searchTerm.length < 2 ||
+        p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        activeCategory === "Wszystko" || p.category === activeCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [allLocal, searchTerm, activeCategory]);
 
   const performOnlineSearch = async (query: string) => {
     if (query.length < 3 || isSearching) return;
@@ -413,6 +421,7 @@ export default function MealPlate({
       {
         ...product,
         weight,
+        plateItemId: Math.random().toString(36).substring(2, 9) + Date.now().toString(36)
       },
     ]);
     // Don't clear search automatically so user can add more
@@ -713,18 +722,19 @@ export default function MealPlate({
         )}
       </AnimatePresence>
 
-      <div className="px-1">
-        <h2 className="text-xl font-black dark:text-white mb-2">
-          Buduj swój posiłek
-        </h2>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">
-          Wyszukaj produkty i dodaj je do talerza
-        </p>
-      </div>
-
       {/* Search & Browser */}
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3">
+      {(mode === 'search' || mode === 'both') && (
+        <>
+          <div className="px-1">
+            <h2 className="text-xl font-black dark:text-white mb-2">
+              Buduj swój posiłek
+            </h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">
+              Wyszukaj produkty i dodaj je do talerza
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
           <div className="relative w-full">
             <Search
               className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"
@@ -962,7 +972,7 @@ export default function MealPlate({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
                     transition={{ duration: 0.2 }}
-                    key={p.id || p.name}
+                    key={`${p.id || 'p'}-${i}`}
                     onClick={() => openWeightModal(p)}
                     className="w-full bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-left hover:border-accent-500 transition-colors shadow-sm"
                   >
@@ -1028,9 +1038,30 @@ export default function MealPlate({
           )}
         </div>
       </div>
+      </>
+      )}
+
+      {(mode === 'plate' || mode === 'both') && plate.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-slate-50 dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+          <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+            <Utensils size={48} className="text-slate-300 dark:text-slate-600" />
+          </div>
+          <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">Twój talerz jest pusty</h3>
+          <p className="text-sm text-slate-500 max-w-[250px] mb-8">
+            Przejdź do bazy produktów i dodaj to, co planujesz zjeść.
+          </p>
+          <button 
+            onClick={() => setTab('database')}
+            className="px-8 py-4 bg-accent-500 hover:bg-accent-600 active:scale-95 transition-all text-white rounded-3xl font-bold flex items-center gap-2 shadow-lg shadow-accent-500/30"
+          >
+            <Database size={18} />
+            Przeglądaj bazę
+          </button>
+        </div>
+      )}
 
       {/* Plate Stats */}
-      {plate.length > 0 && (
+      {(mode === 'plate' || mode === 'both') && plate.length > 0 && (
         <div className="bg-slate-900 rounded-[2.5rem] p-6 text-white shadow-2xl border-l-[6px] border-accent-500">
           <div className="flex justify-between items-center mb-4 border-b border-accent-500/20 pb-4">
             <div className="flex items-center gap-2">
@@ -1089,10 +1120,10 @@ export default function MealPlate({
                     scale: 0.95,
                     transition: { duration: 0.2 },
                   }}
-                  key={`${item.id}-${idx}`}
+                  key={item.plateItemId || `${item.id}-${idx}`}
                 >
                   <SwipeableItem
-                    id={`${item.id}-${idx}`}
+                    id={item.plateItemId || `${item.id}-${idx}`}
                     onDelete={() => removeFromPlate(idx)}
                     bgClass="bg-slate-900"
                   >
@@ -1374,7 +1405,7 @@ export default function MealPlate({
         </div>
       )}
 
-      {savedMeals.length > 0 && (
+      {(mode === 'search' || mode === 'both') && savedMeals.length > 0 && (
         <div className="px-2 mt-8">
           <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">
             Ulubione Zestawy

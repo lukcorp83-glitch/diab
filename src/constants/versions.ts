@@ -7,6 +7,16 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.4.1",
+    date: "2026-05-13",
+    title: "RODO i Optymalizacja Talerza",
+    changes: [
+      "RODO: Dodano uproszczoną klauzulę zgody bez wymogu podpisu odręcznego.",
+      "Talerz: Wprowadzono usprawnienia w zarządzaniu produktami na talerzu oraz ich trwałość.",
+      "Interfejs: Szereg poprawek wizualnych i optymalizacja UI dla lepszej czytelności."
+    ]
+  },
+  {
     version: "3.4.0",
     date: "2026-05-12",
     title: "Nowy Wymiar Elegancji: Bento 2.0",
@@ -140,4 +150,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.4.0";
+export const CURRENT_VERSION = "3.4.1";

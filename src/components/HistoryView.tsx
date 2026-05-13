@@ -58,7 +58,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
         </button>
         <button
           onClick={() => setListFilter('glucose')}
-          className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl transition-all whitespace-nowrap", listFilter === 'glucose' ? "bg-rose-500 text-white" : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500")}
+          className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl transition-all whitespace-nowrap", listFilter === 'glucose' ? "bg-indigo-500 text-white" : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500")}
         >
           Tylko Glukoza
         </button>
@@ -77,7 +77,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
           return true;
         }).slice(0, 100).map((log, idx) => (
           <motion.div 
-            key={log.id} 
+            key={`${log.id}-${idx}`} 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(idx * 0.05, 0.5), duration: 0.2 }}
@@ -105,7 +105,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
               >
                 <div className={cn(
                   "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950 px-1",
-                  log.type === 'glucose' ? "bg-rose-500/10 text-rose-500" :
+                  log.type === 'glucose' ? "bg-indigo-500/10 text-indigo-500" :
                   log.type === 'meal' ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500"
                 )}>
                   {log.type === 'glucose' && <Activity size={18} strokeWidth={2.5} />}

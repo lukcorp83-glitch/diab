@@ -30,61 +30,67 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
     <motion.div 
       whileTap={{ scale: 0.98 }}
       onClick={() => setTab('dashboard')}
-      className="bg-slate-900 rounded-[2.5rem] p-6 text-white shadow-2xl border-l-[6px] border-emerald-500 overflow-hidden relative group"
+      className={cn(
+        "glass-card p-6 text-slate-900 dark:text-white shadow-2xl border-l-[6px] overflow-hidden relative group breath",
+        (lastGlucose?.value || 100) > 180 ? 'border-amber-500' :
+        (lastGlucose?.value || 100) < 70 ? 'border-rose-500' :
+        'border-emerald-500',
+        "bg-white/60 dark:bg-slate-950/60"
+      )}
     >
       {/* Background Accent (Animated Pulse) */}
       <motion.div 
         animate={{ 
-          scale: [1, 1.1, 1], 
-          opacity: [0.3, 0.5, 0.3] 
+          scale: [1, 1.2, 1], 
+          opacity: [0.1, 0.2, 0.1] 
         }}
         transition={{ 
-          duration: 3, 
+          duration: 10, 
           repeat: Infinity,
           ease: "easeInOut"
         }}
         className={cn(
-          "absolute top-0 right-0 w-48 h-48 blur-[80px] -mr-16 -mt-16 transition-colors duration-1000",
-          (lastGlucose?.value || 100) > 180 ? 'bg-accent-500' :
-          (lastGlucose?.value || 100) < 70 ? 'bg-rose-500' :
-          'bg-emerald-500'
+          "absolute top-0 right-0 w-64 h-64 blur-[100px] -mr-32 -mt-32 transition-colors duration-1000",
+          (lastGlucose?.value || 100) > 180 ? 'bg-amber-500/30' :
+          (lastGlucose?.value || 100) < 70 ? 'bg-rose-500/30' :
+          'bg-emerald-500/30'
         )}
       />
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 relative z-10">
         <div className="flex items-center gap-2">
           <motion.div 
             animate={{ scale: [1, 1.2, 1] }} 
             transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-            className="p-2 bg-emerald-500/20 rounded-xl"
+            className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20"
           >
-            <Radio size={16} className="text-emerald-400" />
+            <Radio size={16} className="text-emerald-500" />
           </motion.div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Status Na Żywo</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Stan Glikemii</span>
         </div>
         
-        <div className="bg-white/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-md border border-white/5">
-          <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">EST. HbA1c</span>
-          <span className="text-[10px] font-black text-accent-300">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span>
+        <div className="bg-slate-100/50 dark:bg-white/5 px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-md border border-slate-200/50 dark:border-white/5">
+          <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">EST. HbA1c</span>
+          <span className="text-[10px] font-black text-accent-600 dark:text-accent-400">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        <div className="flex items-end justify-between border-b border-white/5 pb-6">
+      <div className="grid grid-cols-1 gap-8 relative z-10">
+        <div className="flex items-end justify-between border-b border-slate-200/50 dark:border-white/5 pb-6">
           <div>
-            <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest block mb-1">Ostatni Cukier</span>
+            <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block mb-1">Ostatni Pomiar</span>
             <div className="flex items-baseline gap-2">
               <motion.span 
-                key={lastGlucose?.value}
+                key={`val-${lastGlucose?.timestamp || 'none'}`}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", bounce: 0.5 }}
-                className="text-5xl font-black text-white leading-none"
+                transition={{ type: "spring", bounce: 0.3 }}
+                className="text-5xl font-black text-slate-900 dark:text-white leading-none tracking-tighter"
               >
                 {lastGlucose?.value || '--'}
               </motion.span>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-tighter">mg/dL</span>
+                <span className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">mg/dL</span>
                 {trend && (
                   <motion.div 
                     initial={{ y: 5, opacity: 0 }}
@@ -100,75 +106,76 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             </div>
           </div>
           <div className="text-right">
-            <div className="flex items-baseline justify-end gap-1 mb-2">
-               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest block">Aktywna Insulina</span>
-               <span className="text-xl font-black text-accent-400">{iob.toFixed(2)}<span className="text-[10px] ml-0.5 opacity-50">j</span></span>
+            <div className="flex items-baseline justify-end gap-1.5 mb-2">
+               <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block">Insulina Aktywna</span>
+               <span className="text-xl font-black text-accent-600 dark:text-accent-400 tracking-tight">{iob.toFixed(2)}<span className="text-[10px] ml-0.5 opacity-50">j</span></span>
             </div>
+            
             <motion.div 
-              key={lastGlucose?.value}
+              key={`label-${lastGlucose?.timestamp || 'none'}`}
               initial={{ x: 10, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              className={`p-1 px-3 rounded-full text-[9px] font-black uppercase inline-block ${
-              (lastGlucose?.value || 100) > 180 ? 'bg-rose-500/20 text-rose-400 border border-rose-500/20' :
-              (lastGlucose?.value || 100) < 70 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' :
-              'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+              className={`p-1 px-3 rounded-full text-[9px] font-black uppercase inline-block border ${
+              (lastGlucose?.value || 100) > 180 ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+              (lastGlucose?.value || 100) < 70 ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+              'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
             }`}>
               {(lastGlucose?.value || 100) > 180 ? 'Wysoki' : (lastGlucose?.value || 100) < 70 ? 'Niski' : 'W Normie'}
             </motion.div>
-            <span className="text-[9px] font-bold text-slate-500 flex items-center justify-end gap-1 mt-2">
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 flex items-center justify-end gap-1 mt-2">
               <Clock size={10} /> {lastGlucose ? getTimeAgo(lastGlucose.timestamp) : '--'}
             </span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <motion.div whileHover={{ scale: 1.02 }} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
+          <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Droplet size={12} className="text-accent-400" />
-                <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Dziś Insulina</span>
+                <Droplet size={12} className="text-accent-500" />
+                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Dziś Jednostek</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black">{todayStats.insulin.toFixed(1)}</span>
-                <span className="text-[10px] font-bold text-slate-500">j.</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-white">{todayStats.insulin.toFixed(1)}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">j.</span>
               </div>
             </div>
-            <div className="mt-2 pt-2 border-t border-white/5">
-               <span className="text-[8px] font-bold text-slate-600 block">Ostatnia: {lastBolus ? getTimeAgo(lastBolus.timestamp) : '--'}</span>
+            <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-white/5">
+               <span className="text-[8px] font-bold text-slate-400 block">Ostatnia: {lastBolus ? getTimeAgo(lastBolus.timestamp) : '--'}</span>
             </div>
           </motion.div>
 
-          <motion.div whileHover={{ scale: 1.02 }} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
+          <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Utensils size={12} className="text-amber-400" />
-                <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Dziś Posiłki</span>
+                <Utensils size={12} className="text-amber-500" />
+                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Dziś Wymienniki</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black">{(todayStats.carbs / 10).toFixed(1)}</span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">WW</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-white">{(todayStats.carbs / 10).toFixed(1)}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">WW</span>
               </div>
             </div>
-            <div className="mt-2 pt-2 border-t border-white/5">
-               <span className="text-[8px] font-bold text-slate-600 block">Ostatni: {lastMeal ? getTimeAgo(lastMeal.timestamp) : '--'}</span>
+            <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-white/5">
+               <span className="text-[8px] font-bold text-slate-400 block">Ostatni: {lastMeal ? getTimeAgo(lastMeal.timestamp) : '--'}</span>
             </div>
           </motion.div>
         </div>
 
         {/* TIR Bar Integrated */}
-        <div className="pt-4 border-t border-white/5">
+        <div className="pt-4 border-t border-slate-200/50 dark:border-white/5">
           <div className="flex justify-between items-center mb-2">
-            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Czas w Zakresie (TIR)</p>
+            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">W Zakresie (TIR)</p>
             <motion.span 
               key={tir.inRange}
               initial={{ scale: 1.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-[10px] font-black text-emerald-400"
+              className="text-[10px] font-black text-emerald-600 dark:text-emerald-400"
             >
               {tir.inRange}%
             </motion.span>
           </div>
-          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden flex border border-white/5">
+          <div className="h-1.5 w-full bg-slate-200/50 dark:bg-white/5 rounded-full overflow-hidden flex">
             <motion.div 
               initial={{ width: 0 }} animate={{ width: `${tir.low}%` }} transition={{ duration: 1, ease: 'easeOut' }}
               className="bg-rose-500 h-full" 
@@ -179,22 +186,8 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             />
             <motion.div 
               initial={{ width: 0 }} animate={{ width: `${tir.high}%` }} transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
-              className="bg-orange-500 h-full" 
+              className="bg-amber-500 h-full" 
             />
-          </div>
-          <div className="flex justify-between mt-2">
-            <div className="flex items-center gap-1">
-              <div className="w-1 h-1 rounded-full bg-rose-500" />
-              <span className="text-[7px] font-black text-slate-600 uppercase">{tir.low}% NISKI</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-1 h-1 rounded-full bg-emerald-500" />
-              <span className="text-[7px] font-black text-slate-600 uppercase">{tir.inRange}% OK</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-1 h-1 rounded-full bg-orange-500" />
-              <span className="text-[7px] font-black text-slate-600 uppercase">{tir.high}% WYSOKI</span>
-            </div>
           </div>
         </div>
       </div>

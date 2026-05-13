@@ -175,7 +175,7 @@ export default function GlikoAssistant({
         <AnimatePresence initial={false}>
           {messages.map((message) => (
             <motion.div
-              key={message.id}
+              key={`msg-${message.id}-${message.timestamp}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={cn(
@@ -245,7 +245,7 @@ export default function GlikoAssistant({
         <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
           {suggestions.map((s, i) => (
             <button
-              key={i}
+              key={`typing-${i}`}
               onClick={() => handleSend(s)}
               className="whitespace-nowrap px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-indigo-600 transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2 shrink-0 shadow-sm"
             >

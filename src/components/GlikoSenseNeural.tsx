@@ -81,7 +81,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             <div>
               <h3 className="text-sm font-black dark:text-white leading-tight">GlikoSense</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {isChildMode ? `Neuralny Opiekun ${petName}` : 'Analiza Systemowa AI'}
+                {isChildMode ? `Opiekun ${petName}` : 'Analiza Systemowa AI'}
               </p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             <div className="flex -space-x-1">
                {[1, 2, 3].map(i => (
                  <motion.div 
-                   key={i}
+                   key={`link-${i}`}
                    animate={{ opacity: [0.3, 1, 0.3] }}
                    transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.4 }}
                    className={`w-1 h-3 rounded-full ${statusColor} opacity-40`}

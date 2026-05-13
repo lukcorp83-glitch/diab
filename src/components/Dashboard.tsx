@@ -55,6 +55,7 @@ interface DashboardProps {
   theme: "light" | "dark";
   initialAction?: string | null;
   onClearInitialAction?: () => void;
+  onAction?: (action: string) => void;
   pumpStatus?: any;
   nsUrl?: string;
   nsSecret?: string;
@@ -69,6 +70,7 @@ export default function Dashboard({
   theme,
   initialAction,
   onClearInitialAction,
+  onAction,
   pumpStatus,
   nsUrl,
   nsSecret,
@@ -372,9 +374,9 @@ export default function Dashboard({
       initial="hidden"
       animate="show"
       exit="hidden"
-      className="space-y-6 will-change-transform"
+      className="space-y-6 pb-20 will-change-transform"
     >
-      {/* Widget Section */}
+      {/* 1. Main Stats Widget */}
       <motion.div variants={itemVariants}>
         <GlikoWidget
           logs={logs}
@@ -387,219 +389,68 @@ export default function Dashboard({
         />
       </motion.div>
 
-      {/* GlikoSense Neural Heart */}
+      {/* 2. GlikoSense Neural Heart / Pet */}
       <motion.div variants={itemVariants}>
-        <GlikoSenseNeural 
-          glucose={lastG ? Math.round(lastG.value) : null}
-          trend={trend?.direction || null}
-          isChildMode={settings.childMode || false}
-          petName={petData?.name}
-        >
-          {settings.childMode && (
-             <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} embedded={true} />
-          )}
-        </GlikoSenseNeural>
-      </motion.div>
-
-      {/* AI Health Tips */}
-      <motion.div variants={itemVariants}>
-        <GlikoSenseTips logs={logs} />
-      </motion.div>
-
-      {editingLog && (
-        <MealEditModal 
-          log={editingLog} 
-          user={user} 
-          onClose={() => setEditingLog(null)} 
-        />
-      )}
-
-      {/* Virtual Assistant CTA */}
-      <motion.div 
-        variants={itemVariants}
-        onClick={() => setTab('assistant')}
-        className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-[1px] rounded-[2rem] shadow-lg shadow-indigo-500/20 cursor-pointer active:scale-[0.98] transition-all group"
-      >
-        <div className="bg-white dark:bg-slate-900 rounded-[21.9rem] rounded-[2rem] p-5 flex items-center gap-4">
-          <div className={cn(
-            "w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-lg transition-transform group-hover:rotate-12",
-            settings.childMode ? "bg-indigo-500 shadow-indigo-500/30" : "bg-emerald-600 shadow-emerald-500/30"
-          )}>
-            {settings.childMode ? <Sparkles size={24} /> : <Cpu size={24} />}
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight font-display">
-              Asystent AI
-            </h4>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight">
-              {settings.childMode 
-                ? "Zadaj pytanie o swoje wyniki, dietę lub trendy glikemii. AI przeanalizuje Twoje dane."
-                : "Profesjonalna analiza trendów, predykcja i optymalizacja parametrów leczenia bazująca na danych."}
-            </p>
-          </div>
-          <div className="p-2 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400">
-            <ChevronRight size={18} />
-          </div>
+        <div className="glass-card overflow-hidden">
+          <GlikoSenseNeural 
+            glucose={lastG ? Math.round(lastG.value) : null}
+            trend={trend?.direction || null}
+            isChildMode={settings.childMode || false}
+            petName={petData?.name}
+          >
+            {settings.childMode && (
+               <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} embedded={true} />
+            )}
+          </GlikoSenseNeural>
         </div>
       </motion.div>
 
-      {/* Pattern Analysis Alert */}
-      {patternInsights.length > 0 && (
-        <motion.div
-          variants={itemVariants}
-          className="bg-accent-50 dark:bg-accent-900/10 border border-accent-100 dark:border-accent-800/30 p-4 rounded-[2rem] flex items-center gap-4 group"
-        >
-          <div className="p-2.5 bg-accent-500 text-white rounded-2xl shadow-lg shadow-accent-500/30">
-            <Activity size={18} />
-          </div>
-          <div className="flex-1">
-            <p className="text-[9px] font-black text-accent-900 dark:text-accent-300 uppercase tracking-widest mb-1 flex items-center gap-1">
-              <Activity size={10} className="text-accent-500" />
-              GlikoSense
-            </p>
-            <div className="space-y-1">
-              {patternInsights.map((insight: any, idx: number) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 text-[10px] font-bold text-accent-700 dark:text-accent-200"
-                >
-                  {insight.icon}
-                  <span>{insight.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <button
-            onClick={() => setTab("ai")}
-            className="p-2 bg-white dark:bg-slate-800 rounded-full text-accent-600 shadow-sm active:scale-90 transition-all"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </motion.div>
-      )}
-
-      {/* Equipment Reminders */}
-      {(settings.sensorChangeDate || settings.infusionSetChangeDate) && (
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
-          {settings.sensorChangeDate && (
-             <div className="bg-gradient-to-br from-slate-800 to-accent-900 rounded-[2rem] p-4 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-accent-900/20">
-               <div className="flex justify-between items-start z-10">
-                 <div className="p-2 bg-white/10 rounded-2xl">
-                   <Signal size={16} className="text-accent-300" />
-                 </div>
-                 <span className="text-[8px] font-black text-accent-200 uppercase tracking-widest bg-white/5 py-1 px-2 rounded-full">
-                   Sensor
-                 </span>
-               </div>
-               <div className="mt-4 z-10">
-                 {(() => {
-                   const msLeft = settings.sensorChangeDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
-                   const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
-                   const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                   const isExpired = msLeft <= 0;
-                   return (
-                     <>
-                       <div className="flex items-baseline gap-1">
-                         <span className={cn("text-2xl font-black", (daysLeft <= 0 && hoursLeft <= 12) || isExpired ? "text-rose-400" : "text-white")}>
-                           {isExpired ? "0" : daysLeft > 0 ? `${daysLeft}d` : `${hoursLeft}h`}
-                         </span>
-                         {!isExpired && daysLeft > 0 && hoursLeft > 0 && <span className="text-sm font-bold text-accent-300">{hoursLeft}h</span>}
-                       </div>
-                       {isExpired ? (
-                         <span className="text-[8px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full uppercase mt-1 inline-block">Wymień!</span>
-                       ) : (
-                         <span className="text-[9px] font-bold text-accent-200 uppercase">Pozostało</span>
-                       )}
-                     </>
-                   );
-                 })()}
-               </div>
-             </div>
-          )}
-          {settings.infusionSetChangeDate && (
-             <div className="bg-gradient-to-br from-slate-800 to-teal-900 rounded-[2rem] p-4 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-teal-900/20">
-               <div className="flex justify-between items-start z-10">
-                 <div className="p-2 bg-white/10 rounded-2xl">
-                   <Droplets size={16} className="text-teal-300" />
-                 </div>
-                 <span className="text-[8px] font-black text-teal-200 uppercase tracking-widest bg-white/5 py-1 px-2 rounded-full">
-                   Wkłucie
-                 </span>
-               </div>
-               <div className="mt-4 z-10">
-                 {(() => {
-                   const msLeft = settings.infusionSetChangeDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
-                   const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
-                   const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                   const isExpired = msLeft <= 0;
-                   return (
-                     <>
-                       <div className="flex items-baseline gap-1">
-                         <span className={cn("text-2xl font-black", (daysLeft <= 0 && hoursLeft <= 6) || isExpired ? "text-rose-400" : "text-white")}>
-                           {isExpired ? "0" : daysLeft > 0 ? `${daysLeft}d` : `${hoursLeft}h`}
-                         </span>
-                         {!isExpired && daysLeft > 0 && hoursLeft > 0 && <span className="text-sm font-bold text-teal-300">{hoursLeft}h</span>}
-                       </div>
-                       {isExpired ? (
-                         <span className="text-[8px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full uppercase mt-1 inline-block">Wymień!</span>
-                       ) : (
-                         <span className="text-[9px] font-bold text-teal-200 uppercase">Pozostało</span>
-                       )}
-                     </>
-                   );
-                 })()}
-               </div>
-             </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* Chart Card */}
+      {/* 3. Glucose Chart */}
       <motion.div
         variants={itemVariants}
-        className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors relative"
+        className="glass-card p-6 border border-slate-200/50 dark:border-slate-800/50"
       >
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex flex-col gap-1">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              Wykres
+            <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">
+              TRENDY GLIKEMII
             </h3>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button 
                 onClick={() => setShowLoopSimulation(!showLoopSimulation)}
                 className={cn(
-                  "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase transition-all tracking-wider text-left border",
+                  "text-[9px] font-black px-2.5 py-1 rounded-full uppercase transition-all tracking-tight border",
                   showLoopSimulation 
-                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30" 
-                    : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                    : "bg-slate-100/50 text-slate-400 border-slate-200/50 dark:bg-white/5"
                 )}
               >
-                {showLoopSimulation ? "Pętla (Wł.)" : "Pętla (Wył.)"}
+                {showLoopSimulation ? "Pętla Active" : "Pętla Inactive"}
               </button>
               <button 
                 onClick={() => setShowMLPrediction(!showMLPrediction)}
                 className={cn(
-                  "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase transition-all tracking-wider text-left border flex items-center gap-1",
+                  "text-[9px] font-black px-2.5 py-1 rounded-full uppercase transition-all tracking-tight border flex items-center gap-1.5",
                   showMLPrediction 
-                    ? "bg-accent-500/10 text-accent-600 border-accent-500/20 dark:text-accent-400 dark:border-accent-500/30" 
-                    : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                    ? "bg-accent-500/10 text-accent-600 border-accent-500/20" 
+                    : "bg-slate-100/50 text-slate-400 border-slate-200/50 dark:bg-white/5"
                 )}
               >
                 <Activity size={10} />
-                {showMLPrediction ? "GlikoSense (Wł.)" : "GlikoSense (Wył.)"}
+                {showMLPrediction ? "GlikoSense ON" : "GlikoSense OFF"}
               </button>
             </div>
           </div>
-          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
+          <div className="flex bg-slate-100/50 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-1 gap-1 border border-slate-200/30">
             {[3, 6, 12, 24].map((h) => (
               <button
                 key={h}
                 onClick={() => setRange(h)}
                 className={cn(
-                  "px-3 py-1.5 text-[8px] font-black rounded-lg transition-all uppercase",
+                  "px-4 py-2 text-[9px] font-black rounded-xl transition-all uppercase tracking-tighter",
                   range === h
-                    ? "bg-white dark:bg-slate-700 text-accent-600 dark:text-accent-400 shadow-sm"
-                    : "text-slate-400 hover:text-slate-600",
+                    ? "bg-white dark:bg-slate-700 text-accent-600 dark:text-accent-400 shadow-md"
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300",
                 )}
               >
                 {h}h
@@ -607,7 +458,7 @@ export default function Dashboard({
             ))}
           </div>
         </div>
-        <div className="h-60">
+        <div className="h-[280px]">
           <GlucoseChart
             logs={logs}
             hours={range}
@@ -621,319 +472,256 @@ export default function Dashboard({
         </div>
       </motion.div>
 
-      {/* Pump Status Section */}
-      {pumpStatus && settings?.showPumpWidget !== false && (
-        <motion.div variants={itemVariants}>
-          <PumpStatusCard data={pumpStatus} />
+      {/* 4. Equipment & Reminders */}
+      {(settings.sensorChangeDate || settings.infusionSetChangeDate) && (
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+          {settings.sensorChangeDate && (
+             <div 
+               onClick={() => { setTab('profile'); onAction?.('devices'); }}
+               className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden cursor-pointer"
+             >
+               <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
+               <div className="flex justify-between items-start">
+                 <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-500"><Signal size={16} /></div>
+                 <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-500/5 py-1 px-2.5 rounded-full border border-indigo-500/10">Sensor</span>
+               </div>
+               <div className="mt-4">
+                 {(() => {
+                   const msLeft = settings.sensorChangeDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
+                   const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
+                   const isExpired = msLeft <= 0;
+                   return (
+                     <div>
+                       <div className="flex items-baseline gap-1">
+                         <span className={cn("text-3xl font-black tracking-tight", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Dni</span>
+                       </div>
+                       <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-indigo-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                       </div>
+                     </div>
+                   );
+                 })()}
+               </div>
+             </div>
+          )}
+          {settings.infusionSetChangeDate && (
+             <div 
+               onClick={() => { setTab('profile'); onAction?.('devices'); }}
+               className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden cursor-pointer"
+             >
+               <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
+               <div className="flex justify-between items-start">
+                 <div className="p-2 bg-teal-500/10 rounded-xl border border-teal-500/20 text-teal-500"><Droplets size={16} /></div>
+                 <span className="text-[8px] font-black text-teal-500 uppercase tracking-widest bg-teal-500/5 py-1 px-2.5 rounded-full border border-teal-500/10">Wkłucie</span>
+               </div>
+               <div className="mt-4">
+                 {(() => {
+                   const msLeft = settings.infusionSetChangeDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
+                   const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
+                   const isExpired = msLeft <= 0;
+                   return (
+                     <div>
+                       <div className="flex items-baseline gap-1">
+                         <span className={cn("text-3xl font-black tracking-tight", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Dni</span>
+                       </div>
+                       <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-teal-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                       </div>
+                     </div>
+                   );
+                 })()}
+               </div>
+             </div>
+          )}
         </motion.div>
       )}
 
-      <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
-        <div className="col-span-2 space-y-3">
-          <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 font-display">
-            Szybkie skróty
-          </h4>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none px-1 mask-fade-right">
-            {shortcuts.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => quickAdd(s)}
-                className="shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 p-3 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-tight shadow-sm active:scale-95 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all dark:text-white"
-              >
-                <span className="text-sm">{s.icon || "📌"}</span>
-                <span>{s.name}</span>
-              </button>
-            ))}
-            {shortcuts.length === 0 && (
-              <p className="text-[10px] font-medium text-slate-400 italic px-2">
-                Brak skrótów. Dodaj w opcjach.
-              </p>
-            )}
+      {/* 5. Assistant CTA */}
+      <motion.div 
+        variants={itemVariants}
+        onClick={() => setTab('assistant')}
+        className="relative group cursor-pointer active:scale-[0.98] transition-all"
+      >
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 rounded-[2.6rem] opacity-30 group-hover:opacity-60 blur-md transition duration-500"></div>
+        <div className="relative glass p-6 flex items-center gap-4 overflow-hidden rounded-[2.5rem] border border-white/50 dark:border-white/5">
+          <div className={cn(
+            "w-14 h-14 rounded-2xl text-white flex items-center justify-center shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
+            settings.childMode ? "bg-indigo-600 shadow-indigo-500/30" : "bg-slate-900 dark:bg-indigo-600"
+          )}>
+            {settings.childMode ? <Sparkles size={28} className="animate-pulse" /> : <Cpu size={28} />}
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight font-display">
+              Asystent AI
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-tight">
+              {settings.childMode 
+                ? "Zadaj pytanie swoim opiekunom AI o wyniki, dietę lub trendy."
+                : "Zaawansowana analityka predykcyjna i optymalizacja parametrów."}
+            </p>
+          </div>
+          <div className="p-2 rounded-full bg-slate-100/50 dark:bg-white/5 text-slate-400 group-hover:text-indigo-500 transition-colors">
+            <ChevronRight size={20} />
           </div>
         </div>
+      </motion.div>
+
+      {/* 6. AI Tips & Insights */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        {/* Tips Section */}
+        <GlikoSenseTips logs={logs} />
+        
+        {/* Alert/Insight Section */}
+        {patternInsights.length > 0 && (
+          <div className="bg-accent-50/50 dark:bg-accent-950/20 backdrop-blur-md border border-accent-200/50 dark:border-accent-800/30 p-5 rounded-[2.5rem] flex items-center gap-4 group">
+            <div className="p-3 bg-accent-500 text-white rounded-2xl shadow-lg shadow-accent-500/30">
+              <Activity size={18} />
+            </div>
+            <div className="flex-1">
+              <p className="text-[9px] font-black text-accent-700 dark:text-accent-400 uppercase tracking-widest mb-1 font-display">
+                Analiza GlikoSense
+              </p>
+              <div className="space-y-1">
+                {patternInsights.map((insight: any, idx: number) => (
+                  <div key={`insight-${idx}`} className="flex items-center gap-2 text-[10px] font-bold text-accent-900 dark:text-accent-100">
+                    {insight.icon}
+                    <span>{insight.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => setTab("ai")} className="p-2 bg-white dark:bg-slate-800 rounded-full text-accent-600 shadow-sm transition-all active:scale-90">
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+      </motion.div>
+
+      {/* 7. Quick Actions Row */}
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {/* Shortcuts group */}
+        {shortcuts.length > 0 && (
+          <div className="col-span-2 glass-card !p-6 flex flex-col gap-4 border border-white/50 dark:border-white/5">
+            <div className="flex items-center gap-2 px-1">
+              <h4 className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">MOJE ULUBIONE</h4>
+              <div className="h-px flex-1 bg-slate-100 dark:bg-white/5" />
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none mask-fade-right">
+              {shortcuts.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => quickAdd(s)}
+                  className="shrink-0 glass-card !bg-white/20 dark:!bg-white/5 !p-4 flex items-center gap-3 font-black text-[10px] uppercase tracking-tighter shadow-sm active:scale-95 transition-all border border-black/5 dark:border-white/5 dark:text-white group"
+                >
+                  <span className="text-xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
+                  <div className="flex flex-col items-start">
+                    <span className="leading-tight">{s.name}</span>
+                    <span className="text-[8px] opacity-40 lowercase">{s.carbs}g ww</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button
           onClick={() => setIsGlucoseModalOpen(true)}
-          className="bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 flex flex-col items-center justify-center gap-3 active:scale-95 shadow-sm hover:shadow-md transition-all group"
+          className="glass-card p-4 flex flex-col items-center justify-center gap-2 active:scale-95 group relative overflow-hidden border border-white/50 dark:border-white/5 shadow-xl transition-all"
         >
-          <div className="w-12 h-12 bg-rose-500/10 dark:bg-rose-500/20 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
-            <Shield className="w-6 h-6 text-rose-500" />
+          <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Shield size={22} />
           </div>
-          <span className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-display">
-            Pomiar
-          </span>
+          <span className="font-black text-[9px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-display">Pomiar</span>
         </button>
+
         <button
           onClick={() => setTab("bolus")}
-          className="bg-accent-600 p-5 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-lg shadow-accent-600/20 active:scale-95 hover:shadow-xl transition-all text-white group"
+          className="bg-accent-600 p-4 rounded-[2rem] flex flex-col items-center justify-center gap-2 shadow-2xl shadow-accent-600/30 active:scale-95 group transition-all text-white overflow-hidden"
         >
-          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Zap className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Zap size={22} />
           </div>
-          <span className="font-black text-[10px] uppercase tracking-widest font-display">
-            Bolus
-          </span>
+          <span className="font-black text-[9px] uppercase tracking-widest font-display">Bolus</span>
         </button>
       </motion.div>
 
-      {/* Recent History Mini - Split into sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Recent Glucose Measurements */}
-        <motion.div variants={itemVariants} className="space-y-3">
-          <div className="flex justify-between items-center px-2">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 font-display">
-              <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
-              Ostatnie pomiary
-            </h3>
-            <button
-              onClick={() => {
-                setListFilter('glucose');
-                setTab("history");
-              }}
-              className="text-[10px] font-bold text-accent-500 flex items-center gap-1 hover:underline transition-all"
-            >
-              WIĘCEJ <ChevronRight size={10} />
-            </button>
-          </div>
-
-          <motion.div
-            className="space-y-1"
-            variants={{
-              hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { staggerChildren: 0.1 } },
-            }}
-            initial="hidden"
-            animate="show"
-          >
-            {logs.filter(log => log.type === 'glucose').slice(0, 4).map((log) => (
-              <motion.div
-                key={log.id}
-                layout
-                whileHover={{ scale: 1.01, x: 2 }}
-                variants={{
-                  hidden: { opacity: 0, y: 10, scale: 0.98 },
-                  show: {
-                    opacity: 1,
-                    y: 0,
-                    scale: 1,
-                    transition: { type: "spring", stiffness: 400, damping: 30 },
-                  },
-                }}
-              >
-                <SwipeableItem
-                  id={log.id}
-                  onDelete={async () => {
-                    try {
-                      await deleteDoc(
-                        doc(
-                          db,
-                          "artifacts",
-                          "diacontrolapp",
-                          "users",
-                          getEffectiveUid(user),
-                          "logs",
-                          log.id,
-                        ),
-                      );
-                    } catch (err) {
-                      console.error("Delete failed:", err);
-                    }
-                  }}
-                >
-                  <div 
-                    className={cn(
-                      "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/40 p-3.5 rounded-[1.8rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer shadow-sm active:scale-[0.99]"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors",
-                        "bg-rose-500/10 text-rose-500"
-                      )}
-                    >
-                      <Droplet size={18} strokeWidth={2.5} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-sm dark:text-white truncate font-display">
-                        {typeof log.value === 'number' ? Math.round(log.value) : log.value} <span className="text-[10px] text-slate-400 font-bold ml-0.5">mg/dL</span>
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap font-mono">
-                          {new Date(log.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-                        <span className="text-[9px] font-bold text-slate-500 truncate italic">
-                          {log.notes || 'Glukoza'}
-                        </span>
-                        <div className="flex items-center gap-1 ml-auto">
-                          {log.source === 'nightscout' ? (
-                            <span className="text-[7px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
-                          ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
-                            <span className="text-[7px] bg-accent-500/10 text-accent-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
-                          ) : (
-                            <span className="text-[7px] bg-slate-500/10 text-slate-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
-                          )}
+      {/* 8. Recent History View */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {logs.filter(log => log.type === 'glucose').length > 0 && (
+          <motion.div variants={itemVariants} className="space-y-3">
+            <div className="flex justify-between items-center px-4">
+              <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-rose-500" />
+                Pomiary
+              </h3>
+              <button onClick={() => { setListFilter('glucose'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
+            </div>
+            <div className="space-y-2">
+               {logs.filter(log => log.type === 'glucose').slice(0, 3).map((log) => (
+                  <motion.div key={log.id} layout>
+                    <SwipeableItem id={log.id} onDelete={() => {}}>
+                      <div className="glass-card !p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                          <Droplet size={18} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-black text-base dark:text-white font-display">
+                            {Math.round(log.value)} <span className="text-[10px] opacity-40 uppercase">mg/dL</span>
+                          </p>
+                          <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.notes || 'Glukoza'}
+                          </p>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </SwipeableItem>
-              </motion.div>
-            ))}
-            {logs.filter(log => log.type === 'glucose').length === 0 && (
-              <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-display">Brak pomiarów</span>
-              </div>
-            )}
+                    </SwipeableItem>
+                  </motion.div>
+               ))}
+            </div>
           </motion.div>
-        </motion.div>
+        )}
 
-        {/* Recent Treatments (Meals & Bolus) */}
-        <motion.div variants={itemVariants} className="space-y-3">
-          <div className="flex justify-between items-center px-2">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 font-display">
-              <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
-              Posiłki i Leki
-            </h3>
-            <button
-              onClick={() => {
-                setListFilter('treatment');
-                setTab("history");
-              }}
-              className="text-[10px] font-bold text-accent-500 flex items-center gap-1 hover:underline transition-all"
-            >
-              WIĘCEJ <ChevronRight size={10} />
-            </button>
-          </div>
-
-          <motion.div
-            className="space-y-1"
-            variants={{
-              hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { staggerChildren: 0.1 } },
-            }}
-            initial="hidden"
-            animate="show"
-          >
-            {logs.filter(log => log.type === 'bolus' || log.type === 'meal').slice(0, 4).map((log) => (
-              <motion.div
-                key={log.id}
-                layout
-                whileHover={{ scale: 1.01, x: 2 }}
-                variants={{
-                  hidden: { opacity: 0, y: 10, scale: 0.98 },
-                  show: {
-                    opacity: 1,
-                    y: 0,
-                    scale: 1,
-                    transition: { type: "spring", stiffness: 400, damping: 30 },
-                  },
-                }}
-              >
-                <SwipeableItem
-                  id={log.id}
-                  onDelete={async () => {
-                    try {
-                      await deleteDoc(
-                        doc(
-                          db,
-                          "artifacts",
-                          "diacontrolapp",
-                          "users",
-                          getEffectiveUid(user),
-                          "logs",
-                          log.id,
-                        ),
-                      );
-                    } catch (err) {
-                      console.error("Delete failed:", err);
-                    }
-                  }}
-                >
-                  <div 
-                    onClick={() => {
-                      if (log.type === 'meal' || log.type === 'bolus') {
-                        setEditingLog(log);
-                      }
-                    }}
-                    className={cn(
-                      "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/40 p-3.5 rounded-[1.8rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer shadow-sm active:scale-[0.99]",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors",
-                        log.type === "meal"
-                          ? "bg-amber-500/10 text-amber-500"
-                          : "bg-accent-500/10 text-accent-500",
-                      )}
-                    >
-                      {log.type === "meal" && (
-                        <Utensils size={18} strokeWidth={2.5} />
-                      )}
-                      {log.type === "bolus" && (
-                        <div className="flex items-center gap-0.5">
-                          <Syringe size={log.linkedMeal ? 14 : 18} strokeWidth={2.5} />
-                          {log.linkedMeal && <Utensils size={12} className="text-amber-500" />}
+        {logs.filter(log => log.type === 'bolus' || log.type === 'meal').length > 0 && (
+          <motion.div variants={itemVariants} className="space-y-3">
+            <div className="flex justify-between items-center px-4">
+              <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-amber-500" />
+                Leczenie
+              </h3>
+              <button onClick={() => { setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
+            </div>
+            <div className="space-y-2">
+               {logs.filter(log => log.type === 'bolus' || log.type === 'meal').slice(0, 3).map((log) => (
+                  <motion.div key={log.id} layout>
+                    <SwipeableItem id={log.id} onDelete={() => {}}>
+                      <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">
+                        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", log.type === "meal" ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500")}>
+                          {log.type === "meal" ? <Utensils size={18} /> : <Syringe size={18} />}
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-sm dark:text-white truncate font-display">
-                        {typeof log.value === 'number' ? (log.type === 'meal' ? log.value.toFixed(1) : log.value.toFixed(1)) : log.value}
-                        <span className="text-[10px] text-slate-400 font-bold ml-1">{log.type === "meal" ? "g W" : " j."}</span>
-                        {log.type === "meal" && (log.polyols || log.protein || log.fat) && (
-                          <span className="text-[9px] font-bold text-slate-400 ml-2 font-mono">
-                            {log.polyols ? `${log.polyols.toFixed(0)}P/` : ''}{log.protein?.toFixed(0)}B/{log.fat?.toFixed(0)}T
-                          </span>
-                        )}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap font-mono">
-                          {new Date(log.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-                        <span className="text-[9px] font-bold text-slate-500 truncate italic">
-                          {(() => {
-                            const n = log.notes || log.description || '';
-                            if (n.toLowerCase() === 'meal' || n.toLowerCase() === 'carbs') return 'Posiłek';
-                            if (n.toLowerCase() === 'bolus' || n.toLowerCase() === 'insulin') return 'Insulina';
-                            let baseLabel = n || (log.type === 'meal' ? 'Posiłek' : 'Bolus');
-                            if (log.isExtended) {
-                              baseLabel = `Łączony (${log.extendedTime}h)`;
-                            }
-                            return baseLabel;
-                          })()}
-                        </span>
-                        <div className="flex items-center gap-1 ml-auto">
-                          {log.source === 'nightscout' ? (
-                            <span className="text-[7px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">NS</span>
-                          ) : (log.source === 'csv' || (log.notes && log.notes.includes('Import'))) ? (
-                            <span className="text-[7px] bg-accent-500/10 text-accent-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
-                          ) : (
-                            <span className="text-[7px] bg-slate-500/10 text-slate-500 px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
-                          )}
+                        <div className="flex-1">
+                          <p className="font-black text-base dark:text-white font-display">
+                            {log.value.toFixed(1)} <span className="text-[10px] opacity-40 uppercase">{log.type === "meal" ? "g W" : " j."}</span>
+                          </p>
+                          <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.type === 'meal' ? 'Posiłek' : 'Bolus'}
+                          </p>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </SwipeableItem>
-              </motion.div>
-            ))}
-            {logs.filter(log => log.type === 'bolus' || log.type === 'meal').length === 0 && (
-              <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-display">Brak aktywności</span>
-              </div>
-            )}
+                    </SwipeableItem>
+                  </motion.div>
+               ))}
+            </div>
           </motion.div>
-        </motion.div>
+        )}
       </div>
+
+      {/* Pump Status - Final Bento Piece */}
+      {pumpStatus && settings?.showPumpWidget !== false && (
+        <motion.div variants={itemVariants}>
+           <PumpStatusCard data={pumpStatus} />
+        </motion.div>
+      )}
 
       <GlucoseModal
         isOpen={isGlucoseModalOpen}
@@ -941,26 +729,28 @@ export default function Dashboard({
         user={user}
       />
       
-      {/* Sync Status */}
+      {/* 9. Floating Status Center */}
       <div className="fixed bottom-24 right-4 z-[45]">
          {nsUrl && syncStatus && (
            <motion.div 
              initial={{ opacity: 0, scale: 0.8 }}
              animate={{ opacity: 1, scale: 1 }}
              className={cn(
-               "absolute -top-1 -left-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center shadow-lg",
-               syncStatus.status === 'syncing' ? 'bg-indigo-500' : 
-               syncStatus.status === 'success' ? 'bg-emerald-500' : 
-               syncStatus.status === 'error' ? 'bg-rose-500' : 'bg-slate-400'
+               "glass w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl border-white/50 dark:border-white/10",
              )}
-             title={syncStatus.status === 'syncing' ? 'Synchronizacja...' : `Ostatnia synchronizacja: ${syncStatus.lastSync ? new Date(syncStatus.lastSync).toLocaleTimeString() : 'brak'}`}
            >
-             {syncStatus.status === 'syncing' && <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />}
-             {syncStatus.status === 'success' && <CheckCircle2 size={8} className="text-white" />}
-             {syncStatus.status === 'error' && <Zap size={8} className="text-white fill-current" />}
+              <div className={cn(
+                "w-3 h-3 rounded-full border-2 border-white dark:border-slate-900",
+                syncStatus.status === 'syncing' ? 'bg-indigo-500 animate-pulse' : 
+                syncStatus.status === 'success' ? 'bg-emerald-500' : 
+                syncStatus.status === 'error' ? 'bg-rose-500' : 'bg-slate-400'
+              )} />
+              {syncStatus.status === 'syncing' && <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-2xl animate-ping" />}
            </motion.div>
          )}
       </div>
+
+      {editingLog && <MealEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} />}
     </motion.div>
   );
 }

@@ -33,7 +33,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, setDoc, deleteDoc, writeBatch, limit } from 'firebase/firestore';
-import { LogEntry, UserSettings, Product } from './types';
+import { LogEntry, UserSettings, Product, PlateItem } from './types';
 import { geminiService } from './services/gemini';
 import { CATEGORIES, LIB_BASE, APP_VERSION } from './constants';
 import { clsx, type ClassValue } from 'clsx';
@@ -62,7 +62,6 @@ const lazyWithReload = (importFunc: () => Promise<any>) => {
 };
 
 const BolusCalculator = lazyWithReload(() => import('./components/BolusCalculator'));
-const FoodDatabase = lazyWithReload(() => import('./components/FoodDatabase'));
 const MealPlate = lazyWithReload(() => import('./components/MealPlate'));
 const AiReports = lazyWithReload(() => import('./components/AiReports'));
 const PumpSimulator = lazyWithReload(() => import('./components/PumpSimulator'));
@@ -80,11 +79,31 @@ import { maintenanceService } from './services/maintenanceService';
 import Logo from './components/Logo';
 
 import OnboardingTutorial from './components/OnboardingTutorial';
+import ConsentClause from './components/ConsentClause';
 import NotificationCenter from './components/NotificationCenter';
 import NotebookManager from './components/NotebookManager';
 import ChangelogPopup from './components/ChangelogPopup';
 import PrivacyPopup from './components/PrivacyPopup';
 import { CURRENT_VERSION } from './constants/versions';
+
+const MeshBackground = ({ lastGlucose }: { lastGlucose: number | null }) => {
+  const isAlert = lastGlucose !== null && (lastGlucose < 70 || lastGlucose > 180);
+  const isUrgent = lastGlucose !== null && (lastGlucose < 55 || lastGlucose > 250);
+
+  return (
+    <div className="mesh-bg">
+      <motion.div 
+        animate={{ 
+          opacity: isUrgent ? 0.8 : isAlert ? 0.6 : 0.4,
+        }}
+        className={cn(
+          "w-full h-full transition-all duration-[2000ms] ease-in-out",
+          isAlert || isUrgent ? "mesh-gradient-alert" : "mesh-gradient-1"
+        )} 
+      />
+    </div>
+  );
+};
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -106,16 +125,37 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
+  const [showConsentClause, setShowConsentClause] = useState(false);
   const [privacyLoading, setPrivacyLoading] = useState(true);
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [sharedPlate, setSharedPlate] = useState<any[]>([]);
+  const [sharedPlate, setSharedPlate] = useState<PlateItem[]>(() => {
+    const saved = localStorage.getItem('current_plate');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('current_plate', JSON.stringify(sharedPlate));
+  }, [sharedPlate]);
+
 
   useEffect(() => {
     // Check privacy acceptance locally first
     const hasAcceptedPrivacy = localStorage.getItem('hasAcceptedPrivacy');
+    const hasSignedClause = localStorage.getItem('hasSignedClause');
+    
     if (!hasAcceptedPrivacy) {
       setShowPrivacyPopup(true);
+      setPrivacyLoading(false);
+    } else if (!hasSignedClause) {
+      setShowConsentClause(true);
       setPrivacyLoading(false);
     } else {
       setPrivacyLoading(false);
@@ -143,11 +183,24 @@ export default function App() {
       const privacyRef = doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'settings', 'privacy');
       try {
         const d = await getDoc(privacyRef);
-        if (d.exists() && d.data().accepted) {
-          localStorage.setItem('hasAcceptedPrivacy', 'true');
-          setShowPrivacyPopup(false);
+        if (d.exists()) {
+          const data = d.data();
+          if (data.accepted) {
+            localStorage.setItem('hasAcceptedPrivacy', 'true');
+            setShowPrivacyPopup(false);
+          } else {
+            setShowPrivacyPopup(true);
+          }
+
+          if (data.clauseSigned) {
+            localStorage.setItem('hasSignedClause', 'true');
+            setShowConsentClause(false);
+          } else if (data.accepted) {
+            // Only show clause if privacy is already accepted
+            setShowConsentClause(true);
+          }
         } else {
-          // If Firestore doesn't have it but localStorage does, sync it
+          // New user or no data
           if (localStorage.getItem('hasAcceptedPrivacy') === 'true') {
             await setDoc(privacyRef, { 
               accepted: true, 
@@ -169,8 +222,8 @@ export default function App() {
   const handleAcceptPrivacy = async () => {
     setShowPrivacyPopup(false);
     localStorage.setItem('hasAcceptedPrivacy', 'true');
-    localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
-
+    setShowConsentClause(true); // Mandatory next step
+    
     if (user) {
       const uid = getEffectiveUid(user);
       const privacyRef = doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'settings', 'privacy');
@@ -184,9 +237,29 @@ export default function App() {
         console.error("Error saving privacy to Firestore:", err);
       }
     }
+  };
+
+  const handleAcceptClause = async () => {
+    setShowConsentClause(false);
+    localStorage.setItem('hasSignedClause', 'true');
+    localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
+
+    if (user) {
+      const uid = getEffectiveUid(user);
+      const privacyRef = doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'settings', 'privacy');
+      try {
+        await setDoc(privacyRef, { 
+          clauseSigned: true,
+          clauseSignedAt: serverTimestamp(),
+          version: CURRENT_VERSION 
+        }, { merge: true });
+        toast.success("Zgoda zatwierdzona pomyślnie");
+      } catch (err) {
+        console.error("Error saving clause signature to Firestore:", err);
+        toast.error("Błąd zapisywania zgody");
+      }
+    }
     
-    // After privacy, if it's first run, tutorial might trigger elsewhere
-    // If not first run but version changed, show changelog
     const lastSeen = localStorage.getItem('lastSeenVersion');
     if (lastSeen && lastSeen !== CURRENT_VERSION && localStorage.getItem('hasSeenTutorial')) {
       setShowChangelog(true);
@@ -630,7 +703,7 @@ export default function App() {
              <h2 className={cn("text-3xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>GlikoControl</h2>
           </div>
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Zintegrowany System Glikemii</p>
-          <p className="text-accent-400 text-xs font-bold mb-8 italic">GlikoSense</p>
+          <p className="text-accent-400 text-xs font-bold mb-8 italic">GlikoControl AI</p>
 
           <div className="space-y-4 mb-6">
             <input 
@@ -749,6 +822,7 @@ export default function App() {
           theme={theme} 
           initialAction={initialAction}
           onClearInitialAction={() => setInitialAction(null)}
+          onAction={(action) => setInitialAction(action)}
           pumpStatus={pumpStatus}
           nsUrl={nsUrl}
           nsSecret={nsSecret}
@@ -760,13 +834,26 @@ export default function App() {
         <BolusCalculator logs={logs} user={user} setTab={changeTab} />
       )}
       {activeTab === 'database' && (
-        <FoodDatabase user={user} onAddToPlate={(product) => {
-          setSharedPlate(prev => [...prev, { ...product, id: Math.random().toString(36).substr(2, 9), weight: 100 }]);
-          changeTab('meal');
-        }} />
+        <MealPlate 
+          key="db-plate"
+          user={user} 
+          setTab={changeTab} 
+          sharedPlate={sharedPlate} 
+          setSharedPlate={setSharedPlate} 
+          mode="search" 
+          openHistory={() => changeTab('history')}
+        />
       )}
       {activeTab === 'meal' && (
-        <MealPlate user={user} setTab={changeTab} sharedPlate={sharedPlate} setSharedPlate={setSharedPlate} />
+        <MealPlate 
+          key="meal-plate"
+          user={user} 
+          setTab={changeTab} 
+          sharedPlate={sharedPlate} 
+          setSharedPlate={setSharedPlate} 
+          mode="plate" 
+          openHistory={() => changeTab('history')}
+        />
       )}
       {activeTab === 'chat' && (
         <GlikoChat petData={petData} />
@@ -801,28 +888,33 @@ export default function App() {
     </React.Suspense>
   );
 
+  const lastGlucoseValue = logs.find(l => l.type === 'glucose')?.value || null;
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] flex flex-col transition-colors duration-300 overflow-hidden">
+    <div className={cn("min-h-screen flex flex-col transition-colors duration-500 overflow-x-hidden", theme === 'dark' ? "dark bg-[#020617]" : "bg-slate-50")}>
+      <MeshBackground lastGlucose={lastGlucoseValue} />
       {isOffline && (
         <motion.div 
           initial={{ y: -50 }}
           animate={{ y: 0 }}
-          className="bg-amber-500 text-slate-900 text-[10px] font-black uppercase text-center py-2 z-[100] flex items-center justify-center gap-2 sticky top-0"
+          className="bg-slate-900/80 dark:bg-slate-950/80 text-white text-[9px] font-black uppercase text-center py-2.5 z-[100] flex items-center justify-center gap-2 sticky top-0 backdrop-blur-xl border-b border-white/5"
         >
-          <Zap size={12} className="animate-pulse" /> Tryb Offline - Funkcje mogą być ograniczone
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+          <span className="tracking-widest">Tryb Offline - Funkcje mogą być ograniczone</span>
         </motion.div>
       )}
       {authError && user && (
         <motion.div 
           initial={{ y: -50 }}
           animate={{ y: 0 }}
-          className="bg-rose-500 text-white text-[10px] font-black uppercase text-center py-2 z-[100] flex items-center justify-center gap-2 sticky top-0"
+          className="bg-rose-500/90 text-white text-[9px] font-black uppercase text-center py-2.5 z-[100] flex items-center justify-center gap-2 sticky top-0 backdrop-blur-xl border-b border-white/10"
         >
-          {authError}
+          <Activity size={12} />
+          <span className="tracking-widest">{authError}</span>
         </motion.div>
       )}
       {/* Header */}
-      <header className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-slate-100 dark:border-slate-800/20 pt-12 transition-all">
+      <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
         <div className="flex justify-between items-center max-w-md mx-auto">
           <div className="flex items-center gap-4">
             <button
@@ -837,7 +929,7 @@ export default function App() {
                 <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">GlikoControl</h1>
                 <p className="text-accent-500 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono">
                   <span className="w-1 h-1 rounded-full bg-accent-500 animate-pulse" />
-                  SENSE v{APP_VERSION}
+                  v{APP_VERSION}
                 </p>
               </div>
             </div>
@@ -900,8 +992,8 @@ export default function App() {
       </main>
 
       {/* Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-50 pb-safe">
-        <div className="max-w-md mx-auto flex items-center justify-around h-20 px-2">
+      <nav className="fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl">
+        <div className="max-w-md mx-auto flex items-center justify-around h-20 px-2 group">
           <NavButton active={activeTab === 'dashboard'} onClick={() => changeTab('dashboard')} icon={<LayoutDashboard />} label="Pulpit" />
           <NavButton active={activeTab === 'database'} onClick={() => changeTab('database')} icon={<Database />} label="Baza" />
           
@@ -912,13 +1004,22 @@ export default function App() {
               animate={{ y: activeTab === 'meal' ? -5 : 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 15 }}
               className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950",
+                "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950 relative",
                 activeTab === 'meal' ? "bg-accent-600 text-white shadow-accent-500/40" : "bg-slate-800 text-slate-400 hover:bg-slate-700"
               )}
             >
               <motion.div animate={{ rotate: activeTab === 'meal' ? [0, -20, 20, -10, 10, 0] : 0 }} transition={{ duration: 0.5 }}>
                 <Utensils />
               </motion.div>
+              {sharedPlate.length > 0 && (
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm"
+                >
+                  {sharedPlate.length}
+                </motion.div>
+              )}
             </motion.button>
             <motion.div 
               animate={{ opacity: activeTab === 'meal' ? 1 : 0.6, y: activeTab === 'meal' ? -2 : 0 }}
@@ -933,7 +1034,25 @@ export default function App() {
         </div>
       </nav>
 
-      <Toaster position="top-center" toastOptions={{ className: 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl text-[10px] font-bold uppercase tracking-widest' }} />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{ 
+          className: '!bg-white/70 dark:!bg-slate-900/70 !backdrop-blur-2xl !text-slate-900 dark:!text-white !border-black/5 dark:!border-white/10 !shadow-2xl !rounded-[1.5rem] !text-[10px] !font-black !uppercase !tracking-widest !font-display !px-6 !py-3',
+          duration: 3000,
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#f43f5e',
+              secondary: '#fff',
+            },
+          }
+        }} 
+      />
       <AnimatePresence>
         {showTutorial && (
            <OnboardingTutorial onComplete={() => {
@@ -943,6 +1062,9 @@ export default function App() {
         )}
         {showPrivacyPopup && (
            <PrivacyPopup onAccept={handleAcceptPrivacy} />
+        )}
+        {showConsentClause && (
+           <ConsentClause onAccept={handleAcceptClause} user={user} />
         )}
         {showChangelog && (
            <ChangelogPopup onClose={handleCloseChangelog} />

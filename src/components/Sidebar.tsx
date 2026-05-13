@@ -23,6 +23,7 @@ import {
   Beaker, 
   HelpCircle, 
   Smartphone, 
+  Signal,
   Home, 
   LayoutGrid, 
   Gamepad2, 
@@ -91,7 +92,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        subItems: [
           { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history', icon: <History size={14} /> },
           { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <Brain size={14} /> },
-          { id: 'assistant_ai', label: 'Asystent AI', tab: 'assistant', icon: isChildMode ? <Sparkles size={14} /> : <Cpu size={14} /> }
+          { id: 'assistant_ai', label: 'Czat Gliko', tab: 'assistant', icon: isChildMode ? <Sparkles size={14} /> : <Cpu size={14} /> }
        ]
     },
     ...(isChildMode ? [{ 
@@ -111,7 +112,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        icon: <Settings size={20} />,
        subItems: [
          { id: 'profile_settings', label: 'Ustawienia Profilu', tab: 'profile', icon: <Sliders size={14} /> },
-         { id: 'profile_devices', label: 'Osprzęt & CGM', tab: 'profile', action: 'devices', icon: <Smartphone size={14} /> },
+         { id: 'profile_devices', label: 'Osprzęt & CGM', tab: 'profile', action: 'devices', icon: <Signal size={14} /> },
          { id: 'profile_meds', label: 'Leki & Przypomnienia', tab: 'profile', action: 'meds', icon: <Pill size={14} /> },
          { id: 'profile_api', label: 'Integracje (Nightscout)', tab: 'profile', action: 'api', icon: <Globe size={14} /> }, 
          { id: 'profile_simulator', label: 'Symulator Bolusa', tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
@@ -134,28 +135,39 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
 
           {/* Sidebar */}
           <motion.div
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            initial={{ x: '-100%', opacity: 0.5 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: '-100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 250 }}
             className={cn(
-              "fixed top-0 left-0 bottom-0 w-3/4 max-w-sm z-[110] flex flex-col p-6 shadow-2xl overflow-y-auto",
-              theme === 'dark' ? "bg-slate-950 border-r border-slate-800" : "bg-white border-r border-slate-200"
+              "fixed top-0 left-0 bottom-0 w-[85%] max-w-sm z-[110] flex flex-col p-8 shadow-2xl overflow-y-auto rounded-r-[3rem]",
+              theme === 'dark' ? "bg-[#020617]/95 backdrop-blur-2xl border-r border-white/5" : "bg-white/95 backdrop-blur-2xl border-r border-slate-200"
             )}
           >
-            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
-              <h2 className={cn("text-xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                Menu
-              </h2>
+            {/* Background elements for that 'Neural' feel */}
+            <div className="absolute top-0 left-0 w-64 h-64 bg-accent-500/5 blur-[100px] -ml-32 -mt-32 pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -mr-32 -mb-32 pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-200/50 dark:border-slate-800/30 relative">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-accent-600 rounded-2xl flex items-center justify-center shadow-lg shadow-accent-600/20">
+                   <Activity className="text-white" size={20} />
+                 </div>
+                 <div>
+                   <h2 className={cn("text-xl font-black tracking-tighter leading-none uppercase font-display", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                     GlikoControl
+                   </h2>
+                 </div>
+              </div>
               <button 
                 onClick={onClose}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-accent-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-accent-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-90"
               >
-                <X size={20} />
+                <X size={20} strokeWidth={2.5} />
               </button>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3 relative">
               {menuItems.map((item) => {
                 const isActive = activeTab === item.id || (item.subItems && item.subItems.some(sub => sub.tab === activeTab));
                 const isExpanded = expandedItems[item.id];
@@ -167,77 +179,76 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                       onClick={() => {
                         changeTab(item.id);
                         if (!hasSubs) onClose();
-                        else setExpandedItems(prev => ({ ...prev, [item.id]: true }));
+                        else setExpandedItems(prev => ({ ...prev, [item.id]: !isExpanded }));
                       }}
                       className={cn(
-                        "flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-left",
+                        "flex items-center justify-between p-4 rounded-3xl transition-all font-black text-left group",
                         isActive
-                          ? "bg-accent-50 text-accent-600 dark:bg-accent-900/20 dark:text-accent-400"
-                          : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50"
+                          ? "bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400"
+                          : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900"
                       )}
                     >
                       <div className="flex items-center gap-4">
-                         <span className={cn("p-2 rounded-xl", isActive ? "bg-accent-100 dark:bg-accent-900/50" : "bg-slate-100 dark:bg-slate-800")}>
-                           {item.icon}
-                         </span>
-                         <span className="text-sm uppercase tracking-widest">{item.label}</span>
+                         <motion.span 
+                           whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                           className={cn(
+                             "p-2.5 rounded-2xl transition-all", 
+                             isActive ? "bg-accent-600 text-white shadow-lg shadow-accent-600/25" : "bg-slate-100 dark:bg-slate-800"
+                           )}
+                         >
+                           {React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
+                         </motion.span>
+                         <span className="text-[10px] uppercase tracking-[0.1em]">{item.label}</span>
                       </div>
                       
                       {hasSubs && (
-                        <div 
-                          onClick={(e) => toggleExpand(item.id, e)}
-                          className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                        >
-                          <ChevronDown size={16} className={cn("transition-transform", isExpanded && "rotate-180")} />
+                        <div className="p-1 rounded-lg">
+                          <ChevronDown size={14} className={cn("transition-transform duration-300", isExpanded && "rotate-180")} />
                         </div>
                       )}
                     </button>
                     
-                    {hasSubs && isExpanded && (
-                       <motion.div 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="flex flex-col gap-1 mt-1 pl-14 pr-2 overflow-hidden"
-                       >
-                          {item.subItems!.map(sub => (
-                             <button
-                                key={sub.id}
-                                onClick={() => {
-                                  changeTab(sub.tab || item.id);
-                                  onAction && onAction(sub.action || sub.id);
-                                  onClose();
-                                }}
-                                className="flex items-center gap-3 text-left py-3 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                             >
-                                <span className="opacity-60">{sub.icon}</span>
-                                {sub.label}
-                             </button>
-                          ))}
-                       </motion.div>
-                    )}
+                    <AnimatePresence>
+                      {hasSubs && isExpanded && (
+                         <motion.div 
+                            initial={{ opacity: 0, height: 0, y: -10 }}
+                            animate={{ opacity: 1, height: 'auto', y: 0 }}
+                            exit={{ opacity: 0, height: 0, y: -10 }}
+                            className="flex flex-col gap-1 mt-1 pl-12 pr-2 overflow-hidden"
+                         >
+                            {item.subItems!.map(sub => (
+                               <button
+                                  key={sub.id}
+                                  onClick={() => {
+                                    changeTab(sub.tab || item.id);
+                                    onAction && onAction(sub.action || sub.id);
+                                    onClose();
+                                  }}
+                                  className="flex items-center gap-3 text-left py-3.5 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-accent-600 dark:text-slate-500 dark:hover:text-accent-400 hover:bg-slate-50 dark:hover:bg-accent-500/5 transition-all group"
+                               >
+                                  <span className="opacity-40 group-hover:opacity-100 transition-opacity">{sub.icon}</span>
+                                  {sub.label}
+                               </button>
+                            ))}
+                         </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-auto space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-auto space-y-6 pt-10 border-t border-slate-200/50 dark:border-slate-800/30 relative">
               <button 
                 onClick={() => {
                   onAction && onAction('tutorial');
                   onClose();
                 }}
-                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 font-black text-[10px] uppercase tracking-widest hover:bg-accent-100 transition-all border border-accent-100 dark:border-accent-800/30 shadow-sm"
+                className="w-full flex items-center justify-center gap-3 py-5 rounded-3xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black text-[10px] uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-slate-900/10 dark:shadow-white/5"
               >
-                <HelpCircle size={18} />
-                Pomoc / Tutorial
+                <HelpCircle size={16} />
+                Poznaj GlikoControl
               </button>
-
-              <div className="text-center">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                  GlikoControl v{APP_VERSION}
-                </p>
-              </div>
             </div>
           </motion.div>
         </>

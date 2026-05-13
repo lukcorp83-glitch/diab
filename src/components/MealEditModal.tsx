@@ -200,22 +200,29 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                   >
                     {[...searchResults, ...onlineResults].map((p, idx) => (
                       <button 
-                        key={p.id || idx}
+                        key={`modal-search-${p.id || 'p'}-${idx}`}
                         onClick={() => addProduct(p)}
-                        className="w-full p-3 flex items-center justify-between hover:bg-white dark:hover:bg-slate-800 transition-colors text-left border-b border-slate-100 dark:border-slate-800 last:border-0"
+                        className="w-full p-4 flex items-center justify-between hover:bg-white dark:hover:bg-slate-700/50 transition-all text-left border-b border-slate-100 dark:border-slate-800 last:border-0 group active:scale-[0.98]"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center">
-                            <Zap size={14} />
+                          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Utensils size={16} />
                           </div>
                           <div>
                             <div className="text-xs font-black dark:text-white line-clamp-1">{p.name}</div>
-                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">
-                              {p.carbs}g W / {p.protein}g B / {p.fat}g T
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                                {p.carbs}g W
+                              </span>
+                              <span className="text-[9px] font-bold text-slate-400">
+                                {p.protein}B / {p.fat}T
+                              </span>
                             </div>
                           </div>
                         </div>
-                        <Plus size={16} className="text-accent-500 flex-shrink-0" />
+                        <div className="p-1.5 bg-accent-500/10 text-accent-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Plus size={14} />
+                        </div>
                       </button>
                     ))}
                   </motion.div>

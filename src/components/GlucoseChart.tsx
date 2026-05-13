@@ -12,10 +12,10 @@ import {
   ResponsiveContainer,
   Scatter,
   ReferenceLine,
-  Brush,
   Tooltip,
   Area
 } from 'recharts';
+import { Plus, Minus, Maximize2, Move } from 'lucide-react';
 
 // Insulin on Board calculation using a more realistic decay model
 const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => {
@@ -32,15 +32,26 @@ const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => 
   }, 0);
 };
 
+// Insulin Activity Profile (Action Curve) - peaks around 60-90 min then decays
+const calculateActivityAt = (time: number, boluses: LogEntry[], diaHours: number) => {
+  const diaMs = diaHours * 60 * 60 * 1000;
+  return boluses.reduce((sum, b) => {
+    const timeSince = time - b.timestamp;
+    if (timeSince < 0 || timeSince >= diaMs) return sum;
+    
+    const x = timeSince / diaMs;
+    // A skewed curve that peaks around 0.2-0.25 (approx 1h for 4h DIA)
+    // and returns to 0 at the end of DIA.
+    const activity = Math.max(0, 15 * x * Math.pow(1 - x, 3));
+    
+    return sum + b.value * activity;
+  }, 0);
+};
+
 const StackingWarning = (props: any) => {
   const { cx, cy, payload } = props;
   if (!payload.stackingWarning || isNaN(cx) || isNaN(cy)) return null;
-  return (
-    <g>
-      <circle cx={cx} cy={cy - 25} r={10} fill="#ef4444" className="animate-pulse" />
-      <text x={cx} y={cy - 21} textAnchor="middle" fontSize={12} fontWeight="black" fill="white">!</text>
-    </g>
-  );
+  return null; // Removed pulse red warning as per request
 };
 
 interface GlucoseChartProps {
@@ -59,7 +70,7 @@ const CustomGlucoseDot = (props: any) => {
   if (isNaN(cx) || isNaN(cy) || payload.glucose === undefined || payload.glucose === null) return null;
   const val = payload.glucose;
   let fill = isDark ? '#818cf8' : '#4f46e5';
-  if (val < targetMin) fill = '#ef4444';
+  if (val < targetMin) fill = '#f59e0b'; // Amber instead of red
   else if (val > targetMax) fill = '#f59e0b';
 
   return (
@@ -135,36 +146,76 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
   const [selectedPoint, setSelectedPoint] = useState<LogEntry | null>(null);
   const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number}[]>([]);
   const [isMlProcessing, setIsMlProcessing] = useState(false);
+  
+  // Interactive View State
+  const [zoomLevel, setZoomLevel] = useState(1); // 1 = default (hours), higher = zoom in
+  const [panOffsetMs, setPanOffsetMs] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastX, setLastX] = useState<number | null>(null);
 
   useEffect(() => {
-    if (showMLPrediction && typeof MLAnalyzer !== 'undefined' && logs.length >= 2) {
-      let isSubscribed = true;
-      setIsMlProcessing(true);
-      MLAnalyzer.analyzeData(logs).then(mlResult => {
-         if (isSubscribed) {
-            if (mlResult && mlResult.predictionCurve) {
-              setMlPredictionDataState(mlResult.predictionCurve.map(p => ({ timestamp: p.timestamp, value: p.value })));
-            } else {
-              setMlPredictionDataState([]);
-            }
-            setIsMlProcessing(false);
-         }
-      }).catch(e => {
-         console.error("ML Prediction failed", e);
-         if (isSubscribed) {
-           setIsMlProcessing(false);
-           setMlPredictionDataState([]);
-         }
-      });
-      return () => { isSubscribed = false; };
-    } else {
-      setMlPredictionDataState([]);
-      setIsMlProcessing(false);
+    // Reset view when base hours change
+    setZoomLevel(1);
+    setPanOffsetMs(0);
+  }, [hours]);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoomLevel(prev => Math.min(prev * 1.4, 30));
+  };
+
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoomLevel(prev => Math.max(prev / 1.4, 0.1));
+  };
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoomLevel(1);
+    setPanOffsetMs(0);
+  };
+
+  const handleMouseDown = (e: any) => {
+    if (e && e.chartX) {
+      setIsDragging(true);
+      setLastX(e.chartX);
     }
-  }, [logs, showMLPrediction]);
+  };
+
+  const handleMouseMove = (e: any) => {
+    if (isDragging && e && e.chartX && lastX !== null && containerRef.current) {
+      const width = containerRef.current.clientWidth || 1000;
+      const rangeMs = (hours * 60 * 60 * 1000) / zoomLevel;
+      const msPerPixel = rangeMs / width;
+      const deltaX = e.chartX - lastX;
+      setPanOffsetMs(prev => prev - (deltaX * msPerPixel));
+      setLastX(e.chartX);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setLastX(null);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    // Only zoom if ctrl key is pressed or just scroll? 
+    // Usually on mobile it's pinch. On desktop wheel is good.
+    if (Math.abs(e.deltaY) > 0) {
+      const factor = e.deltaY > 0 ? 0.9 : 1.1;
+      setZoomLevel(prev => {
+        const next = prev * factor;
+        return Math.max(0.1, Math.min(30, next));
+      });
+    }
+  };
 
   const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end } = useMemo(() => {
     let now = Date.now();
+    
+    // Logic for 'now' focus
     if (logs.length > 0) {
       const gLogs = logs.filter(l => l.type === 'glucose');
       if (gLogs.length > 0) {
@@ -179,15 +230,16 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     }
 
     const predictionTime = 2 * 60 * 60 * 1000;
-    const rangeMs = hours * 60 * 60 * 1000;
+    const baseRangeMs = hours * 60 * 60 * 1000;
+    const rangeMs = baseRangeMs / zoomLevel;
     
     const totalMs = (showMLPrediction || showLoopSimulation) ? rangeMs + predictionTime : rangeMs;
-    const start = now - rangeMs;
+    const start = now - rangeMs + panOffsetMs;
     const end = start + totalMs;
 
-    const dataG = logs.filter(l => l.type === 'glucose' && l.timestamp >= start).sort((a, b) => a.timestamp - b.timestamp);
-    const dataB = logs.filter(l => l.type === 'bolus' && l.timestamp >= start).sort((a, b) => a.timestamp - b.timestamp);
-    const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start);
+    const dataG = logs.filter(l => l.type === 'glucose' && l.timestamp >= start - rangeMs).sort((a, b) => a.timestamp - b.timestamp);
+    const dataB = logs.filter(l => l.type === 'bolus' && l.timestamp >= start - rangeMs).sort((a, b) => a.timestamp - b.timestamp);
+    const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start - rangeMs);
 
     const diaHours = settings?.dia || 4;
     const diaMs = diaHours * 60 * 60 * 1000;
@@ -355,10 +407,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       if (!timeMap.has(t)) timeMap.set(t, { timestamp: t });
     }
 
-    // Now calculate IOB for EVERY point in the map to prevent gaps
+    // Now calculate IOB and Activity for EVERY point in the map to prevent gaps
     const bolusLogs = logs.filter(l => l.type === 'bolus');
     timeMap.forEach((point, t) => {
       point.iob = calculateIOBAt(t, bolusLogs, diaHours);
+      point.activity = calculateActivityAt(t, bolusLogs, diaHours);
     });
 
     dataM.forEach(d => addPoint(d.timestamp, 'mealVal', true, { originalM: d, mealY: chartMinY }));
@@ -410,16 +463,54 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     xAxisTicks.sort((a, b) => a - b);
 
     return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end };
-  }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction, mlPredictionDataState]);
+  }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction, mlPredictionDataState, zoomLevel, panOffsetMs]);
 
   const isDark = theme === 'dark';
 
   return (
-    <div className="relative w-full h-full select-none" style={{ touchAction: 'pan-y' }} onClick={() => setSelectedPoint(null)}>
+    <div ref={containerRef} className="relative w-full h-full select-none" style={{ touchAction: 'none' }} onClick={() => setSelectedPoint(null)} onWheel={handleWheel}>
+      {/* View Controls */}
+      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-auto">
+        <button 
+          onClick={handleZoomIn}
+          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+          title="Powiększ"
+        >
+          <Plus size={20} className="font-black" />
+        </button>
+        <button 
+          onClick={handleZoomOut}
+          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+          title="Pomniejsz"
+        >
+          <Minus size={20} className="font-black" />
+        </button>
+        <button 
+          onClick={handleReset}
+          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+          title="Reset"
+        >
+          <Maximize2 size={18} className="font-black" />
+        </button>
+      </div>
+
+      {(panOffsetMs !== 0 || zoomLevel !== 1) && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div className="bg-accent-500/10 backdrop-blur-xl border border-accent-500/20 px-4 py-2 rounded-full flex items-center gap-2">
+            <Move size={12} className="text-accent-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-500">Tryb swobodny</span>
+          </div>
+        </div>
+      )}
+
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={chartData}
-          margin={{ top: 10, right: 10, left: -25, bottom: -10 }}
+          margin={{ top: 10, right: 10, left: -25, bottom: 20 }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} vertical={false} />
           <XAxis 
@@ -473,7 +564,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
                       )}
                     </div>
                     {data.glucose && <p className="font-bold">Glukoza: <span className="text-white">{Math.round(data.glucose)} mg/dL</span></p>}
-                    {data.iob !== undefined && <p className="text-pink-400">Aktywna insulina (IOB): {data.iob.toFixed(1)} j.</p>}
+                    {data.iob !== undefined && data.iob > 0 && (
+                      <div className="mt-1 border-t border-white/10 pt-1">
+                        <p className="text-pink-400 font-bold">Profil działania insuliny (IOB): {data.iob.toFixed(2)} j.</p>
+                        <div className="flex gap-2 text-[7px] text-pink-300/70 font-medium uppercase tracking-tighter">
+                          <span>Początek: ~20m</span>
+                          <span>Szczyt: ~75m</span>
+                        </div>
+                      </div>
+                    )}
                     {data.loopPrediction && <p className="text-emerald-400">Pętla: {Math.round(data.loopPrediction)} mg/dL</p>}
                     {data.mlPrediction && <p className="text-amber-400">GlikoSense: {Math.round(data.mlPrediction)} mg/dL</p>}
                     {data.stackingWarning && <p className="text-red-400 font-black mt-1 uppercase text-[8px]">Ostrzeżenie: Nakładanie dawek!</p>}
@@ -491,7 +590,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           {/* Lines */}
           <Area
             type="monotone"
-            dataKey="iob"
+            dataKey="activity"
             yAxisId="right"
             stroke="none"
             fill="url(#iobGradient)"

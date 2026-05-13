@@ -8,37 +8,40 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
   const current = VERSIONS[0];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden"
+        className="w-full max-w-sm glass rounded-[3rem] shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden"
       >
-        <div className="relative p-8 bg-gradient-to-br from-accent-500 to-indigo-600 text-white overflow-hidden">
+        <div className="relative p-8 bg-gradient-to-br from-accent-600/80 to-indigo-700/80 text-white overflow-hidden backdrop-blur-xl">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Sparkles size={120} />
           </div>
           <div className="relative z-10">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-80">Nowa aktualizacja</p>
-            <h2 className="text-3xl font-black mb-1">GlikoControl {current.version}</h2>
-            <p className="text-accent-100 text-xs font-bold italic">{current.title}</p>
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 mb-3">
+              <Zap size={10} className="fill-white" />
+              <span className="text-[8px] font-black uppercase tracking-[0.2em]">Nowa aktualizacja</span>
+            </div>
+            <h2 className="text-3xl font-black mb-1 leading-tight tracking-tighter font-display uppercase italic">Gliko {current.version}</h2>
+            <p className="text-accent-100 text-[10px] font-black uppercase tracking-widest">{current.title}</p>
           </div>
         </div>
 
         <div className="p-6 max-h-[60vh] overflow-y-auto no-scrollbar">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {current.changes.map((change, idx) => (
               <motion.div
-                key={idx}
+                key={`change-${current.version}-${idx}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 + idx * 0.1 }}
-                className="flex items-start gap-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800"
+                className="flex items-start gap-4 p-4 rounded-[1.8rem] bg-white/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-accent-500/30 transition-all group"
               >
-                <div className="shrink-0 w-8 h-8 rounded-xl bg-accent-100 dark:bg-accent-500/10 flex items-center justify-center text-accent-600">
+                <div className="shrink-0 w-10 h-10 rounded-2xl bg-accent-500/10 dark:bg-accent-500/20 flex items-center justify-center text-accent-500 group-hover:scale-110 transition-transform">
                    {getChangeIcon(change)}
                 </div>
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed pt-1">
                   {change}
                 </p>
               </motion.div>
@@ -49,9 +52,9 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
         <div className="p-6 pt-0">
           <button
             onClick={onClose}
-            className="w-full bg-accent-500 hover:bg-accent-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-accent-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-accent-600 hover:bg-accent-500 text-white font-black py-5 rounded-[1.8rem] uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-accent-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 group font-display"
           >
-            Super! Zaczynamy <ChevronRight size={16} />
+            Super! Zaczynamy <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
       </motion.div>

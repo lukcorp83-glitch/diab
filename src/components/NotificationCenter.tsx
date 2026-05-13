@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, X, AlertTriangle, Info, Clock, CheckCircle2, Pill } from 'lucide-react';
+import { Bell, X, AlertTriangle, Info, Clock, CheckCircle2, Pill, Trash2, Check } from 'lucide-react';
 import { UserSettings } from '../types';
 import { cn } from '../lib/utils';
 
@@ -20,6 +20,10 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    // Check hidden/deleted notifications from localStorage
+    const deletedIds = JSON.parse(localStorage.getItem('deletedNotifications') || '[]');
+    const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+
     // Generate notifications based on userSettings
     const newNotifications: AppNotification[] = [];
     const now = Date.now();
@@ -29,33 +33,37 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
       const sensorExpiryDate = userSettings.sensorChangeDate + (userSettings.sensorDurationDays * 24 * 60 * 60 * 1000);
       const sensorMsLeft = sensorExpiryDate - now;
       
-      if (sensorMsLeft <= 0) {
-        newNotifications.push({
-          id: 'sensor-expired',
-          title: 'Sensor wygasł',
-          message: 'Czas na wymianę sensora!',
-          type: 'alert',
-          timestamp: sensorExpiryDate,
-          read: false
-        });
-      } else if (sensorMsLeft <= warningThresholdMs) {
-        newNotifications.push({
-          id: 'sensor-warning',
-          title: 'Zbliża się wymiana sensora',
-          message: 'Pozostało mniej niż 12 godzin do końca cyklu życia sensora.',
-          type: 'warning',
-          timestamp: sensorExpiryDate - warningThresholdMs,
-          read: false
-        });
-      } else {
-        newNotifications.push({
-          id: 'sensor-info',
-          title: 'Aktywny sensor',
-          message: `Kolejna wymiana: ${new Date(sensorExpiryDate).toLocaleDateString()}`,
-          type: 'info',
-          timestamp: userSettings.sensorChangeDate,
-          read: true
-        });
+      const id = sensorMsLeft <= 0 ? 'sensor-expired' : (sensorMsLeft <= warningThresholdMs ? 'sensor-warning' : 'sensor-info');
+      
+      if (!deletedIds.includes(id)) {
+        if (sensorMsLeft <= 0) {
+          newNotifications.push({
+            id: 'sensor-expired',
+            title: 'Sensor wygasł',
+            message: 'Czas na wymianę sensora!',
+            type: 'alert',
+            timestamp: sensorExpiryDate,
+            read: false
+          });
+        } else if (sensorMsLeft <= warningThresholdMs) {
+          newNotifications.push({
+            id: 'sensor-warning',
+            title: 'Zbliża się wymiana sensora',
+            message: 'Pozostało mniej niż 12 godzin do końca cyklu życia sensora.',
+            type: 'warning',
+            timestamp: sensorExpiryDate - warningThresholdMs,
+            read: false
+          });
+        } else {
+          newNotifications.push({
+            id: 'sensor-info',
+            title: 'Aktywny sensor',
+            message: `Kolejna wymiana: ${new Date(sensorExpiryDate).toLocaleDateString()}`,
+            type: 'info',
+            timestamp: userSettings.sensorChangeDate,
+            read: true
+          });
+        }
       }
     }
 
@@ -63,33 +71,37 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
       const infusionExpiryDate = userSettings.infusionSetChangeDate + (userSettings.infusionSetDurationDays * 24 * 60 * 60 * 1000);
       const infusionMsLeft = infusionExpiryDate - now;
       
-      if (infusionMsLeft <= 0) {
-        newNotifications.push({
-          id: 'infusion-expired',
-          title: 'Wkłucie wygasło',
-          message: 'Czas na wymianę wkłucia!',
-          type: 'alert',
-          timestamp: infusionExpiryDate,
-          read: false
-        });
-      } else if (infusionMsLeft <= warningThresholdMs) {
-        newNotifications.push({
-          id: 'infusion-warning',
-          title: 'Zbliża się wymiana wkłucia',
-          message: 'Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia.',
-          type: 'warning',
-          timestamp: infusionExpiryDate - warningThresholdMs,
-          read: false
-        });
-      } else {
-        newNotifications.push({
-          id: 'infusion-info',
-          title: 'Aktywne wkłucie',
-          message: `Kolejna wymiana: ${new Date(infusionExpiryDate).toLocaleDateString()}`,
-          type: 'info',
-          timestamp: userSettings.infusionSetChangeDate,
-          read: true
-        });
+      const id = infusionMsLeft <= 0 ? 'infusion-expired' : (infusionMsLeft <= warningThresholdMs ? 'infusion-warning' : 'infusion-info');
+      
+      if (!deletedIds.includes(id)) {
+        if (infusionMsLeft <= 0) {
+          newNotifications.push({
+            id: 'infusion-expired',
+            title: 'Wkłucie wygasło',
+            message: 'Czas na wymianę wkłucia!',
+            type: 'alert',
+            timestamp: infusionExpiryDate,
+            read: false
+          });
+        } else if (infusionMsLeft <= warningThresholdMs) {
+          newNotifications.push({
+            id: 'infusion-warning',
+            title: 'Zbliża się wymiana wkłucia',
+            message: 'Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia.',
+            type: 'warning',
+            timestamp: infusionExpiryDate - warningThresholdMs,
+            read: false
+          });
+        } else {
+          newNotifications.push({
+            id: 'infusion-info',
+            title: 'Aktywne wkłucie',
+            message: `Kolejna wymiana: ${new Date(infusionExpiryDate).toLocaleDateString()}`,
+            type: 'info',
+            timestamp: userSettings.infusionSetChangeDate,
+            read: true
+          });
+        }
       }
     }
 
@@ -108,13 +120,14 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
                const m = parseInt(mStr, 10);
                if (!isNaN(h) && !isNaN(m)) {
                  const remTotalMinutes = h * 60 + m;
+                 const id = `med-${med.id}-${rem}-${todayString}`;
                  // If the reminder time has passed today (or is right now)
-                 if (currentTotalMinutes >= remTotalMinutes) {
+                 if (currentTotalMinutes >= remTotalMinutes && !deletedIds.includes(id)) {
                     const remDate = new Date();
                     remDate.setHours(h, m, 0, 0);
                     
                     newNotifications.push({
-                       id: `med-${med.id}-${rem}-${todayString}`, // Unique per day
+                       id: id, // Unique per day
                        title: `Czas na lek: ${med.name}`,
                        message: `Zamierzona dawka: ${med.dosage} (${rem})`,
                        type: 'medication',
@@ -128,7 +141,7 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
       });
     }
 
-    if (newNotifications.length === 0) {
+    if (newNotifications.length === 0 && !deletedIds.includes('welcome')) {
       newNotifications.push({
         id: 'welcome',
         title: 'Witaj w GlikoControl',
@@ -142,8 +155,6 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
     // Sort by timestamp desc
     newNotifications.sort((a, b) => b.timestamp - a.timestamp);
     
-    // Check read status from localStorage
-    const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
     const withReadStatus = newNotifications.map(n => ({
       ...n,
       read: n.read || readIds.includes(n.id)
@@ -157,7 +168,30 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
     const updated = notifications.map(n => ({ ...n, read: true }));
     setNotifications(updated);
     setUnreadCount(0);
-    localStorage.setItem('readNotifications', JSON.stringify(updated.map(n => n.id)));
+    const readIds = updated.map(n => n.id);
+    localStorage.setItem('readNotifications', JSON.stringify(readIds));
+  };
+
+  const markAsRead = (id: string) => {
+    const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
+    setNotifications(updated);
+    setUnreadCount(updated.filter(n => !n.read).length);
+    const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+    if (!readIds.includes(id)) {
+      readIds.push(id);
+      localStorage.setItem('readNotifications', JSON.stringify(readIds));
+    }
+  };
+
+  const deleteNotification = (id: string) => {
+    const updated = notifications.filter(n => n.id !== id);
+    setNotifications(updated);
+    setUnreadCount(updated.filter(n => !n.read).length);
+    const deletedIds = JSON.parse(localStorage.getItem('deletedNotifications') || '[]');
+    if (!deletedIds.includes(id)) {
+      deletedIds.push(id);
+      localStorage.setItem('deletedNotifications', JSON.stringify(deletedIds));
+    }
   };
 
   const getIcon = (type: string) => {
@@ -198,77 +232,114 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
                 initial={{ x: '100%', opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: '100%', opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
                 className={cn(
-                  "w-full max-w-sm h-full shadow-2xl relative flex flex-col border-l z-10",
-                  theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  "w-full max-w-[340px] h-full shadow-2xl relative flex flex-col border-l z-10",
+                  theme === 'dark' ? 'bg-slate-950/90 border-white/5' : 'bg-slate-50 border-slate-200'
                 )}
+                style={{ backdropFilter: 'blur(32px) saturate(150%)' }}
               >
-                <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-950">
-                  <div className="flex items-center gap-2">
-                    <Bell size={20} className="text-accent-500" />
-                    <h2 className="font-black text-lg dark:text-white tracking-tight">Powiadomienia</h2>
-                    {unreadCount > 0 && (
-                      <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        {unreadCount} nowe
-                      </span>
-                    )}
+                <div className="p-5 border-b border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-accent-500/10 rounded-xl">
+                      <Bell size={20} className="text-accent-500" />
+                    </div>
+                    <div>
+                      <h2 className="font-black text-sm dark:text-white uppercase tracking-widest font-display">Powiadomienia</h2>
+                      {unreadCount > 0 && (
+                        <p className="text-[10px] font-bold text-rose-500 uppercase tracking-tight">
+                          {unreadCount} nowe wiadomości
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <button 
                     onClick={() => setIsOpen(false)}
-                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500"
+                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-slate-500 h-10 w-10 flex items-center justify-center border border-transparent dark:hover:border-white/10"
                   >
                     <X size={20} />
                   </button>
                 </div>
 
                 {unreadCount > 0 && (
-                  <div className="p-2 px-4 flex justify-end shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50">
+                  <div className="p-2 px-5 flex justify-end shrink-0 border-b border-white/5 bg-slate-100/30 dark:bg-white/5 backdrop-blur-sm">
                     <button 
                       onClick={markAllAsRead}
-                      className="text-[10px] font-black uppercase tracking-wider text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 transition-colors"
+                      className="text-[9px] font-black uppercase tracking-[0.1em] text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 transition-all hover:scale-105 active:scale-95"
                     >
-                      Przeczytane
+                      Oznacz jako przeczytane
                     </button>
                   </div>
                 )}
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-40 text-slate-400">
-                      <Bell size={32} className="mb-2 opacity-50" />
-                      <p className="text-sm font-medium">Brak powiadomień</p>
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 text-center px-8">
+                      <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-4">
+                        <Bell size={32} className="opacity-20" />
+                      </div>
+                      <p className="text-xs font-black uppercase tracking-widest opacity-40">Brak powiadomień</p>
+                      <p className="text-[10px] font-bold mt-2 opacity-30">Twoje centrum komunikatów jest puste. Odpocznij.</p>
                     </div>
                   ) : (
-                    notifications.map(notification => (
+                    notifications.map((notification, idx) => (
                       <motion.div 
                         key={notification.id}
-                        initial={{ scale: 0.95, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
+                        initial={{ x: 20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: idx * 0.05 }}
                         className={cn(
-                          "p-3 rounded-2xl border transition-all relative overflow-hidden",
+                          "glass-card !p-4 border transition-all relative overflow-hidden group",
                           notification.read 
-                            ? (theme === 'dark' ? 'bg-slate-800/50 border-slate-800' : 'bg-white border-slate-200 opacity-70')
-                            : (theme === 'dark' ? 'bg-slate-800 border-slate-700 shadow-lg' : 'bg-white border-slate-300 shadow-md')
+                            ? "opacity-60 grayscale-[0.5]" 
+                            : "shadow-lg shadow-indigo-500/5"
                         )}
                       >
                         {!notification.read && (
-                          <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-accent-500 m-3" />
+                          <div className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full bg-accent-500 m-4 shadow-[0_0_8px_rgba(var(--accent-500),0.8)]" />
                         )}
-                        <div className="flex gap-3">
-                          <div className="mt-0.5 shrink-0">
+                        <div className="flex gap-4">
+                          <div className={cn(
+                            "mt-0.5 shrink-0 p-2.5 rounded-2xl group-hover:scale-110 transition-transform",
+                            notification.read ? 'bg-slate-100 dark:bg-white/5 text-slate-400' : 'bg-accent-500/10'
+                          )}>
                             {getIcon(notification.type)}
                           </div>
-                          <div>
-                            <h4 className={cn("text-sm font-bold", theme === 'dark' ? 'text-white' : 'text-slate-900')}>
-                              {notification.title}
-                            </h4>
-                            <p className={cn("text-xs mt-1 leading-relaxed", theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                              <h4 className={cn("text-[13px] font-black leading-tight tracking-tight", theme === 'dark' ? 'text-white' : 'text-slate-900')}>
+                                {notification.title}
+                              </h4>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {!notification.read && (
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                                    className="p-1 rounded-md hover:bg-emerald-500/10 text-emerald-500 transition-colors"
+                                    title="Oznacz jako przeczytane"
+                                  >
+                                    <Check size={14} />
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                                  className="p-1 rounded-md hover:bg-rose-500/10 text-rose-500 transition-colors"
+                                  title="Usuń"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                            <p className={cn("text-[11px] mt-1 font-bold leading-relaxed opacity-70", theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
                               {notification.message}
                             </p>
-                            <div className="flex items-center gap-1 mt-2 text-[10px] text-slate-400 font-medium">
+                            <div className="flex items-center gap-1.5 mt-3 text-[9px] text-slate-400 font-black uppercase tracking-tight">
                               <Clock size={10} />
-                              {new Date(notification.timestamp).toLocaleString()}
+                              {new Date(notification.timestamp).toLocaleString([], {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
                             </div>
                           </div>
                         </div>

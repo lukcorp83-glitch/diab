@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Lightbulb, TrendingUp, TrendingDown, Clock, Info, CheckCircle2, AlertCircle, Activity, Sparkles, X, Zap } from 'lucide-react';
 import { LogEntry } from '../types';
-import { calculateIOB, calculateCOB } from '../lib/utils';
+import { cn, calculateIOB, calculateCOB } from '../lib/utils';
 
 export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
   const [dismissedTips, setDismissedTips] = React.useState<string[]>(() => {
@@ -26,8 +26,8 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
       results.push({
         id: 'real_iob',
         type: 'data',
-        title: 'Aktywna insulina (IOB)',
-        content: `W Twoim organizmie pracuje teraz ok. ${iob.toFixed(1)} j. insuliny. Weź to pod uwagę przy planowaniu kolejnych kroków.`,
+        title: 'Profil działania insuliny (IOB)',
+        content: `W Twoim organizmie pracuje teraz ok. ${iob.toFixed(1)} j. insuliny (Początek: ~20m, Szczyt: ~75m). Weź to pod uwagę przy planowaniu kolejnych kroków.`,
         icon: <Zap size={20} className="text-pink-500" />,
         color: 'pink'
       });
@@ -111,31 +111,10 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
       });
     }
 
-    // General tip based on time
-    const hour = new Date().getHours();
-    if (hour >= 21 || hour < 5) {
-      results.push({
-        id: 'night_safety',
-        type: 'safety',
-        title: 'Bezpieczna noc',
-        content: 'Sprawdź cukier przed snem, by uniknąć nocnych epizodów.',
-        icon: <AlertCircle size={20} className="text-indigo-500" />,
-        color: 'indigo'
-      });
-    } else {
-      results.push({
-        id: 'activity_tip',
-        type: 'activity',
-        title: 'Ruch to zdrowie',
-        content: 'Krótki spacer po posiłku może znacząco poprawić glikemię po-posiłkową.',
-        icon: <Lightbulb size={20} className="text-accent-500" />,
-        color: 'accent'
-      });
-    }
-
+    // General tips removed to comply with "invisible until appear" request
+    
     return results
-      .filter(t => !dismissedTips.includes(t.id))
-      .slice(0, 2);
+      .filter(t => !dismissedTips.includes(t.id));
   }, [logs, dismissedTips]);
 
   const handleDismiss = (id: string) => {
@@ -147,33 +126,49 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
   if (tips.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-      {tips.map((tip, index) => (
-        <motion.div
-          key={tip.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-4 relative group"
-        >
-          <button 
-            onClick={() => handleDismiss(tip.id)}
-            className="absolute top-2 right-2 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100/50 dark:bg-slate-800/50 rounded-full transition-all"
-            aria-label="Dismiss tip"
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-2">
+        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display flex items-center gap-2">
+          <Lightbulb size={12} className="text-amber-500" />
+          Sugestie GlikoSense
+        </h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {tips.map((tip, index) => (
+          <motion.div
+            key={tip.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="glass-card !p-5 flex items-start gap-4 relative group"
           >
-            <X size={14} />
-          </button>
-          <div className={`p-2.5 rounded-2xl bg-${tip.color}-50 dark:bg-${tip.color}-500/10 shrink-0`}>
-            {tip.icon}
-          </div>
-          <div className="pr-6">
-            <h4 className="font-black text-sm dark:text-white mb-1">{tip.title}</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-              {tip.content}
-            </p>
-          </div>
-        </motion.div>
-      ))}
+            <button 
+              onClick={() => handleDismiss(tip.id)}
+              className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100/50 dark:bg-white/5 rounded-full transition-all opacity-0 group-hover:opacity-100"
+              aria-label="Dismiss tip"
+            >
+              <X size={12} />
+            </button>
+            <div className={cn(
+              "p-3 rounded-2xl shrink-0 group-hover:scale-110 transition-transform",
+              tip.color === 'pink' ? 'bg-pink-500/10 text-pink-500' :
+              tip.color === 'amber' ? 'bg-amber-500/10 text-amber-500' :
+              tip.color === 'rose' ? 'bg-rose-500/10 text-rose-500' :
+              tip.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-500' :
+              tip.color === 'indigo' ? 'bg-indigo-500/10 text-indigo-500' :
+              'bg-accent-500/10 text-accent-500'
+            )}>
+              {tip.icon}
+            </div>
+            <div className="pr-4">
+              <h4 className="font-black text-[13px] dark:text-white mb-1.5 leading-tight tracking-tight">{tip.title}</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed opacity-80">
+                {tip.content}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }

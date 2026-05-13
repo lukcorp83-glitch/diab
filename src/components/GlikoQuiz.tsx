@@ -211,7 +211,7 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
             <div className="flex gap-1 mt-0.5">
               {[...Array(sessionQuestions.length)].map((_, i) => (
                 <div 
-                  key={i} 
+                  key={`progress-${i}`} 
                   className={cn(
                     "h-1 rounded-full transition-all",
                     i < currentIdx ? "w-4 bg-emerald-500" :
@@ -238,7 +238,7 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
       <div className="space-y-3 mb-8">
         {quiz.options.map((option, idx) => (
           <button
-            key={idx}
+            key={`option-${currentIdx}-${idx}`}
             disabled={selected !== null}
             onClick={() => handleSelect(idx)}
             className={cn(

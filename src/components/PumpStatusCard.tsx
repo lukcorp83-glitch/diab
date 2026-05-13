@@ -161,8 +161,11 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
 
       <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
         <div>
-          <span className="text-[8px] font-black text-slate-400 uppercase block">Aktywna Insulina (IOB)</span>
+          <span className="text-[8px] font-black text-slate-400 uppercase block">Profil Działania Insuliny (IOB)</span>
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">{data.activeInsulin != null ? Number(data.activeInsulin).toFixed(2) : '--'} U</span>
+          {data.activeInsulin > 0 && (
+            <span className="text-[7px] font-bold text-pink-500/80 block mt-0.5">Start: ~20m • Szczyt: ~75m</span>
+          )}
         </div>
         <div className="text-right">
           <span className="text-[8px] font-black text-slate-400 uppercase block">Auto-Tryb</span>

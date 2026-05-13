@@ -73,7 +73,7 @@ export default function SwipeableItem({ children, onDelete, id, bgClass = "bg-[#
   return (
     <div className="relative overflow-hidden rounded-[2rem] mb-2 group">
       {/* Background layer with delete action */}
-      <div className="absolute inset-0 bg-gradient-to-l from-rose-600 to-rose-500 flex items-center justify-end">
+      <div className="absolute inset-0 bg-gradient-to-l from-slate-600 to-slate-500 flex items-center justify-end">
         <motion.div style={{ opacity }} className="h-full flex items-center justify-end min-w-[220px] px-4">
           {showConfirm ? (
             <div className="flex items-center justify-end gap-2 w-[180px]">
@@ -86,7 +86,7 @@ export default function SwipeableItem({ children, onDelete, id, bgClass = "bg-[#
               </button>
               <button 
                 onClick={handleDeleteClick}
-                className="bg-white text-rose-600 p-2 py-1.5 rounded-full font-black text-sm px-4 shadow-xl active:scale-95 transition-all cursor-pointer"
+                className="bg-white text-slate-600 p-2 py-1.5 rounded-full font-black text-sm px-4 shadow-xl active:scale-95 transition-all cursor-pointer"
               >
                 Tak
               </button>

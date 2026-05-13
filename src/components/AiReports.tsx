@@ -98,33 +98,6 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
     }
   };
 
-  const lastThreeDaysStats = useMemo(() => {
-    const dailyStats: any[] = [];
-    for (let i = 0; i < 3; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const dayLogs = logs.filter(l => {
-        const ts = l.timestamp || new Date(l.createdAt).getTime();
-        const d = new Date(ts).toISOString().split('T')[0];
-        return d === dateStr;
-      });
-
-      const glucoseLogs = dayLogs.filter(l => l.type === 'glucose' || l.bg);
-      const avg = glucoseLogs.length > 0 
-        ? Math.round(glucoseLogs.reduce((sum, l) => sum + (l.value || l.bg || 0), 0) / glucoseLogs.length)
-        : null;
-      
-      dailyStats.push({
-        date: i === 0 ? 'Dziś' : i === 1 ? 'Wczoraj' : date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }),
-        avg,
-        count: dayLogs.length
-      });
-    }
-    return dailyStats;
-  }, [logs]);
-
   const chartData = useMemo(() => {
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const glucoseLogs = logs.filter(l => {
@@ -158,24 +131,6 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <MLAnalysisWidget logs={logs} settings={settings} />
-
-      {/* 3-Day Comparison */}
-      <div className="grid grid-cols-3 gap-3">
-        {lastThreeDaysStats.map((stat, idx) => (
-          <div key={idx} className="glass p-4 rounded-3xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-center flex flex-col justify-between min-h-[100px]">
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{stat.date}</span>
-             <div className="flex flex-col items-center">
-                <span className={`text-xl font-black ${stat.avg ? (stat.avg > 180 || stat.avg < 70 ? 'text-rose-500' : 'text-emerald-500') : 'text-slate-300'}`}>
-                  {stat.avg || '--'}
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">mg/dL</span>
-             </div>
-             <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-800">
-               <span className="text-[9px] font-black text-slate-400 uppercase">{stat.count} wpisów</span>
-             </div>
-          </div>
-        ))}
-      </div>
       
       {/* Glucose Trend Chart */}
       {chartData.length > 0 && (

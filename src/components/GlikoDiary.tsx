@@ -67,7 +67,7 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
         <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
           {diaryEntries.map((entry, index) => (
             <motion.div
-              key={index}
+              key={`diary-${index}-${entry.time}`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}

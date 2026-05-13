@@ -37,6 +37,7 @@ export interface LogEntry {
 
 export interface PlateItem extends Product {
   weight: number;
+  plateItemId?: string;
 }
 
 export interface HourlyProfile {

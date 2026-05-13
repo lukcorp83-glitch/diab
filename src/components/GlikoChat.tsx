@@ -319,7 +319,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
         <AnimatePresence initial={false}>
           {messages.map((message) => (
             <motion.div
-              key={message.id}
+              key={`chat-${message.id}-${message.timestamp}`}
               initial={{ opacity: 0, y: 30, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               className={cn(
@@ -383,7 +383,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
         <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
           {suggestions.map((s, i) => (
             <motion.button
-              key={i}
+              key={`typing-${i}`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setInput(s)}

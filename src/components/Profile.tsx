@@ -2,7 +2,48 @@ import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Settings, LogOut, Moon, Sun, Smartphone, Bell, Shield, Info, Globe, Loader2, Zap, Medal, Trophy, Activity, History, Utensils, Beaker, Baby, CheckCircle2, Pill, Plus, Trash, X, User, ChevronLeft, ChevronRight, Cloud, ShoppingBag, Coins, Star, Sparkles, Check, Calendar, Brain } from 'lucide-react';
+import { 
+  Settings, 
+  LogOut, 
+  Moon, 
+  Sun, 
+  Smartphone, 
+  Bell, 
+  Shield, 
+  Info, 
+  Globe, 
+  Loader2, 
+  Zap, 
+  Medal, 
+  Trophy, 
+  Activity, 
+  History, 
+  Utensils, 
+  Beaker, 
+  Baby, 
+  CheckCircle2, 
+  Pill, 
+  Plus, 
+  Trash, 
+  X, 
+  User, 
+  ChevronLeft, 
+  ChevronRight, 
+  Cloud, 
+  ShoppingBag, 
+  Coins, 
+  Star, 
+  Sparkles, 
+  Check, 
+  Calendar, 
+  Brain, 
+  Signal, 
+  Droplets, 
+  Palette, 
+  RefreshCw, 
+  ShieldCheck, 
+  Lock as LucideLock 
+} from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -81,10 +122,11 @@ export default function Profile({
     reminders: string[];
     active: boolean;
     expiryDate?: string;
-  }>({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true, expiryDate: '' });
+  } | null>(null);
 
   const icons = ['🍎', '🍌', '🍇', '🍓', '🥪', '🍕', '🍔', '🥤', '🍬', '🥣', '🍫', '🥨', '🍪', '🥛'];
 
+  const [medLoading, setMedLoading] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [cleaningResult, setCleaningResult] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('therapy');
@@ -435,7 +477,8 @@ export default function Profile({
   };
 
   const saveMedication = async () => {
-    if (!newMedication.name || !user) return;
+    if (!newMedication?.name || !user) return;
+    setMedLoading(true);
     try {
       const updatedMeds = [...(settings.medications || [])];
       
@@ -443,17 +486,22 @@ export default function Profile({
         // Edit 
         const index = updatedMeds.findIndex(m => m.id === newMedication.id);
         if (index >= 0) updatedMeds[index] = { ...newMedication };
+        toast.success("Lek został zaktualizowany!");
       } else {
         // Add
         updatedMeds.push({ ...newMedication, id: Date.now().toString() });
+        toast.success("Lek dodany do apteczki!");
       }
       
       const newSettings = { ...settings, medications: updatedMeds };
       setSettings(newSettings);
       await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-      setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true, expiryDate: '' });
+      setNewMedication(null);
     } catch (e) {
       console.error(e);
+      toast.error("Błąd zapisu leku");
+    } finally {
+      setMedLoading(false);
     }
   };
 
@@ -519,47 +567,63 @@ export default function Profile({
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="glass p-8 rounded-[3rem] text-center">
-        <div className="w-20 h-20 bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400 rounded-[2rem] flex items-center justify-center mx-auto mb-4 shadow-inner">
-          {user.email ? (
-            <span className="text-3xl font-black uppercase">{user.email.charAt(0)}</span>
-          ) : (
-             <User size={32} />
-          )}
-        </div>
-        <h2 className="text-lg font-black dark:text-white mb-1">Twój Profil</h2>
-        <p className="text-slate-400 text-xs font-bold mb-6 truncate">{user.email || 'Użytkownik Anonimowy'}</p>
-        <div className="flex gap-2 justify-center">
-          <button onClick={handleLogout} className="bg-rose-500/10 text-rose-500 font-black text-[10px] px-6 py-3 rounded-2xl uppercase tracking-widest active:scale-95 transition-all">
-            Wyloguj
-          </button>
-        </div>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+      <div className="relative p-4 rounded-[2.5rem] text-center overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-500/10 via-transparent to-purple-500/5 dark:from-accent-500/20"></div>
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-accent-500/10 dark:bg-accent-500/20 blur-[80px] rounded-full pointer-events-none"></div>
         
-        <div className="flex flex-col gap-2 p-4 bg-purple-50 dark:bg-purple-500/5 rounded-2xl border border-purple-100 dark:border-purple-900/20 mt-6 text-left">
-          <div className="flex items-center justify-between pointer-events-none">
-              <h4 className="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-                <Brain size={14} className="text-purple-400" /> Program Badawczy GlikoSense
-              </h4>
-              <div className="pointer-events-auto">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      checked={telemetryEnabled}
-                      onChange={(e) => {
-                        const val = e.target.checked;
-                        setTelemetryEnabled(val);
-                        localStorage.setItem('glikosense_telemetry', val ? 'true' : 'false');
-                      }}
-                    />
-                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-purple-500"></div>
-                  </label>
-              </div>
+        <div className="relative z-10">
+          <div className="w-16 h-16 bg-white dark:bg-slate-900 text-accent-600 dark:text-accent-400 rounded-[1.8rem] flex items-center justify-center mx-auto mb-3 shadow-xl border-4 border-white dark:border-slate-800">
+            {user.email ? (
+              <span className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-br from-accent-500 to-indigo-600">
+                {user.email.charAt(0)}
+              </span>
+            ) : (
+               <User size={28} />
+            )}
           </div>
-          <p className="text-[9px] text-slate-500 dark:text-slate-400 mb-1 leading-tight font-medium">
-            Chcesz pomóc społeczności GlikoControl? Włącz anonimowe udostępnianie wiedzy wyuczonej przez GlikoSense wg trendów glikemii (bez jakichkolwiek identyfikatorów, logów czy danych uzytkownika). Pozwoli to anonimowym globalnym sieciom AI efektywniej przewidywać krzywą u innych cukrzyków.
+          <h2 className="text-base font-black dark:text-white mb-0.5">Twój Profil</h2>
+          <p className="text-slate-400 text-[9px] font-bold mb-3 truncate max-w-[180px] mx-auto opacity-70">
+            {user.email || 'Użytkownik Anonimowy'}
           </p>
+          
+          <div className="flex gap-2 justify-center">
+            <button onClick={handleLogout} className="group relative bg-white dark:bg-slate-800 text-rose-500 font-black text-[8px] px-5 py-2.5 rounded-lg uppercase tracking-[0.2em] shadow-md hover:bg-rose-500 hover:text-white transition-all active:scale-95 border border-rose-500/20 overflow-hidden">
+               <span className="relative z-10 flex items-center gap-1">
+                 <LogOut size={10} /> Wyloguj
+               </span>
+            </button>
+          </div>
+          
+          <motion.div 
+            whileHover={{ y: -1 }}
+            className="flex flex-col gap-2 p-4 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/50 dark:border-slate-800/50 mt-6 text-left shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+                <h4 className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                  <div className="p-1.5 bg-purple-500/10 rounded-lg">
+                    <Brain size={12} />
+                  </div>
+                  Program Badawczy GlikoSense
+                </h4>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer" 
+                    checked={telemetryEnabled}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setTelemetryEnabled(val);
+                      localStorage.setItem('glikosense_telemetry', val ? 'true' : 'false');
+                    }}
+                  />
+                  <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all dark:border-slate-600 peer-checked:bg-purple-500 shadow-inner"></div>
+                </label>
+            </div>
+            <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-snug font-bold">
+              Pomóż społeczności. Włącz anonimowe udostępnianie wiedzy wyuczonej przez Twój model AI (GlikoSense).
+            </p>
+          </motion.div>
         </div>
       </div>
 
@@ -624,56 +688,78 @@ export default function Profile({
       <div className="relative group/tabs">
         <button 
           onClick={() => scrollTabs('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow-xl opacity-0 group-hover/tabs:opacity-100 transition-opacity hidden md:flex items-center justify-center border border-slate-100 dark:border-slate-700 -ml-2"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow-xl flex items-center justify-center border border-slate-100 dark:border-slate-700 -ml-2 hover:bg-white dark:hover:bg-slate-700 transition-all active:scale-90"
         >
           <ChevronLeft size={16} className="text-slate-600 dark:text-slate-300" />
         </button>
         
-        <div ref={tabsRef} className="flex overflow-x-auto gap-2 pb-4 scrollbar-custom snap-x -mx-4 px-4 mask-fade-right">
+      <div 
+        ref={tabsRef}
+        className="flex overflow-x-auto gap-3 pb-6 pt-2 scrollbar-none snap-x -mx-4 px-4 overflow-visible"
+      >
           {[
-            { id: 'therapy', label: 'Terapia & Cele', icon: <Activity size={14} /> },
-            ...(settings.childMode ? [{ id: 'shop', label: `Sklepik ${petData.name}`, icon: <ShoppingBag size={14} /> }] : []),
-            { id: 'devices', label: 'Osprzęt & CGM', icon: <Smartphone size={14} /> },
-            { id: 'food', label: 'Skróty Posiłków', icon: <Utensils size={14} /> },
-            { id: 'meds', label: 'Leki & Przypomnienia', icon: <Pill size={14} /> },
-            { id: 'simulator', label: 'Symulator Bolusa', icon: <Beaker size={14} /> },
-            { id: 'api', label: ' Integracje & API', icon: <Globe size={14} /> },
-            { id: 'system', label: 'System & Inne', icon: <Settings size={14} /> }
+            { id: 'therapy', label: 'Terapia', sub: 'Cele & ISF', icon: <Activity size={18} />, color: 'bg-emerald-500' },
+            ...(settings.childMode ? [{ id: 'shop', label: 'Sklepik', sub: petData.name, icon: <ShoppingBag size={18} />, color: 'bg-amber-500' }] : []),
+            { id: 'devices', label: 'Osprzęt', sub: 'CGM & Wkłucia', icon: <Signal size={18} />, color: 'bg-indigo-500' },
+            { id: 'food', label: 'Skróty', sub: 'Szybkie wpisy', icon: <Utensils size={18} />, color: 'bg-amber-500' },
+            { id: 'meds', label: 'Leki', sub: 'Przypomnienia', icon: <Pill size={18} />, color: 'bg-teal-500' },
+            { id: 'api', label: 'Integracje', sub: 'API & Chmura', icon: <Globe size={18} />, color: 'bg-sky-500' },
+            { id: 'system', label: 'System', sub: 'Wygląd & Inne', icon: <Settings size={18} />, color: 'bg-slate-600' }
           ].map(cat => (
             <button 
               key={cat.id} 
               onClick={() => setActiveCategory(cat.id)}
               className={cn(
-                "flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest snap-start transition-all",
-                activeCategory === cat.id ? "bg-accent-600 text-white shadow-lg shadow-accent-600/20" : "bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700"
+                "flex-shrink-0 w-32 h-32 rounded-[2.5rem] flex flex-col p-4 snap-start transition-all duration-300 relative overflow-hidden group",
+                activeCategory === cat.id 
+                  ? "bg-white dark:bg-slate-900 shadow-2xl shadow-black/10 scale-105 z-10 border-2 border-accent-500/20" 
+                  : "bg-slate-100/50 dark:bg-slate-800/30 grayscale-[0.4] hover:grayscale-0 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
-              {cat.icon}
-              {cat.label}
+              <div className={cn(
+                "w-10 h-10 rounded-2xl flex items-center justify-center text-white mb-3 shadow-lg group-hover:scale-110 transition-transform",
+                activeCategory === cat.id ? cat.color : "bg-slate-400 dark:bg-slate-600"
+              )}>
+                {cat.icon}
+              </div>
+              <div className="text-left mt-auto">
+                <p className={cn(
+                  "text-[10px] font-black uppercase tracking-tight",
+                  activeCategory === cat.id ? "text-slate-900 dark:text-white" : "text-slate-500"
+                )}>{cat.label}</p>
+                <p className="text-[8px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors">{cat.sub}</p>
+              </div>
+              
+              {activeCategory === cat.id && (
+                <motion.div 
+                  layoutId="active-dot"
+                  className="absolute top-3 right-3 w-2 h-2 rounded-full bg-accent-500"
+                />
+              )}
             </button>
           ))}
         </div>
 
         <button 
           onClick={() => scrollTabs('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow-xl opacity-0 group-hover/tabs:opacity-100 transition-opacity hidden md:flex items-center justify-center border border-slate-100 dark:border-slate-700 -mr-2"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow-xl flex items-center justify-center border border-slate-100 dark:border-slate-700 -mr-2 hover:bg-white dark:hover:bg-slate-700 transition-all active:scale-90"
         >
           <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />
         </button>
       </div>
 
-      {/* Shop Category */}
+      {/* Shop Tab Content Padding */}
       {activeCategory === 'shop' && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-6 pb-20"
+          className="space-y-4 pb-20"
         >
           {/* Balance Card */}
-          <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
-            <Sparkles className="absolute -right-6 -bottom-6 w-32 h-32 opacity-20 rotate-12" />
+          <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden">
+            <Sparkles className="absolute -right-4 -bottom-4 w-24 h-24 opacity-20 rotate-12" />
             <div className="relative z-10 text-left">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-2">
                 {editingName ? (
                    <div className="flex items-center gap-2 bg-white/20 p-2 rounded-2xl backdrop-blur-md">
                      <input 
@@ -707,8 +793,8 @@ export default function Profile({
           </div>
 
           {/* Shop Tabs */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800">
-             <div className="flex gap-2 mb-8 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800">
+             <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl">
                 {['skins', 'accessories', 'backgrounds'].map((t) => (
                   <button
                     key={t}
@@ -880,140 +966,185 @@ export default function Profile({
       )}
 
       {activeCategory === 'therapy' && (
-        <div className="space-y-6">
-          <div className="glass p-8 rounded-[3rem] space-y-6">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Parametry Terapii</h3>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <SettingInput label="Wrażliwość (ISF)" value={settings.isf} onChange={v => setSettings({ ...settings, isf: v })} />
-          <SettingInput label="Ratio WW" value={settings.wwRatio} onChange={v => setSettings({ ...settings, wwRatio: v })} />
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <SettingInput label="Cel Min" value={settings.targetMin} onChange={v => setSettings({ ...settings, targetMin: v })} />
-          <SettingInput label="Cel Max" value={settings.targetMax} onChange={v => setSettings({ ...settings, targetMax: v })} />
-          <SettingInput label="Ratio WBT" value={settings.wbtRatio} onChange={v => setSettings({ ...settings, wbtRatio: v })} />
-        </div>
-
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
-          <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Czas działania insuliny (DIA)</h4>
-          <div className="flex items-center justify-center gap-4">
-            <button 
-              onClick={async () => {
-                const newSettings = { ...settings, dia: Math.max(2, (settings.dia || 4) - 0.5) };
-                setSettings(newSettings);
-                if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-              }}
-              className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-accent-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
-            >
-              -
-            </button>
-            <div className="text-center">
-              <span className="text-2xl font-black dark:text-white">{settings.dia || 4}</span>
-              <span className="text-[10px] font-bold text-slate-400 block uppercase">godziny</span>
-            </div>
-            <button 
-              onClick={async () => {
-                const newSettings = { ...settings, dia: Math.min(8, (settings.dia || 4) + 0.5) };
-                setSettings(newSettings);
-                if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-              }}
-              className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm text-accent-600 font-bold active:scale-90 transition-all border border-slate-100 dark:border-slate-600"
-            >
-              +
-            </button>
-          </div>
-          <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-tighter opacity-60">Standardowo: 3-5h dla analogów szybko-działających</p>
-        </div>
-
-        <button 
-          onClick={saveSettings}
-          disabled={settingsLoading}
-          className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all disabled:opacity-50"
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4 pb-20"
         >
-          {settingsLoading ? 'Zapisywanie...' : 'Zatwierdź Ustawienia'}
-        </button>
-      </div>
+          {/* Main Therapy Parameters */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-6">
+            <div className="flex items-center gap-4 mb-1">
+              <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-2xl">
+                <Activity size={20} />
+              </div>
+              <div className="text-left">
+                <h3 className="text-base font-black dark:text-white leading-tight">Cele i Przeliczniki</h3>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Kluczowe parametry terapii</p>
+              </div>
+            </div>
 
-      <div className="glass p-8 rounded-[3rem] space-y-6">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kalkulator Wrażliwości</h3>
-        <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Oblicz sugerowane parametry na podstawie Twojej dobowej dawki insuliny (TDI).</p>
-        
-        <div className="space-y-4">
-           <div>
-             <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">Dobowa Dawka (j.)</label>
-             <input 
-              type="number" 
-              placeholder="np. 40" 
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white"
-              onChange={(e) => {
-                const tdi = parseFloat(e.target.value);
-                if (tdi > 0) {
-                  const suggestedIsf = 1800 / tdi;
-                  const suggestedWw = 500 / tdi;
-                  // In a real app we'd save these to profile, 
-                  // but here we just show the suggestion.
-                  alert(`Sugerowane parametry:\nWrażliwość (ISF): ${suggestedIsf.toFixed(0)} mg/dL\nWspółczynnik WW: ${suggestedWw.toFixed(1)} g/j.`);
-                }
-              }}
-             />
-           </div>
-        </div>
-      </div>
-
-      <div className="glass p-8 rounded-[3rem] space-y-6">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Zaawansowane Profile Godzinowe</h3>
-        <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Ustaw różne parametry ISF i WW dla poszczególnych pór dnia (jak w pompie insulinowej).</p>
-        
-        <div className="space-y-3">
-          {(settings.hourlyProfiles || []).map((hp, idx) => (
-            <div key={idx} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700">
-              <input type="time" value={hp.time} onChange={e => {
-                const newProfiles = [...(settings.hourlyProfiles || [])];
-                newProfiles[idx].time = e.target.value;
-                setSettings({ ...settings, hourlyProfiles: newProfiles });
-              }} className="bg-transparent font-bold text-xs outline-none dark:text-white" />
-              <div className="flex-1 flex gap-2">
-                <div className="flex-1">
-                   <label className="text-[8px] text-slate-400 uppercase">ISF</label>
-                   <input type="number" step="0.1" value={typeof hp.isf === 'number' ? Number(hp.isf.toFixed(2)) : hp.isf} onChange={e => {
-                     const newProfiles = [...(settings.hourlyProfiles || [])];
-                     newProfiles[idx].isf = Number(e.target.value);
-                     setSettings({ ...settings, hourlyProfiles: newProfiles });
-                   }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-1 text-center text-xs dark:text-white" />
-                </div>
-                <div className="flex-1">
-                   <label className="text-[8px] text-slate-400 uppercase">WW</label>
-                   <input type="number" step="0.1" value={typeof hp.wwRatio === 'number' ? Number(hp.wwRatio.toFixed(2)) : hp.wwRatio} onChange={e => {
-                     const newProfiles = [...(settings.hourlyProfiles || [])];
-                     newProfiles[idx].wwRatio = Number(e.target.value);
-                     setSettings({ ...settings, hourlyProfiles: newProfiles });
-                   }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-1 text-center text-xs dark:text-white" />
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Czułość & Dieta</h4>
+                <div className="space-y-3">
+                  <SettingInput label="Wrażliwość (ISF)" value={settings.isf} onChange={v => setSettings({ ...settings, isf: v })} />
+                  <SettingInput label="Ratio WW" value={settings.wwRatio} onChange={v => setSettings({ ...settings, wwRatio: v })} />
+                  <SettingInput label="Ratio WBT" value={settings.wbtRatio} onChange={v => setSettings({ ...settings, wbtRatio: v })} />
                 </div>
               </div>
-              <button onClick={() => {
-                const newProfiles = (settings.hourlyProfiles || []).filter((_, i) => i !== idx);
-                setSettings({ ...settings, hourlyProfiles: newProfiles });
-              }} className="text-rose-500 font-bold px-2">X</button>
+              <div className="space-y-4">
+                <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Zakresy Docelowe</h4>
+                <div className="space-y-3">
+                  <SettingInput label="Cel Dolny (Min)" value={settings.targetMin} onChange={v => setSettings({ ...settings, targetMin: v })} />
+                  <SettingInput label="Cel Górny (Max)" value={settings.targetMax} onChange={v => setSettings({ ...settings, targetMax: v })} />
+                  
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Czas Insuliny (DIA)</span>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => setSettings({ ...settings, dia: Math.max(2, (settings.dia || 4) - 0.5) })}
+                        className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 hover:text-accent-500 transition-colors"
+                      >
+                        -
+                      </button>
+                      <span className="text-xl font-black dark:text-white">{settings.dia || 4}h</span>
+                      <button 
+                        onClick={() => setSettings({ ...settings, dia: Math.min(8, (settings.dia || 4) + 0.5) })}
+                        className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 hover:text-accent-500 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
-          <button onClick={() => {
-            const newProfiles = [...(settings.hourlyProfiles || []), { time: '12:00', isf: 50, wwRatio: 10 }];
-            setSettings({ ...settings, hourlyProfiles: newProfiles.sort((a,b) => a.time.localeCompare(b.time)) });
-          }} className="w-full py-2 bg-accent-50 dark:bg-accent-900/20 text-accent-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-accent-100 dark:border-accent-800/50">
-            + Dodaj Przedział Czasowy
-          </button>
-        </div>
-        <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all">
-          Zapisz Profile Godzinowe
-        </button>
-      </div>
-      </div>
+
+            <button 
+              onClick={saveSettings}
+              disabled={settingsLoading}
+              className="w-full bg-accent-600 hover:bg-accent-500 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-accent-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+            >
+              {settingsLoading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
+              Zapisz parametry terapii
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* TDI Calculator */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl space-y-4">
+              <div className="flex items-center gap-2.5 mb-1">
+                <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl">
+                  <Zap size={18} />
+                </div>
+                <h3 className="text-[11px] font-black dark:text-white uppercase tracking-tight">Kalkulator TDI</h3>
+              </div>
+              <p className="text-[9px] text-slate-500 leading-relaxed font-bold">Dobowa dawka insuliny (TDI).</p>
+              
+              <div className="relative mt-4">
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase">jednostek</div>
+                <input 
+                  type="number" 
+                  placeholder="np. 45" 
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 pr-20 rounded-2xl font-black text-sm outline-none dark:text-white focus:ring-2 ring-amber-500/20 transition-all"
+                  onChange={(e) => {
+                    const tdi = parseFloat(e.target.value);
+                    if (tdi > 0) {
+                      const isf = 1800 / tdi;
+                      const ww = 500 / tdi;
+                      // Logic for showing suggestion...
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Advanced Profiles Preview Card */}
+            <div 
+              onClick={() => { /* scroll to next card maybe? */ }}
+              className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-indigo-500/20 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <History size={18} />
+                  </div>
+                  <h3 className="text-[11px] font-black uppercase tracking-tight">Profile dobowe</h3>
+                </div>
+                <p className="text-[9px] text-white/80 leading-snug font-bold">Ustaw parametry dla pór dnia.</p>
+              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex -space-x-2">
+                  {[1,2,3].map(i => <div key={i} className="w-6 h-6 rounded-full border-2 border-indigo-500 bg-white/20"></div>)}
+                </div>
+                <span className="text-[8px] font-black bg-white/20 px-2 py-1 rounded-full uppercase tracking-widest">Konfiguruj poniżej</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="hourly-profiles" className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl space-y-6">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Zaawansowane Profile Godzinowe</h3>
+            
+            <div className="space-y-3">
+              {(settings.hourlyProfiles || []).map((hp, idx) => (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  key={`fav-profile-${idx}-${hp.time}`} 
+                  className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-700 group hover:shadow-md transition-all"
+                >
+                  <div className="relative">
+                    <input type="time" value={hp.time} onChange={e => {
+                      const newProfiles = [...(settings.hourlyProfiles || [])];
+                      newProfiles[idx].time = e.target.value;
+                      setSettings({ ...settings, hourlyProfiles: newProfiles });
+                    }} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl font-black text-xs outline-none dark:text-white" />
+                  </div>
+                  <div className="flex-1 grid grid-cols-2 gap-2">
+                    <div className="relative">
+                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">ISF</span>
+                       <input type="number" step="0.1" value={hp.isf} onChange={e => {
+                         const newProfiles = [...(settings.hourlyProfiles || [])];
+                         newProfiles[idx].isf = Number(e.target.value);
+                         setSettings({ ...settings, hourlyProfiles: newProfiles });
+                       }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-xl font-black text-xs text-center dark:text-white" />
+                    </div>
+                    <div className="relative">
+                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">WW</span>
+                       <input type="number" step="0.1" value={hp.wwRatio} onChange={e => {
+                         const newProfiles = [...(settings.hourlyProfiles || [])];
+                         newProfiles[idx].wwRatio = Number(e.target.value);
+                         setSettings({ ...settings, hourlyProfiles: newProfiles });
+                       }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-xl font-black text-xs text-center dark:text-white" />
+                    </div>
+                  </div>
+                  <button onClick={() => {
+                    const newProfiles = (settings.hourlyProfiles || []).filter((_, i) => i !== idx);
+                    setSettings({ ...settings, hourlyProfiles: newProfiles });
+                  }} className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 text-rose-500 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center active:scale-90 transition-all">
+                    <Trash size={14} />
+                  </button>
+                </motion.div>
+              ))}
+              
+              <button onClick={() => {
+                const newProfiles = [...(settings.hourlyProfiles || []), { time: '12:00', isf: 50, wwRatio: 10 }];
+                setSettings({ ...settings, hourlyProfiles: newProfiles.sort((a,b) => a.time.localeCompare(b.time)) });
+              }} className="w-full py-4 bg-accent-50 dark:bg-slate-800/50 text-accent-600 dark:text-accent-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-accent-200 dark:border-slate-700 hover:bg-accent-100 transition-all flex items-center justify-center gap-2">
+                <Plus size={16} /> Dodaj przedział czasowy
+              </button>
+            </div>
+            
+            <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl">
+              Zatwierdź profile czasowe
+            </button>
+          </div>
+        </motion.div>
       )}
 
       {activeCategory === 'devices' && (
-      <div className="space-y-6">
-      <div className="glass p-8 rounded-[3rem] space-y-6">
+      <div className="space-y-4">
+      <div className="glass p-6 rounded-[2.5rem] space-y-4">
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Kalibracja CGM</h3>
         <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Jeżeli odczyty z CGM różnią się od glukometru, podaj wartość z krwi, a system skoryguje kolejne odczyty (offset kalibracji).</p>
         <div className="flex items-center gap-4">
@@ -1064,16 +1195,16 @@ export default function Profile({
         ) : null}
       </div>
 
-      <div className="glass p-8 rounded-[3rem] space-y-6">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Przypomnienia o Wkłuciach i Sensorze</h3>
-        <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Ustaw czasy życia dla Twojego osprzętu. Aplikacja obliczy dokładny czas do wymiany co do godziny.</p>
+      <div className="glass p-6 rounded-[2.5rem] space-y-4">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Powiadomienia i Osprzęt</h3>
+        <p className="text-[9px] text-slate-500 leading-relaxed font-medium text-center">Ustaw czasy życia dla Twojego osprzętu.</p>
         
-        <div className="flex items-center justify-between p-4 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700">
-           <div className="flex items-center gap-3">
-             <Bell className="text-accent-500" size={20} />
+        <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700">
+           <div className="flex items-center gap-2.5">
+             <Bell className="text-accent-500" size={18} />
              <div>
-                <p className="text-sm font-black dark:text-white leading-tight">Powiadomienia Push</p>
-                <p className="text-[10px] font-medium text-slate-500">Ostrzeżenie o zbliżającej wymianie (ostrzega przy otwartej karcie)</p>
+                <p className="text-xs font-black dark:text-white leading-tight">Powiadomienia Push</p>
+                <p className="text-[9px] font-medium text-slate-500">Ostrzeżenia o wymianie</p>
              </div>
            </div>
            <button 
@@ -1149,70 +1280,130 @@ export default function Profile({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div className="space-y-4 bg-slate-50/50 dark:bg-slate-900/30 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2 mb-2">
-                <Smartphone size={16} className="text-accent-500" />
-                <h4 className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Sensor CGM</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+           <div className="group relative bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors"></div>
+              
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 flex items-center justify-center shadow-inner">
+                  <Signal size={22} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">Sensor CGM</h4>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Monitorowanie glikemii</p>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Żywotność (dni)</label>
-                  <input type="number" min="1" value={settings.sensorDurationDays || 10} onChange={e => {
-                    const val = Number(e.target.value);
-                    setSettings({ ...settings, sensorDurationDays: val > 0 ? val : 1 });
-                  }} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white" />
+
+              <div className="space-y-4 relative z-10">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">Żywotność Sensora (dni)</label>
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="30"
+                      value={settings.sensorDurationDays || 10} 
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        setSettings({ ...settings, sensorDurationDays: val > 0 ? val : 1 });
+                      }} 
+                      className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-black text-sm outline-none dark:text-white focus:ring-2 ring-indigo-500/20 transition-all" 
+                    />
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] font-black text-slate-400">DNI</div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Data założenia</label>
-                  <input type="datetime-local" 
-                    value={settings.sensorChangeDate ? new Date(settings.sensorChangeDate - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''} 
-                    onChange={e => {
-                      const d = new Date(e.target.value).getTime();
-                      if (!isNaN(d)) setSettings({ ...settings, sensorChangeDate: d });
-                    }} 
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-xs outline-none dark:text-white" 
-                  />
+
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">Data i godzina założenia</label>
+                  <div className="relative">
+                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none" />
+                    <input 
+                      type="datetime-local" 
+                      value={settings.sensorChangeDate ? new Date(settings.sensorChangeDate - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''} 
+                      onChange={e => {
+                        const d = new Date(e.target.value).getTime();
+                        if (!isNaN(d)) setSettings({ ...settings, sensorChangeDate: d });
+                      }} 
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-10 pr-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-indigo-500/20 transition-all" 
+                    />
+                  </div>
                 </div>
-                <button onClick={async () => {
-                   const newSettings = { ...settings, sensorChangeDate: Date.now() };
-                   setSettings(newSettings);
-                   if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                   alert('Zapisano wymianę sensora!');
-                }} className="w-full bg-accent-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all shadow-lg shadow-accent-600/20">Wymiana Teraz</button>
+
+                <button 
+                  onClick={async () => {
+                    const newSettings = { ...settings, sensorChangeDate: Date.now() };
+                    setSettings(newSettings);
+                    if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    toast.success('Zapisano wymianę sensora!');
+                  }} 
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] mt-2 active:scale-95 transition-all shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2 group/btn"
+                >
+                  <Sparkles size={14} className="group-hover:animate-pulse" />
+                  Wymieniłem sensor teraz
+                </button>
               </div>
            </div>
 
-           <div className="space-y-4 bg-slate-50/50 dark:bg-slate-900/30 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2 mb-2">
-                <Activity size={16} className="text-teal-500" />
-                <h4 className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Wkłucie / Zestaw</h4>
+           <div className="group relative bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-teal-500/10 transition-colors"></div>
+              
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-500/10 text-teal-600 flex items-center justify-center shadow-inner">
+                  <Droplets size={22} />
+                </div>
+                <div>
+                  <h4 className="text-base font-black dark:text-white uppercase tracking-tight">Zestaw Infuzyjny</h4>
+                  <p className="text-[10px] font-bold text-teal-600/60 dark:text-teal-400/60 uppercase tracking-[0.2em] mt-1">Wkłucie i dreny</p>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Żywotność (dni)</label>
-                  <input type="number" min="1" value={settings.infusionSetDurationDays || 3} onChange={e => {
-                    const val = Number(e.target.value);
-                    setSettings({ ...settings, infusionSetDurationDays: val > 0 ? val : 1 });
-                  }} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white" />
+
+              <div className="space-y-4 relative z-10">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">Żywotność Wkłucia (dni)</label>
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="7"
+                      value={settings.infusionSetDurationDays || 3} 
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        setSettings({ ...settings, infusionSetDurationDays: val > 0 ? val : 1 });
+                      }} 
+                      className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-black text-sm outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all" 
+                    />
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] font-black text-slate-400">DNI</div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Data założenia</label>
-                  <input type="datetime-local" 
-                    value={settings.infusionSetChangeDate ? new Date(settings.infusionSetChangeDate - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''} 
-                    onChange={e => {
-                      const d = new Date(e.target.value).getTime();
-                      if (!isNaN(d)) setSettings({ ...settings, infusionSetChangeDate: d });
-                    }} 
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-xs outline-none dark:text-white" 
-                  />
+
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">Data i godzina założenia</label>
+                  <div className="relative">
+                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-500 pointer-events-none" />
+                    <input 
+                      type="datetime-local" 
+                      value={settings.infusionSetChangeDate ? new Date(settings.infusionSetChangeDate - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''} 
+                      onChange={e => {
+                        const d = new Date(e.target.value).getTime();
+                        if (!isNaN(d)) setSettings({ ...settings, infusionSetChangeDate: d });
+                      }} 
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-10 pr-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all" 
+                    />
+                  </div>
                 </div>
-                <button onClick={async () => {
-                   const newSettings = { ...settings, infusionSetChangeDate: Date.now() };
-                   setSettings(newSettings);
-                   if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                   alert('Zapisano wymianę wkłucia!');
-                }} className="w-full bg-teal-500 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest mt-2 active:scale-95 transition-all shadow-lg shadow-teal-500/20">Wymiana Teraz</button>
+
+                <button 
+                  onClick={async () => {
+                    const newSettings = { ...settings, infusionSetChangeDate: Date.now() };
+                    setSettings(newSettings);
+                    if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    toast.success('Zapisano wymianę wkłucia!');
+                  }} 
+                  className="w-full bg-teal-600 hover:bg-teal-500 text-white p-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] mt-2 active:scale-95 transition-all shadow-xl shadow-teal-600/20 flex items-center justify-center gap-2 group/btn"
+                >
+                  <Sparkles size={16} className="group-hover:animate-spin transition-all" />
+                  Wymieniłem Dzisiaj
+                </button>
               </div>
            </div>
         </div>
@@ -1224,238 +1415,324 @@ export default function Profile({
       )}
 
       {activeCategory === 'food' && (
-      <div className="space-y-6">
-      <div className="glass p-8 rounded-[3rem] space-y-4">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Zarządzaj Skrótami</h3>
-        <div className="space-y-3">
-          {shortcuts.map(s => (
-            <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all group">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{s.icon}</span>
-                <div>
-                  <p className="text-xs font-black dark:text-white">{s.name}</p>
-                  <p className="text-[9px] font-bold text-slate-400">{s.carbs || 0}g węgli • {(s.carbs/10).toFixed(1)} WW</p>
-                </div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="space-y-4 pb-20"
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-2xl">
+                <Utensils size={20} />
               </div>
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                  onClick={() => setNewShortcut({ id: s.id, name: s.name, icon: s.icon, type: s.type || 'meal', carbs: s.carbs || 0 })}
-                  className="p-2 text-accent-500 text-[10px] font-black uppercase tracking-widest"
-                >
-                  Edytuj
-                </button>
-                <button 
-                  onClick={() => deleteShortcut(s.id)}
-                  className="p-2 text-rose-500 text-[10px] font-black uppercase tracking-widest"
-                >
-                  Usuń
-                </button>
+              <div className="text-left">
+                <h3 className="text-base font-black dark:text-white leading-tight">Szybkie Posiłki</h3>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Twoje ulubione skróty</p>
               </div>
-            </div>
-          ))}
-          
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">
-              {newShortcut.id ? 'Edytuj Skrót' : 'Dodaj Nowy Skrót'}
-            </p>
-            
-            {/* Icon Picker */}
-            <div className="flex flex-wrap gap-2 mb-2 p-2 bg-slate-50 dark:bg-slate-900 rounded-xl">
-              {icons.map(icon => (
-                <button 
-                  key={icon}
-                  onClick={() => setNewShortcut({...newShortcut, icon})}
-                  className={cn(
-                    "w-8 h-8 flex items-center justify-center rounded-lg transition-all",
-                    newShortcut.icon === icon ? "bg-accent-500 scale-110 shadow-lg" : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                  )}
-                >
-                  {icon}
-                </button>
-              ))}
             </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Ikona" 
-                  value={newShortcut.icon}
-                  onChange={e => setNewShortcut({...newShortcut, icon: e.target.value})}
-                  className="w-12 bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl text-center outline-none border border-slate-200 dark:border-slate-700 dark:text-white"
-                />
-                <input 
-                  type="text" 
-                  placeholder="Nazwa" 
-                  value={newShortcut.name}
-                  onChange={e => setNewShortcut({...newShortcut, name: e.target.value})}
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl outline-none border border-slate-200 dark:border-slate-700 dark:text-white text-xs font-bold"
-                />
-              </div>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input 
-                    type="number" 
-                    placeholder="Węglowodany (g)" 
-                    value={newShortcut.carbs || ''}
-                    onChange={e => setNewShortcut({...newShortcut, carbs: Number(e.target.value)})}
-                    className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl outline-none border border-slate-200 dark:border-slate-700 dark:text-white text-xs font-bold pr-12"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-500 uppercase">g węgli</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {shortcuts.map(s => (
+                <motion.div 
+                  layout
+                  key={s.id} 
+                  className="group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-[1.8rem] border border-slate-100 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-transform group-hover:scale-110">
+                      {s.icon}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-black dark:text-white">{s.name}</p>
+                      <p className="text-[9px] font-bold text-amber-500 uppercase tracking-wider">{s.carbs || 0}g węgli • {(s.carbs/10).toFixed(1)} WW</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => setNewShortcut({ id: s.id, name: s.name, icon: s.icon, type: s.type || 'meal', carbs: s.carbs || 0 })}
+                      className="p-2 text-slate-400 hover:text-accent-500 transition-colors"
+                    >
+                      <Settings size={14} />
+                    </button>
+                    <button 
+                      onClick={() => deleteShortcut(s.id)}
+                      className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                    >
+                      <Trash size={14} />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+
+              <button 
+                onClick={() => setNewShortcut({ id: '', name: '', icon: '🥗', type: 'meal', carbs: 0 })}
+                className="flex items-center justify-center gap-3 p-4 rounded-[1.8rem] border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-accent-500 hover:bg-accent-500/5 text-slate-400 hover:text-accent-500 transition-all font-black text-[10px] uppercase tracking-widest"
+              >
+                <Plus size={18} /> Dodaj nowy skrót
+              </button>
+            </div>
+
+            {newShortcut && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="bg-slate-50 dark:bg-slate-800/80 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 space-y-4 shadow-inner"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest px-2">
+                    {newShortcut.id ? 'Edycja skrótu' : 'Nowy skrót'}
+                  </h4>
+                  {newShortcut.id && (
+                    <button onClick={() => setNewShortcut({ id: '', name: '', icon: '📌', type: 'meal', carbs: 0 })} className="text-rose-500">
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
+
+                <div className="flex flex-wrap gap-2 p-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  {icons.map(icon => (
+                    <button 
+                      key={icon}
+                      onClick={() => setNewShortcut({...newShortcut, icon})}
+                      className={cn(
+                        "w-10 h-10 flex items-center justify-center rounded-xl text-xl transition-all",
+                        newShortcut.icon === icon ? "bg-accent-500 shadow-lg scale-110" : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2">Nazwa posiłku</label>
+                    <input 
+                      type="text" 
+                      placeholder="np. Szybkie Śniadanie" 
+                      value={newShortcut.name}
+                      onChange={e => setNewShortcut({...newShortcut, name: e.target.value})}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-xl font-bold text-sm outline-none dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2">Węglowodany (g)</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        placeholder="0" 
+                        value={newShortcut.carbs || ''}
+                        onChange={e => setNewShortcut({...newShortcut, carbs: Number(e.target.value)})}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 pr-12 rounded-xl font-bold text-sm outline-none dark:text-white"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase">G</span>
+                    </div>
+                  </div>
+                </div>
+
                 <button 
                   onClick={saveShortcut}
-                  className="bg-accent-600 text-white px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-accent-500/20"
+                  className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl"
                 >
-                  {newShortcut.id ? 'Zapisz' : 'Dodaj'}
+                  {newShortcut.id ? 'Zapisz zmiany' : 'Zatwierdź i dodaj'}
                 </button>
-                {newShortcut.id && (
-                  <button 
-                    onClick={() => setNewShortcut({ id: '', name: '', icon: '📌', type: 'meal', carbs: 0 })}
-                    className="bg-slate-200 dark:bg-slate-800 p-3 rounded-2xl font-black text-[10px] uppercase dark:text-slate-400"
-                  >
-                    X
-                  </button>
-                )}
-              </div>
-            </div>
+              </motion.div>
+            )}
           </div>
-        </div>
-      </div>
-      </div>
+        </motion.div>
       )}
 
       {activeCategory === 'meds' && (
-      <div className="space-y-6">
-        <div className="glass p-8 rounded-[3rem] space-y-4">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Pill size={14} /> Twoje Leki</h3>
-          <p className="text-[10px] text-slate-500 font-medium mb-4">Zarządzaj przyjmowanymi lekami i ustawiaj przypomnienia o ich zażyciu (otrzymasz powiadomienia w aplikacji).</p>
-          
-          <div className="space-y-3">
-            {(settings.medications || []).map(med => (
-              <div key={med.id} className="flex flex-col p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all group">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-xl", med.active ? "bg-accent-100 text-accent-500 dark:bg-accent-900/30" : "bg-slate-200 text-slate-400 dark:bg-slate-700")}>
-                       <Pill size={20} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-black dark:text-white capitalize">{med.name} <span className="text-[10px] font-bold text-slate-400 ml-1">({med.dosage})</span></p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                         {med.reminders.map((r, i) => <span key={i} className="text-[9px] font-black bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full text-slate-500">{r}</span>)}
-                      </div>
-                      {med.expiryDate && (
-                        <p className={`text-[9px] font-bold mt-2 flex items-center gap-1 ${
-                          new Date(med.expiryDate).getTime() < Date.now() + 7 * 24 * 60 * 60 * 1000 
-                            ? 'text-rose-500 animate-pulse' 
-                            : 'text-slate-400'
-                        }`}>
-                          <Calendar size={10} />
-                          Ważny do: {med.expiryDate}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <button onClick={async () => {
-                        const updatedMeds = settings.medications!.map(m => m.id === med.id ? { ...m, active: !m.active } : m);
-                        const newSettings = { ...settings, medications: updatedMeds };
-                        setSettings(newSettings);
-                        await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                    }} className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded", med.active ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10" : "text-slate-500 bg-slate-200 dark:bg-slate-700")}>
-                        {med.active ? 'Aktywny' : 'Pauzowany'}
-                    </button>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setNewMedication({ 
-                        id: med.id,
-                        name: med.name,
-                        dosage: med.dosage,
-                        reminders: med.reminders,
-                        active: med.active,
-                        expiryDate: med.expiryDate || '' 
-                      })} className="p-1 text-accent-500"><Settings size={14} /></button>
-                      <button onClick={() => deleteMedication(med.id)} className="p-1 text-rose-500"><Trash size={14} /></button>
-                    </div>
-                  </div>
-                </div>
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="space-y-4 pb-20"
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-6">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2.5 bg-teal-500/10 text-teal-600 rounded-2xl">
+                <Pill size={20} />
               </div>
-            ))}
-            
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">
-                {newMedication.id ? 'Edytuj Lek' : 'Dodaj Nowy Lek'}
-              </p>
-              
-              <div className="flex flex-col gap-3">
-                <input 
-                  type="text" 
-                  placeholder="Nazwa leku (np. Metformina)" 
-                  value={newMedication.name}
-                  onChange={e => setNewMedication({...newMedication, name: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl outline-none border border-slate-200 dark:border-slate-700 dark:text-white text-sm font-bold"
-                />
-                
-                <input 
-                  type="text" 
-                  placeholder="Dawka (np. 500mg)" 
-                  value={newMedication.dosage}
-                  onChange={e => setNewMedication({...newMedication, dosage: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl outline-none border border-slate-200 dark:border-slate-700 dark:text-white text-sm font-bold"
-                />
-                
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-2 block">Data ważności leku</label>
-                  <input 
-                    type="date" 
-                    value={newMedication.expiryDate}
-                    onChange={e => setNewMedication({...newMedication, expiryDate: e.target.value})}
-                    className="w-full bg-transparent outline-none dark:text-white text-sm font-bold"
-                  />
+              <div className="text-left">
+                <h3 className="text-base font-black dark:text-white leading-tight">Twoje Leki</h3>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Harmonogram</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {(settings.medications || []).map(med => (
+                <motion.div 
+                  layout
+                  key={med.id} 
+                  className={cn(
+                    "relative overflow-hidden p-5 rounded-[2rem] border transition-all flex flex-col group",
+                    med.active 
+                      ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700" 
+                      : "bg-slate-100/50 dark:bg-slate-900 border-transparent opacity-60"
+                  )}
+                >
+                  <div className="flex items-start justify-between relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner transition-colors",
+                        med.active ? "bg-teal-500/10 text-teal-600" : "bg-slate-200 text-slate-400"
+                      )}>
+                        <Pill size={24} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-black dark:text-white flex items-center gap-2">
+                          {med.name}
+                          <span className="text-[10px] font-bold text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-100 dark:border-slate-700">
+                            {med.dosage}
+                          </span>
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {med.reminders.map((r, i) => (
+                            <span key={`med-rem-${med.id}-${i}`} className="flex items-center gap-1.5 text-[9px] font-black bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded-xl shadow-sm">
+                              <Bell size={10} className="text-teal-500" />
+                              {r}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-end gap-2">
+                      <button 
+                        onClick={async () => {
+                          const updatedMeds = settings.medications!.map(m => m.id === med.id ? { ...m, active: !m.active } : m);
+                          const newSettings = { ...settings, medications: updatedMeds };
+                          setSettings(newSettings);
+                          await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                        }} 
+                        className={cn(
+                          "text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-all",
+                          med.active ? "bg-teal-500 text-white" : "bg-slate-200 text-slate-400 dark:bg-slate-700"
+                        )}
+                      >
+                        {med.active ? 'Aktywny' : 'Pauza'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {med.expiryDate && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+                      <p className={cn(
+                        "text-[9px] font-bold flex items-center gap-1.5",
+                        new Date(med.expiryDate).getTime() < Date.now() + 7 * 24 * 60 * 60 * 1000 
+                          ? 'text-rose-500 animate-pulse' 
+                          : 'text-slate-400'
+                      )}>
+                        <Calendar size={12} />
+                        Data ważności: <span className="uppercase">{med.expiryDate}</span>
+                      </p>
+                      
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setNewMedication({ ...med, expiryDate: med.expiryDate || '' })} className="p-2 text-slate-400 hover:text-accent-500 transition-colors">
+                          <Settings size={14} />
+                        </button>
+                        <button onClick={() => deleteMedication(med.id)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">
+                          <Trash size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+
+              <button 
+                onClick={() => setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true, expiryDate: '' })}
+                className="w-full py-5 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 hover:border-teal-500 hover:bg-teal-500/5 hover:text-teal-600 transition-all flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-[0.2em]"
+              >
+                <Plus size={20} /> Dodaj nowy lek
+              </button>
+            </div>
+
+            {newMedication && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 space-y-5"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[9px] font-black uppercase text-slate-500 tracking-widest px-1">Konfiguracja</h4>
+                  <button onClick={() => setNewMedication(null)} className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-full transition-all">
+                    <X size={16} />
+                  </button>
                 </div>
-                
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
-                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Godziny przyjmowania</p>
-                   <div className="flex flex-wrap gap-2 mb-3">
-                     {newMedication.reminders.map((rem, idx) => (
-                       <div key={idx} className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-1 pl-3 pr-1">
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Nazwa</label>
+                    <input 
+                      type="text" 
+                      placeholder="np. Metformina" 
+                      value={newMedication.name}
+                      onChange={e => setNewMedication({...newMedication, name: e.target.value})}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Dawka</label>
+                    <input 
+                      type="text" 
+                      placeholder="np. 500mg" 
+                      value={newMedication.dosage}
+                      onChange={e => setNewMedication({...newMedication, dosage: e.target.value})}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Przypomnienia</label>
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                      {newMedication.reminders.map((rem, idx) => (
+                        <div key={`new-med-rem-${idx}`} className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 rounded-lg py-1 px-1.5 border border-slate-100 dark:border-slate-700">
                           <input type="time" value={rem} onChange={e => {
                              const updatedRems = [...newMedication.reminders];
                              updatedRems[idx] = e.target.value;
                              setNewMedication({...newMedication, reminders: updatedRems});
-                          }} className="text-xs font-bold bg-transparent outline-none dark:text-white" />
+                          }} className="text-[9px] font-black bg-transparent outline-none dark:text-white w-12" />
                           <button onClick={() => {
                              const updatedRems = newMedication.reminders.filter((_, i) => i !== idx);
                              setNewMedication({...newMedication, reminders: updatedRems});
-                          }} className="p-1 text-slate-400 hover:text-rose-500 rounded-lg"><X size={14}/></button>
-                       </div>
-                     ))}
-                     <button onClick={() => {
-                        setNewMedication({...newMedication, reminders: [...newMedication.reminders, '12:00']});
-                     }} className="bg-accent-100 dark:bg-accent-900/30 text-accent-500 p-2 rounded-xl border border-accent-200 dark:border-accent-800/50 hover:bg-accent-200 transition-colors"><Plus size={16} /></button>
-                   </div>
+                          }} className="p-0.5 text-rose-500"><X size={10}/></button>
+                        </div>
+                      ))}
+                      <button onClick={() => setNewMedication({...newMedication, reminders: [...newMedication.reminders, '12:00']})} className="w-6 h-6 rounded-full bg-teal-500 text-white flex items-center justify-center active:scale-90 transition-all">
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Wygasa</label>
+                    <div className="relative">
+                      <Calendar size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-500" />
+                      <input 
+                        type="date" 
+                        value={newMedication.expiryDate}
+                        onChange={e => setNewMedication({...newMedication, expiryDate: e.target.value})}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-9 pr-3 rounded-xl font-bold text-[10px] outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <button 
-                    onClick={saveMedication}
-                    className="flex-1 bg-accent-600 text-white p-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-accent-500/20"
-                  >
-                    {newMedication.id ? 'Zapisz Zmiany' : 'Dodaj Lek'}
-                  </button>
-                    {newMedication.id && (
-                    <button 
-                      onClick={() => setNewMedication({ id: '', name: '', dosage: '', reminders: ['08:00'], active: true, expiryDate: '' })}
-                      className="bg-slate-200 dark:bg-slate-800 p-4 rounded-2xl font-black text-[10px] uppercase dark:text-slate-400"
-                    >
-                      X
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+                <button 
+                  onClick={saveMedication}
+                  disabled={medLoading}
+                  className="w-full bg-teal-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-teal-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  {medLoading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  {newMedication.id ? 'Aktualizuj' : 'Zapisz lek'}
+                </button>
+              </motion.div>
+            )}
           </div>
-        </div>
-      </div>
+        </motion.div>
       )}
 
       {activeCategory === 'simulator' && (
@@ -1463,489 +1740,501 @@ export default function Profile({
       )}
 
       {activeCategory === 'api' && (
-      <div className="space-y-6">
-        <ApiIntegration user={user} />
-        
-        <div className="glass p-8 rounded-[3rem] space-y-4">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pobieranie Danych (CGM)</h3>
-
-          <div className="flex flex-col gap-2 p-4 bg-sky-50 dark:bg-sky-900/20 rounded-2xl border border-sky-100 dark:border-sky-800">
-            <div className="flex items-center gap-3 mb-2">
-                <Smartphone className="text-sky-500" size={20} />
-                <span className="text-xs font-bold dark:text-white">Użytkownicy Dexcom i Freestyle Libre</span>
-            </div>
-            <p className="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed">
-              Z powodu ograniczeń technologicznych nałożonych przez firmy Abbott i Dexcom (blokady CORS w przeglądarkach), bezpośrednie logowanie kontem Libre / Dexcom Share do aplikacji webowych jest zablokowane przez producenta.
-            </p>
-            <p className="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed font-bold mt-1">
-              GlikoControl obsługuje te sensory poprzez darmowy mostek Nightscout.
-            </p>
-            <ul className="text-[9px] text-slate-500 dark:text-slate-400 list-disc list-inside mt-1 space-y-1">
-              <li>Zarejestruj darmowy darmowy mostek Nightscout (np. na NightscoutPro / T1Pal).</li>
-              <li>Podłącz do niego swoje konto Dexcom Share lub LibreLinkUp.</li>
-              <li>Wklej poniżej adres swojego Nightscouta, a GlikoControl zacznie pobierać dane Live co 5 minut.</li>
-            </ul>
-          </div>
-
-          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3 mb-2">
-                <Globe className="text-accent-500" size={20} />
-                <span className="text-xs font-bold dark:text-white">Adres Nightscout / xDrip</span>
-            </div>
-            <input 
-              type="text" 
-              placeholder="https://tvoja-strona.herokuapp.com" 
-              value={nsUrl}
-              onChange={e => setNsUrl(e.target.value)}
-              onBlur={saveNsUrl}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
-            />
-            <input 
-              type="password" 
-              placeholder="API_SECRET (opcjonalnie)" 
-              value={nsSecret}
-              onChange={e => setNsSecret(e.target.value)}
-              onBlur={saveNsUrl}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
-            />
-            
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-              <p className="font-bold mb-1">Instrukcja konfiguracji z aplikacją xDrip+:</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Otwórz aplikację <b>xDrip+</b>.</li>
-                <li>Wejdź w <b>Ustawienia</b> → <b>Przesyłanie do chmury</b> → <b>Synchronizacja z Nightscout</b>.</li>
-                <li>Włącz "Synchronizacja z Nightscout", aby wygenerować bazowy adres URL.</li>
-                <li>Opcjonalnie, wpisz swój klucz w polu na klucz API (jeżeli xDrip tego wymaga/obsługuje).</li>
-                <li>Skopiuj <b>Główny adres URL</b> i wklej go tutaj w polu <b>Adres Nightscout</b>.</li>
-                <li>Jeżeli w xDrip ustawiłeś klucz powiązany z Nightscout, wklej go poniżej (API_SECRET).</li>
-              </ol>
-            </div>
-            
-            <div className="bg-accent-50 dark:bg-accent-900/20 p-3 rounded-xl space-y-2">
-              <p className="text-[8px] font-black text-accent-900 dark:text-accent-300 uppercase tracking-widest">Architektura połączenia</p>
-              <div className="flex justify-between items-center text-[9px] text-accent-600 dark:text-accent-400 font-bold px-2 text-center">
-                <div className="flex flex-col items-center w-1/4">
-                  <span className="leading-tight">Aplikacja CGM</span>
-                  <span className="text-[7px] text-slate-500 whitespace-nowrap">(xDrip / Carelink)</span>
-                  <span className="text-xs">☁️/📱</span>
-                </div>
-                <span className="text-slate-400">➜</span>
-                <div className="flex flex-col items-center w-1/4">
-                  <span className="leading-tight">Nightscout / Local IP</span>
-                  <span className="text-xs">🌐/🏠</span>
-                </div>
-                <span className="text-slate-400">➜</span>
-                <div className="flex flex-col items-center w-1/4">
-                  <span className="leading-tight">GlikoControl</span>
-                  <span className="text-xs">📱</span>
-                </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4 pb-20"
+        >
+          <ApiIntegration user={user} />
+          
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-4">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2.5 bg-sky-500/10 text-sky-600 rounded-2xl">
+                <Globe size={20} />
               </div>
-              <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">
-                Możesz podać URL do <b>Nightscout</b> lub lokalny adres <b>xDrip+</b> (np. http://192.168.1.x:1751). 
-                Dla połączeń lokalnych upewnij się, że oba urządzenia są w tym samym Wi-Fi.
+              <div className="text-left">
+                <h3 className="text-base font-black dark:text-white leading-tight">Pobieranie Danych</h3>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Źródła glikemii</p>
+              </div>
+            </div>
+
+            <div className="bg-sky-50 dark:bg-sky-900/10 p-6 rounded-[2rem] border border-sky-100 dark:border-sky-800/50 space-y-3">
+              <div className="flex items-center gap-3">
+                <Smartphone className="text-sky-500" size={20} />
+                <span className="text-xs font-black dark:text-white uppercase tracking-tight">Dexcom i Libre Link</span>
+              </div>
+              <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                GlikoControl obsługuje te sensory poprzez darmowy mostek <b>Nightscout</b> (np. NightscoutPro / T1Pal). Podłącz swoje konto CGM do Nightscouta, a my pobierzemy dane automatycznie co 5 minut.
               </p>
             </div>
 
-            {saveStatus && (
-              <div className="text-[9px] font-black uppercase text-emerald-500 mt-1 text-left animate-pulse">
-                {saveStatus}
-              </div>
-            )}
-            {!saveStatus && (
-              <button 
-                onClick={saveNsUrl}
-                className="text-[9px] font-black uppercase text-accent-500 mt-1 text-left"
-              >
-                Zapisz URL
-              </button>
-            )}
-            <button 
-              onClick={async () => {
-                if (!nsUrl) return;
-                setNsSyncLoading(true);
-                await saveNsUrl();
-                window.dispatchEvent(new Event('force-nightscout-sync'));
-                setTimeout(() => setNsSyncLoading(false), 2000);
-              }}
-              disabled={nsSyncLoading}
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 group mt-2 disabled:opacity-50"
-            >
-              <Zap size={14} className={nsSyncLoading ? "animate-pulse" : "group-active:animate-ping"} />
-              <span className="text-[10px] font-black uppercase tracking-widest">{nsSyncLoading ? "Synchronizacja..." : "Wymuś synchronizację"}</span>
-            </button>
-          </div>
-
-          <CgmImport user={user} onComplete={() => window.dispatchEvent(new Event('force-nightscout-sync'))} />
-
-          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3 mb-2">
-                <Zap className="text-emerald-500" size={20} />
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold dark:text-white">Klucz API Gemini (Własny Serwer AI)</span>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-balance left-0 right-0">Omija limity publicznego serwera</span>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Adres serwera (np. Nightscout / xDrip)</label>
+                <div className="relative group">
+                  <Globe size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-accent-500 transition-colors" />
+                  <input 
+                    type="text" 
+                    placeholder="https://tvoja-strona.herokuapp.com" 
+                    value={nsUrl}
+                    onChange={e => setNsUrl(e.target.value)}
+                    onBlur={saveNsUrl}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-4 pl-12 pr-4 rounded-2xl font-bold text-sm outline-none dark:text-white transition-all focus:ring-4 ring-accent-500/10"
+                  />
                 </div>
-            </div>
-            
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-              <p className="font-bold mb-1">Jak uzyskać i dodać klucz API:</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Wejdź na stronę <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.</li>
-                <li>Zaloguj się swoim kontem Google i kliknij "Create API key".</li>
-                <li>Skopiuj nowo utworzony klucz (zaczyna się od <code>AIzaSy...</code>).</li>
-                <li><span className="text-rose-500 dark:text-rose-400 font-bold">Ważne!</span> Wklej klucz poniżej. Zapisze się on lokalnie w Twojej przeglądarce. Używaj tej opcji <b>tylko na swoim zaufanym, prywatnym urządzeniu</b> (nie podawaj klucza logując się na współdzielonych komputerach lub cudzych telefonach).</li>
-              </ol>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">API Secret (opcjonalnie)</label>
+                <div className="relative group">
+                  <LucideLock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-accent-500 transition-colors" />
+                  <input 
+                    type="password" 
+                    placeholder="Wpisz klucz zabezpieczający" 
+                    value={nsSecret}
+                    onChange={e => setNsSecret(e.target.value)}
+                    onBlur={saveNsUrl}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-4 pl-12 pr-4 rounded-2xl font-bold text-sm outline-none dark:text-white transition-all focus:ring-4 ring-accent-500/10"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <Activity size={12} /> Status synchronizacji
+                </p>
+                <div className="flex items-center justify-between">
+                  {saveStatus ? (
+                    <span className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      {saveStatus}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black text-slate-400 uppercase">Czekam na zmiany...</span>
+                  )}
+                  <button 
+                    onClick={async () => {
+                      if (!nsUrl) return;
+                      setNsSyncLoading(true);
+                      await saveNsUrl();
+                      window.dispatchEvent(new Event('force-nightscout-sync'));
+                      setTimeout(() => setNsSyncLoading(false), 2000);
+                    }}
+                    disabled={nsSyncLoading}
+                    className="flex items-center gap-2 text-[10px] font-black text-accent-500 uppercase tracking-widest hover:text-accent-600 active:scale-95 transition-all"
+                  >
+                    <RefreshCw size={12} className={cn(nsSyncLoading && "animate-spin")} />
+                    Wymuś teraz
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <input 
-              type="password" 
-              placeholder="Wklej klucz (AIzaSy...)" 
-              value={geminiApiKey}
-              onChange={e => setGeminiApiKey(e.target.value)}
-              onBlur={() => {
-                const val = geminiApiKey.trim();
-                setGeminiApiKey(val);
-                if (val) {
-                  localStorage.setItem('gemini_api_key', val);
-                  setGeminiSaveStatus('Zapisano lokalnie ✓');
-                } else {
-                  localStorage.removeItem('gemini_api_key');
-                  setGeminiSaveStatus('Usunięto klucz ✓');
-                }
-                setTimeout(() => setGeminiSaveStatus(''), 2000);
-              }}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl text-[10px] font-bold outline-none dark:text-white"
-            />
-            {geminiSaveStatus && <span className="text-[10px] text-emerald-500 font-bold">{geminiSaveStatus}</span>}
-            <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-2 font-medium">Jeżeli widzisz błąd &quot;Serwery AI są zajęte&quot;, utwórz darmowy klucz i wklej go tutaj. Klucz zostanie zapisany tylko w Twojej przeglądarce.</p>
-          </div>
-          
-          <div className="flex flex-col gap-2 p-4 bg-emerald-50 dark:bg-emerald-500/5 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
-            <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-              <Zap size={14} className="text-emerald-400" /> Status AI Gemini
-            </h4>
-            <p className="text-[9px] text-slate-500 dark:text-slate-400 mb-1 leading-tight font-bold">
-              System AI jest aktywny i skonfigurowany. 
-              {geminiApiKey ? " Korzystasz z własnego, prywatnego klucza API." : " Korzystasz z globalnego klucza GlikoControl."}
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Połączono poprawnie</span>
+            <CgmImport user={user} onComplete={() => window.dispatchEvent(new Event('force-nightscout-sync'))} />
+
+            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
+                  <Zap size={20} />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">Własny Klucz Gemini AI</h4>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Prywatny mózg analityczny</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800/80 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-700/50">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-4 leading-relaxed font-medium">
+                  Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-accent-500 font-black hover:underline underline-offset-2 transition-all">Google AI Studio</a>. Klucz zostanie zapisany <b>wyłącznie lokalnie</b> w Twojej przeglądarce.
+                </p>
+                
+                <div className="relative group">
+                  <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  <input 
+                    type="password" 
+                    placeholder="AIzaSy..." 
+                    value={geminiApiKey}
+                    onChange={e => setGeminiApiKey(e.target.value)}
+                    onBlur={() => {
+                      const val = geminiApiKey.trim();
+                      setGeminiApiKey(val);
+                      if (val) {
+                        localStorage.setItem('gemini_api_key', val);
+                        setGeminiSaveStatus('Zapisano pomyślnie ✓');
+                      } else {
+                        localStorage.removeItem('gemini_api_key');
+                        setGeminiSaveStatus('Usunięto klucz ✓');
+                      }
+                      setTimeout(() => setGeminiSaveStatus(''), 2000);
+                    }}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-4 pl-12 pr-4 rounded-xl font-bold text-sm outline-none dark:text-white"
+                  />
+                  {geminiSaveStatus && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-500 uppercase">
+                      {geminiSaveStatus}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
       )}
 
-
-
       {activeCategory === 'system' && (
-      <div className="space-y-6">
-      <div className="glass p-8 rounded-[3rem] space-y-4">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">System i Wygląd</h3>
-        
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-500/10 rounded-2xl border border-amber-100 dark:border-amber-900/30">
-             <div className="flex items-center gap-3">
-               <Baby className="text-amber-500" size={20} />
-               <div>
-                  <p className="text-sm font-black dark:text-amber-500 leading-tight">Tryb Dziecka</p>
-                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Aktywuje wirtualnego zwierzaka ({petData.name}) na ekranie głównym</p>
-               </div>
-             </div>
-             <button 
-               onClick={async () => {
-                 const newSettings = { ...settings, childMode: !settings.childMode };
-                 setSettings(newSettings);
-                 if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-               }}
-               className={cn(
-                 "w-12 h-6 rounded-full transition-all relative flex items-center shadow-inner",
-                 settings.childMode ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-600"
-               )}
-             >
-               <div className={cn(
-                 "w-4 h-4 rounded-full bg-white transition-all absolute shadow",
-                 settings.childMode ? "left-7" : "left-1"
-               )} />
-             </button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-             <div className="flex items-center gap-3">
-               <Activity className="text-indigo-500" size={20} />
-               <div>
-                  <p className="text-sm font-black dark:text-white leading-tight">Status Pompy/CGM</p>
-                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Wyświetlaj widget z baterią telefonu / pompy na ekranie głównym</p>
-               </div>
-             </div>
-             <button 
-               onClick={async () => {
-                 const newSettings = { ...settings, showPumpWidget: settings.showPumpWidget === false ? true : false };
-                 setSettings(newSettings);
-                 if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-               }}
-               className={cn(
-                 "w-12 h-6 rounded-full transition-all relative flex items-center shadow-inner",
-                 settings.showPumpWidget !== false ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-600"
-               )}
-             >
-               <div className={cn(
-                 "w-4 h-4 rounded-full bg-white transition-all absolute shadow",
-                 settings.showPumpWidget !== false ? "left-7" : "left-1"
-               )} />
-             </button>
-          </div>
-
-          <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 space-y-4">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-2 mb-2">Wygląd aplikacji</h3>
-            
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Akcent Kolorystyczny</span>
-              <div className="flex gap-2 px-2 overflow-x-auto scrollbar-none py-1">
-                {['indigo', 'emerald', 'rose', 'amber', 'violet'].map(color => (
-                  <button
-                    key={color}
-                    onClick={async () => {
-                      const newSettings = { ...settings, accentColor: color };
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                    }}
-                    className={cn(
-                      "w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-all",
-                      settings.accentColor === color || (!settings.accentColor && color === 'indigo') ? "scale-110 shadow-lg shadow-black/10 ring-2 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-800" : "opacity-60 scale-90 hover:opacity-100 hover:scale-100",
-                      color === 'indigo' ? "bg-accent-500 ring-accent-500" :
-                      color === 'emerald' ? "bg-emerald-500 ring-emerald-500" :
-                      color === 'rose' ? "bg-rose-500 ring-rose-500" :
-                      color === 'amber' ? "bg-amber-500 ring-amber-500" :
-                      "bg-violet-500 ring-violet-500"
-                    )}
-                  >
-                    {(settings.accentColor === color || (!settings.accentColor && color === 'indigo')) && <CheckCircle2 size={16} className="text-white" />}
-                  </button>
-                ))}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="space-y-4 pb-20"
+        >
+          {/* System & Experience Section */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-4">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2.5 bg-violet-500/10 text-violet-600 rounded-2xl">
+                <Settings size={20} />
+              </div>
+              <div className="text-left">
+                <h3 className="text-base font-black dark:text-white leading-tight">System i Wygląd</h3>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Personalizacja</p>
               </div>
             </div>
 
-            <div className="h-px bg-slate-200 dark:bg-slate-700 mx-2" />
-            
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Motyw</span>
-              <div className="flex gap-2">
-                {['light', 'dark', 'system'].map(t => (
-                  <button
-                    key={t}
-                    onClick={async () => {
-                      const newSettings = { ...settings, theme: t as 'light' | 'dark' | 'system'};
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                    }}
-                    className={cn(
-                      "flex-1 py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all text-[10px] uppercase tracking-widest",
-                      (settings.theme === t) || (!settings.theme && t === 'light') ? "bg-accent-500 text-white shadow-lg" : "bg-white dark:bg-slate-700 text-slate-500"
-                    )}
-                  >
-                    {t === 'light' ? <Sun size={16} /> : t === 'dark' ? <Moon size={16} /> : <div className="w-4 h-4 rounded-full border-2 border-current opacity-70" />}
-                    {t === 'light' ? 'Jasny' : t === 'dark' ? 'Ciemny' : 'System'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {(settings.theme === 'dark' || settings.theme === 'system') && (
-              <div className="flex flex-col gap-2 mt-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Czerń</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => {
-                      const newSettings = { ...settings, bgOption: 'default' as const };
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                    }}
-                    className={cn(
-                      "flex-1 py-3 rounded-xl font-bold transition-all text-[10px] uppercase tracking-widest",
-                      !settings.bgOption || settings.bgOption === 'default' ? "bg-accent-500 text-white shadow-lg" : "bg-white dark:bg-slate-700 text-slate-500"
-                    )}
-                  >
-                    Granat (Slate)
-                  </button>
-                  <button
-                    onClick={async () => {
-                      const newSettings = { ...settings, bgOption: 'true-black' as const };
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                    }}
-                    className={cn(
-                      "flex-1 py-3 rounded-xl font-bold transition-all text-[10px] uppercase tracking-widest",
-                      settings.bgOption === 'true-black' ? "bg-black text-white shadow-lg border border-accent-500/50" : "bg-white dark:bg-black text-slate-500 border border-slate-200 dark:border-slate-800"
-                    )}
-                  >
-                    Prawdziwa Czerń
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <SettingsSync 
-            user={user}
-            settings={settings} 
-            onImport={(s) => {
-              setSettings({ ...settings, ...s });
-              // We need to save the imported settings immediately 
-              setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { ...settings, ...s });
-            }} 
-          />
-
-          <SettingsTransfer 
-            settings={settings}
-            onImport={(s) => {
-              setSettings({ ...settings, ...s });
-              setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { ...settings, ...s });
-            }} 
-          />
-
-          <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <Info className="text-accent-400" size={20} />
-              <div className="flex flex-col">
-                <span className="text-xs font-bold dark:text-white">Kontakt z Twórcami</span>
-                <span className="text-[10px] font-medium text-slate-500 mt-1">
-                  Masz pytania lub sugestie? Napisz do nas:
-                </span>
-                <a href="mailto:GlikoControl@proton.me" className="text-sm font-black text-accent-500 mt-1">
-                  GlikoControl@proton.me
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* System & Maintenance */}
-        <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-4">Konserwacja Bazy Danych</h3>
-          
-          <button 
-            onClick={cleanupDatabase}
-            disabled={cleaning}
-            className="w-full bg-rose-50 dark:bg-rose-500/10 border border-slate-200 dark:border-slate-700 text-rose-500 py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-all flex items-center justify-center gap-2 mb-2"
-          >
-            {cleaning ? <Loader2 className="animate-spin" size={14} /> : <Shield size={14} />}
-            Oczyść Wadliwe Wpisy
-          </button>
-          {cleaningResult && (
-            <p className="text-center text-[10px] font-bold text-rose-500 mb-4">{cleaningResult}</p>
-          )}
-          
-          <button 
-            onClick={() => {
-              if (navigator.vibrate) navigator.vibrate(50);
-              setUpdateLoading(true);
-              setCleaningResult("Sprawdzam nowsze wersje...");
-              setTimeout(() => {
-                setCleaningResult(`Wersja ${APP_VERSION} oraz GlikoSense v2.5 są aktualne. Odświeżam aplikację...`);
-                setTimeout(() => {
-                  window.location.reload();
-                }, 1500);
-              }, 1500);
-            }}
-            disabled={updateLoading}
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 py-3 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {updateLoading ? <Loader2 className="animate-spin" size={14} /> : null}
-            Sprawdź Aktualizacje (v{APP_VERSION})
-          </button>
-          
-          <div className="text-[8px] font-black uppercase text-slate-400 text-center tracking-[0.3em] mb-4 opacity-50">
-            GlikoSense Engine v2.5
-          </div>
-
-          <div className="bg-rose-500/5 border border-rose-500/20 rounded-[2rem] p-6 mt-4">
-            <h4 className="flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-2">
-              <Trash size={14} /> Strefa Niebezpieczeństwa
-            </h4>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-4 leading-tight">
-              Możesz usunąć wszystkie swoje dane z naszych serwerów. Operacja ta jest zgodna z Twoim prawem do bycia zapomnianym (RODO).
-            </p>
-            <button 
-              onClick={nukeAllData}
-              disabled={nukeLoading}
-              className="w-full bg-rose-500 text-white py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {nukeLoading ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
-              Usuń Wszystkie Moje Dane
-            </button>
-          </div>
-
-          <div className="bg-slate-100 dark:bg-slate-900/50 rounded-[2rem] p-6 border border-slate-200 dark:border-slate-800 mt-4">
-            <button 
-              onClick={() => setShowRodo(!showRodo)}
-              className="w-full flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]"
-            >
-              <div className="flex items-center gap-2">
-                <Shield size={14} /> Klauzula RODO / Prywatność
-              </div>
-              <ChevronRight size={14} className={cn("transition-transform", showRodo && "rotate-90")} />
-            </button>
-            {showRodo && (
-              <motion.div 
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                className="pt-4 space-y-3 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed text-left"
-              >
-                <div className="h-px bg-slate-200 dark:bg-slate-800 mb-2" />
-                <p>
-                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase text-[9px]">Administrator Danych:</span> Korzystając z GlikoControl, administratorem Twoich danych jestes Ty sam. Dane są przechowywane w bezpiecznej infrastrukturze Firebase (Google Cloud) na terenie UE/USA zgodnie z rygorystycznymi normami bezpieczeństwa.
-                </p>
-                <p>
-                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase text-[9px]">Cel przetwarzania:</span> Dane glikemii, posiłków i leków są przechowywane wyłącznie w celu prowadzenia dzienniczka samokontroli i analizy trendów przez algorytmy AI (tylko na Twoje życzenie).
-                </p>
-                <p>
-                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase text-[9px]">Udostępnianie:</span> Twoje dane nie są sprzedawane ani udostępniane podmiotom trzecim. Wyjątkiem jest dobrowolna funkcja "Programu Badawczego GlikoSense", która przesyła całkowicie zanonimizowane wzorce trendów (bez identyfikatorów) do globalnej bazy wiedzy.
-                </p>
-                <p>
-                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase text-[9px]">Twoje prawa:</span> Masz prawo do wglądu w swoje dane, ich poprawiania oraz całkowitego usunięcia (używając przycisku powyżej). Możesz również wyeksportować swoje dane do pliku CSV w sekcji Historia.
-                </p>
-              </motion.div>
-            )}
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800/50">
-            <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-              <History size={14} /> Historia zmian
-            </h4>
-            <div className="space-y-6">
-              {VERSIONS.map((v, i) => (
-                <div key={v.version} className={cn(
-                  "relative pl-6 border-l-2",
-                  i === 0 ? "border-accent-500" : "border-slate-200 dark:border-slate-800"
-                )}>
-                  <div className={cn(
-                    "absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 bg-white dark:bg-slate-900",
-                    i === 0 ? "border-accent-500" : "border-slate-200 dark:border-slate-800"
-                  )} />
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-black dark:text-white">v{v.version}</span>
-                    <span className="text-[9px] font-bold text-slate-400">{v.date}</span>
+            <div className="space-y-4">
+              {/* Toggles */}
+              <div className="grid grid-cols-1 gap-3">
+                <div className="group flex items-center justify-between p-5 bg-amber-50 dark:bg-amber-500/5 rounded-[2rem] border border-amber-100 dark:border-amber-900/20 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Baby size={22} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-black dark:text-amber-500 leading-tight">Tryb Dziecka</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">Aktywuje wirtualnego zwierzaka Gliko</p>
+                    </div>
                   </div>
-                  <p className="text-[10px] font-bold text-accent-500 mb-2">{v.title}</p>
-                  <ul className="space-y-1">
-                    {v.changes.slice(0, 3).map((change, idx) => (
-                      <li key={idx} className="text-[9px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
-                        <span className="mt-1 w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
-                        {change}
-                      </li>
-                    ))}
-                    {v.changes.length > 3 && (
-                      <li className="text-[8px] font-black text-slate-400 italic mt-1">+ {v.changes.length - 3} więcej zmian...</li>
+                  <button 
+                    onClick={async () => {
+                      const newSettings = { ...settings, childMode: !settings.childMode };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner",
+                      settings.childMode ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
                     )}
-                  </ul>
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
+                      settings.childMode ? "left-7" : "left-1"
+                    )} />
+                  </button>
                 </div>
-              ))}
+
+                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Smartphone size={22} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-black dark:text-white leading-tight">Widgety Statusu</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">Monitoruj baterię telefonu i osprzętu</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      const newSettings = { ...settings, showPumpWidget: settings.showPumpWidget === false ? true : false };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner",
+                      settings.showPumpWidget !== false ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
+                      settings.showPumpWidget !== false ? "left-7" : "left-1"
+                    )} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Visual Appearance Cards */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                    <Palette size={14} className="text-accent-500" /> Akcent Kolorystyczny
+                  </div>
+                  <div className="flex items-center gap-4 px-2 overflow-x-auto scrollbar-none py-2">
+                    {['indigo', 'emerald', 'rose', 'amber', 'violet'].map(color => (
+                      <button
+                        key={color}
+                        onClick={async () => {
+                          const newSettings = { ...settings, accentColor: color };
+                          setSettings(newSettings);
+                          if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                        }}
+                        className={cn(
+                          "w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center transition-all relative",
+                          settings.accentColor === color || (!settings.accentColor && color === 'indigo') 
+                            ? "scale-110 shadow-xl ring-2 ring-white dark:ring-slate-900 ring-offset-2" 
+                            : "opacity-40 scale-90 hover:opacity-100 hover:scale-100",
+                          color === 'indigo' ? "bg-indigo-500 shadow-indigo-500/20" :
+                          color === 'emerald' ? "bg-emerald-500 shadow-emerald-500/20" :
+                          color === 'rose' ? "bg-rose-500 shadow-rose-500/20" :
+                          color === 'amber' ? "bg-amber-500 shadow-amber-500/20" :
+                          "bg-violet-500 shadow-violet-500/20"
+                        )}
+                      >
+                        {(settings.accentColor === color || (!settings.accentColor && color === 'indigo')) && (
+                          <div className="w-2 h-2 rounded-full bg-white animate-bounce" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="h-px bg-slate-200 dark:bg-slate-700" />
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                    <Moon size={14} className="text-violet-500" /> Tryb Jasny / Ciemny
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'light', label: 'Jasny', icon: <Sun size={18} /> },
+                      { id: 'dark', label: 'Ciemny', icon: <Moon size={18} /> },
+                      { id: 'system', label: 'Auto', icon: <RefreshCw size={18} /> }
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={async () => {
+                          const newSettings = { ...settings, theme: t.id as 'light' | 'dark' | 'system'};
+                          setSettings(newSettings);
+                          if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all border",
+                          (settings.theme === t.id) || (!settings.theme && t.id === 'light') 
+                            ? "bg-slate-900 border-slate-900 text-white shadow-xl dark:bg-white dark:border-white dark:text-slate-900" 
+                            : "bg-white border-slate-100 text-slate-400 hover:border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                        )}
+                      >
+                        {t.icon}
+                        <span className="text-[8px] font-black uppercase tracking-widest">{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {(settings.theme === 'dark' || settings.theme === 'system') && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                      <LucideLock size={18} className="text-slate-400" /> Styl Tła Ciemnego
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { id: 'default', label: 'Głęboki Grafit' },
+                        { id: 'true-black', label: 'Prawdziwa Czerń' }
+                      ].map(option => (
+                        <button
+                          key={option.id}
+                          onClick={async () => {
+                            const newSettings = { ...settings, bgOption: option.id as any };
+                            setSettings(newSettings);
+                            if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                          }}
+                          className={cn(
+                            "py-4 rounded-2xl border transition-all text-left px-5",
+                            (!settings.bgOption && option.id === 'default') || settings.bgOption === option.id
+                              ? "bg-slate-900 border-slate-900 text-white dark:bg-white dark:border-white dark:text-slate-900" 
+                              : "bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700"
+                          )}
+                        >
+                          <p className="text-[10px] font-black uppercase tracking-widest leading-tight">{option.label}</p>
+                          <p className="text-[8px] font-medium opacity-60">Tryb {option.id === 'true-black' ? 'OLED' : 'Neutral'}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Data Management Section */}
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-6">
+                <SettingsSync 
+                  user={user}
+                  settings={settings} 
+                  onImport={(s) => {
+                    setSettings({ ...settings, ...s });
+                    setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { ...settings, ...s });
+                    toast.success("Ustawienia zaimportowane pomyślnie!");
+                  }} 
+                />
+
+                <SettingsTransfer 
+                  settings={settings}
+                  onImport={(s) => {
+                    setSettings({ ...settings, ...s });
+                    setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { ...settings, ...s });
+                    toast.success("Synchronizacja zakończona!");
+                  }} 
+                />
+
+                <div className="flex flex-col gap-2 p-5 bg-slate-50 dark:bg-slate-800/80 rounded-[2rem] border border-slate-100 dark:border-slate-700/50">
+                  <div className="flex items-center gap-3">
+                    <Info className="text-accent-500" size={20} />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black dark:text-white uppercase tracking-tight">Kontakt z Twórcami</span>
+                      <span className="text-[9px] font-bold text-slate-500 mt-1 uppercase tracking-widest">
+                        GlikoControl@proton.me
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Maintenance Tools */}
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-2">Administracja</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <button 
+                    onClick={cleanupDatabase}
+                    disabled={cleaning}
+                    className="flex-1 bg-rose-50 dark:bg-rose-500/10 border border-transparent text-rose-600 dark:text-rose-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    {cleaning ? <Loader2 className="animate-spin" size={14} /> : <Shield size={14} />}
+                    Oczyść Bazę
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      if (navigator.vibrate) navigator.vibrate(50);
+                      setUpdateLoading(true);
+                      setCleaningResult("Szukanie aktualizacji...");
+                      setTimeout(() => {
+                        toast.success(`Wersja ${APP_VERSION} jest aktualna.`);
+                        setTimeout(() => window.location.reload(), 1000);
+                      }, 1500);
+                    }}
+                    disabled={updateLoading}
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-transparent text-slate-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw size={14} className={cn(updateLoading && "animate-spin")} />
+                    Aktualizuj v{APP_VERSION}
+                  </button>
+                </div>
+                
+                {cleaningResult && (
+                  <p className="text-center text-[9px] font-bold text-rose-500 uppercase tracking-widest px-4">{cleaningResult}</p>
+                )}
+              </div>
+
+              {/* Danger Zone */}
+              <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 rounded-[2.5rem] p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-rose-500 text-white rounded-xl shadow-lg">
+                    <Trash size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-[0.1em]">Strefa Niebezpieczeństwa</h4>
+                    <p className="text-[9px] text-slate-500 font-medium">Nieodwracalne usunięcie konta i wszystkich pomiarów</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={nukeAllData}
+                  disabled={nukeLoading}
+                  className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2"
+                >
+                  {nukeLoading ? <Loader2 className="animate-spin" size={14} /> : <LogOut size={16} />}
+                  Usuń Moje Dane (RODO)
+                </button>
+              </div>
+
+              {/* RODO / Privacy Detail */}
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                <button 
+                  onClick={() => setShowRodo(!showRodo)}
+                  className="w-full flex items-center justify-between p-2 text-[10px] font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-[0.2em]"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={14} /> Prywatność i RODO
+                  </div>
+                  <ChevronRight size={14} className={cn("transition-transform", showRodo && "rotate-90")} />
+                </button>
+                {showRodo && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    className="pt-4 space-y-4 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed text-left"
+                  >
+                    <div className="p-4 bg-slate-100/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                      <p>
+                        <span className="font-black text-slate-700 dark:text-slate-200 uppercase text-[9px]">Prywatność przede wszystkim:</span> Po co podpisywać kałuże imieniem i nazwiskiem? Twoja prywatność jest dla nas priorytetem. Twoje dane są używane wyłącznie do tworzenia Twojej <b>indywidualnej analizy glikemii</b>.
+                      </p>
+                      <p>
+                        <span className="font-black text-slate-700 dark:text-slate-200 uppercase text-[9px]">Bezpieczeństwo:</span> Dane są szyfrowane i przechowywane w infrastrukturze Firebase (Google Cloud) na terenie UE. Nigdy nie sprzedajemy Twoich danych medycznych.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+
+            {/* Logout Card */}
+          <div className="bg-rose-500/10 p-8 rounded-[2.5rem] border border-rose-500/20 text-center space-y-4 shadow-xl">
+               <div className="w-16 h-16 bg-rose-500 text-white rounded-[1.5rem] flex items-center justify-center mx-auto shadow-[0_10px_40px_-10px_rgba(244,63,94,0.5)]">
+                 <LogOut size={32} />
+               </div>
+               <div>
+                 <h4 className="text-lg font-black dark:text-rose-500 leading-tight">Zakończ Sesję</h4>
+                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium px-4 mt-1">
+                   Twoje dane są używane wyłącznie do tworzenia indywidualnej analizy. Dokumentacja nie wymaga podawania imienia i nazwiska - Twoja prywatność jest dla nas priorytetem.
+                 </p>
+               </div>
+               <button 
+                 onClick={() => auth.signOut()}
+                 className="bg-rose-500 text-white w-full py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl shadow-rose-500/20"
+               >
+                 Wyloguj się z GlikoControl
+               </button>
+            </div>
+
+            {/* Version History */}
+            <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm opacity-60 hover:opacity-100 transition-opacity">
+              <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
+                <History size={14} /> Dziennik Aktualizacji
+              </h4>
+              <div className="space-y-6">
+                {VERSIONS.slice(0, 3).map((v, i) => (
+                  <div key={v.version} className={cn(
+                    "relative pl-6 border-l-2",
+                    i === 0 ? "border-accent-500" : "border-slate-200 dark:border-slate-800"
+                  )}>
+                    <div className={cn(
+                      "absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 bg-white dark:bg-slate-900",
+                      i === 0 ? "border-accent-500" : "border-slate-200 dark:border-slate-800"
+                    )} />
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-black dark:text-white">v{v.version}</span>
+                      <span className="text-[9px] font-bold text-slate-400">{v.date}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-accent-500 mb-2 truncate">{v.title}</p>
+                    <ul className="space-y-1">
+                      {v.changes.slice(0, 2).map((change, idx) => (
+                        <li key={`v-change-${v.version}-${idx}`} className="text-[9px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
+                          <span className="mt-1 w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
+                          {change}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-      </div>
+        </motion.div>
       )}
     </motion.div>
   );

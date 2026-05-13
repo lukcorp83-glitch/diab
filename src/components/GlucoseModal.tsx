@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import { X } from 'lucide-react';
+import { X, ChevronRight } from 'lucide-react';
 
 interface GlucoseModalProps {
   isOpen: boolean;
@@ -48,34 +48,43 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
     <AnimatePresence>
       {isOpen && (
         <motion.div 
-          initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-          animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-          exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-slate-950/40 backdrop-blur-md p-4"
         >
           <motion.div 
-            initial={{ y: "100%", opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
+            initial={{ y: "20%", opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: "20%", opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform"
+            className="glass w-full max-w-md rounded-[3rem] p-10 shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden"
           >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight">Zapisz Cukier</h2>
-              <input 
-                type="datetime-local" 
-                value={entryTime}
-                onChange={e => setEntryTime(e.target.value)}
-                className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black p-2 rounded-xl outline-none border border-slate-200 dark:border-slate-700 mx-2"
-              />
-              <button onClick={onClose} className="text-slate-300 hover:text-slate-500 p-2 text-xl font-bold transition-colors">
-                <X size={24} />
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight font-display uppercase tracking-tighter italic">Zapisz Cukier</h2>
+                <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mt-1">Pomiar ręczny glukozy</p>
+              </div>
+              <button 
+                onClick={onClose} 
+                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all active:scale-90 border border-transparent dark:hover:border-white/10"
+              >
+                <X size={20} />
               </button>
             </div>
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-inner flex flex-col items-center justify-center">
-                <div className="flex items-baseline gap-2">
+
+            <div className="space-y-8">
+              <div className="flex justify-center mb-4">
+                <input 
+                  type="datetime-local" 
+                  value={entryTime}
+                  onChange={e => setEntryTime(e.target.value)}
+                  className="bg-white/5 dark:bg-white/5 text-slate-500 text-[10px] font-black p-3 rounded-2xl outline-none border border-black/5 dark:border-white/10 focus:border-accent-500 transition-all uppercase tracking-tight"
+                />
+              </div>
+
+              <div className="glass-card !bg-white/10 dark:!bg-white/5 !p-8 flex flex-col items-center justify-center border border-black/5 dark:border-white/5">
+                <div className="flex items-baseline gap-3">
                   <input 
                     type="number" 
                     value={value}
@@ -83,19 +92,25 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSave();
                     }}
-                    placeholder="0" 
-                    className="w-24 bg-transparent text-5xl font-black text-center outline-none dark:text-white"
+                    placeholder="100" 
+                    className="w-32 bg-transparent text-6xl font-black text-center outline-none dark:text-white caret-accent-500 placeholder:opacity-20"
                     autoFocus
                   />
-                  <span className="text-slate-300 font-black text-xl">mg/dL</span>
+                  <span className="text-slate-400 font-black text-xl uppercase tracking-tighter opacity-40">mg/dL</span>
                 </div>
               </div>
+
               <button 
                 onClick={handleSave}
                 disabled={loading}
-                className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase active:scale-95 shadow-xl transition-all disabled:opacity-50"
+                className="w-full bg-accent-600 hover:bg-accent-500 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-accent-600/20 active:scale-95 transition-all disabled:opacity-50 font-display flex items-center justify-center gap-2 group"
               >
-                {loading ? 'Zapisywanie...' : 'Zatwierdź'}
+                {loading ? 'Przetwarzanie...' : (
+                  <>
+                    Zatwierdź pomiar
+                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </button>
             </div>
           </motion.div>
