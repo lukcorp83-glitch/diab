@@ -11,15 +11,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      window.onerror = function(msg, url, lineNo, columnNo, error) {
-        document.body.innerHTML = '<div style="color:red;padding:20px;font-family:monospace"><b>Error:</b> ' + msg + '<br><b>Line:</b> ' + lineNo + '<br><pre>' + (error && error.stack || '') + '</pre></div>';
-        return false;
-      };
-      window.addEventListener('unhandledrejection', function(event) {
-        document.body.innerHTML += '<div style="color:red;padding:20px;font-family:monospace"><b>Unhandled Promise Rejection:</b> ' + event.reason + '</div>';
-      });
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

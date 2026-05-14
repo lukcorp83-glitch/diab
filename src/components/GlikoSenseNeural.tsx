@@ -17,11 +17,10 @@ interface GlikoSenseNeuralProps {
   petName?: string;
   accuracy?: number;
   datasetSize?: number;
-  totalRecords?: number;
   children?: React.ReactNode;
 }
 
-export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, totalRecords, children }: GlikoSenseNeuralProps) {
+export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, children }: GlikoSenseNeuralProps) {
   // Generate stable random nodes for the background animation
   const nodes = useMemo(() => {
     return Array.from({ length: 15 }).map((_, i) => ({
@@ -237,14 +236,14 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     >
                       <Sparkles size={10} />
                     </motion.div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Aktywna analiza:</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Postęp Nauki Modelu:</span>
                   </div>
-                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} pomiarów</span>
+                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} danych / 1000 pkt</span>
                 </div>
                 <div className="relative h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (datasetSize / 48) * 100)}%` }}
+                    animate={{ width: `${Math.min(100, (datasetSize / 1000) * 100)}%` }}
                     className="absolute inset-y-0 bg-gradient-to-r from-indigo-500 to-purple-500"
                   />
                   {/* Learning Waves */}
@@ -254,14 +253,10 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
                   />
                 </div>
-                {totalRecords !== undefined && totalRecords > 0 && (
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Wiedza w pamięci AI:</span>
-                    <span className="text-[9px] font-black text-purple-500">{totalRecords} pkt</span>
-                  </div>
-                )}
-                <p className="text-[8px] font-bold text-slate-400 leading-tight mt-1">
-                  Model bada na bieżąco ostatnie wpisy (tu: {datasetSize}). Całkowita wyuczona wiedza to {totalRecords || '...'} punktów (z analizy 14 dni wstecz). Dla pełnej detekcji wzorców AI (Deep Learning, LSTM) zalecane jest 1000+ pomiarów (np. stały CGM). Mniejsza ilość wciąż pozwala na analizę trendów.
+                <p className="text-[8px] font-bold text-slate-400 leading-tight">
+                  {datasetSize < 100 ? "Model uczy się na Twoich wpisach (pomiary, posiłki). Potrzebuje ok. 1000 pkt do pełnej precyzji." : 
+                   datasetSize < 500 ? "Model uczy się Twoich nawyków. Coraz lepsza precyzja predykcji." :
+                   "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne."}
                 </p>
               </div>
             )}

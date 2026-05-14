@@ -90,7 +90,7 @@ export default function Dashboard({
     const saved = localStorage.getItem('glikosfera_ml_prediction');
     return saved ? JSON.parse(saved) : true;
   });
-  const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number, totalRecords?: number } | null>(null);
+  const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
 
   useEffect(() => {
     localStorage.setItem('glikosfera_loop_simulation', JSON.stringify(showLoopSimulation));
@@ -101,11 +101,7 @@ export default function Dashboard({
       if (logs.length >= 5) {
         try {
           const res = await MLAnalyzer.analyzeData(logs, false, 'quick');
-          setMlInfo({ 
-            accuracy: res.accuracy, 
-            datasetSize: res.datasetSize || 0,
-            totalRecords: res.totalGlucoseRecords
-          });
+          setMlInfo({ accuracy: res.accuracy, datasetSize: res.datasetSize || 0 });
         } catch (e) {
           console.error("Dashboard ML analysis error:", e);
         }
@@ -425,7 +421,6 @@ export default function Dashboard({
             petName={petData?.name}
             accuracy={mlInfo?.accuracy}
             datasetSize={mlInfo?.datasetSize}
-            totalRecords={mlInfo?.totalRecords}
           >
             {settings.childMode && (
                <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} embedded={true} />

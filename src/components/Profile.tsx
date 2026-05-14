@@ -274,7 +274,7 @@ export default function Profile({
         toast.error((t) => (
           <div className="flex flex-col gap-3">
             <span className="font-bold">Biometria blokowana w tym widoku.</span>
-            <span className="text-xs">Jeśli używasz aplikacji w przeglądarce i nie działa, spróbuj otworzyć w nowej karcie.</span>
+            <span className="text-xs">Przeglądarka nie pozwala na użycie kluczy biometrycznych wewnątrz ramki podglądu.</span>
             <button 
               onClick={() => {
                 window.open(window.location.href, '_blank');
@@ -289,11 +289,6 @@ export default function Profile({
         return;
       }
       
-      if (errorMsg.includes('The operation is either not allowed') || errorMsg.includes('NotAllowedError')) {
-        toast.error("Biometria anulowana lub niedostępna na tym urządzeniu.", { duration: 5000 });
-        return;
-      }
-
       toast.error(`${errorMsg}${debugInfo}`, { duration: 8000 });
     }
   };
