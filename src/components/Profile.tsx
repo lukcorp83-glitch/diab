@@ -259,6 +259,16 @@ export default function Profile({
       console.error(e);
       let errorMsg = e.message || "Błąd podczas rejestracji biometrii";
       
+      // Attempt to parse JSON if the error message is a JSON string (from server)
+      let debugInfo = "";
+      if (errorMsg.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(errorMsg);
+          errorMsg = parsed.error || errorMsg;
+          if (parsed.details) debugInfo = ` Szczegóły: ${parsed.details}`;
+        } catch (err) {}
+      }
+
       // Handle the Permissions Policy error specially
       if (errorMsg.includes('Permissions Policy') || errorMsg.includes('feature is not enabled')) {
         toast.error((t) => (
@@ -279,7 +289,7 @@ export default function Profile({
         return;
       }
       
-      toast.error(errorMsg, { duration: 6000 });
+      toast.error(`${errorMsg}${debugInfo}`, { duration: 8000 });
     }
   };
 

@@ -236,9 +236,9 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     >
                       <Sparkles size={10} />
                     </motion.div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Postęp Nauki:</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Postęp Nauki Modelu:</span>
                   </div>
-                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} pkt / 1000 pkt</span>
+                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} danych / 1000 pkt</span>
                 </div>
                 <div className="relative h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
@@ -254,8 +254,8 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                   />
                 </div>
                 <p className="text-[8px] font-bold text-slate-400 leading-tight">
-                  {datasetSize < 100 ? "Model w fazie bazowej. Gromadzę dane..." : 
-                   datasetSize < 500 ? "Model uczy się Twoich nawyków. Coraz wyższa precyzja." :
+                  {datasetSize < 100 ? "Model uczy się na Twoich wpisach (pomiary, posiłki). Potrzebuje ok. 1000 pkt do pełnej precyzji." : 
+                   datasetSize < 500 ? "Model uczy się Twoich nawyków. Coraz lepsza precyzja predykcji." :
                    "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne."}
                 </p>
               </div>

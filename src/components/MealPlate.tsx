@@ -972,9 +972,9 @@ export default function MealPlate({
           <div className="flex flex-col gap-2 mb-2">
             <div className="flex justify-between items-end px-4">
               <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                Baza GlikoSense 
+                Katalog produktów 
                 <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-accent-600 text-[9px]">
-                  {browseResults.length} {browseResults.length === 1 ? 'produkt' : 'produkty'}
+                  {browseResults.length} {browseResults.length === 1 ? 'pozycja' : 'pozycje'}
                 </span>
               </h4>
               <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
