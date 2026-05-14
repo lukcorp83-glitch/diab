@@ -7,6 +7,17 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.4.2",
+    date: "2026-05-14",
+    title: "Haptyka i Precyzja Bolusa",
+    changes: [
+      "Nowość: Dodano haptyczne sprzężenie zwrotne (wibracje) przy interakcjach z UI (wymaga wsparcia Vibrations API).",
+      "Poprawka: Usprawniono zaokrąglanie wartości insuliny pobieranych z Talerza do Kalkulatora Bolusa.",
+      "Stabilność: Naprawiono błąd startowy serwera związany z typami ścieżek Node.js.",
+      "Poprawka: Czytelniejsze wyświetlanie ładunków glikemicznych i wartości WW w historii."
+    ]
+  },
+  {
     version: "3.4.1",
     date: "2026-05-13",
     title: "RODO i Optymalizacja Talerza",
@@ -150,4 +161,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.4.1";
+export const CURRENT_VERSION = "3.4.2";

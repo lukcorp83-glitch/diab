@@ -35,6 +35,9 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION } from '../constants';
+import GlikoSenseIcon from './GlikoSenseIcon';
+
+import { Haptics } from '../lib/haptics';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -91,7 +94,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        icon: <FileText size={20} />,
        subItems: [
           { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history', icon: <History size={14} /> },
-          { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <Brain size={14} /> },
+          { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <GlikoSenseIcon size={14} isAnalyzing={activeTab === 'ai'} /> },
           { id: 'assistant_ai', label: 'Czat Gliko', tab: 'assistant', icon: isChildMode ? <Sparkles size={14} /> : <Cpu size={14} /> }
        ]
     },
@@ -150,8 +153,8 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
 
             <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-200/50 dark:border-slate-800/30 relative">
               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-accent-600 rounded-2xl flex items-center justify-center shadow-lg shadow-accent-600/20">
-                   <Activity className="text-white" size={20} />
+                 <div className="w-10 h-10 bg-accent-600 rounded-2xl flex items-center justify-center shadow-lg shadow-accent-600/20 text-white">
+                   <GlikoSenseIcon size={20} isAnalyzing={true} />
                  </div>
                  <div>
                    <h2 className={cn("text-xl font-black tracking-tighter leading-none uppercase font-display", theme === 'dark' ? "text-white" : "text-slate-900")}>
@@ -177,6 +180,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                   <div key={item.id} className="flex flex-col">
                     <button
                       onClick={() => {
+                        Haptics.light();
                         changeTab(item.id);
                         if (!hasSubs) onClose();
                         else setExpandedItems(prev => ({ ...prev, [item.id]: !isExpanded }));
@@ -220,6 +224,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                                <button
                                   key={sub.id}
                                   onClick={() => {
+                                    Haptics.light();
                                     changeTab(sub.tab || item.id);
                                     onAction && onAction(sub.action || sub.id);
                                     onClose();
@@ -241,6 +246,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
             <div className="mt-auto space-y-6 pt-10 border-t border-slate-200/50 dark:border-slate-800/30 relative">
               <button 
                 onClick={() => {
+                  Haptics.light();
                   onAction && onAction('tutorial');
                   onClose();
                 }}

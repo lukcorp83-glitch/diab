@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Cpu, Zap, Shield, TrendingUp, AlertCircle, Heart } from 'lucide-react';
+import { Cpu, Zap, Shield, TrendingUp, AlertCircle, Heart, Sparkles } from 'lucide-react';
+import GlikoSenseIcon from './GlikoSenseIcon';
 
 interface NeuralNode {
   id: number;
@@ -14,10 +15,12 @@ interface GlikoSenseNeuralProps {
   trend: string | null;
   isChildMode: boolean;
   petName?: string;
+  accuracy?: number;
+  datasetSize?: number;
   children?: React.ReactNode;
 }
 
-export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', children }: GlikoSenseNeuralProps) {
+export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, children }: GlikoSenseNeuralProps) {
   // Generate stable random nodes for the background animation
   const nodes = useMemo(() => {
     return Array.from({ length: 15 }).map((_, i) => ({
@@ -45,30 +48,61 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
   return (
     <div className="relative w-full p-6 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden shadow-xl">
       {/* Neural Background Animation */}
+      <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none">
+        {nodes.map((node, i) => {
+          const nextNode = nodes[(i + 1) % nodes.length];
+          return (
+            <motion.line
+              key={`line-${node.id}`}
+              x1={`${node.x}%`}
+              y1={`${node.y}%`}
+              x2={`${nextNode.x}%`}
+              y2={`${nextNode.y}%`}
+              stroke={statusColor.replace('bg-', '') === 'slate-400' ? '#94a3b8' : statusColor.replace('bg-', '') === 'rose-500' ? '#f43f5e' : statusColor.replace('bg-', '') === 'amber-500' ? '#f59e0b' : '#10b981'}
+              strokeWidth="0.5"
+              animate={{ opacity: [0.1, 0.4, 0.1] }}
+              transition={{ duration: 3, repeat: Infinity, delay: i * 0.2 }}
+            />
+          );
+        })}
+      </svg>
       <div className="absolute inset-0 opacity-10 pointer-events-none">
-        {nodes.map((node) => (
-          <motion.div
-            key={node.id}
-            initial={{ scale: 1, opacity: 0.3 }}
-            animate={{ 
-              scale: [1, 1.5, 1],
-              opacity: [0.3, 0.6, 0.3],
-              x: [`${node.x}%`, `${node.x + 2}%`, `${node.x}%`],
-              y: [`${node.y}%`, `${node.y - 2}%`, `${node.y}%`]
-            }}
-            transition={{ 
-              duration: 4 + Math.random() * 4, 
-              repeat: Infinity,
-              ease: "easeInOut" 
-            }}
-            className={`absolute rounded-full ${statusColor}`}
-            style={{ 
-              width: node.size, 
-              height: node.size,
-              left: `${node.x}%`,
-              top: `${node.y}%`
-            }}
-          />
+        {nodes.map((node, i) => (
+          <React.Fragment key={node.id}>
+            <motion.div
+              initial={{ scale: 1, opacity: 0.3 }}
+              animate={{ 
+                scale: [1, 1.5, 1],
+                opacity: [0.3, 0.6, 0.3],
+                x: [`${node.x}%`, `${node.x + 2}%`, `${node.x}%`],
+                y: [`${node.y}%`, `${node.y - 2}%`, `${node.y}%`]
+              }}
+              transition={{ 
+                duration: 4 + Math.random() * 4, 
+                repeat: Infinity,
+                ease: "easeInOut" 
+              }}
+              className={`absolute rounded-full ${statusColor}`}
+              style={{ 
+                width: node.size, 
+                height: node.size,
+                left: `${node.x}%`,
+                top: `${node.y}%`
+              }}
+            />
+            {/* Flying Data Packet */}
+            {i % 3 === 0 && (
+              <motion.div
+                animate={{ 
+                  x: [`${node.x}%`, `${(node.x + 40) % 100}%`],
+                  y: [`${node.y}%`, `${(node.y + 30) % 100}%`],
+                  opacity: [0, 1, 0]
+                }}
+                transition={{ duration: 6, repeat: Infinity, delay: Math.random() * 5 }}
+                className={`absolute w-1 h-1 rounded-full ${statusColor} blur-[1px]`}
+              />
+            )}
+          </React.Fragment>
         ))}
       </div>
 
@@ -76,7 +110,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-xl ${statusColor} bg-opacity-20`}>
-              <Cpu className={statusColor.replace('bg-', 'text-')} size={20} />
+              <GlikoSenseIcon size={20} isAnalyzing={true} />
             </div>
             <div>
               <h3 className="text-sm font-black dark:text-white leading-tight">GlikoSense</h3>
@@ -96,7 +130,19 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                  />
                ))}
             </div>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Live</span>
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Live</span>
+              {datasetSize !== undefined && datasetSize < 1000 && (
+                <div className="flex items-center gap-1">
+                  <motion.div 
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="w-1 h-1 rounded-full bg-indigo-500"
+                  />
+                  <span className="text-[7px] font-black text-indigo-500 uppercase tracking-widest">Training...</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -175,9 +221,45 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               </div>
               <div className="text-right">
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pewność</div>
-                <div className="text-sm font-black dark:text-white">88.2%</div>
+                <div className="text-sm font-black dark:text-white">{accuracy}%</div>
               </div>
             </div>
+
+            {datasetSize !== undefined && (
+              <div className="space-y-2 px-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <motion.div 
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                      className="text-indigo-500"
+                    >
+                      <Sparkles size={10} />
+                    </motion.div>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Postęp Nauki:</span>
+                  </div>
+                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} pkt / 1000 pkt</span>
+                </div>
+                <div className="relative h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (datasetSize / 1000) * 100)}%` }}
+                    className="absolute inset-y-0 bg-gradient-to-r from-indigo-500 to-purple-500"
+                  />
+                  {/* Learning Waves */}
+                  <motion.div 
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
+                  />
+                </div>
+                <p className="text-[8px] font-bold text-slate-400 leading-tight">
+                  {datasetSize < 100 ? "Model w fazie bazowej. Gromadzę dane..." : 
+                   datasetSize < 500 ? "Model uczy się Twoich nawyków. Coraz wyższa precyzja." :
+                   "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne."}
+                </p>
+              </div>
+            )}
 
             <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
               <div className="space-y-1">

@@ -5,6 +5,7 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 import { cn } from '../lib/utils';
+import GlikoSenseIcon from './GlikoSenseIcon';
 
 interface MLAnalysisWidgetProps {
   logs: LogEntry[];
@@ -19,6 +20,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
+    datasetSize?: number,
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number },
     analyzedPeriod?: string
@@ -207,7 +209,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
       <div className="flex items-center justify-between mb-8 relative z-10">
         <div className="flex items-center gap-4">
           <div className="p-3.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/20 ring-4 ring-indigo-50 dark:ring-indigo-900/30">
-            <Activity size={24} className="text-white" />
+            <GlikoSenseIcon size={24} isAnalyzing={isAnalyzing} />
           </div>
           <div className="flex flex-col">
             <h3 className="text-xl font-black tracking-tighter text-slate-800 dark:text-white">GlikoSense<span className="text-indigo-500 text-2xl leading-none">.</span></h3>
@@ -334,7 +336,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                               <div className="flex items-center gap-2 mb-2 md:mb-3 relative z-10">
                                   <div className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 md:p-2 rounded-xl">
-                                    <Brain size={16} className="text-emerald-600 dark:text-emerald-400" />
+                                    <GlikoSenseIcon size={16} isAnalyzing={true} />
                                   </div>
                                   <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.1em] md:tracking-[0.2em] leading-tight">Pewność Modelu</span>
                               </div>
@@ -349,6 +351,12 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                                     className="bg-gradient-to-r from-emerald-400 to-emerald-500 h-full rounded-full" 
                                   />
                               </div>
+                              {mlResult.datasetSize && (
+                                <div className="mt-3 flex items-center justify-between relative z-10">
+                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Model Wyuczony:</span>
+                                  <span className="text-[10px] font-black text-indigo-500">{mlResult.datasetSize} pkt danych</span>
+                                </div>
+                              )}
                           </div>
                           
                           {mlResult.riskOfHypo && (

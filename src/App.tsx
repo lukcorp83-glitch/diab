@@ -27,14 +27,17 @@ import {
   LogIn,
   Menu,
   LayoutDashboard,
-  Beaker
+  Beaker,
+  Fingerprint,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signInWithCustomToken } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, setDoc, deleteDoc, writeBatch, limit } from 'firebase/firestore';
 import { LogEntry, UserSettings, Product, PlateItem } from './types';
 import { geminiService } from './services/gemini';
+import { loginWithPasskey } from './lib/webauthn';
 import { CATEGORIES, LIB_BASE, APP_VERSION } from './constants';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -79,12 +82,15 @@ import { maintenanceService } from './services/maintenanceService';
 import Logo from './components/Logo';
 
 import OnboardingTutorial from './components/OnboardingTutorial';
-import ConsentClause from './components/ConsentClause';
 import NotificationCenter from './components/NotificationCenter';
 import NotebookManager from './components/NotebookManager';
 import ChangelogPopup from './components/ChangelogPopup';
 import PrivacyPopup from './components/PrivacyPopup';
+import QuickStatusPopup from './components/QuickStatusPopup';
 import { CURRENT_VERSION } from './constants/versions';
+import { calculateIOB } from './lib/utils';
+
+import GlikoSenseIcon from './components/GlikoSenseIcon';
 
 const MeshBackground = ({ lastGlucose }: { lastGlucose: number | null }) => {
   const isAlert = lastGlucose !== null && (lastGlucose < 70 || lastGlucose > 180);
@@ -104,6 +110,8 @@ const MeshBackground = ({ lastGlucose }: { lastGlucose: number | null }) => {
     </div>
   );
 };
+
+import { Haptics } from './lib/haptics';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -125,7 +133,7 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
-  const [showConsentClause, setShowConsentClause] = useState(false);
+  const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [privacyLoading, setPrivacyLoading] = useState(true);
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -149,13 +157,9 @@ export default function App() {
   useEffect(() => {
     // Check privacy acceptance locally first
     const hasAcceptedPrivacy = localStorage.getItem('hasAcceptedPrivacy');
-    const hasSignedClause = localStorage.getItem('hasSignedClause');
     
     if (!hasAcceptedPrivacy) {
       setShowPrivacyPopup(true);
-      setPrivacyLoading(false);
-    } else if (!hasSignedClause) {
-      setShowConsentClause(true);
       setPrivacyLoading(false);
     } else {
       setPrivacyLoading(false);
@@ -191,14 +195,6 @@ export default function App() {
           } else {
             setShowPrivacyPopup(true);
           }
-
-          if (data.clauseSigned) {
-            localStorage.setItem('hasSignedClause', 'true');
-            setShowConsentClause(false);
-          } else if (data.accepted) {
-            // Only show clause if privacy is already accepted
-            setShowConsentClause(true);
-          }
         } else {
           // New user or no data
           if (localStorage.getItem('hasAcceptedPrivacy') === 'true') {
@@ -222,7 +218,7 @@ export default function App() {
   const handleAcceptPrivacy = async () => {
     setShowPrivacyPopup(false);
     localStorage.setItem('hasAcceptedPrivacy', 'true');
-    setShowConsentClause(true); // Mandatory next step
+    localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
     
     if (user) {
       const uid = getEffectiveUid(user);
@@ -233,33 +229,12 @@ export default function App() {
           acceptedAt: serverTimestamp(),
           version: CURRENT_VERSION 
         }, { merge: true });
+        toast.success("Zgoda zatwierdzona pomyślnie");
       } catch (err) {
         console.error("Error saving privacy to Firestore:", err);
       }
     }
-  };
 
-  const handleAcceptClause = async () => {
-    setShowConsentClause(false);
-    localStorage.setItem('hasSignedClause', 'true');
-    localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
-
-    if (user) {
-      const uid = getEffectiveUid(user);
-      const privacyRef = doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'settings', 'privacy');
-      try {
-        await setDoc(privacyRef, { 
-          clauseSigned: true,
-          clauseSignedAt: serverTimestamp(),
-          version: CURRENT_VERSION 
-        }, { merge: true });
-        toast.success("Zgoda zatwierdzona pomyślnie");
-      } catch (err) {
-        console.error("Error saving clause signature to Firestore:", err);
-        toast.error("Błąd zapisywania zgody");
-      }
-    }
-    
     const lastSeen = localStorage.getItem('lastSeenVersion');
     if (lastSeen && lastSeen !== CURRENT_VERSION && localStorage.getItem('hasSeenTutorial')) {
       setShowChangelog(true);
@@ -286,6 +261,7 @@ export default function App() {
   }, [user]);
 
   const changeTab = React.useCallback((newTab: string) => {
+    Haptics.light();
     const defaultTabs = ['dashboard', 'database', 'meal', 'chat', 'ai', 'profile', 'games'];
     const getIndex = (tab: string) => defaultTabs.indexOf(tab) >= 0 ? defaultTabs.indexOf(tab) : 0;
     setDirection(getIndex(newTab) >= getIndex(activeTab) ? 1 : -1);
@@ -645,6 +621,49 @@ export default function App() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setAuthError("Podaj adres email aby zresetować hasło.");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success("Link do resetowania hasła został wysłany na Twój email.");
+      setAuthError("");
+    } catch (e: any) {
+      let msg = e.message;
+      if (e.code === 'auth/user-not-found') msg = "Nie znaleziono użytkownika o tym adresie email.";
+      if (e.code === 'auth/invalid-email') msg = "Błędny format adresu email.";
+      setAuthError(msg);
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    if (!email) {
+      setAuthError("Podaj adres email powiązany z kluczem biometrycznym.");
+      return;
+    }
+    try {
+      const result = await loginWithPasskey(email);
+      if (result.customToken) {
+        await signInWithCustomToken(auth, result.customToken);
+      }
+    } catch (e: any) {
+      console.error("Passkey login error detail:", e);
+      let errorMsg = e.message || String(e);
+      // Detailed error detection and handling for WebAuthn context issues
+      if (errorMsg.includes('Permissions Policy') || errorMsg.includes('feature is not enabled')) {
+        const isIframe = window.self !== window.top;
+        if (isIframe) {
+          errorMsg = "Twoja przeglądarka blokuje biometrię w ramce podglądu (iframe). Kliknij strzałkę w rogu ekranu, aby otworzyć aplikację w NOWEJ KARCIE - tam logowanie zadziała.";
+        } else {
+          errorMsg = "Dostęp do biometrii jest wyłączony. Upewnij się, że używasz HTTPS i Twoja przeglądarka wspiera Passkeys (Klucze dostępu) dla tej witryny.";
+        }
+      }
+      setAuthError(errorMsg);
+    }
+  };
+
   const handleRegister = async () => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
@@ -726,9 +745,29 @@ export default function App() {
                 theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 text-white" : "bg-slate-50 border-slate-200 text-slate-900"
               )}
             />
+            <div className="flex justify-end px-2">
+              <button 
+                onClick={handleForgotPassword}
+                className="text-[10px] font-bold text-accent-500 hover:text-accent-400 transition-colors uppercase tracking-widest"
+              >
+                Zapomniałeś hasła?
+              </button>
+            </div>
           </div>
 
-          {authError && <p className="text-rose-500 text-[10px] font-bold mb-4 bg-rose-500/10 p-3 rounded-xl">{authError}</p>}
+          {authError && (
+            <div className="mb-4 bg-rose-500/10 p-3 rounded-xl flex flex-col gap-2">
+              <p className="text-rose-500 text-[10px] font-bold">{authError}</p>
+              {authError.includes('NOWEJ KARCIE') && (
+                <button
+                  onClick={() => window.open(window.location.href, '_blank')}
+                  className="bg-rose-500/20 text-rose-600 text-[8px] font-black uppercase tracking-widest px-2 py-1.5 rounded-lg w-fit hover:bg-rose-500/30 transition-colors"
+                >
+                  Otwórz w nowej karcie
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button onClick={handleLogin} className="flex items-center justify-center gap-2 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all">
@@ -756,6 +795,14 @@ export default function App() {
             )}>
               <Zap className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-wider">Logowanie bez konta (Gość)</span>
+            </button>
+
+            <button onClick={handlePasskeyLogin} className={cn(
+              "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-2",
+              theme === 'dark' ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-indigo-50 text-indigo-600 border-indigo-100"
+            )}>
+              <Fingerprint className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-wider">FaceID / Odcisk palca</span>
             </button>
             <p className={cn(
               "text-[9px] text-center mt-2 leading-tight",
@@ -923,8 +970,8 @@ export default function App() {
             >
                <Menu size={20} strokeWidth={2.5} />
             </button>
-            <div className="flex items-center gap-3" onClick={() => changeTab('dashboard')}>
-              <Logo className="w-10 h-10 drop-shadow-sm" />
+            <div className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform" onClick={() => setShowStatusPopup(true)}>
+              <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
               <div>
                 <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">GlikoControl</h1>
                 <p className="text-accent-500 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono">
@@ -1029,7 +1076,7 @@ export default function App() {
             </motion.div>
           </div>
 
-          <NavButton active={activeTab === 'ai'} onClick={() => changeTab('ai')} icon={<Activity />} label="GlikoSense" />
+          <NavButton active={activeTab === 'ai'} onClick={() => changeTab('ai')} icon={<GlikoSenseIcon size={20} isAnalyzing={activeTab === 'ai'} />} label="GlikoSense" />
           <NavButton active={activeTab === 'profile'} onClick={() => changeTab('profile')} icon={<Settings />} label="Opcje" />
         </div>
       </nav>
@@ -1063,13 +1110,18 @@ export default function App() {
         {showPrivacyPopup && (
            <PrivacyPopup onAccept={handleAcceptPrivacy} />
         )}
-        {showConsentClause && (
-           <ConsentClause onAccept={handleAcceptClause} user={user} />
-        )}
         {showChangelog && (
            <ChangelogPopup onClose={handleCloseChangelog} />
         )}
       </AnimatePresence>
+
+      <QuickStatusPopup 
+        isOpen={showStatusPopup} 
+        onClose={() => setShowStatusPopup(false)} 
+        logs={logs}
+        lastGlucose={lastGlucoseValue}
+        iob={calculateIOB(logs, userSettings?.dia || 4)}
+      />
     </div>
   );
 }
@@ -1077,7 +1129,10 @@ export default function App() {
 function NavButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: any, label: string }) {
   return (
     <button 
-      onClick={onClick}
+      onClick={() => {
+        Haptics.light();
+        onClick();
+      }}
       className={cn(
         "flex flex-col items-center gap-1 relative w-16 h-full justify-center transition-colors outline-none",
         active ? "text-accent-600 dark:text-accent-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"

@@ -2,13 +2,15 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
-import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2, Edit3, X, Bell } from 'lucide-react';
+import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2, Edit3, X, Bell, AlertTriangle } from 'lucide-react';
 import { cn, calculateIOB } from '../lib/utils';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
 import { geminiService } from '../services/gemini';
 import { toast } from 'react-hot-toast';
 import { notificationService } from '../services/notificationService';
+
+import { Haptics } from '../lib/haptics';
 
 export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry[], user: any, setTab?: (t: string) => void }) {
   const [bg, setBg] = useState<string>('');
@@ -59,7 +61,8 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     if (pending) {
       try {
         const parsed = JSON.parse(pending);
-        setCarbs(parsed.carbs?.toString() || '');
+        const pCarbs = parsed.carbs !== undefined ? (Math.round(parseFloat(parsed.carbs) * 10) / 10).toString() : '';
+        setCarbs(pCarbs);
         setProtein(parsed.protein?.toString() || '');
         setFat(parsed.fat?.toString() || '');
         if (parseFloat(parsed.protein) > 0 || parseFloat(parsed.fat) > 0) {
@@ -197,6 +200,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     }
 
     setSaving(true);
+    Haptics.medium();
     let tId: string | undefined;
     
     try {
@@ -261,11 +265,13 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
       if (ops === 0) throw new Error("Brak operacji");
 
       // OPTIMISTIC UPDATE: Close first, save in background
+      Haptics.success();
       if (tId) toast.success("Zapisano (Synchronizacja w tle...)", { id: tId });
       if (setTab) setTab('dashboard');
       
       // Background save - if it fails (e.g. Guest), we don't block the UI
       batch.commit().catch(err => {
+        Haptics.warning();
         console.warn("[BolusCalculator] Background sync failed (likely Guest/No Auth):", err);
       });
 
@@ -274,6 +280,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
       setIsAlcoholMode(false);
       
     } catch (err: any) {
+      Haptics.error();
       console.error("[BolusCalculator] Error:", err);
       if (tId) toast.error(err.message || "Błąd zapisu", { id: tId });
     } finally {
@@ -292,6 +299,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
   };
 
   const handleAskAi = async () => {
+    Haptics.light();
     setLoadingAi(true);
     try {
       const bgNum = parseFloat(bg) || 0;
@@ -302,7 +310,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
       if (result) {
         setAiRec(result);
         if (result.recommendedDose !== undefined) {
-           setDose(result.recommendedDose);
+           setDose(Math.round(result.recommendedDose * 10) / 10);
            setManualDose(null);
         }
       }
@@ -637,6 +645,21 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
                 />
                 <span className="text-xl font-bold opacity-30">j.</span>
              </div>
+             
+             {/* Stacking Warning */}
+             {calculateIOB(logs, settings.dia || 4) > 0.5 && (
+               <motion.div 
+                 initial={{ opacity: 0, y: -5 }} 
+                 animate={{ opacity: 1, y: 0 }}
+                 className="mt-2 mb-2 flex items-center justify-center gap-2 bg-rose-500/10 border border-rose-500/20 py-1.5 px-3 rounded-xl mx-4"
+               >
+                 <AlertTriangle size={12} className="text-rose-500 animate-pulse shrink-0" />
+                 <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest text-center">
+                   Uwaga: Nakładanie dawek! IOB: {calculateIOB(logs, settings.dia || 4).toFixed(2)}j
+                 </span>
+               </motion.div>
+             )}
+
              {isPizzaMode && extendedTime > 0 && (
                <div className="mt-2 text-[10px] font-bold text-slate-400">
                  W tym przedłużone: <span className="text-accent-400">rozłóż na {extendedTime}h</span> (dawka WBT)

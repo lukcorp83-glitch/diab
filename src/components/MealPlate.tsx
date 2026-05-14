@@ -22,6 +22,11 @@ import {
   Mic,
   X,
   Database,
+  Soup,
+  Salad,
+  Pizza,
+  Sandwich,
+  Apple as AppleIcon,
 } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
 import { cn } from "../lib/utils";
@@ -38,6 +43,8 @@ import {
 import { LIB_BASE, CATEGORIES } from "../constants";
 import { geminiService } from "../services/gemini";
 import { Html5Qrcode } from "html5-qrcode";
+
+import { Haptics } from "../lib/haptics";
 
 export default function MealPlate({
   user,
@@ -327,6 +334,7 @@ export default function MealPlate({
 
   const handleWeightSubmit = () => {
     if (selectedProduct && weightInput) {
+      Haptics.light();
       addToPlate(selectedProduct, parseFloat(weightInput));
       setIsWeightModalOpen(false);
       setSelectedProduct(null);
@@ -372,6 +380,7 @@ export default function MealPlate({
 
   const saveMealSet = async () => {
     if (!user || !mealName || plate.length === 0) return;
+    Haptics.medium();
     try {
       await addDoc(
         collection(
@@ -391,6 +400,7 @@ export default function MealPlate({
       );
       setIsSaveModalOpen(false);
       setMealName("");
+      Haptics.success();
       alert("Zestaw zapisany!");
     } catch (e) {
       console.error(e);
@@ -398,6 +408,7 @@ export default function MealPlate({
   };
 
   const addSavedMeal = (meal: any) => {
+    Haptics.light();
     setPlate([...plate, ...meal.items]);
     if (meal.cookingMethod) {
       setCookingMethod(meal.cookingMethod);
@@ -428,6 +439,7 @@ export default function MealPlate({
   };
 
   const removeFromPlate = (idx: number) => {
+    Haptics.light();
     setPlate(plate.filter((_, i) => i !== idx));
   };
 
@@ -466,6 +478,7 @@ export default function MealPlate({
 
   const handleLogMeal = async () => {
     if (!user || plate.length === 0) return;
+    Haptics.medium();
     try {
       await addDoc(
         collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
@@ -480,6 +493,7 @@ export default function MealPlate({
         },
       );
       setPlate([]);
+      Haptics.success();
       alert("Posiłek zapisany w dzienniku.");
     } catch (e) {
       console.error(e);
@@ -748,15 +762,26 @@ export default function MealPlate({
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleOnlineSearch();
               }}
-              className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-14 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:border-accent-500 transition-all shadow-sm"
+              className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-24 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:border-accent-500 transition-all shadow-sm"
             />
-            <button
-              onClick={startVoiceSearch}
-              className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all ${isListening ? "bg-rose-500 text-white animate-pulse" : "text-slate-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/30"}`}
-              title="Wyszukiwanie głosowe"
-            >
-              <Mic size={18} />
-            </button>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+                  title="Wyczyść"
+                >
+                  <X size={16} />
+                </button>
+              )}
+              <button
+                onClick={startVoiceSearch}
+                className={`p-2 rounded-full transition-all ${isListening ? "bg-rose-500 text-white animate-pulse" : "text-slate-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/30"}`}
+                title="Wyszukiwanie głosowe"
+              >
+                <Mic size={18} />
+              </button>
+            </div>
           </div>
           
           <div className="flex gap-2 w-full">
@@ -869,7 +894,7 @@ export default function MealPlate({
           ))}
         </div>
 
-        <div className="max-h-[400px] overflow-y-auto pr-1 space-y-2 scrollbar-none">
+        <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
           {searchError && (
             <div className="mb-4 bg-rose-50 dark:bg-rose-900/20 p-5 rounded-[2rem] border border-rose-100 dark:border-rose-800">
                <p className="text-sm text-rose-600 dark:text-rose-400 font-bold text-center">{searchError}</p>
@@ -944,29 +969,35 @@ export default function MealPlate({
             </div>
           )}
 
-          <div className="flex justify-between items-center px-4 gap-2 mb-2">
-            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-              Wybierz z bazy
-            </h4>
+          <div className="flex flex-col gap-2 mb-2">
+            <div className="flex justify-between items-end px-4">
+              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                Baza GlikoSense 
+                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-accent-600 text-[9px]">
+                  {browseResults.length} {browseResults.length === 1 ? 'produkt' : 'produkty'}
+                </span>
+              </h4>
+              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
+                {activeCategory !== 'Wszystko' ? `Kategoria: ${activeCategory}` : 'Wszystkie kategorie'}
+              </div>
+            </div>
             {searchTerm.length > 2 && (
-              <button
-                onClick={handleOnlineSearch}
-                className="text-[9px] font-black text-accent-500 uppercase tracking-widest flex items-center gap-1 group"
-              >
-                {isSearching ? (
-                  <Loader2 className="animate-spin" size={12} />
-                ) : (
-                  <Globe size={12} />
-                )}
-                Szukaj w Sieci
-              </button>
+              <div className="px-4">
+                <button
+                  onClick={handleOnlineSearch}
+                  className="w-full py-2 bg-accent-50 dark:bg-accent-900/20 rounded-xl text-[9px] font-black text-accent-600 uppercase tracking-widest flex items-center justify-center gap-2 border border-accent-100 dark:border-accent-800/50 hover:bg-accent-100 transition-all"
+                >
+                  {isSearching ? <Loader2 className="animate-spin" size={12} /> : <Globe size={12} />}
+                  Głębsze wyszukiwanie w sieci (AI)
+                </button>
+              </div>
             )}
           </div>
 
           {browseResults.length > 0 ? (
-            <div className="grid gap-2 will-change-transform">
+            <div className="grid gap-2 will-change-transform pb-20">
               <AnimatePresence>
-                {browseResults.slice(0, 50).map((p, i) => (
+                {browseResults.slice(0, 500).map((p, i) => (
                   <motion.button
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -1042,22 +1073,70 @@ export default function MealPlate({
       )}
 
       {(mode === 'plate' || mode === 'both') && plate.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-slate-50 dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
-          <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
-            <Utensils size={48} className="text-slate-300 dark:text-slate-600" />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[3.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden relative"
+        >
+          {/* Floating Food Icons Animation */}
+          <div className="absolute inset-0 pointer-events-none opacity-20 dark:opacity-10 overflow-hidden">
+            {[AppleIcon, Utensils, Zap, Database, Star, Soup, Salad, Pizza, Sandwich].map((Icon, i) => (
+              <motion.div
+                key={i}
+                initial={{ 
+                  x: Math.random() * 300 - 150, 
+                  y: Math.random() * 300 - 150,
+                  rotate: 0,
+                  opacity: 0 
+                }}
+                animate={{ 
+                  y: [null, Math.random() * 40 - 20],
+                  rotate: [0, 360],
+                  opacity: [0, 1, 0]
+                }}
+                transition={{ 
+                  duration: 5 + Math.random() * 5, 
+                  repeat: Infinity, 
+                  delay: i * 0.5,
+                  ease: "easeInOut"
+                }}
+                className="absolute left-1/2 top-1/2"
+              >
+                <Icon size={40 + Math.random() * 40} />
+              </motion.div>
+            ))}
           </div>
-          <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">Twój talerz jest pusty</h3>
-          <p className="text-sm text-slate-500 max-w-[250px] mb-8">
-            Przejdź do bazy produktów i dodaj to, co planujesz zjeść.
-          </p>
-          <button 
-            onClick={() => setTab('database')}
-            className="px-8 py-4 bg-accent-500 hover:bg-accent-600 active:scale-95 transition-all text-white rounded-3xl font-bold flex items-center gap-2 shadow-lg shadow-accent-500/30"
+
+          <motion.div 
+            animate={{ 
+              y: [0, -15, 0],
+              rotate: [0, 5, -5, 0],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="w-32 h-32 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mb-8 shadow-inner relative z-10"
           >
-            <Database size={18} />
-            Przeglądaj bazę
+            <div className="absolute inset-0 rounded-full border-4 border-accent-500/20 animate-ping opacity-20" />
+            <Utensils size={64} className="text-accent-500/40 dark:text-accent-400/30" />
+          </motion.div>
+
+          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-3 relative z-10 font-display">Talerz jeszcze pusty</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-[280px] mb-10 leading-relaxed font-medium relative z-10">
+            Twój talerz czeka na smakołyki! Odwiedź bazę i wybierz coś pysznego do przeliczenia.
+          </p>
+
+          <button 
+            onClick={() => {
+              Haptics.medium();
+              setTab('database');
+            }}
+            className="group relative px-10 py-5 bg-accent-600 hover:bg-accent-700 active:scale-95 transition-all text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-2xl shadow-accent-600/40 z-10"
+          >
+            <Database size={18} className="group-hover:rotate-12 transition-transform" />
+            <span>Przeglądaj Składniki</span>
+            <div className="absolute inset-0 rounded-[2rem] bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
           </button>
-        </div>
+        </motion.div>
       )}
 
       {/* Plate Stats */}
@@ -1293,11 +1372,11 @@ export default function MealPlate({
           <div className="grid grid-cols-2 gap-4 mb-6 border-t border-white/10 pt-4">
             <div>
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Wymienniki WW
+                Węglowodany
               </span>
               <span className="text-2xl font-black text-accent-400">
-                {totalWW.toFixed(1)}
-                <span className="text-xs font-bold opacity-30 ml-1">WW</span>
+                {totalCarbs.toFixed(1)}
+                <span className="text-xs font-bold opacity-30 ml-1">g</span>
               </span>
             </div>
             <div className="text-right">
@@ -1391,9 +1470,9 @@ export default function MealPlate({
           <button
             onClick={() => {
               sessionStorage.setItem('pending_meal', JSON.stringify({
-                carbs: totalCarbs,
-                protein: totalProtein,
-                fat: totalFat,
+                carbs: Math.round(totalCarbs * 10) / 10,
+                protein: Math.round(totalProtein * 10) / 10,
+                fat: Math.round(totalFat * 10) / 10,
                 name: "Mój Talerz"
               }));
               setTab("bolus");

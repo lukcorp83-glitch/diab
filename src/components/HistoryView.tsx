@@ -128,7 +128,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                       )}
                       {log.type === 'bolus' && log.linkedMeal && (
                         <span className="text-[10px] font-bold text-amber-500 ml-2">
-                           (+{log.linkedMeal.carbs}g W{log.linkedMeal.polyols ? `, ${log.linkedMeal.polyols}P` : ''})
+                           (+{(log.linkedMeal.carbs || 0).toFixed(1)}g W{log.linkedMeal.polyols ? `, ${(log.linkedMeal.polyols || 0).toFixed(1)}P` : ''})
                         </span>
                       )}
                     </p>

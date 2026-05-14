@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Check, ChevronRight, Zap, Trophy, HelpCircle, Book, Flower2 } from 'lucide-react';
+import { Sparkles, Check, ChevronRight, Zap, Trophy, HelpCircle, Book, Flower2, Box, Info, Settings, MousePointer2 } from 'lucide-react';
 import { VERSIONS, CURRENT_VERSION } from '../constants/versions';
 import { cn } from '../lib/utils';
 
@@ -63,10 +63,14 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
 }
 
 function getChangeIcon(text: string) {
-  if (text.toLowerCase().includes('quiz')) return <HelpCircle size={16} />;
-  if (text.toLowerCase().includes('ogród')) return <Flower2 size={16} />;
-  if (text.toLowerCase().includes('dziennik')) return <Book size={16} />;
-  if (text.toLowerCase().includes('energia')) return <Zap size={16} />;
-  if (text.toLowerCase().includes('monety') || text.toLowerCase().includes('xp')) return <Trophy size={16} />;
+  const t = text.toLowerCase();
+  if (t.includes('quiz')) return <HelpCircle size={16} />;
+  if (t.includes('ogród')) return <Flower2 size={16} />;
+  if (t.includes('dziennik') || t.includes('historia')) return <Book size={16} />;
+  if (t.includes('energia') || t.includes('wydajność')) return <Zap size={16} />;
+  if (t.includes('monety') || t.includes('xp')) return <Trophy size={16} />;
+  if (t.includes('haptyka') || t.includes('wibracje')) return <MousePointer2 size={16} />;
+  if (t.includes('ustawienia') || t.includes('opcje')) return <Settings size={16} />;
+  if (t.includes('poprawka') || t.includes('stabilność')) return <Box size={16} />;
   return <Sparkles size={16} />;
 }

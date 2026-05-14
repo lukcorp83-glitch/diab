@@ -38,6 +38,8 @@ import MealEditModal from "./MealEditModal";
 import GlikoWidget from "./GlikoWidget";
 import GlikoSenseTips from "./GlikoSenseTips";
 import GlikoSenseNeural from "./GlikoSenseNeural";
+import GlikoSenseIcon from "./GlikoSenseIcon";
+import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
 import {
   collection,
@@ -47,6 +49,8 @@ import {
   deleteDoc,
   addDoc,
 } from "firebase/firestore";
+
+import { Haptics } from "../lib/haptics";
 
 interface DashboardProps {
   logs: LogEntry[];
@@ -86,10 +90,25 @@ export default function Dashboard({
     const saved = localStorage.getItem('glikosfera_ml_prediction');
     return saved ? JSON.parse(saved) : true;
   });
+  const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
 
   useEffect(() => {
     localStorage.setItem('glikosfera_loop_simulation', JSON.stringify(showLoopSimulation));
   }, [showLoopSimulation]);
+
+  useEffect(() => {
+    const runAnalysis = async () => {
+      if (logs.length >= 5) {
+        try {
+          const res = await MLAnalyzer.analyzeData(logs, false, 'quick');
+          setMlInfo({ accuracy: res.accuracy, datasetSize: res.datasetSize || 0 });
+        } catch (e) {
+          console.error("Dashboard ML analysis error:", e);
+        }
+      }
+    };
+    runAnalysis();
+  }, [logs]);
 
   useEffect(() => {
     localStorage.setItem('glikosfera_ml_prediction', JSON.stringify(showMLPrediction));
@@ -168,6 +187,7 @@ export default function Dashboard({
   const quickAdd = async (s: any) => {
     if (s.carbs > 0) {
       if (!user) return;
+      Haptics.medium();
       try {
         await addDoc(
           collection(
@@ -186,11 +206,13 @@ export default function Dashboard({
             items: [{ name: s.name, carbs: s.carbs }],
           },
         );
-        if (navigator.vibrate) navigator.vibrate(100);
+        Haptics.success();
       } catch (e) {
         console.error("Quick log error:", e);
+        Haptics.error();
       }
     } else {
+      Haptics.light();
       setTab("meal");
     }
   };
@@ -397,6 +419,8 @@ export default function Dashboard({
             trend={trend?.direction || null}
             isChildMode={settings.childMode || false}
             petName={petData?.name}
+            accuracy={mlInfo?.accuracy}
+            datasetSize={mlInfo?.datasetSize}
           >
             {settings.childMode && (
                <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} embedded={true} />
@@ -436,7 +460,7 @@ export default function Dashboard({
                     : "bg-slate-100/50 text-slate-400 border-slate-200/50 dark:bg-white/5"
                 )}
               >
-                <Activity size={10} />
+                <GlikoSenseIcon size={10} isAnalyzing={showMLPrediction} />
                 {showMLPrediction ? "GlikoSense ON" : "GlikoSense OFF"}
               </button>
             </div>
@@ -489,12 +513,19 @@ export default function Dashboard({
                  {(() => {
                    const msLeft = settings.sensorChangeDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
                    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
+                   const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                    const isExpired = msLeft <= 0;
                    return (
                      <div>
                        <div className="flex items-baseline gap-1">
                          <span className={cn("text-3xl font-black tracking-tight", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Dni</span>
+                         {!isExpired && hoursLeft > 0 && (
+                           <>
+                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1">{hoursLeft}</span>
+                             <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">Godz</span>
+                           </>
+                         )}
                        </div>
                        <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
                          <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-indigo-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
@@ -519,12 +550,19 @@ export default function Dashboard({
                  {(() => {
                    const msLeft = settings.infusionSetChangeDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
                    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
+                   const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                    const isExpired = msLeft <= 0;
                    return (
                      <div>
                        <div className="flex items-baseline gap-1">
                          <span className={cn("text-3xl font-black tracking-tight", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Dni</span>
+                         {!isExpired && hoursLeft > 0 && (
+                           <>
+                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1">{hoursLeft}</span>
+                             <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">Godz</span>
+                           </>
+                         )}
                        </div>
                        <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
                          <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-teal-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
@@ -577,7 +615,7 @@ export default function Dashboard({
         {patternInsights.length > 0 && (
           <div className="bg-accent-50/50 dark:bg-accent-950/20 backdrop-blur-md border border-accent-200/50 dark:border-accent-800/30 p-5 rounded-[2.5rem] flex items-center gap-4 group">
             <div className="p-3 bg-accent-500 text-white rounded-2xl shadow-lg shadow-accent-500/30">
-              <Activity size={18} />
+              <GlikoSenseIcon size={18} isAnalyzing={true} />
             </div>
             <div className="flex-1">
               <p className="text-[9px] font-black text-accent-700 dark:text-accent-400 uppercase tracking-widest mb-1 font-display">
@@ -599,26 +637,31 @@ export default function Dashboard({
         )}
       </motion.div>
 
-      {/* 7. Quick Actions Row */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {/* Shortcuts group */}
+      {/* 7. Quick Actions Section */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        {/* Shortcuts row - Now full width and above buttons */}
         {shortcuts.length > 0 && (
-          <div className="col-span-2 glass-card !p-6 flex flex-col gap-4 border border-white/50 dark:border-white/5">
-            <div className="flex items-center gap-2 px-1">
-              <h4 className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">MOJE ULUBIONE</h4>
-              <div className="h-px flex-1 bg-slate-100 dark:bg-white/5" />
+          <div className="glass-card !p-6 flex flex-col gap-4 border border-white/50 dark:border-white/5 shadow-lg">
+            <div className="flex justify-between items-center px-1">
+              <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">MOJE ULUBIONE</h4>
+              <button 
+                onClick={() => setTab("meal")}
+                className="text-[9px] font-black text-accent-500 uppercase tracking-tight"
+              >
+                Edytuj
+              </button>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none mask-fade-right">
+            <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none mask-fade-right">
               {shortcuts.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => quickAdd(s)}
-                  className="shrink-0 glass-card !bg-white/20 dark:!bg-white/5 !p-4 flex items-center gap-3 font-black text-[10px] uppercase tracking-tighter shadow-sm active:scale-95 transition-all border border-black/5 dark:border-white/5 dark:text-white group"
+                  className="shrink-0 glass-card !bg-white/40 dark:!bg-white/5 !p-5 flex items-center gap-4 font-black text-xs uppercase tracking-tighter shadow-md active:scale-95 transition-all border border-black/5 dark:border-white/5 dark:text-white group min-w-[140px]"
                 >
-                  <span className="text-xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
+                  <span className="text-2xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
                   <div className="flex flex-col items-start">
-                    <span className="leading-tight">{s.name}</span>
-                    <span className="text-[8px] opacity-40 lowercase">{s.carbs}g ww</span>
+                    <span className="leading-tight text-slate-800 dark:text-slate-200">{s.name}</span>
+                    <span className="text-[9px] opacity-50 lowercase font-bold">{s.carbs}g węgli</span>
                   </div>
                 </button>
               ))}
@@ -626,25 +669,36 @@ export default function Dashboard({
           </div>
         )}
 
-        <button
-          onClick={() => setIsGlucoseModalOpen(true)}
-          className="glass-card p-4 flex flex-col items-center justify-center gap-2 active:scale-95 group relative overflow-hidden border border-white/50 dark:border-white/5 shadow-xl transition-all"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Shield size={22} />
-          </div>
-          <span className="font-black text-[9px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-display">Pomiar</span>
-        </button>
+        {/* Big Action Buttons */}
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => {
+              Haptics.light();
+              setIsGlucoseModalOpen(true);
+            }}
+            className="glass-card h-32 flex flex-col items-center justify-center gap-3 active:scale-95 group relative overflow-hidden border border-white/50 dark:border-white/5 shadow-2xl transition-all"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-[40px] -mr-12 -mt-12 group-hover:bg-rose-500/10 transition-all"></div>
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+              <Shield size={32} />
+            </div>
+            <span className="font-black text-[11px] uppercase tracking-widest text-slate-600 dark:text-slate-300 font-display">Pomiar</span>
+          </button>
 
-        <button
-          onClick={() => setTab("bolus")}
-          className="bg-accent-600 p-4 rounded-[2rem] flex flex-col items-center justify-center gap-2 shadow-2xl shadow-accent-600/30 active:scale-95 group transition-all text-white overflow-hidden"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Zap size={22} />
-          </div>
-          <span className="font-black text-[9px] uppercase tracking-widest font-display">Bolus</span>
-        </button>
+          <button
+            onClick={() => {
+              Haptics.light();
+              setTab("bolus");
+            }}
+            className="bg-accent-600 h-32 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-2xl shadow-accent-600/40 active:scale-95 group transition-all text-white overflow-hidden relative"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all"></div>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+              <Zap size={32} />
+            </div>
+            <span className="font-black text-[11px] uppercase tracking-widest font-display">Bolus</span>
+          </button>
+        </div>
       </motion.div>
 
       {/* 8. Recent History View */}
@@ -701,7 +755,7 @@ export default function Dashboard({
                         </div>
                         <div className="flex-1">
                           <p className="font-black text-base dark:text-white font-display">
-                            {log.value.toFixed(1)} <span className="text-[10px] opacity-40 uppercase">{log.type === "meal" ? "g W" : " j."}</span>
+                            {log.value.toFixed(1)} <span className="text-[10px] opacity-40 uppercase">{log.type === "meal" ? "g" : " j."}</span>
                           </p>
                           <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
                             {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.type === 'meal' ? 'Posiłek' : 'Bolus'}

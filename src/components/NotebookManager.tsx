@@ -118,8 +118,8 @@ export default function NotebookManager({ user }: { user: any }) {
       content: 'Wskaźnik odzwierciedlający średnie stężenie glukozy we krwi z ostatnich ok. 3 miesięcy. Wynik podawany jest w %. \nDocelowo u większości młodych dorosłych to poniżej 7%, a w cukrzycy typu 1 często dąży się do <6.5%. \nHbA1c koreluje z ryzykiem wystąpienia przewlekłych powikłań cukrzycowych.',
     },
     {
-      title: 'Wymienniki WW i WBT',
-      content: '1 Wymiennik Węglowodanowy (WW) = 10g przyswajalnych węglowodanów. Podnosi cukier szybko.\n1 Wymiennik Białkowo-Tłuszczowy (WBT) = 100 kcal pochodzących z białek i tłuszczów. Przyswaja się dłużej (do kilku godzin), dlatego w przypadku tłustych i bogatych w białko posiłków (np. pizza) stosuje się bolusy przedłużone/złożone na pompie.',
+      title: 'Węglowodany i WBT',
+      content: '1 g węglowodanów przyswajalnych podnosi cukier szybko. W celach obliczeniowych często stosuje się Wymienniki Węglowodanowe (WW): 1 WW = 10g węglowodanów.\n1 Wymiennik Białkowo-Tłuszczowy (WBT) = 100 kcal pochodzących z białek i tłuszczów. Przyswaja się dłużej (do kilku godzin), dlatego w przypadku tłustych i bogatych w białko posiłków (np. pizza) stosuje się bolusy przedłużone/złożone na pompie.',
     },
     {
       title: 'Indeks (IG) i Ładunek (ŁG) Glikemiczny',

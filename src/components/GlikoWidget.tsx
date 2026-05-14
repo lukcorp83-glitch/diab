@@ -149,11 +149,11 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Utensils size={12} className="text-amber-500" />
-                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Dziś Wymienniki</span>
+                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Dziś Węglowodany</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-slate-800 dark:text-white">{(todayStats.carbs / 10).toFixed(1)}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">WW</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-white">{todayStats.carbs}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">g</span>
               </div>
             </div>
             <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-white/5">

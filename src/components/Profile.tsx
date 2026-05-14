@@ -42,7 +42,8 @@ import {
   Palette, 
   RefreshCw, 
   ShieldCheck, 
-  Lock as LucideLock 
+  Lock as LucideLock,
+  Fingerprint
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
@@ -57,6 +58,7 @@ import SettingsSync from './SettingsSync';
 import SettingsTransfer from './SettingsTransfer';
 import ApiIntegration from './ApiIntegration';
 import PumpSimulator from './PumpSimulator';
+import { registerPasskey } from '../lib/webauthn';
 
 interface ProfileProps {
   user: any;
@@ -243,6 +245,42 @@ export default function Profile({
     setTimeout(() => {
       setCleaningResult(null);
     }, 5000);
+  };
+
+  const handleRegisterPasskey = async () => {
+    try {
+      const getAccessToken = async () => {
+        const token = await user.getIdToken();
+        return token;
+      };
+      await registerPasskey(getAccessToken);
+      toast.success("Klucz biometryczny został zarejestrowany!");
+    } catch (e: any) {
+      console.error(e);
+      let errorMsg = e.message || "Błąd podczas rejestracji biometrii";
+      
+      // Handle the Permissions Policy error specially
+      if (errorMsg.includes('Permissions Policy') || errorMsg.includes('feature is not enabled')) {
+        toast.error((t) => (
+          <div className="flex flex-col gap-3">
+            <span className="font-bold">Biometria blokowana w tym widoku.</span>
+            <span className="text-xs">Przeglądarka nie pozwala na użycie kluczy biometrycznych wewnątrz ramki podglądu.</span>
+            <button 
+              onClick={() => {
+                window.open(window.location.href, '_blank');
+                toast.dismiss(t.id);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-3 py-2 rounded-xl font-black uppercase tracking-widest transition-colors shadow-lg shadow-indigo-600/20"
+            >
+              🚀 Otwórz w nowej karcie
+            </button>
+          </div>
+        ), { duration: 10000 });
+        return;
+      }
+      
+      toast.error(errorMsg, { duration: 6000 });
+    }
   };
 
   useEffect(() => {
@@ -1955,6 +1993,58 @@ export default function Profile({
                       "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
                       settings.showPumpWidget !== false ? "left-7" : "left-1"
                     )} />
+                  </button>
+                </div>
+
+                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-900/30 text-slate-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Zap size={22} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-black dark:text-white leading-tight">Haptyka</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">Wibracje przy klikaniu przycisków</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const current = localStorage.getItem('gliko_haptics_enabled') !== 'false';
+                      localStorage.setItem('gliko_haptics_enabled', String(!current));
+                      // Force a re-render
+                      window.dispatchEvent(new Event('storage'));
+                      // We need to trigger a local state update to show visual toggle change
+                      // but since we don't have local state here easily without refactoring, 
+                      // we'll just use the fact that buttons re-render on parent render.
+                      // Actually, let's use a small trick: update a settings field that doesn't matter much or just trigger a parent update.
+                      setSettings({...settings}); 
+                    }}
+                    className={cn(
+                      "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner",
+                      (localStorage.getItem('gliko_haptics_enabled') !== 'false') ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
+                      (localStorage.getItem('gliko_haptics_enabled') !== 'false') ? "left-7" : "left-1"
+                    )} />
+                  </button>
+                </div>
+
+                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-accent-100 dark:bg-accent-900/30 text-accent-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Fingerprint size={22} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-black dark:text-white leading-tight">Logowanie Biometryczne</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">FaceID / Odcisk palca</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleRegisterPasskey}
+                    className="bg-accent-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-md"
+                  >
+                    Aktywuj
                   </button>
                 </div>
               </div>

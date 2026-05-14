@@ -132,11 +132,16 @@ const LoopSimulationDot = (props: any) => {
 
 const MLPredictionLabel = (props: any) => {
   const { x, y, payload, isDark, lastMlTimestamp } = props;
-  if (payload.timestamp === lastMlTimestamp && payload.mlPrediction !== undefined && !isNaN(x) && !isNaN(y)) {
+  if (payload && payload.timestamp === lastMlTimestamp && payload.mlPrediction !== undefined && !isNaN(x) && !isNaN(y)) {
     return (
-      <text x={x} y={y - 10} fill={isDark ? '#fcd34d' : '#b45309'} fontSize={8} fontWeight="bold" textAnchor="middle" className="uppercase tracking-widest pointer-events-none">
-        GlikoSense
-      </text>
+      <g>
+        <text x={x} y={y - 12} fill={isDark ? '#fcd34d' : '#b45309'} fontSize={8} fontWeight="black" textAnchor="middle" className="uppercase tracking-widest pointer-events-none">
+          GlikoSense
+        </text>
+        <text x={x} y={y - 22} textAnchor="middle" fontSize={16} className="pointer-events-none drop-shadow-md">
+          🦄
+        </text>
+      </g>
     );
   }
   return null;
@@ -146,6 +151,35 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
   const [selectedPoint, setSelectedPoint] = useState<LogEntry | null>(null);
   const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number}[]>([]);
   const [isMlProcessing, setIsMlProcessing] = useState(false);
+
+  useEffect(() => {
+    if (!showMLPrediction || logs.length < 5) {
+      setMlPredictionDataState([]);
+      return;
+    }
+
+    let isMounted = true;
+    const runAnalysis = async () => {
+      setIsMlProcessing(true);
+      try {
+        // Use 'quick' mode for the chart to keep it responsive
+        const result = await MLAnalyzer.analyzeData(logs, false, 'quick');
+        if (isMounted && result.predictionCurve) {
+          setMlPredictionDataState(result.predictionCurve.map(p => ({
+            timestamp: p.timestamp,
+            value: p.value
+          })));
+        }
+      } catch (err) {
+        console.error("ML Prediction error in chart:", err);
+      } finally {
+        if (isMounted) setIsMlProcessing(false);
+      }
+    };
+
+    runAnalysis();
+    return () => { isMounted = false; };
+  }, [logs, showMLPrediction]);
   
   // Interactive View State
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = default (hours), higher = zoom in
@@ -177,27 +211,44 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     setPanOffsetMs(0);
   };
 
-  const handleMouseDown = (e: any) => {
-    if (e && e.chartX) {
-      setIsDragging(true);
-      setLastX(e.chartX);
-    }
+  const handleMouseDownNative = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setLastX(e.clientX);
   };
 
-  const handleMouseMove = (e: any) => {
-    if (isDragging && e && e.chartX && lastX !== null && containerRef.current) {
+  const handleMouseMoveNative = (e: React.MouseEvent) => {
+    if (isDragging && lastX !== null && containerRef.current) {
       const width = containerRef.current.clientWidth || 1000;
       const rangeMs = (hours * 60 * 60 * 1000) / zoomLevel;
       const msPerPixel = rangeMs / width;
-      const deltaX = e.chartX - lastX;
+      const deltaX = e.clientX - lastX;
       setPanOffsetMs(prev => prev - (deltaX * msPerPixel));
-      setLastX(e.chartX);
+      setLastX(e.clientX);
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUpNative = () => {
     setIsDragging(false);
     setLastX(null);
+  };
+
+  const handleTouchStartNative = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setLastX(e.touches[0].clientX);
+    }
+  };
+
+  const handleTouchMoveNative = (e: React.TouchEvent) => {
+    if (isDragging && e.touches.length === 1 && lastX !== null && containerRef.current) {
+      const width = containerRef.current.clientWidth || 1000;
+      const rangeMs = (hours * 60 * 60 * 1000) / zoomLevel;
+      const msPerPixel = rangeMs / width;
+      const currentX = e.touches[0].clientX;
+      const deltaX = currentX - lastX;
+      setPanOffsetMs(prev => prev - (deltaX * msPerPixel));
+      setLastX(currentX);
+    }
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -468,7 +519,21 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
   const isDark = theme === 'dark';
 
   return (
-    <div ref={containerRef} className="relative w-full h-full select-none" style={{ touchAction: 'none' }} onClick={() => setSelectedPoint(null)} onWheel={handleWheel}>
+    <div 
+      ref={containerRef} 
+      className="relative w-full h-full select-none" 
+      style={{ touchAction: 'none' }} 
+      onClick={() => setSelectedPoint(null)} 
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDownNative}
+      onMouseMove={handleMouseMoveNative}
+      onMouseUp={handleMouseUpNative}
+      onMouseLeave={handleMouseUpNative}
+      onTouchStart={handleTouchStartNative}
+      onTouchMove={handleTouchMoveNative}
+      onTouchEnd={handleMouseUpNative}
+      onTouchCancel={handleMouseUpNative}
+    >
       {/* View Controls */}
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-auto">
         <button 
@@ -507,10 +572,6 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         <ComposedChart
           data={chartData}
           margin={{ top: 10, right: 10, left: -25, bottom: 20 }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} vertical={false} />
           <XAxis 
@@ -639,6 +700,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
                  strokeWidth={3} 
                  strokeDasharray="5 5"
                  dot={false}
+                 label={<MLPredictionLabel isDark={isDark} lastMlTimestamp={lastMlTimestamp} />}
                  activeDot={{ r: 5, fill: '#fbbf24', stroke: '#fff', strokeWidth: 2 }}
                  connectNulls
                  isAnimationActive={false}

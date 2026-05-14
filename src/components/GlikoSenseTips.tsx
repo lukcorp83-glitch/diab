@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Lightbulb, TrendingUp, TrendingDown, Clock, Info, CheckCircle2, AlertCircle, Activity, Sparkles, X, Zap } from 'lucide-react';
+import GlikoSenseIcon from './GlikoSenseIcon';
 import { LogEntry } from '../types';
 import { cn, calculateIOB, calculateCOB } from '../lib/utils';
 
@@ -129,7 +130,7 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between px-2">
         <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display flex items-center gap-2">
-          <Lightbulb size={12} className="text-amber-500" />
+          <GlikoSenseIcon size={12} isAnalyzing={true} />
           Sugestie GlikoSense
         </h3>
       </div>

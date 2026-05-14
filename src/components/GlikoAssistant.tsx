@@ -14,6 +14,7 @@ import {
   Workflow,
   Cpu
 } from 'lucide-react';
+import GlikoSenseIcon from './GlikoSenseIcon';
 import { geminiService } from '../services/gemini';
 import { cn, calculateIOB, calculateCOB } from '../lib/utils';
 import { LogEntry, UserSettings } from '../types';
@@ -36,7 +37,6 @@ export default function GlikoAssistant({
 }) {
   const isChild = settings?.childMode ?? true;
   const assistantName = "Asystent AI";
-  const AssistantIcon = isChild ? Sparkles : Cpu;
 
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem('gliko_assistant_history');
@@ -54,6 +54,8 @@ export default function GlikoAssistant({
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const AssistantIcon = isChild ? Sparkles : Cpu;
 
   useEffect(() => {
     localStorage.setItem('gliko_assistant_history', JSON.stringify(messages));

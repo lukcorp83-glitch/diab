@@ -9,6 +9,7 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, delete
 import { geminiService } from '../services/gemini';
 import { GlikoSenseLearner } from '../services/mlSugarAnalyzer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from 'recharts';
+import GlikoSenseIcon from './GlikoSenseIcon';
 import MLAnalysisWidget from './MLAnalysisWidget';
 import { toast } from 'react-hot-toast';
 
@@ -202,14 +203,14 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
       )}
 
       <div className="bg-accent-900 rounded-[2.5rem] p-8 text-white shadow-2xl text-center space-y-6 relative overflow-hidden">
-        <Activity className="absolute top-4 right-6 text-accent-400 opacity-20" size={60} />
+        <GlikoSenseIcon className="absolute top-4 right-6 opacity-20" size={60} isAnalyzing={true} />
         <div className="relative z-10">
           <h2 className="text-2xl font-black mb-1 text-accent-300">Raport</h2>
           <p className="text-white text-sm font-bold tracking-widest">Inteligentna analiza glikemii</p>
         </div>
 
         <div className="grid gap-4 relative z-10">
-          <motion.button 
+            <motion.button 
             disabled={loading}
             onClick={() => generateReport('master')}
             whileHover={{ scale: 1.02 }}
@@ -220,7 +221,7 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
             transition={{ repeat: Infinity, duration: 2 }}
             className="w-full bg-white text-accent-900 py-6 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 relative overflow-hidden"
           >
-            {loading ? <Loader2 className="animate-spin" /> : <Activity size={24} className="text-accent-500" />}
+            {loading ? <Loader2 className="animate-spin" /> : <GlikoSenseIcon size={24} isAnalyzing={true} />}
             Wygeneruj Raport Kompletny
             
             {!loading && (

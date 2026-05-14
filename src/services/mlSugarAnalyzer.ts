@@ -139,6 +139,7 @@ export const MLAnalyzer = {
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
+    datasetSize?: number,
     analyzedPeriod?: string,
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
@@ -844,12 +845,14 @@ export const MLAnalyzer = {
     }
 
     const accuracyValue = Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80)));
+    const datasetSize = dataset.length;
 
     return {
         predictedNextHour: Math.round(predictedNextHour),
         riskOfHypo,
         insights,
         accuracy: accuracyValue,
+        datasetSize,
         analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni',
         predictionCurve: predictionCurve.map(p => ({
             ...p,
