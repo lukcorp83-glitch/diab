@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
-  const basePath = process.env.NODE_ENV === 'production' ? '/diab/' : '/';
+  const basePath = '/';
   
   return {
     base: basePath,

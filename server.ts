@@ -80,7 +80,7 @@ async function startServer() {
 
       const userAuthenticators = await db.collection(`/artifacts/diacontrolapp/users/${decoded.uid}/authenticators`).get();
       const excludeCredentials = userAuthenticators.docs.map(doc => ({
-        id: Buffer.from(doc.id, 'base64url'),
+        id: doc.id,
         transports: doc.data().transports,
       }));
 
@@ -110,7 +110,7 @@ async function startServer() {
       res.status(500).json({ 
         error: "Nie udało się wygenerować opcji rejestracji", 
         details: e.message,
-        debug: { hostname: req.hostname, protocol: req.protocol }
+        debug: { hostname: req.hostname, protocol: req.protocol, url: req.url, RP_ID }
       });
     }
   });
@@ -123,6 +123,8 @@ async function startServer() {
       const token = authHeader.split(" ")[1];
       const decoded = await admin.auth().verifyIdToken(token);
 
+      console.log(`[WebAuthn] Verifying registration for ${decoded.uid}. Host: ${req.hostname}, Origin: ${req.protocol}://${req.get('host')}`);
+
       const body: RegistrationResponseJSON = req.body;
       if (!db) return res.status(500).json({ error: "DB not connected" });
 
@@ -131,35 +133,46 @@ async function startServer() {
       const { challenge, expiresAt } = challengeDoc.data()!;
       if (Date.now() > expiresAt) return res.status(400).json({ error: "Challenge expired" });
 
+      const currentOrigin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
       const verification = await verifyRegistrationResponse({
         response: body,
         expectedChallenge: challenge,
-        expectedOrigin: `${req.protocol}://${req.get('host')}`,
+        expectedOrigin: currentOrigin,
         expectedRPID: req.hostname === 'localhost' ? 'localhost' : req.hostname,
       });
 
       if (verification.verified && verification.registrationInfo) {
-        const { credential, deviceType, backedUp } = (verification.registrationInfo as any);
-        const { id, publicKey, counter } = credential;
+        const { 
+          credential, 
+          credentialDeviceType, 
+          credentialBackedUp 
+        } = verification.registrationInfo;
         
-        const credentialIdBase64 = Buffer.from(id).toString('base64url');
-        const publicKeyBase64 = Buffer.from(publicKey).toString('base64url');
+        const credentialIdBase64 = credential.id;
+        const publicKeyBase64 = Buffer.from(credential.publicKey).toString('base64url');
         
         // Store the new authenticator
         await db.doc(`/artifacts/diacontrolapp/users/${decoded.uid}/authenticators/${credentialIdBase64}`).set({
           credentialID: credentialIdBase64,
           credentialPublicKey: publicKeyBase64,
-          counter,
-          credentialDeviceType: deviceType,
-          credentialBackedUp: backedUp,
-          transports: body.response.transports || [],
+          counter: credential.counter,
+          credentialDeviceType,
+          credentialBackedUp,
+          transports: credential.transports || body.response.transports || [],
           createdAt: Date.now()
         });
 
         await db.doc(`/artifacts/diacontrolapp/webauthnChallenges/${decoded.uid}`).delete();
+        console.log(`[WebAuthn] Successfully registered credential for ${decoded.uid} on origin ${currentOrigin}`);
         res.json({ verified: true });
       } else {
-        res.status(400).json({ verified: false, error: "Verification failed" });
+        console.error(`[WebAuthn] Registration FAILED for ${decoded.uid}. Info:`, verification);
+        res.status(400).json({ 
+          verified: false, 
+          error: "Weryfikacja biometrii nieudana",
+          details: "Origin mismatch or invalid attestation",
+          debug: { currentOrigin, rpId: req.hostname }
+        });
       }
     } catch (e) {
       console.error("WebAuthn register-verify error", e);
@@ -183,7 +196,7 @@ async function startServer() {
       const options = await generateAuthenticationOptions({
         rpID: req.hostname === 'localhost' ? 'localhost' : req.hostname,
         allowCredentials: userAuthenticators.docs.map(doc => ({
-          id: Buffer.from(doc.data().credentialID, 'base64url'),
+          id: doc.data().credentialID,
           type: 'public-key' as const,
           transports: doc.data().transports,
         })),
@@ -225,14 +238,15 @@ async function startServer() {
       if (!authenticatorDoc.exists) return res.status(400).json({ error: "Authenticator not found" });
       const authenticator = authenticatorDoc.data()!;
 
+      const currentOrigin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
       const verification = await verifyAuthenticationResponse({
         response: body,
         expectedChallenge: challenge,
-        expectedOrigin: `${req.protocol}://${req.get('host')}`,
+        expectedOrigin: currentOrigin,
         expectedRPID: req.hostname === 'localhost' ? 'localhost' : req.hostname,
         credential: {
-          id: Buffer.from(authenticator.credentialID, 'base64url'),
-          publicKey: Buffer.from(authenticator.credentialPublicKey, 'base64url'),
+          id: authenticator.credentialID,
+          publicKey: new Uint8Array(Buffer.from(authenticator.credentialPublicKey, 'base64url')),
           counter: authenticator.counter,
           transports: authenticator.transports,
         },

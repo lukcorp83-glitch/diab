@@ -140,6 +140,7 @@ export const MLAnalyzer = {
     insights: string[],
     accuracy: number,
     datasetSize?: number,
+    totalGlucoseRecords?: number,
     analyzedPeriod?: string,
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number }
@@ -203,6 +204,7 @@ export const MLAnalyzer = {
 
       const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
       const glucoseLogsOrig = sorted.filter(l => l.type === 'glucose' || l.bg);
+      const totalGlucoseRecords = logs.filter(l => l.type === 'glucose' || l.bg).length;
       
       // --- HEURISTIC ANALYSIS (Always run, even if LSTM fails) ---
       const insights: string[] = [];
@@ -853,6 +855,7 @@ export const MLAnalyzer = {
         insights,
         accuracy: accuracyValue,
         datasetSize,
+        totalGlucoseRecords,
         analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni',
         predictionCurve: predictionCurve.map(p => ({
             ...p,
