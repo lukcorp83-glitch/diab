@@ -80,7 +80,7 @@ async function startServer() {
 
       const userAuthenticators = await db.collection(`/artifacts/diacontrolapp/users/${decoded.uid}/authenticators`).get();
       const excludeCredentials = userAuthenticators.docs.map(doc => ({
-        id: doc.id,
+        id: Buffer.from(doc.id, 'base64url'),
         transports: doc.data().transports,
       }));
 
@@ -105,9 +105,13 @@ async function startServer() {
       });
 
       res.json(options);
-    } catch (e) {
-      console.error("WebAuthn register-options error", e);
-      res.status(500).json({ error: "Failed to generate registration options" });
+    } catch (e: any) {
+      console.error("WebAuthn register-options error:", e);
+      res.status(500).json({ 
+        error: "Nie udało się wygenerować opcji rejestracji", 
+        details: e.message,
+        debug: { hostname: req.hostname, protocol: req.protocol }
+      });
     }
   });
 
@@ -179,7 +183,7 @@ async function startServer() {
       const options = await generateAuthenticationOptions({
         rpID: req.hostname === 'localhost' ? 'localhost' : req.hostname,
         allowCredentials: userAuthenticators.docs.map(doc => ({
-          id: doc.data().credentialID,
+          id: Buffer.from(doc.data().credentialID, 'base64url'),
           type: 'public-key' as const,
           transports: doc.data().transports,
         })),
@@ -195,9 +199,12 @@ async function startServer() {
       });
 
       res.json({ ...options, loginChallengeId });
-    } catch (e) {
-      console.error("WebAuthn login-options error", e);
-      res.status(500).json({ error: "Failed to generate login options" });
+    } catch (e: any) {
+      console.error("WebAuthn login-options error:", e);
+      res.status(500).json({ 
+        error: "Nie udało się wygenerować opcji logowania",
+        details: e.message 
+      });
     }
   });
 
@@ -224,7 +231,7 @@ async function startServer() {
         expectedOrigin: `${req.protocol}://${req.get('host')}`,
         expectedRPID: req.hostname === 'localhost' ? 'localhost' : req.hostname,
         credential: {
-          id: authenticator.credentialID,
+          id: Buffer.from(authenticator.credentialID, 'base64url'),
           publicKey: Buffer.from(authenticator.credentialPublicKey, 'base64url'),
           counter: authenticator.counter,
           transports: authenticator.transports,

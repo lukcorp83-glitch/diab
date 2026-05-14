@@ -14,7 +14,10 @@ export async function registerPasskey(getAccessToken: () => Promise<string>) {
       }
     });
     
-    if (!resp.ok) throw new Error('Nie udało się pobrać opcji rejestracji');
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(errData.error || 'Nie udało się pobrać opcji rejestracji');
+    }
     
     const options = await resp.json();
     const attResp = await startRegistration(options);
