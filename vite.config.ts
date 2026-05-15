@@ -9,12 +9,13 @@ export default defineConfig(({ mode }) => {
   const basePath = './';
   
   return {
-    base: '/',
+    base: basePath,
     plugins: [
       react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: 'auto',
         includeAssets: ['pwa-icon.svg'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
@@ -29,8 +30,8 @@ export default defineConfig(({ mode }) => {
           background_color: '#0f172a',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '/',
-          scope: '/',
+          start_url: '.',
+          scope: '.',
           id: '/',
           icons: [
             {

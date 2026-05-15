@@ -5,19 +5,6 @@ import './index.css';
 
 import {ErrorBoundary} from './components/ErrorBoundary';
 
-import { registerSW } from 'virtual:pwa-register';
-
-if (typeof window !== 'undefined') {
-  registerSW({
-    onNeedRefresh() {
-      console.log('Nowa wersja dostępna - odśwież stronę.');
-    },
-    onOfflineReady() {
-      console.log('Aplikacja gotowa do pracy offline.');
-    },
-  });
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
