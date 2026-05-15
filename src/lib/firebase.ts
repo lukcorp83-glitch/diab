@@ -9,10 +9,8 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Using initializeFirestore with long polling for better reliability in some environments
-export const db = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
+// Initializing Firestore with standard settings
+export const db = initializeFirestore(app, {}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 
 // Enable offline persistence with better error handling
 const enablePersistence = async () => {
