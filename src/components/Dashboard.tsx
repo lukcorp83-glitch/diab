@@ -667,7 +667,8 @@ export default function Dashboard({
               <button 
                 onClick={() => {
                   Haptics.light();
-                  setTab("meal");
+                  onAction?.("food");
+                  setTab("profile");
                 }}
                 className="text-[9px] font-black text-accent-500 uppercase tracking-tight"
               >

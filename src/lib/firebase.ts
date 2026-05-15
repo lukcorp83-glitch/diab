@@ -1,15 +1,18 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeFirestore } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { getApps, getApp, initializeApp } from 'firebase/app';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Using firestoreDatabaseId from config if present, otherwise default
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || '(default)');
+// Using initializeFirestore with long polling for better reliability in some environments
+export const db = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 
 // Enable offline persistence with better error handling
 const enablePersistence = async () => {

@@ -278,10 +278,27 @@ export default function MealPlate({
 
   const handleOnlineSearch = () => performOnlineSearch(searchTerm);
 
-  const saveAsShortcut = async (product: Product) => {
+  const openShortcutConfirmModal = (product: Product) => {
+    Haptics.light();
+    setShortcutToConfirm(product);
+    setShortcutWeight("100");
+    setIsShortcutConfirmModalOpen(true);
+  };
+
+  const handleShortcutConfirm = () => {
+    if (shortcutToConfirm) {
+      const weight = parseFloat(shortcutWeight) || 100;
+      saveAsShortcut(shortcutToConfirm, weight);
+      setIsShortcutConfirmModalOpen(false);
+      setShortcutToConfirm(null);
+    }
+  };
+
+  const saveAsShortcut = async (product: Product, weight: number = 100) => {
     if (!user) return;
     Haptics.impact();
     try {
+      const calculatedCarbs = (product.carbs * weight) / 100;
       await addDoc(
         collection(
           db,
@@ -292,14 +309,16 @@ export default function MealPlate({
           "shortcuts",
         ),
         {
-          name: product.name,
+          name: `${product.name} (${weight}g)`,
           icon: "🥗",
           type: "meal",
-          carbs: product.carbs,
+          carbs: Number(calculatedCarbs.toFixed(1)),
+          originalCarbs: product.carbs,
+          weight: weight,
           createdAt: serverTimestamp(),
         },
       );
-      toast.success(`Dodano ${product.name} do skrótów!`);
+      toast.success(`Dodano ${product.name} (${weight}g) do skrótów!`);
     } catch (e) {
       console.error("Error saving shortcut:", e);
       toast.error("Nie udało się zapisać skrótu.");
@@ -335,6 +354,9 @@ export default function MealPlate({
   };
 
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
+  const [isShortcutConfirmModalOpen, setIsShortcutConfirmModalOpen] = useState(false);
+  const [shortcutWeight, setShortcutWeight] = useState("100");
+  const [shortcutToConfirm, setShortcutToConfirm] = useState<Product | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [weightInput, setWeightInput] = useState("100");
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -741,6 +763,94 @@ export default function MealPlate({
           </motion.div>
         )}
 
+        {isShortcutConfirmModalOpen && shortcutToConfirm && (
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
+          >
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-slate-50 dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
+            >
+              <button 
+                onClick={() => setIsShortcutConfirmModalOpen(false)} 
+                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <h2 className="text-xl font-black mb-4 dark:text-white pr-8 leading-tight">
+                Zapisz skrót?
+              </h2>
+              <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-[2rem] border border-amber-100 dark:border-amber-900/20 mb-8">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                  Zapisz <span className="text-amber-600 font-extrabold">{shortcutToConfirm.name}</span> jako szybki skrót.
+                </p>
+                
+                <div className="mt-4">
+                  <label className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-2 block">
+                    Gramatura (g)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={shortcutWeight}
+                      onChange={(e) => setShortcutWeight(e.target.value)}
+                      className="flex-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-black text-xl text-amber-600 focus:border-amber-500 outline-none transition-all"
+                    />
+                    <div className="text-slate-400 font-bold">g</div>
+                  </div>
+                  
+                  <div className="flex gap-2 mt-3">
+                    {["50", "100", "150", "200"].map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => setShortcutWeight(w)}
+                        className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${
+                          shortcutWeight === w 
+                            ? "bg-amber-500 text-white" 
+                            : "bg-slate-200 dark:bg-slate-800 text-slate-500"
+                        }`}
+                      >
+                        {w}g
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-800/50">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-black text-slate-400">Suma węgli:</span>
+                    <span className="text-sm font-black text-amber-600">
+                      {((shortcutToConfirm.carbs * (parseFloat(shortcutWeight) || 0)) / 100).toFixed(1)}g
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsShortcutConfirmModalOpen(false)}
+                  className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                >
+                  Anuluj
+                </button>
+                <button
+                  onClick={handleShortcutConfirm}
+                  className="flex-2 bg-amber-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+                >
+                  Tak, Zapisz
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {isSaveModalOpen && (
           <motion.div 
             initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -1044,7 +1154,7 @@ export default function MealPlate({
                       <ChevronRight size={16} className="text-accent-300" />
                     </button>
                     <button
-                      onClick={() => saveAsShortcut(p)}
+                      onClick={() => openShortcutConfirmModal(p)}
                       className="bg-amber-500 text-white p-2.5 rounded-xl active:scale-90 transition-all"
                       title="Dodaj jako skrót"
                     >
@@ -1114,9 +1224,16 @@ export default function MealPlate({
                       noConfirm={true}
                       bgClass="bg-white dark:bg-slate-900"
                     >
-                      <button
+                      <div
                         onClick={() => openWeightModal(p)}
-                        className="w-full p-4 flex justify-between items-center text-left hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                        className="w-full p-4 flex justify-between items-center text-left hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            openWeightModal(p);
+                          }
+                        }}
                       >
                         <div>
                           <div className="font-black text-xs dark:text-white flex items-center gap-2">
@@ -1170,9 +1287,9 @@ export default function MealPlate({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              saveAsShortcut(p);
+                              openShortcutConfirmModal(p);
                             }}
-                            className="p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors"
+                            className="p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors z-10"
                             title="Dodaj do skrótów"
                           >
                             <BookMarked size={16} />
@@ -1182,7 +1299,7 @@ export default function MealPlate({
                             className="text-accent-500 bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
                           />
                         </div>
-                      </button>
+                      </div>
                     </SwipeableItem>
                   </motion.div>
                 ))}
