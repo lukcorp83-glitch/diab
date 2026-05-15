@@ -15,9 +15,10 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['pwa-icon.svg'],
+        includeAssets: ['pwa-icon.svg', 'manifest.json'],
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+          cleanupOutdatedCaches: true,
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           runtimeCaching: [
             {
@@ -27,7 +28,7 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'google-fonts-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                  maxAgeSeconds: 60 * 60 * 24 * 365
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
@@ -36,19 +37,21 @@ export default defineConfig(({ mode }) => {
             },
             {
               urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-              handler: 'NetworkOnly', // Firestore has its own persistence
+              handler: 'NetworkOnly'
             }
           ]
         },
         manifest: {
-          name: 'GlikoControl PWA',
-          short_name: 'GlikoControl',
-          description: 'Aplikacja do kontroli cukrzycy',
+          name: 'GlikoControl',
+          short_name: 'Gliko',
+          description: 'Asystent Twojej cukrzycy z systemem GlikoSense AI',
           theme_color: '#0f172a',
           background_color: '#0f172a',
           display: 'standalone',
-          start_url: basePath,
-          scope: basePath,
+          orientation: 'portrait',
+          start_url: '/',
+          scope: '/',
+          id: '/',
           icons: [
             {
               src: 'pwa-icon.svg',
@@ -57,14 +60,16 @@ export default defineConfig(({ mode }) => {
               purpose: 'any maskable'
             },
             {
-              src: 'icon-192.png',
-              type: 'image/png',
-              sizes: '192x192'
+              src: 'pwa-icon.svg',
+              sizes: '192x192',
+              type: 'image/svg+xml',
+              purpose: 'any'
             },
             {
-              src: 'icon-512.png',
-              type: 'image/png',
-              sizes: '512x512'
+              src: 'pwa-icon.svg',
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'any'
             }
           ],
           shortcuts: [
