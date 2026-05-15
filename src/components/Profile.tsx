@@ -114,6 +114,26 @@ export default function Profile({
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [geminiSaveStatus, setGeminiSaveStatus] = useState('');
+  const [isTestingKey, setIsTestingKey] = useState(false);
+
+  const testKey = async () => {
+    setIsTestingKey(true);
+    try {
+      await geminiService.generateContent("Test. Odpowiedz tylko słowem OK.");
+      toast.success("Klucz API działa poprawnie!");
+    } catch (e: any) {
+      console.error("API Key Test Failed:", e);
+      const msg = e?.message || String(e);
+      if (msg.includes("API key not valid")) {
+        toast.error("Klucz API jest nieprawidłowy.");
+      } else {
+        toast.error("Błąd połączenia z AI: " + msg);
+      }
+    } finally {
+      setIsTestingKey(false);
+    }
+  };
+
   const [telemetryEnabled, setTelemetryEnabled] = useState(() => localStorage.getItem('glikosense_telemetry') === 'true');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [newShortcut, setNewShortcut] = useState({ id: '', name: '', icon: '📌', type: 'meal', carbs: 0 });
@@ -205,59 +225,17 @@ export default function Profile({
     }
   };
 
-  const cleanupDatabase = async () => {
-    setCleaning(true);
-    Haptics.medium();
-    setCleaningResult(null);
-    let count = 0;
-    let repaired = 0;
-    try {
-      // 1. Oczyszczanie prywatnej bazy produktów
-      const userRef = collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'customProducts');
-      const userSnap = await getDocs(userRef);
-      for (const docSnap of userSnap.docs) {
-        const data = docSnap.data();
-        if (!data || typeof data.name !== 'string' || data.name.trim() === '') {
-          await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'customProducts', docSnap.id));
-          count++;
-        }
-      }
-
-      // 2. Oczyszczanie społecznościowej bazy produktów
-      const commRef = collection(db, 'artifacts', 'diacontrolapp', 'communityProducts');
-      const commSnap = await getDocs(commRef);
-      for (const docSnap of commSnap.docs) {
-        const data = docSnap.data();
-        if (!data || typeof data.name !== 'string' || data.name.trim() === '') {
-          try {
-            await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'communityProducts', docSnap.id));
-            count++;
-          } catch (e) {
-            console.warn("Brak uprawnień do usunięcia produktu społecznościowego", e);
-          }
-        }
-      }
-      
-      setCleaningResult(`Usunięto błędnych wpisów: ${count}`);
-    } catch (err) {
-      console.error(err);
-      setCleaningResult('Wystąpił błąd podczas oczyszczania.');
-    }
-    setCleaning(false);
-    setTimeout(() => {
-      setCleaningResult(null);
-    }, 5000);
-  };
-
-  const repairGIWithAI = async () => {
+    const repairGIWithAI = async () => {
     if (cleaning) return;
     setCleaning(true);
     Haptics.medium();
-      setCleaningResult("Skanowanie bazy danych (Własne i społeczność)...");
+    setCleaningResult("Skanowanie i audyt bazy produktów (AI)...");
     
     try {
       const uid = getEffectiveUid(user);
-      const toFix: { id: string, name: string, coll: string }[] = [];
+      const toFix: { id: string, name: string, coll: string, current: any }[] = [];
+      const seenNames = new Map<string, string>(); // name.toLowerCase() -> id
+      const duplicatesToDelete: { id: string, coll: string }[] = [];
       let totalChecked = 0;
       
       // 1. Skan we własnych produktach
@@ -266,11 +244,14 @@ export default function Profile({
       totalChecked += userSnap.docs.length;
       for (const docSnap of userSnap.docs) {
         const data = docSnap.data();
-        const giValue = data.gi;
-        const isValid = typeof giValue === 'number' && !isNaN(giValue);
-        // Catch empty strings, null, undefined or strings that look like numbers but aren't numeric types
-        if (data.name && (!isValid || String(giValue).trim() === '')) {
-          toFix.push({ id: docSnap.id, name: data.name, coll: 'custom' });
+        if (data.name) {
+          const normalized = data.name.trim().toLowerCase();
+          if (seenNames.has(normalized)) {
+            duplicatesToDelete.push({ id: docSnap.id, coll: 'custom' });
+          } else {
+            seenNames.set(normalized, docSnap.id);
+            toFix.push({ id: docSnap.id, name: data.name, coll: 'custom', current: data });
+          }
         }
       }
 
@@ -280,30 +261,59 @@ export default function Profile({
       totalChecked += commSnap.docs.length;
       for (const docSnap of commSnap.docs) {
         const data = docSnap.data();
-        const giValue = data.gi;
-        const isValid = typeof giValue === 'number' && !isNaN(giValue);
-        if (data.name && (!isValid || String(giValue).trim() === '')) {
-          toFix.push({ id: docSnap.id, name: data.name, coll: 'community' });
+        if (data.name) {
+          const normalized = data.name.trim().toLowerCase();
+          if (seenNames.has(normalized)) {
+            duplicatesToDelete.push({ id: docSnap.id, coll: 'community' });
+          } else {
+            seenNames.set(normalized, docSnap.id);
+            toFix.push({ id: docSnap.id, name: data.name, coll: 'community', current: data });
+          }
+        }
+      }
+
+      if (duplicatesToDelete.length > 0) {
+        setCleaningResult(`Znaleziono ${duplicatesToDelete.length} duplikatów. Usuwanie zbędnych wpisów...`);
+        for (const dup of duplicatesToDelete) {
+          const targetRef = dup.coll === 'custom' 
+            ? doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'customProducts', dup.id)
+            : doc(db, 'artifacts', 'diacontrolapp', 'communityProducts', dup.id);
+          await deleteDoc(targetRef);
+          Haptics.light();
         }
       }
 
       if (toFix.length === 0) {
-        setCleaningResult(`Przeskanowano ${totalChecked} produktów. Wszystkie posiadają przypisane IG.`);
+        setCleaningResult(`Przeskanowano ${totalChecked} produktów. Baza jest czysta.`);
         setTimeout(() => setCleaningResult(null), 5000);
         setCleaning(false);
         return;
       }
 
-      setCleaningResult(`Znaleziono ${toFix.length} z ${totalChecked} produktów bez IG. Rozpoczynam naprawę AI...`);
+      setCleaningResult(`Audyt AI dla ${toFix.length} produktów... Sprawdzam IG, ŁG oraz makroskładniki.`);
       
-      // Batching 10 at a time
-      for (let i = 0; i < toFix.length; i += 10) {
-        const batch = toFix.slice(i, i + 10);
-        const batchNames = batch.map(b => b.name).join(", ");
+      // Batching 8 at a time for better performance and context window
+      for (let i = 0; i < toFix.length; i += 8) {
+        const batch = toFix.slice(i, i + 8);
+        const batchDetails = batch.map(b => `${b.name} (Obecnie: IG=${b.current.gi}, ŁG=${b.current.gl}, W=${b.current.carbs}, B=${b.current.protein}, T=${b.current.fat})`).join("; ");
         
-        const prompt = `Podaj konkretny Indeks Glikemiczny (IG) jako liczbę (0-100) dla każdego z tych produktów: [${batchNames}]. 
-        Zwróć wynik jako JSON (tylko JSON, mapa): {"nazwa_produktu": liczba_ig}. 
-        Używaj wartości zgodnych z oficjalnymi tabelami IG (np. biały ryż: 70, jabłko: 38). Jeśli coś jest tłuszczem/mięsem, daj 0 lub 1.`;
+        const prompt = `Jesteś ekspertem dietetyki. Zweryfikuj i popraw parametry dla 100g następujących produktów: [${batchDetails}]. 
+        ZADANIA: 
+        1. Podaj poprawny Indeks Glikemiczny (IG - 0-100).
+        2. Podaj poprawny Ładunek Glikemiczny (ŁG - dla 100g).
+        3. Sprawdź poprawność makroskładników (Węglowodany, Białka, Tłuszcze w g/100g). Jeśli obecne wartości są błędne (np. 0 carbs dla ryżu), popraw je.
+        
+        Zwróć wynik jako JSON (mapa nazw): 
+        {
+          "nazwa_produktu": {
+            "gi": liczba,
+            "gl": liczba,
+            "carbs": liczba,
+            "protein": liczba,
+            "fat": liczba
+          }
+        }. 
+        Używaj TYLKO JSON. Wartości muszą być liczbami. Produkty mięsne/tłuste mają IG bliskie 0.`;
         
         try {
           const result = await geminiService.generateContent(prompt);
@@ -311,28 +321,35 @@ export default function Profile({
           if (jsonMatch) {
             const mapping = JSON.parse(jsonMatch[0]);
             for (const item of batch) {
-              const guessedGI = mapping[item.name];
-              if (typeof guessedGI === 'number' && !isNaN(guessedGI)) {
+              const audit = mapping[item.name];
+              if (audit && typeof audit === 'object') {
                 const targetRef = item.coll === 'custom' 
                   ? doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'customProducts', item.id)
                   : doc(db, 'artifacts', 'diacontrolapp', 'communityProducts', item.id);
                 
-                await updateDoc(targetRef, {
-                  gi: guessedGI
-                });
+                const updates: any = {};
+                if (typeof audit.gi === 'number') updates.gi = audit.gi;
+                if (typeof audit.gl === 'number') updates.gl = audit.gl;
+                if (typeof audit.carbs === 'number') updates.carbs = audit.carbs;
+                if (typeof audit.protein === 'number') updates.protein = audit.protein;
+                if (typeof audit.fat === 'number') updates.fat = audit.fat;
+                
+                if (Object.keys(updates).length > 0) {
+                  await updateDoc(targetRef, updates);
+                }
               }
             }
           }
         } catch (e) {
-          console.error("AI Repair batch failed", e);
+          console.error("AI Audit batch failed", e);
         }
         
         const progress = Math.min(100, Math.round(((i + batch.length) / toFix.length) * 100));
-        setCleaningResult(`Naprawianie: ${progress}% (${i + batch.length}/${toFix.length})...`);
+        setCleaningResult(`Analiza i naprawa: ${progress}% (${i + batch.length}/${toFix.length})...`);
       }
 
-      setCleaningResult(`Sukces! Naprawiono ${toFix.length} produktów przy użyciu AI. (Naprawa dotyczy tylko produktów zapisanych w bazie)`);
-      toast.success(`Zaktualizowano IG dla ${toFix.length} produktów.`);
+      setCleaningResult(`Sukces! Przeanalizowano i zweryfikowano ${toFix.length} produktów.`);
+      toast.success(`Zakończono inteligentny audyt ${toFix.length} produktów.`);
       setTimeout(() => setCleaningResult(null), 5000);
     } catch (err) {
       console.error(err);
@@ -1552,8 +1569,8 @@ export default function Profile({
                   <Sparkles size={20} />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">Auto-Magia: IG & ŁG</h3>
-                  <p className="text-[10px] text-slate-500 font-bold">Automatycznie uzupełniaj wartości przy dodawaniu produktów.</p>
+                  <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">Auto-Magia: IG, ŁG, Makro & Duplikaty</h3>
+                  <p className="text-[10px] text-slate-500 font-bold">Automatycznie sprawdzaj, poprawiaj wartości oraz usuwaj duplikaty produktów.</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -1572,14 +1589,17 @@ export default function Profile({
               </label>
             </div>
             
-            <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-500/10 flex items-center gap-4">
+            <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-500/10 flex flex-col gap-3">
                <button 
                   onClick={repairGIWithAI}
-                  className="flex-1 bg-white/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 text-[9px] font-black uppercase tracking-widest py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-amber-200/30"
+                  className="w-full bg-white/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 text-[9px] font-black uppercase tracking-widest py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-amber-200/30"
                >
                  <RefreshCw size={12} className={cn(cleaning && "animate-spin")} />
-                 Przeskanuj całą bazę (AI)
+                 Audyt bazy (IG, ŁG, Makro, Duplikaty)
                </button>
+               <p className="text-[8px] text-amber-700/60 dark:text-amber-400/40 font-bold px-2 text-center leading-tight">
+                 AI przeanalizuje Twoje produkty, aby zweryfikować Indeks Glikemiczny, Ładunek, makroskładniki oraz usunąć powtarzające się nazwy.
+               </p>
             </div>
             {cleaningResult && (
               <p className="mt-2 text-[8px] font-black text-amber-600 dark:text-amber-400 animate-pulse text-center">{cleaningResult}</p>
@@ -2005,7 +2025,13 @@ export default function Profile({
                 </div>
                 <div className="text-left">
                   <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">Własny Klucz Gemini AI</h4>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Prywatny mózg analityczny</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Prywatny mózg analityczny</p>
+                    <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                    <p className={cn("text-[9px] font-black uppercase tracking-widest leading-none", geminiService.getAiStatus().color)}>
+                      Status: {geminiService.getAiStatus().label}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -2040,6 +2066,17 @@ export default function Profile({
                       {geminiSaveStatus}
                     </div>
                   )}
+                </div>
+
+                <div className="flex justify-end gap-2">
+                   <button 
+                    onClick={testKey}
+                    disabled={isTestingKey}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {isTestingKey ? <RefreshCw size={12} className="animate-spin" /> : <Zap size={12} className="text-amber-500" />}
+                    Testuj Połączenie
+                  </button>
                 </div>
               </div>
             </div>
@@ -2285,7 +2322,7 @@ export default function Profile({
                   <div className="flex items-center gap-3">
                     <Info className="text-accent-500" size={20} />
                     <div className="flex flex-col">
-                      <span className="text-xs font-black dark:text-white uppercase tracking-tight">Kontakt z Twórcami</span>
+                      <span className="text-xs font-black dark:text-white uppercase tracking-tight">Kontakt z Twórcą</span>
                       <span className="text-[9px] font-bold text-slate-500 mt-1 uppercase tracking-widest">
                         GlikoControl@proton.me
                       </span>
@@ -2298,24 +2335,20 @@ export default function Profile({
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-2">Administracja</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <button 
-                    onClick={cleanupDatabase}
-                    disabled={cleaning}
-                    className="flex-1 bg-rose-50 dark:bg-rose-500/10 border border-transparent text-rose-600 dark:text-rose-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-2"
-                  >
-                    {cleaning ? <Loader2 className="animate-spin" size={14} /> : <Shield size={14} />}
-                    Oczyść Błędy
-                  </button>
-
-                  <button 
-                    onClick={repairGIWithAI}
-                    disabled={cleaning}
-                    className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 border border-transparent text-indigo-600 dark:text-indigo-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
-                  >
-                    {cleaning ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
-                    Inteligentne IG
-                  </button>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={repairGIWithAI}
+                      disabled={cleaning}
+                      className="w-full bg-indigo-50 dark:bg-indigo-500/10 border border-transparent text-indigo-600 dark:text-indigo-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+                    >
+                      {cleaning ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
+                      Audyt bazy (IG, ŁG, Makro, Duplikaty)
+                    </button>
+                    <p className="text-[8px] text-slate-400 dark:text-slate-500 font-bold px-2 text-center leading-tight">
+                      Skanuje Twoją bazę produktów i używa AI, aby automatycznie uzupełnić brakujące lub poprawić błędne wartości IG, Ładunku Glikemicznego oraz makroskładników. Usuwa również duplikaty nazw.
+                    </p>
+                  </div>
                   
                   <button 
                     onClick={() => {

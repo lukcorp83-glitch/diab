@@ -331,6 +331,16 @@ export const geminiService = {
     }
   },
 
+  getAiStatus() {
+    const creds = getApiKey();
+    const hasLocalStorage = typeof window !== 'undefined' && !!localStorage.getItem('gemini_api_key');
+    const isProxy = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+    
+    if (hasLocalStorage) return { type: 'custom', label: 'Własny Klucz (Local)', color: 'text-indigo-500' };
+    if (isProxy) return { type: 'proxy', label: 'Serwer Gliko (Domyślny)', color: 'text-amber-500' };
+    return { type: 'project', label: 'Klucz Projektu (Vite/Env)', color: 'text-emerald-500' };
+  },
+
   async getGlikoChatResponse(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], petData: any) {
     const petName = petData?.name || 'Gliko';
     const petType = petData?.type || 'standard';
@@ -422,10 +432,12 @@ export const geminiService = {
     
     ZASADY ODPOWIADANIA:
     1. Odpowiadaj w sposób przystępny, używając prostego języka, ale rzetelnie.
-    2. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown (gwiazdek).
-    3. Wspieraj dziecko: chwal za dobre wyniki, pocieszaj przy gorszych dniach.
-    4. Bezpieczeństwo: Zawsze przypominaj o konsultacji z rodzicami przy zmianach dawkowania.
-    5. Język: Polski.` : `Jesteś Eksperckim Systemem Analizy Medycznej AI w aplikacji Diacontrol. 
+    2. ANALIZA POSIŁKÓW: Jeśli użytkownik opisze posiłek (np. "zjadłem 3 kromki chleba"), Twoim obowiązkiem jest oszacować wartości odżywcze (Węglowodany, IG, ŁG) i zasugerować dawkę insuliny na podstawie parametrów użytkownika.
+    3. INTERAKCJA Z TALERZEM: Jeśli użytkownik poprosi o dodanie składnika do talerza (np. "dodaj banana do talerza"), na końcu swojej odpowiedzi (po tekście) dodaj specjalny blok JSON: <plate_action>{"action": "add", "item": {"name": "Banana", "carbs": 23, "gi": 50, "weight": 100}}</plate_action>. Oszacuj parametry składnika.
+    4. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown (gwiazdek).
+    5. Wspieraj dziecko: chwal za dobre wyniki, pocieszaj przy gorszych dniach.
+    6. Bezpieczeństwo: Zawsze przypominaj o konsultacji z rodzicami przy zmianach dawkowania.
+    7. Język: Polski.` : `Jesteś Eksperckim Systemem Analizy Medycznej AI w aplikacji Diacontrol. 
     Twoim zadaniem jest zaawansowana analiza danych diabetologicznych dla dorosłego użytkownika. 
     Skupiasz się na trendach, korelacji insuliny z glikemią i optymalizacji parametrów ISF/WW.
     ${currentDataStr}
@@ -435,11 +447,13 @@ export const geminiService = {
     
     ZASADY ODPOWIADANIA:
     1. Odpowiadaj profesjonalnie, analitycznie i merytorycznie. Unikaj infantylnego tonu.
-    2. UŻYWAJ DANYCH Z SESJI: Jeśli w sekcji AKTUALNY STATUS podano IOB lub COB, używaj tych wartości jako nadrzędnych wobec swoich obliczeń.
-    3. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown (gwiazdek).
-    4. Podawaj konkretne wnioski z danych (np. "Twoja wrażliwość na insulinę rano wydaje się niższa niż wieczorem").
-    5. Bezpieczeństwo: Sugeruj konsultację z lekarzem przed zmianą schematu leczenia.
-    6. Język: Polski.`;
+    2. ANALIZA POSIŁKÓW: Jeśli użytkownik poda opis posiłku w języku naturalnym, oszacuj jego gramaturę, węglowodany, indeks glikemiczny i zaproponuj dawkę bolusa (bolus prosty/przedłużony) bazując na ISF/WW użytkownika.
+    3. INTERAKCJA Z TALERZEM: Jeśli użytkownik poprosi o dodanie składnika do talerza, na końcu swojej odpowiedzi dodaj specjalny blok JSON: <plate_action>{"action": "add", "item": {"name": "Chleb żytni", "carbs": 48, "gi": 45, "weight": 50}}</plate_action>.
+    4. UŻYWAJ DANYCH Z SESJI: Jeśli w sekcji AKTUALNY STATUS podano IOB lub COB, używaj tych wartości jako nadrzędnych wobec swoich obliczeń.
+    5. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown (gwiazdek).
+    6. Podawaj konkretne wnioski z danych (np. "Twoja wrażliwość na insulinę rano wydaje się niższa niż wieczorem").
+    7. Bezpieczeństwo: Sugeruj konsultację z lekarzem przed zmianą schematu leczenia.
+    8. Język: Polski.`;
 
     let fullContents = [
       ...history,

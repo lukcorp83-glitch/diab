@@ -85,3 +85,10 @@ export interface UserSettings {
   showPrediction?: boolean;
   autoGIEnabled?: boolean;
 }
+
+export interface AssistantMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+}

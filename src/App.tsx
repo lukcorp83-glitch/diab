@@ -1,4 +1,4 @@
-import { getEffectiveUid } from './lib/utils';
+import { calculateIOB, calculateCOB, getEffectiveUid } from './lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
@@ -34,7 +34,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signInWithCustomToken } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, getDocFromServer, setDoc, deleteDoc, writeBatch, limit } from 'firebase/firestore';
-import { LogEntry, UserSettings, Product, PlateItem } from './types';
+import { LogEntry, UserSettings, Product, PlateItem, AssistantMessage } from './types';
 import { geminiService } from './services/gemini';
 import { CATEGORIES, LIB_BASE, APP_VERSION } from './constants';
 import { clsx, type ClassValue } from 'clsx';
@@ -86,7 +86,6 @@ import ChangelogPopup from './components/ChangelogPopup';
 import PrivacyPopup from './components/PrivacyPopup';
 import QuickStatusPopup from './components/QuickStatusPopup';
 import { CURRENT_VERSION } from './constants/versions';
-import { calculateIOB } from './lib/utils';
 
 import GlikoSenseIcon from './components/GlikoSenseIcon';
 
@@ -135,6 +134,133 @@ export default function App() {
   const [privacyLoading, setPrivacyLoading] = useState(true);
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>(() => {
+    const saved = localStorage.getItem('gliko_assistant_history');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+  const [isAssistantTyping, setIsAssistantTyping] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('gliko_assistant_history', JSON.stringify(assistantMessages));
+  }, [assistantMessages]);
+
+  const sendAssistantMessage = async (text: string) => {
+    if (!text.trim() || isAssistantTyping) return;
+
+    const userMessage: AssistantMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      text: text.trim(),
+      timestamp: Date.now()
+    };
+
+    setAssistantMessages(prev => [...prev, userMessage]);
+    setIsAssistantTyping(true);
+
+    try {
+      const history = assistantMessages
+        .filter(m => m.id !== 'initial' && !m.id.startsWith('initial-'))
+        .slice(-10)
+        .map(m => ({
+          role: m.role,
+          parts: [{ text: m.text }]
+        }));
+
+      const iob = calculateIOB(logs);
+      const cob = calculateCOB(logs);
+      const lastGlucose = logs.filter(l => l.type === 'glucose').slice(-1)[0]?.value || 0;
+
+      const response = await geminiService.getAssistantResponse(
+        text, 
+        history, 
+        logs, 
+        userSettings || { targetMin: 70, targetMax: 140 },
+        { iob, cob, glucose: lastGlucose }
+      );
+
+      // Handle Plate Actions (if any)
+      let cleanResponse = response;
+      const plateActionMatch = response.match(/<plate_action>([\s\S]*?)<\/plate_action>/);
+      
+      if (plateActionMatch) {
+        try {
+          const actionData = JSON.parse(plateActionMatch[1]);
+          if (actionData.action === 'add' && actionData.item) {
+            setSharedPlate(prev => [...prev, { ...actionData.item, plateItemId: Math.random().toString(36).substr(2, 9) }]);
+            toast.success(`AI dodało ${actionData.item.name} do talerza!`);
+          }
+          cleanResponse = response.replace(/<plate_action>[\s\S]*?<\/plate_action>/, '').trim();
+        } catch (e) {
+          console.error("AI Plate Action Error:", e);
+        }
+      }
+
+      const modelMessage: AssistantMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: cleanResponse,
+        timestamp: Date.now()
+      };
+
+      setAssistantMessages(prev => [...prev, modelMessage]);
+
+      // BACKGROUND NOTIFICATION
+      const isAssistantTabActive = activeTab === 'assistant';
+      if (!isAssistantTabActive) {
+        toast((t) => (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-500" />
+              <span className="font-black text-[10px]">ASZYSTENT AI ODPOWIEDZIAŁ!</span>
+            </div>
+            <p className="text-[9px] lowercase opacity-70 line-clamp-2">{(cleanResponse.replace(/<[^>]*>/g, '').substring(0, 60)) + '...'}</p>
+            <button 
+              onClick={() => {
+                setActiveTab('assistant');
+                toast.dismiss(t.id);
+              }}
+              className="mt-1 px-3 py-1.5 bg-accent-600 text-white text-[8px] font-black uppercase rounded-lg w-fit"
+            >
+              Pokaż odpowiedź
+            </button>
+          </div>
+        ), { duration: 6000, position: 'top-right' });
+
+        if (Notification.permission === 'granted') {
+          new Notification('Nowa odpowiedź od Asystenta AI', {
+            body: 'Twój asystent przygotował analizę. Kliknij aby zobaczyć.',
+            icon: '/apple-touch-icon.png'
+          });
+        }
+      }
+
+    } catch (error: any) {
+      console.error("BG Assistant Error:", error);
+      const errMsg = error?.message || String(error);
+      const isInvalidKey = errMsg.includes("API key not valid") || errMsg.includes("API_KEY_INVALID");
+      
+      const errorMessage: AssistantMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: isInvalidKey 
+          ? "⚠️ <b>Błąd klucza API Gemini!</b> Twój klucz wydaje się być nieprawidłowy. Sprawdź go w ustawieniach profilu."
+          : `⚠️ <b>Błąd komunikacji z AI:</b> ${errMsg}`,
+        timestamp: Date.now()
+      };
+      setAssistantMessages(prev => [...prev, errorMessage]);
+      toast.error("Wystąpił błąd AI.");
+    } finally {
+      setIsAssistantTyping(false);
+    }
+  };
+
   const [sharedPlate, setSharedPlate] = useState<PlateItem[]>(() => {
     const saved = localStorage.getItem('current_plate');
     if (saved) {
@@ -902,7 +1028,16 @@ export default function App() {
         <GlikoChat petData={petData} />
       )}
       {activeTab === 'assistant' && (
-        <GlikoAssistant user={user} logs={logs} settings={userSettings || undefined} />
+        <GlikoAssistant 
+          user={user} 
+          logs={logs} 
+          settings={userSettings || undefined} 
+          onAddToPlate={(item) => setSharedPlate(prev => [...prev, { ...item, plateItemId: Math.random().toString(36).substr(2, 9) }])}
+          messages={assistantMessages}
+          setMessages={setAssistantMessages}
+          isTyping={isAssistantTyping}
+          onSend={sendAssistantMessage}
+        />
       )}
       {activeTab === 'ai' && (
         <AiReports user={user} logs={logs} settings={userSettings} />

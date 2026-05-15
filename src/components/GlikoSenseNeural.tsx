@@ -119,6 +119,19 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               </p>
             </div>
           </div>
+          {/* Neural Pulse Insight */}
+          {!isChildMode && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="hidden md:flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-xl"
+            >
+              <Sparkles size={10} className="text-indigo-500 animate-pulse" />
+              <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-300 uppercase tracking-wider">
+                System analizuje trendy...
+              </span>
+            </motion.div>
+          )}
           <div className="flex items-center gap-2">
             <div className="flex -space-x-1">
                {[1, 2, 3].map(i => (

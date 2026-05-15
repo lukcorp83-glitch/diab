@@ -12,108 +12,138 @@ import {
   Settings as SettingsIcon,
   X,
   Workflow,
-  Cpu
+  Cpu,
+  Volume2,
+  VolumeX,
+  Lightbulb,
+  Zap,
+  Brain,
+  History,
+  TrendingDown,
+  TrendingUp,
+  Clock,
+  ArrowRight,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { geminiService } from '../services/gemini';
 import { cn, calculateIOB, calculateCOB } from '../lib/utils';
-import { LogEntry, UserSettings } from '../types';
-
-interface Message {
-  id: string;
-  role: 'user' | 'model';
-  text: string;
-  timestamp: number;
-}
+import { LogEntry, UserSettings, AssistantMessage } from '../types';
+import { toast } from 'react-hot-toast';
 
 export default function GlikoAssistant({ 
   user, 
   logs, 
-  settings 
+  settings,
+  onAddToPlate,
+  messages,
+  setMessages,
+  isTyping,
+  onSend
 }: { 
   user: any; 
   logs: LogEntry[]; 
-  settings?: UserSettings 
+  settings?: UserSettings;
+  onAddToPlate?: (item: any) => void;
+  messages: AssistantMessage[];
+  setMessages: React.Dispatch<React.SetStateAction<AssistantMessage[]>>;
+  isTyping: boolean;
+  onSend: (text: string) => void;
 }) {
   const isChild = settings?.childMode ?? true;
   const assistantName = "Asystent AI";
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = localStorage.getItem('gliko_assistant_history');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'initial',
-        role: 'model',
-        text: isChild 
-          ? `Cześć! Jestem Twoim Wirtualnym Asystentem Gliko. 🧠 Przeanalizowałem Twoje ostatnie dane i jestem gotowy pomóc. O co chcesz zapytać? Mogę przeanalizować trendy, odpowiedzieć na pytania o dietę lub pomóc zrozumieć wyniki.`
-          : `Witaj. Jestem Twoim Asystentem AI. Przeanalizowałem dostępne wpisy glikemii i posiłków. W czym mogę Ci dzisiaj pomóc w procesie optymalizacji leczenia? (Interpretacja bazalna, kalkulacja bolusów, raport trendów?)`,
-        timestamp: Date.now()
-      }
-    ];
-  });
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([
+        {
+          id: 'initial',
+          role: 'model',
+          text: isChild 
+            ? `Cześć! Jestem Twoim Wirtualnym Asystentem Gliko. 🧠 Przeanalizowałem Twoje ostatnie dane i jestem gotowy pomóc. O co chcesz zapytać?`
+            : `Witaj. Jestem Twoim Asystentem AI. Przeanalizowałem dostępne wpisy glikemii i posiłków. Jak mogę wspomóc Cię w optymalizacji terapii?`,
+          timestamp: Date.now()
+        }
+      ]);
+    }
+  }, [messages.length, isChild]);
 
-  const AssistantIcon = isChild ? Sparkles : Cpu;
+  const [input, setInput] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(() => {
+    const saved = localStorage.getItem('gliko_assistant_voice');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const AssistantIcon = isChild ? Sparkles : Brain;
 
   useEffect(() => {
-    localStorage.setItem('gliko_assistant_history', JSON.stringify(messages));
+    localStorage.setItem('gliko_assistant_voice', JSON.stringify(voiceEnabled));
+  }, [voiceEnabled]);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+    // Speak last message if it's from model and component was mounted recently
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === 'model' && Date.now() - lastMsg.timestamp < 2000) {
+      speak(lastMsg.text);
+    }
   }, [messages]);
+
+  // Speech Recognition Setup
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.lang = 'pl-PL';
+      
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        setIsListening(false);
+        setTimeout(() => handleSend(transcript), 500);
+      };
+
+      recognitionRef.current.onerror = () => setIsListening(false);
+      recognitionRef.current.onend = () => setIsListening(false);
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      setInput('');
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
+
+  const speak = (text: string) => {
+    if (!voiceEnabled || !window.speechSynthesis) return;
+    const cleanText = text.replace(/<[^>]*>/g, '').replace(/\*/g, '');
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'pl-PL';
+    utterance.rate = 1.0;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleSend = async (overrideInput?: string) => {
     const messageText = overrideInput || input;
     if (!messageText.trim() || isTyping) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      text: messageText.trim(),
-      timestamp: Date.now()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    onSend(messageText);
     setInput('');
-    setIsTyping(true);
-
-    try {
-      // Usuń powitalne wiadomości modelu, ponieważ Gemini API wymaga, aby pierwszym elementem tablicy components była rola 'user'
-      const history = messages
-        .filter(m => m.id !== 'initial' && !m.id.startsWith('initial-'))
-        .slice(-10)
-        .map(m => ({
-          role: m.role,
-          parts: [{ text: m.text }]
-        }));
-
-      const iob = calculateIOB(logs);
-      const cob = calculateCOB(logs);
-      const lastGlucose = logs.filter(l => l.type === 'glucose').slice(-1)[0]?.value || 0;
-
-      const response = await geminiService.getAssistantResponse(
-        messageText, 
-        history, 
-        logs, 
-        settings || { targetMin: 70, targetMax: 140 },
-        { iob, cob, glucose: lastGlucose }
-      );
-      
-      const modelMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'model',
-        text: response,
-        timestamp: Date.now()
-      };
-
-      setMessages(prev => [...prev, modelMessage]);
-    } catch (error) {
-      console.error("Assistant Error:", error);
-    } finally {
-      setIsTyping(false);
-    }
   };
 
   const clearChat = () => {
@@ -128,45 +158,63 @@ export default function GlikoAssistant({
   };
 
   const suggestions = isChild ? [
-    "Jak minął mój ostatni dzień?",
-    "Czy moje bolusy są skuteczne?",
-    "Zinterpretuj moje ostatnie wyniki",
-    "Co jeść na kolację przy niskim IG?",
-    "Dlaczego mam skoki cukru rano?"
+    "Jak rano?",
+    "Oblicz bolus",
+    "Co na kolację?",
+    "Czuję się źle",
+    "Kiedy sport?"
   ] : [
-    "Analiza Time In Range (TIR)",
-    "Korelacja posiłków z glikemią",
-    "Optymalizacja bazy (ISF/WW)",
-    "Identyfikacja hipoglikemii reaktywnej",
-    "Podsumowanie 24h (eksperckie)"
+    "Analiza TIR",
+    "Korelacja posiłków",
+    "Optymalizacja bazy",
+    "Ryzyko hipo",
+    "Podsumowanie 24h"
   ];
 
   return (
-    <div className="flex flex-col h-[75vh] w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+    <div className="flex flex-col h-[75vh] w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
       {/* Header */}
-      <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <div className={cn(
-            "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg",
+            "w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg",
             isChild ? "bg-indigo-500 shadow-indigo-500/20" : "bg-emerald-600 shadow-emerald-500/20"
           )}>
-            <AssistantIcon size={20} className="text-white" />
+            <AssistantIcon size={24} className="text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white">{assistantName}</h2>
-            <div className="flex items-center gap-1.5">
+            <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">{assistantName}</h2>
+            <div className="flex items-center gap-2 mt-1.5">
               <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isChild ? "bg-indigo-500" : "bg-emerald-400")} />
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">AI Aktywne • Tryb {isChild ? 'Edukacyjny' : 'Ekspercki'}</p>
+              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest">
+                AI Aktywne
+              </p>
+              <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+              <p className={cn("text-[9px] font-black uppercase tracking-widest", geminiService.getAiStatus().color)}>
+                {geminiService.getAiStatus().label}
+              </p>
             </div>
           </div>
         </div>
-        <button 
-          onClick={clearChat}
-          className="p-2.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all text-slate-400 hover:text-rose-500"
-          title="Wyczyść rozmowę"
-        >
-          <Trash2 size={18} />
-        </button>
+        <div className="flex items-center gap-2">
+           <button 
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={cn(
+              "p-3 rounded-2xl transition-all border",
+              voiceEnabled ? "bg-indigo-500 text-white border-indigo-400" : "bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"
+            )}
+            title={voiceEnabled ? "Wycisz głos" : "Włącz głos"}
+          >
+            {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
+          <button 
+            onClick={clearChat}
+            className="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl transition-all text-slate-400 hover:text-rose-500 border border-slate-200 dark:border-slate-700"
+            title="Wyczyść historię"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -187,37 +235,40 @@ export default function GlikoAssistant({
             >
               <div className="shrink-0 pt-1">
                 {message.role === 'user' ? (
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                    <User size={16} />
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 border border-slate-200 dark:border-slate-700">
+                    <User size={18} />
                   </div>
                 ) : (
                   <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center",
+                    "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm",
                     isChild 
                       ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
                       : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
                   )}>
-                    <AssistantIcon size={16} />
+                    <AssistantIcon size={18} />
                   </div>
                 )}
               </div>
               
               <div className={cn(
-                "max-w-[85%] px-5 py-4 rounded-2xl shadow-sm",
+                "max-w-[85%] px-6 py-4 rounded-[2rem] shadow-sm",
                 message.role === 'user' 
-                  ? "bg-indigo-600 text-white rounded-tr-none" 
-                  : "bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800 rounded-tl-none"
+                  ? "bg-indigo-600 text-white rounded-tr-none shadow-indigo-500/10" 
+                  : "bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-800 rounded-tl-none"
               )}>
                 <div 
                   className="text-sm md:text-base leading-relaxed prose prose-sm dark:prose-invert max-w-none"
                   dangerouslySetInnerHTML={{ __html: message.text }}
                 />
-                <p className={cn(
-                  "text-[9px] mt-2 opacity-50 font-medium",
-                  message.role === 'user' ? "text-right" : "text-left"
+                <div className={cn(
+                  "flex items-center gap-2 mt-4",
+                  message.role === 'user' ? "justify-end" : "justify-start"
                 )}>
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                   {message.role === 'model' && <Sparkles size={10} className="text-amber-400 animate-pulse" />}
+                   <p className="text-[9px] opacity-40 font-black uppercase tracking-widest">
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
               </div>
             </motion.div>
           ))}
@@ -226,52 +277,68 @@ export default function GlikoAssistant({
         {isTyping && (
           <div className="flex gap-4">
             <div className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center",
+              "w-10 h-10 rounded-xl flex items-center justify-center",
               isChild 
                 ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
                 : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
             )}>
-              <AssistantIcon size={16} className="animate-spin-slow" />
+              <AssistantIcon size={18} className="animate-spin-slow" />
             </div>
-            <div className="flex gap-1.5 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
-              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
-              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
+            <div className="flex gap-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center">
+              <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
+              <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
+              <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className={cn("w-1.5 h-1.5 rounded-full", isChild ? "bg-indigo-400" : "bg-emerald-400")} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Analiza danych...</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+      {/* Input Section */}
+      <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
           {suggestions.map((s, i) => (
             <button
-              key={`typing-${i}`}
+              key={`suggestion-${i}`}
               onClick={() => handleSend(s)}
-              className="whitespace-nowrap px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-indigo-600 transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2 shrink-0 shadow-sm"
+              className="whitespace-nowrap px-4 py-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2 shrink-0 shadow-sm"
             >
-              <AssistantIcon size={12} className={isChild ? "text-yellow-500" : "text-emerald-500"} /> {s}
+              <Lightbulb size={12} className="text-amber-500" /> {s}
             </button>
           ))}
         </div>
 
-        <div className="flex gap-3 mt-1">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Zapytaj o swoje dane lub cukrzycę..."
-            className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-2xl py-4 px-6 text-sm transition-all dark:text-white"
-          />
+        <div className="flex gap-3 mt-2">
+          <button
+            onClick={toggleListening}
+            className={cn(
+              "w-14 h-14 rounded-2xl flex items-center justify-center transition-all bg-slate-100 dark:bg-slate-800 shadow-lg active:scale-95 border-2 border-transparent shrink-0",
+              isListening ? "border-rose-500 text-rose-500 animate-pulse" : "text-slate-400"
+            )}
+            title="Wybieranie głosowe"
+          >
+            <Mic size={24} />
+          </button>
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder={isListening ? "Słucham Cię..." : "Zapytaj AI o swoje dane..."}
+              className={cn(
+                "w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 rounded-[1.5rem] py-4 px-6 text-sm transition-all dark:text-white shadow-inner outline-none",
+                isListening && "border-rose-400"
+              )}
+            />
+          </div>
           <button
             onClick={() => handleSend()}
             disabled={!input.trim() || isTyping}
             className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-95",
+              "w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-xl active:scale-95 shrink-0",
               input.trim() && !isTyping 
-                ? "bg-indigo-600 text-white shadow-indigo-200 dark:shadow-indigo-900/20" 
+                ? "bg-indigo-600 text-white shadow-indigo-500/20" 
                 : "bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600"
             )}
           >
@@ -279,9 +346,18 @@ export default function GlikoAssistant({
           </button>
         </div>
         
-        <p className="text-[9px] text-center mt-4 text-slate-400 font-bold uppercase tracking-widest">
-          Asystent AI • Zawsze weryfikuj dawkowanie z lekarzem
-        </p>
+        <div className="flex flex-col items-center justify-center gap-1 mt-4">
+           <div className="flex items-center justify-center gap-4 w-full">
+              <div className="h-px bg-slate-100 dark:bg-slate-800 flex-1" />
+              <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] whitespace-nowrap">
+                 System Wspomagania Decyzji • GlikoSense
+              </p>
+              <div className="h-px bg-slate-100 dark:bg-slate-800 flex-1" />
+           </div>
+           <p className="text-[9px] text-center text-rose-500/60 dark:text-rose-400/40 font-black uppercase tracking-widest mt-1">
+             Asystent AI • Zawsze weryfikuj dawkowanie z lekarzem
+           </p>
+        </div>
       </div>
     </div>
   );
