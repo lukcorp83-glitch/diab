@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -8,10 +8,12 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export const db = getFirestore(app);
+// Using firestoreDatabaseId from config if present, otherwise default
+export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 
 // Enable offline persistence with better error handling
 const enablePersistence = async () => {
+    if (typeof window === 'undefined') return;
     try {
         await enableMultiTabIndexedDbPersistence(db);
         console.log('[Firestore] Multi-tab persistence enabled');
@@ -28,9 +30,8 @@ const enablePersistence = async () => {
 
 enablePersistence();
 
-// Connectivity fix removed to prevent 10s timeouts
-
 export const messaging = async () => {
+    if (typeof window === 'undefined') return null;
     const supported = await isSupported();
     return supported ? getMessaging(app) : null;
 };

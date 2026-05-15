@@ -267,14 +267,14 @@ export const geminiService = {
   },
 
   async analyzeMeal(imageData: string) {
-    const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj orientacyjną wagę, ilość węglowodanów (g), białek (g), tłuszczy (g) oraz ładunek glikemiczny (ŁG - jeśli to możliwe) i indeks glikemiczny (IG - wpisz liczbę lub tekst NISKI/ŚREDNI/WYSOKI). Dodaj szczegółową analizę dla diabetyka ("analysis") - co zawiera posiłek i jak może wpłynąć na glikemię uwzględniając ŁG i IG.
+    const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj orientacyjną wagę, ilość węglowodanów (g), białek (g), tłuszczy (g) oraz ładunek glikemiczny (ŁG - jeśli to możliwe) i indeks glikemiczny (IG - POWINIEN BYĆ KONKRETNĄ LICZBĄ, korzystaj z profesjonalnych tabel wartości odżywczych). Dodaj szczegółową analizę dla diabetyka ("analysis") - co zawiera posiłek i jak może wpłynąć na glikemię uwzględniając ŁG i IG.
     Zwróć odpowiedź absolutnie w formacie JSON (tylko czysty JSON, bez markdown):
     {
       "mealName": "nazwa posiłku",
       "carbs": 0,
       "protein": 0,
       "fat": 0,
-      "ig": "NISKI",
+      "ig": 0,
       "analysis": "Krótka analiza posiłku..."
     }`;
 

@@ -559,14 +559,6 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         </button>
       </div>
 
-      {(panOffsetMs !== 0 || zoomLevel !== 1) && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-          <div className="bg-accent-500/10 backdrop-blur-xl border border-accent-500/20 px-4 py-2 rounded-full flex items-center gap-2">
-            <Move size={12} className="text-accent-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-500">Tryb swobodny</span>
-          </div>
-        </div>
-      )}
 
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart

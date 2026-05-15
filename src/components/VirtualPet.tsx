@@ -1,3 +1,4 @@
+import { Haptics } from '../lib/haptics';
 import { SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground, ITEMS, PetItem } from '../constants';
 import { getEffectiveUid, cn, calculateIOB } from '../lib/utils';
 import { playPetSound, playFeedSound, playLowGlucoseSound, playHighGlucoseSound, playNormalGlucoseSound, playLevelUpSound, playBuySound } from '../lib/audioUtils';
@@ -140,6 +141,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
 
   const handleClaimQuest = async (questId: string) => {
     if (!user || !petData) return;
+    Haptics.selection();
     const quest = dailyQuests.find(q => q.id === questId);
     const progress = getQuestProgress(questId);
     
@@ -377,8 +379,12 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
 
   const handlePet = async () => {
      if (!user) return;
-     if (isMaxPetted) return;
+     if (isMaxPetted) {
+       Haptics.error();
+       return;
+     }
 
+     Haptics.light();
      playPetSound();
      setReaction('happy');
      triggerParticles();
@@ -407,10 +413,12 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     if (!user || !petData) return;
     const foodCost = 15;
     if ((petData.coins || 0) < foodCost) {
+      Haptics.error();
       toast.error('Nie masz wystarczająco monet na jedzenie! (Potrzeba 15)', { duration: 4000 });
       return;
     }
 
+    Haptics.medium();
     playFeedSound();
     setReaction('eating');
     triggerParticles();
@@ -667,11 +675,16 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
   const handleBuySkin = async (skin: PetSkin) => {
      if (!user || (petData.unlockedSkins || []).includes(skin.id)) return;
      if (skin.unlockedBy) {
+        Haptics.error();
         toast.error("Ta skórka jest specjalna! Odblokuj ją zdobywając osiągnięcia w zakładce Profil.", { duration: 6000 });
         return;
      }
-     if ((petData.coins || 0) < skin.price) return;
+     if ((petData.coins || 0) < skin.price) {
+        Haptics.error();
+        return;
+     }
      
+     Haptics.impact();
      playBuySound();
      const unlocked = petData.unlockedSkins || ['default'];
      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
@@ -683,6 +696,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
 
   const handleEquipSkin = async (skinId: string) => {
      if (!user) return;
+     Haptics.light();
      await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
         skin: skinId
      });
@@ -690,8 +704,12 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
 
   const handleBuyAccessory = async (acc: PetAccessory) => {
     if (!user || (petData.unlockedAccessories || []).includes(acc.id)) return;
-    if ((petData.coins || 0) < acc.price) return;
+    if ((petData.coins || 0) < acc.price) {
+      Haptics.error();
+      return;
+    }
     
+    Haptics.impact();
     playBuySound();
     const unlocked = petData.unlockedAccessories || ['none'];
     await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
@@ -703,6 +721,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
 
   const handleEquipAccessory = async (accId: string) => {
     if (!user) return;
+    Haptics.light();
     await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
        currentAccessory: accId
     });
@@ -794,6 +813,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
   const energyLevel = Math.max(0, Math.min(100, (1 - currentIOB / 10) * 100)); // Just a visual scale
 
   const startMiniGame = () => {
+    Haptics.medium();
     setShowGame(true);
     setGameState('aiming');
     setGamePower(0);
@@ -820,6 +840,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     if (gameState !== 'aiming' || !user) return;
     if (gameRequestRef.current) cancelAnimationFrame(gameRequestRef.current);
     
+    Haptics.impact();
     setGameState('result');
     const finalPower = gamePowerRef.current;
     let earnedCoins = 1;
@@ -1517,6 +1538,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
           whileTap={{ scale: 0.95 }}
           className={`w-16 h-16 ${isOpen ? 'bg-slate-100 dark:bg-slate-700 scale-95 border-emerald-400 dark:border-emerald-500' : 'bg-gradient-to-br from-white to-accent-100 dark:from-slate-700 dark:to-slate-900 border-accent-200 dark:border-slate-600 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.1),_0_8px_30px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3),_0_8px_30px_rgba(0,0,0,0.4)]'} rounded-full border-4 flex flex-col items-center justify-center relative z-10 transition-colors duration-300 overflow-hidden`}
           onClick={() => {
+             Haptics.light();
              if (!isOpen) setIdleVariant(Math.floor(Math.random() * 4));
              setIsOpen(!isOpen);
              if (isOpen) {

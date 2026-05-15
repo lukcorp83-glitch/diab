@@ -132,7 +132,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             </div>
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Live</span>
-              {datasetSize !== undefined && datasetSize < 1000 && (
+              {datasetSize !== undefined && datasetSize < 300 && (
                 <div className="flex items-center gap-1">
                   <motion.div 
                     animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
@@ -236,14 +236,14 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     >
                       <Sparkles size={10} />
                     </motion.div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Postęp Nauki Modelu:</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Postęp Nauki:</span>
                   </div>
-                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} danych / 1000 pkt</span>
+                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} pkt / 300 pkt</span>
                 </div>
                 <div className="relative h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (datasetSize / 1000) * 100)}%` }}
+                    animate={{ width: `${Math.min(100, (datasetSize / 300) * 100)}%` }}
                     className="absolute inset-y-0 bg-gradient-to-r from-indigo-500 to-purple-500"
                   />
                   {/* Learning Waves */}
@@ -254,8 +254,8 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                   />
                 </div>
                 <p className="text-[8px] font-bold text-slate-400 leading-tight">
-                  {datasetSize < 100 ? "Model uczy się na Twoich wpisach (pomiary, posiłki). Potrzebuje ok. 1000 pkt do pełnej precyzji." : 
-                   datasetSize < 500 ? "Model uczy się Twoich nawyków. Coraz lepsza precyzja predykcji." :
+                  {datasetSize < 50 ? "Model w fazie bazowej. Gromadzę dane..." : 
+                   datasetSize < 200 ? "Model uczy się Twoich nawyków. Coraz wyższa precyzja." :
                    "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne."}
                 </p>
               </div>

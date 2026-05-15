@@ -83,4 +83,5 @@ export interface UserSettings {
   bgOption?: 'default' | 'true-black';
   showPumpWidget?: boolean;
   showPrediction?: boolean;
+  autoGIEnabled?: boolean;
 }

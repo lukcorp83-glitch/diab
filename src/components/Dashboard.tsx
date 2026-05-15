@@ -101,7 +101,7 @@ export default function Dashboard({
       if (logs.length >= 5) {
         try {
           const res = await MLAnalyzer.analyzeData(logs, false, 'quick');
-          setMlInfo({ accuracy: res.accuracy, datasetSize: res.datasetSize || 0 });
+          setMlInfo({ accuracy: res.accuracy, datasetSize: logs.length });
         } catch (e) {
           console.error("Dashboard ML analysis error:", e);
         }
@@ -441,7 +441,10 @@ export default function Dashboard({
             </h3>
             <div className="flex flex-wrap gap-2">
               <button 
-                onClick={() => setShowLoopSimulation(!showLoopSimulation)}
+                onClick={() => {
+                  Haptics.selection();
+                  setShowLoopSimulation(!showLoopSimulation);
+                }}
                 className={cn(
                   "text-[9px] font-black px-2.5 py-1 rounded-full uppercase transition-all tracking-tight border",
                   showLoopSimulation 
@@ -452,7 +455,10 @@ export default function Dashboard({
                 {showLoopSimulation ? "Pętla Active" : "Pętla Inactive"}
               </button>
               <button 
-                onClick={() => setShowMLPrediction(!showMLPrediction)}
+                onClick={() => {
+                  Haptics.selection();
+                  setShowMLPrediction(!showMLPrediction);
+                }}
                 className={cn(
                   "text-[9px] font-black px-2.5 py-1 rounded-full uppercase transition-all tracking-tight border flex items-center gap-1.5",
                   showMLPrediction 
@@ -469,7 +475,10 @@ export default function Dashboard({
             {[3, 6, 12, 24].map((h) => (
               <button
                 key={h}
-                onClick={() => setRange(h)}
+                onClick={() => {
+                  Haptics.selection();
+                  setRange(h);
+                }}
                 className={cn(
                   "px-4 py-2 text-[9px] font-black rounded-xl transition-all uppercase tracking-tighter",
                   range === h
@@ -501,7 +510,11 @@ export default function Dashboard({
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
           {settings.sensorChangeDate && (
              <div 
-               onClick={() => { setTab('profile'); onAction?.('devices'); }}
+               onClick={() => { 
+                 Haptics.light();
+                 setTab('profile'); 
+                 onAction?.('devices'); 
+               }}
                className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden cursor-pointer"
              >
                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
@@ -538,7 +551,11 @@ export default function Dashboard({
           )}
           {settings.infusionSetChangeDate && (
              <div 
-               onClick={() => { setTab('profile'); onAction?.('devices'); }}
+               onClick={() => { 
+                 Haptics.light();
+                 setTab('profile'); 
+                 onAction?.('devices'); 
+               }}
                className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden cursor-pointer"
              >
                <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
@@ -579,7 +596,10 @@ export default function Dashboard({
       {/* 5. Assistant CTA */}
       <motion.div 
         variants={itemVariants}
-        onClick={() => setTab('assistant')}
+        onClick={() => {
+          Haptics.light();
+          setTab('assistant');
+        }}
         className="relative group cursor-pointer active:scale-[0.98] transition-all"
       >
         <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 rounded-[2.6rem] opacity-30 group-hover:opacity-60 blur-md transition duration-500"></div>
@@ -630,7 +650,7 @@ export default function Dashboard({
                 ))}
               </div>
             </div>
-            <button onClick={() => setTab("ai")} className="p-2 bg-white dark:bg-slate-800 rounded-full text-accent-600 shadow-sm transition-all active:scale-90">
+            <button onClick={() => { Haptics.light(); setTab("ai"); }} className="p-2 bg-white dark:bg-slate-800 rounded-full text-accent-600 shadow-sm transition-all active:scale-90">
               <ChevronRight size={16} />
             </button>
           </div>
@@ -645,7 +665,10 @@ export default function Dashboard({
             <div className="flex justify-between items-center px-1">
               <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">MOJE ULUBIONE</h4>
               <button 
-                onClick={() => setTab("meal")}
+                onClick={() => {
+                  Haptics.light();
+                  setTab("meal");
+                }}
                 className="text-[9px] font-black text-accent-500 uppercase tracking-tight"
               >
                 Edytuj
@@ -710,7 +733,7 @@ export default function Dashboard({
                 <div className="w-1 h-1 rounded-full bg-rose-500" />
                 Pomiary
               </h3>
-              <button onClick={() => { setListFilter('glucose'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
+              <button onClick={() => { Haptics.light(); setListFilter('glucose'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
             </div>
             <div className="space-y-2">
                {logs.filter(log => log.type === 'glucose').slice(0, 3).map((log) => (
@@ -743,7 +766,7 @@ export default function Dashboard({
                 <div className="w-1 h-1 rounded-full bg-amber-500" />
                 Leczenie
               </h3>
-              <button onClick={() => { setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
+              <button onClick={() => { Haptics.light(); setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
             </div>
             <div className="space-y-2">
                {logs.filter(log => log.type === 'bolus' || log.type === 'meal').slice(0, 3).map((log) => (

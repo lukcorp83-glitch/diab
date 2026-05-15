@@ -28,16 +28,14 @@ import {
   Menu,
   LayoutDashboard,
   Beaker,
-  Fingerprint,
   Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signInWithCustomToken } from 'firebase/auth';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, setDoc, deleteDoc, writeBatch, limit } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, getDocFromServer, setDoc, deleteDoc, writeBatch, limit } from 'firebase/firestore';
 import { LogEntry, UserSettings, Product, PlateItem } from './types';
 import { geminiService } from './services/gemini';
-import { loginWithPasskey } from './lib/webauthn';
 import { CATEGORIES, LIB_BASE, APP_VERSION } from './constants';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -152,6 +150,22 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('current_plate', JSON.stringify(sharedPlate));
   }, [sharedPlate]);
+
+  // Test Firestore connection
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'connection_tests', 'touch'));
+        console.log('[Firestore] Connection verified');
+      } catch (error: any) {
+        if (error.message?.includes('offline') || error.code === 'unavailable') {
+          console.error('[Firestore] Connection issue:', error);
+          toast.error("Brak połączenia z bazą Firestore - sprawdź internet lub konfigurację.");
+        }
+      }
+    };
+    testConnection();
+  }, []);
 
 
   useEffect(() => {
@@ -638,32 +652,6 @@ export default function App() {
     }
   };
 
-  const handlePasskeyLogin = async () => {
-    if (!email) {
-      setAuthError("Podaj adres email powiązany z kluczem biometrycznym.");
-      return;
-    }
-    try {
-      const result = await loginWithPasskey(email);
-      if (result.customToken) {
-        await signInWithCustomToken(auth, result.customToken);
-      }
-    } catch (e: any) {
-      console.error("Passkey login error detail:", e);
-      let errorMsg = e.message || String(e);
-      // Detailed error detection and handling for WebAuthn context issues
-      if (errorMsg.includes('Permissions Policy') || errorMsg.includes('feature is not enabled')) {
-        const isIframe = window.self !== window.top;
-        if (isIframe) {
-          errorMsg = "Twoja przeglądarka blokuje biometrię w ramce podglądu (iframe). Kliknij strzałkę w rogu ekranu, aby otworzyć aplikację w NOWEJ KARCIE - tam logowanie zadziała.";
-        } else {
-          errorMsg = "Dostęp do biometrii jest wyłączony. Upewnij się, że używasz HTTPS i Twoja przeglądarka wspiera Passkeys (Klucze dostępu) dla tej witryny.";
-        }
-      }
-      setAuthError(errorMsg);
-    }
-  };
-
   const handleRegister = async () => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
@@ -747,7 +735,10 @@ export default function App() {
             />
             <div className="flex justify-end px-2">
               <button 
-                onClick={handleForgotPassword}
+                onClick={() => {
+                  Haptics.selection();
+                  handleForgotPassword();
+                }}
                 className="text-[10px] font-bold text-accent-500 hover:text-accent-400 transition-colors uppercase tracking-widest"
               >
                 Zapomniałeś hasła?
@@ -770,18 +761,27 @@ export default function App() {
           )}
 
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <button onClick={handleLogin} className="flex items-center justify-center gap-2 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all">
+            <button onClick={() => {
+              Haptics.medium();
+              handleLogin();
+            }} className="flex items-center justify-center gap-2 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all">
               <LogIn size={14} />
               Wejdź
             </button>
-            <button onClick={handleRegister} className={cn(
+            <button onClick={() => {
+              Haptics.medium();
+              handleRegister();
+            }} className={cn(
               "py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all",
               theme === 'dark' ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"
             )}>Rejestracja</button>
           </div>
 
           <div className="flex flex-col gap-3">
-            <button onClick={handleGoogle} className={cn(
+            <button onClick={() => {
+              Haptics.impact();
+              handleGoogle();
+            }} className={cn(
               "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all",
               theme === 'dark' ? "bg-slate-950 text-white border-slate-800" : "bg-white text-slate-700 border-slate-200"
             )}>
@@ -789,7 +789,10 @@ export default function App() {
               <span className="text-[10px] font-black uppercase tracking-wider">Kontynuuj przez Google</span>
             </button>
             
-            <button onClick={handleAnonymous} className={cn(
+            <button onClick={() => {
+              Haptics.impact();
+              handleAnonymous();
+            }} className={cn(
               "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-2",
               theme === 'dark' ? "bg-accent-500/10 text-accent-400 border-accent-500/20" : "bg-accent-50 text-accent-600 border-accent-100"
             )}>
@@ -797,13 +800,6 @@ export default function App() {
               <span className="text-[10px] font-black uppercase tracking-wider">Logowanie bez konta (Gość)</span>
             </button>
 
-            <button onClick={handlePasskeyLogin} className={cn(
-              "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-2",
-              theme === 'dark' ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-indigo-50 text-indigo-600 border-indigo-100"
-            )}>
-              <Fingerprint className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">FaceID / Odcisk palca</span>
-            </button>
             <p className={cn(
               "text-[9px] text-center mt-2 leading-tight",
               theme === 'dark' ? "text-slate-500" : "text-slate-400"
@@ -965,12 +961,18 @@ export default function App() {
         <div className="flex justify-between items-center max-w-md mx-auto">
           <div className="flex items-center gap-4">
             <button
-               onClick={() => setIsSidebarOpen(true)}
+               onClick={() => {
+                 Haptics.medium();
+                 setIsSidebarOpen(true);
+               }}
                className="p-2.5 -ml-2 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent dark:border-slate-800 shadow-sm active:scale-90"
             >
                <Menu size={20} strokeWidth={2.5} />
             </button>
-            <div className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform" onClick={() => setShowStatusPopup(true)}>
+            <div className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform" onClick={() => {
+              Haptics.selection();
+              setShowStatusPopup(true);
+            }}>
               <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
               <div>
                 <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">GlikoControl</h1>
@@ -985,7 +987,10 @@ export default function App() {
             <NotebookManager user={user} />
             <NotificationCenter userSettings={userSettings} theme={theme} />
             <button 
-              onClick={toggleTheme}
+              onClick={() => {
+                Haptics.light();
+                toggleTheme();
+              }}
               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-accent-400 border border-transparent dark:border-slate-700 transition-all active:scale-90"
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}

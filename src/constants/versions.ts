@@ -7,6 +7,17 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.4.3",
+    date: "2026-05-15",
+    title: "Automatyka GI i Ulepszona Haptyka",
+    changes: [
+      "Nowość: Dodano opcję automatycznego pobierania Indeksu Glikemicznego (IG) i Ładunku (ŁG) dla własnych produktów w ustawieniach.",
+      "Ulepszenie: Zoptymalizowano system haptyczny (wibracje) dla płynniejszej i bardziej naturalnej reakcji interfejsu.",
+      "Interfejs: Usunięto nakładające się elementy na wykresie glikemii w trybie swobodnym.",
+      "Stabilność: Poprawki drobnych błędów w synchronizacji danych Nightscout."
+    ]
+  },
+  {
     version: "3.4.2",
     date: "2026-05-14",
     title: "Haptyka i Precyzja Bolusa",
@@ -161,4 +172,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.4.2";
+export const CURRENT_VERSION = "3.4.3";

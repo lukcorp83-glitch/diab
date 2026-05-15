@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
-  const basePath = process.env.NODE_ENV === 'production' ? '/diab/' : '/';
+  const basePath = './';
   
   return {
     base: basePath,
@@ -55,6 +55,16 @@ export default defineConfig(({ mode }) => {
               sizes: 'any',
               type: 'image/svg+xml',
               purpose: 'any maskable'
+            },
+            {
+              src: 'icon-192.png',
+              type: 'image/png',
+              sizes: '192x192'
+            },
+            {
+              src: 'icon-512.png',
+              type: 'image/png',
+              sizes: '512x512'
             }
           ],
           shortcuts: [
@@ -92,6 +102,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(env.VITE_FIREBASE_MESSAGING_SENDER_ID),
       'import.meta.env.VITE_FIREBASE_APP_ID': JSON.stringify(env.VITE_FIREBASE_APP_ID),
       'import.meta.env.VITE_FIREBASE_MEASUREMENT_ID': JSON.stringify(env.VITE_FIREBASE_MEASUREMENT_ID),
+      'import.meta.env.VITE_FIREBASE_DATABASE_URL': JSON.stringify(env.VITE_FIREBASE_DATABASE_URL),
     },
     resolve: {
       alias: {

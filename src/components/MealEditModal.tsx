@@ -62,7 +62,8 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
     setOnlineResults([]);
     try {
       const prompt = `Jesteś dietetykiem. Podaj wartości odżywcze dla produktu: "${searchTerm}" na 100g lub standardową porcję. 
-      Zwróć format JSON (tylko JSON): [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}].`;
+      Zwróć format JSON (tylko JSON): [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
+      Dla pola "gi" (Indeks Glikemiczny) podaj konkretną liczbę (np. 50, 70), a nie tekst.`;
       const result = await geminiService.generateContent(prompt);
       const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -216,6 +217,14 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                               </span>
                               <span className="text-[9px] font-bold text-slate-400">
                                 {p.protein}B / {p.fat}T
+                              </span>
+                              <span className={cn(
+                                "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                                typeof p.gi === 'number' 
+                                  ? (p.gi <= 55 ? "bg-emerald-500/10 text-emerald-500" : p.gi < 70 ? "bg-amber-500/10 text-amber-500" : "bg-rose-500/10 text-rose-500")
+                                  : "bg-slate-500/10 text-slate-500",
+                              )}>
+                                IG: {typeof p.gi === 'number' ? p.gi : '??*'}
                               </span>
                             </div>
                           </div>

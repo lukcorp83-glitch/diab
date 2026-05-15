@@ -1,6 +1,6 @@
 import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, PlateItem } from "../types";
 import {
@@ -69,6 +69,17 @@ export default function MealPlate({
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("Wszystko");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
+
+  const handleScrollHaptics = (e: React.UIEvent<HTMLDivElement>) => {
+    const currentScrollY = e.currentTarget.scrollTop;
+    const diff = Math.abs(currentScrollY - lastScrollY.current);
+    if (diff > 40) { // Trigger tick every 40px scroll
+      Haptics.tick();
+      lastScrollY.current = currentScrollY;
+    }
+  };
   const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -105,9 +116,12 @@ export default function MealPlate({
       setCommunityProducts(
         snapshot.docs.map((doc) => ({
           id: doc.id,
+          isCommunity: true,
           ...doc.data(),
         })) as Product[],
       );
+    }, (error) => {
+      console.error("MealPlate communityProducts error:", error);
     });
 
     return () => {
@@ -132,8 +146,16 @@ export default function MealPlate({
       const matchesSearch =
         searchTerm.length < 2 ||
         p.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        activeCategory === "Wszystko" || p.category === activeCategory;
+      
+      let matchesCategory = false;
+      if (activeCategory === "Wszystko") {
+        matchesCategory = true;
+      } else if (activeCategory === "Społeczność") {
+        matchesCategory = !!p.isCommunity;
+      } else {
+        matchesCategory = p.category === activeCategory;
+      }
+      
       return matchesSearch && matchesCategory;
     });
   }, [allLocal, searchTerm, activeCategory]);
@@ -327,6 +349,7 @@ export default function MealPlate({
   }, [user]);
 
   const openWeightModal = (product: Product) => {
+    Haptics.light();
     setSelectedProduct(product);
     setWeightInput("100");
     setIsWeightModalOpen(true);
@@ -463,7 +486,7 @@ export default function MealPlate({
   const totalWBT = (totalProtein * 4 + totalFat * 9) / 100;
   
   const rawGL = plate.reduce((s, i) => {
-    if (!i.gi) return s;
+    if (typeof i.gi !== 'number') return s;
     const itemNetCarbs = Math.max(0, i.carbs - (i.polyols || 0));
     return s + ((itemNetCarbs * i.weight / 100) * i.gi) / 100;
   }, 0);
@@ -494,9 +517,9 @@ export default function MealPlate({
       );
       setPlate([]);
       Haptics.success();
-      alert("Posiłek zapisany w dzienniku.");
     } catch (e) {
       console.error(e);
+      Haptics.error();
     }
   };
 
@@ -666,8 +689,7 @@ export default function MealPlate({
                     <span className="text-emerald-600 dark:text-emerald-400">
                       B+T: {(((selectedProduct.protein || 0) + (selectedProduct.fat || 0)) * parseFloat(weightInput) / 100).toFixed(1)}g
                     </span>
-                    {(() => {
-                      if (typeof selectedProduct.gi !== 'number') return null;
+                    {typeof selectedProduct.gi === 'number' && (() => {
                       const glV = (((selectedProduct.carbs * parseFloat(weightInput)) / 100) * selectedProduct.gi / 100);
                       return (
                         <span className={cn(
@@ -786,7 +808,10 @@ export default function MealPlate({
           
           <div className="flex gap-2 w-full">
             <button
-              onClick={handleOnlineSearch}
+              onClick={() => {
+                Haptics.light();
+                handleOnlineSearch();
+              }}
               className="flex-1 bg-accent-600 text-white p-4 rounded-[2rem] shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest"
               title="Szukaj z GlikoSense AI"
               disabled={isSearching}
@@ -799,6 +824,7 @@ export default function MealPlate({
             </button>
             <button
               onClick={() => {
+                Haptics.light();
                 const elem = document.getElementById("meal-photo-input");
                 if (elem) elem.click();
               }}
@@ -812,7 +838,10 @@ export default function MealPlate({
               )}
             </button>
             <button
-              onClick={startScanner}
+              onClick={() => {
+                Haptics.light();
+                startScanner();
+              }}
               className="bg-slate-800 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center transition-all justify-center"
             >
               <Scan size={20} />
@@ -876,25 +905,55 @@ export default function MealPlate({
         </div>
 
         {/* Category Filter */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <div 
+          className="flex gap-2 overflow-x-auto pb-2 scrollbar-none"
+          onScroll={handleScrollHaptics}
+        >
           <button
-            onClick={() => setActiveCategory("Wszystko")}
-            className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"}`}
+            onClick={() => {
+              Haptics.selection();
+              setActiveCategory("Wszystko");
+            }}
+            className={cn(
+              "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+              activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"
+            )}
           >
             Wszystko
+          </button>
+          <button
+            onClick={() => {
+              Haptics.selection();
+              setActiveCategory("Społeczność");
+            }}
+            className={cn(
+              "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+              activeCategory === "Społeczność" ? "bg-sky-600 text-white shadow-lg" : "bg-sky-50 dark:bg-sky-900/10 text-sky-500 border border-sky-100 dark:border-sky-900/20"
+            )}
+          >
+            Społeczność
           </button>
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"}`}
+              onClick={() => {
+                Haptics.selection();
+                setActiveCategory(cat);
+              }}
+              className={cn(
+                "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                activeCategory === cat ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"
+              )}
             >
               {cat}
             </button>
           ))}
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+        <div 
+          className="max-h-[70vh] overflow-y-auto pr-1 space-y-2 custom-scrollbar"
+          onScroll={handleScrollHaptics}
+        >
           {searchError && (
             <div className="mb-4 bg-rose-50 dark:bg-rose-900/20 p-5 rounded-[2rem] border border-rose-100 dark:border-rose-800">
                <p className="text-sm text-rose-600 dark:text-rose-400 font-bold text-center">{searchError}</p>
@@ -923,35 +982,34 @@ export default function MealPlate({
                           <span>
                             Węgle: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
                           </span>
-                          <span
-                            className={cn(
-                              "px-1.5 py-0.5 rounded font-black text-[8px]",
-                              typeof p.gi === 'number' && p.gi <= 55
-                                ? "bg-emerald-500/10 text-emerald-500"
-                                : typeof p.gi === 'number' && p.gi < 70
-                                  ? "bg-amber-500/10 text-amber-500"
-                                  : "bg-rose-500/10 text-rose-500",
-                            )}
-                          >
-                            IG: {typeof p.gi === 'number' ? p.gi : "??"}
-                          </span>
-                          {typeof p.gi === 'number' ? (() => {
-                            const lgVal = (Number(p.carbs || 0) * Number(p.gi)) / 100;
-                            return (
-                              <span
-                                className={cn(
-                                  "px-1.5 py-0.5 rounded font-black text-[8px]",
-                                  lgVal <= 10
-                                    ? "bg-emerald-500/10 text-emerald-500"
-                                    : lgVal < 20
-                                      ? "bg-amber-500/10 text-amber-500"
-                                      : "bg-rose-500/10 text-rose-500",
-                                )}
-                              >
-                                ŁG: {lgVal.toFixed(1)}
-                              </span>
-                            );
-                          })() : null}
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.5 rounded font-black text-[8px]",
+                                typeof p.gi === 'number'
+                                  ? (p.gi <= 55 ? "bg-emerald-500/10 text-emerald-500" : p.gi < 70 ? "bg-amber-500/10 text-amber-500" : "bg-rose-500/10 text-rose-500")
+                                  : "bg-slate-500/10 text-slate-500",
+                              )}
+                            >
+                              IG: {typeof p.gi === 'number' ? p.gi : "??*"}
+                            </span>
+                            {(() => {
+                              const giVal = typeof p.gi === 'number' ? p.gi : 50;
+                              const lgVal = (Number(p.carbs || 0) * giVal) / 100;
+                              return (
+                                <span
+                                  className={cn(
+                                    "px-1.5 py-0.5 rounded font-black text-[8px]",
+                                    lgVal <= 10
+                                      ? "bg-emerald-500/10 text-emerald-500"
+                                      : lgVal < 20
+                                        ? "bg-amber-500/10 text-amber-500"
+                                        : "bg-rose-500/10 text-rose-500",
+                                  )}
+                                >
+                                  ŁG: {lgVal.toFixed(1)}
+                                </span>
+                              );
+                            })()}
                         </div>
                       </div>
                       <ChevronRight size={16} className="text-accent-300" />
@@ -972,9 +1030,9 @@ export default function MealPlate({
           <div className="flex flex-col gap-2 mb-2">
             <div className="flex justify-between items-end px-4">
               <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                Katalog produktów 
+                Baza GlikoSense 
                 <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-accent-600 text-[9px]">
-                  {browseResults.length} {browseResults.length === 1 ? 'pozycja' : 'pozycje'}
+                  {browseResults.length} {browseResults.length === 1 ? 'produkt' : 'produkty'}
                 </span>
               </h4>
               <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
@@ -995,67 +1053,90 @@ export default function MealPlate({
           </div>
 
           {browseResults.length > 0 ? (
-            <div className="grid gap-2 will-change-transform pb-20">
+            <div 
+              className="grid gap-1 will-change-transform pb-20 max-h-[60vh] overflow-y-auto scrollbar-none"
+              onScroll={handleScrollHaptics}
+            >
               <AnimatePresence>
                 {browseResults.slice(0, 500).map((p, i) => (
-                  <motion.button
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
                     transition={{ duration: 0.2 }}
                     key={`${p.id || 'p'}-${i}`}
-                    onClick={() => openWeightModal(p)}
-                    className="w-full bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-left hover:border-accent-500 transition-colors shadow-sm"
                   >
-                    <div>
-                      <div className="font-black text-xs dark:text-white flex items-center gap-2">
-                        {p.name}
-                        {p.id?.startsWith("custom_") && (
-                          <span className="bg-amber-500/10 text-amber-500 text-[8px] px-1.5 py-0.5 rounded border border-amber-500/20">
-                            Twoje
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
-                        <span>
-                          Węgle: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
-                        </span>
-                        <span
-                          className={cn(
-                            "px-1.5 py-0.5 rounded font-black text-[8px]",
-                            typeof p.gi === 'number' && p.gi <= 55
-                              ? "bg-emerald-500/10 text-emerald-500"
-                              : typeof p.gi === 'number' && p.gi < 70
-                                ? "bg-amber-500/10 text-amber-500"
-                                : "bg-rose-500/10 text-rose-500",
-                          )}
-                        >
-                          IG: {typeof p.gi === 'number' ? p.gi : "??"}
-                        </span>
-                        {typeof p.gi === 'number' ? (() => {
-                          const lgVal = (Number(p.carbs || 0) * Number(p.gi)) / 100;
-                          return (
+                    <SwipeableItem
+                      id={`${p.id || 'p'}-${i}`}
+                      onDelete={() => {
+                        Haptics.success();
+                        addToPlate(p, 100);
+                        toast.success(`Dodano 100g: ${p.name}`);
+                      }}
+                      actionIcon={<Plus size={24} />}
+                      actionColor="from-accent-600 to-accent-500"
+                      noConfirm={true}
+                      bgClass="bg-white dark:bg-slate-900"
+                    >
+                      <button
+                        onClick={() => openWeightModal(p)}
+                        className="w-full p-4 flex justify-between items-center text-left hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                      >
+                        <div>
+                          <div className="font-black text-xs dark:text-white flex items-center gap-2">
+                            {p.name}
+                            {p.id?.startsWith("custom_") && (
+                              <span className="bg-amber-500/10 text-amber-500 text-[8px] px-1.5 py-0.5 rounded border border-amber-500/20">
+                                Twoje
+                              </span>
+                            )}
+                            {p.isCommunity && (
+                              <span className="bg-sky-500/10 text-sky-500 text-[8px] px-1.5 py-0.5 rounded border border-sky-500/20">
+                                Społeczność
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                            <span>
+                              Węgle: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
+                            </span>
                             <span
                               className={cn(
                                 "px-1.5 py-0.5 rounded font-black text-[8px]",
-                                lgVal <= 10
-                                  ? "bg-emerald-500/10 text-emerald-500"
-                                  : lgVal < 20
-                                    ? "bg-amber-500/10 text-amber-500"
-                                    : "bg-rose-500/10 text-rose-500",
+                                typeof p.gi === 'number' 
+                                  ? (p.gi <= 55 ? "bg-emerald-500/10 text-emerald-500" : p.gi < 70 ? "bg-amber-500/10 text-amber-500" : "bg-rose-500/10 text-rose-500")
+                                  : "bg-slate-500/10 text-slate-500",
                               )}
                             >
-                              ŁG: {lgVal.toFixed(1)}
+                              IG: {typeof p.gi === 'number' ? p.gi : "??*"}
                             </span>
-                          );
-                        })() : null}
-                      </div>
-                    </div>
-                    <Plus
-                      size={16}
-                      className="text-accent-500 bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
-                    />
-                  </motion.button>
+                            {/* Restoring ŁG (Glycemic Load) calculation */}
+                            {typeof p.gi === 'number' && (() => {
+                              const lgVal = (Number(p.carbs || 0) * p.gi) / 100;
+                              return (
+                                <span
+                                  className={cn(
+                                    "px-1.5 py-0.5 rounded font-black text-[8px]",
+                                    lgVal <= 10
+                                      ? "bg-emerald-500/10 text-emerald-500"
+                                      : lgVal < 20
+                                        ? "bg-amber-500/10 text-amber-500"
+                                        : "bg-rose-500/10 text-rose-500",
+                                  )}
+                                >
+                                  ŁG: {lgVal.toFixed(1)}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                        <Plus
+                          size={16}
+                          className="text-accent-500 bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
+                        />
+                      </button>
+                    </SwipeableItem>
+                  </motion.div>
                 ))}
               </AnimatePresence>
             </div>
@@ -1155,7 +1236,10 @@ export default function MealPlate({
               </span>
             </div>
             <button
-              onClick={() => setPlate([])}
+              onClick={() => {
+                Haptics.impact();
+                setPlate([]);
+              }}
               className="text-[9px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 px-4 py-2 rounded-xl active:bg-rose-500 active:text-white transition-all"
             >
               Wyczyść
@@ -1241,17 +1325,14 @@ export default function MealPlate({
                           <div
                             className={cn(
                               "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                              typeof item.gi === 'number' && item.gi <= 55
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : typeof item.gi === 'number' && item.gi < 70
-                                  ? "bg-amber-500/20 text-amber-400"
-                                  : "bg-rose-500/20 text-rose-400",
+                              typeof item.gi === 'number'
+                                ? (item.gi <= 55 ? "bg-emerald-500/20 text-emerald-400" : item.gi < 70 ? "bg-amber-500/20 text-amber-400" : "bg-rose-500/20 text-rose-400")
+                                : "bg-slate-500/20 text-slate-400",
                             )}
                           >
-                            IG: {typeof item.gi === 'number' ? item.gi : "??"}
+                            IG: {typeof item.gi === 'number' ? item.gi : "??*"}
                           </div>
-                          {(() => {
-                            if (typeof item.gi !== 'number') return null;
+                          {typeof item.gi === 'number' && (() => {
                             const glValue = (((item.carbs * item.weight) / 100) * item.gi / 100);
                             return (
                               <div
@@ -1291,7 +1372,10 @@ export default function MealPlate({
               ].map(method => (
                 <button
                   key={method.id}
-                  onClick={() => setCookingMethod(method.id as any)}
+                  onClick={() => {
+                    Haptics.selection();
+                    setCookingMethod(method.id as any);
+                  }}
                   className={cn(
                     "text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider transition-all",
                     cookingMethod === method.id

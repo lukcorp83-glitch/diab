@@ -1,3 +1,5 @@
+import { geminiService } from '../services/gemini';
+import { Haptics } from '../lib/haptics';
 import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -42,8 +44,7 @@ import {
   Palette, 
   RefreshCw, 
   ShieldCheck, 
-  Lock as LucideLock,
-  Fingerprint
+  Lock as LucideLock
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
@@ -58,7 +59,6 @@ import SettingsSync from './SettingsSync';
 import SettingsTransfer from './SettingsTransfer';
 import ApiIntegration from './ApiIntegration';
 import PumpSimulator from './PumpSimulator';
-import { registerPasskey } from '../lib/webauthn';
 
 interface ProfileProps {
   user: any;
@@ -172,6 +172,7 @@ export default function Profile({
     }
 
     setNukeLoading(true);
+    Haptics.impact();
     try {
       const uid = getEffectiveUid(user);
       const userDocPath = `artifacts/diacontrolapp/users/${uid}`;
@@ -206,8 +207,10 @@ export default function Profile({
 
   const cleanupDatabase = async () => {
     setCleaning(true);
+    Haptics.medium();
     setCleaningResult(null);
     let count = 0;
+    let repaired = 0;
     try {
       // 1. Oczyszczanie prywatnej bazy produktów
       const userRef = collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'customProducts');
@@ -225,7 +228,6 @@ export default function Profile({
       const commSnap = await getDocs(commRef);
       for (const docSnap of commSnap.docs) {
         const data = docSnap.data();
-        // Usuwamy tylko jeśli nie mają nazwy
         if (!data || typeof data.name !== 'string' || data.name.trim() === '') {
           try {
             await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'communityProducts', docSnap.id));
@@ -236,7 +238,7 @@ export default function Profile({
         }
       }
       
-      setCleaningResult(`Oczyszczono wpisów: ${count}`);
+      setCleaningResult(`Usunięto błędnych wpisów: ${count}`);
     } catch (err) {
       console.error(err);
       setCleaningResult('Wystąpił błąd podczas oczyszczania.');
@@ -247,49 +249,96 @@ export default function Profile({
     }, 5000);
   };
 
-  const handleRegisterPasskey = async () => {
+  const repairGIWithAI = async () => {
+    if (cleaning) return;
+    setCleaning(true);
+    Haptics.medium();
+      setCleaningResult("Skanowanie bazy danych (Własne i społeczność)...");
+    
     try {
-      const getAccessToken = async () => {
-        const token = await user.getIdToken();
-        return token;
-      };
-      await registerPasskey(getAccessToken);
-      toast.success("Klucz biometryczny został zarejestrowany!");
-    } catch (e: any) {
-      console.error(e);
-      let errorMsg = e.message || "Błąd podczas rejestracji biometrii";
+      const uid = getEffectiveUid(user);
+      const toFix: { id: string, name: string, coll: string }[] = [];
+      let totalChecked = 0;
       
-      // Attempt to parse JSON if the error message is a JSON string (from server)
-      let debugInfo = "";
-      if (errorMsg.startsWith('{')) {
-        try {
-          const parsed = JSON.parse(errorMsg);
-          errorMsg = parsed.error || errorMsg;
-          if (parsed.details) debugInfo = ` Szczegóły: ${parsed.details}`;
-        } catch (err) {}
+      // 1. Skan we własnych produktach
+      const userRef = collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'customProducts');
+      const userSnap = await getDocs(userRef);
+      totalChecked += userSnap.docs.length;
+      for (const docSnap of userSnap.docs) {
+        const data = docSnap.data();
+        const giValue = data.gi;
+        const isValid = typeof giValue === 'number' && !isNaN(giValue);
+        // Catch empty strings, null, undefined or strings that look like numbers but aren't numeric types
+        if (data.name && (!isValid || String(giValue).trim() === '')) {
+          toFix.push({ id: docSnap.id, name: data.name, coll: 'custom' });
+        }
       }
 
-      // Handle the Permissions Policy error specially
-      if (errorMsg.includes('Permissions Policy') || errorMsg.includes('feature is not enabled')) {
-        toast.error((t) => (
-          <div className="flex flex-col gap-3">
-            <span className="font-bold">Biometria blokowana w tym widoku.</span>
-            <span className="text-xs">Przeglądarka nie pozwala na użycie kluczy biometrycznych wewnątrz ramki podglądu.</span>
-            <button 
-              onClick={() => {
-                window.open(window.location.href, '_blank');
-                toast.dismiss(t.id);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-3 py-2 rounded-xl font-black uppercase tracking-widest transition-colors shadow-lg shadow-indigo-600/20"
-            >
-              🚀 Otwórz w nowej karcie
-            </button>
-          </div>
-        ), { duration: 10000 });
+      // 2. Skan w produktach społecznościowych
+      const commRef = collection(db, 'artifacts', 'diacontrolapp', 'communityProducts');
+      const commSnap = await getDocs(commRef);
+      totalChecked += commSnap.docs.length;
+      for (const docSnap of commSnap.docs) {
+        const data = docSnap.data();
+        const giValue = data.gi;
+        const isValid = typeof giValue === 'number' && !isNaN(giValue);
+        if (data.name && (!isValid || String(giValue).trim() === '')) {
+          toFix.push({ id: docSnap.id, name: data.name, coll: 'community' });
+        }
+      }
+
+      if (toFix.length === 0) {
+        setCleaningResult(`Przeskanowano ${totalChecked} produktów. Wszystkie posiadają przypisane IG.`);
+        setTimeout(() => setCleaningResult(null), 5000);
+        setCleaning(false);
         return;
       }
+
+      setCleaningResult(`Znaleziono ${toFix.length} z ${totalChecked} produktów bez IG. Rozpoczynam naprawę AI...`);
       
-      toast.error(`${errorMsg}${debugInfo}`, { duration: 8000 });
+      // Batching 10 at a time
+      for (let i = 0; i < toFix.length; i += 10) {
+        const batch = toFix.slice(i, i + 10);
+        const batchNames = batch.map(b => b.name).join(", ");
+        
+        const prompt = `Podaj konkretny Indeks Glikemiczny (IG) jako liczbę (0-100) dla każdego z tych produktów: [${batchNames}]. 
+        Zwróć wynik jako JSON (tylko JSON, mapa): {"nazwa_produktu": liczba_ig}. 
+        Używaj wartości zgodnych z oficjalnymi tabelami IG (np. biały ryż: 70, jabłko: 38). Jeśli coś jest tłuszczem/mięsem, daj 0 lub 1.`;
+        
+        try {
+          const result = await geminiService.generateContent(prompt);
+          const jsonMatch = result.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const mapping = JSON.parse(jsonMatch[0]);
+            for (const item of batch) {
+              const guessedGI = mapping[item.name];
+              if (typeof guessedGI === 'number' && !isNaN(guessedGI)) {
+                const targetRef = item.coll === 'custom' 
+                  ? doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'customProducts', item.id)
+                  : doc(db, 'artifacts', 'diacontrolapp', 'communityProducts', item.id);
+                
+                await updateDoc(targetRef, {
+                  gi: guessedGI
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error("AI Repair batch failed", e);
+        }
+        
+        const progress = Math.min(100, Math.round(((i + batch.length) / toFix.length) * 100));
+        setCleaningResult(`Naprawianie: ${progress}% (${i + batch.length}/${toFix.length})...`);
+      }
+
+      setCleaningResult(`Sukces! Naprawiono ${toFix.length} produktów przy użyciu AI. (Naprawa dotyczy tylko produktów zapisanych w bazie)`);
+      toast.success(`Zaktualizowano IG dla ${toFix.length} produktów.`);
+      setTimeout(() => setCleaningResult(null), 5000);
+    } catch (err) {
+      console.error(err);
+      setCleaningResult("Błąd podczas inteligentnej naprawy.");
+    } finally {
+      setCleaning(false);
     }
   };
 
@@ -420,9 +469,13 @@ export default function Profile({
   }, [stats]);
 
   const handleBuySkin = async (skin: PetSkin) => {
-    if (petData.coins < skin.price) return;
+    if (petData.coins < skin.price) {
+      Haptics.error();
+      return;
+    }
     if (petData.unlockedSkins.includes(skin.id)) return;
 
+    Haptics.impact();
     try {
       const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
       await updateDoc(petRef, {
@@ -437,6 +490,7 @@ export default function Profile({
 
   const handleEquipSkin = async (skinId: string) => {
     if (!petData.unlockedSkins.includes(skinId)) return;
+    Haptics.light();
     try {
       const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
       await updateDoc(petRef, { skin: skinId });
@@ -636,7 +690,10 @@ export default function Profile({
           </p>
           
           <div className="flex gap-2 justify-center">
-            <button onClick={handleLogout} className="group relative bg-white dark:bg-slate-800 text-rose-500 font-black text-[8px] px-5 py-2.5 rounded-lg uppercase tracking-[0.2em] shadow-md hover:bg-rose-500 hover:text-white transition-all active:scale-95 border border-rose-500/20 overflow-hidden">
+            <button onClick={() => {
+              Haptics.medium();
+              handleLogout();
+            }} className="group relative bg-white dark:bg-slate-800 text-rose-500 font-black text-[8px] px-5 py-2.5 rounded-lg uppercase tracking-[0.2em] shadow-md hover:bg-rose-500 hover:text-white transition-all active:scale-95 border border-rose-500/20 overflow-hidden">
                <span className="relative z-10 flex items-center gap-1">
                  <LogOut size={10} /> Wyloguj
                </span>
@@ -716,10 +773,13 @@ export default function Profile({
           </div>
 
 
-          <button 
-            onClick={() => setTab('achievements')}
-            className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 rounded-[3rem] shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-between"
-          >
+            <button 
+              onClick={() => {
+                Haptics.selection();
+                setTab('achievements');
+              }}
+              className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 rounded-[3rem] shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-between"
+            >
             <div className="flex items-center gap-4 text-left">
               <div className="bg-white/20 p-3 rounded-[1.5rem] shrink-0">
                 <Trophy size={28} />
@@ -756,7 +816,10 @@ export default function Profile({
           ].map(cat => (
             <button 
               key={cat.id} 
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => {
+                Haptics.selection();
+                setActiveCategory(cat.id);
+              }}
               className={cn(
                 "flex-shrink-0 w-32 h-32 rounded-[2.5rem] flex flex-col p-4 snap-start transition-all duration-300 relative overflow-hidden group",
                 activeCategory === cat.id 
@@ -846,7 +909,10 @@ export default function Profile({
                 {['skins', 'accessories', 'backgrounds'].map((t) => (
                   <button
                     key={t}
-                    onClick={() => setShopTab(t as any)}
+                    onClick={() => {
+                      Haptics.selection();
+                      setShopTab(t as any);
+                    }}
                     className={cn(
                       "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                       shopTab === t 
@@ -1069,7 +1135,10 @@ export default function Profile({
             </div>
 
             <button 
-              onClick={saveSettings}
+              onClick={() => {
+                Haptics.medium();
+                saveSettings();
+              }}
               disabled={settingsLoading}
               className="w-full bg-accent-600 hover:bg-accent-500 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-accent-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
             >
@@ -1183,7 +1252,10 @@ export default function Profile({
               </button>
             </div>
             
-            <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl">
+            <button onClick={() => {
+              Haptics.impact();
+              saveSettings();
+            }} disabled={settingsLoading} className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl">
               Zatwierdź profile czasowe
             </button>
           </div>
@@ -1210,6 +1282,7 @@ export default function Profile({
                 const input = document.getElementById('cgmCalibrationInput') as HTMLInputElement;
                 const glukoValue = parseFloat(input?.value);
                 if (glukoValue > 0) {
+                  Haptics.medium();
                   // If we don't have current CGM bg we can't fully compute offset easily without current bg context, 
                   // but let's assume user just sets an explicit offset or we calculate it vs last known. 
                   // Without last known, we might just prompt. Let's do a simple prompt for now. 
@@ -1221,7 +1294,10 @@ export default function Profile({
                     if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
                     alert(`Skalibrowano! Offset wynosi: ${offset > 0 ? '+' : ''}${offset} mg/dL.`);
                     input.value = '';
+                    Haptics.success();
                   }
+                } else {
+                  Haptics.error();
                 }
               }}
               className="bg-emerald-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest mt-4"
@@ -1464,10 +1540,52 @@ export default function Profile({
 
       {activeCategory === 'food' && (
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           className="space-y-4 pb-20"
         >
+          {/* Nowość: Auto GI Toggle */}
+          <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 rounded-[2.5rem] p-6 border border-amber-200/50 dark:border-amber-500/20 shadow-xl backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-lg shadow-amber-500/20">
+                  <Sparkles size={20} />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">Auto-Magia: IG & ŁG</h3>
+                  <p className="text-[10px] text-slate-500 font-bold">Automatycznie uzupełniaj wartości przy dodawaniu produktów.</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={settings.autoGIEnabled || false}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setSettings({ ...settings, autoGIEnabled: val });
+                    Haptics.medium();
+                    if (val) toast.success("Automatyczne pobieranie IG/ŁG włączone!");
+                  }}
+                />
+                <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500 shadow-inner"></div>
+              </label>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-500/10 flex items-center gap-4">
+               <button 
+                  onClick={repairGIWithAI}
+                  className="flex-1 bg-white/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 text-[9px] font-black uppercase tracking-widest py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-amber-200/30"
+               >
+                 <RefreshCw size={12} className={cn(cleaning && "animate-spin")} />
+                 Przeskanuj całą bazę (AI)
+               </button>
+            </div>
+            {cleaningResult && (
+              <p className="mt-2 text-[8px] font-black text-amber-600 dark:text-amber-400 animate-pulse text-center">{cleaningResult}</p>
+            )}
+          </div>
+
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-2xl">
@@ -2039,24 +2157,6 @@ export default function Profile({
                     )} />
                   </button>
                 </div>
-
-                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-accent-100 dark:bg-accent-900/30 text-accent-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
-                      <Fingerprint size={22} />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-black dark:text-white leading-tight">Logowanie Biometryczne</p>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">FaceID / Odcisk palca</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={handleRegisterPasskey}
-                    className="bg-accent-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-md"
-                  >
-                    Aktywuj
-                  </button>
-                </div>
               </div>
 
               {/* Visual Appearance Cards */}
@@ -2205,7 +2305,16 @@ export default function Profile({
                     className="flex-1 bg-rose-50 dark:bg-rose-500/10 border border-transparent text-rose-600 dark:text-rose-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-2"
                   >
                     {cleaning ? <Loader2 className="animate-spin" size={14} /> : <Shield size={14} />}
-                    Oczyść Bazę
+                    Oczyść Błędy
+                  </button>
+
+                  <button 
+                    onClick={repairGIWithAI}
+                    disabled={cleaning}
+                    className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 border border-transparent text-indigo-600 dark:text-indigo-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    {cleaning ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
+                    Inteligentne IG
                   </button>
                   
                   <button 
