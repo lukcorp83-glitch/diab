@@ -9,37 +9,20 @@ export default defineConfig(({ mode }) => {
   const basePath = './';
   
   return {
-    base: basePath,
+    base: '/',
     plugins: [
       react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['pwa-icon.svg', 'manifest.json'],
+        devOptions: {
+          enabled: true
+        },
+        includeAssets: ['pwa-icon.svg'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
           cleanupOutdatedCaches: true,
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'google-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365
-                },
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
-            },
-            {
-              urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-              handler: 'NetworkOnly'
-            }
-          ]
         },
         manifest: {
           name: 'GlikoControl',
@@ -55,12 +38,6 @@ export default defineConfig(({ mode }) => {
           icons: [
             {
               src: 'pwa-icon.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
-              purpose: 'any maskable'
-            },
-            {
-              src: 'pwa-icon.svg',
               sizes: '192x192',
               type: 'image/svg+xml',
               purpose: 'any'
@@ -70,6 +47,12 @@ export default defineConfig(({ mode }) => {
               sizes: '512x512',
               type: 'image/svg+xml',
               purpose: 'any'
+            },
+            {
+              src: 'pwa-icon.svg',
+              sizes: '192x192',
+              type: 'image/svg+xml',
+              purpose: 'maskable'
             }
           ],
           shortcuts: [
