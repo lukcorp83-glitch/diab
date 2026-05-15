@@ -195,7 +195,15 @@ export default function App() {
 
       const iob = calculateIOB(logs);
       const cob = calculateCOB(logs);
-      const lastGlucose = logs.filter(l => l.type === 'glucose')[0]?.value || 0;
+      
+      const logGlucose = logs.filter(l => l.type === 'glucose')[0];
+      const pumpBg = pumpStatus?.bg;
+      let lastGlucose = logGlucose?.value || pumpBg || 0;
+
+      // If pump status is newer than latest log, prefer pump status
+      if (pumpStatus?.timestamp && logGlucose?.timestamp && pumpStatus.timestamp > logGlucose.timestamp) {
+        lastGlucose = pumpBg || lastGlucose;
+      }
 
       const staticInsights = getGlikoSenseInsights(logs);
       const combinedInsights = [...staticInsights, ...aiInsights];

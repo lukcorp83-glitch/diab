@@ -39,6 +39,7 @@ import {
   deleteDoc,
   doc,
   orderBy,
+  serverTimestamp,
 } from "firebase/firestore";
 import { LIB_BASE, CATEGORIES } from "../constants";
 import { geminiService } from "../services/gemini";
@@ -276,6 +277,34 @@ export default function MealPlate({
   };
 
   const handleOnlineSearch = () => performOnlineSearch(searchTerm);
+
+  const saveAsShortcut = async (product: Product) => {
+    if (!user) return;
+    Haptics.impact();
+    try {
+      await addDoc(
+        collection(
+          db,
+          "artifacts",
+          "diacontrolapp",
+          "users",
+          getEffectiveUid(user),
+          "shortcuts",
+        ),
+        {
+          name: product.name,
+          icon: "🥗",
+          type: "meal",
+          carbs: product.carbs,
+          createdAt: serverTimestamp(),
+        },
+      );
+      toast.success(`Dodano ${product.name} do skrótów!`);
+    } catch (e) {
+      console.error("Error saving shortcut:", e);
+      toast.error("Nie udało się zapisać skrótu.");
+    }
+  };
 
   const saveToCustomDb = async (product: Product) => {
     if (!user) return;
@@ -1015,6 +1044,13 @@ export default function MealPlate({
                       <ChevronRight size={16} className="text-accent-300" />
                     </button>
                     <button
+                      onClick={() => saveAsShortcut(p)}
+                      className="bg-amber-500 text-white p-2.5 rounded-xl active:scale-90 transition-all"
+                      title="Dodaj jako skrót"
+                    >
+                      <BookMarked size={16} />
+                    </button>
+                    <button
                       onClick={() => saveToCustomDb(p)}
                       className="bg-accent-500 text-white p-2.5 rounded-xl active:scale-90 transition-all"
                       title="Zapisz do bazy"
@@ -1130,10 +1166,22 @@ export default function MealPlate({
                             })()}
                           </div>
                         </div>
-                        <Plus
-                          size={16}
-                          className="text-accent-500 bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
-                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              saveAsShortcut(p);
+                            }}
+                            className="p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors"
+                            title="Dodaj do skrótów"
+                          >
+                            <BookMarked size={16} />
+                          </button>
+                          <Plus
+                            size={16}
+                            className="text-accent-500 bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
+                          />
+                        </div>
                       </button>
                     </SwipeableItem>
                   </motion.div>

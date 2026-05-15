@@ -48,5 +48,40 @@ export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
     insights.push(`Wykryto powtarzające się nocne hipoglikemie.`);
   }
 
-  return insights;
+  // Time In Range (TIR) Estimate
+  const last24hLogs = logs.filter(l => {
+    const ts = new Date(l.timestamp || l.createdAt).getTime();
+    return l.type === 'glucose' && ts >= Date.now() - 24 * 60 * 60 * 1000;
+  });
+
+  if (last24hLogs.length > 5) {
+    const inRange = last24hLogs.filter(l => l.value >= 70 && l.value <= 180).length;
+    const tir = (inRange / last24hLogs.length) * 100;
+    insights.push(`Szacowany czas w zakresie (TIR) z ostatnich 24h: ${tir.toFixed(0)}%.`);
+  }
+
+  // Dawn Phenomenon detection
+  const morningHighs = logs.filter(l => {
+    const d = new Date(l.timestamp || l.createdAt);
+    return l.type === 'glucose' && l.value > 150 && (d.getHours() >= 4 && d.getHours() <= 8);
+  });
+  if (morningHighs.length >= 3) {
+    insights.push(`Wykryto tendencję do wysokich cukrów nad ranem (możliwe zjawisko brzasku).`);
+  }
+
+  // Post-prandial spike detection
+  const meals = logs.filter(l => l.type === 'meal').slice(0, 5);
+  meals.forEach(meal => {
+    const mealTime = new Date(meal.timestamp || meal.createdAt).getTime();
+    const afterMealLogs = logs.filter(l => {
+      const ts = new Date(l.timestamp || l.createdAt).getTime();
+      return l.type === 'glucose' && ts > mealTime && ts < mealTime + 3 * 60 * 60 * 1000;
+    });
+    const maxBg = Math.max(...afterMealLogs.map(l => l.value));
+    if (maxBg > 200) {
+      insights.push(`Wysoki skok glikemii (${maxBg} mg/dL) po posiłku z dnia ${new Date(mealTime).toLocaleDateString('pl-PL')}.`);
+    }
+  });
+
+  return Array.from(new Set(insights)); // Ensure unique insights
 }
