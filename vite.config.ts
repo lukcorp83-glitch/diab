@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   const basePath = './';
   
   return {
-    base: '/',
+    base: basePath,
     plugins: [
       react(),
       tailwindcss(),
@@ -29,8 +29,8 @@ export default defineConfig(({ mode }) => {
           background_color: '#0f172a',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '/',
-          scope: '/',
+          start_url: '.',
+          scope: '.',
           id: '/',
           icons: [
             {
