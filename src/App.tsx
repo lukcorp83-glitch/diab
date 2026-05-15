@@ -1,4 +1,5 @@
 import { calculateIOB, calculateCOB, getEffectiveUid } from './lib/utils';
+import { getGlikoSenseInsights } from './lib/insightGenerator';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
@@ -146,6 +147,25 @@ export default function App() {
     return [];
   });
   const [isAssistantTyping, setIsAssistantTyping] = useState(false);
+  const [aiInsights, setAiInsights] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'aiReports'),
+      orderBy('timestamp', 'desc'),
+      limit(3)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const texts = snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Extract plain text from HTML-like content
+        return data.content?.replace(/<[^>]*>/g, ' ').substring(0, 500) || '';
+      });
+      setAiInsights(texts);
+    });
+    return unsubscribe;
+  }, [user]);
 
   useEffect(() => {
     localStorage.setItem('gliko_assistant_history', JSON.stringify(assistantMessages));
@@ -175,14 +195,18 @@ export default function App() {
 
       const iob = calculateIOB(logs);
       const cob = calculateCOB(logs);
-      const lastGlucose = logs.filter(l => l.type === 'glucose').slice(-1)[0]?.value || 0;
+      const lastGlucose = logs.filter(l => l.type === 'glucose')[0]?.value || 0;
+
+      const staticInsights = getGlikoSenseInsights(logs);
+      const combinedInsights = [...staticInsights, ...aiInsights];
 
       const response = await geminiService.getAssistantResponse(
         text, 
         history, 
         logs, 
         userSettings || { targetMin: 70, targetMax: 140 },
-        { iob, cob, glucose: lastGlucose }
+        { iob, cob, glucose: lastGlucose },
+        combinedInsights
       );
 
       // Handle Plate Actions (if any)

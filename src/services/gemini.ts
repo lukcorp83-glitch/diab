@@ -402,11 +402,18 @@ export const geminiService = {
     }
   },
 
-  async getAssistantResponse(message: string, history: any[], logs: any[], settings: any, currentStatus?: { iob: number, cob: number, glucose: number }) {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).getTime();
+  async getAssistantResponse(message: string, history: any[], logs: any[], settings: any, currentStatus?: { iob: number, cob: number, glucose: number }, insights?: string[]) {
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).getTime();
+    
+    // Process logs: filter 24h, sort chronological, take last 100
     const lastLogs = logs
-      .filter(l => new Date(l.timestamp || l.createdAt).getTime() >= twentyFourHoursAgo)
-      .slice(0, 100) // Zabezpieczenie przed zbyt dużą ilością danych, bierzemy 100 najnowszych z doby
+      .filter(l => {
+        const ts = new Date(l.timestamp || l.createdAt).getTime();
+        return ts >= twentyFourHoursAgo;
+      })
+      .sort((a, b) => new Date(a.timestamp || a.createdAt).getTime() - new Date(b.timestamp || b.createdAt).getTime())
+      .slice(-100)
       .map(l => ({
         typ: l.type,
         wartosc: l.value,
@@ -416,12 +423,17 @@ export const geminiService = {
 
     const isChild = settings?.childMode ?? true;
 
+    const insightsStr = insights && insights.length > 0 
+      ? `\nNAJNOWSZE WNIOSKI GLIKOSENSE (Dostępne analizy): \n- ${insights.join('\n- ')}\n` 
+      : '';
+
     const currentDataStr = currentStatus ? `
-    AKTUALNY STATUS (Z SILNIKA APLIKACJI):
-    - Bieżąca glikemia: ${currentStatus.glucose} mg/dL
+    AKTUALNY STATUS URZĄDZEŃ (Stan na: ${now.toLocaleString('pl-PL')}):
+    - Bieżąca glikemia: ${currentStatus.glucose} mg/dL (To jest najnowszy odczyt!)
     - Aktywna insulina (IOB): ${currentStatus.iob.toFixed(2)} j.
     - Aktywne węglowodany (COB): ${currentStatus.cob.toFixed(0)} g
-    ` : '';
+    ${insightsStr}
+    ` : `AKTUALNY CZAS: ${now.toLocaleString('pl-PL')}\n${insightsStr}`;
 
     const systemInstruction = isChild ? `Jesteś Smart Asystentem Gliko w aplikacji GlikoControl. 
     Twoim zadaniem jest pomaganie dzieciom i ich rodzicom w codziennym zarządzaniu cukrzycą w sposób przyjazny, cierpliwy i zachęcający.
