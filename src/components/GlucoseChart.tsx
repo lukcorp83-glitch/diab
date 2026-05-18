@@ -51,7 +51,11 @@ const calculateActivityAt = (time: number, boluses: LogEntry[], diaHours: number
 const StackingWarning = (props: any) => {
   const { cx, cy, payload } = props;
   if (!payload.stackingWarning || isNaN(cx) || isNaN(cy)) return null;
-  return null; // Removed pulse red warning as per request
+  return (
+    <g className="pointer-events-none">
+       <text x={cx} y={cy + 15} textAnchor="middle" fontSize={12} className="drop-shadow-sm">⚠️</text>
+    </g>
+  );
 };
 
 interface GlucoseChartProps {
@@ -74,17 +78,21 @@ const CustomGlucoseDot = (props: any) => {
   else if (val > targetMax) fill = '#f59e0b';
 
   return (
-    <circle 
-      cx={cx} cy={cy} r={5} 
-      fill={fill} 
-      stroke={isDark ? '#0f172a' : '#ffffff'} 
-      strokeWidth={2}
+    <g 
       onClick={(e) => {
           e.stopPropagation();
           onDotClick && onDotClick(payload.originalG);
       }}
       style={{ cursor: 'pointer', outline: 'none' }}
-    />
+    >
+      <circle cx={cx} cy={cy} r={15} fill="transparent" />
+      <circle 
+        cx={cx} cy={cy} r={5} 
+        fill={fill} 
+        stroke={isDark ? '#0f172a' : '#ffffff'} 
+        strokeWidth={2}
+      />
+    </g>
   );
 };
 
@@ -96,6 +104,7 @@ const CustomBolusShape = (props: any) => {
   const h = Math.min(40, val * 5);
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalB); }} style={{ cursor: 'pointer', outline: 'none' }}>
+      <rect x={cx - 10} y={cy - 40} width={20} height={50} fill="transparent" />
       <rect x={cx - 2} y={cy - h} width={4} height={h} fill="rgba(79, 70, 229, 0.4)" />
       <text x={cx} y={cy - h - 5} textAnchor="middle" fontSize={14}>💉</text>
     </g>
@@ -114,6 +123,7 @@ const CustomMealShape = (props: any) => {
 
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalM); }} style={{ cursor: 'pointer', outline: 'none' }}>
+      <circle cx={cx} cy={baseCy - 5} r={15} fill="transparent" />
       <text x={cx} y={baseCy} textAnchor="middle" fontSize={16}>🍽️</text>
     </g>
   );
@@ -124,6 +134,7 @@ const CustomSiteShape = (props: any) => {
   if (!payload.siteVal || isNaN(cx) || isNaN(cy)) return null;
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSite); }} style={{ cursor: 'pointer', outline: 'none' }}>
+      <circle cx={cx} cy={cy - 10} r={15} fill="transparent" />
       <text x={cx} y={cy - 10} textAnchor="middle" fontSize={18}>🔄</text>
     </g>
   );
@@ -134,6 +145,7 @@ const CustomSensorShape = (props: any) => {
   if (!payload.sensorVal || isNaN(cx) || isNaN(cy)) return null;
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSensor); }} style={{ cursor: 'pointer', outline: 'none' }}>
+      <circle cx={cx} cy={cy - 10} r={15} fill="transparent" />
       <text x={cx} y={cy - 10} textAnchor="middle" fontSize={18}>🩹</text>
     </g>
   );
@@ -162,6 +174,72 @@ const MLPredictionLabel = (props: any) => {
           🦄
         </text>
       </g>
+    );
+  }
+  return null;
+};
+
+const CustomTooltip = ({ active, payload, isDark }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const points: LogEntry[] = [];
+    if (data.originalG) points.push(data.originalG);
+    if (data.originalB) points.push(data.originalB);
+    if (data.originalM) points.push(data.originalM);
+    if (data.originalSite) points.push(data.originalSite);
+    if (data.originalSensor) points.push(data.originalSensor);
+    
+    return (
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-3 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-2xl min-w-[160px] pointer-events-none select-none">
+        {points.length > 0 ? (
+          points.map((p, idx) => (
+            <div key={idx} className={idx > 0 ? "mt-2 pt-2 border-t border-slate-100 dark:border-slate-800" : ""}>
+               <div className="text-[7px] font-black uppercase text-accent-500 tracking-[0.2em] mb-0.5">
+                 {p.type === 'meal' ? 'Posiłek' : p.type === 'bolus' ? 'Bolus' : p.type === 'glucose' ? 'Glukoza' : 'Wymiana'}
+               </div>
+               <div className="flex items-baseline gap-1">
+                 <span className="text-lg font-black dark:text-white tracking-tighter">
+                   {p.type === 'glucose' ? Math.round(Number(p.value)) : p.value}
+                 </span>
+                 <span className="text-[9px] font-bold text-slate-500 uppercase">
+                   {p.type === 'glucose' ? 'mg/dL' : p.type === 'bolus' ? 'j' : 'g'}
+                 </span>
+               </div>
+               {p.notes && <div className="text-[9px] text-slate-400 italic line-clamp-1 truncate max-w-[160px] mt-0.5 leading-tight">"{p.notes}"</div>}
+               {p.type === 'bolus' && data.stackingWarning && (
+                 <div className="mt-1.5 flex items-center gap-1 text-[7px] font-black text-rose-500 uppercase tracking-widest bg-rose-500/5 px-2 py-1 rounded-lg border border-rose-500/10">
+                   <span>⚠️</span> Nakładanie dawek
+                 </div>
+               )}
+            </div>
+          ))
+        ) : (
+          <div className="text-[7px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Status</div>
+        )}
+
+        {/* IOB and Activity */}
+        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+          <div className="flex justify-between items-center">
+            <span className="text-[7px] font-black uppercase text-pink-500 tracking-wider">Aktualna IOB</span>
+            <span className="text-[10px] font-black dark:text-pink-400">{(data.iob || 0).toFixed(2)} j</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[7px] font-black uppercase text-slate-500 tracking-wider">Aktywność</span>
+            <div className="flex items-center gap-1">
+              <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-pink-500" 
+                  style={{ width: `${Math.min(100, (data.activity || 0) * 100)}%` }} 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-2 text-[7px] font-black text-slate-400 text-right uppercase tracking-widest border-t border-slate-100 dark:border-slate-800 pt-1.5">
+           {new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
+      </div>
     );
   }
   return null;
@@ -548,8 +626,14 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
   return (
     <div 
       ref={containerRef} 
-      className="relative w-full h-full min-h-[300px] flex-1 flex flex-col select-none" 
-      style={{ touchAction: 'pan-y' }} 
+      className="relative w-full h-full min-h-[300px] flex-1 flex flex-col select-none touch-none" 
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        WebkitUserSelect: 'none',
+        msUserSelect: 'none',
+        userSelect: 'none',
+        touchAction: 'none' 
+      }} 
       onClick={() => setSelectedPoint(null)} 
       onWheel={handleWheel}
       onMouseDown={handleMouseDownNative}
@@ -603,8 +687,22 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             margin={{ top: 10, right: 10, left: -25, bottom: 20 }}
             className="outline-none focus:outline-none focus-visible:outline-none border-none"
             style={{ outline: 'none' }}
+            onClick={(data: any) => {
+               if (data && data.activePayload && data.activePayload.length > 0) {
+                 const payload = data.activePayload[0].payload;
+                 if (payload.originalG) setSelectedPoint(payload.originalG);
+                 else if (payload.originalB) setSelectedPoint(payload.originalB);
+                 else if (payload.originalM) setSelectedPoint(payload.originalM);
+                 else if (payload.originalSite) setSelectedPoint(payload.originalSite);
+                 else if (payload.originalSensor) setSelectedPoint(payload.originalSensor);
+               }
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} vertical={false} />
+            <Tooltip 
+              content={<CustomTooltip isDark={isDark} />} 
+              cursor={{ stroke: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', strokeWidth: 1 }}
+            />
           <XAxis 
             dataKey="timestamp" 
             type="number" 
