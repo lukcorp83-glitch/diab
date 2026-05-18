@@ -283,7 +283,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     }
   };
 
-  const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end } = useMemo(() => {
+  const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end, hasData } = useMemo(() => {
     let now = Date.now();
     
     // Logic for 'now' focus
@@ -540,7 +540,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
     xAxisTicks.sort((a, b) => a - b);
 
-    return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end };
+    return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end, hasData };
   }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction, mlPredictionDataState, zoomLevel, panOffsetMs]);
 
   const isDark = theme === 'dark';
