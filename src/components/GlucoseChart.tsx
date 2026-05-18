@@ -119,6 +119,26 @@ const CustomMealShape = (props: any) => {
   );
 };
 
+const CustomSiteShape = (props: any) => {
+  const { cx, cy, payload, onDotClick } = props;
+  if (!payload.siteVal || isNaN(cx) || isNaN(cy)) return null;
+  return (
+    <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSite); }} style={{ cursor: 'pointer', outline: 'none' }}>
+      <text x={cx} y={cy - 10} textAnchor="middle" fontSize={18}>🔄</text>
+    </g>
+  );
+};
+
+const CustomSensorShape = (props: any) => {
+  const { cx, cy, payload, onDotClick } = props;
+  if (!payload.sensorVal || isNaN(cx) || isNaN(cy)) return null;
+  return (
+    <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSensor); }} style={{ cursor: 'pointer', outline: 'none' }}>
+      <text x={cx} y={cy - 10} textAnchor="middle" fontSize={18}>🩹</text>
+    </g>
+  );
+};
+
 const LoopSimulationDot = (props: any) => {
   const { cx, cy, payload } = props;
   if (!payload.loopPrediction || !payload.loopAction || isNaN(cx) || isNaN(cy)) return null;
@@ -291,6 +311,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     const dataG = logs.filter(l => l.type === 'glucose' && l.timestamp >= start - rangeMs).sort((a, b) => a.timestamp - b.timestamp);
     const dataB = logs.filter(l => l.type === 'bolus' && l.timestamp >= start - rangeMs).sort((a, b) => a.timestamp - b.timestamp);
     const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start - rangeMs);
+    const dataSite = logs.filter(l => l.type === 'site_change' && l.timestamp >= start - rangeMs);
+    const dataSensor = logs.filter(l => l.type === 'sensor_change' && l.timestamp >= start - rangeMs);
 
     const diaHours = settings?.dia || 4;
     const diaMs = diaHours * 60 * 60 * 1000;
@@ -466,6 +488,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     });
 
     dataM.forEach(d => addPoint(d.timestamp, 'mealVal', true, { originalM: d, mealY: chartMinY }));
+    dataSite.forEach(d => addPoint(d.timestamp, 'siteVal', true, { originalSite: d, yVal: chartMinY }));
+    dataSensor.forEach(d => addPoint(d.timestamp, 'sensorVal', true, { originalSensor: d, yVal: chartMinY }));
 
     loopPredictions.forEach(p => addPoint(p.timestamp, 'loopPrediction', p.value, { loopAction: p.actionType }));
     mlPredictionData.forEach(p => addPoint(p.timestamp, 'mlPrediction', p.value));
@@ -490,6 +514,9 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     const sortedData = Array.from(timeMap.values()).sort((a, b) => a.timestamp - b.timestamp);
     const lastMlTimestamp = mlPredictionDataState.length > 0 ? mlPredictionDataState[mlPredictionDataState.length - 1].timestamp : 0;
     
+    // Check if we actually have any data to show
+    const hasData = logs.length > 0 || loopPredictions.length > 0 || mlPredictionData.length > 0;
+
     // Generate helpful ticks: Every hour or 2, Now
     const xAxisTicks: number[] = [];
     const interval = hours > 12 ? 4 * 60 * 60000 : (hours > 6 ? 2 * 60 * 60000 : 60 * 60000);
@@ -521,8 +548,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
   return (
     <div 
       ref={containerRef} 
-      className="relative w-full h-full select-none" 
-      style={{ touchAction: 'none' }} 
+      className="relative w-full h-full min-h-[300px] flex-1 flex flex-col select-none" 
+      style={{ touchAction: 'pan-y' }} 
       onClick={() => setSelectedPoint(null)} 
       onWheel={handleWheel}
       onMouseDown={handleMouseDownNative}
@@ -560,18 +587,31 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       </div>
 
 
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart
-          data={chartData}
-          margin={{ top: 10, right: 10, left: -25, bottom: 20 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} vertical={false} />
+      <div className="w-full relative h-[400px] outline-none focus:outline-none focus-visible:outline-none">
+        {!hasData && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-[2px] rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+            <div className="w-12 h-12 rounded-full bg-accent-500/10 flex items-center justify-center mb-4 animate-pulse">
+              <Move className="text-accent-500" size={24} />
+            </div>
+            <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter italic mb-1">Brak danych do wyświetlenia</h3>
+            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 max-w-[200px] leading-relaxed">System właśnie synchronizuje Twoje ostatnie wyniki z Nightscout. Zaraz się pojawią!</p>
+          </div>
+        )}
+        <ResponsiveContainer width="100%" height={400} className="outline-none focus:outline-none focus-visible:outline-none border-none">
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 10, right: 10, left: -25, bottom: 20 }}
+            className="outline-none focus:outline-none focus-visible:outline-none border-none"
+            style={{ outline: 'none' }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} vertical={false} />
           <XAxis 
             dataKey="timestamp" 
             type="number" 
             domain={[start, end]} 
-            allowDataOverflow={true}
             ticks={xAxisTicks}
+            className="outline-none"
+            style={{ outline: 'none' }}
             tickFormatter={(unixTime) => {
                 const diff = Math.abs(unixTime - now);
                 if (diff < 30000) return 'TERAZ';
@@ -592,48 +632,14 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             orientation="right"
             domain={[0, (data) => Math.max(5, data * 1.2)]} 
             hide={true}
+            style={{ outline: 'none' }}
           />
           <YAxis 
             domain={[chartMinY, chartMaxY]} 
             axisLine={false}
             tickLine={false}
             tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 9, fontWeight: 'bold' }}
-          />
-          
-          <Tooltip 
-            content={({ active, payload }) => {
-              if (active && payload && payload.length) {
-                const data = payload[0].payload;
-                return (
-                  <div className="bg-slate-900 border border-slate-700 p-2 rounded-xl text-white text-[10px] shadow-xl backdrop-blur-md">
-                    <div className="flex justify-between items-center gap-4 mb-1">
-                      <p className="font-black text-accent-400">
-                        {new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                      {data.originalG?.source && (
-                        <span className="text-[7px] font-black bg-white/10 px-1.5 py-0.5 rounded text-slate-300 uppercase">
-                          {data.originalG.source === 'nightscout' ? 'Nightscout' : 'Manual'}
-                        </span>
-                      )}
-                    </div>
-                    {data.glucose && <p className="font-bold">Glukoza: <span className="text-white">{Math.round(data.glucose)} mg/dL</span></p>}
-                    {data.iob !== undefined && data.iob > 0 && (
-                      <div className="mt-1 border-t border-white/10 pt-1">
-                        <p className="text-pink-400 font-bold">Profil działania insuliny (IOB): {data.iob.toFixed(2)} j.</p>
-                        <div className="flex gap-2 text-[7px] text-pink-300/70 font-medium uppercase tracking-tighter">
-                          <span>Początek: ~20m</span>
-                          <span>Szczyt: ~75m</span>
-                        </div>
-                      </div>
-                    )}
-                    {data.loopPrediction && <p className="text-emerald-400">Pętla: {Math.round(data.loopPrediction)} mg/dL</p>}
-                    {data.mlPrediction && <p className="text-amber-400">GlikoSense: {Math.round(data.mlPrediction)} mg/dL</p>}
-                    {data.stackingWarning && <p className="text-red-400 font-black mt-1 uppercase text-[8px]">Ostrzeżenie: Nakładanie dawek!</p>}
-                  </div>
-                );
-              }
-              return null;
-            }}
+            style={{ outline: 'none' }}
           />
 
           <ReferenceArea y1={targetMin || 70} y2={targetMax || 140} fill={isDark ? 'rgba(79, 70, 229, 0.1)' : 'rgba(79, 70, 229, 0.05)'} />
@@ -700,12 +706,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           )}
 
           {/* Scatters for Bolus and Meal Icons */}
-          <Scatter dataKey="bolusY" shape={<CustomBolusShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
-          <Scatter dataKey="bolusY" shape={<StackingWarning />} isAnimationActive={false} />
-          <Scatter dataKey="mealY" shape={<CustomMealShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
+          <Scatter key="scatter-bolus" dataKey="bolusY" shape={<CustomBolusShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
+          <Scatter key="scatter-stacking" dataKey="bolusY" shape={<StackingWarning />} isAnimationActive={false} />
+          <Scatter key="scatter-meal" dataKey="mealY" shape={<CustomMealShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
+          <Scatter key="scatter-site" dataKey="yVal" shape={<CustomSiteShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
+          <Scatter key="scatter-sensor" dataKey="yVal" shape={<CustomSensorShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
 
         </ComposedChart>
       </ResponsiveContainer>
+      </div>
 
       <AnimatePresence>
         {isMlProcessing && (
@@ -724,11 +733,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       <AnimatePresence>
         {selectedPoint && (
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 10 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-2 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white p-4 rounded-[2rem] border border-slate-700 shadow-2xl backdrop-blur-md z-10 min-w-[160px]"
+            className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white p-4 rounded-3xl border border-slate-200/50 dark:border-white/10 shadow-2xl backdrop-blur-xl z-30 min-w-[180px]"
           >
             <div className="flex justify-between items-center mb-2">
               <div className="flex flex-col">
@@ -745,19 +754,19 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
               >✕</button>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black">
+              <span className="text-3xl font-black tracking-tighter">
                 {selectedPoint.type === 'glucose' 
                   ? Math.round(Number(selectedPoint.value)) 
                   : +Number(selectedPoint.value).toFixed(2)}
               </span>
-              <span className="text-[10px] font-bold text-slate-400">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                 {selectedPoint.type === 'glucose' ? 'mg/dL' : selectedPoint.type === 'bolus' ? 'j' : 'g WW'}
               </span>
             </div>
             {selectedPoint.notes && (
-              <p className="text-[10px] text-slate-300 mt-2 font-medium line-clamp-2 italic">"{selectedPoint.notes}"</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 font-medium line-clamp-2 italic">"{selectedPoint.notes}"</p>
             )}
-            <p className="text-[8px] font-bold text-slate-500 mt-3 uppercase tracking-widest border-t border-slate-800 pt-2">
+            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-3 uppercase tracking-widest border-t border-slate-200/50 dark:border-slate-800 pt-2">
               {new Date(selectedPoint.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(selectedPoint.timestamp).toLocaleDateString()}
             </p>
           </motion.div>

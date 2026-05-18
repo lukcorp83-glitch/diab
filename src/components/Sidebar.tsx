@@ -13,6 +13,7 @@ import {
   Plus, 
   Search, 
   Star, 
+  BookOpen,
   History, 
   Brain, 
   Trophy, 
@@ -37,6 +38,7 @@ import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION } from '../constants';
 import GlikoSenseIcon from './GlikoSenseIcon';
 
+import Logo from './Logo';
 import { Haptics } from '../lib/haptics';
 
 interface SidebarProps {
@@ -74,6 +76,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        icon: <Database size={20} />,
        subItems: [
          { id: 'db_search', label: 'Katalog Produktów', tab: 'database', icon: <Search size={14} /> },
+         { id: 'db_diets', label: 'Diety & Nawyki', tab: 'diets', icon: <BookOpen size={14} /> },
          { id: 'db_favorites', label: 'Ulubione Produkty', tab: 'database', icon: <Star size={14} /> },
          { id: 'profile_food', label: 'Menedżer Produktów', tab: 'profile', action: 'food', icon: <Settings size={14} /> }
        ]
@@ -93,6 +96,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        label: 'Analiza & Dane', 
        icon: <FileText size={20} />,
        subItems: [
+          { id: 'profile_stats', label: 'Statystyki', tab: 'profile', action: 'stats', icon: <Activity size={14} /> },
           { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history', icon: <History size={14} /> },
           { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <GlikoSenseIcon size={14} isAnalyzing={activeTab === 'ai'} /> },
           { id: 'assistant_ai', label: 'Czat Gliko', tab: 'assistant', icon: isChildMode ? <Sparkles size={14} /> : <Cpu size={14} /> }
@@ -153,9 +157,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
 
             <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-200/50 dark:border-slate-800/30 relative">
               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-accent-600 rounded-2xl flex items-center justify-center shadow-lg shadow-accent-600/20 text-white">
-                   <GlikoSenseIcon size={20} isAnalyzing={true} />
-                 </div>
+                 <Logo className="w-10 h-10 rounded-2xl shadow-lg shadow-accent-600/20" />
                  <div>
                    <h2 className={cn("text-xl font-black tracking-tighter leading-none uppercase font-display", theme === 'dark' ? "text-white" : "text-slate-900")}>
                      GlikoControl

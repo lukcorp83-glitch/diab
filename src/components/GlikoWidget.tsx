@@ -29,9 +29,9 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
   return (
     <motion.div 
       whileTap={{ scale: 0.98 }}
-      onClick={() => setTab('dashboard')}
+      onClick={() => setTab('chart')}
       className={cn(
-        "glass-card p-6 text-slate-900 dark:text-white shadow-2xl border-l-[6px] overflow-hidden relative group breath",
+        "glass-card p-6 text-slate-900 dark:text-white shadow-2xl rounded-[2rem] border-l-[6px] overflow-hidden relative group breath",
         (lastGlucose?.value || 100) > 180 ? 'border-amber-500' :
         (lastGlucose?.value || 100) < 70 ? 'border-rose-500' :
         'border-emerald-500',

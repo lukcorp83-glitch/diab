@@ -2,7 +2,7 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry } from '../types';
-import { Activity, Utensils, Droplets, Syringe, ArrowLeft, Edit2 } from 'lucide-react';
+import { Activity, Utensils, Droplets, Syringe, ArrowLeft, Edit2, CloudRain, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import SwipeableItem from './SwipeableItem';
 import { db } from '../lib/firebase';
@@ -73,7 +73,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
       <div className="space-y-1 will-change-transform">
         {logs.filter(log => {
           if (listFilter === 'glucose') return log.type === 'glucose';
-          if (listFilter === 'treatment') return log.type === 'bolus' || log.type === 'meal';
+          if (listFilter === 'treatment') return log.type === 'bolus' || log.type === 'meal' || log.type === 'site_change' || log.type === 'sensor_change';
           return true;
         }).slice(0, 100).map((log, idx) => (
           <motion.div 
@@ -106,10 +106,14 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                 <div className={cn(
                   "w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner transition-colors shadow-slate-200 dark:shadow-slate-950 px-1",
                   log.type === 'glucose' ? "bg-indigo-500/10 text-indigo-500" :
-                  log.type === 'meal' ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500"
+                  log.type === 'meal' ? "bg-amber-500/10 text-amber-500" : 
+                  (log.type === 'site_change' || log.type === 'sensor_change') ? "bg-teal-500/10 text-teal-500" : 
+                  "bg-accent-500/10 text-accent-500"
                 )}>
                   {log.type === 'glucose' && <Activity size={18} strokeWidth={2.5} />}
                   {log.type === 'meal' && <Utensils size={18} strokeWidth={2.5} />}
+                  {log.type === 'site_change' && <Droplets size={18} strokeWidth={2.5} />}
+                  {log.type === 'sensor_change' && <RefreshCw size={18} strokeWidth={2.5} />}
                   {log.type === 'bolus' && (
                     <div className="flex items-center gap-0.5">
                       <Syringe size={log.linkedMeal ? 14 : 18} strokeWidth={2.5} />
@@ -120,7 +124,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 justify-between">
                     <p className="font-black text-sm dark:text-white truncate">
-                      {typeof log.value === 'number' ? (log.type === 'glucose' ? Math.round(log.value) : log.value.toFixed(1)) : log.value}{log.type === 'glucose' ? ' mg/dL' : log.type === 'meal' ? 'g W' : ' j.'}
+                      {typeof log.value === 'number' ? (log.type === 'glucose' ? Math.round(log.value) : log.type === 'site_change' || log.type === 'sensor_change' ? '' : log.value.toFixed(1)) : log.value}{(log.type === 'site_change' || log.type === 'sensor_change') ? (log.notes || 'Wymiana') : (log.type === 'glucose' ? ' mg/dL' : log.type === 'meal' ? 'g W' : ' j.')}
                       {log.type === 'meal' && (log.polyols || log.protein || log.fat) && (
                         <span className="text-[10px] font-bold text-slate-400 ml-2">
                            {log.polyols ? `${log.polyols.toFixed(0)}P / ` : ''}{log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T
@@ -147,7 +151,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                         if (n.toLowerCase() === 'glucose') return 'Glukoza';
                         if (n.toLowerCase() === 'meal' || n.toLowerCase() === 'carbs') return 'Posiłek';
                         if (n.toLowerCase() === 'bolus' || n.toLowerCase() === 'insulin') return 'Insulina';
-                        let baseLabel = n || (log.type === 'glucose' ? 'Glukoza' : log.type === 'meal' ? 'Posiłek' : 'Bolus');
+                        let baseLabel = n || (log.type === 'glucose' ? 'Glukoza' : log.type === 'meal' ? 'Posiłek' : log.type === 'site_change' ? 'Wymiana Wkłucia' : log.type === 'sensor_change' ? 'Wymiana Sensora' : 'Bolus');
                         if (log.isExtended) {
                           baseLabel = `Łączony (${log.extendedTime}h)`;
                         }
@@ -161,6 +165,13 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                         <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">CSV</span>
                       ) : (
                         <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Ręcz.</span>
+                      )}
+                      
+                      {log.weather && (
+                        <div className="flex items-center gap-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 px-2 py-0.5 rounded-full">
+                          <CloudRain size={10} strokeWidth={3} />
+                          <span className="text-[8px] font-black uppercase tracking-tighter">{log.weather.temp}°C</span>
+                        </div>
                       )}
                     </div>
                   </div>

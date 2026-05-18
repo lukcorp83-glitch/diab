@@ -38,7 +38,9 @@ import MealEditModal from "./MealEditModal";
 import GlikoWidget from "./GlikoWidget";
 import GlikoSenseTips from "./GlikoSenseTips";
 import GlikoSenseNeural from "./GlikoSenseNeural";
+import WeatherWidget from "./WeatherWidget";
 import GlikoSenseIcon from "./GlikoSenseIcon";
+import DidYouKnowWidget from "./DidYouKnowWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
 import {
@@ -81,6 +83,8 @@ export default function Dashboard({
   petData,
   syncStatus
 }: DashboardProps) {
+  const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
+
   const [range, setRange] = useState(3);
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
     const saved = localStorage.getItem('glikosfera_loop_simulation');
@@ -90,11 +94,14 @@ export default function Dashboard({
     const saved = localStorage.getItem('glikosfera_ml_prediction');
     return saved ? JSON.parse(saved) : true;
   });
-  const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
 
   useEffect(() => {
     localStorage.setItem('glikosfera_loop_simulation', JSON.stringify(showLoopSimulation));
   }, [showLoopSimulation]);
+
+  useEffect(() => {
+    localStorage.setItem('glikosfera_ml_prediction', JSON.stringify(showMLPrediction));
+  }, [showMLPrediction]);
 
   useEffect(() => {
     const runAnalysis = async () => {
@@ -110,9 +117,7 @@ export default function Dashboard({
     runAnalysis();
   }, [logs]);
 
-  useEffect(() => {
-    localStorage.setItem('glikosfera_ml_prediction', JSON.stringify(showMLPrediction));
-  }, [showMLPrediction]);
+
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [listFilter, setListFilter] = useState<'all' | 'glucose' | 'treatment'>('treatment');
@@ -396,8 +401,43 @@ export default function Dashboard({
       initial="hidden"
       animate="show"
       exit="hidden"
-      className="space-y-6 pb-20 will-change-transform"
+      className="space-y-6 pb-20 will-change-transform relative"
     >
+      {/* Swipe Hint (Left Edge) */}
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 w-8 h-32 pointer-events-none z-40 md:hidden flex items-center justify-center opacity-40">
+        <motion.div
+          animate={{ x: [0, 8, 0], opacity: [0.3, 0.8, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="flex flex-col items-center gap-1"
+        >
+          <div className="w-1 h-12 bg-accent-500/30 rounded-full blur-[1px]" />
+          <span className="text-[8px] font-black uppercase tracking-widest vertical-text text-accent-500/50">Wykres</span>
+        </motion.div>
+      </div>
+
+      <div className="flex items-center justify-between px-2">
+        <h2 className="text-xl font-black italic uppercase tracking-tighter text-slate-800 dark:text-white font-display">Pulpit</h2>
+        <div className="flex gap-2">
+          {nsUrl && (
+            <a 
+              href={nsUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all"
+            >
+              Nightscout
+            </a>
+          )}
+          <button 
+            onClick={() => { Haptics.light(); setTab('chart'); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-accent-500/10 text-accent-600 text-[10px] font-black uppercase tracking-widest border border-accent-500/20 active:scale-95 transition-all shadow-xl shadow-accent-500/10"
+          >
+            <Activity size={14} />
+            Wykres
+          </button>
+        </div>
+      </div>
+
       {/* 1. Main Stats Widget */}
       <motion.div variants={itemVariants}>
         <GlikoWidget
@@ -429,81 +469,12 @@ export default function Dashboard({
         </div>
       </motion.div>
 
-      {/* 3. Glucose Chart */}
-      <motion.div
-        variants={itemVariants}
-        className="glass-card p-6 border border-slate-200/50 dark:border-slate-800/50"
-      >
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">
-              TRENDY GLIKEMII
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              <button 
-                onClick={() => {
-                  Haptics.selection();
-                  setShowLoopSimulation(!showLoopSimulation);
-                }}
-                className={cn(
-                  "text-[9px] font-black px-2.5 py-1 rounded-full uppercase transition-all tracking-tight border",
-                  showLoopSimulation 
-                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-                    : "bg-slate-100/50 text-slate-400 border-slate-200/50 dark:bg-white/5"
-                )}
-              >
-                {showLoopSimulation ? "Pętla Active" : "Pętla Inactive"}
-              </button>
-              <button 
-                onClick={() => {
-                  Haptics.selection();
-                  setShowMLPrediction(!showMLPrediction);
-                }}
-                className={cn(
-                  "text-[9px] font-black px-2.5 py-1 rounded-full uppercase transition-all tracking-tight border flex items-center gap-1.5",
-                  showMLPrediction 
-                    ? "bg-accent-500/10 text-accent-600 border-accent-500/20" 
-                    : "bg-slate-100/50 text-slate-400 border-slate-200/50 dark:bg-white/5"
-                )}
-              >
-                <GlikoSenseIcon size={10} isAnalyzing={showMLPrediction} />
-                {showMLPrediction ? "GlikoSense ON" : "GlikoSense OFF"}
-              </button>
-            </div>
-          </div>
-          <div className="flex bg-slate-100/50 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-1 gap-1 border border-slate-200/30">
-            {[3, 6, 12, 24].map((h) => (
-              <button
-                key={h}
-                onClick={() => {
-                  Haptics.selection();
-                  setRange(h);
-                }}
-                className={cn(
-                  "px-4 py-2 text-[9px] font-black rounded-xl transition-all uppercase tracking-tighter",
-                  range === h
-                    ? "bg-white dark:bg-slate-700 text-accent-600 dark:text-accent-400 shadow-md"
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300",
-                )}
-              >
-                {h}h
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="h-[280px]">
-          <GlucoseChart
-            logs={logs}
-            hours={range}
-            targetMin={settings.targetMin}
-            targetMax={settings.targetMax}
-            theme={theme}
-            settings={settings}
-            showLoopSimulation={showLoopSimulation}
-            showMLPrediction={showMLPrediction}
-          />
-        </div>
-      </motion.div>
+      {/* 2.5 Weather Widget */}
+      {settings.weatherWidgetEnabled && (
+        <motion.div variants={itemVariants}>
+          <WeatherWidget />
+        </motion.div>
+      )}
 
       {/* 4. Equipment & Reminders */}
       {(settings.sensorChangeDate || settings.infusionSetChangeDate) && (
@@ -628,6 +599,11 @@ export default function Dashboard({
 
       {/* 6. AI Tips & Insights */}
       <motion.div variants={itemVariants} className="space-y-4">
+        <DidYouKnowWidget onClick={() => {
+          onAction?.('tutorial');
+          setTab('profile');
+        }} />
+        
         {/* Tips Section */}
         <GlikoSenseTips logs={logs} />
         
@@ -737,8 +713,8 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('glucose'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'glucose').slice(0, 3).map((log) => (
-                  <motion.div key={log.id} layout>
+               {logs.filter(log => log.type === 'glucose').slice(0, 3).map((log, idx) => (
+                  <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => {}}>
                       <div className="glass-card !p-4 flex items-center gap-4">
                         <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
@@ -770,8 +746,8 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'bolus' || log.type === 'meal').slice(0, 3).map((log) => (
-                  <motion.div key={log.id} layout>
+               {logs.filter(log => log.type === 'bolus' || log.type === 'meal').slice(0, 3).map((log, idx) => (
+                  <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => {}}>
                       <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">
                         <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", log.type === "meal" ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500")}>

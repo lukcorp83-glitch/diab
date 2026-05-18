@@ -2,8 +2,9 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { X, ChevronRight } from 'lucide-react';
+import { fetchCurrentWeather } from '../services/weatherService';
 
 interface GlucoseModalProps {
   isOpen: boolean;
@@ -33,12 +34,26 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
     setLoading(false);
     
     try {
-      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
+      // Check if weather is enabled
+      const settingsDocRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+      const settingsDoc = await getDoc(settingsDocRef);
+      const settingsData = settingsDoc.exists() ? settingsDoc.data() : null;
+      const weatherEnabled = settingsData?.weatherEnabled === true;
+
+      // Pobieramy pogodę w tle, nie blokując użytkownika
+      const weather = weatherEnabled ? await fetchCurrentWeather() : null;
+      const logData: any = {
         type: 'glucose',
         value: glucoseValue,
         timestamp: logTime,
         description: 'Pomiar ręczny'
-      });
+      };
+      
+      if (weather) {
+        logData.weather = weather;
+      }
+      
+      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), logData);
     } catch (e) {
       console.error(e);
     }

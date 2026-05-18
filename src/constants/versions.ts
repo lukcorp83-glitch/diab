@@ -7,6 +7,19 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.5.0",
+    date: "2026-05-18",
+    title: "Pogoda & Inteligentna Analiza Środowiska",
+    changes: [
+      "Nowość: Widżet Pogody – Sprawdzaj warunki atmosferyczne bezpośrednio na pulpicie.",
+      "Nowość: Analiza Wpływu Pogody – GlikoSense teraz uwzględnia temperaturę i ciśnienie w swoich sugestiach glikemicznych.",
+      "Nowość: Potężnie powiększona baza produktów (w tym produkty Keto, Wegetariańskie).",
+      "Nowość: AI Chat może teraz swobodniej rozmawiać i bezpośrednio dodawać produkty do Twojego Talerza Posiłków.",
+      "Interfejs: Nowy, animowany licznik wersji i ulepszona nawigacja gestami.",
+      "Ulepszenie: Spore zmiany i usprawnienia w interfejsie użytkownika (UI)."
+    ]
+  },
+  {
     version: "3.4.3",
     date: "2026-05-15",
     title: "Automatyka GI i Ulepszona Haptyka",
@@ -172,4 +185,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.4.3";
+export const CURRENT_VERSION = "3.5.0";

@@ -18,14 +18,40 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Sparkles size={120} />
           </div>
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 mb-3">
-              <Zap size={10} className="fill-white" />
-              <span className="text-[8px] font-black uppercase tracking-[0.2em]">Nowa aktualizacja</span>
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 mb-3">
+                <Zap size={10} className="fill-white" />
+                <span className="text-[8px] font-black uppercase tracking-[0.2em]">Nowa aktualizacja</span>
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-3xl font-black leading-tight tracking-tighter font-display uppercase italic flex overflow-hidden">
+                  <span className="mr-2">Gliko</span>
+                  {current.version.split('').map((char, i) => (
+                    <motion.span
+                      key={i}
+                      initial={{ y: 40, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ 
+                        type: "spring", 
+                        damping: 12, 
+                        stiffness: 200, 
+                        delay: 0.1 + i * 0.05 
+                      }}
+                    >
+                      {char}
+                    </motion.span>
+                  ))}
+                </h2>
+              </div>
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="text-accent-100 text-[10px] font-black uppercase tracking-widest"
+              >
+                {current.title}
+              </motion.p>
             </div>
-            <h2 className="text-3xl font-black mb-1 leading-tight tracking-tighter font-display uppercase italic">Gliko {current.version}</h2>
-            <p className="text-accent-100 text-[10px] font-black uppercase tracking-widest">{current.title}</p>
-          </div>
         </div>
 
         <div className="p-6 max-h-[60vh] overflow-y-auto no-scrollbar">

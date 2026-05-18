@@ -12,7 +12,48 @@ export const googleProvider = new GoogleAuthProvider();
 // Using initializeFirestore with long polling for better reliability in some environments
 export const db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
+    host: 'firestore.googleapis.com',
+    ssl: true,
 });
+
+// Verification function as per Firestore guidelines
+import { doc, getDocFromServer } from 'firebase/firestore';
+
+export let isFirebaseConnected = false;
+const connectionListeners: ((status: boolean) => void)[] = [];
+
+export function onConnectionChange(listener: (status: boolean) => void) {
+    connectionListeners.push(listener);
+    listener(isFirebaseConnected);
+    return () => {
+        const index = connectionListeners.indexOf(listener);
+        if (index > -1) connectionListeners.splice(index, 1);
+    };
+}
+
+function updateConnectionStatus(status: boolean) {
+    isFirebaseConnected = status;
+    connectionListeners.forEach(l => l(status));
+}
+
+async function testConnection() {
+    try {
+        // Try to fetch a non-existent doc from server to verify connectivity
+        await getDocFromServer(doc(db, '_connection_test_', 'ping'));
+        console.log('[Firestore] Connection verified');
+        updateConnectionStatus(true);
+    } catch (error: any) {
+        if (error.message?.includes('offline')) {
+            console.error("[Firestore] Connection issue: Client appears to be offline.");
+            updateConnectionStatus(false);
+        } else {
+            // Permission errors etc still mean we reached the server
+            console.log('[Firestore] Server reached (status: ' + (error.code || 'connected') + ')');
+            updateConnectionStatus(true);
+        }
+    }
+}
+testConnection();
 
 // Enable offline persistence with better error handling
 const enablePersistence = async () => {

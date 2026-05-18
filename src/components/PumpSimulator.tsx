@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { UserSettings } from '../types';
 import { cn } from '../lib/utils';
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList, Area } from 'recharts';
 
 interface PumpSimulatorProps {
   settings: UserSettings;
@@ -59,6 +60,18 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
   const [simWorkout, setSimWorkout] = useState<string>('none');
   const [simGi, setSimGi] = useState<string>('medium');
   const [simBg, setSimBg] = useState<number>(100);
+  
+  const [simulationFrame, setSimulationFrame] = useState(0);
+
+  React.useEffect(() => {
+    let interval: any;
+    if (simResult) {
+      interval = setInterval(() => {
+        setSimulationFrame(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [simResult]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -200,7 +213,13 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
 
         <button 
           className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all mt-4"
-          onClick={() => setSimResult(true)}
+          onClick={() => {
+            setSimResult(false);
+            setTimeout(() => {
+              setSimulationFrame(0);
+              setSimResult(true);
+            }, 50);
+          }}
         >
           Symuluj Pokrycie Bolusem
         </button>
@@ -323,64 +342,92 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                     const maxDose = Math.max(...hoursObj.map(h => h.dose1 + h.dose2 + h.autoDose), 1);
                     const maxBg = Math.max(...hoursObj.map(h => h.bg), 200, cumulativeBg + 20);
                     const minBg = Math.min(...hoursObj.map(h => h.bg), 70, cumulativeBg - 20);
-                    const bgRange = Math.max(maxBg - minBg, 80);
-                    const getY = (bg: number) => Math.max(10, Math.min(95, 100 - ((bg - minBg) / bgRange) * 85));
+                    const safeMinBg = Math.max(0, minBg - 20);
+                    const safeMaxBg = maxBg + 20;
+                    
+                    const animatedHoursObj = hoursObj.map((h, index) => {
+                      if (index <= simulationFrame) return h;
+                      return {
+                         hour: h.hour,
+                         label: h.label,
+                         dose1: 0,
+                         dose2: 0,
+                         autoDose: 0,
+                         bg: null as unknown as number // Tak żeby wykres ucinał w tym punkcie
+                      };
+                    });
 
                     return (
-                      <>
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1000 1000" preserveAspectRatio="none">
-                          <polyline 
-                            points={hoursObj.map((h, i) => `${(i / (hoursObj.length - 1)) * 1000},${getY(h.bg) * 10}`).join(' ')}
-                            fill="none" stroke="#f43f5e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" 
-                          />
-                          {hoursObj.map((h, i) => (
-                            <g key={`bg-pt-${i}`}>
-                              <circle cx={(i / (hoursObj.length - 1)) * 1000} cy={getY(h.bg) * 10} r="14" fill="#fff" stroke="#f43f5e" strokeWidth="6" />
-                            </g>
-                          ))}
-                        </svg>
+                      <div className="w-full h-full pb-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart data={animatedHoursObj} margin={{ top: 35, right: 30, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorDose1" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={simType === 'standard' ? "#94a3b8" : simType === 'extended' ? "#64748b" : "#475569"} stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor={simType === 'standard' ? "#cbd5e1" : simType === 'extended' ? "#94a3b8" : "#64748b"} stopOpacity={0.4}/>
+                              </linearGradient>
+                              <linearGradient id="colorDose2" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#fcd34d" stopOpacity={0.4}/>
+                              </linearGradient>
+                              <linearGradient id="colorAuto" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#818cf8" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#c7d2fe" stopOpacity={0.4}/>
+                              </linearGradient>
+                              <linearGradient id="colorBgArea" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15}/>
+                                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} vertical={false} />
+                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: '500' }} dy={10} padding={{ left: 30, right: 30 }} />
+                            <YAxis yAxisId="right" orientation="right" domain={[safeMinBg, safeMaxBg]} hide />
+                            <YAxis yAxisId="left" domain={[0, maxDose * 1.15]} hide />
+                            <Tooltip 
+                               cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
+                               contentStyle={{ borderRadius: '1rem', border: '1px solid #e2e8f0', background: 'rgba(255, 255, 255, 0.95)', color: '#334155', fontSize: '12px', fontWeight: '500', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)', backdropFilter: 'blur(8px)' }}
+                               labelStyle={{ color: '#64748b', marginBottom: '8px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '700' }}
+                               formatter={(value: any, name: string) => [typeof value === 'number' && name !== 'bg' ? value.toFixed(2) : Math.round(Number(value)), name === 'bg' ? 'Cukier (mg/dL)' : name === 'dose1' ? 'Dawka główna (J)' : name === 'dose2' ? 'Dawka ręczna (J)' : 'Auto Baza (J)']}
+                            />
+                            
+                            <Area yAxisId="right" type="monotone" dataKey="bg" stroke="none" fill="url(#colorBgArea)" />
+                            
+                            <Bar yAxisId="left" dataKey="dose1" stackId="a" fill="url(#colorDose1)" radius={[0, 0, 8, 8]} barSize={24}>
+                               <LabelList dataKey="dose1" position="insideTop" fill="#475569" fontSize={10} fontWeight="700" formatter={(val: number) => val > 0.05 ? val.toFixed(1) : ''} />
+                            </Bar>
+                            <Bar yAxisId="left" dataKey="dose2" stackId="a" fill="url(#colorDose2)">
+                               <LabelList dataKey="dose2" position="insideTop" fill="#b45309" fontSize={10} fontWeight="700" formatter={(val: number) => val > 0.05 ? val.toFixed(1) : ''} />
+                            </Bar>
+                            <Bar yAxisId="left" dataKey="autoDose" stackId="a" fill="url(#colorAuto)" radius={[8, 8, 0, 0]}>
+                               <LabelList dataKey="autoDose" position="insideTop" fill="#4338ca" fontSize={10} fontWeight="700" formatter={(val: number) => val > 0.05 ? val.toFixed(1) : ''} />
+                            </Bar>
 
-                        <div className="absolute inset-x-0 inset-y-0 pointer-events-none flex justify-between">
-                          {hoursObj.map((h, i) => (
-                             <div key={`bg-txt-${i}`} className="w-0 flex flex-col justify-start items-center" style={{ left: `${(i / (hoursObj.length - 1)) * 100}%`, position: 'absolute', top: `${getY(h.bg)}%`, marginTop: '-30px' }}>
-                               <span className="text-[10px] font-black text-rose-500 bg-white/80 dark:bg-slate-900/80 px-1 rounded shadow-sm relative z-10">{Math.round(h.bg)}</span>
-                             </div>
-                          ))}
-                        </div>
-
-                        {hoursObj.map((h, i) => (
-                          <div key={`bar-${i}`} className="flex-1 max-w-[30px] w-full flex flex-col justify-end items-center group relative h-full mx-1 z-10 opacity-80 hover:opacity-100 transition-opacity">
-                             {h.autoDose > 0 && (
-                               <div className="w-full bg-purple-400 min-h-[4px] rounded-t-lg transition-all" style={{ height: `${(h.autoDose / (maxDose * 1.5)) * 100}%` }}>
-                                 <span className="text-[9px] font-black text-purple-600 block text-center -mt-4">{h.autoDose.toFixed(1)}</span>
-                               </div>
-                             )}
-                             {h.dose2 > 0 && (
-                               <div className={cn("w-full bg-amber-400 min-h-[4px] transition-all", h.autoDose === 0 ? "rounded-t-lg" : "")} style={{ height: `${(h.dose2 / (maxDose * 1.5)) * 100}%` }}>
-                                 <span className="text-[9px] font-black text-amber-600 block text-center -mt-4">{h.dose2.toFixed(1)}</span>
-                               </div>
-                             )}
-                             <div 
-                               className={cn("w-full transition-all", h.dose2 === 0 && h.autoDose === 0 ? "rounded-t-lg" : "", simType === 'standard' ? "bg-accent-400" : simType === 'extended' ? "bg-blue-400" : "bg-teal-400", h.dose1 > 0 ? "min-h-[4px]" : "min-h-[2px] bg-slate-300 dark:bg-slate-700")}
-                               style={{ height: `${(h.dose1 / (maxDose * 1.5)) * 100}%` }}
-                             >
-                               {h.dose1 > 0 && <span className={"text-[9px] font-black block text-center -mt-4 " + (simType === 'standard' ? "text-accent-600 font-bold" : simType === 'extended' ? "text-blue-600 font-bold" : "text-teal-600 font-bold")}>{h.dose1.toFixed(1)}</span>}
-                             </div>
-                             <div className="text-[8px] font-bold text-slate-500 absolute -bottom-6 flex flex-col items-center">
-                               <span>{h.label}</span>
-                             </div>
-                          </div>
-                        ))}
-                      </>
+                            <Line yAxisId="right" type="monotone" dataKey="bg" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#fff', stroke: '#f43f5e', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#f43f5e', stroke: '#fff', strokeWidth: 2 }} strokeLinecap="round" />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
                     );
                  })()}
               </div>
               
-              <div className="flex flex-wrap items-center gap-4 justify-center mt-10 p-4 border border-rose-100 dark:border-rose-900/30 rounded-xl bg-orange-50/50 dark:bg-orange-900/10">
-                 <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded-full border-2 border-rose-500 bg-white"></div> Symulowana Glukoza (mg/dL)</div>
-                 <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded bg-accent-400"></div> Dawka główna</div>
-                 {simStackingEnabled && <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded bg-amber-400"></div> Dawka ręczna</div>}
-                 {simAutoBasal && <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500"><div className="w-3 h-3 rounded bg-purple-400"></div> Mikrobolusy u (Auto Bazy)</div>}
+              <div className="flex flex-wrap items-center gap-6 justify-center mt-8 p-6 border border-slate-200/50 dark:border-slate-700/50 rounded-[2rem] bg-white/50 dark:bg-slate-800/50 shadow-sm backdrop-blur-sm">
+                 <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                   <div className="w-3 h-3 rounded-full border-2 border-rose-500 bg-white"></div> Glukoza
+                 </div>
+                 <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                   <div className="w-3 h-3 rounded-md shadow-sm opacity-80" style={{ background: `linear-gradient(to bottom, ${simType === 'standard' ? "#94a3b8, #cbd5e1" : simType === 'extended' ? "#64748b, #94a3b8" : "#475569, #64748b"})` }}></div> 
+                   {simType === 'standard' ? 'Bolus Zwykły' : simType === 'extended' ? 'Bolus Przedłużony' : 'Bolus Złożony'}
+                 </div>
+                 {simStackingEnabled && (
+                   <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                     <div className="w-3 h-3 rounded-md bg-gradient-to-b from-amber-500 to-amber-300 shadow-sm opacity-80"></div> Korekta
+                   </div>
+                 )}
+                 {simAutoBasal && (
+                   <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                     <div className="w-3 h-3 rounded-md bg-gradient-to-b from-indigo-400 to-indigo-300 shadow-sm opacity-80"></div> Auto Baza
+                   </div>
+                 )}
               </div>
            </div>
         )}

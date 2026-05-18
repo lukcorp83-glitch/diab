@@ -2,8 +2,8 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
-import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2, Edit3, X, Bell, AlertTriangle } from 'lucide-react';
-import { cn, calculateIOB } from '../lib/utils';
+import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2, Edit3, X, Bell, AlertTriangle, BarChart2 } from 'lucide-react';
+import { cn, calculateIOB, calculateCOB } from '../lib/utils';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
 import { geminiService } from '../services/gemini';
@@ -11,8 +11,10 @@ import { toast } from 'react-hot-toast';
 import { notificationService } from '../services/notificationService';
 
 import { Haptics } from '../lib/haptics';
+import { fetchCurrentWeather } from '../services/weatherService';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 
-export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry[], user: any, setTab?: (t: string) => void }) {
+export default function BolusCalculator({ logs, user, setTab, setSharedPlate }: { logs: LogEntry[], user: any, setTab?: (t: string) => void, setSharedPlate?: React.Dispatch<React.SetStateAction<any[]>> }) {
   const [bg, setBg] = useState<string>('');
   const [carbs, setCarbs] = useState<string>('');
   const [polyols, setPolyols] = useState<string>('');
@@ -76,10 +78,11 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
   }, [user, logs]);
 
   const [activeProfileTime, setActiveProfileTime] = useState<string | null>(null);
+  const [doseBreakdown, setDoseBreakdown] = useState<{name: string, value: number, color: string}[]>([]);
 
   useEffect(() => {
     calculateDose();
-  }, [bg, carbs, polyols, protein, fat, isPizzaMode, trend, settings]);
+  }, [bg, carbs, polyols, protein, fat, isPizzaMode, trend, settings, alcoholReduction]);
 
   const calculateDose = () => {
     const bgNum = parseFloat(bg) || 0;
@@ -127,14 +130,40 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     setExtendedTime(extendHrs);
 
     const target = (settings.targetMin + settings.targetMax) / 2;
-    const corrDose = bgNum > target ? (bgNum - target) / currentIsf : 0;
+    let corrDose = bgNum > target ? (bgNum - target) / currentIsf : 0;
+    if (bgNum > 0 && bgNum < target) {
+       corrDose = (bgNum - target) / currentIsf; // negative correction
+    }
     
     const iob = calculateIOB(logs, settings.dia || 4);
+    const cob = calculateCOB(logs);
+    const cobDose = cob / currentWwRatio;
 
-    const trendFactor = trend === 'up' ? 1.15 : trend === 'down' ? 0.85 : 1.0;
-    const total = Math.max(0, (mealDose + wbtDose + Math.max(0, corrDose - iob)) * trendFactor * alcoholReduction);
+    const baseVal = mealDose + wbtDose + corrDose + cobDose - iob;
     
-    // Zapobieganie problemom z precyzją (np. 0.200000000004)
+    let chartData = [];
+    if (mealDose > 0) chartData.push({ name: 'Węgle', value: parseFloat(mealDose.toFixed(2)), color: '#3b82f6' });
+    if (wbtDose > 0) chartData.push({ name: 'WBT', value: parseFloat(wbtDose.toFixed(2)), color: '#f59e0b' });
+    if (cobDose > 0) chartData.push({ name: 'COB', value: parseFloat(cobDose.toFixed(2)), color: '#a855f7' });
+    if (corrDose > 0) chartData.push({ name: 'Korekta +', value: parseFloat(corrDose.toFixed(2)), color: '#ef4444' });
+    if (corrDose < 0) chartData.push({ name: 'Korekta -', value: parseFloat(Math.abs(corrDose).toFixed(2)), color: '#10b981' }); // we show absolute in chart but it reduces total
+    if (iob > 0) chartData.push({ name: 'IOB (-)', value: parseFloat(iob.toFixed(2)), color: '#ef4444' });
+    
+    const trendFactor = trend === 'up' ? 1.15 : trend === 'down' ? 0.85 : 1.0;
+    let total = Math.max(0, baseVal * trendFactor * alcoholReduction);
+    
+    if (trendFactor !== 1.0 && total > 0) {
+       const trendImpact = (baseVal * trendFactor) - baseVal;
+       chartData.push({ name: 'Trend', value: parseFloat(Math.abs(trendImpact).toFixed(2)), color: trend === 'up' ? '#f97316' : '#06b6d4' });
+    }
+
+    if (alcoholReduction !== 1.0 && total > 0) {
+       const alcImpact = (baseVal * trendFactor * alcoholReduction) - (baseVal * trendFactor);
+       chartData.push({ name: 'Alkohol (-)', value: parseFloat(Math.abs(alcImpact).toFixed(2)), color: '#6366f1' });
+    }
+    
+    setDoseBreakdown(chartData);
+
     const roundedTotal = Math.round(total * 10) / 10;
     setDose(roundedTotal);
     setManualDose(null);
@@ -238,12 +267,22 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
       
       // 2. Glucose
       if (bgNum > 0) {
-        batch.set(doc(logsRef), {
+        // Check if weather is enabled
+        const settingsDocRef = doc(db, 'artifacts', 'diacontrolapp', 'users', effectiveUid, 'settings', 'profile');
+        const settingsDoc = await getDoc(settingsDocRef);
+        const settingsData = settingsDoc.exists() ? settingsDoc.data() : null;
+        const weatherEnabled = settingsData?.weatherEnabled === true;
+
+        const weather = weatherEnabled ? await fetchCurrentWeather() : null;
+        const glucosePayload: any = {
           type: 'glucose',
           value: Math.round(bgNum * 10) / 10,
           timestamp: timestamp - 10,
           description: 'Wpisane w kalkulator'
-        });
+        };
+        if (weather) glucosePayload.weather = weather;
+        
+        batch.set(doc(logsRef), glucosePayload);
         ops++;
       }
 
@@ -276,8 +315,12 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
       });
 
       // Clear local state
-      setBg(''); setCarbs(''); setProtein(''); setFat(''); setManualDose(null);
+      setBg(''); setCarbs(''); setProtein(''); setFat(''); setPolyols(''); setManualDose(null);
       setIsAlcoholMode(false);
+      localStorage.removeItem('temp_meal_macro');
+      if (setSharedPlate) {
+        setSharedPlate([]);
+      }
       
     } catch (err: any) {
       Haptics.error();
@@ -304,9 +347,10 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
     try {
       const bgNum = parseFloat(bg) || 0;
       const iob = calculateIOB(logs, settings.dia || 4);
+      const cob = calculateCOB(logs);
       const currentDose = manualDose !== null ? parseFloat(manualDose) : dose;
       const netCarbsNum = Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0));
-      const result = await geminiService.getBolusRecommendation(bgNum, netCarbsNum, currentDose, trend, iob, logs);
+      const result = await geminiService.getBolusRecommendation(bgNum, netCarbsNum, currentDose, trend, iob, cob, logs);
       if (result) {
         setAiRec(result);
         if (result.recommendedDose !== undefined) {
@@ -600,7 +644,34 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
           </div>
         </div>
 
-        <div className="bg-slate-900 text-white rounded-[2rem] p-6 text-center space-y-4 relative overflow-hidden">
+        {doseBreakdown.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700">
+             <h3 className="text-[10px] font-black uppercase text-slate-500 mb-4 text-center tracking-widest flex items-center justify-center gap-2">
+               <BarChart2 size={14} className="text-accent-500" /> Analiza Dawki
+             </h3>
+             <div className="h-44 w-full">
+               <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={doseBreakdown} margin={{ top: 0, right: 30, left: -20, bottom: 0 }} layout="vertical">
+                   <XAxis type="number" hide />
+                   <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} />
+                   <Tooltip 
+                     cursor={{ fill: 'var(--tw-colors-slate-200)', opacity: 0.1 }}
+                     contentStyle={{ borderRadius: '1.25rem', border: '1px solid rgba(255,255,255,0.1)', background: 'var(--tw-colors-slate-900)', color: '#fff', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} 
+                     formatter={(value: number) => [`${value.toFixed(1)} j.`, 'Dawka']}
+                   />
+                   <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={20}>
+                     {doseBreakdown.map((entry, index) => (
+                       <Cell key={`cell-${index}`} fill={entry.color} />
+                     ))}
+                   </Bar>
+                   <ReferenceLine x={0} stroke="#475569" strokeDasharray="3 3" />
+                 </BarChart>
+               </ResponsiveContainer>
+             </div>
+          </motion.div>
+        )}
+
+        <div className="bg-slate-900 text-white rounded-[2.5rem] p-6 text-center space-y-4 relative overflow-hidden shadow-2xl">
            {advice && (
              <div className="space-y-2 mb-2">
                <div className={`text-[10px] font-black uppercase tracking-widest p-2 bg-white/5 rounded-xl ${advice.color}`}>
@@ -646,17 +717,31 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
                 <span className="text-xl font-bold opacity-30">j.</span>
              </div>
              
-             {/* Stacking Warning */}
-             {calculateIOB(logs, settings.dia || 4) > 0.5 && (
+             {/* Stacking Warning (IOB & COB) */}
+             {(calculateIOB(logs, settings.dia || 4) > 0.5 || calculateCOB(logs) > 5) && (
                <motion.div 
                  initial={{ opacity: 0, y: -5 }} 
                  animate={{ opacity: 1, y: 0 }}
-                 className="mt-2 mb-2 flex items-center justify-center gap-2 bg-rose-500/10 border border-rose-500/20 py-1.5 px-3 rounded-xl mx-4"
+                 className="mt-2 mb-2 flex flex-col items-center justify-center gap-1 bg-slate-800/50 border border-white/5 py-2 px-3 rounded-xl mx-4"
                >
-                 <AlertTriangle size={12} className="text-rose-500 animate-pulse shrink-0" />
-                 <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest text-center">
-                   Uwaga: Nakładanie dawek! IOB: {calculateIOB(logs, settings.dia || 4).toFixed(2)}j
-                 </span>
+                 <div className="flex items-center gap-2">
+                   <AlertTriangle size={12} className={cn(calculateIOB(logs, settings.dia || 4) > 0.5 ? "text-rose-500 animate-pulse" : "text-amber-500")} />
+                   <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center">
+                     Status Aktywnych Składników
+                   </span>
+                 </div>
+                 <div className="flex gap-4">
+                   {calculateIOB(logs, settings.dia || 4) > 0.1 && (
+                     <span className="text-[9px] font-bold text-rose-400">
+                       Insulina (IOB): {calculateIOB(logs, settings.dia || 4).toFixed(2)}j
+                     </span>
+                   )}
+                   {calculateCOB(logs) > 0 && (
+                     <span className="text-[9px] font-bold text-blue-400">
+                       Węgle (COB): {calculateCOB(logs).toFixed(0)}g
+                     </span>
+                   )}
+                 </div>
                </motion.div>
              )}
 
@@ -702,7 +787,7 @@ export default function BolusCalculator({ logs, user, setTab }: { logs: LogEntry
          </div>
          <div className="space-y-1">
            <p className="text-[10px] font-bold text-accent-900 dark:text-accent-200 leading-relaxed">
-              Kalkulacja uwzględnia <b>Profil Działania Insuliny (IOB)</b> (czas działania: {settings.dia || 4}h), współczynniki personalne oraz trend. Możesz użyć kamery do skanowania posiłków.
+              Kalkulacja uwzględnia <b>Profil Działania Insuliny (IOB)</b>, <b>Aktywne Węglowodany (COB)</b>, współczynniki personalne oraz trend. Możesz użyć kamery do skanowania posiłków.
            </p>
            {activeProfileTime && (
              <p className="text-[9px] font-black text-accent-500 uppercase tracking-widest mt-2 block">

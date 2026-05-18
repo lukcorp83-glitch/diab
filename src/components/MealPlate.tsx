@@ -27,6 +27,11 @@ import {
   Pizza,
   Sandwich,
   Apple as AppleIcon,
+  Leaf,
+  AlertTriangle,
+  Info,
+  Heart,
+  Share2
 } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
 import { cn } from "../lib/utils";
@@ -47,18 +52,48 @@ import { Html5Qrcode } from "html5-qrcode";
 
 import { Haptics } from "../lib/haptics";
 
+const getDietBadge = (product: Product, activeDiet: string | null) => {
+  if (!activeDiet) return null;
+  const pName = product.name.toLowerCase();
+  
+  if (activeDiet === 'keto') {
+    if ((product.carbs || 0) > 10) return { type: 'warning', text: 'Wysokie Węgle', icon: <AlertTriangle size={10} className="text-rose-500" />, color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' };
+    if ((product.carbs || 0) <= 5) return { type: 'success', text: 'Keto Friendly', icon: <Leaf size={10} className="text-emerald-500" />, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+  }
+  
+  if (activeDiet === 'gluten') {
+    const glutenWords = ['chleb', 'bułka', 'makaron', 'pszenic', 'mąka', 'ciasto', 'ciastk', 'krakers', 'paluszk', 'płatki'];
+    if (glutenWords.some(w => pName.includes(w))) return { type: 'warning', text: 'Uwaga! Gluten?', icon: <AlertTriangle size={10} className="text-rose-500" />, color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' };
+  }
+  
+  if (activeDiet === 'plate') {
+    if ((product.carbs || 0) > 40 && (product.protein || 0) < 5) return { type: 'warning', text: 'Same węgle', icon: <AlertTriangle size={10} className="text-rose-500" />, color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' };
+  }
+
+  if (activeDiet === 'if') {
+    // Intermittent Fasting doesn't restrict specific items usually, but let's encourage low glycemic index
+    if (typeof product.gi === 'number' && product.gi > 70) return { type: 'warning', text: 'Wysoki IG', icon: <AlertTriangle size={10} className="text-amber-500" />, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+  }
+
+  return null;
+};
+
 export default function MealPlate({
   user,
   setTab,
   sharedPlate = [],
   setSharedPlate,
   mode = "both",
+  openHistory,
+  settings,
 }: {
   user: any;
   setTab: (t: string) => void;
   sharedPlate?: PlateItem[];
   setSharedPlate?: React.Dispatch<React.SetStateAction<PlateItem[]>>;
   mode?: "search" | "plate" | "both";
+  openHistory?: () => void;
+  settings?: any;
 }) {
   const plate = sharedPlate;
   const setPlate = setSharedPlate || (() => {});
@@ -101,6 +136,7 @@ export default function MealPlate({
         setCustomProducts(
           snapshot.docs.map((doc) => ({
             id: doc.id,
+            isCustom: true,
             ...doc.data(),
           })) as Product[],
         );
@@ -153,6 +189,8 @@ export default function MealPlate({
         matchesCategory = true;
       } else if (activeCategory === "Społeczność") {
         matchesCategory = !!p.isCommunity;
+      } else if (activeCategory === "Moje Produkty") {
+        matchesCategory = !!p.isCustom;
       } else {
         matchesCategory = p.category === activeCategory;
       }
@@ -353,6 +391,30 @@ export default function MealPlate({
     }
   };
 
+  const publishToCommunity = async (product: Product) => {
+    if (!user) return;
+    try {
+      await addDoc(
+        collection(db, "artifacts", "diacontrolapp", "communityProducts"),
+        {
+          name: product.name,
+          carbs: product.carbs,
+          protein: product.protein || 0,
+          fat: product.fat || 0,
+          gi: typeof product.gi === 'number' ? product.gi : 50,
+          category: product.category || "Z Sieci",
+          authorId: getEffectiveUid(user),
+          createdAt: serverTimestamp(),
+        }
+      );
+      toast.success(`Udostępniono "${product.name}" społeczności GlikoControl!`);
+      Haptics.success();
+    } catch (e) {
+      console.error("Error publishing to community:", e);
+      toast.error("Wystąpił błąd podczas udostępniania.");
+    }
+  };
+
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
   const [isShortcutConfirmModalOpen, setIsShortcutConfirmModalOpen] = useState(false);
   const [shortcutWeight, setShortcutWeight] = useState("100");
@@ -364,6 +426,7 @@ export default function MealPlate({
   const [mealName, setMealName] = useState("");
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
+  const [isLoadingSavedMeals, setIsLoadingSavedMeals] = useState(true);
 
   const now = new Date();
   const tzOffset = now.getTimezoneOffset() * 60000;
@@ -391,9 +454,11 @@ export default function MealPlate({
         setSavedMeals(
           snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
         );
+        setIsLoadingSavedMeals(false);
       },
       (error) => {
         console.error("MealPlate savedMeals error:", error);
+        setIsLoadingSavedMeals(false);
       },
     );
     return unsubscribe;
@@ -428,10 +493,12 @@ export default function MealPlate({
     setIsAnalyzing(true);
     setAnalysis(null);
     try {
+      const dietContext = settings?.activeDiet ? `UWAGA: Użytkownik przebywa na diecie: ${settings.activeDiet}. Koniecznie uwzględnij to podczas analizy i precyzuj jak bardzo ten zestaw do niej pasuje!` : '';
       const prompt = `Jesteś zaawansowanym asystentem diabetologicznym. Przeanalizuj poniższy skład posiłku pacjenta:
       ${JSON.stringify(plate.map(p => ({ nazwa: p.name, waga: p.weight, wegle: p.carbs, bialko: p.protein, tluszcz: p.fat, IG: p.gi })))}
       
       Wybrana obróbka termiczna całego posiłku: ${cookingMethod === 'raw' ? 'Surowe / Brak' : cookingMethod === 'boiled' ? 'Gotowane' : cookingMethod === 'baked' ? 'Pieczone' : cookingMethod === 'fried' ? 'Smażone' : 'Zblendowane'}
+      ${dietContext}
       
       Zwróć szczegółową analizę w czytelnym formacie HTML (używaj <b>, <ul>, <li>, <br>, ale ZABRANIAM używania markdown, w szczególności gwazdek).
       
@@ -1001,7 +1068,7 @@ export default function MealPlate({
                 reader.onload = async (event) => {
                   const dataUrl = event.target?.result as string;
                   try {
-                    const result = await geminiService.analyzeMeal(dataUrl);
+                    const result = await geminiService.analyzeMeal(dataUrl, settings);
                     const p: Product = {
                       id: `ai_${Date.now()}`,
                       name: result.mealName || "Posiłek AI",
@@ -1043,6 +1110,77 @@ export default function MealPlate({
           />
         </div>
 
+        {/* Cookbook / Saved Meals Horizontal Scroll */}
+        {(isLoadingSavedMeals || savedMeals.length > 0) && (
+          <div className="pt-2 pb-4">
+            <div className="flex items-center justify-between px-2 mb-3">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-accent-500 to-rose-500 flex items-center gap-1.5">
+                <Heart size={14} className="text-accent-500 fill-accent-500" />
+                Baza Posiłków
+              </h4>
+              {!isLoadingSavedMeals && (
+                <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                  {savedMeals.length} Zapisanych
+                </span>
+              )}
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-4 pt-1 px-1 scrollbar-none snap-x snap-mandatory">
+              {isLoadingSavedMeals ? (
+                <div className="flex gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={`skel-${i}`} className="snap-start shrink-0 w-[220px] h-[98px] bg-slate-100 dark:bg-slate-800/80 animate-pulse rounded-3xl border border-slate-200 dark:border-slate-800"></div>
+                  ))}
+                </div>
+              ) : (
+                savedMeals.map((m) => (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      Haptics.light();
+                      addSavedMeal(m);
+                    }}
+                    className="snap-start shrink-0 w-[220px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm hover:border-accent-500/50 hover:shadow-md transition-all cursor-pointer relative group flex flex-col justify-between"
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        Haptics.light();
+                        try {
+                          import('firebase/firestore').then(({ deleteDoc, doc }) => {
+                            deleteDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "savedMeals", m.id));
+                          });
+                        } catch (err) {
+                          console.error("Delete meal failed:", err);
+                        }
+                      }}
+                      className="absolute top-3 right-3 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full transition-colors"
+                      title="Usuń z bazy"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="mb-3 pr-6">
+                      <h5 className="font-black text-sm text-slate-800 dark:text-slate-100 leading-tight mb-1 line-clamp-2">
+                        {m.name}
+                      </h5>
+                      <p className="text-[10px] font-bold text-slate-400">
+                        {m.items.length} {m.items.length === 1 ? 'składnik' : 'składników'}
+                      </p>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div className="text-[11px] font-black text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20 px-2.5 py-1 rounded-xl">
+                        {m.items.reduce((acc: number, i: any) => acc + i.carbs, 0).toFixed(1)}g Węg.
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-lg shadow-accent-500/30">
+                        <Plus size={16} />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Category Filter */}
         <div 
           className="flex gap-2 overflow-x-auto pb-2 scrollbar-none"
@@ -1071,6 +1209,18 @@ export default function MealPlate({
             )}
           >
             Społeczność
+          </button>
+          <button
+            onClick={() => {
+              Haptics.selection();
+              setActiveCategory("Moje Produkty");
+            }}
+            className={cn(
+              "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+              activeCategory === "Moje Produkty" ? "bg-amber-600 text-white shadow-lg" : "bg-amber-50 dark:bg-amber-900/10 text-amber-500 border border-amber-100 dark:border-amber-900/20"
+            )}
+          >
+            Moje Produkty
           </button>
           {CATEGORIES.map((cat) => (
             <button
@@ -1113,9 +1263,18 @@ export default function MealPlate({
                       <div>
                         <div className="font-black text-xs dark:text-white flex items-center gap-2">
                           {p.name}
-                          <span className="bg-accent-500 text-white text-[8px] px-1 rounded font-black">
+                          <span className="bg-accent-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black">
                             AI
                           </span>
+                          {(() => {
+                            const badge = getDietBadge(p, settings?.activeDiet || null);
+                            if (!badge) return null;
+                            return (
+                              <span className={cn("text-[8px] px-1.5 py-0.5 rounded border font-black flex items-center gap-1", badge.color)}>
+                                {badge.icon} {badge.text}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div className="text-[9px] font-bold text-accent-500/60 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                           <span>
@@ -1155,17 +1314,27 @@ export default function MealPlate({
                     </button>
                     <button
                       onClick={() => openShortcutConfirmModal(p)}
-                      className="bg-amber-500 text-white p-2.5 rounded-xl active:scale-90 transition-all"
+                      className="bg-amber-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
                       title="Dodaj jako skrót"
                     >
                       <BookMarked size={16} />
+                      <span className="text-[8px] font-bold leading-none">Skrót</span>
+                    </button>
+                    <button
+                      onClick={() => publishToCommunity(p)}
+                      className="bg-sky-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
+                      title="Udostępnij społeczności"
+                    >
+                      <Share2 size={16} />
+                      <span className="text-[8px] font-bold leading-none">Społeczność</span>
                     </button>
                     <button
                       onClick={() => saveToCustomDb(p)}
-                      className="bg-accent-500 text-white p-2.5 rounded-xl active:scale-90 transition-all"
+                      className="bg-accent-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
                       title="Zapisz do bazy"
                     >
                       <Save size={16} />
+                      <span className="text-[8px] font-bold leading-none">Zapisz</span>
                     </button>
                   </div>
                 ))}
@@ -1210,10 +1379,10 @@ export default function MealPlate({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
                     transition={{ duration: 0.2 }}
-                    key={`${p.id || 'p'}-${i}`}
+                    key={p.id || p.name || `p-${i}`}
                   >
                     <SwipeableItem
-                      id={`${p.id || 'p'}-${i}`}
+                      id={p.id || p.name || `p-${i}`}
                       onDelete={() => {
                         Haptics.success();
                         addToPlate(p, 100);
@@ -1238,7 +1407,7 @@ export default function MealPlate({
                         <div>
                           <div className="font-black text-xs dark:text-white flex items-center gap-2">
                             {p.name}
-                            {p.id?.startsWith("custom_") && (
+                            {p.isCustom && !p.isCommunity && (
                               <span className="bg-amber-500/10 text-amber-500 text-[8px] px-1.5 py-0.5 rounded border border-amber-500/20">
                                 Twoje
                               </span>
@@ -1248,6 +1417,15 @@ export default function MealPlate({
                                 Społeczność
                               </span>
                             )}
+                            {(() => {
+                              const badge = getDietBadge(p, settings?.activeDiet || null);
+                              if (!badge) return null;
+                              return (
+                                <span className={cn("text-[8px] px-1.5 py-0.5 rounded border font-black flex items-center gap-1", badge.color)}>
+                                  {badge.icon} {badge.text}
+                                </span>
+                              );
+                            })()}
                           </div>
                           <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                             <span>
@@ -1283,21 +1461,38 @@ export default function MealPlate({
                             })()}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               openShortcutConfirmModal(p);
                             }}
-                            className="p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors z-10"
+                            className="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors z-10 min-w-[48px] gap-1"
                             title="Dodaj do skrótów"
                           >
                             <BookMarked size={16} />
+                            <span className="text-[8px] font-bold leading-none">Skrót</span>
                           </button>
-                          <Plus
-                            size={16}
-                            className="text-accent-500 bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
-                          />
+                          {p.isCustom && !p.isCommunity && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                publishToCommunity(p);
+                              }}
+                              className="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-sky-500 dark:hover:text-sky-400 transition-colors z-10 min-w-[48px] gap-1"
+                              title="Udostępnij społeczności"
+                            >
+                              <Share2 size={16} />
+                              <span className="text-[8px] font-bold leading-none">Społeczność</span>
+                            </button>
+                          )}
+                          <div className="flex flex-col items-center justify-center p-2 text-accent-500 z-10 min-w-[48px] gap-1">
+                            <Plus
+                              size={16}
+                              className="bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
+                            />
+                            <span className="text-[8px] font-bold leading-none">Talerz</span>
+                          </div>
                         </div>
                       </div>
                     </SwipeableItem>
@@ -1574,6 +1769,45 @@ export default function MealPlate({
             )}
           </div>
 
+          {(() => {
+            const dietAlerts = [];
+            if (settings?.activeDiet) {
+              if (settings.activeDiet === 'keto' && totalCarbs > 20) {
+                 dietAlerts.push('Posiłek dostarczy ponad 20g węgl., co mocno utrudnia pobyt w ketozie (Keto)!');
+              } else if (settings.activeDiet === 'keto' && fatPct > carbsPct + proteinPct) {
+                 dietAlerts.push({ text: 'Świetny stosunek makro dla diety Keto!', type: 'success' });
+              }
+              
+              if (settings.activeDiet === 'plate') {
+                if (carbsPct > 40) dietAlerts.push('Zbyt duża przewaga węglowodanów względem talerza (Pamiętaj by 1/4 stanowiły węgle).');
+                if (proteinPct < 15) dietAlerts.push('Odrobinę za mało białka w porcji. (Pamiętaj by 1/4 stanowiło białko).');
+              }
+            }
+
+            if (dietAlerts.length > 0) {
+               return (
+                 <div className="mb-6 space-y-2">
+                   {dietAlerts.map((a, i) => {
+                     const isSuccess = typeof a === 'object' && a.type === 'success';
+                     const msg = typeof a === 'object' ? a.text : a;
+                     return (
+                       <div key={i} className={cn("p-4 rounded-2xl border", isSuccess ? "bg-emerald-500/10 border-emerald-500/20" : "bg-rose-500/10 border-rose-500/20")}>
+                         <h5 className={cn("text-[10px] font-black uppercase tracking-widest mb-1 flex items-center gap-1", isSuccess ? "text-emerald-400" : "text-rose-400")}>
+                           {isSuccess ? <Leaf size={12} /> : <AlertTriangle size={12} />} 
+                           GlikoSense: Twoja Dieta
+                         </h5>
+                         <p className={cn("text-xs font-bold leading-relaxed", isSuccess ? "text-emerald-300" : "text-rose-300")}>
+                           {msg}
+                         </p>
+                       </div>
+                     );
+                   })}
+                 </div>
+               );
+             }
+             return null;
+          })()}
+
           {/* Makroskładniki Procentowo */}
           <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
              <div className="flex justify-between items-center mb-2">
@@ -1618,14 +1852,24 @@ export default function MealPlate({
              </div>
           </div>
 
+          <div className="flex justify-center flex-col items-center py-6 border-t border-white/10 mb-2 mt-2">
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 block">
+              Kalorie z makroskładników
+            </span>
+            <span className="text-4xl font-black text-white drop-shadow-md flex items-baseline gap-1">
+              {Math.round(totalCalsFromMacros)}
+              <span className="text-sm font-bold opacity-40">kcal</span>
+            </span>
+          </div>
+
           <div className="grid grid-cols-2 gap-4 mb-6 border-t border-white/10 pt-4">
             <div>
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Węglowodany
+                Wymienniki WW
               </span>
               <span className="text-2xl font-black text-accent-400">
-                {totalCarbs.toFixed(1)}
-                <span className="text-xs font-bold opacity-30 ml-1">g</span>
+                {totalWW.toFixed(1)}
+                <span className="text-xs font-bold opacity-30 ml-1">WW</span>
               </span>
             </div>
             <div className="text-right">
@@ -1639,32 +1883,41 @@ export default function MealPlate({
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-2 mb-6 border-t border-white/10 pt-4">
+          <div className="grid grid-cols-4 gap-2 mb-6 border-t border-white/10 pt-4">
             <div>
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
                 Węglowodany
               </span>
-              <span className="text-xl font-black text-accent-300">
+              <span className="text-lg font-black text-accent-300">
                 {totalCarbs.toFixed(1)}
-                <span className="text-xs font-bold opacity-30 ml-1">g</span>
+                <span className="text-[9px] font-bold opacity-30 ml-1">g</span>
               </span>
             </div>
-            <div className="text-center">
+            <div className="text-center border-l border-white/10">
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Białko + Tł.
+                Białko
               </span>
-              <span className="text-xl font-black text-emerald-400">
-                {(totalProtein + totalFat).toFixed(1)}
-                <span className="text-xs font-bold opacity-30 ml-1">g</span>
+              <span className="text-lg font-black text-emerald-400">
+                {totalProtein.toFixed(1)}
+                <span className="text-[9px] font-bold opacity-30 ml-1">g</span>
               </span>
             </div>
-            <div className="text-right">
+            <div className="text-center border-l border-white/10">
+              <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
+                Tłuszcze
+              </span>
+              <span className="text-lg font-black text-amber-400">
+                {totalFat.toFixed(1)}
+                <span className="text-[9px] font-bold opacity-30 ml-1">g</span>
+              </span>
+            </div>
+            <div className="text-right border-l border-white/10">
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
                 Ładunek Gl.
               </span>
-              <span className={cn("text-xl font-black", totalGL <= 10 ? "text-emerald-400" : totalGL < 20 ? "text-amber-400" : "text-rose-400")}>
+              <span className={cn("text-lg font-black", totalGL <= 10 ? "text-emerald-400" : totalGL < 20 ? "text-amber-400" : "text-rose-400")}>
                 {totalGL.toFixed(1)}
-                <span className="text-xs font-bold opacity-30 ml-1">ŁG</span>
+                <span className="text-[9px] font-bold opacity-30 ml-1">ŁG</span>
               </span>
             </div>
           </div>
@@ -1733,67 +1986,7 @@ export default function MealPlate({
         </div>
       )}
 
-      {(mode === 'search' || mode === 'both') && savedMeals.length > 0 && (
-        <div className="px-2 mt-8">
-          <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">
-            Ulubione Zestawy
-          </h4>
-          <div className="space-y-3">
-            {savedMeals.map((m) => (
-              <SwipeableItem
-                key={m.id}
-                id={m.id}
-                onDelete={async () => {
-                  try {
-                    await deleteDoc(
-                      doc(
-                        db,
-                        "artifacts",
-                        "diacontrolapp",
-                        "users",
-                        getEffectiveUid(user),
-                        "savedMeals",
-                        m.id,
-                      ),
-                    );
-                  } catch (err) {
-                    console.error("Delete meal failed:", err);
-                  }
-                }}
-              >
-                <div
-                  onClick={() => addSavedMeal(m)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-[2.5rem] flex justify-between items-center group hover:border-accent-500/30 transition-all cursor-pointer shadow-sm shadow-slate-200/50 dark:shadow-none"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-accent-500/10 dark:bg-accent-500/20 rounded-2xl flex items-center justify-center shadow-inner">
-                      <Zap
-                        size={20}
-                        className="text-accent-600 dark:text-accent-400"
-                      />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-black text-sm dark:text-white mb-0.5">
-                        {m.name}
-                      </p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                        {m.items.length} x Składnik •{" "}
-                        {m.items
-                          .reduce((acc: number, i: any) => acc + i.carbs, 0)
-                          .toFixed(1)}
-                        g W
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-full group-hover:bg-accent-500 group-hover:text-white transition-all">
-                    <Plus size={16} />
-                  </div>
-                </div>
-              </SwipeableItem>
-            ))}
-          </div>
-        </div>
-      )}
+
 
     </motion.div>
   );

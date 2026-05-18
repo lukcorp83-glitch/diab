@@ -3,7 +3,7 @@ import { Haptics } from '../lib/haptics';
 import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { motion } from 'motion/react';
+import { motion, Reorder } from 'motion/react';
 import { 
   Settings, 
   LogOut, 
@@ -44,11 +44,20 @@ import {
   Palette, 
   RefreshCw, 
   ShieldCheck, 
-  Lock as LucideLock
+  Play,
+  Lock as LucideLock,
+  BookOpen,
+  Edit2,
+  GripVertical,
+  HelpCircle,
+  CloudRain,
+  Calculator,
+  BarChart2
 } from 'lucide-react';
-import { db, auth } from '../lib/firebase';
+import { db, auth, onConnectionChange } from '../lib/firebase';
+import { deleteUser } from 'firebase/auth';
 import { cn } from '../lib/utils';
-import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { notificationService } from '../services/notificationService';
 import { UserSettings, LogEntry } from '../types';
 import { APP_VERSION, SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground } from '../constants';
@@ -59,6 +68,9 @@ import SettingsSync from './SettingsSync';
 import SettingsTransfer from './SettingsTransfer';
 import ApiIntegration from './ApiIntegration';
 import PumpSimulator from './PumpSimulator';
+import { Diets } from './Diets';
+import StatisticsView from './StatisticsView';
+import TutorialView from './TutorialView';
 
 interface ProfileProps {
   user: any;
@@ -115,6 +127,11 @@ export default function Profile({
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [geminiSaveStatus, setGeminiSaveStatus] = useState('');
   const [isTestingKey, setIsTestingKey] = useState(false);
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+
+  useEffect(() => {
+    return onConnectionChange(setIsFirebaseConnected);
+  }, []);
 
   const testKey = async () => {
     setIsTestingKey(true);
@@ -151,8 +168,65 @@ export default function Profile({
   const [medLoading, setMedLoading] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [cleaningResult, setCleaningResult] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('therapy');
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditResult, setAuditResult] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isEditingTiles, setIsEditingTiles] = useState(false);
+  const [categoryOrder, setCategoryOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('glikosense_category_order');
+    return saved ? JSON.parse(saved) : ['account', 'simulator', 'therapy', 'shop', 'devices', 'diets', 'stats', 'food', 'meds', 'api', 'system'];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('glikosense_category_order', JSON.stringify(categoryOrder));
+  }, [categoryOrder]);
+
+  useEffect(() => {
+    if (activeCategory !== null) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [activeCategory]);
+
   const tabsRef = useRef<HTMLDivElement>(null);
+
+  const orderedCategories = useMemo(() => {
+    const ALL_CATEGORIES = [
+      { id: 'tutorial', label: 'Samouczek', sub: 'FAQ & Pomoc', icon: <HelpCircle size={24} />, color: 'bg-indigo-500' },
+      { id: 'simulator', label: 'Symulator', sub: 'Bolusa', icon: <Calculator size={24} />, color: 'bg-orange-500' },
+      { id: 'account', label: 'Profil', sub: 'Zarządzanie kontem', icon: <User size={24} />, color: 'bg-blue-500' },
+      { id: 'therapy', label: 'Terapia', sub: 'Cele & ISF', icon: <Activity size={24} />, color: 'bg-emerald-500' },
+      ...(settings.childMode ? [{ id: 'shop', label: 'Sklepik', sub: petData.name, icon: <ShoppingBag size={24} />, color: 'bg-amber-500' }] : []),
+      { id: 'devices', label: 'Osprzęt', sub: 'CGM & Wkłucia', icon: <Signal size={24} />, color: 'bg-indigo-500' },
+      { id: 'diets', label: 'Diety', sub: 'Nawyki', icon: <BookOpen size={24} />, color: 'bg-rose-500' },
+      { id: 'stats', label: 'Statystyki', sub: 'Miesięczne', icon: <BarChart2 size={24} />, color: 'bg-indigo-600' },
+      { id: 'food', label: 'Skróty', sub: 'Szybkie wpisy', icon: <Utensils size={24} />, color: 'bg-amber-500' },
+      { id: 'meds', label: 'Leki', sub: 'Przypomnienia', icon: <Pill size={24} />, color: 'bg-teal-500' },
+      { id: 'api', label: 'Integracje', sub: 'API & Chmura', icon: <Globe size={24} />, color: 'bg-sky-500' },
+      { id: 'system', label: 'System', sub: 'Wygląd & Inne', icon: <Settings size={24} />, color: 'bg-slate-600' }
+    ];
+    const availableIds = ALL_CATEGORIES.map(c => c.id);
+    const ordered = categoryOrder.filter(id => availableIds.includes(id)).map(id => ALL_CATEGORIES.find(c => c.id === id)!);
+    const missing = ALL_CATEGORIES.filter(c => !categoryOrder.includes(c.id));
+    return [...ordered, ...missing];
+  }, [settings.childMode, petData.name, categoryOrder]);
+
+  const performTherapyAudit = async () => {
+    if (auditLoading) return;
+    setAuditLoading(true);
+    setAuditResult(null);
+    Haptics.medium();
+    try {
+      const result = await geminiService.getMasterAnalysis(logs);
+      setAuditResult(result);
+      toast.success("Audyt terapii wygenerowany!");
+      Haptics.success();
+    } catch (err) {
+      console.error("Therapy Audit Failed:", err);
+      toast.error("Nie udało się wygenerować audytu.");
+    } finally {
+      setAuditLoading(false);
+    }
+  };
 
   const scrollTabs = (dir: 'left' | 'right') => {
     if (tabsRef.current) {
@@ -165,6 +239,8 @@ export default function Profile({
     if (initialAction) {
        if (initialAction === 'meds') setActiveCategory('meds');
        if (initialAction === 'simulator') setActiveCategory('simulator');
+       if (initialAction === 'tutorial') setActiveCategory('tutorial');
+       if (initialAction === 'stats') setActiveCategory('stats');
        if (initialAction === 'food') setActiveCategory('food');
        if (initialAction === 'api') setActiveCategory('api');
        if (initialAction === 'devices') setActiveCategory('devices');
@@ -183,11 +259,11 @@ export default function Profile({
   const [showRodo, setShowRodo] = useState(false);
 
   const nukeAllData = async () => {
-    if (!window.confirm("UWAGA! Ta operacja jest NIEODWRACALNA. Wszystkie Twoje dane (pomiaru, posiłki, ustawienia, postępy zwierzaka) zostaną bezpowrotnie usunięte z serwera. Czy na pewno chcesz kontynuować?")) {
+    if (!window.confirm("Czy na pewno chcesz usunąć konto i wszystkie swoje dane? Ta operacja jest nieodwracalna.")) {
       return;
     }
     
-    if (!window.confirm("OSTATNIE OSTRZEŻENIE: Potwierdź usunięcie wszystkich danych.")) {
+    if (!window.confirm("Czy jesteś w 100% pewny? To spowoduje bezpowrotne usunięcie konta i wylogowanie z aplikacji.")) {
       return;
     }
 
@@ -213,8 +289,19 @@ export default function Profile({
         await deleteDoc(doc(db, userDocPath, ...docPath.split('/')));
       }
 
-      toast.success("Wszystkie dane zostały usunięte.");
+      await deleteDoc(doc(db, 'artifacts/diacontrolapp/users', uid));
+
+      if (auth.currentUser) {
+        try {
+          await deleteUser(auth.currentUser);
+        } catch (e) {
+          console.warn("Could not delete auth user", e);
+        }
+      }
+
+      toast.success("Wszystkie dane i konto zostały usunięte.");
       setTimeout(() => {
+        handleLogout();
         window.location.reload();
       }, 1500);
     } catch (err) {
@@ -225,6 +312,12 @@ export default function Profile({
     }
   };
 
+    const normalizeName = (name: string) => 
+      name.trim().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // usuwanie diakrytyków
+        .replace(/[^a-z0-9%\s]/g, '') // usuwanie znaków specjalnych
+        .replace(/\s+/g, ' '); // usuwanie wielokrotnych spacji
+
     const repairGIWithAI = async () => {
     if (cleaning) return;
     setCleaning(true);
@@ -234,40 +327,43 @@ export default function Profile({
     try {
       const uid = getEffectiveUid(user);
       const toFix: { id: string, name: string, coll: string, current: any }[] = [];
-      const seenNames = new Map<string, string>(); // name.toLowerCase() -> id
+      const seenNames = new Map<string, string>(); // normalized name -> source:id
       const duplicatesToDelete: { id: string, coll: string }[] = [];
       let totalChecked = 0;
       
-      // 1. Skan we własnych produktach
-      const userRef = collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'customProducts');
-      const userSnap = await getDocs(userRef);
-      totalChecked += userSnap.docs.length;
-      for (const docSnap of userSnap.docs) {
-        const data = docSnap.data();
-        if (data.name) {
-          const normalized = data.name.trim().toLowerCase();
-          if (seenNames.has(normalized)) {
-            duplicatesToDelete.push({ id: docSnap.id, coll: 'custom' });
-          } else {
-            seenNames.set(normalized, docSnap.id);
-            toFix.push({ id: docSnap.id, name: data.name, coll: 'custom', current: data });
-          }
-        }
-      }
-
-      // 2. Skan w produktach społecznościowych
+      // 1. Skan w produktach społecznościowych - najpierw budujemy bazę wzorcową
       const commRef = collection(db, 'artifacts', 'diacontrolapp', 'communityProducts');
       const commSnap = await getDocs(commRef);
       totalChecked += commSnap.docs.length;
       for (const docSnap of commSnap.docs) {
         const data = docSnap.data();
         if (data.name) {
-          const normalized = data.name.trim().toLowerCase();
-          if (seenNames.has(normalized)) {
-            duplicatesToDelete.push({ id: docSnap.id, coll: 'community' });
-          } else {
-            seenNames.set(normalized, docSnap.id);
+          const normalized = normalizeName(data.name);
+          if (!seenNames.has(normalized)) {
+            seenNames.set(normalized, `community:${docSnap.id}`);
             toFix.push({ id: docSnap.id, name: data.name, coll: 'community', current: data });
+          } else {
+            // Jeśli baza społeczności ma duplikaty wewnętrzne, możemy je oznaczyć do usunięcia 
+            // - system pozwoli na to tylko jeśli użytkownik ma uprawnienia, ale zazwyczaj pomijamy je w audycie
+            console.log(`Zignorowano duplikat w społeczności: ${data.name}`);
+          }
+        }
+      }
+
+      // 2. Skan we własnych produktach - usuwamy te, które już są w społeczności lub się powtarzają
+      const userRef = collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'customProducts');
+      const userSnap = await getDocs(userRef);
+      totalChecked += userSnap.docs.length;
+      for (const docSnap of userSnap.docs) {
+        const data = docSnap.data();
+        if (data.name) {
+          const normalized = normalizeName(data.name);
+          // Sprawdzamy czy nazwa już występuje (niezależnie czy w społeczności czy we własnych dodanych wyżej)
+          if (seenNames.has(normalized)) {
+            duplicatesToDelete.push({ id: docSnap.id, coll: 'custom' });
+          } else {
+            seenNames.set(normalized, `custom:${docSnap.id}`);
+            toFix.push({ id: docSnap.id, name: data.name, coll: 'custom', current: data });
           }
         }
       }
@@ -275,10 +371,12 @@ export default function Profile({
       if (duplicatesToDelete.length > 0) {
         setCleaningResult(`Znaleziono ${duplicatesToDelete.length} duplikatów. Usuwanie zbędnych wpisów...`);
         for (const dup of duplicatesToDelete) {
-          const targetRef = dup.coll === 'custom' 
-            ? doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'customProducts', dup.id)
-            : doc(db, 'artifacts', 'diacontrolapp', 'communityProducts', dup.id);
-          await deleteDoc(targetRef);
+          const targetRef = doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'customProducts', dup.id);
+          try {
+            await deleteDoc(targetRef);
+          } catch (e) {
+            console.error("Delete failed for duplicate", dup.id, e);
+          }
           Haptics.light();
         }
       }
@@ -687,68 +785,6 @@ export default function Profile({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-      <div className="relative p-4 rounded-[2.5rem] text-center overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent-500/10 via-transparent to-purple-500/5 dark:from-accent-500/20"></div>
-        <div className="absolute -top-12 -right-12 w-48 h-48 bg-accent-500/10 dark:bg-accent-500/20 blur-[80px] rounded-full pointer-events-none"></div>
-        
-        <div className="relative z-10">
-          <div className="w-16 h-16 bg-white dark:bg-slate-900 text-accent-600 dark:text-accent-400 rounded-[1.8rem] flex items-center justify-center mx-auto mb-3 shadow-xl border-4 border-white dark:border-slate-800">
-            {user.email ? (
-              <span className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-br from-accent-500 to-indigo-600">
-                {user.email.charAt(0)}
-              </span>
-            ) : (
-               <User size={28} />
-            )}
-          </div>
-          <h2 className="text-base font-black dark:text-white mb-0.5">Twój Profil</h2>
-          <p className="text-slate-400 text-[9px] font-bold mb-3 truncate max-w-[180px] mx-auto opacity-70">
-            {user.email || 'Użytkownik Anonimowy'}
-          </p>
-          
-          <div className="flex gap-2 justify-center">
-            <button onClick={() => {
-              Haptics.medium();
-              handleLogout();
-            }} className="group relative bg-white dark:bg-slate-800 text-rose-500 font-black text-[8px] px-5 py-2.5 rounded-lg uppercase tracking-[0.2em] shadow-md hover:bg-rose-500 hover:text-white transition-all active:scale-95 border border-rose-500/20 overflow-hidden">
-               <span className="relative z-10 flex items-center gap-1">
-                 <LogOut size={10} /> Wyloguj
-               </span>
-            </button>
-          </div>
-          
-          <motion.div 
-            whileHover={{ y: -1 }}
-            className="flex flex-col gap-2 p-4 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/50 dark:border-slate-800/50 mt-6 text-left shadow-xl"
-          >
-            <div className="flex items-center justify-between">
-                <h4 className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                  <div className="p-1.5 bg-purple-500/10 rounded-lg">
-                    <Brain size={12} />
-                  </div>
-                  Program Badawczy GlikoSense
-                </h4>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={telemetryEnabled}
-                    onChange={(e) => {
-                      const val = e.target.checked;
-                      setTelemetryEnabled(val);
-                      localStorage.setItem('glikosense_telemetry', val ? 'true' : 'false');
-                    }}
-                  />
-                  <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all dark:border-slate-600 peer-checked:bg-purple-500 shadow-inner"></div>
-                </label>
-            </div>
-            <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-snug font-bold">
-              Pomóż społeczności. Włącz anonimowe udostępnianie wiedzy wyuczonej przez Twój model AI (GlikoSense).
-            </p>
-          </motion.div>
-        </div>
-      </div>
-
       {settings.childMode && (
         <>
           {/* Pet Header Section */}
@@ -810,71 +846,210 @@ export default function Profile({
         </>
       )}
 
-      <div className="relative group/tabs">
-        <button 
-          onClick={() => scrollTabs('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow-xl flex items-center justify-center border border-slate-100 dark:border-slate-700 -ml-2 hover:bg-white dark:hover:bg-slate-700 transition-all active:scale-90"
-        >
-          <ChevronLeft size={16} className="text-slate-600 dark:text-slate-300" />
-        </button>
-        
-      <div 
-        ref={tabsRef}
-        className="flex overflow-x-auto gap-3 pb-6 pt-2 scrollbar-none snap-x -mx-4 px-4 overflow-visible"
-      >
-          {[
-            { id: 'therapy', label: 'Terapia', sub: 'Cele & ISF', icon: <Activity size={18} />, color: 'bg-emerald-500' },
-            ...(settings.childMode ? [{ id: 'shop', label: 'Sklepik', sub: petData.name, icon: <ShoppingBag size={18} />, color: 'bg-amber-500' }] : []),
-            { id: 'devices', label: 'Osprzęt', sub: 'CGM & Wkłucia', icon: <Signal size={18} />, color: 'bg-indigo-500' },
-            { id: 'food', label: 'Skróty', sub: 'Szybkie wpisy', icon: <Utensils size={18} />, color: 'bg-amber-500' },
-            { id: 'meds', label: 'Leki', sub: 'Przypomnienia', icon: <Pill size={18} />, color: 'bg-teal-500' },
-            { id: 'api', label: 'Integracje', sub: 'API & Chmura', icon: <Globe size={18} />, color: 'bg-sky-500' },
-            { id: 'system', label: 'System', sub: 'Wygląd & Inne', icon: <Settings size={18} />, color: 'bg-slate-600' }
-          ].map(cat => (
-            <button 
-              key={cat.id} 
+      {activeCategory === null ? (
+        <div className="pb-6 pt-2">
+          <div className="flex items-center justify-between mb-4 px-2">
+            <h2 className="text-xl font-black text-slate-800 dark:text-white">Więcej opcji</h2>
+            <button
               onClick={() => {
                 Haptics.selection();
-                setActiveCategory(cat.id);
+                setIsEditingTiles(!isEditingTiles);
               }}
-              className={cn(
-                "flex-shrink-0 w-32 h-32 rounded-[2.5rem] flex flex-col p-4 snap-start transition-all duration-300 relative overflow-hidden group",
-                activeCategory === cat.id 
-                  ? "bg-white dark:bg-slate-900 shadow-2xl shadow-black/10 scale-105 z-10 border-2 border-accent-500/20" 
-                  : "bg-slate-100/50 dark:bg-slate-800/30 grayscale-[0.4] hover:grayscale-0 hover:bg-slate-100 dark:hover:bg-slate-800"
-              )}
+              className="text-xs font-bold text-accent-500 bg-accent-500/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 active:scale-95 transition-transform"
             >
-              <div className={cn(
-                "w-10 h-10 rounded-2xl flex items-center justify-center text-white mb-3 shadow-lg group-hover:scale-110 transition-transform",
-                activeCategory === cat.id ? cat.color : "bg-slate-400 dark:bg-slate-600"
-              )}>
-                {cat.icon}
-              </div>
-              <div className="text-left mt-auto">
-                <p className={cn(
-                  "text-[10px] font-black uppercase tracking-tight",
-                  activeCategory === cat.id ? "text-slate-900 dark:text-white" : "text-slate-500"
-                )}>{cat.label}</p>
-                <p className="text-[8px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors">{cat.sub}</p>
-              </div>
-              
-              {activeCategory === cat.id && (
-                <motion.div 
-                  layoutId="active-dot"
-                  className="absolute top-3 right-3 w-2 h-2 rounded-full bg-accent-500"
-                />
+              {isEditingTiles ? (
+                <>Zakończ</>
+              ) : (
+                <><Edit2 size={12} /> Edytuj</>
               )}
             </button>
-          ))}
+          </div>
+          <Reorder.Group 
+            axis="y" 
+            values={categoryOrder} 
+            onReorder={(newOrder) => {
+              Haptics.selection();
+              setCategoryOrder(newOrder);
+            }} 
+            className="grid grid-cols-2 gap-3"
+          >
+            {orderedCategories.map(cat => (
+              <Reorder.Item 
+                key={cat.id} 
+                value={cat.id}
+                dragListener={isEditingTiles}
+                className={cn("w-full relative", isEditingTiles && "touch-none")}
+              >
+                <div
+                  onClick={() => {
+                    if (isEditingTiles) return;
+                    Haptics.selection();
+                    setActiveCategory(cat.id);
+                  }}
+                  className={cn(
+                    "w-full aspect-square rounded-[2rem] flex flex-col p-5 transition-all duration-300 relative overflow-hidden group bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50",
+                    !isEditingTiles && "hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:-translate-y-1 cursor-pointer",
+                    isEditingTiles && "opacity-90 scale-[0.98] cursor-grab active:cursor-grabbing border-slate-300 dark:border-slate-600"
+                  )}
+                >
+                  <div className={cn(
+                    "w-12 h-12 rounded-[1.25rem] flex items-center justify-center text-white mb-4 shadow-lg shrink-0",
+                    !isEditingTiles && "group-hover:scale-110 transition-transform",
+                    cat.color
+                  )}>
+                    {cat.icon}
+                  </div>
+                  <div className="text-left mt-auto">
+                    <p className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">{cat.label}</p>
+                    <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-600 transition-colors mt-1">{cat.sub}</p>
+                  </div>
+                  {isEditingTiles && (
+                    <div className="absolute top-4 right-4 text-slate-400 p-1 bg-white dark:bg-slate-900 rounded-full shadow-sm">
+                      <GripVertical size={16} />
+                    </div>
+                  )}
+                </div>
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
         </div>
+      ) : (
+        <div className="mb-6 -mx-2 px-2 overflow-x-auto scrollbar-none">
+          <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                Haptics.selection();
+                setActiveCategory(null);
+              }}
+              className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors duration-200 bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-[1.5rem] text-[10px] uppercase font-black tracking-widest shrink-0"
+            >
+              <ChevronLeft size={16} /> 
+              <span>Wróć do Menu</span>
+            </button>
+            <div className="flex bg-slate-50 dark:bg-slate-800/50 rounded-[1.5rem] p-1 items-center">
+              {[
+                { id: 'tutorial', label: 'Samouczek', icon: <HelpCircle size={14} /> },
+                { id: 'simulator', label: 'Symulator', icon: <Calculator size={14} /> },
+                { id: 'account', label: 'Profil', icon: <User size={14} /> },
+                { id: 'therapy', label: 'Terapia', icon: <Activity size={14} /> },
+                ...(settings.childMode ? [{ id: 'shop', label: 'Sklepik', icon: <ShoppingBag size={14} /> }] : []),
+                { id: 'devices', label: 'Osprzęt', icon: <Signal size={14} /> },
+                { id: 'diets', label: 'Diety', icon: <BookOpen size={14} /> },
+                { id: 'stats', label: 'Statystyki', icon: <BarChart2 size={14} /> },
+                { id: 'food', label: 'Skróty', icon: <Utensils size={14} /> },
+                { id: 'meds', label: 'Leki', icon: <Pill size={14} /> },
+                { id: 'api', label: 'API', icon: <Globe size={14} /> },
+                { id: 'system', label: 'System', icon: <Settings size={14} /> }
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    Haptics.selection();
+                    setActiveCategory(cat.id);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all whitespace-nowrap",
+                    activeCategory === cat.id ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  )}
+                >
+                  <span className="opacity-70">{cat.icon}</span>
+                  <span className="uppercase tracking-widest leading-none">{cat.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-        <button 
-          onClick={() => scrollTabs('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 p-2 rounded-full shadow-xl flex items-center justify-center border border-slate-100 dark:border-slate-700 -mr-2 hover:bg-white dark:hover:bg-slate-700 transition-all active:scale-90"
+      {activeCategory === 'account' && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pb-20 space-y-4"
         >
-          <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />
-        </button>
-      </div>
+          <div className="relative p-4 rounded-[2.5rem] text-center overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent-500/10 via-transparent to-purple-500/5 dark:from-accent-500/20"></div>
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-accent-500/10 dark:bg-accent-500/20 blur-[80px] rounded-full pointer-events-none"></div>
+            
+            <div className="relative z-10">
+              <div className="w-16 h-16 bg-white dark:bg-slate-900 text-accent-600 dark:text-accent-400 rounded-[1.8rem] flex items-center justify-center mx-auto mb-3 shadow-xl border-4 border-white dark:border-slate-800">
+                {user.email ? (
+                  <span className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-br from-accent-500 to-indigo-600">
+                    {user.email.charAt(0)}
+                  </span>
+                ) : (
+                   <User size={28} />
+                )}
+              </div>
+              <h2 className="text-base font-black dark:text-white mb-0.5">Twój Profil</h2>
+              <p className="text-slate-400 text-[9px] font-bold mb-3 truncate max-w-[180px] mx-auto opacity-70">
+                {user.email || 'Użytkownik Anonimowy'}
+              </p>
+              
+              <div className="flex gap-2 justify-center">
+                <button onClick={() => {
+                  Haptics.medium();
+                  handleLogout();
+                }} className="group relative bg-white dark:bg-slate-800 text-rose-500 font-black text-[8px] px-5 py-2.5 rounded-lg uppercase tracking-[0.2em] shadow-md hover:bg-rose-500 hover:text-white transition-all active:scale-95 border border-rose-500/20 overflow-hidden">
+                   <span className="relative z-10 flex items-center gap-1">
+                     <LogOut size={10} /> Wyloguj
+                   </span>
+                </button>
+              </div>
+              
+              <motion.div 
+                whileHover={{ y: -1 }}
+                className="flex flex-col gap-2 p-4 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/50 dark:border-slate-800/50 mt-6 text-left shadow-xl"
+              >
+                <div className="flex items-center justify-between">
+                    <h4 className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                      <div className="p-1.5 bg-purple-500/10 rounded-lg">
+                        <Brain size={12} />
+                      </div>
+                      Program Badawczy GlikoSense
+                    </h4>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={telemetryEnabled}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setTelemetryEnabled(val);
+                          localStorage.setItem('glikosense_telemetry', val ? 'true' : 'false');
+                        }}
+                      />
+                      <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all dark:border-slate-600 peer-checked:bg-purple-500 shadow-inner"></div>
+                    </label>
+                </div>
+                <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-snug font-bold">
+                  Pomóż społeczności. Włącz anonimowe udostępnianie wiedzy wyuczonej przez Twój model AI (GlikoSense).
+                </p>
+              </motion.div>
+            </div>
+          </div>
+
+          <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 rounded-[2.5rem] p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-rose-500 text-white rounded-xl shadow-lg">
+                <Trash size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-[0.1em]">Strefa Niebezpieczeństwa</h4>
+                <p className="text-[9px] text-slate-500 font-medium">Nieodwracalne usunięcie konta i wszystkich pomiarów</p>
+              </div>
+            </div>
+            <button 
+              onClick={nukeAllData}
+              disabled={nukeLoading}
+              className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2"
+            >
+              {nukeLoading ? <Loader2 className="animate-spin" size={14} /> : <LogOut size={16} />}
+              Usuń Konto i Dane
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Shop Tab Content Padding */}
       {activeCategory === 'shop' && (
@@ -1184,13 +1359,20 @@ export default function Profile({
                   onChange={(e) => {
                     const tdi = parseFloat(e.target.value);
                     if (tdi > 0) {
-                      const isf = 1800 / tdi;
-                      const ww = 500 / tdi;
-                      // Logic for showing suggestion...
+                      const suggestedIsf = Math.round(1800 / tdi);
+                      const suggestedWw = Number((500 / tdi).toFixed(1));
+                      // Update settings with suggested values and provide feedback
+                      setSettings(prev => ({
+                        ...prev,
+                        isf: suggestedIsf,
+                        wwRatio: suggestedWw
+                      }));
+                      Haptics.light();
                     }
                   }}
                 />
               </div>
+              <p className="text-[8px] text-slate-400 font-bold text-center">Zmiana TDI automatycznie aktualizuje ISF i Ratio WW.</p>
             </div>
 
             {/* Advanced Profiles Preview Card */}
@@ -1217,6 +1399,48 @@ export default function Profile({
           </div>
 
           <div id="hourly-profiles" className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl space-y-6">
+            <div className="flex flex-col gap-4 mb-4">
+               <button 
+                onClick={performTherapyAudit}
+                disabled={auditLoading}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-[2rem] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-between group"
+               >
+                 <div className="flex items-center gap-4">
+                   <div className="p-3 bg-white/20 rounded-2xl">
+                     {auditLoading ? <Loader2 className="animate-spin" size={24} /> : <Brain size={24} />}
+                   </div>
+                   <div className="text-left">
+                     <h3 className="text-base font-black uppercase tracking-tight">Ekspercki Audyt Terapii</h3>
+                     <p className="text-[10px] font-bold text-white/80">Analiza trendów i optymalizacja parametrów (w tym sugerowane profile godzinowe)</p>
+                   </div>
+                 </div>
+                 <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+               </button>
+
+               {auditResult && (
+                 <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="p-6 bg-slate-50 dark:bg-slate-800/80 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-inner relative"
+                 >
+                    <button 
+                      onClick={() => setAuditResult(null)}
+                      className="absolute top-4 right-4 text-slate-400 hover:text-rose-500"
+                    >
+                      <X size={16} />
+                    </button>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Sparkles className="text-amber-500" size={16} />
+                      <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Raport GlikoSense AI</h4>
+                    </div>
+                    <div 
+                      className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed space-y-3 prose-strong:font-black prose-strong:text-slate-900 dark:prose-strong:text-white"
+                      dangerouslySetInnerHTML={{ __html: auditResult }}
+                    />
+                 </motion.div>
+               )}
+            </div>
+
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Zaawansowane Profile Godzinowe</h3>
             
             <div className="space-y-3">
@@ -1472,9 +1696,20 @@ export default function Profile({
 
                 <button 
                   onClick={async () => {
-                    const newSettings = { ...settings, sensorChangeDate: Date.now() };
+                    const now = Date.now();
+                    const newSettings = { ...settings, sensorChangeDate: now };
                     setSettings(newSettings);
-                    if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    if (user) {
+                      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
+                        type: 'sensor_change',
+                        value: 0,
+                        timestamp: now,
+                        createdAt: serverTimestamp(),
+                        notes: 'Wymiana sensora',
+                        source: 'system'
+                      });
+                    }
                     toast.success('Zapisano wymianę sensora!');
                   }} 
                   className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] mt-2 active:scale-95 transition-all shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2 group/btn"
@@ -1535,9 +1770,20 @@ export default function Profile({
 
                 <button 
                   onClick={async () => {
-                    const newSettings = { ...settings, infusionSetChangeDate: Date.now() };
+                    const now = Date.now();
+                    const newSettings = { ...settings, infusionSetChangeDate: now };
                     setSettings(newSettings);
-                    if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    if (user) {
+                      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
+                        type: 'site_change',
+                        value: 0,
+                        timestamp: now,
+                        createdAt: serverTimestamp(),
+                        notes: 'Wymiana wkłucia',
+                        source: 'system'
+                      });
+                    }
                     toast.success('Zapisano wymianę wkłucia!');
                   }} 
                   className="w-full bg-teal-600 hover:bg-teal-500 text-white p-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] mt-2 active:scale-95 transition-all shadow-xl shadow-teal-600/20 flex items-center justify-center gap-2 group/btn"
@@ -1592,10 +1838,11 @@ export default function Profile({
             <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-500/10 flex flex-col gap-3">
                <button 
                   onClick={repairGIWithAI}
-                  className="w-full bg-white/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 text-[9px] font-black uppercase tracking-widest py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-amber-200/30"
+                  disabled={cleaning}
+                  className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-amber-200/50 font-black text-[9px] uppercase tracking-widest shadow-sm active:scale-95"
                >
-                 <RefreshCw size={12} className={cn(cleaning && "animate-spin")} />
-                 Audyt bazy (IG, ŁG, Makro, Duplikaty)
+                 {cleaning ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} fill="currentColor" />}
+                 START AUDYTU: IG, ŁG i DUPLIKATY
                </button>
                <p className="text-[8px] text-amber-700/60 dark:text-amber-400/40 font-bold px-2 text-center leading-tight">
                  AI przeanalizuje Twoje produkty, aby zweryfikować Indeks Glikemiczny, Ładunek, makroskładniki oraz usunąć powtarzające się nazwy.
@@ -1925,6 +2172,10 @@ export default function Profile({
         <PumpSimulator settings={settings} />
       )}
 
+      {activeCategory === 'tutorial' && (
+        <TutorialView setTab={() => setActiveCategory(null)} />
+      )}
+
       {activeCategory === 'api' && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -1934,13 +2185,24 @@ export default function Profile({
           <ApiIntegration user={user} />
           
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-4">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="p-2.5 bg-sky-500/10 text-sky-600 rounded-2xl">
-                <Globe size={20} />
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-sky-500/10 text-sky-600 rounded-2xl">
+                  <Globe size={20} />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-base font-black dark:text-white leading-tight">Pobieranie Danych</h3>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Źródła glikemii</p>
+                </div>
               </div>
-              <div className="text-left">
-                <h3 className="text-base font-black dark:text-white leading-tight">Pobieranie Danych</h3>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Źródła glikemii</p>
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
+                isFirebaseConnected 
+                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
+                  : "bg-rose-500/10 text-rose-500 border-rose-500/20 animate-pulse"
+              )}>
+                <div className={cn("w-1.5 h-1.5 rounded-full", isFirebaseConnected ? "bg-emerald-500" : "bg-rose-500")} />
+                Cloud: {isFirebaseConnected ? "Połączony" : "Brak połączenia"}
               </div>
             </div>
 
@@ -2084,6 +2346,26 @@ export default function Profile({
         </motion.div>
       )}
 
+      {activeCategory === 'diets' && (
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="pb-20"
+        >
+          <Diets user={user} setTab={setTab} settings={settings} />
+        </motion.div>
+      )}
+
+      {activeCategory === 'stats' && (
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="pb-20 space-y-4"
+        >
+          <StatisticsView logs={logs} />
+        </motion.div>
+      )}
+
       {activeCategory === 'system' && (
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
@@ -2191,6 +2473,66 @@ export default function Profile({
                     <div className={cn(
                       "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
                       (localStorage.getItem('gliko_haptics_enabled') !== 'false') ? "left-7" : "left-1"
+                    )} />
+                  </button>
+                </div>
+                
+                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-900/30 text-sky-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Cloud size={22} />
+                    </div>
+                    <div className="text-left max-w-[150px] sm:max-w-none">
+                      <p className="text-sm font-black dark:text-white leading-tight">Widżet i Alerty Pogodowe</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight flex-wrap">
+                        Zezwól na pobieranie pogody, aby widzieć informacje i ostrzeżenia.
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      const newSettings = { ...settings, weatherWidgetEnabled: !settings.weatherWidgetEnabled };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner shrink-0",
+                      settings.weatherWidgetEnabled ? "bg-sky-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
+                      settings.weatherWidgetEnabled ? "left-7" : "left-1"
+                    )} />
+                  </button>
+                </div>
+
+                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-teal-100 dark:bg-teal-900/30 text-teal-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                      <CloudRain size={22} />
+                    </div>
+                    <div className="text-left max-w-[150px] sm:max-w-none">
+                      <p className="text-sm font-black dark:text-white leading-tight">GlikoSense & Pogoda</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight flex-wrap">
+                        Zaawansowane analizowanie i przewidywanie rzepływu glikemii w oparciu o warunki pogodowe i biomet.
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      const newSettings = { ...settings, weatherNeuralEnabled: !settings.weatherNeuralEnabled };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner shrink-0",
+                      settings.weatherNeuralEnabled ? "bg-teal-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
+                      settings.weatherNeuralEnabled ? "left-7" : "left-1"
                     )} />
                   </button>
                 </div>
@@ -2335,18 +2677,38 @@ export default function Profile({
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-2">Administracja</h3>
                 
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2 rounded-xl", isFirebaseConnected ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500")}>
+                      <Cloud size={16} />
+                    </div>
+                    <div className="text-left">
+                       <p className="text-[10px] font-black dark:text-white uppercase tracking-tight">Status Firebase Cloud</p>
+                       <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">
+                         {isFirebaseConnected ? "Połączenie stabilne" : "Błąd połączenia / Offline"}
+                       </p>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest",
+                    isFirebaseConnected ? "bg-emerald-500 text-white" : "bg-rose-500 text-white animate-pulse"
+                  )}>
+                    {isFirebaseConnected ? "Online" : "Offline"}
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 p-2">
                     <button 
                       onClick={repairGIWithAI}
                       disabled={cleaning}
-                      className="w-full bg-indigo-50 dark:bg-indigo-500/10 border border-transparent text-indigo-600 dark:text-indigo-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+                      className="w-full bg-accent-500 hover:bg-accent-600 text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-accent-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
                     >
-                      {cleaning ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
-                      Audyt bazy (IG, ŁG, Makro, Duplikaty)
+                      {cleaning ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} fill="currentColor" />}
+                      START AUDYTU: IG, ŁG i DUPLIKATY
                     </button>
-                    <p className="text-[8px] text-slate-400 dark:text-slate-500 font-bold px-2 text-center leading-tight">
-                      Skanuje Twoją bazę produktów i używa AI, aby automatycznie uzupełnić brakujące lub poprawić błędne wartości IG, Ładunku Glikemicznego oraz makroskładników. Usuwa również duplikaty nazw.
+                    <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold px-4 text-center leading-relaxed">
+                      Inteligentny system AI przeskanuje Twoją bazę produktów, naprawi błędne wartości Indeksu i Ładunku Glikemicznego oraz usunie powtarzające się pozycje.
                     </p>
                   </div>
                   
@@ -2371,27 +2733,6 @@ export default function Profile({
                 {cleaningResult && (
                   <p className="text-center text-[9px] font-bold text-rose-500 uppercase tracking-widest px-4">{cleaningResult}</p>
                 )}
-              </div>
-
-              {/* Danger Zone */}
-              <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 rounded-[2.5rem] p-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-rose-500 text-white rounded-xl shadow-lg">
-                    <Trash size={18} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-[0.1em]">Strefa Niebezpieczeństwa</h4>
-                    <p className="text-[9px] text-slate-500 font-medium">Nieodwracalne usunięcie konta i wszystkich pomiarów</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={nukeAllData}
-                  disabled={nukeLoading}
-                  className="w-full bg-rose-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2"
-                >
-                  {nukeLoading ? <Loader2 className="animate-spin" size={14} /> : <LogOut size={16} />}
-                  Usuń Moje Dane (RODO)
-                </button>
               </div>
 
               {/* RODO / Privacy Detail */}

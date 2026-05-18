@@ -44,6 +44,7 @@ import { notificationService } from './services/notificationService';
 import { Toaster, toast } from 'react-hot-toast';
 
 import Dashboard from './components/Dashboard';
+import ChartFullView from './components/ChartFullView';
 
 const lazyWithReload = (importFunc: () => Promise<any>) => {
   return React.lazy(async () => {
@@ -73,6 +74,7 @@ const HistoryView = lazyWithReload(() => import('./components/HistoryView'));
 const GlikoGames = lazyWithReload(() => import('./components/GlikoGames'));
 const GlikoChat = lazyWithReload(() => import('./components/GlikoChat'));
 const GlikoAssistant = lazyWithReload(() => import('./components/GlikoAssistant'));
+const TutorialView = lazyWithReload(() => import('./components/TutorialView'));
 import Sidebar from './components/Sidebar';
 import { cn } from './lib/utils';
 import { nightscoutService } from './services/nightscout';
@@ -86,6 +88,7 @@ import NotebookManager from './components/NotebookManager';
 import ChangelogPopup from './components/ChangelogPopup';
 import PrivacyPopup from './components/PrivacyPopup';
 import QuickStatusPopup from './components/QuickStatusPopup';
+import { Diets } from './components/Diets';
 import { CURRENT_VERSION } from './constants/versions';
 
 import GlikoSenseIcon from './components/GlikoSenseIcon';
@@ -135,6 +138,14 @@ export default function App() {
   const [privacyLoading, setPrivacyLoading] = useState(true);
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo(0, 0);
+    }
+  }, [activeTab]);
+
   const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>(() => {
     const saved = localStorage.getItem('gliko_assistant_history');
     if (saved) {
@@ -217,7 +228,7 @@ export default function App() {
         combinedInsights
       );
 
-      // Handle Plate Actions (if any)
+      // Handle Plate/App Actions
       let cleanResponse = response;
       const plateActionMatch = response.match(/<plate_action>([\s\S]*?)<\/plate_action>/);
       
@@ -225,13 +236,25 @@ export default function App() {
         try {
           const actionData = JSON.parse(plateActionMatch[1]);
           if (actionData.action === 'add' && actionData.item) {
-            setSharedPlate(prev => [...prev, { ...actionData.item, plateItemId: Math.random().toString(36).substr(2, 9) }]);
-            toast.success(`AI dodało ${actionData.item.name} do talerza!`);
+             window.dispatchEvent(new CustomEvent('ai_plate_action', { detail: actionData }));
           }
-          cleanResponse = response.replace(/<plate_action>[\s\S]*?<\/plate_action>/, '').trim();
+          cleanResponse = cleanResponse.replace(/<plate_action>[\s\S]*?<\/plate_action>/, '').trim();
         } catch (e) {
           console.error("AI Plate Action Error:", e);
         }
+      }
+      
+      const appActionMatches = Array.from(response.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g));
+      for (const match of appActionMatches) {
+        try {
+          const actionData = JSON.parse(match[1]);
+          window.dispatchEvent(new CustomEvent('ai_app_action', { detail: actionData }));
+        } catch (e) {
+          console.error("AI App Action Error:", e);
+        }
+      }
+      if (appActionMatches.length > 0) {
+         cleanResponse = cleanResponse.replace(/<app_action>[\s\S]*?<\/app_action>/g, '').trim();
       }
 
       const modelMessage: AssistantMessage = {
@@ -308,6 +331,90 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('current_plate', JSON.stringify(sharedPlate));
   }, [sharedPlate]);
+
+  useEffect(() => {
+    const handlePlateAction = (e: any) => {
+      const { action, item } = e.detail;
+      if (action === 'add' && item) {
+        setSharedPlate(prev => {
+           const newItem = {
+             id: 'ai-' + Date.now() + Math.random(),
+             ...item,
+             gi: item.gi || 0,
+             category: item.category || 'AI Dodane',
+             weight: item.weight || 100
+           };
+           return [...prev, newItem];
+        });
+        toast.success(`Dodano: ${item.name} (${item.carbs}g W, ${item.protein}g B, ${item.fat}g T)`);
+      }
+    };
+    
+    const handleAppAction = async (e: any) => {
+      const { action, key, value, logData } = e.detail;
+      
+      if (action === 'set_setting' && user && userSettings) {
+        if (['isf', 'wwRatio', 'wbtRatio', 'targetMin', 'targetMax', 'tdee'].includes(key)) {
+          try {
+            const newSettings = { ...userSettings, [key]: Number(value) };
+            await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+            setUserSettings(newSettings);
+            toast.success(`AI zaktualizowało: ${key} na ${value}`);
+          } catch(err) {
+            console.error("Failed to update setting from AI", err);
+          }
+        } else if (key === 'haptics' || key === 'hapticsEnabled') {
+            const isEnabled = typeof value === 'boolean' ? value : value === 'true';
+            localStorage.setItem('gliko_haptics_enabled', isEnabled ? 'true' : 'false');
+            toast.success(isEnabled ? 'Wibracje zostały włączone przez AI' : 'Wibracje zostały wyłączone przez AI');
+        }
+      } else if (action === 'add_log' && user) {
+         try {
+             // addDoc we need to make sure we have addDoc from firebase/firestore
+             const logsRef = collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs');
+             const nowTimestamp = Date.now();
+             const newLog = {
+                ...logData, // { type: 'bolus'|'glucose'|'site_change'|'sensor_change', value: number, notes? }
+                timestamp: nowTimestamp,
+                createdAt: serverTimestamp()
+             };
+             await setDoc(doc(logsRef), newLog);
+             
+             if (logData.type === 'site_change' || logData.type === 'sensor_change') {
+                 const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+                 const settingsSnap = await getDocFromServer(settingsRef);
+                 let currentSettings = settingsSnap.exists() ? settingsSnap.data() : {};
+                 
+                 if (logData.type === 'site_change') {
+                     currentSettings.infusionSetChangeDate = nowTimestamp;
+                 } else if (logData.type === 'sensor_change') {
+                     currentSettings.sensorChangeDate = nowTimestamp;
+                 }
+                 await setDoc(settingsRef, currentSettings, { merge: true });
+             }
+             
+             toast.success(`Zapisano dzienniczek z poziomu AI!`);
+         } catch (err) {
+            console.error("Failed to add log", err);
+         }
+      } else if (action === 'navigate') {
+          const tab = value; // e.g. 'dashboard', 'database', 'meal', 'settings'->'profile'
+          let targetTab = tab;
+          if (tab === 'settings' || tab === 'ustawienia') targetTab = 'profile';
+          if (tab === 'baza') targetTab = 'database';
+          if (tab === 'talerz') targetTab = 'meal';
+          setActiveTab(targetTab);
+          toast(`Przejście do zakładki...`, { icon: '🚀' });
+      }
+    };
+
+    window.addEventListener('ai_plate_action', handlePlateAction);
+    window.addEventListener('ai_app_action', handleAppAction);
+    return () => {
+      window.removeEventListener('ai_plate_action', handlePlateAction);
+      window.removeEventListener('ai_app_action', handleAppAction);
+    };
+  }, [user, userSettings]);
 
   // Test Firestore connection
   useEffect(() => {
@@ -434,7 +541,7 @@ export default function App() {
 
   const changeTab = React.useCallback((newTab: string) => {
     Haptics.light();
-    const defaultTabs = ['dashboard', 'database', 'meal', 'chat', 'ai', 'profile', 'games'];
+    const defaultTabs = ['chart', 'dashboard', 'database', 'meal', 'chat', 'ai', 'profile', 'games'];
     const getIndex = (tab: string) => defaultTabs.indexOf(tab) >= 0 ? defaultTabs.indexOf(tab) : 0;
     setDirection(getIndex(newTab) >= getIndex(activeTab) ? 1 : -1);
     setActiveTab(newTab);
@@ -680,22 +787,32 @@ export default function App() {
       try {
         setSyncStatus(prev => ({ ...prev, status: 'syncing' }));
         console.log("Starting Nightscout sync...");
-        // Fetch fewer entries periodically to prevent quota issues
-        const entries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 300); 
-        const treatments = await nightscoutService.fetchTreatments(nsUrl, nsSecret, 100); 
         
+        // 1. FAST PATH: Fetch just the LATEST entry first for immediate feedback
+        const latestEntries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 1);
+        if (latestEntries.length > 0) {
+          const latest = latestEntries[0];
+          const fingerprint = `${latest.type}-${Math.floor(latest.timestamp / 60000)}-${latest.value}`;
+          const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
+          const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', firestoreId);
+          
+          await setDoc(docRef, {
+            ...latest,
+            nsId: latest.id,
+            createdAt: serverTimestamp()
+          }, { merge: true });
+        }
+
+        // 2. Fetch device status (important for battery/status)
         const devicestatus = await nightscoutService.fetchDeviceStatus(nsUrl, nsSecret);
         if (devicestatus) {
           const pumpRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump');
-          console.log("[Nightscout Sync] Saving devicestatus to Firestore:", devicestatus);
-          try {
-            await setDoc(pumpRef, devicestatus, { merge: true });
-          } catch (fsErr) {
-            console.error("[Nightscout Sync] Firestore setDoc FAILED for pump status:", fsErr);
-          }
-        } else {
-          console.log("No device status found in Nightscout data.");
+          await setDoc(pumpRef, devicestatus, { merge: true });
         }
+
+        // 3. FULL SYNC: Fetch background history
+        const entries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 300); 
+        const treatments = await nightscoutService.fetchTreatments(nsUrl, nsSecret, 100); 
         
         const allNewLogs = [...entries, ...treatments];
         
@@ -714,6 +831,16 @@ export default function App() {
         if (newLogsToSync.length > 0) {
           console.log(`Syncing ${newLogsToSync.length} new records via batch...`);
           
+          let currentWeather: any = null;
+          if (userSettings?.weatherNeuralEnabled) {
+            try {
+               const { fetchCurrentWeather } = await import('./services/weatherService');
+               currentWeather = await fetchCurrentWeather();
+            } catch (e) {
+               console.warn("Failed to fetch weather for Nightscout sync", e);
+            }
+          }
+
           const CHUNK_SIZE = 400;
           for (let i = 0; i < newLogsToSync.length; i += CHUNK_SIZE) {
               const chunk = newLogsToSync.slice(i, i + CHUNK_SIZE);
@@ -721,6 +848,13 @@ export default function App() {
               
               for (const newLog of chunk) {
                  const { id: nsId, ...logData } = newLog;
+                 if (currentWeather && logData.type === 'glucose') {
+                   // Only append weather if the log is recent (last 1 hour), to avoid attaching current weather to old imported logs
+                   if (Date.now() - logData.timestamp < 3600000) {
+                     (logData as any).weather = currentWeather;
+                   }
+                 }
+
                  const fingerprint = `${newLog.type}-${Math.floor(newLog.timestamp / 60000)}-${newLog.value}`;
                  const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
                  const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', firestoreId);
@@ -761,7 +895,7 @@ export default function App() {
 
     window.addEventListener('force-nightscout-sync', handleForceSync);
 
-    const timeout = setTimeout(() => syncNightscout(false), 2000);
+    const timeout = setTimeout(() => syncNightscout(false), 500);
     const interval = setInterval(() => syncNightscout(false), 2 * 60 * 1000); // 2 min instead of 5
     return () => {
       clearTimeout(timeout);
@@ -978,8 +1112,8 @@ export default function App() {
   }
 
   const tabs = userSettings?.childMode 
-    ? ['dashboard', 'database', 'meal', 'chat', 'assistant', 'ai', 'profile', 'games']
-    : ['dashboard', 'database', 'meal', 'assistant', 'ai', 'profile'];
+    ? ['chart', 'dashboard', 'database', 'meal', 'chat', 'assistant', 'ai', 'profile', 'games']
+    : ['chart', 'dashboard', 'database', 'meal', 'chat', 'assistant', 'ai', 'profile'];
     
   const activeIndex = tabs.indexOf(activeTab);
 
@@ -1031,8 +1165,16 @@ export default function App() {
           syncStatus={syncStatus}
         />
       )}
+      {activeTab === 'chart' && (
+        <ChartFullView
+          logs={logs}
+          settings={userSettings || { isf: 50, wwRatio: 10, wbtRatio: 10, targetMin: 70, targetMax: 140 }}
+          theme={theme}
+          setTab={changeTab}
+        />
+      )}
       {activeTab === 'bolus' && (
-        <BolusCalculator logs={logs} user={user} setTab={changeTab} />
+        <BolusCalculator logs={logs} user={user} setTab={changeTab} setSharedPlate={setSharedPlate} />
       )}
       {activeTab === 'database' && (
         <MealPlate 
@@ -1043,6 +1185,7 @@ export default function App() {
           setSharedPlate={setSharedPlate} 
           mode="search" 
           openHistory={() => changeTab('history')}
+          settings={userSettings || undefined}
         />
       )}
       {activeTab === 'meal' && (
@@ -1054,6 +1197,7 @@ export default function App() {
           setSharedPlate={setSharedPlate} 
           mode="plate" 
           openHistory={() => changeTab('history')}
+          settings={userSettings || undefined}
         />
       )}
       {activeTab === 'chat' && (
@@ -1095,6 +1239,9 @@ export default function App() {
       {activeTab === 'games' && (
         <GlikoGames logs={logs} user={user} setTab={changeTab} />
       )}
+      {activeTab === 'diets' && (
+        <Diets user={user} setTab={changeTab} settings={userSettings || undefined} />
+      )}
     </React.Suspense>
   );
 
@@ -1125,7 +1272,7 @@ export default function App() {
       )}
       {/* Header */}
       <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
-        <div className="flex justify-between items-center max-w-md mx-auto">
+        <div className="flex justify-between items-center max-w-md lg:max-w-5xl mx-auto">
           <div className="flex items-center gap-4">
             <button
                onClick={() => {
@@ -1188,7 +1335,7 @@ export default function App() {
       />
 
       {/* Main Content with Swipe Navigation */}
-      <main className="flex-1 max-w-md mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden">
+      <main ref={mainRef} className="flex-1 max-w-md lg:max-w-5xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden">
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.div
             key={activeTab}
@@ -1212,7 +1359,8 @@ export default function App() {
 
       {/* Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl">
-        <div className="max-w-md mx-auto flex items-center justify-around h-20 px-2 group">
+        <div className="max-w-md lg:max-w-5xl mx-auto flex items-center justify-around h-20 px-2 group">
+          <NavButton active={activeTab === 'chart'} onClick={() => changeTab('chart')} icon={<Activity />} label="Wykres" />
           <NavButton active={activeTab === 'dashboard'} onClick={() => changeTab('dashboard')} icon={<LayoutDashboard />} label="Pulpit" />
           <NavButton active={activeTab === 'database'} onClick={() => changeTab('database')} icon={<Database />} label="Baza" />
           
@@ -1249,7 +1397,7 @@ export default function App() {
           </div>
 
           <NavButton active={activeTab === 'ai'} onClick={() => changeTab('ai')} icon={<GlikoSenseIcon size={20} isAnalyzing={activeTab === 'ai'} />} label="GlikoSense" />
-          <NavButton active={activeTab === 'profile'} onClick={() => changeTab('profile')} icon={<Settings />} label="Opcje" />
+          <NavButton active={activeTab === 'profile'} onClick={() => changeTab('profile')} icon={<Menu />} label="Więcej" />
         </div>
       </nav>
 

@@ -69,6 +69,33 @@ export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
     insights.push(`Wykryto tendencję do wysokich cukrów nad ranem (możliwe zjawisko brzasku).`);
   }
 
+  // Weather correlation detection (Offline Neural Network pattern simulation)
+  const weatherLogs = logs.filter(l => l.weather && l.type === 'glucose');
+  if (weatherLogs.length > 5) {
+    // Check heat correlation
+    const hotLogs = weatherLogs.filter(l => l.weather!.temp > 25);
+    if (hotLogs.length >= 3) {
+      const avgHotBg = hotLogs.reduce((sum, l) => sum + l.value, 0) / hotLogs.length;
+      if (avgHotBg < 85) {
+        insights.push(`GlikoSense zauważył: Podczas upalnych dni (powyżej 25°C) Twoje cukry bywają niższe.`);
+      } else if (avgHotBg > 160) {
+        insights.push(`GlikoSense zauważył: Przy wysokich temperaturach częściej dochodzi do wysokiej glikemii.`);
+      }
+    }
+
+    // Check pressure correlation
+    const pressureLogs = weatherLogs.filter(l => l.weather && l.weather.pressure);
+    if (pressureLogs.length >= 3) {
+      const lowPressureLogs = pressureLogs.filter(l => l.weather!.pressure! < 1005);
+      if (lowPressureLogs.length >= 2) {
+        const avgBgLowPres = lowPressureLogs.reduce((sum, l) => sum + l.value, 0) / lowPressureLogs.length;
+        if (avgBgLowPres > 150) {
+          insights.push(`GlikoSense powiązał niskie ciśnienie atmosferyczne ze skłonnością do hiperglikemii.`);
+        }
+      }
+    }
+  }
+
   // Post-prandial spike detection
   const meals = logs.filter(l => l.type === 'meal').slice(0, 5);
   meals.forEach(meal => {

@@ -325,7 +325,7 @@ export default function GlikoAssistant({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={isListening ? "Słucham Cię..." : "Zapytaj AI o swoje dane..."}
+              placeholder={isListening ? "Słucham Cię..." : "Zapytaj AI"}
               className={cn(
                 "w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 rounded-[1.5rem] py-4 px-6 text-sm transition-all dark:text-white shadow-inner outline-none",
                 isListening && "border-rose-400"

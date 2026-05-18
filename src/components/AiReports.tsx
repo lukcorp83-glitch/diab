@@ -54,7 +54,7 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
       let reportType = "";
       
       if (type === 'master') {
-        content = await geminiService.getMasterAnalysis(logs);
+        content = await geminiService.getMasterAnalysis(logs, settings);
         reportType = "Kompleksowa Analiza GlikoControl";
       } else {
         const days = type === 'day' ? 1 : 30;
@@ -63,7 +63,7 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
           const ts = l.timestamp || new Date(l.createdAt).getTime();
           return ts > cutoff;
         });
-        content = await geminiService.getPeriodAnalysis(type, filteredLogs);
+        content = await geminiService.getPeriodAnalysis(type, filteredLogs, settings);
         if (type === 'day') reportType = "Raport Dzienny";
         else reportType = "Raport Miesięczny";
       }

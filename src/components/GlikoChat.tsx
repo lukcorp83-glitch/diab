@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
+import { Virtuoso } from 'react-virtuoso';
 import { SKINS, ACCESSORIES } from '../constants';
 
 interface Message {
@@ -205,13 +206,10 @@ export default function GlikoChat({ petData }: { petData: any }) {
   });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const virtuosoRef = useRef<any>(null);
 
   useEffect(() => {
     localStorage.setItem('gliko_chat_history', JSON.stringify(messages));
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
   }, [messages]);
 
   const handleSend = async (overrideInput?: string) => {
@@ -238,17 +236,48 @@ export default function GlikoChat({ petData }: { petData: any }) {
 
       const response = await geminiService.getGlikoChatResponse(messageText, history, petData);
       
+      let cleanResponse = response;
+      const plateActionMatches = Array.from(response.matchAll(/<plate_action>([\s\S]*?)<\/plate_action>/g));
+      
+      for (const match of plateActionMatches) {
+        try {
+          const actionData = JSON.parse(match[1]);
+          if (actionData.action === 'add' && actionData.item) {
+             window.dispatchEvent(new CustomEvent('ai_plate_action', { detail: actionData }));
+          }
+        } catch (e) {
+          console.error("GlikoChat Plate Action Error:", e);
+        }
+      }
+      
+      const appActionMatches = Array.from(response.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g));
+      for (const match of appActionMatches) {
+        try {
+          const actionData = JSON.parse(match[1]);
+          window.dispatchEvent(new CustomEvent('ai_app_action', { detail: actionData }));
+        } catch (e) {
+          console.error("GlikoChat App Action Error:", e);
+        }
+      }
+      
+      if (plateActionMatches.length > 0) {
+         cleanResponse = cleanResponse.replace(/<plate_action>[\s\S]*?<\/plate_action>/g, '').trim();
+      }
+      if (appActionMatches.length > 0) {
+         cleanResponse = cleanResponse.replace(/<app_action>[\s\S]*?<\/app_action>/g, '').trim();
+      }
+
       const modelMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: response,
+        text: cleanResponse,
         timestamp: Date.now()
       };
 
       setMessages(prev => [...prev, modelMessage]);
       
       // Speak the response if voice is enabled
-      speak(response);
+      speak(cleanResponse);
     } catch (error) {
       console.error("Chat Error:", error);
     } finally {
@@ -312,16 +341,20 @@ export default function GlikoChat({ petData }: { petData: any }) {
       </div>
 
       {/* Messages */}
-      <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth bg-slate-50/50 dark:bg-slate-900/50"
-      >
-        <AnimatePresence initial={false}>
-          {messages.map((message) => (
-            <motion.div
-              key={`chat-${message.id}-${message.timestamp}`}
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+      <Virtuoso
+        ref={virtuosoRef}
+        className="flex-1 bg-slate-50/50 dark:bg-slate-900/50 scroll-smooth"
+        data={messages}
+        initialTopMostItemIndex={messages.length - 1}
+        followOutput="smooth"
+        itemContent={(index, message) => {
+          const isLatest = index >= messages.length - 2;
+          return (
+            <div className="px-4 md:px-6 py-3">
+              <motion.div
+                key={`chat-${message.id}-${message.timestamp}`}
+                initial={isLatest ? { opacity: 0, y: 30, scale: 0.9 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
               className={cn(
                 "flex items-end gap-3",
                 message.role === 'user' ? "flex-row-reverse" : "flex-row"
@@ -358,24 +391,31 @@ export default function GlikoChat({ petData }: { petData: any }) {
                 </div>
               </div>
             </motion.div>
-          ))}
-        </AnimatePresence>
-        
-        {isTyping && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-3 text-pink-500 ml-13"
-          >
-            <div className="flex gap-1.5 p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm">
-              <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1.5 h-1.5 bg-current rounded-full" />
-              <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 bg-current rounded-full" />
-              <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 bg-current rounded-full" />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{petData?.name || 'Gliko'} myśli...</span>
-          </motion.div>
-        )}
-      </div>
+          </div>
+        );
+      }}
+        components={{
+          Footer: () => (
+            isTyping ? (
+              <div className="px-4 md:px-6 pb-6 pt-3">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-3 text-pink-500 ml-13"
+                >
+                  <div className="flex gap-1.5 p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm">
+                    <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1.5 h-1.5 bg-current rounded-full" />
+                    <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 bg-current rounded-full" />
+                    <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 bg-current rounded-full" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{petData?.name || 'Gliko'} myśli...</span>
+                </motion.div>
+              </div>
+            ) : <div className="h-6" />
+          ),
+          Header: () => <div className="h-6" />
+        }}
+      />
 
       {/* Input */}
       <div className="p-4 md:p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -413,7 +453,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={isListening ? "Słucham Cię..." : "Napisz coś do mnie! 🐾"}
+              placeholder={isListening ? "Słucham Cię..." : "Zapytaj AI"}
               className={cn(
                 "w-full bg-slate-100 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-400 rounded-[1.5rem] py-4 pl-6 pr-6 text-sm focus:ring-0 transition-all dark:text-white font-medium italic shadow-inner",
                 isListening && "border-rose-400 placeholder-rose-400"

@@ -10,11 +10,12 @@ export interface Product {
   isOnline?: boolean;
   author?: string;
   isCommunity?: boolean;
+  isCustom?: boolean;
 }
 
 export interface LogEntry {
   id?: string;
-  type: 'glucose' | 'meal' | 'bolus';
+  type: 'glucose' | 'meal' | 'bolus' | 'site_change' | 'sensor_change';
   value: number;
   timestamp: number;
   createdAt?: any;
@@ -30,6 +31,11 @@ export interface LogEntry {
     polyols?: number;
     protein?: number;
     fat?: number;
+  };
+  weather?: {
+    temp: number;
+    condition: string;
+    pressure?: number;
   };
   isExtended?: boolean;
   extendedTime?: number;
@@ -84,6 +90,12 @@ export interface UserSettings {
   showPumpWidget?: boolean;
   showPrediction?: boolean;
   autoGIEnabled?: boolean;
+  activeDiet?: string | null;
+  dietStartDate?: number;
+  tdee?: number;
+  allergies?: string;
+  weatherWidgetEnabled?: boolean;
+  weatherNeuralEnabled?: boolean;
 }
 
 export interface AssistantMessage {

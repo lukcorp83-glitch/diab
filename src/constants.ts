@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const APP_VERSION = '3.4.3';
+export const APP_VERSION = '3.5.0';
 
 export const CATEGORIES = [
   "Owoce i Warzywa",
@@ -47,6 +47,18 @@ export const LIB_BASE: Product[] = [
   { id: 'p3_6', name: "Pieczywo chrupkie żytnie", carbs: 65, protein: 10, fat: 1.5, gi: 65, category: "Zbożowe i Pieczywo" },
   { id: 'p3_7', name: "Makaron pełnoziarnisty", carbs: 24, protein: 5, fat: 1, gi: 40, category: "Zbożowe i Pieczywo" },
   { id: 'p3_8', name: "Wafle ryżowe naturalne", carbs: 80, protein: 8, fat: 3, gi: 85, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_9', name: "Mąka migdałowa", carbs: 10, protein: 21, fat: 50, gi: 15, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_10', name: "Mąka kokosowa", carbs: 21, protein: 18, fat: 15, gi: 35, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_11', name: "Makaron Konjac / Shirataki", carbs: 0.5, protein: 0, fat: 0, gi: 0, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_12', name: "Chleb proteinowy (Keto)", carbs: 7, protein: 22, fat: 14, gi: 25, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_13', name: "Płatki jaglane", carbs: 70, protein: 11, fat: 3, gi: 70, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_14', name: "Tapioka (perły)", carbs: 88, protein: 0.2, fat: 0, gi: 85, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_15', name: "Mąka łubinowa", carbs: 12, protein: 40, fat: 10, gi: 15, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_16', name: "Mąka gryczana", carbs: 65, protein: 13, fat: 3, gi: 40, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_17', name: "Mąka kukurydziana", carbs: 73, protein: 7, fat: 2.5, gi: 70, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_18', name: "Bułka bezglutenowa jasna", carbs: 55, protein: 3, fat: 2, gi: 80, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_19', name: "Płatki ryżowe", carbs: 80, protein: 7, fat: 1.5, gi: 85, category: "Zbożowe i Pieczywo" },
+  { id: 'p3_20', name: "Otręby owsiane", carbs: 45, protein: 17, fat: 7, gi: 55, category: "Zbożowe i Pieczywo" },
   
   // Owoce i Warzywa
   { id: 'p2', name: "Ziemniaki gotowane", carbs: 17, protein: 1.9, fat: 0.1, gi: 70, category: "Owoce i Warzywa" },
@@ -90,6 +102,13 @@ export const LIB_BASE: Product[] = [
   { id: 'p4_18', name: "Śliwki świeże", carbs: 10, protein: 0.7, fat: 0.3, gi: 35, category: "Owoce i Warzywa" },
   { id: 'p5', name: "Banan dojrzały", carbs: 22, protein: 1.1, fat: 0.3, gi: 60, category: "Owoce i Warzywa" },
   { id: 'p5_1', name: "Banan zielonkawy", carbs: 20, protein: 1.1, fat: 0.3, gi: 40, category: "Owoce i Warzywa" },
+  { id: 'p5_2', name: "Tofu naturalne", carbs: 2, protein: 14, fat: 8, gi: 15, category: "Owoce i Warzywa" },
+  { id: 'p5_3', name: "Tofu wędzone", carbs: 2, protein: 15, fat: 9, gi: 15, category: "Owoce i Warzywa" },
+  { id: 'p5_4', name: "Tempeh", carbs: 9, protein: 19, fat: 11, gi: 15, category: "Owoce i Warzywa" },
+  { id: 'p5_5', name: "Soczewica czerwona (gotowana)", carbs: 20, protein: 9, fat: 0.4, gi: 30, category: "Owoce i Warzywa" },
+  { id: 'p5_6', name: "Ciecierzyca (gotowana)", carbs: 27, protein: 9, fat: 2.6, gi: 28, category: "Owoce i Warzywa" },
+  { id: 'p5_7', name: "Fasola czerwona (gotowana)", carbs: 22, protein: 8.7, fat: 0.5, gi: 24, category: "Owoce i Warzywa" },
+  { id: 'p5_8', name: "Awokado", carbs: 8.5, protein: 2, fat: 15, gi: 10, category: "Owoce i Warzywa" },
 
   // Nabiał
   { id: 'n1', name: "Mleko 0.5%", carbs: 5, protein: 3.5, fat: 0.5, gi: 30, category: "Nabiał" },
@@ -122,6 +141,12 @@ export const LIB_BASE: Product[] = [
   { id: 'n16', name: "Serek mascarpone", carbs: 3, protein: 4.5, fat: 40, gi: 0, category: "Nabiał" },
   { id: 'n18', name: "Brie", carbs: 0.5, protein: 20.75, fat: 27.68, gi: 0, category: "Nabiał" },
   { id: 'n19', name: "Masło", carbs: 0.1, protein: 0.7, fat: 82, gi: 0, category: "Nabiał" },
+  { id: 'n20', name: "Mleko kokosowe (z puszki)", carbs: 3, protein: 2, fat: 21, gi: 40, category: "Nabiał" },
+  { id: 'n21', name: "Napój kokosowy (karton)", carbs: 2.7, protein: 0.2, fat: 0.9, gi: 45, category: "Nabiał" },
+  { id: 'n22', name: "Jogurt sojowy naturalny", carbs: 2.3, protein: 4, fat: 2.3, gi: 20, category: "Nabiał" },
+  { id: 'n23', name: "Śmietanka kokosowa", carbs: 3.5, protein: 2.5, fat: 30, gi: 40, category: "Nabiał" },
+  { id: 'n24', name: "Jogurt kokosowy naturalny", carbs: 4.5, protein: 1.5, fat: 10, gi: 35, category: "Nabiał" },
+  { id: 'n25', name: "Wegański plaster (a'la ser żółty)", carbs: 20, protein: 0.5, fat: 23, gi: 0, category: "Nabiał" },
 
   // Napoje i Inne
   { id: 'i1', name: "Sok pomarańczowy (100ml)", carbs: 10, protein: 0.7, fat: 0.2, gi: 50, category: "Inne" },
@@ -150,6 +175,24 @@ export const LIB_BASE: Product[] = [
   { id: 'i4_1', name: "Erytrytol", carbs: 100, polyols: 100, protein: 0, fat: 0, gi: 0, category: "Inne" },
   { id: 'i4_2', name: "Ksylitol", carbs: 100, polyols: 100, protein: 0, fat: 0, gi: 13, category: "Inne" },
   { id: 'i4_3', name: "Miód wielokwiatowy (1 łyżeczka - 10g)", carbs: 8, protein: 0, fat: 0, gi: 60, category: "Inne" },
+  { id: 'i5', name: "Nasiona chia", carbs: 4.9, protein: 16.5, fat: 30.7, gi: 10, category: "Inne" },
+  { id: 'i6', name: "Siemię lniane", carbs: 1.6, protein: 18.3, fat: 42.2, gi: 35, category: "Inne" },
+  { id: 'i7', name: "Olej kokosowy", carbs: 0, protein: 0, fat: 100, gi: 0, category: "Inne" },
+  { id: 'i8', name: "Masło klarowane (Ghee)", carbs: 0, protein: 0.3, fat: 99.5, gi: 0, category: "Inne" },
+  { id: 'i9', name: "Hummus", carbs: 14, protein: 8, fat: 10, gi: 25, category: "Inne" },
+  { id: 'i10', name: "Płatki drożdżowe nieaktywne", carbs: 15, protein: 45, fat: 5, gi: 15, category: "Inne" },
+
+  { id: 'i11', name: "Herbata miętowa (bez cukru)", carbs: 0, protein: 0, fat: 0, gi: 0, category: "Inne" },
+  { id: 'i12', name: "Syrop miętowy", carbs: 70, protein: 0, fat: 0, gi: 65, category: "Inne" },
+  { id: 'i13', name: "Napój miętowy z cytryną", carbs: 5, protein: 0, fat: 0, gi: 45, category: "Inne" },
+  { id: 'i14', name: "Świeża mięta (liście)", carbs: 1.5, protein: 0.4, fat: 0.1, gi: 15, category: "Inne" },
+  { id: 'i15', name: "Błonnik bambusowy", carbs: 0, protein: 0, fat: 0, gi: 0, category: "Inne" },
+  { id: 'i16', name: "Babka jajowata (łuski)", carbs: 2, protein: 3, fat: 0.5, gi: 0, category: "Inne" },
+  { id: 'i17', name: "Białko konopne", carbs: 8, protein: 50, fat: 12, gi: 15, category: "Inne" },
+  { id: 'i18', name: "Krem z orzechów nerkowca", carbs: 18, protein: 20, fat: 46, gi: 15, category: "Inne" },
+  { id: 'i19', name: "Kombucha", carbs: 3, protein: 0, fat: 0, gi: 20, category: "Inne" },
+  { id: 'i20', name: "Pasta Tahini", carbs: 21, protein: 17, fat: 53, gi: 15, category: "Inne" },
+  { id: 'i21', name: "Pesto czerwone suszone pomidory", carbs: 15, protein: 5, fat: 37, gi: 30, category: "Inne" },
 
   // Mięso i Ryby
   { id: 'm1', name: "Pierś z kurczaka surowa", carbs: 0, protein: 22, fat: 1.3, gi: 0, category: "Mięso i Ryby" },
@@ -186,6 +229,13 @@ export const LIB_BASE: Product[] = [
   { id: 'm17', name: "Krewetki gotowane", carbs: 0.2, protein: 24, fat: 0.3, gi: 0, category: "Mięso i Ryby" },
   { id: 'm18', name: "Wątróbka drobiowa smażona", carbs: 4, protein: 24, fat: 10, gi: 0, category: "Mięso i Ryby" },
   { id: 'm19', name: "Pasztet pieczony", carbs: 4, protein: 14, fat: 25, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm20', name: "Seitan", carbs: 14, protein: 75, fat: 2, gi: 15, category: "Mięso i Ryby" },
+  { id: 'm21', name: "Szarpany chlebowiec (Jackfruit)", carbs: 23, protein: 1.5, fat: 0.3, gi: 75, category: "Mięso i Ryby" },
+  { id: 'm22', name: "Kiełbaski sojowe", carbs: 6, protein: 16, fat: 12, gi: 25, category: "Mięso i Ryby" },
+  { id: 'm23', name: "Polędwica wołowa", carbs: 0, protein: 21, fat: 6, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm24', name: "Halibut", carbs: 0, protein: 18, fat: 1.5, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm25', name: "Morszczuk smażony bez panierki", carbs: 0, protein: 15, fat: 2.5, gi: 0, category: "Mięso i Ryby" },
+  { id: 'm26', name: "Salami", carbs: 1.5, protein: 22, fat: 33, gi: 0, category: "Mięso i Ryby" },
 
   // Gotowe Posiłki
   { id: 'g1', name: "Pizza Margharita (100g)", carbs: 30, protein: 10, fat: 8, gi: 60, category: "Gotowe Posiłki" },
@@ -206,6 +256,35 @@ export const LIB_BASE: Product[] = [
   { id: 'g9', name: "Frytki z piekarnika", carbs: 30, protein: 3, fat: 6, gi: 65, category: "Gotowe Posiłki" },
   { id: 'g10', name: "Zapiekanka z pieczarkami", carbs: 32, protein: 10, fat: 12, gi: 70, category: "Gotowe Posiłki" },
   { id: 'g11', name: "Lasagne", carbs: 12, protein: 8, fat: 9, gi: 55, category: "Gotowe Posiłki" },
+  { id: 'g12', name: "Falafel", carbs: 31, protein: 13, fat: 17, gi: 40, category: "Gotowe Posiłki" },
+  { id: 'g13', name: "Burger roślinny (typu Beyond)", carbs: 5, protein: 20, fat: 18, gi: 30, category: "Gotowe Posiłki" },
+  { id: 'g14', name: "Curry z ciecierzycą i mlekiem kokosowym", carbs: 15, protein: 6, fat: 9, gi: 45, category: "Gotowe Posiłki" },
+  { id: 'g15', name: "Keto Pizza (spód z kalafiora)", carbs: 12, protein: 15, fat: 20, gi: 25, category: "Gotowe Posiłki" },
+  { id: 'g16', name: "Makaron cukiniowy (Zoodles) z pesto", carbs: 8, protein: 5, fat: 18, gi: 15, category: "Gotowe Posiłki" },
+  { id: 'g17', name: "Pulpety roślinne w sosie pomidorowym", carbs: 18, protein: 15, fat: 8, gi: 35, category: "Gotowe Posiłki" },
+  { id: 'g18', name: "Wrap z kurczakiem", carbs: 28, protein: 22, fat: 12, gi: 50, category: "Gotowe Posiłki" },
+  { id: 'g19', name: "Sałatka Cezar z kurczakiem", carbs: 10, protein: 25, fat: 20, gi: 25, category: "Gotowe Posiłki" },
+  { id: 'g20', name: "Zupa krem z dyni (na mleku kokosowym)", carbs: 14, protein: 3, fat: 6, gi: 45, category: "Gotowe Posiłki" },
+  { id: 'g21', name: "Keto Bowl", carbs: 8, protein: 20, fat: 25, gi: 20, category: "Gotowe Posiłki" },
+  { id: 'g22', name: "Tofu Stir-fry", carbs: 15, protein: 18, fat: 14, gi: 40, category: "Gotowe Posiłki" },
+  { id: 'g23', name: "Keto Burger (Bułka migdałowa)", carbs: 6, protein: 30, fat: 35, gi: 20, category: "Gotowe Posiłki" },
+  { id: 'g24', name: "Risotto grzybowe (bezglutenowe)", carbs: 40, protein: 7, fat: 10, gi: 65, category: "Gotowe Posiłki" },
+  { id: 'g25', name: "Naleśniki bezglutenowe", carbs: 32, protein: 8, fat: 5, gi: 60, category: "Gotowe Posiłki" },
+  { id: 'g26', name: "Sushi witariańskie (z kalafiora)", carbs: 10, protein: 4, fat: 2, gi: 20, category: "Gotowe Posiłki" },
+  { id: 'g27', name: "Lasagne z cukinii (Keto)", carbs: 10, protein: 18, fat: 16, gi: 25, category: "Gotowe Posiłki" },
+  { id: 'g28', name: "Owsianka na mleku migdałowym", carbs: 25, protein: 6, fat: 8, gi: 40, category: "Gotowe Posiłki" },
+  { id: 'g29', name: "Jajecznica z boczkiem (Keto)", carbs: 2, protein: 22, fat: 30, gi: 0, category: "Gotowe Posiłki" },
+  { id: 'g30', name: "Curry z soczewicą (Dahl)", carbs: 22, protein: 9, fat: 4, gi: 35, category: "Gotowe Posiłki" },
+  { id: 'g31', name: "Buddha Bowl (wegańskie)", carbs: 32, protein: 12, fat: 15, gi: 45, category: "Gotowe Posiłki" },
+  { id: 'g32', name: "Zupa z soczewicy", carbs: 18, protein: 7, fat: 3, gi: 30, category: "Gotowe Posiłki" },
+  { id: 'g33', name: "Pieczony łosoś z brokułami (Keto)", carbs: 3, protein: 25, fat: 18, gi: 15, category: "Gotowe Posiłki" },
+  { id: 'g34', name: "Curry z kurczakiem na mleczku kokosowym (Keto)", carbs: 6, protein: 22, fat: 25, gi: 20, category: "Gotowe Posiłki" },
+  { id: 'g35', name: "Pizza bezglutenowa (spód gryczany)", carbs: 38, protein: 12, fat: 10, gi: 55, category: "Gotowe Posiłki" },
+  { id: 'g36', name: "Szaszłyki z tofu i warzywami", carbs: 8, protein: 14, fat: 9, gi: 25, category: "Gotowe Posiłki" },
+  { id: 'g37', name: "Schabowy w panierce z migdałów (Keto)", carbs: 4, protein: 24, fat: 28, gi: 15, category: "Gotowe Posiłki" },
+  { id: 'g38', name: "Keto gofry", carbs: 5, protein: 12, fat: 22, gi: 20, category: "Gotowe Posiłki" },
+  { id: 'g39', name: "Keto kanapka ze chleba białkowego z awokado", carbs: 5, protein: 14, fat: 20, gi: 25, category: "Gotowe Posiłki" },
+  { id: 'g40', name: "Szakszuka (Keto/Wegetariańska)", carbs: 7, protein: 16, fat: 18, gi: 30, category: "Gotowe Posiłki" },
 
   // Słodycze i Przekąski
   { id: 's1', name: "Czekolada mleczna", carbs: 55, protein: 7, fat: 30, gi: 50, category: "Słodycze i Przekąski" },
@@ -227,6 +306,16 @@ export const LIB_BASE: Product[] = [
   { id: 's12', name: "Precle", carbs: 70, protein: 10, fat: 3, gi: 80, category: "Słodycze i Przekąski" },
   { id: 's13', name: "Baton proteinowy", carbs: 35, protein: 30, fat: 12, gi: 45, category: "Słodycze i Przekąski" },
   { id: 's14', name: "Orzeszki ziemne", carbs: 16, protein: 26, fat: 49, gi: 15, category: "Słodycze i Przekąski" },
+  { id: 's15', name: "Czekolada gorzka 90% (Keto)", carbs: 14, protein: 10, fat: 55, gi: 20, category: "Słodycze i Przekąski" },
+  { id: 's16', name: "Orzechy makadamia", carbs: 5, protein: 8, fat: 76, gi: 10, category: "Słodycze i Przekąski" },
+  { id: 's17', name: "Orzechy nerkowca", carbs: 26, protein: 18, fat: 44, gi: 25, category: "Słodycze i Przekąski" },
+  { id: 's18', name: "Pestki dyni", carbs: 1.3, protein: 25, fat: 46, gi: 25, category: "Słodycze i Przekąski" },
+  { id: 's19', name: "Lody miętowe z czekoladą", carbs: 25, protein: 3, fat: 12, gi: 65, category: "Słodycze i Przekąski" },
+  { id: 's20', name: "Czekolada miętowa", carbs: 50, protein: 6, fat: 35, gi: 45, category: "Słodycze i Przekąski" },
+  { id: 's21', name: "Cukierki miętowe", carbs: 95, protein: 0, fat: 0, gi: 70, category: "Słodycze i Przekąski" },
+  { id: 's22', name: "Guma do żucia miętowa bez cukru", carbs: 60, polyols: 60, protein: 0, fat: 0, gi: 0, category: "Słodycze i Przekąski" },
+  { id: 's23', name: "Ciasteczka miętowe z czekoladą", carbs: 60, protein: 5, fat: 25, gi: 65, category: "Słodycze i Przekąski" },
+  { id: 's24', name: "Miętówki owocowe", carbs: 95, protein: 0, fat: 0, gi: 70, category: "Słodycze i Przekąski" },
 ];
 
 export interface PetSkin {

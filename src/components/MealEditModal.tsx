@@ -17,10 +17,10 @@ interface MealEditModalProps {
 
 export default function MealEditModal({ log, user, onClose }: MealEditModalProps) {
   const isBolus = log.type === 'bolus';
-  const initialCarbs = isBolus ? (log.linkedMeal?.carbs?.toString() || '') : (log.value?.toString() || '');
-  const initialPolyols = isBolus ? (log.linkedMeal?.polyols?.toString() || '') : (log.polyols?.toString() || '');
-  const initialProtein = isBolus ? (log.linkedMeal?.protein?.toString() || '') : (log.protein?.toString() || '');
-  const initialFat = isBolus ? (log.linkedMeal?.fat?.toString() || '') : (log.fat?.toString() || '');
+  const initialCarbs = (log.type === 'bolus') ? (log.linkedMeal?.carbs?.toString() || '') : (log.value?.toString() || '');
+  const initialPolyols = (log.type === 'bolus') ? (log.linkedMeal?.polyols?.toString() || '') : (log.polyols?.toString() || '');
+  const initialProtein = (log.type === 'bolus') ? (log.linkedMeal?.protein?.toString() || '') : (log.protein?.toString() || '');
+  const initialFat = (log.type === 'bolus') ? (log.linkedMeal?.fat?.toString() || '') : (log.fat?.toString() || '');
   const initialInsulin = isBolus ? (log.value?.toString() || '') : '';
 
   const [carbs, setCarbs] = useState(initialCarbs);
@@ -30,6 +30,8 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
   const [insulin, setInsulin] = useState(initialInsulin);
   const [notes, setNotes] = useState(log.notes || log.description || '');
   const [loading, setLoading] = useState(false);
+  const [removeMeal, setRemoveMeal] = useState(false);
+
 
   // Search functionality
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,11 +44,11 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
     if (!user) return;
     const q1 = query(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "customProducts"));
     const unsub1 = onSnapshot(q1, (snap) => {
-      setCustomProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Product[]);
+      setCustomProducts(snap.docs.map(d => ({ id: d.id, isCustom: true, ...d.data() })) as Product[]);
     });
     const q2 = query(collection(db, "artifacts", "diacontrolapp", "communityProducts"));
     const unsub2 = onSnapshot(q2, (snap) => {
-      setCommunityProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Product[]);
+      setCommunityProducts(snap.docs.map(d => ({ id: d.id, isCommunity: true, ...d.data() })) as Product[]);
     });
     return () => { unsub1(); unsub2(); };
   }, [user]);
@@ -110,7 +112,9 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
 
       if (isBolus) {
         updates.value = Math.round((parseFloat(insulin) || 0) * 10) / 10;
-        if (parseFloat(carbs) > 0) {
+        if (removeMeal) {
+          updates.linkedMeal = null;
+        } else if (parseFloat(carbs) > 0) {
           updates.linkedMeal = {
             carbs: Math.round((parseFloat(carbs) || 0) * 10) / 10,
             polyols: Math.round((parseFloat(polyols) || 0) * 10) / 10 || null,
@@ -254,23 +258,40 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1 flex flex-col justify-center text-center">
-                    <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400">Netto WW: {(Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0))).toFixed(1)}g</span>
+              {isBolus && log.linkedMeal && (
+                <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <input 
+                    type="checkbox" 
+                    checked={removeMeal}
+                    onChange={(e) => setRemoveMeal(e.target.checked)}
+                    className="w-5 h-5 rounded-lg border-2 border-slate-500 text-accent-500 bg-transparent focus:ring-accent-500/20"
+                  />
+                  <div>
+                    <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">Usuń Posiłek (Pozostaw Bolus)</div>
+                    <div className="text-[8px] font-bold text-slate-500 leading-tight">Posiłek zniknie rano ze statystyk, zostanie sam wpis z podaną dawką insuliny</div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest ml-2">Poliole (g)</label>
-                    <input 
-                      type="number"
-                      value={polyols}
-                      onChange={e => setPolyols(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-black text-center outline-none border border-slate-200 dark:border-slate-700 focus:border-emerald-500 transition-all dark:text-white"
-                      placeholder="0.0"
-                    />
-                  </div>
-              </div>
+                </label>
+              )}
 
-              <div className="grid grid-cols-2 gap-3">
+              {!removeMeal && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1 flex flex-col justify-center text-center">
+                      <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400">Netto WW: {(Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0))).toFixed(1)}g</span>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest ml-2">Poliole (g)</label>
+                      <input 
+                        type="number"
+                        value={polyols}
+                        onChange={e => setPolyols(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-black text-center outline-none border border-slate-200 dark:border-slate-700 focus:border-emerald-500 transition-all dark:text-white"
+                        placeholder="0.0"
+                      />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                  <div className="space-y-1">
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Węglowodany (g)</label>
                    <input 
@@ -308,9 +329,11 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                    </div>
                  </div>
               </div>
+              </>
+            )}
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Notatka (produkty)</label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Notatka (produkty)</label>
                 <textarea 
                   value={notes}
                   onChange={e => setNotes(e.target.value)}

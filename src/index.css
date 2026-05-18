@@ -253,3 +253,9 @@ body {
 .mask-fade-right {
   mask-image: linear-gradient(to right, black 85%, transparent 100%);
 }
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+}
