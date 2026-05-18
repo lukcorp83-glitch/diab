@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, Product } from '../types';
 import { X, Save, Utensils, Apple, Syringe, Search, Globe, Loader2, Plus, Zap } from 'lucide-react';
-import { doc, updateDoc, collection, query, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { getEffectiveUid, cn } from '../lib/utils';
 import { toast } from 'react-hot-toast';
@@ -105,6 +105,14 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
     setLoading(true);
     try {
       const logRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id);
+
+      if (!isBolus && log.source === 'nightscout' && removeMeal) {
+        await deleteDoc(logRef);
+        toast.success("Usunięto posiłek, wpis bolusa pozostanie.");
+        onClose();
+        return;
+      }
+
       const updates: any = {
         notes: notes,
         description: notes
@@ -269,6 +277,21 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                   <div>
                     <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">Usuń Posiłek (Pozostaw Bolus)</div>
                     <div className="text-[8px] font-bold text-slate-500 leading-tight">Posiłek zniknie rano ze statystyk, zostanie sam wpis z podaną dawką insuliny</div>
+                  </div>
+                </label>
+              )}
+
+              {!isBolus && log.source === 'nightscout' && (
+                <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <input 
+                    type="checkbox" 
+                    checked={removeMeal}
+                    onChange={(e) => setRemoveMeal(e.target.checked)}
+                    className="w-5 h-5 rounded-lg border-2 border-slate-500 text-accent-500 bg-transparent focus:ring-accent-500/20"
+                  />
+                  <div>
+                    <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">Usuń Posiłek (Pozostaw Bolus)</div>
+                    <div className="text-[8px] font-bold text-slate-500 leading-tight">Posiłek zniknie ze statystyk. Bolus pobrany z Nightscout pozostanie nienaruszony.</div>
                   </div>
                 </label>
               )}

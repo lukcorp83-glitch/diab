@@ -140,6 +140,30 @@ export const nightscoutService = {
           });
         }
         
+        const lowerEventType = (t.eventType || '').toLowerCase();
+        
+        if (lowerEventType === 'site change' || lowerEventType === 'cartridge change' || lowerEventType === 'pump battery change') {
+          logs.push({
+            id: `ns-site-${t._id || timestamp}`,
+            type: 'site_change',
+            value: 1,
+            timestamp,
+            notes: t.notes || t.eventType,
+            source: 'nightscout'
+          });
+        }
+
+        if (lowerEventType === 'sensor change' || lowerEventType === 'sensor start') {
+          logs.push({
+            id: `ns-sensor-${t._id || timestamp}`,
+            type: 'sensor_change',
+            value: 1,
+            timestamp,
+            notes: t.notes || t.eventType,
+            source: 'nightscout'
+          });
+        }
+
         const carbs = Number(t.carbs || 0);
         if (carbs > 0) {
           logs.push({

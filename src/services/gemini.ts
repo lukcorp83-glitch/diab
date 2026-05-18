@@ -559,7 +559,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
     1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. 
     2. AKCJE Z APLIKACJĄ I ZARZĄDZANIE DANYMI: Możesz wykonywać akcje! Na samym końcu wiadomości możesz wpisać poniższe tagi:
        ZAPISANIE BOLUSA LUB CUKRU (np. "zapisz cukier 120" albo "zapisz bolus 3j"): <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "Cukier z AI"}}</app_action>
-       ZAPISANIE WYMIANY (wkłucie/sensor, np. "wymieniłem wkłucie"): <app_action>{"action": "add_log", "logData": {"type": "site_change", "value": 0, "notes": "wymiana wkłucia"}}</app_action> (type jako site_change/sensor_change)
+       ZAPISANIE WYMIANY (wkłucie/sensor, np. "wymieniłem wkłucie"): <app_action>{"action": "add_log", "logData": {"type": "site_change", "value": 1, "notes": "wymiana wkłucia"}}</app_action> (type jako site_change/sensor_change)
        ZMIANA USTAWIEŃ (np. wyłącz wibracje, zmień isf): <app_action>{"action": "set_setting", "key": "isf", "value": 30}</app_action>
        NAWIGACJA (np. "gdzie jest dzienniczek", "pokaż mi jedzenie"): <app_action>{"action": "navigate", "value": "history"}</app_action> (dashboard, profile, database, meal, history)
     3. INTERAKCJA Z TALERZEM: Jeśli użytkownik chce dodać jedzenie np. ("dodaj jabłko"): <plate_action>{"action": "add", "item": {"name": "Jabłko", "carbs": 15, "protein": 1, "fat": 0, "kcal": 60}}</plate_action>

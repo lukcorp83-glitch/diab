@@ -812,7 +812,7 @@ export default function App() {
 
         // 3. FULL SYNC: Fetch background history
         const entries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 300); 
-        const treatments = await nightscoutService.fetchTreatments(nsUrl, nsSecret, 100); 
+        const treatments = await nightscoutService.fetchTreatments(nsUrl, nsSecret, 500); 
         
         const allNewLogs = [...entries, ...treatments];
         

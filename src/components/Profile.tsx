@@ -1703,7 +1703,7 @@ export default function Profile({
                       await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
                       await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
                         type: 'sensor_change',
-                        value: 0,
+                        value: 1,
                         timestamp: now,
                         createdAt: serverTimestamp(),
                         notes: 'Wymiana sensora',
@@ -1777,7 +1777,7 @@ export default function Profile({
                       await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
                       await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
                         type: 'site_change',
-                        value: 0,
+                        value: 1,
                         timestamp: now,
                         createdAt: serverTimestamp(),
                         notes: 'Wymiana wkłucia',
