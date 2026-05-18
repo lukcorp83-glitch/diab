@@ -486,7 +486,7 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate }: 
 
         <div className="flex gap-4">
           <div className="flex-1 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase block text-center">Poliole (g)</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase block text-center">Puste węgle / Poliole (g)</label>
             <input 
               type="number" 
               min="0"

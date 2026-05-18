@@ -805,6 +805,13 @@ export default function Dashboard({
       </div>
 
       {editingLog && <MealEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} />}
+      
+      {/* Footer Info */}
+      <div className="pt-8 pb-4 text-center space-y-2 opacity-30">
+        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">
+          Wersja {APP_VERSION}
+        </p>
+      </div>
     </motion.div>
   );
 }

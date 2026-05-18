@@ -21,7 +21,7 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
         const carbs = (log as any).carbs;
         entries.push({
           time,
-          text: `Zjedliśmy razem ${value}! ${carbs ? `Miało to ${carbs}g węglowodanów.` : ''} Mam nadzieję, że oszacowaliśmy to dobrze!`,
+          text: `Zadbałem o pyszny posiłek: ${value}! ${carbs ? `Miało to ${carbs}g węglowodanów.` : ''} Mam nadzieję, że oszacowałem to dobrze!`,
           icon: '🍕'
         });
       } else if (log.type === 'glucose') {
@@ -34,20 +34,21 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
         } else if (log.value > 180) {
           entries.push({
             time,
-            text: `Oj, cukier mamy na poziomie ${log.value}. Trochę mnie to męczy, może pora na małą korektę?`,
+            text: `Oj, cukier jest na poziomie ${log.value}. Trochę mnie to męczy, może pora na małą korektę?`,
             icon: '💧'
           });
         } else {
           entries.push({
             time,
-            text: `Idealnie! Cukier ${log.value} to nasza bezpieczna strefa. Tak trzymać!`,
+            text: `Idealnie! Cukier ${log.value} to bezpieczna strefa. Tak trzymać!`,
             icon: '✨'
           });
         }
       } else if (log.type === 'bolus') {
+        const bolusVal = Number(log.value).toFixed(2);
         entries.push({
           time,
-          text: `Podaliśmy ${log.value}j insuliny. To nasze tarcza przeciwko wysokim cukrom!`,
+          text: `Podałem ${bolusVal}j insuliny. To moja tarcza przeciwko wysokim cukrom!`,
           icon: '🛡️'
         });
       }
@@ -61,7 +62,7 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
       {diaryEntries.length === 0 ? (
         <div className="text-center py-12 px-4">
           <Book size={48} className="mx-auto text-slate-200 mb-4" />
-          <p className="text-slate-500 font-medium">Brak dzisiejszych wpisów. Zapisz coś, żebyśmy mieli co wspominać!</p>
+          <p className="text-slate-500 font-medium">Brak dzisiejszych wpisów. Zapisz coś, żeby było co wspominać!</p>
         </div>
       ) : (
         <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">

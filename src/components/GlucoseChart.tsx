@@ -85,7 +85,7 @@ const CustomGlucoseDot = (props: any) => {
       }}
       style={{ cursor: 'pointer', outline: 'none' }}
     >
-      <circle cx={cx} cy={cy} r={15} fill="transparent" />
+      <circle cx={cx} cy={cy} r={20} fill="transparent" />
       <circle 
         cx={cx} cy={cy} r={5} 
         fill={fill} 
@@ -104,7 +104,7 @@ const CustomBolusShape = (props: any) => {
   const h = Math.min(40, val * 5);
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalB); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <rect x={cx - 10} y={cy - 40} width={20} height={50} fill="transparent" />
+      <rect x={cx - 15} y={cy - 50} width={30} height={60} fill="transparent" />
       <rect x={cx - 2} y={cy - h} width={4} height={h} fill="rgba(79, 70, 229, 0.4)" />
       <text x={cx} y={cy - h - 5} textAnchor="middle" fontSize={14}>💉</text>
     </g>
@@ -123,7 +123,7 @@ const CustomMealShape = (props: any) => {
 
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalM); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <circle cx={cx} cy={baseCy - 5} r={15} fill="transparent" />
+      <circle cx={cx} cy={baseCy - 10} r={20} fill="transparent" />
       <text x={cx} y={baseCy} textAnchor="middle" fontSize={16}>🍽️</text>
     </g>
   );
@@ -199,11 +199,11 @@ const CustomTooltip = ({ active, payload, isDark }: any) => {
                </div>
                <div className="flex items-baseline gap-1">
                  <span className="text-lg font-black dark:text-white tracking-tighter">
-                   {p.type === 'glucose' ? Math.round(Number(p.value)) : p.value}
-                 </span>
-                 <span className="text-[9px] font-bold text-slate-500 uppercase">
-                   {p.type === 'glucose' ? 'mg/dL' : p.type === 'bolus' ? 'j' : 'g'}
-                 </span>
+                 {p.type === 'glucose' ? Math.round(Number(p.value)) : Number(p.value).toFixed(2)}
+               </span>
+               <span className="text-[9px] font-bold text-slate-500 uppercase">
+                 {p.type === 'glucose' ? 'mg/dL' : p.type === 'bolus' ? 'j' : 'g'}
+               </span>
                </div>
                {p.notes && <div className="text-[9px] text-slate-400 italic line-clamp-1 truncate max-w-[160px] mt-0.5 leading-tight">"{p.notes}"</div>}
                {p.type === 'bolus' && data.stackingWarning && (

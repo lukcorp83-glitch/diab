@@ -360,7 +360,7 @@ export const geminiService = {
     - Talerz: posiłki i bolusy. Jeśli użytkownik chce coś dodać do wpisów, robisz to!
     
     BARDZO WAŻNE - DODAWANIE DO TALERZA ORAZ AKCJE APLIKACJI: 
-    Masz pełną integrację z naszą aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.
+    Masz pełną integrację z moją aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.
     
     1. Aby dodać posiłek do Talerza:
     <plate_action>{"action": "add", "item": {"name": "Jabłko", "carbs": 15, "protein": 1, "fat": 0, "kcal": 60}}</plate_action>

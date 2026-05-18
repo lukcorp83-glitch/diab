@@ -9,14 +9,14 @@ export const VERSIONS: VersionEntry[] = [
   {
     version: "3.5.0",
     date: "2026-05-18",
-    title: "Pogoda & Inteligentna Analiza Środowiska",
+    title: "Pogoda, Diety i Nowe Funkcje 3.5.0",
     changes: [
-      "Nowość: Widżet Pogody – Sprawdzaj warunki atmosferyczne bezpośrednio na pulpicie.",
-      "Nowość: Analiza Wpływu Pogody – GlikoSense teraz uwzględnia temperaturę i ciśnienie w swoich sugestiach glikemicznych.",
-      "Nowość: Potężnie powiększona baza produktów (w tym produkty Keto, Wegetariańskie).",
-      "Nowość: AI Chat może teraz swobodniej rozmawiać i bezpośrednio dodawać produkty do Twojego Talerza Posiłków.",
-      "Interfejs: Nowy, animowany licznik wersji i ulepszona nawigacja gestami.",
-      "Ulepszenie: Spore zmiany i usprawnienia w interfejsie użytkownika (UI)."
+      "Dodałem inteligentny widżet pogody – teraz sprawdzam aktualne warunki bezpośrednio na pulpicie.",
+      "Wprowadziłem analizę wpływu środowiska – GlikoSense uwzględnia temperaturę i ciśnienie w prognozach.",
+      "Powiększyłem bazę produktów o setki pozycji (Keto, Wege, Low-GI) – dla jeszcze łatwiejszego liczenia.",
+      "Wprowadziłem funkcję 'Puste Węgle' w kalkulatorze bolusa – do precyzyjnego odejmowania polioli.",
+      "Ulepszyłem asystenta AI – teraz sprawniej dodaje produkty prosto na Twój talerz.",
+      "Odświeżyłem interfejs – ulepszyłem nawigację i dopracowałem detale wizualne."
     ]
   },
   {
