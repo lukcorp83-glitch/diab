@@ -23,24 +23,32 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
                 <Zap size={10} className="fill-white" />
                 <span className="text-[8px] font-black uppercase tracking-[0.2em]">Nowa aktualizacja</span>
               </div>
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-3xl font-black leading-tight tracking-tighter font-display uppercase italic flex overflow-hidden">
-                  <span className="mr-2">Gliko</span>
-                  {current.version.split('').map((char, i) => (
-                    <motion.span
-                      key={i}
-                      initial={{ y: 40, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ 
-                        type: "spring", 
-                        damping: 12, 
-                        stiffness: 200, 
-                        delay: 0.1 + i * 0.05 
-                      }}
-                    >
-                      {char}
-                    </motion.span>
-                  ))}
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-3xl font-black leading-none tracking-tighter font-display uppercase italic flex items-center">
+                  <span className="mr-3">Gliko</span>
+                  <div className="flex bg-black/20 dark:bg-black/40 rounded-xl shadow-[inset_0_4px_10px_rgba(0,0,0,0.3)] overflow-hidden border border-white/10 relative py-1 px-1">
+                    {/* Shadow overlay to look like a lock window */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 pointer-events-none z-10" />
+                    {current.version.split('').map((char, i) => (
+                      <div key={i} className="relative flex justify-center items-center min-w-[14px]">
+                        <motion.span
+                          initial={{ y: "150%", opacity: 0, filter: "blur(2px)", scale: 0.8 }}
+                          animate={{ y: "0%", opacity: 1, filter: "blur(0px)", scale: 1 }}
+                          transition={{ 
+                            type: "spring", 
+                            damping: 9, 
+                            stiffness: 100, 
+                            mass: 0.5,
+                            delay: 0.3 + i * 0.2 
+                          }}
+                          className="inline-block text-accent-100 font-mono tracking-tighter"
+                          style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}
+                        >
+                          {char}
+                        </motion.span>
+                      </div>
+                    ))}
+                  </div>
                 </h2>
               </div>
               <motion.p 

@@ -3,6 +3,7 @@ interface CachedWeather {
     temp: number;
     pressure: number;
     condition: string;
+    city?: string;
   };
   timestamp: number;
 }
@@ -10,16 +11,17 @@ interface CachedWeather {
 let weatherCache: CachedWeather | null = null;
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
-export async function fetchCurrentWeather(lat?: number, lon?: number) {
+export async function fetchCurrentWeather(lat?: number, lon?: number, force: boolean = false) {
   try {
     // Check cache first
     const now = Date.now();
-    if (weatherCache && (now - weatherCache.timestamp < CACHE_DURATION_MS)) {
+    if (!force && weatherCache && (now - weatherCache.timestamp < CACHE_DURATION_MS)) {
       return weatherCache.data;
     }
 
     let finalLat = lat;
     let finalLon = lon;
+    let finalCity = undefined;
 
     // Use geojs to get approximate location if not provided
     if (finalLat === undefined || finalLon === undefined) {
@@ -29,9 +31,21 @@ export async function fetchCurrentWeather(lat?: number, lon?: number) {
           const geoData = await geoResponse.json();
           finalLat = parseFloat(geoData.latitude);
           finalLon = parseFloat(geoData.longitude);
+          finalCity = geoData.city;
         }
       } catch (geoError) {
         console.warn("Could not fetch geolocation from IP:", geoError);
+      }
+    } else {
+      // If lat/lon provided (e.g. from GPS), use reverse geocoding to get city
+      try {
+        const reverseResponse = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${finalLat}&longitude=${finalLon}&localityLanguage=pl`);
+        if (reverseResponse.ok) {
+          const reverseData = await reverseResponse.json();
+          finalCity = reverseData.city || reverseData.locality || undefined;
+        }
+      } catch (reverseError) {
+        console.warn("Could not reverse geocode:", reverseError);
       }
     }
 
@@ -51,7 +65,8 @@ export async function fetchCurrentWeather(lat?: number, lon?: number) {
     const result = {
       temp: data.current.temperature_2m,
       pressure: data.current.surface_pressure,
-      condition: getWeatherCondition(data.current.weather_code)
+      condition: getWeatherCondition(data.current.weather_code),
+      city: finalCity
     };
 
     weatherCache = {

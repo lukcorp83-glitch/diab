@@ -168,7 +168,7 @@ export default function GlikoAssistant({
     "Korelacja posiłków",
     "Optymalizacja bazy",
     "Ryzyko hipo",
-    "Podsumowanie 24h"
+    "Wymiana wkłucia"
   ];
 
   return (

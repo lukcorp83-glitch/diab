@@ -84,6 +84,7 @@ import Logo from './components/Logo';
 
 import OnboardingTutorial from './components/OnboardingTutorial';
 import NotificationCenter from './components/NotificationCenter';
+import MediaWidget from './components/MediaWidget';
 import NotebookManager from './components/NotebookManager';
 import ChangelogPopup from './components/ChangelogPopup';
 import PrivacyPopup from './components/PrivacyPopup';
@@ -230,18 +231,21 @@ export default function App() {
 
       // Handle Plate/App Actions
       let cleanResponse = response;
-      const plateActionMatch = response.match(/<plate_action>([\s\S]*?)<\/plate_action>/);
+      const plateActionMatches = Array.from(response.matchAll(/<plate_action>([\s\S]*?)<\/plate_action>/g));
       
-      if (plateActionMatch) {
+      for (const match of plateActionMatches) {
         try {
-          const actionData = JSON.parse(plateActionMatch[1]);
+          const actionData = JSON.parse(match[1]);
           if (actionData.action === 'add' && actionData.item) {
              window.dispatchEvent(new CustomEvent('ai_plate_action', { detail: actionData }));
           }
-          cleanResponse = cleanResponse.replace(/<plate_action>[\s\S]*?<\/plate_action>/, '').trim();
         } catch (e) {
           console.error("AI Plate Action Error:", e);
         }
+      }
+      
+      if (plateActionMatches.length > 0) {
+        cleanResponse = cleanResponse.replace(/<plate_action>[\s\S]*?<\/plate_action>/g, '').trim();
       }
       
       const appActionMatches = Array.from(response.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g));
@@ -769,10 +773,15 @@ export default function App() {
 
   const syncTaskRef = useRef(false);
   const logsRef = useRef(logs);
+  const userSettingsRef = useRef(userSettings);
 
   useEffect(() => {
     logsRef.current = logs;
   }, [logs]);
+
+  useEffect(() => {
+    userSettingsRef.current = userSettings;
+  }, [userSettings]);
 
   useEffect(() => {
     if (!user || !nsUrl) return;
@@ -788,6 +797,16 @@ export default function App() {
         setSyncStatus(prev => ({ ...prev, status: 'syncing' }));
         console.log("Starting Nightscout sync...");
         
+        let currentWeather: any = null;
+        if (userSettingsRef.current?.weatherNeuralEnabled || userSettingsRef.current?.weatherWidgetEnabled) {
+          try {
+             const { fetchCurrentWeather } = await import('./services/weatherService');
+             currentWeather = await fetchCurrentWeather();
+          } catch (e) {
+             console.warn("Failed to fetch weather for Nightscout sync", e);
+          }
+        }
+
         // 1. FAST PATH: Fetch just the LATEST entry first for immediate feedback
         const latestEntries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 1);
         if (latestEntries.length > 0) {
@@ -796,11 +815,15 @@ export default function App() {
           const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
           const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', firestoreId);
           
-          await setDoc(docRef, {
+          const latestDataToSave: any = {
             ...latest,
             nsId: latest.id,
             createdAt: serverTimestamp()
-          }, { merge: true });
+          };
+          if (currentWeather && latest.type === 'glucose' && (Date.now() - latest.timestamp < 3600000)) {
+            latestDataToSave.weather = currentWeather;
+          }
+          await setDoc(docRef, latestDataToSave, { merge: true });
         }
 
         // 2. Fetch device status (important for battery/status)
@@ -830,16 +853,6 @@ export default function App() {
 
         if (newLogsToSync.length > 0) {
           console.log(`Syncing ${newLogsToSync.length} new records via batch...`);
-          
-          let currentWeather: any = null;
-          if (userSettings?.weatherNeuralEnabled) {
-            try {
-               const { fetchCurrentWeather } = await import('./services/weatherService');
-               currentWeather = await fetchCurrentWeather();
-            } catch (e) {
-               console.warn("Failed to fetch weather for Nightscout sync", e);
-            }
-          }
 
           const CHUNK_SIZE = 400;
           for (let i = 0; i < newLogsToSync.length; i += CHUNK_SIZE) {
@@ -1077,7 +1090,7 @@ export default function App() {
               "flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all",
               theme === 'dark' ? "bg-slate-950 text-white border-slate-800" : "bg-white text-slate-700 border-slate-200"
             )}>
-              <Globe className="w-4 h-4 text-accent-500" />
+              <img src="/google.svg" alt="Google" className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-wider">Kontynuuj przez Google</span>
             </button>
             
@@ -1300,6 +1313,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <NotebookManager user={user} />
             <NotificationCenter userSettings={userSettings} theme={theme} />
+            <MediaWidget enabled={userSettings?.mediaWidgetEnabled || false} logs={logs} />
             <button 
               onClick={() => {
                 Haptics.light();
@@ -1396,6 +1410,7 @@ export default function App() {
             </motion.div>
           </div>
 
+          <NavButton active={activeTab === 'assistant'} onClick={() => changeTab('assistant')} icon={<MessageSquare />} label="Czat" />
           <NavButton active={activeTab === 'ai'} onClick={() => changeTab('ai')} icon={<GlikoSenseIcon size={20} isAnalyzing={activeTab === 'ai'} />} label="GlikoSense" />
           <NavButton active={activeTab === 'profile'} onClick={() => changeTab('profile')} icon={<Menu />} label="Więcej" />
         </div>
@@ -1454,7 +1469,7 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
         onClick();
       }}
       className={cn(
-        "flex flex-col items-center gap-1 relative w-16 h-full justify-center transition-colors outline-none",
+        "flex flex-col items-center gap-1 relative flex-1 max-w-[60px] h-full justify-center transition-colors outline-none",
         active ? "text-accent-600 dark:text-accent-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
       )}
     >

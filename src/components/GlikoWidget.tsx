@@ -9,12 +9,13 @@ interface GlikoWidgetProps {
   setTab: (t: string) => void;
   iob: number;
   todayStats: { carbs: number; insulin: number };
-  trend?: { icon: React.ReactNode, color: string, text: string } | null;
+  trend?: { icon: React.ReactNode, color: string, text: string, deltaText?: string } | null;
   tir: { low: number; inRange: number; high: number };
   hba1c: number;
+  glassmorphismEnabled?: boolean;
 }
 
-export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir, hba1c }: GlikoWidgetProps) {
+export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir, hba1c, glassmorphismEnabled }: GlikoWidgetProps) {
   const lastGlucose = logs.find(l => l.type === 'glucose');
   const lastBolus = logs.find(l => l.type === 'bolus');
   const lastMeal = logs.find(l => l.type === 'meal');
@@ -31,11 +32,11 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
       whileTap={{ scale: 0.98 }}
       onClick={() => setTab('chart')}
       className={cn(
-        "glass-card p-6 text-slate-900 dark:text-white shadow-2xl rounded-[2rem] border-l-[6px] overflow-hidden relative group breath",
-        (lastGlucose?.value || 100) > 180 ? 'border-amber-500' :
-        (lastGlucose?.value || 100) < 70 ? 'border-rose-500' :
-        'border-emerald-500',
-        "bg-white/60 dark:bg-slate-950/60"
+        "p-6 text-slate-900 dark:text-white shadow-2xl rounded-[2rem] border-l-[6px] overflow-hidden relative group breath",
+        glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white/60 dark:bg-slate-950/60 border border-slate-200/50 dark:border-slate-800",
+        (lastGlucose?.value || 100) > 180 ? 'border-l-amber-500' :
+        (lastGlucose?.value || 100) < 70 ? 'border-l-rose-500' :
+        'border-l-emerald-500'
       )}
     >
       {/* Background Accent (Animated Pulse) */}
@@ -100,6 +101,11 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
                     <div className="scale-75 origin-left">
                       {trend.icon}
                     </div>
+                    {trend.deltaText && (
+                      <span className="text-[10px] font-black tracking-tighter opacity-80 mt-0.5">
+                        {trend.deltaText}
+                      </span>
+                    )}
                   </motion.div>
                 )}
               </div>

@@ -80,6 +80,11 @@ export const geminiService = {
 
     let contents;
     if (imageData) {
+      let mimeType = "image/jpeg";
+      if (imageData.startsWith('data:')) {
+         const match = imageData.match(/data:([^;]+);/);
+         if (match) mimeType = match[1];
+      }
       contents = [
         {
           role: 'user',
@@ -88,7 +93,7 @@ export const geminiService = {
             {
               inlineData: {
                 data: imageData.split(',')[1] || imageData,
-                mimeType: "image/jpeg"
+                mimeType: mimeType
               }
             }
           ]
@@ -285,13 +290,14 @@ export const geminiService = {
 
     try {
       const text = await this.generateContent(prompt, imageData);
+      console.log("Raw AI vision response:", text);
       const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
       let cleanJson = jsonMatch ? jsonMatch[0] : text;
       // usuwamy ewentualne wiodące znaki przed klamrami jeśli regex uchwycił za dużo
       cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
       return JSON.parse(cleanJson);
     } catch (error) {
-      console.error("Gemini Vision Error:", error);
+      console.error("Gemini Vision Error in analyzeMeal:", error);
       throw error;
     }
   },
@@ -556,7 +562,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
     - Ustawienia (ISF, WW): ${JSON.stringify(settings)}
     
     ZASADY ODPOWIADANIA:
-    1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. 
+    1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. Nie generuj długich raportów (tym zajmuje się system GlikoSense). Odpowiadaj maksymalnie zwięźle.
     2. AKCJE Z APLIKACJĄ I ZARZĄDZANIE DANYMI: Możesz wykonywać akcje! Na samym końcu wiadomości możesz wpisać poniższe tagi:
        ZAPISANIE BOLUSA LUB CUKRU (np. "zapisz cukier 120" albo "zapisz bolus 3j"): <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "Cukier z AI"}}</app_action>
        ZAPISANIE WYMIANY (wkłucie/sensor, np. "wymieniłem wkłucie"): <app_action>{"action": "add_log", "logData": {"type": "site_change", "value": 1, "notes": "wymiana wkłucia"}}</app_action> (type jako site_change/sensor_change)
@@ -577,7 +583,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
        - USTAWIENIA (targetMin, isf, wwRatio, hapticsEnabled itp.): <app_action>{"action": "set_setting", "key": "hapticsEnabled", "value": false}</app_action>
        - NAWIGACJA (np. "skoczmy do talerza" value=meal/history/dashboard): <app_action>{"action": "navigate", "value": "meal"}</app_action>
        - ZJEDZONY POSIŁEK: <plate_action>{"action": "add", "item": {"name": "Nazwa", "carbs": 20, "protein": 5, "fat": 2, "kcal": 150}}</plate_action>
-    2. ANALIZA DANYCH: Skup się na trendach i GlikoSense.
+    2. BĄDŹ BARDZO ZWIĘZŁY: Odpowiadaj krótko i na temat. Absolutnie NIE generuj długich raportów, analiz medycznych ani podsumowań - tym zajmuje się wbudowany system GlikoSense. Odpowiadaj krótko, chyba że użytkownik prosi o rozwinięcie.
     3. HTML formatting (<b>, <ul>). Zapisz tagi na DOKŁADNYM KOŃCU response'a! Poinformuj w treści, że dokonałeś operacji na rzecz użytkownika.`;
 
     let fullContents = [

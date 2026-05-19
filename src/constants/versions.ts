@@ -7,16 +7,27 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.5.1",
+    date: "2026-05-18",
+    title: "Ulepszenia Gliko Czat i Profilu",
+    changes: [
+      "Nowość: Czat Gliko lepiej rozumie komendy, np. wystarczy zapytać o jadłospis.",
+      "Poprawka: Dodanie do talerza z Gliko Czat wymaga teraz komendy 'dodaj do talerza'.",
+      "Interfejs: Zmniejszono odstępy ikon w profilu (kafelki Więcej), co ułatwia nawigację bez przewijania.",
+      "Objaśnienia: Ekran powitalny (Onboarding) otrzymał informację o Dietach oraz opcjach pogodowych."
+    ]
+  },
+  {
     version: "3.5.0",
     date: "2026-05-18",
     title: "Pogoda, Diety i Nowe Funkcje 3.5.0",
     changes: [
-      "Dodałem inteligentny widżet pogody – teraz sprawdzam aktualne warunki bezpośrednio na pulpicie.",
-      "Wprowadziłem analizę wpływu środowiska – GlikoSense uwzględnia temperaturę i ciśnienie w prognozach.",
-      "Powiększyłem bazę produktów o setki pozycji (Keto, Wege, Low-GI) – dla jeszcze łatwiejszego liczenia.",
-      "Wprowadziłem funkcję 'Puste Węgle' w kalkulatorze bolusa – do precyzyjnego odejmowania polioli.",
-      "Ulepszyłem asystenta AI – teraz sprawniej dodaje produkty prosto na Twój talerz.",
-      "Odświeżyłem interfejs – ulepszyłem nawigację i dopracowałem detale wizualne."
+      "Dodano inteligentny widżet pogody – możliwość sprawdzania aktualnych warunków bezpośrednio na pulpicie.",
+      "Wprowadzono analizę wpływu środowiska – GlikoSense uwzględnia temperaturę i ciśnienie w prognozach.",
+      "Powiększono bazę produktów o setki pozycji (Keto, Wege, Low-GI) – dla jeszcze łatwiejszego liczenia.",
+      "Wprowadzono funkcję 'Puste Węgle' w kalkulatorze bolusa – do precyzyjnego odejmowania polioli i pustych węglowodanów.",
+      "Ulepszono asystenta AI – teraz sprawniej dodaje produkty prosto na Talerz.",
+      "Odświeżono interfejs – ulepszona nawigacja i dopracowane detale wizualne."
     ]
   },
   {
@@ -185,4 +196,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.5.0";
+export const CURRENT_VERSION = "3.5.1";

@@ -318,44 +318,59 @@ export default function Dashboard({
     if (glucoseLogs.length < 2) return null;
     const current = glucoseLogs[0];
     const prev = glucoseLogs[1];
-    const diff = current.value - prev.value;
+    
+    const rawDiff = current.value - prev.value;
     const timeDiff = (current.timestamp - prev.timestamp) / (1000 * 60); // minutes
 
-    if (timeDiff > 120) return null; // Too much time passed to determine trend
+    if (timeDiff <= 0 || timeDiff > 120) return null; // Too much time passed to determine trend
+
+    // Normalize diff to a 5-minute time frame for standard delta presentation
+    const diff = (rawDiff / timeDiff) * 5;
+    const deltaText = `${diff > 0 ? '+' : ''}${diff.toFixed(1)} mg/dL`;
 
     if (diff > 15)
       return {
         icon: <ChevronRight className="-rotate-90" />,
         color: "text-rose-500",
         text: "Szybko rośnie",
-        direction: "UP_FAST"
+        direction: "UP_FAST",
+        deltaText,
+        rawDiff: diff
       };
     if (diff > 5)
       return {
         icon: <ChevronRight className="-rotate-45" />,
         color: "text-rose-400",
         text: "Rośnie",
-        direction: "UP"
+        direction: "UP",
+        deltaText,
+        rawDiff: diff
       };
     if (diff < -15)
       return {
         icon: <ChevronRight className="rotate-90" />,
         color: "text-rose-500",
         text: "Szybko spada",
-        direction: "DOWN_FAST"
+        direction: "DOWN_FAST",
+        deltaText,
+        rawDiff: diff
       };
     if (diff < -5)
       return {
         icon: <ChevronRight className="rotate-45" />,
         color: "text-rose-400",
         text: "Spada",
-        direction: "DOWN"
+        direction: "DOWN",
+        deltaText,
+        rawDiff: diff
       };
     return {
       icon: <ChevronRight />,
       color: "text-emerald-500",
       text: "Stabilnie",
-      direction: "STABLE"
+      direction: "STABLE",
+      deltaText,
+      rawDiff: diff
     };
   };
 
@@ -448,6 +463,7 @@ export default function Dashboard({
           trend={trend}
           tir={tir}
           hba1c={hba1c}
+          glassmorphismEnabled={settings.glassmorphismEnabled}
         />
       </motion.div>
 

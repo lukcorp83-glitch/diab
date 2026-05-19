@@ -1063,47 +1063,74 @@ export default function MealPlate({
               const file = e.target.files?.[0];
               if (!file) return;
               setIsAnalyzing(true);
+              setSearchError(''); // reset errors
               try {
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                  const dataUrl = event.target?.result as string;
-                  try {
-                    const result = await geminiService.analyzeMeal(dataUrl, settings);
-                    const p: Product = {
-                      id: `ai_${Date.now()}`,
-                      name: result.mealName || "Posiłek AI",
-                      carbs: result.carbs || 0,
-                      protein: result.protein || 0,
-                      fat: result.fat || 0,
-                      gi: 50,
-                      category: "AI Wizja",
+                // compress image
+                const max_size = 1000;
+                const compressedDataUrl = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.readAsDataURL(file);
+                  reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target?.result as string;
+                    img.onload = () => {
+                      const canvas = document.createElement('canvas');
+                      let width = img.width;
+                      let height = img.height;
+                      
+                      if (width > height) {
+                        if (width > max_size) {
+                          height *= max_size / width;
+                          width = max_size;
+                        }
+                      } else {
+                        if (height > max_size) {
+                          width *= max_size / height;
+                          height = max_size;
+                        }
+                      }
+                      
+                      canvas.width = width;
+                      canvas.height = height;
+                      const ctx = canvas.getContext('2d');
+                      ctx?.drawImage(img, 0, 0, width, height);
+                      resolve(canvas.toDataURL('image/jpeg', 0.8));
                     };
-                    const weight = 100;
-                    setPlate((prev) => [
-                      ...prev,
-                      {
-                        ...p,
-                        weight,
-                        carbs: p.carbs,
-                        protein: p.protein,
-                        fat: p.fat,
-                      },
-                    ]);
-                    // Notice we append with weight=100 and absolute nutrition because the AI estimates for the entire plate
-                    setTimeout(() => {
-                      document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }, 50);
-                  } catch (err) {
-                    setSearchError("Błąd analizy zdjęcia.");
-                  } finally {
-                    setIsAnalyzing(false);
-                  }
+                    img.onerror = () => reject(new Error('Image load failed'));
+                  };
+                  reader.onerror = () => reject(new Error('File read failed'));
+                });
+
+                const result = await geminiService.analyzeMeal(compressedDataUrl, settings);
+                const p: Product = {
+                  id: `ai_${Date.now()}`,
+                  name: result.mealName || "Posiłek AI",
+                  carbs: result.carbs || 0,
+                  protein: result.protein || 0,
+                  fat: result.fat || 0,
+                  gi: result.ig || result.gi || 50,
+                  category: "AI Wizja",
                 };
-                reader.readAsDataURL(file);
+                const weight = 100;
+                setPlate((prev) => [
+                  ...prev,
+                  {
+                    ...p,
+                    weight,
+                    carbs: p.carbs,
+                    protein: p.protein,
+                    fat: p.fat,
+                  },
+                ]);
+                setTimeout(() => {
+                  document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 50);
               } catch (err) {
-                setIsAnalyzing(false);
+                console.error("Camera vision analysis:", err);
+                setSearchError("Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie.");
               } finally {
+                setIsAnalyzing(false);
                 e.target.value = "";
               }
             }}

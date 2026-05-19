@@ -271,7 +271,7 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate }: 
         const settingsDocRef = doc(db, 'artifacts', 'diacontrolapp', 'users', effectiveUid, 'settings', 'profile');
         const settingsDoc = await getDoc(settingsDocRef);
         const settingsData = settingsDoc.exists() ? settingsDoc.data() : null;
-        const weatherEnabled = settingsData?.weatherEnabled === true;
+        const weatherEnabled = settingsData?.weatherNeuralEnabled === true;
 
         const weather = weatherEnabled ? await fetchCurrentWeather() : null;
         const glucosePayload: any = {

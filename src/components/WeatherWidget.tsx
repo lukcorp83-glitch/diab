@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { CloudRain, Sun, Cloud, Thermometer, Wind, Droplets, AlertTriangle, CloudDrizzle, Snowflake, CloudLightning, CloudFog, CloudSnow } from 'lucide-react';
+import { CloudRain, Sun, Cloud, Thermometer, Wind, Droplets, AlertTriangle, CloudDrizzle, Snowflake, CloudLightning, CloudFog, CloudSnow, MapPin, RefreshCw } from 'lucide-react';
 import { fetchCurrentWeather } from '../services/weatherService';
+import { Haptics } from '../lib/haptics';
 
 export default function WeatherWidget() {
   const [weather, setWeather] = useState<any>(null);
+  const [loadingLoc, setLoadingLoc] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -17,6 +19,32 @@ export default function WeatherWidget() {
     loadWeather();
     return () => { mounted = false; };
   }, []);
+
+  const handleRefreshLoc = () => {
+    Haptics.light();
+    setLoadingLoc(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const data = await fetchCurrentWeather(position.coords.latitude, position.coords.longitude, true);
+          if (data) setWeather(data);
+          setLoadingLoc(false);
+        },
+        async (err) => {
+          console.warn("Geolocation API error:", err);
+          const data = await fetchCurrentWeather(undefined, undefined, true);
+          if (data) setWeather(data);
+          setLoadingLoc(false);
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
+      );
+    } else {
+      fetchCurrentWeather(undefined, undefined, true).then(data => {
+        if (data) setWeather(data);
+        setLoadingLoc(false);
+      });
+    }
+  };
 
   if (!weather) return null;
 
@@ -78,7 +106,17 @@ export default function WeatherWidget() {
                   {weather.temp}°C
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{weather.condition}</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                     {weather.city ? `${weather.city} • ${weather.condition}` : weather.condition}
+                   </p>
+                   <button 
+                     onClick={handleRefreshLoc}
+                     disabled={loadingLoc}
+                     className="ml-2 text-slate-400 hover:text-indigo-500 transition-colors disabled:opacity-50"
+                     title="Odśwież lokalizację GPS"
+                   >
+                     {loadingLoc ? <RefreshCw size={12} className="animate-spin" /> : <MapPin size={12} />}
+                   </button>
                 </div>
               </div>
             </div>

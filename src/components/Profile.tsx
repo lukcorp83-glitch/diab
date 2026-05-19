@@ -52,7 +52,8 @@ import {
   HelpCircle,
   CloudRain,
   Calculator,
-  BarChart2
+  BarChart2,
+  MonitorPlay
 } from 'lucide-react';
 import { db, auth, onConnectionChange } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
@@ -784,7 +785,15 @@ export default function Profile({
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 relative min-h-[calc(100vh-8rem)]">
+      {/* Decorative blurred background for glassmorphism */}
+      {settings.glassmorphismEnabled && (
+        <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+          <div className="absolute top-10 left-10 w-96 h-96 bg-accent-500/30 dark:bg-accent-500/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-lighten animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute top-40 right-10 w-80 h-80 bg-indigo-500/30 dark:bg-indigo-500/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-lighten animate-pulse" style={{ animationDuration: '10s' }} />
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/30 dark:bg-emerald-500/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-lighten animate-pulse" style={{ animationDuration: '12s' }} />
+        </div>
+      )}
       {settings.childMode && (
         <>
           {/* Pet Header Section */}
@@ -887,21 +896,22 @@ export default function Profile({
                     setActiveCategory(cat.id);
                   }}
                   className={cn(
-                    "w-full aspect-square rounded-[2rem] flex flex-col p-5 transition-all duration-300 relative overflow-hidden group bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50",
-                    !isEditingTiles && "hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:-translate-y-1 cursor-pointer",
+                    "w-full h-32 rounded-[1.75rem] flex flex-col p-4 transition-all duration-300 relative overflow-hidden group",
+                    settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50",
+                    !isEditingTiles && (settings.glassmorphismEnabled ? "hover:bg-white/10 dark:hover:bg-white/5 hover:shadow-xl hover:-translate-y-1 cursor-pointer" : "hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:-translate-y-1 cursor-pointer"),
                     isEditingTiles && "opacity-90 scale-[0.98] cursor-grab active:cursor-grabbing border-slate-300 dark:border-slate-600"
                   )}
                 >
                   <div className={cn(
-                    "w-12 h-12 rounded-[1.25rem] flex items-center justify-center text-white mb-4 shadow-lg shrink-0",
+                    "w-10 h-10 rounded-[1rem] flex items-center justify-center text-white mb-2 shadow-md shrink-0",
                     !isEditingTiles && "group-hover:scale-110 transition-transform",
                     cat.color
                   )}>
                     {cat.icon}
                   </div>
                   <div className="text-left mt-auto">
-                    <p className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">{cat.label}</p>
-                    <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-600 transition-colors mt-1">{cat.sub}</p>
+                    <p className="text-[11px] sm:text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white line-clamp-1">{cat.label}</p>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 group-hover:text-slate-600 transition-colors mt-0.5 line-clamp-2 leading-tight">{cat.sub}</p>
                   </div>
                   {isEditingTiles && (
                     <div className="absolute top-4 right-4 text-slate-400 p-1 bg-white dark:bg-slate-900 rounded-full shadow-sm">
@@ -921,12 +931,12 @@ export default function Profile({
                 Haptics.selection();
                 setActiveCategory(null);
               }}
-              className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors duration-200 bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-[1.5rem] text-[10px] uppercase font-black tracking-widest shrink-0"
+              className={cn("flex items-center gap-2 transition-colors duration-200 px-4 py-3 rounded-[1.5rem] text-[10px] uppercase font-black tracking-widest shrink-0", settings.glassmorphismEnabled ? "text-slate-700 dark:text-slate-200 hover:bg-white/20 dark:hover:bg-slate-800/30 backdrop-blur-md bg-white/10 dark:bg-slate-900/10 border border-white/20" : "text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800")}
             >
               <ChevronLeft size={16} /> 
               <span>Wróć do Menu</span>
             </button>
-            <div className="flex bg-slate-50 dark:bg-slate-800/50 rounded-[1.5rem] p-1 items-center">
+            <div className={cn("flex rounded-[1.5rem] p-1 items-center", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50")}>
               {[
                 { id: 'tutorial', label: 'Samouczek', icon: <HelpCircle size={14} /> },
                 { id: 'simulator', label: 'Symulator', icon: <Calculator size={14} /> },
@@ -949,7 +959,9 @@ export default function Profile({
                   }}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold transition-all whitespace-nowrap",
-                    activeCategory === cat.id ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    activeCategory === cat.id 
+                      ? (settings.glassmorphismEnabled ? "bg-white/20 dark:bg-slate-700/30 shadow-sm text-slate-900 dark:text-white border border-white/20 dark:border-white/5" : "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white") 
+                      : (settings.glassmorphismEnabled ? "text-slate-600 dark:text-slate-400 hover:bg-white/5 dark:hover:bg-slate-800/30" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300")
                   )}
                 >
                   <span className="opacity-70">{cat.icon}</span>
@@ -999,7 +1011,7 @@ export default function Profile({
               
               <motion.div 
                 whileHover={{ y: -1 }}
-                className="flex flex-col gap-2 p-4 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/50 dark:border-slate-800/50 mt-6 text-left shadow-xl"
+                className="flex flex-col gap-2 p-4 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/20 dark:border-slate-800/50 mt-6 text-left shadow-xl"
               >
                 <div className="flex items-center justify-between">
                     <h4 className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
@@ -1096,7 +1108,7 @@ export default function Profile({
           </div>
 
           {/* Shop Tabs */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800">
+          <div className={cn("rounded-[2.5rem] p-6 border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
              <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl">
                 {['skins', 'accessories', 'backgrounds'].map((t) => (
                   <button
@@ -1244,7 +1256,7 @@ export default function Profile({
              )}
           </div>
 
-          <div className="bg-slate-100 dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800">
+          <div className={cn("rounded-[2.5rem] p-6 border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
              <div className="flex items-center gap-3 mb-4">
                <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600">
                  <Star size={20} />
@@ -1278,7 +1290,7 @@ export default function Profile({
           className="space-y-4 pb-20"
         >
           {/* Main Therapy Parameters */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-6">
+          <div className={cn("rounded-[2.5rem] p-6 border shadow-xl space-y-6", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
             <div className="flex items-center gap-4 mb-1">
               <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-2xl">
                 <Activity size={20} />
@@ -1304,7 +1316,7 @@ export default function Profile({
                   <SettingInput label="Cel Dolny (Min)" value={settings.targetMin} onChange={v => setSettings({ ...settings, targetMin: v })} />
                   <SettingInput label="Cel Górny (Max)" value={settings.targetMax} onChange={v => setSettings({ ...settings, targetMax: v })} />
                   
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+                  <div className={cn("p-4 rounded-3xl border flex flex-col items-center justify-center text-center", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50")}>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Czas Insuliny (DIA)</span>
                     <div className="flex items-center gap-3">
                       <button 
@@ -1341,7 +1353,7 @@ export default function Profile({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* TDI Calculator */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl space-y-4">
+            <div className={cn("rounded-[2.5rem] p-6 border shadow-xl space-y-4", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
               <div className="flex items-center gap-2.5 mb-1">
                 <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl">
                   <Zap size={18} />
@@ -1398,7 +1410,7 @@ export default function Profile({
             </div>
           </div>
 
-          <div id="hourly-profiles" className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl space-y-6">
+          <div id="hourly-profiles" className={cn("rounded-[2.5rem] p-8 border shadow-xl space-y-6", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
             <div className="flex flex-col gap-4 mb-4">
                <button 
                 onClick={performTherapyAudit}
@@ -1421,7 +1433,7 @@ export default function Profile({
                  <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="p-6 bg-slate-50 dark:bg-slate-800/80 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-inner relative"
+                    className={cn("p-6 rounded-[2rem] border shadow-inner relative", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700")}
                  >
                     <button 
                       onClick={() => setAuditResult(null)}
@@ -1449,7 +1461,7 @@ export default function Profile({
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   key={`fav-profile-${idx}-${hp.time}`} 
-                  className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-700 group hover:shadow-md transition-all"
+                  className={cn("flex items-center gap-3 p-4 rounded-[2rem] border group hover:shadow-md transition-all", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700")}
                 >
                   <div className="relative">
                     <input type="time" value={hp.time} onChange={e => {
@@ -1646,7 +1658,7 @@ export default function Profile({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-           <div className="group relative bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden">
+           <div className={cn("group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors"></div>
               
               <div className="flex items-center gap-3 mb-6 relative z-10">
@@ -1660,7 +1672,7 @@ export default function Profile({
               </div>
 
               <div className="space-y-4 relative z-10">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                <div className={cn("p-4 rounded-2xl border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50")}>
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">Żywotność Sensora (dni)</label>
                   <div className="flex items-center gap-3">
                     <input 
@@ -1678,7 +1690,7 @@ export default function Profile({
                   </div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                <div className={cn("p-4 rounded-2xl border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50")}>
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">Data i godzina założenia</label>
                   <div className="relative">
                     <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none" />
@@ -1720,7 +1732,7 @@ export default function Profile({
               </div>
            </div>
 
-           <div className="group relative bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden">
+           <div className={cn("group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-teal-500/10 transition-colors"></div>
               
               <div className="flex items-center gap-3 mb-6 relative z-10">
@@ -1734,7 +1746,7 @@ export default function Profile({
               </div>
 
               <div className="space-y-4 relative z-10">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                <div className={cn("p-4 rounded-2xl border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50")}>
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">Żywotność Wkłucia (dni)</label>
                   <div className="flex items-center gap-3">
                     <input 
@@ -1752,7 +1764,7 @@ export default function Profile({
                   </div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                <div className={cn("p-4 rounded-2xl border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50")}>
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">Data i godzina założenia</label>
                   <div className="relative">
                     <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-500 pointer-events-none" />
@@ -1853,7 +1865,7 @@ export default function Profile({
             )}
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl">
+          <div className={cn("rounded-[2.5rem] p-6 border shadow-xl", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-2xl">
                 <Utensils size={20} />
@@ -1869,7 +1881,7 @@ export default function Profile({
                 <motion.div 
                   layout
                   key={s.id} 
-                  className="group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-[1.8rem] border border-slate-100 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg transition-all"
+                  className={cn("group flex items-center justify-between p-4 rounded-[1.8rem] border hover:shadow-lg transition-all", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset hover:bg-white/10 dark:hover:bg-white/10" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800")}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-transform group-hover:scale-110">
@@ -1909,7 +1921,7 @@ export default function Profile({
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="bg-slate-50 dark:bg-slate-800/80 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 space-y-4 shadow-inner"
+                className={cn("p-6 rounded-[2rem] border space-y-4 shadow-inner", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700")}
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest px-2">
@@ -1981,7 +1993,7 @@ export default function Profile({
           animate={{ opacity: 1, x: 0 }}
           className="space-y-4 pb-20"
         >
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-6">
+          <div className={cn("rounded-[2.5rem] p-6 border shadow-xl space-y-6", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
             <div className="flex items-center gap-3 mb-1">
               <div className="p-2.5 bg-teal-500/10 text-teal-600 rounded-2xl">
                 <Pill size={20} />
@@ -2000,7 +2012,7 @@ export default function Profile({
                   className={cn(
                     "relative overflow-hidden p-5 rounded-[2rem] border transition-all flex flex-col group",
                     med.active 
-                      ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700" 
+                      ? (settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700") 
                       : "bg-slate-100/50 dark:bg-slate-900 border-transparent opacity-60"
                   )}
                 >
@@ -2085,7 +2097,7 @@ export default function Profile({
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 space-y-5"
+                className={cn("p-6 rounded-[2rem] border space-y-5", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700")}
               >
                 <div className="flex items-center justify-between">
                   <h4 className="text-[9px] font-black uppercase text-slate-500 tracking-widest px-1">Konfiguracja</h4>
@@ -2184,7 +2196,7 @@ export default function Profile({
         >
           <ApiIntegration user={user} />
           
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-4">
+          <div className={cn("rounded-[2.5rem] p-6 border shadow-xl space-y-4", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-sky-500/10 text-sky-600 rounded-2xl">
@@ -2247,7 +2259,7 @@ export default function Profile({
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+              <div className={cn("p-4 rounded-2xl border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                   <Activity size={12} /> Status synchronizacji
                 </p>
@@ -2297,7 +2309,7 @@ export default function Profile({
                 </div>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/80 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-700/50">
+              <div className={cn("p-5 rounded-[1.5rem] border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/80 border-slate-100 dark:border-slate-700/50")}>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-4 leading-relaxed font-medium">
                   Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-accent-500 font-black hover:underline underline-offset-2 transition-all">Google AI Studio</a>. Klucz zostanie zapisany <b>wyłącznie lokalnie</b> w Twojej przeglądarce.
                 </p>
@@ -2373,7 +2385,7 @@ export default function Profile({
           className="space-y-4 pb-20"
         >
           {/* System & Experience Section */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-xl space-y-4">
+          <div className={cn("rounded-[2.5rem] p-6 border shadow-xl space-y-4", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
             <div className="flex items-center gap-3 mb-1">
               <div className="p-2.5 bg-violet-500/10 text-violet-600 rounded-2xl">
                 <Settings size={20} />
@@ -2415,7 +2427,7 @@ export default function Profile({
                   </button>
                 </div>
 
-                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                <div className={cn("group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
                       <Smartphone size={22} />
@@ -2443,7 +2455,7 @@ export default function Profile({
                   </button>
                 </div>
 
-                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                <div className={cn("group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-900/30 text-slate-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
                       <Zap size={22} />
@@ -2477,7 +2489,7 @@ export default function Profile({
                   </button>
                 </div>
                 
-                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                <div className={cn("group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-900/30 text-sky-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
                       <Cloud size={22} />
@@ -2507,7 +2519,7 @@ export default function Profile({
                   </button>
                 </div>
 
-                <div className="group flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md">
+                <div className={cn("group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-teal-100 dark:bg-teal-900/30 text-teal-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
                       <CloudRain size={22} />
@@ -2538,8 +2550,41 @@ export default function Profile({
                 </div>
               </div>
 
+              {/* Media Player Widget Toggle */}
+              <div className={cn("p-6 rounded-[2.5rem] border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                      <MonitorPlay size={20} className="text-white" />
+                    </div>
+                    <div className="text-left max-w-[150px] sm:max-w-none">
+                      <p className="text-sm font-black dark:text-white leading-tight">Odtwarzacz (PWA)</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
+                        Pokazuje cukier w komponencie powiadomień. Może zwiększać zużycie baterii. Działa w tle (wyłączenie widżetu górnego paska).
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      const newSettings = { ...settings, mediaWidgetEnabled: !settings.mediaWidgetEnabled };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner shrink-0",
+                      settings.mediaWidgetEnabled ? "bg-purple-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
+                      settings.mediaWidgetEnabled ? "left-7" : "left-1"
+                    )} />
+                  </button>
+                </div>
+              </div>
+
               {/* Visual Appearance Cards */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 space-y-6">
+              <div className={cn("p-6 rounded-[2.5rem] border space-y-6", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
                     <Palette size={14} className="text-accent-500" /> Akcent Kolorystyczny
@@ -2639,6 +2684,34 @@ export default function Profile({
                 )}
               </div>
 
+              {/* Glassmorphism Effect Section */}
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                 <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                    <Sparkles size={18} className="text-pink-500" /> Styl Kart (Szkło)
+                 </div>
+                 <button
+                    onClick={async () => {
+                      const newSettings = { ...settings, glassmorphismEnabled: !settings.glassmorphismEnabled };
+                      setSettings(newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    }}
+                    className={cn(
+                      "flex items-center justify-between w-full p-4 rounded-2xl border transition-all",
+                      settings.glassmorphismEnabled
+                        ? "bg-pink-500/10 border-pink-500/50 text-pink-600 dark:text-pink-400"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"
+                    )}
+                 >
+                    <span className="text-xs font-black uppercase tracking-wider">Efekt Szkła (Glassmorphism)</span>
+                    <div className={cn(
+                      "w-10 h-6 pl-1 rounded-full flex items-center transition-all bg-slate-200 dark:bg-slate-700",
+                      settings.glassmorphismEnabled && "bg-pink-500 pl-5"
+                    )}>
+                      <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                    </div>
+                 </button>
+              </div>
+
               {/* Data Management Section */}
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-6">
                 <SettingsSync 
@@ -2660,7 +2733,7 @@ export default function Profile({
                   }} 
                 />
 
-                <div className="flex flex-col gap-2 p-5 bg-slate-50 dark:bg-slate-800/80 rounded-[2rem] border border-slate-100 dark:border-slate-700/50">
+                <div className={cn("flex flex-col gap-2 p-5 rounded-[2rem] border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/80 border-slate-100 dark:border-slate-700/50")}>
                   <div className="flex items-center gap-3">
                     <Info className="text-accent-500" size={20} />
                     <div className="flex flex-col">
@@ -2677,7 +2750,7 @@ export default function Profile({
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-2">Administracja</h3>
                 
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <div className={cn("p-4 rounded-2xl border flex items-center justify-between", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
                   <div className="flex items-center gap-3">
                     <div className={cn("p-2 rounded-xl", isFirebaseConnected ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500")}>
                       <Cloud size={16} />
@@ -2785,7 +2858,7 @@ export default function Profile({
             </div>
 
             {/* Version History */}
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm opacity-60 hover:opacity-100 transition-opacity">
+            <div className={cn("rounded-[2.5rem] p-8 border shadow-sm opacity-60 hover:opacity-100 transition-opacity", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
               <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
                 <History size={14} /> Dziennik Aktualizacji
               </h4>

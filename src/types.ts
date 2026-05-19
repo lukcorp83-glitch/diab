@@ -87,6 +87,7 @@ export interface UserSettings {
   accentColor?: string;
   theme?: 'light' | 'dark' | 'system';
   bgOption?: 'default' | 'true-black';
+  glassmorphismEnabled?: boolean;
   showPumpWidget?: boolean;
   showPrediction?: boolean;
   autoGIEnabled?: boolean;
@@ -96,6 +97,7 @@ export interface UserSettings {
   allergies?: string;
   weatherWidgetEnabled?: boolean;
   weatherNeuralEnabled?: boolean;
+  mediaWidgetEnabled?: boolean;
 }
 
 export interface AssistantMessage {

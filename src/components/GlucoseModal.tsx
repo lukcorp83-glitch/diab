@@ -38,7 +38,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
       const settingsDocRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
       const settingsDoc = await getDoc(settingsDocRef);
       const settingsData = settingsDoc.exists() ? settingsDoc.data() : null;
-      const weatherEnabled = settingsData?.weatherEnabled === true;
+      const weatherEnabled = settingsData?.weatherNeuralEnabled === true;
 
       // Pobieramy pogodę w tle, nie blokując użytkownika
       const weather = weatherEnabled ? await fetchCurrentWeather() : null;

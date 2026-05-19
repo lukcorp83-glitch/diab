@@ -97,6 +97,12 @@ export default function StatisticsView({ logs }: StatisticsViewProps) {
       {monthsData.map((month) => {
         const isExpanded = expandedMonth === month.monthKey;
         const sortedDays = Object.values(month.days).sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+        
+        const daysWithCarbs = Object.values(month.days).filter(d => d.carbs > 0).length || 1;
+        const avgCarbs = month.totalCarbs / daysWithCarbs;
+        
+        const daysWithInsulin = Object.values(month.days).filter(d => d.insulin > 0).length || 1;
+        const avgInsulin = month.totalInsulin / daysWithInsulin;
 
         return (
           <div key={month.monthKey} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] overflow-hidden transition-all shadow-sm">
@@ -114,20 +120,26 @@ export default function StatisticsView({ logs }: StatisticsViewProps) {
               </div>
               
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-amber-500/10 rounded-2xl p-3 flex flex-col justify-center">
+                <div className="bg-amber-500/10 rounded-2xl p-3 flex flex-col justify-center relative group">
                   <div className="flex items-center gap-1.5 text-amber-600 mb-1">
                     <Utensils size={14} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Węglowodany</span>
                   </div>
-                  <span className="text-lg font-black text-amber-700 dark:text-amber-500 leading-none">{Math.round(month.totalCarbs)}g</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-black text-amber-700 dark:text-amber-500 leading-none">{Math.round(month.totalCarbs)}g</span>
+                    <span className="text-[10px] font-bold text-amber-600/70">~{Math.round(avgCarbs)}g/dzień</span>
+                  </div>
                 </div>
                 
-                <div className="bg-indigo-500/10 rounded-2xl p-3 flex flex-col justify-center">
+                <div className="bg-indigo-500/10 rounded-2xl p-3 flex flex-col justify-center relative group">
                   <div className="flex items-center gap-1.5 text-indigo-600 mb-1">
                     <Syringe size={14} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Insulina</span>
                   </div>
-                  <span className="text-lg font-black text-indigo-700 dark:text-indigo-500 leading-none">{month.totalInsulin.toFixed(1)}j</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-black text-indigo-700 dark:text-indigo-500 leading-none">{month.totalInsulin.toFixed(1)}j</span>
+                    <span className="text-[10px] font-bold text-indigo-600/70">~{avgInsulin.toFixed(1)}j/dzień</span>
+                  </div>
                 </div>
 
                 <div className="bg-teal-500/10 rounded-2xl p-3 flex flex-col justify-center">

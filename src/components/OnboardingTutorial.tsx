@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Database, Utensils, Settings, HeartPulse, Scan, Bot, Users, Star, ShieldAlert, ShieldCheck, EyeOff } from 'lucide-react';
+import { Activity, Database, Utensils, Settings, HeartPulse, Scan, Bot, Users, Star, ShieldAlert, ShieldCheck, EyeOff, CloudSun } from 'lucide-react';
 
 const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
   const [step, setStep] = useState(0);
@@ -11,6 +11,16 @@ const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
       title: 'Witaj w ekipie GlikoControl!',
       description: 'To projekt fanowski, tworzony z myślą o nas – diabetykach. Bez zbędnego patosu, po prostu narzędzie, które ma ułatwić nam życie z cukrzycą.',
       icon: <HeartPulse className="w-16 h-16 text-rose-500" />
+    },
+    {
+      title: 'Mądre prowadzenie diety',
+      description: 'Zarządzaj posiłkami łatwiej niż kiedykolwiek. Ustawiaj swój rodzaj diety, komponuj posiłki na intuicyjnym talerzu i analizuj jedzenie prosto ze zdjęć, by idealnie dobierać profil bolusa.',
+      icon: <Utensils className="w-16 h-16 text-orange-500" />
+    },
+    {
+      title: 'Pogoda a wrażliwość',
+      description: 'Często zapominamy, że temperatura i ciśnienie potężnie wpływają na nasze cukry. GlikoControl posiada wbudowane wskaźniki pogody, które ostrzegą Cię przed większym ryzykiem hipo lub hiper.',
+      icon: <CloudSun className="w-16 h-16 text-sky-400" />
     },
     {
       title: 'Twoja Prywatność (RODO)',
