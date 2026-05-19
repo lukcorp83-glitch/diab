@@ -2624,20 +2624,24 @@ export default function Profile({
                         const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
                         if (audio) {
                           if (audio.paused) {
-                            // Wymuszenie przeładowania jeśli stan jest niepewny
-                            if (audio.readyState === 0) audio.load();
+                            toast.loading("Uruchamianie...", { id: 'media-load' });
+                            
+                            // Re-load if needed
+                            if (audio.readyState === 0 || audio.error) {
+                              audio.load();
+                            }
                             
                             audio.play().then(() => {
                                if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-                               toast.success("Odtwarzacz aktywny");
+                               toast.success("Odtwarzacz aktywny", { id: 'media-load' });
                             }).catch(e => {
                                console.warn("Manual audio play error:", e);
-                               toast.error(`Błąd: ${e.name}. Spróbuj kliknąć jeszcze raz.`);
+                               toast.error(`Błąd: ${e.name}. Dotknij ponownie ekranu.`, { id: 'media-load' });
                             });
                           } else {
                             audio.pause();
                             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-                            toast("Odtwarzacz zatrzymany", { icon: '⏸️' });
+                            toast("Odtwarzacz zatrzymany", { icon: '⏸️', id: 'media-load' });
                           }
                           Haptics.light();
                         }
@@ -2647,10 +2651,22 @@ export default function Profile({
                       <MonitorPlay size={16} />
                       Odblokuj / Wymuś Media (PWA)
                     </button>
-                    <div className="flex justify-center">
-                      <span id="media-status-indicator" className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-3 py-1 rounded-full">
-                         Status: {(document.getElementById('pwa-media-player') as HTMLAudioElement)?.paused ? 'Zatrzymany' : 'Aktywny'}
-                      </span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-center">
+                        <span id="media-status-indicator" className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800">
+                           Status: {(document.getElementById('pwa-media-player') as HTMLAudioElement)?.paused ? 'Zatrzymany' : 'Aktywny'}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
+                          toast.success("Wymuszono synchronizację i odświeżenie widgetu");
+                          Haptics.medium();
+                        }}
+                        className="text-[9px] font-black uppercase tracking-widest text-accent-500 hover:underline"
+                      >
+                        Odśwież widget (Sync)
+                      </button>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
                       Naciśnij, jeśli powiadomienia na zablokowanym ekranie przestały się odświeżać (np. system uspał proces).

@@ -181,69 +181,76 @@ export default function App() {
 
   // Media Session Support for Lock Screen Updates
   useEffect(() => {
-    if (!('mediaSession' in navigator) || !userSettings?.mediaWidgetEnabled) {
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = null;
+    const updateMediaMetadata = () => {
+      if (!('mediaSession' in navigator) || !userSettings?.mediaWidgetEnabled) {
+        if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
+        return;
       }
-      return;
-    }
 
-    const latest = logs.find(l => l.type === 'glucose');
-    if (latest) {
-      const getTrendArrow = (dir?: string) => {
-        switch(dir) {
-          case 'DoubleUp': return '↑↑';
-          case 'SingleUp': return '↑';
-          case 'FortyFiveUp': return '↗';
-          case 'Flat': return '→';
-          case 'FortyFiveDown': return '↘';
-          case 'SingleDown': return '↓';
-          case 'DoubleDown': return '↓↓';
-          default: return '';
+      const latest = logsRef.current.find(l => l.type === 'glucose');
+      if (latest) {
+        const getTrendArrow = (dir?: string) => {
+          switch(dir) {
+            case 'DoubleUp': return '↑↑';
+            case 'SingleUp': return '↑';
+            case 'FortyFiveUp': return '↗';
+            case 'Flat': return '→';
+            case 'FortyFiveDown': return '↘';
+            case 'SingleDown': return '↓';
+            case 'DoubleDown': return '↓↓';
+            default: return '';
+          }
+        };
+
+        const trendIcon = getTrendArrow(latest.direction);
+        const deltaStr = latest.delta !== undefined ? 
+          `${latest.delta > 0 ? '+' : ''}${latest.delta.toFixed(0)}` : '';
+        
+        const timeStr = new Date(latest.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const ageMinutes = Math.floor((Date.now() - latest.timestamp) / 60000);
+        const ageStr = ageMinutes > 3 ? ` (${ageMinutes} min)` : '';
+
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: `${latest.value} ${trendIcon} ${deltaStr}`,
+            artist: `GlikoSense • ${timeStr}${ageStr}`,
+            album: 'Monitoring Cukru na Żywo',
+            artwork: [
+              { src: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png', sizes: '512x512', type: 'image/png' }
+            ]
+          });
+
+          const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
+          navigator.mediaSession.setActionHandler('play', () => {
+             audio?.play();
+             navigator.mediaSession.playbackState = 'playing';
+          });
+          navigator.mediaSession.setActionHandler('pause', () => {
+             audio?.pause();
+             navigator.mediaSession.playbackState = 'paused';
+          });
+          navigator.mediaSession.playbackState = (audio && !audio.paused) ? 'playing' : 'paused';
+          if (audio && audio.volume === 1) audio.volume = 0.01;
+          
+          navigator.mediaSession.setActionHandler('seekbackward', () => window.dispatchEvent(new CustomEvent('force-nightscout-sync')));
+          navigator.mediaSession.setActionHandler('seekforward', () => window.dispatchEvent(new CustomEvent('force-nightscout-sync')));
+          
+          console.log("[MediaSession] Metadata updated:", latest.value);
+        } catch (err) {
+          console.warn("MediaSession error:", err);
         }
-      };
-
-      const trendIcon = getTrendArrow(latest.direction);
-      const deltaStr = latest.delta !== undefined ? 
-        `${latest.delta > 0 ? '+' : ''}${latest.delta.toFixed(0)}` : '';
-      
-      const timeStr = new Date(latest.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const ageMinutes = Math.floor((Date.now() - latest.timestamp) / 60000);
-      const ageStr = ageMinutes > 5 ? ` (${ageMinutes} min temu)` : '';
-
-      try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: `${latest.value} ${trendIcon} ${deltaStr}`,
-          artist: `GlikoSense • ${timeStr}${ageStr}`,
-          album: 'Monitoring Cukru na Żywo',
-          artwork: [
-            { src: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png', sizes: '512x512', type: 'image/png' }
-          ]
-        });
-
-        // Set action handlers to keep session active
-        const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
-        navigator.mediaSession.setActionHandler('play', () => {
-           audio?.play();
-           navigator.mediaSession.playbackState = 'playing';
-        });
-        navigator.mediaSession.setActionHandler('pause', () => {
-           audio?.pause();
-           navigator.mediaSession.playbackState = 'paused';
-        });
-        navigator.mediaSession.playbackState = (audio && !audio.paused) ? 'playing' : 'paused';
-        if (audio && audio.volume === 1) audio.volume = 0.01; // Tiny volume often works better than 0 for session retention
-        navigator.mediaSession.setActionHandler('seekbackward', () => {
-           // Możemy tu dodać wymuszenie synchronizacji
-           window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
-        });
-        navigator.mediaSession.setActionHandler('seekforward', () => {
-           window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
-        });
-      } catch (err) {
-        console.warn("MediaSession error:", err);
       }
-    }
+    };
+
+    updateMediaMetadata();
+    
+    window.addEventListener('force-media-update', updateMediaMetadata);
+    window.addEventListener('force-nightscout-sync', updateMediaMetadata);
+    
+    return () => {
+      window.removeEventListener('force-media-update', updateMediaMetadata);
+      window.removeEventListener('force-nightscout-sync', updateMediaMetadata);
+    };
   }, [logs, userSettings?.mediaWidgetEnabled]);
 
   useEffect(() => {
@@ -683,9 +690,11 @@ export default function App() {
     const unsubscribe = onSnapshot(settingsRef, (d) => {
       if (d.exists()) {
         setUserSettings(d.data() as UserSettings);
+      } else {
+        setUserSettings(DEFAULT_SETTINGS);
       }
     }, (err) => {
-      console.error("Error fetching settings for notifications:", err);
+      if (!err.message?.includes('offline')) console.error("Error fetching settings for notifications:", err);
     });
     return () => unsubscribe();
   }, [user]);
@@ -1495,20 +1504,26 @@ export default function App() {
         {/* Unified Audio Player for PWA Support - Silence Loop */}
         <audio 
           id="pwa-media-player"
-          src="data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQMAAAAAAAAAAAAAAAAA"
+          src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAHRoZW9yZXRpY2FsLm5ldAD/48BAAAAAAArAAAAAAAAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX"
           loop 
           playsInline 
           preload="auto"
-          className="hidden"
+          style={{ position: 'fixed', bottom: -100, left: -100, width: 1, height: 1, opacity: 0.01 }}
           onPlay={() => {
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
             const btn = document.getElementById('media-status-indicator');
-            if (btn) btn.innerHTML = 'Status: Aktywny';
+            if (btn) {
+               btn.innerHTML = 'Status: Aktywny';
+               btn.classList.replace('text-slate-400', 'text-emerald-500');
+            }
           }}
           onPause={() => {
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
             const btn = document.getElementById('media-status-indicator');
-            if (btn) btn.innerHTML = 'Status: Zatrzymany';
+            if (btn) {
+               btn.innerHTML = 'Status: Zatrzymany';
+               btn.classList.replace('text-emerald-500', 'text-slate-400');
+            }
           }}
         />
       </header>
