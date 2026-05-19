@@ -495,11 +495,13 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           }
           
           const loopNetExpectedChange = expectedBgRise - (simulatedIob * isf);
-          const loopTheoreticalImpact = (loopNetExpectedChange / steps) * (1 - dampening * 0.5);
+          const loopTheoreticalImpact = (loopNetExpectedChange / steps) * (1 - dampening * 0.3);
           
           loopVal += trendImpact + loopTheoreticalImpact + loopAdjustment;
           
-          loopVal += (targetMiddle - loopVal) * 0.1;
+          // Smoother regression to mean, only if far out
+          const meanPull = (targetMiddle - loopVal) * 0.02;
+          loopVal += meanPull;
 
           if (loopVal < 40) loopVal = 40;
           if (loopVal > 400) loopVal = 400;

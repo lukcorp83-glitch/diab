@@ -862,7 +862,7 @@ export default function App() {
           const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
           const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', firestoreId);
           
-          const latestDataToSave: any = {
+          let latestDataToSave: any = {
             ...latest,
             nsId: latest.id,
             createdAt: serverTimestamp()
@@ -870,6 +870,10 @@ export default function App() {
           if (currentWeather && latest.type === 'glucose' && (Date.now() - latest.timestamp < 3600000)) {
             latestDataToSave.weather = currentWeather;
           }
+          
+          // Remove undefined values
+          Object.keys(latestDataToSave).forEach(key => latestDataToSave[key] === undefined && delete latestDataToSave[key]);
+
           await setDoc(docRef, latestDataToSave, { merge: true });
         }
 
@@ -877,7 +881,17 @@ export default function App() {
         const devicestatus = await nightscoutService.fetchDeviceStatus(nsUrl, nsSecret);
         if (devicestatus) {
           const pumpRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump');
-          await setDoc(pumpRef, devicestatus, { merge: true });
+          
+          // Deep sanitize undefined values
+          const sanitizeNested = (obj: any) => {
+            Object.keys(obj).forEach(key => {
+              if (obj[key] && typeof obj[key] === 'object') sanitizeNested(obj[key]);
+              else if (obj[key] === undefined) delete obj[key];
+            });
+            return obj;
+          };
+          
+          await setDoc(pumpRef, sanitizeNested({ ...devicestatus }), { merge: true });
         }
 
         // 3. FULL SYNC: Fetch background history
@@ -956,11 +970,14 @@ export default function App() {
                  const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
                  const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', firestoreId);
                  
-                 batch.set(docRef, {
+                 const finalLogData = {
                    ...logData,
                    nsId: nsId || firestoreId,
                    createdAt: serverTimestamp()
-                 }, { merge: true });
+                 };
+                 Object.keys(finalLogData).forEach(key => (finalLogData as any)[key] === undefined && delete (finalLogData as any)[key]);
+                 
+                 batch.set(docRef, finalLogData, { merge: true });
               }
               await batch.commit();
           }

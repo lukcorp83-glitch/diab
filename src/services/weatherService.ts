@@ -62,12 +62,14 @@ export async function fetchCurrentWeather(lat?: number, lon?: number, force: boo
     }
     
     const data = await response.json();
-    const result = {
+    const result: any = {
       temp: data.current.temperature_2m,
       pressure: data.current.surface_pressure,
-      condition: getWeatherCondition(data.current.weather_code),
-      city: finalCity
+      condition: getWeatherCondition(data.current.weather_code)
     };
+    if (finalCity) {
+      result.city = finalCity;
+    }
 
     weatherCache = {
       data: result,

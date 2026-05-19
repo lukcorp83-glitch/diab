@@ -499,6 +499,29 @@ export const MLAnalyzer = {
     const lastTimeCos = Math.cos((lastHourDec / 24) * Math.PI * 2);
     const isTodayWeekend = (latestDate.getDay() === 0 || latestDate.getDay() === 6) ? 1 : 0;
 
+    // Pobieranie pogody z ostatnich logów
+    let weatherTemp: number | null = null;
+    let weatherCondition: string | null = null;
+    if (userSettings?.weatherNeuralEnabled) {
+      for (let i = glucoseLogsOrig.length - 1; i >= Math.max(0, glucoseLogsOrig.length - 20); i--) {
+        if (glucoseLogsOrig[i].weather?.temp !== undefined) {
+          weatherTemp = glucoseLogsOrig[i].weather!.temp;
+          weatherCondition = glucoseLogsOrig[i].weather!.condition;
+          break;
+        }
+      }
+    }
+
+    // Dodatkowy mnożnik pogody w mg/dL per 5 minut przy aktywnej insulinie
+    let weatherBgModifier = 0;
+    if (weatherTemp !== null && currentIob > 0) {
+       if (weatherTemp > 25) {
+          weatherBgModifier = -((weatherTemp - 25) * 0.1 * currentIob); 
+       } else if (weatherTemp < 5) {
+          weatherBgModifier = ((5 - weatherTemp) * 0.05 * currentIob);
+       }
+    }
+
     const latestBg = latest.value || latest.bg;
     
     let timeSinceMealContext = 1440;
@@ -588,8 +611,9 @@ export const MLAnalyzer = {
 
         // Prediction Loop
         let currentPredictBg = latestBg;
-        let currentPredictTrend = lastTrendNum;
-        let currentPredictAcceleration = lastAccelerationNum;
+        let lastInPredictionBg = latestBg;
+        let secondLastInPredictionBg = glucoseLogsOrig.length > 1 ? (glucoseLogsOrig[glucoseLogsOrig.length-2].value || glucoseLogsOrig[glucoseLogsOrig.length-2].bg) : latestBg;
+        
         predictionCurve.push({ timestamp: latestTimeMs, offsetMs: 0, value: currentPredictBg });
 
         for(let step = 1; step <= 12; step++) {
@@ -604,22 +628,29 @@ export const MLAnalyzer = {
             const fTimeSinceBolus = Math.min(1440, timeSinceBolusContext + step * 5);
             const fIobCobRatio = (fIob + 0.1) / (fCob + 0.1);
 
-            const inputs = zScoreNormalize([currentPredictBg, currentPredictTrend, currentPredictAcceleration, fCob, fIob, fTimeSin, fTimeCos, fPob, fFob, fIsWeekend, fTimeSinceMeal, fTimeSinceBolus, fIobCobRatio]);
+            const cTrend = lastInPredictionBg - secondLastInPredictionBg;
+            const cAcc = cTrend - (secondLastInPredictionBg - (predictionCurve.length >= 3 ? predictionCurve[predictionCurve.length-3].value : secondLastInPredictionBg));
+
+            const inputs = zScoreNormalize([currentPredictBg, cTrend, cAcc, fCob, fIob, fTimeSin, fTimeCos, fPob, fFob, fIsWeekend, fTimeSinceMeal, fTimeSinceBolus, fIobCobRatio]);
             const nextPred = predictValue(model, inputs);
             let rawNextBg = nextPred[0] * 400;
             if (isNaN(rawNextBg) || !isFinite(rawNextBg)) rawNextBg = currentPredictBg;
             
-            // Zastosuj łagodne przejście między aktualnym przewidywaniem a wyjściem sieci
             let bgDiff = rawNextBg - currentPredictBg;
-            // Limit the maximum jump per 5 minutes to avoid sharp vertical spikes
-            const maxJump = 12; 
+            const maxJump = 18; 
             if (bgDiff > maxJump) bgDiff = maxJump;
             if (bgDiff < -maxJump) bgDiff = -maxJump;
             
-            let nextBg = currentPredictBg + (bgDiff * 0.5); // Ewma smoothing factor 0.5
+            let nextBg = currentPredictBg + (bgDiff * 0.7); 
+            
+            // Aplikacja modyfikatora pogody (tylko w kierunku spadków/wzrostów w zależności od IOA)
+            nextBg += weatherBgModifier;
             
             nextBg = Math.max(40, Math.min(600, nextBg));
             predictionCurve.push({ timestamp: futureTimeMs, offsetMs: step * 5 * 60 * 1000, value: nextBg });
+            
+            secondLastInPredictionBg = lastInPredictionBg;
+            lastInPredictionBg = nextBg;
             currentPredictBg = nextBg;
         }
         predictedNextHour = currentPredictBg;
@@ -651,12 +682,13 @@ export const MLAnalyzer = {
       for(let step = 1; step <= 12; step++) {
         const futureTimeMs = latestTimeMs + (step * 5 * 60 * 1000);
         const { iob: fIob, cob: fCob } = calculateActiveAtTime(futureTimeMs, sorted);
-        const carbImpact = (fCob > currentCob ? 0 : (currentCob - fCob)) * 2.5;
-        const insulinImpact = (fIob > currentIob ? 0 : (currentIob - fIob)) * -35.0;
+        const carbImpact = (fCob > currentCob ? 0 : (currentCob - fCob)) * 3.0; // was 2.5
+        const insulinImpact = (fIob > currentIob ? 0 : (currentIob - fIob)) * -40.0; // was -35.0
         
-        currentPredictBg += (trend * 0.85) + (carbImpact / 6) + (insulinImpact / 6);
-        if (isNaN(currentPredictBg) || !isFinite(currentPredictBg)) currentPredictBg = 100;
-        trend *= 0.92;
+        currentPredictBg += (trend * 0.92) + (carbImpact / 5) + (insulinImpact / 5);
+        currentPredictBg += weatherBgModifier;
+        if (isNaN(currentPredictBg) || !isFinite(currentPredictBg)) currentPredictBg = latestBg;
+        trend *= 0.96; // was 0.92
         currentPredictBg = Math.max(40, Math.min(600, currentPredictBg));
         predictionCurve.push({ timestamp: futureTimeMs, offsetMs: step * 5 * 60 * 1000, value: currentPredictBg });
       }
@@ -693,6 +725,14 @@ export const MLAnalyzer = {
         `🔮 Analizując tempo, spodziewam się poziomic ok. ${Math.round(predictedNextHour)} mg/dL w ciągu 60 minut.`
     ];
     insights.push(predictionPhrases[Math.floor(Math.random() * predictionPhrases.length)]);
+    
+    if (weatherTemp !== null && weatherBgModifier !== 0) {
+        if (weatherTemp > 25) {
+            insights.push(`🌡️ Uwzględniłem upał (${weatherTemp}°C) w mojej analizie. Insulina w takich warunkach zazwyczaj działa mocniej.`);
+        } else if (weatherTemp < 5) {
+            insights.push(`❄️ Uwzględniłem niską temperaturę (${weatherTemp}°C). Chłód może powodować obkurczenie naczyń i wolniejsze wchłanianie insuliny.`);
+        }
+    }
     
     if (Math.round(currentCob) > 0 || currentIob > 0.05 || Math.round(currentPob) > 0 || Math.round(currentFob) > 0) {
         let text = `Twoje aktywne substancje w tle to teraz: `;
