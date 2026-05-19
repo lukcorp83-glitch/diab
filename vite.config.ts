@@ -30,9 +30,12 @@ export default defineConfig(({ mode }) => {
           background_color: '#0f172a',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '.',
-          scope: '.',
+          dir: 'ltr',
+          lang: 'pl-PL',
+          start_url: '/',
+          scope: '/',
           id: '/',
+          categories: ['medical', 'health', 'fitness'],
           icons: [
             {
               src: 'pwa-icon.svg',
@@ -58,22 +61,39 @@ export default defineConfig(({ mode }) => {
               name: 'Dodaj Cukier',
               short_name: 'Cukier',
               description: 'Szybkie wpisanie poziomu glukozy',
-              url: `${basePath}?action=add_glucose`,
-              icons: [{ src: 'pwa-icon.svg', sizes: 'any' }]
+              url: '/?action=add_glucose',
+              icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }]
             },
             {
               name: 'Dodaj Bolus',
               short_name: 'Bolus',
               description: 'Szybkie wpisanie insuliny',
-              url: `${basePath}?action=add_bolus`,
-              icons: [{ src: 'pwa-icon.svg', sizes: 'any' }]
+              url: '/?action=add_bolus',
+              icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }]
             },
             {
               name: 'Dodaj Posiłek',
               short_name: 'Posiłek',
               description: 'Szybkie wpisanie posiłku',
-              url: `${basePath}?action=add_meal`,
-              icons: [{ src: 'pwa-icon.svg', sizes: 'any' }]
+              url: '/?action=add_meal',
+              icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }]
+            }
+          ],
+          widgets: [
+            {
+              name: "Gliko Status",
+              short_name: "Status",
+              description: "Podgląd poziomu cukru",
+              tag: "gliko-status",
+              template: "gliko-status",
+              ms_ac_template: "gliko-status.json",
+              icons: [
+                {
+                  src: "pwa-icon.svg",
+                  sizes: "192x192",
+                  type: "image/svg+xml"
+                }
+              ]
             }
           ]
         }
