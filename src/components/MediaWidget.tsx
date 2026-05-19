@@ -40,15 +40,17 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
         titleStr = `${latestLog.value} mg/dL`;
       }
 
+      const artworkPath = window.location.pathname.startsWith('/diab/') ? '/diab/pwa-icon.svg' : '/pwa-icon.svg';
+
       navigator.mediaSession.metadata = new window.MediaMetadata({
         title: titleStr,
         artist: `GlikoControl Monitoring`,
         album: 'Bieżący odczyt glukozy',
         artwork: [
-          { src: 'pwa-icon.svg', sizes: '96x96', type: 'image/svg+xml' },
-          { src: 'pwa-icon.svg', sizes: '128x128', type: 'image/svg+xml' },
-          { src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' },
-          { src: 'pwa-icon.svg', sizes: '512x512', type: 'image/svg+xml' },
+          { src: artworkPath, sizes: '96x96', type: 'image/svg+xml' },
+          { src: artworkPath, sizes: '128x128', type: 'image/svg+xml' },
+          { src: artworkPath, sizes: '192x192', type: 'image/svg+xml' },
+          { src: artworkPath, sizes: '512x512', type: 'image/svg+xml' },
         ]
       });
 

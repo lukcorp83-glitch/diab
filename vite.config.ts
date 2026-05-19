@@ -49,8 +49,8 @@ export default defineConfig(({ mode }) => {
           orientation: 'portrait',
           dir: 'ltr',
           lang: 'pl-PL',
-          start_url: '.',
-          scope: '.',
+          start_url: '/diab/',
+          scope: '/diab/',
           id: '/diab/',
           categories: ['medical', 'health', 'fitness'],
           icons: [
@@ -78,21 +78,21 @@ export default defineConfig(({ mode }) => {
               name: 'Dodaj Cukier',
               short_name: 'Cukier',
               description: 'Szybkie wpisanie poziomu glukozy',
-              url: './?action=add_glucose',
+              url: '/diab/?action=add_glucose',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             },
             {
               name: 'Dodaj Bolus',
               short_name: 'Bolus',
               description: 'Szybkie wpisanie insuliny',
-              url: './?action=add_bolus',
+              url: '/diab/?action=add_bolus',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             },
             {
               name: 'Dodaj Posiłek',
               short_name: 'Posiłek',
               description: 'Szybkie wpisanie posiłku',
-              url: './?action=add_meal',
+              url: '/diab/?action=add_meal',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             }
           ],

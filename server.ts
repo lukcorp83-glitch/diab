@@ -164,8 +164,12 @@ async function startServer() {
   } else {
     // Production Fallback
     const distPath = path.join(process.cwd(), 'dist');
+    
+    // Support serving from both root and /diab for testing
+    app.use('/diab', express.static(distPath));
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    
+    app.get(['/diab/*', '*'], (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
