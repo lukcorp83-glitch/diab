@@ -2624,13 +2624,16 @@ export default function Profile({
                         const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
                         if (audio) {
                           if (audio.paused) {
+                            // Wymuszenie przeładowania jeśli stan jest niepewny
+                            if (audio.readyState === 0) audio.load();
+                            
                             audio.play().then(() => {
                                if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+                               toast.success("Odtwarzacz aktywny");
                             }).catch(e => {
                                console.warn("Manual audio play error:", e);
-                               toast.error("Błąd odtwarzania. Spróbuj ponownie.");
+                               toast.error(`Błąd: ${e.name}. Spróbuj kliknąć jeszcze raz.`);
                             });
-                            toast("Odtwarzacz uruchomiony (Audio PWA)", { icon: '▶️' });
                           } else {
                             audio.pause();
                             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';

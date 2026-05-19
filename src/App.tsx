@@ -1495,11 +1495,10 @@ export default function App() {
         {/* Unified Audio Player for PWA Support - Silence Loop */}
         <audio 
           id="pwa-media-player"
-          src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAHRoZW9yZXRpY2FsLm5ldAD/48BAAAAAAArAAAAAAAAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX"
+          src="data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQMAAAAAAAAAAAAAAAAA"
           loop 
           playsInline 
           preload="auto"
-          crossOrigin="anonymous"
           className="hidden"
           onPlay={() => {
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
