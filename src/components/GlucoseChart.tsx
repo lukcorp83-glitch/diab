@@ -190,7 +190,7 @@ const CustomTooltip = ({ active, payload, isDark }: any) => {
     if (data.originalSensor) points.push(data.originalSensor);
     
     return (
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-3 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-2xl min-w-[160px] pointer-events-none select-none">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-3 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-2xl min-w-[160px] pointer-events-none select-none glass-target">
         {points.length > 0 ? (
           points.map((p, idx) => (
             <div key={idx} className={idx > 0 ? "mt-2 pt-2 border-t border-slate-100 dark:border-slate-800" : ""}>
@@ -649,21 +649,21 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-auto">
         <button 
           onClick={handleZoomIn}
-          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all glass-target"
           title="Powiększ"
         >
           <Plus size={20} className="font-black" />
         </button>
         <button 
           onClick={handleZoomOut}
-          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all glass-target"
           title="Pomniejsz"
         >
           <Minus size={20} className="font-black" />
         </button>
         <button 
           onClick={handleReset}
-          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+          className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all glass-target"
           title="Reset"
         >
           <Maximize2 size={18} className="font-black" />
@@ -673,7 +673,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
       <div className="w-full relative h-[400px] outline-none focus:outline-none focus-visible:outline-none">
         {!hasData && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-[2px] rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-[2px] rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 glass-target">
             <div className="w-12 h-12 rounded-full bg-accent-500/10 flex items-center justify-center mb-4 animate-pulse">
               <Move className="text-accent-500" size={24} />
             </div>
@@ -835,7 +835,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white p-4 rounded-3xl border border-slate-200/50 dark:border-white/10 shadow-2xl backdrop-blur-xl z-30 min-w-[180px]"
+            className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white p-4 rounded-3xl border border-slate-200/50 dark:border-white/10 shadow-2xl backdrop-blur-xl z-30 min-w-[180px] glass-target"
           >
             <div className="flex justify-between items-center mb-2">
               <div className="flex flex-col">

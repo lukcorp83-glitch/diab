@@ -169,7 +169,7 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
         <p className="text-slate-500 text-sm mb-2">Ukończyłeś quiz edukacyjny Gliko.</p>
         <p className="text-accent-500 font-black text-lg mb-6">Twój wynik: {score}/{sessionQuestions.length}</p>
         
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 mb-8 border border-slate-100 dark:border-slate-800">
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 mb-8 border border-slate-100 dark:border-slate-800 glass-target">
            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Twoje nagrody:</p>
            <div className="flex justify-center gap-8">
               <div className="flex flex-col items-center gap-1">

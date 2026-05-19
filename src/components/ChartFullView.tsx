@@ -105,7 +105,7 @@ export default function ChartFullView({
           </div>
         </div>
 
-      <div className="flex-1 w-full bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-xl border border-slate-200/50 dark:border-slate-800/50 flex flex-col relative min-h-[400px]">
+      <div className="flex-1 w-full bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-xl border border-slate-200/50 dark:border-slate-800/50 flex flex-col relative min-h-[400px] glass-target">
         <div className="flex-1 w-full relative min-h-0 h-full">
           <GlucoseChart
             logs={logs}

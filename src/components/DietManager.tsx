@@ -173,7 +173,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm glass-target">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 flex items-center justify-between">
           <span>Cel Kaloryczny i Wykluczenia</span>
           {!isEditingTdee && (
@@ -240,7 +240,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
       </div>
 
       {!isEditingTdee && (
-        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-2xl p-4 shadow-inner">
+        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-2xl p-4 shadow-inner glass-target">
            <div className="flex justify-between items-center mb-4">
              <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Sparkles size={14} className="text-indigo-500" /> 
@@ -365,7 +365,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
       )}
 
        {!isEditingTdee && (
-         <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-2xl p-4 shadow-inner mt-4">
+         <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-2xl p-4 shadow-inner mt-4 glass-target">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 flex items-center gap-2">
                  <ChefHat size={14} className="text-indigo-500" /> 

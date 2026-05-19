@@ -18,7 +18,7 @@ function SettingInput({ label, value, onChange, step = "0.01" }: { label: string
   }, [value]);
 
   return (
-    <div className="flex flex-col gap-1 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 relative shadow-sm">
+    <div className="flex flex-col gap-1 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 relative shadow-sm glass-target">
       <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">{label}</label>
       <input 
         type="number"

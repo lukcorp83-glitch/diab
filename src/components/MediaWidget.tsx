@@ -14,24 +14,31 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
       return;
     }
 
+    // Try playing immediately if we just enabled it
+    if (audioRef.current && audioRef.current.paused) {
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    }
+
     if (logs.length > 0 && "mediaSession" in navigator) {
       const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => b.timestamp - a.timestamp);
+      let titleStr = "Oczekiwanie...";
       if (glucoseLogs.length > 0) {
         const latestLog = glucoseLogs[0];
-        const mgdl = latestLog.value;
-
-        navigator.mediaSession.metadata = new window.MediaMetadata({
-          title: `${mgdl} mg/dL`,
-          artist: `GlikoControl`,
-          album: 'Bieżący odczyt',
-        });
+        titleStr = `${latestLog.value} mg/dL`;
       }
+
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: titleStr,
+        artist: `GlikoControl`,
+        album: 'Bieżący odczyt',
+      });
       
       navigator.mediaSession.setActionHandler('play', () => {
-        audioRef.current?.play();
+        audioRef.current?.play().then(() => setIsPlaying(true)).catch(() => {});
       });
       navigator.mediaSession.setActionHandler('pause', () => {
         audioRef.current?.pause();
+        setIsPlaying(false);
       });
     }
   }, [logs, enabled]);
@@ -54,12 +61,11 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
     };
   }, [enabled]);
 
-  if (!enabled) return null;
-
   return (
     <audio 
+      id="pwa-media-player"
       ref={audioRef} 
-      src="data:audio/mp3;base64,//OExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" 
+      src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" 
       loop 
       playsInline 
     />

@@ -244,7 +244,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
-               className="h-48 flex items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50"
+               className="h-48 flex items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 glass-target"
             >
                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Zbyt mało danych do analizy (min. 5 wpisów)</span>
             </motion.div>
@@ -271,7 +271,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
-               className="h-48 flex flex-col items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700"
+               className="h-48 flex flex-col items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 glass-target"
             >
                <Loader2 size={32} className="animate-spin text-accent-500 mb-4 opacity-50" />
                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Pierwsza analiza GlikoSense...</span>
@@ -376,7 +376,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
 
                   {mlResult.metrics && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-indigo-500 transition-colors">Profil Działania Insuliny</span>
                               <div className="flex flex-col">
                                 <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.iob.toFixed(1)} <span className="text-xs font-bold text-slate-400 tracking-normal">j</span></span>
@@ -385,27 +385,27 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                                 )}
                               </div>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">Aktywne Węglow.</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.cob.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">g</span></span>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">Oporność (Bias)</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
                                 {mlResult.metrics.avgBias > 0 ? '+' : ''}{mlResult.metrics.avgBias.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">mg/dL</span>
                               </span>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-emerald-500 transition-colors">GMI (Wskaźnik)</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.gmiPercentage > 0 ? mlResult.metrics.gmiPercentage.toFixed(1) : '--'} <span className="text-xs font-bold text-slate-400 tracking-normal">%</span></span>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-orange-500 transition-colors">Czułość (Węg.)</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
                                 {mlResult.metrics.carbSensitivity > 0 ? '+' : ''}{mlResult.metrics.carbSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">/ 50g</span>
                               </span>
                           </div>
-                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
                               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-cyan-500 transition-colors">Wrażliwość (Ins.)</span>
                               <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
                                 {mlResult.metrics.insulinSensitivity > 0 ? '+' : ''}{mlResult.metrics.insulinSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">/ 1j</span>
@@ -446,7 +446,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                       </h4>
                       <div className="grid grid-cols-3 gap-3">
                         {dailyStats.map((stat, idx) => (
-                           <div key={`insight-${idx}`} className="bg-white dark:bg-slate-800/80 p-4 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center gap-1.5 transition-all hover:border-indigo-500/30">
+                           <div key={`insight-${idx}`} className="bg-white dark:bg-slate-800/80 p-4 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center gap-1.5 transition-all hover:border-indigo-500/30 glass-target">
                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</span>
                              <div className="flex flex-col items-center">
                                <span className={cn(

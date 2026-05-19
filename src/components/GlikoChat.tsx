@@ -325,14 +325,14 @@ export default function GlikoChat({ petData }: { petData: any }) {
         <div className="flex items-center gap-2">
           <button 
             onClick={toggleVoice}
-            className="p-3 hover:bg-white/20 rounded-2xl transition-all text-white/80 hover:text-white bg-white/10 border border-white/20 shadow-sm"
+            className="p-3 hover:bg-white/20 rounded-2xl transition-all text-white/80 hover:text-white bg-white/10 border border-white/20 shadow-sm glass-target"
             title={voiceEnabled ? "Wycisz głos" : "Włącz głos"}
           >
             {voiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
           </button>
           <button 
             onClick={clearChat}
-            className="p-3 hover:bg-white/20 rounded-2xl transition-all text-white/80 hover:text-white bg-white/10 border border-white/20 shadow-sm"
+            className="p-3 hover:bg-white/20 rounded-2xl transition-all text-white/80 hover:text-white bg-white/10 border border-white/20 shadow-sm glass-target"
             title="Wyczyść rozmowę"
           >
             <Trash2 size={20} />
@@ -427,7 +427,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setInput(s)}
-              className="whitespace-nowrap px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-white dark:hover:bg-indigo-500/20 transition-all border-2 border-indigo-100 dark:border-indigo-500/20 flex items-center gap-2 shrink-0 shadow-sm"
+              className="whitespace-nowrap px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-white dark:hover:bg-indigo-500/20 transition-all border-2 border-indigo-100 dark:border-indigo-500/20 flex items-center gap-2 shrink-0 shadow-sm glass-target"
             >
               <Lightbulb size={12} className="text-yellow-500" /> {s}
             </motion.button>

@@ -53,7 +53,9 @@ import {
   CloudRain,
   Calculator,
   BarChart2,
-  MonitorPlay
+  MonitorPlay,
+  AlertTriangle,
+  Dumbbell
 } from 'lucide-react';
 import { db, auth, onConnectionChange } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
@@ -72,6 +74,7 @@ import PumpSimulator from './PumpSimulator';
 import { Diets } from './Diets';
 import StatisticsView from './StatisticsView';
 import TutorialView from './TutorialView';
+import GlikoTraining from './GlikoTraining';
 
 interface ProfileProps {
   user: any;
@@ -196,6 +199,7 @@ export default function Profile({
       { id: 'simulator', label: 'Symulator', sub: 'Bolusa', icon: <Calculator size={24} />, color: 'bg-orange-500' },
       { id: 'account', label: 'Profil', sub: 'Zarządzanie kontem', icon: <User size={24} />, color: 'bg-blue-500' },
       { id: 'therapy', label: 'Terapia', sub: 'Cele & ISF', icon: <Activity size={24} />, color: 'bg-emerald-500' },
+      { id: 'training', label: 'Trening', sub: 'Wpływ sportu', icon: <Dumbbell size={24} />, color: 'bg-emerald-500' },
       ...(settings.childMode ? [{ id: 'shop', label: 'Sklepik', sub: petData.name, icon: <ShoppingBag size={24} />, color: 'bg-amber-500' }] : []),
       { id: 'devices', label: 'Osprzęt', sub: 'CGM & Wkłucia', icon: <Signal size={24} />, color: 'bg-indigo-500' },
       { id: 'diets', label: 'Diety', sub: 'Nawyki', icon: <BookOpen size={24} />, color: 'bg-rose-500' },
@@ -246,6 +250,7 @@ export default function Profile({
        if (initialAction === 'api') setActiveCategory('api');
        if (initialAction === 'devices') setActiveCategory('devices');
        if (initialAction === 'shop') setActiveCategory('shop');
+       if (initialAction === 'training') setActiveCategory('training');
        // clear action
        setTimeout(() => {
          onClearInitialAction && onClearInitialAction();
@@ -584,6 +589,11 @@ export default function Profile({
     return ids;
   }, [stats]);
 
+  const lastGlucose = useMemo(() => {
+    const glucoseLogs = logs.filter(l => l.type === 'glucose');
+    return glucoseLogs.length > 0 ? glucoseLogs[0].value : null;
+  }, [logs]);
+
   const handleBuySkin = async (skin: PetSkin) => {
     if (petData.coins < skin.price) {
       Haptics.error();
@@ -786,14 +796,6 @@ export default function Profile({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 relative min-h-[calc(100vh-8rem)]">
-      {/* Decorative blurred background for glassmorphism */}
-      {settings.glassmorphismEnabled && (
-        <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-          <div className="absolute top-10 left-10 w-96 h-96 bg-accent-500/30 dark:bg-accent-500/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-lighten animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute top-40 right-10 w-80 h-80 bg-indigo-500/30 dark:bg-indigo-500/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-lighten animate-pulse" style={{ animationDuration: '10s' }} />
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/30 dark:bg-emerald-500/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-lighten animate-pulse" style={{ animationDuration: '12s' }} />
-        </div>
-      )}
       {settings.childMode && (
         <>
           {/* Pet Header Section */}
@@ -942,6 +944,7 @@ export default function Profile({
                 { id: 'simulator', label: 'Symulator', icon: <Calculator size={14} /> },
                 { id: 'account', label: 'Profil', icon: <User size={14} /> },
                 { id: 'therapy', label: 'Terapia', icon: <Activity size={14} /> },
+                { id: 'training', label: 'Trening', icon: <Dumbbell size={14} /> },
                 ...(settings.childMode ? [{ id: 'shop', label: 'Sklepik', icon: <ShoppingBag size={14} /> }] : []),
                 { id: 'devices', label: 'Osprzęt', icon: <Signal size={14} /> },
                 { id: 'diets', label: 'Diety', icon: <BookOpen size={14} /> },
@@ -1273,7 +1276,7 @@ export default function Profile({
                   { label: 'Bolus', val: '+8' },
                   { label: 'Aktywność', val: '+15' }
                 ].map(item => (
-                  <div key={item.label} className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex justify-between items-center shadow-sm">
+                  <div key={item.label} className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex justify-between items-center shadow-sm glass-target">
                     <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">{item.label}</span>
                     <span className="text-[10px] font-black text-amber-600">{item.val}</span>
                   </div>
@@ -1884,7 +1887,7 @@ export default function Profile({
                   className={cn("group flex items-center justify-between p-4 rounded-[1.8rem] border hover:shadow-lg transition-all", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset hover:bg-white/10 dark:hover:bg-white/10" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800")}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-transform group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-transform group-hover:scale-110 glass-target">
                       {s.icon}
                     </div>
                     <div className="text-left">
@@ -2188,6 +2191,17 @@ export default function Profile({
         <TutorialView setTab={() => setActiveCategory(null)} />
       )}
 
+      {activeCategory === 'training' && (
+        <GlikoTraining 
+          isOpen={true} 
+          onClose={() => setActiveCategory(null)} 
+          isGlassmorphic={settings.glassmorphismEnabled} 
+          user={user}
+          settings={settings}
+          currentSugar={lastGlucose}
+        />
+      )}
+
       {activeCategory === 'api' && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -2310,9 +2324,15 @@ export default function Profile({
               </div>
 
               <div className={cn("p-5 rounded-[1.5rem] border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/80 border-slate-100 dark:border-slate-700/50")}>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-4 leading-relaxed font-medium">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed font-medium">
                   Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-accent-500 font-black hover:underline underline-offset-2 transition-all">Google AI Studio</a>. Klucz zostanie zapisany <b>wyłącznie lokalnie</b> w Twojej przeglądarce.
                 </p>
+                <div className="flex items-start gap-2 mb-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                  <p className="text-[10px] font-bold leading-relaxed">
+                    Ze względów bezpieczeństwa dodawaj swój klucz API <b className="font-black">tylko na własnych, zaufanych urządzeniach</b>. Nie wprowadzaj go na urządzeniach publicznych.
+                  </p>
+                </div>
                 
                 <div className="relative group">
                   <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-500 transition-colors" />
@@ -2568,6 +2588,22 @@ export default function Profile({
                     onClick={async () => {
                       const newSettings = { ...settings, mediaWidgetEnabled: !settings.mediaWidgetEnabled };
                       setSettings(newSettings);
+                      
+                      if (newSettings.mediaWidgetEnabled) {
+                        const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
+                        if (audio) {
+                          audio.play().catch(e => console.error("Audio unlock exception:", e));
+                        }
+                        
+                        toast("Audio PWA aktywne. Zablokuj ekran, aby sprawdzić powiadomienia mediów.", { 
+                          icon: '🎵',
+                          duration: 4000
+                        });
+                        Haptics.success();
+                      } else {
+                        Haptics.selection();
+                      }
+
                       if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
                     }}
                     className={cn(
@@ -2796,7 +2832,7 @@ export default function Profile({
                       }, 1500);
                     }}
                     disabled={updateLoading}
-                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-transparent text-slate-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 border border-transparent text-slate-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2 glass-target"
                   >
                     <RefreshCw size={14} className={cn(updateLoading && "animate-spin")} />
                     Aktualizuj v{APP_VERSION}

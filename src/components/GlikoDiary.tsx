@@ -77,7 +77,7 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
               <div className="absolute -left-[22px] top-1 w-4 h-4 rounded-full bg-white dark:bg-slate-900 border-2 border-accent-500 z-10 flex items-center justify-center text-[8px]">
                 {index + 1}
               </div>
-              <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm">
+              <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm glass-target">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{entry.time}</span>
                   <span className="text-lg">{entry.icon}</span>

@@ -75,7 +75,7 @@ export default function SettingsTransfer({
   };
 
   return (
-    <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+    <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 glass-target">
       <div className="flex items-center gap-3 mb-2">
         <Upload className="text-accent-500" size={20} />
         <span className="text-xs font-bold dark:text-white">Transfer Ustawień Profli (Chmura)</span>

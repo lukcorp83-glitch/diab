@@ -1166,7 +1166,7 @@ export default function MealPlate({
                       Haptics.light();
                       addSavedMeal(m);
                     }}
-                    className="snap-start shrink-0 w-[220px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm hover:border-accent-500/50 hover:shadow-md transition-all cursor-pointer relative group flex flex-col justify-between"
+                    className="snap-start shrink-0 w-[220px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm hover:border-accent-500/50 hover:shadow-md transition-all cursor-pointer relative group flex flex-col justify-between glass-target"
                   >
                     <button
                       onClick={(e) => {
@@ -1745,7 +1745,7 @@ export default function MealPlate({
             </AnimatePresence>
           </motion.div>
 
-          <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+          <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5 glass-target">
             <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
               Obróbka Termiczna Posiłku
             </h5>
@@ -1836,7 +1836,7 @@ export default function MealPlate({
           })()}
 
           {/* Makroskładniki Procentowo */}
-          <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+          <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5 glass-target">
              <div className="flex justify-between items-center mb-2">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Balans Posiłku (Energia %)</span>
                 <span className="text-[10px] font-black text-accent-400">{Math.round(totalCalsFromMacros)} kcal</span>

@@ -69,7 +69,7 @@ export default function GlikoMemory() {
   };
 
   return (
-    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800">
+    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800 glass-target">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-black text-sm dark:text-white flex items-center gap-2">

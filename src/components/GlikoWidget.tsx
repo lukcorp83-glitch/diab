@@ -135,7 +135,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between">
+          <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between glass-target">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Droplet size={12} className="text-accent-500" />
@@ -151,7 +151,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             </div>
           </motion.div>
 
-          <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between">
+          <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between glass-target">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Utensils size={12} className="text-amber-500" />

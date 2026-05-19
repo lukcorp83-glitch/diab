@@ -98,7 +98,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
                 />
               </div>
 
-              <div className="glass-card !bg-white/10 dark:!bg-white/5 !p-8 flex flex-col items-center justify-center border border-black/5 dark:border-white/5">
+              <div className="glass-card !p-8 flex flex-col items-center justify-center border border-black/5 dark:border-white/5">
                 <div className="flex items-baseline gap-3">
                   <input 
                     type="number" 

@@ -39,7 +39,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
       <div className="flex items-center gap-4 mb-4">
         <button 
           onClick={onBack}
-          className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm active:scale-95 transition-all text-slate-500"
+          className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm active:scale-95 transition-all text-slate-500 glass-target"
         >
           <ArrowLeft size={20} />
         </button>
@@ -114,6 +114,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                   {log.type === 'meal' && <Utensils size={18} strokeWidth={2.5} />}
                   {log.type === 'site_change' && <Droplets size={18} strokeWidth={2.5} />}
                   {log.type === 'sensor_change' && <RefreshCw size={18} strokeWidth={2.5} />}
+                  {log.type === 'activity' && <Activity size={18} className="text-emerald-500" strokeWidth={2.5} />}
                   {log.type === 'bolus' && (
                     <div className="flex items-center gap-0.5">
                       <Syringe size={log.linkedMeal ? 14 : 18} strokeWidth={2.5} />
@@ -124,7 +125,16 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 justify-between">
                     <p className="font-black text-sm dark:text-white truncate">
-                      {typeof log.value === 'number' ? (log.type === 'glucose' ? Math.round(log.value) : log.type === 'site_change' || log.type === 'sensor_change' ? '' : log.value.toFixed(1)) : log.value}{(log.type === 'site_change' || log.type === 'sensor_change') ? (log.notes || 'Wymiana') : (log.type === 'glucose' ? ' mg/dL' : log.type === 'meal' ? 'g W' : ' j.')}
+                      {typeof log.value === 'number' ? 
+                        (log.type === 'glucose' ? Math.round(log.value) : 
+                         log.type === 'activity' ? log.value :
+                         log.type === 'site_change' || log.type === 'sensor_change' ? '' : 
+                         log.value.toFixed(1)) : log.value}
+                      {(log.type === 'site_change' || log.type === 'sensor_change') ? (log.notes || 'Wymiana') : 
+                       (log.type === 'glucose' ? ' mg/dL' : 
+                        log.type === 'meal' ? 'g W' : 
+                        log.type === 'activity' ? ' min' :
+                        ' j.')}
                       {log.type === 'meal' && (log.polyols || log.protein || log.fat) && (
                         <span className="text-[10px] font-bold text-slate-400 ml-2">
                            {log.polyols ? `${log.polyols.toFixed(0)}P / ` : ''}{log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T

@@ -247,7 +247,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4">
+    <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4 glass-target">
       <div className="flex items-center gap-3 mb-2">
         <Database className="text-emerald-500" size={20} />
         <div>

@@ -117,7 +117,7 @@ export default function NotebookManager({ user }: { user: any }) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full h-full sm:h-[90vh] sm:max-w-md bg-white dark:bg-slate-900 sm:rounded-3xl shadow-2xl relative z-10 sm:border border-slate-200 dark:border-slate-800 flex flex-col pt-safe pb-safe"
+            className="w-full h-full sm:h-[90vh] sm:max-w-md bg-white dark:bg-slate-900 sm:rounded-3xl shadow-2xl relative z-10 sm:border border-slate-200 dark:border-slate-800 flex flex-col pt-safe pb-safe glass-target"
           >
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
               <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2 text-lg">
@@ -170,7 +170,7 @@ export default function NotebookManager({ user }: { user: any }) {
                     </div>
                   ) : (
                     notes.map(note => (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={note.id} className="p-5 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm relative group">
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={note.id} className="p-5 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm relative group glass-target">
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200 whitespace-pre-wrap pr-8 leading-relaxed">{note.content}</p>
                         
                         {note.reminderDate && (

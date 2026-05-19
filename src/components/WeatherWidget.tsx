@@ -98,7 +98,7 @@ export default function WeatherWidget() {
       <div className="p-6">
          <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shadow-inner border border-slate-100 dark:border-slate-800">
+              <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shadow-inner border border-slate-100 dark:border-slate-800 glass-target">
                  {renderWeatherIcon()}
               </div>
               <div>

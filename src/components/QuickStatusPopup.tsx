@@ -104,7 +104,7 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
 
 function StatusItem({ icon, label, value, status }: { icon: any, label: string, value: string, status: 'ok' | 'warn' | 'err' }) {
   return (
-    <div className="flex items-center justify-between p-3 px-4 rounded-2xl bg-white/5 border border-black/5 dark:border-white/5">
+    <div className="flex items-center justify-between p-3 px-4 rounded-2xl bg-white/5 border border-black/5 dark:border-white/5 glass-target">
       <div className="flex items-center gap-3">
         {icon}
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>

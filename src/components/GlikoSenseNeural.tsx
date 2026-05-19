@@ -162,7 +162,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
         {isChildMode ? (
           <div className="space-y-4">
             {children}
-            <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+            <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 glass-target">
                <div className="flex items-start gap-3">
                  <div className="mt-1">
                    <Heart className="text-rose-500 fill-rose-500" size={16} />
@@ -274,7 +274,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               </div>
             )}
 
-            <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4 glass-target">
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <TrendingUp size={12} />

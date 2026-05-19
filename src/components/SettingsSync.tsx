@@ -138,7 +138,7 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
   };
 
   return (
-    <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+    <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 glass-target">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <Users className="text-accent-500" size={20} />

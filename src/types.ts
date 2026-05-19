@@ -98,6 +98,12 @@ export interface UserSettings {
   weatherWidgetEnabled?: boolean;
   weatherNeuralEnabled?: boolean;
   mediaWidgetEnabled?: boolean;
+  activeTraining?: {
+    sportId: string;
+    startTime: number;
+    duration: number; // minutes
+    intensity: 'low' | 'medium' | 'high';
+  } | null;
 }
 
 export interface AssistantMessage {

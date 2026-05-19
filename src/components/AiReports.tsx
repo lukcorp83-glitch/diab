@@ -265,7 +265,7 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
                 }
               }}
             >
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-all mb-2 cursor-pointer" onClick={() => setActiveReport(activeReport === report.id ? null : report.id)}>
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-all mb-2 cursor-pointer glass-target" onClick={() => setActiveReport(activeReport === report.id ? null : report.id)}>
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
                     <span className="text-[9px] font-black text-accent-600 dark:text-accent-400 uppercase tracking-widest">{report.type}</span>

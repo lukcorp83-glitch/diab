@@ -77,7 +77,7 @@ export default function GlikoBackpack() {
   };
 
   return (
-    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800">
+    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800 glass-target">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-black text-sm dark:text-white flex items-center gap-2">
@@ -95,7 +95,7 @@ export default function GlikoBackpack() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm glass-target">
          {gameState === 'idle' && (
            <div className="text-center">
              <ShoppingBag size={48} className="mx-auto text-indigo-400 mb-4 animate-bounce" />

@@ -209,7 +209,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden max-h-48 overflow-y-auto"
+                    className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden max-h-48 overflow-y-auto glass-target"
                   >
                     {[...searchResults, ...onlineResults].map((p, idx) => (
                       <button 
@@ -267,7 +267,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
               )}
 
               {isBolus && log.linkedMeal && (
-                <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors glass-target">
                   <input 
                     type="checkbox" 
                     checked={removeMeal}
@@ -282,7 +282,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
               )}
 
               {!isBolus && log.source === 'nightscout' && (
-                <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors glass-target">
                   <input 
                     type="checkbox" 
                     checked={removeMeal}
@@ -347,7 +347,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                  </div>
                  <div className="space-y-1">
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Data / Godzina</label>
-                   <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-bold text-[10px] text-center text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                   <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-bold text-[10px] text-center text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center justify-center glass-target">
                       {new Date(log.timestamp).toLocaleString([], {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}
                    </div>
                  </div>

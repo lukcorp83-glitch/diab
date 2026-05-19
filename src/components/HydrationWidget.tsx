@@ -52,7 +52,7 @@ export default function HydrationWidget({ user, tdee }: HydrationWidgetProps) {
   const currentPct = Math.min(100, Math.round((waterIntake / target) * 100));
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 relative overflow-hidden">
+    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 relative overflow-hidden glass-target">
       <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
         <Droplet size={80} />
       </div>

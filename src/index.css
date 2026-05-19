@@ -170,8 +170,8 @@ body {
   height: 100vh;
   z-index: -1;
   overflow: hidden;
-  filter: blur(100px);
-  opacity: 0.4;
+  filter: blur(80px);
+  opacity: 0.9;
   pointer-events: none;
 }
 
@@ -258,4 +258,44 @@ body {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
+}
+
+:root[data-glassmorphism="true"] .glass,
+:root[data-glassmorphism="true"] .glass-card,
+:root[data-glassmorphism="true"] div.glass-target {
+  background: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+  outline: none !important;
+}
+
+:root[data-glassmorphism="true"].dark .glass,
+:root[data-glassmorphism="true"].dark .glass-card,
+:root[data-glassmorphism="true"].dark div.glass-target {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Kiedy glassmorphism jest wyłączony, usuwamy efekt w szkle */
+:root:not([data-glassmorphism="true"]) .glass,
+:root:not([data-glassmorphism="true"]) .glass-card,
+:root:not([data-glassmorphism="true"]) div.glass-target {
+  background: #f8fafc !important; /* bg-slate-50 */
+  border-color: #f1f5f9 !important; /* border-slate-100 */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  outline: none !important;
+}
+
+:root:not([data-glassmorphism="true"]).dark .glass,
+:root:not([data-glassmorphism="true"]).dark .glass-card,
+:root:not([data-glassmorphism="true"]).dark div.glass-target {
+  background: #1e293b !important; /* bg-slate-800 */
+  border-color: #334155 !important; /* border-slate-700 */
 }

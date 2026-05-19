@@ -147,7 +147,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
             <div className="space-y-6 relative z-10">
                
                <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center glass-target">
                    <span className="text-3xl font-black text-slate-900 dark:text-white mb-1">{daysActive}</span>
                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Dni na diecie</span>
                  </div>
@@ -170,7 +170,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                  </p>
                </div>
                
-               <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+               <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 glass-target">
                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                     Główne Zasady

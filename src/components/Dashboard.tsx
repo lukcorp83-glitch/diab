@@ -43,6 +43,7 @@ import GlikoSenseIcon from "./GlikoSenseIcon";
 import DidYouKnowWidget from "./DidYouKnowWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
+import { SPORTS } from "./GlikoTraining";
 import {
   collection,
   query,
@@ -50,6 +51,7 @@ import {
   doc,
   deleteDoc,
   addDoc,
+  setDoc,
 } from "firebase/firestore";
 
 import { Haptics } from "../lib/haptics";
@@ -84,6 +86,16 @@ export default function Dashboard({
   syncStatus
 }: DashboardProps) {
   const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
+
+  const handleEndTraining = async () => {
+    if (!user) return;
+    Haptics.light();
+    const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+    await setDoc(settingsRef, {
+      ...settings,
+      activeTraining: null
+    });
+  };
 
   const [range, setRange] = useState(3);
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
@@ -438,7 +450,7 @@ export default function Dashboard({
               href={nsUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all"
+              className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all glass-target"
             >
               Nightscout
             </a>
@@ -447,11 +459,40 @@ export default function Dashboard({
             onClick={() => { Haptics.light(); setTab('chart'); }}
             className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-accent-500/10 text-accent-600 text-[10px] font-black uppercase tracking-widest border border-accent-500/20 active:scale-95 transition-all shadow-xl shadow-accent-500/10"
           >
-            <Activity size={14} />
+            <Activity size={12} />
             Wykres
           </button>
         </div>
       </div>
+
+      {settings?.activeTraining && (
+        <motion.div
+           initial={{ opacity: 0, scale: 0.9 }}
+           animate={{ opacity: 1, scale: 1 }}
+           className="mx-2 p-5 glass border border-emerald-500/20 rounded-[2.5rem] relative overflow-hidden group"
+        >
+          <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 blur-[40px] -mr-10 -mt-10 pointer-events-none group-hover:bg-emerald-500/20 transition-all"></div>
+          <div className="flex items-center justify-between gap-4 relative z-10">
+            <div className="flex items-center gap-4">
+               <div className="p-3 bg-emerald-500/20 text-emerald-500 rounded-2xl animate-pulse">
+                 <Activity size={24} />
+               </div>
+               <div>
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight font-display mb-0.5">Trwa Trening</h4>
+                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                    {SPORTS.find(s => s.id === settings.activeTraining?.sportId)?.name || 'Aktywność'} • {settings.activeTraining.duration}m
+                  </p>
+               </div>
+            </div>
+            <button
+               onClick={() => { Haptics.light(); handleEndTraining(); }}
+               className="px-4 py-2 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-500/20 active:scale-95 transition-all hover:bg-rose-600"
+            >
+               Zakończ
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* 1. Main Stats Widget */}
       <motion.div variants={itemVariants}>
@@ -668,11 +709,27 @@ export default function Dashboard({
               </button>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none mask-fade-right">
+              {/* System Shortcut: Training */}
+              <button
+                onClick={() => {
+                  Haptics.light();
+                  onAction?.("training");
+                  setTab("profile");
+                }}
+                className="shrink-0 glass-card !p-5 flex items-center gap-4 font-black text-xs uppercase tracking-tighter shadow-md active:scale-95 transition-all border border-emerald-500/10 dark:border-emerald-500/5 dark:text-white group min-w-[140px]"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform block">🏃‍♂️</span>
+                <div className="flex flex-col items-start">
+                  <span className="leading-tight text-slate-800 dark:text-slate-200">Trening</span>
+                  <span className="text-[9px] text-emerald-500 lowercase font-bold">Zarządzaj</span>
+                </div>
+              </button>
+
               {shortcuts.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => quickAdd(s)}
-                  className="shrink-0 glass-card !bg-white/40 dark:!bg-white/5 !p-5 flex items-center gap-4 font-black text-xs uppercase tracking-tighter shadow-md active:scale-95 transition-all border border-black/5 dark:border-white/5 dark:text-white group min-w-[140px]"
+                  className="shrink-0 glass-card !p-5 flex items-center gap-4 font-black text-xs uppercase tracking-tighter shadow-md active:scale-95 transition-all border border-black/5 dark:border-white/5 dark:text-white group min-w-[140px]"
                 >
                   <span className="text-2xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
                   <div className="flex flex-col items-start">
