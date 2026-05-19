@@ -2626,7 +2626,10 @@ export default function Profile({
                           if (audio.paused) {
                             audio.play().then(() => {
                                if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-                            }).catch(e => console.warn("Manual audio play error:", e));
+                            }).catch(e => {
+                               console.warn("Manual audio play error:", e);
+                               toast.error("Błąd odtwarzania. Spróbuj ponownie.");
+                            });
                             toast("Odtwarzacz uruchomiony (Audio PWA)", { icon: '▶️' });
                           } else {
                             audio.pause();
@@ -2641,6 +2644,11 @@ export default function Profile({
                       <MonitorPlay size={16} />
                       Odblokuj / Wymuś Media (PWA)
                     </button>
+                    <div className="flex justify-center">
+                      <span id="media-status-indicator" className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-3 py-1 rounded-full">
+                         Status: {(document.getElementById('pwa-media-player') as HTMLAudioElement)?.paused ? 'Zatrzymany' : 'Aktywny'}
+                      </span>
+                    </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
                       Naciśnij, jeśli powiadomienia na zablokowanym ekranie przestały się odświeżać (np. system uspał proces).
                     </p>

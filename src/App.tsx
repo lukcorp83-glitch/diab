@@ -232,6 +232,7 @@ export default function App() {
            navigator.mediaSession.playbackState = 'paused';
         });
         navigator.mediaSession.playbackState = (audio && !audio.paused) ? 'playing' : 'paused';
+        if (audio && audio.volume === 1) audio.volume = 0.01; // Tiny volume often works better than 0 for session retention
         navigator.mediaSession.setActionHandler('seekbackward', () => {
            // Możemy tu dodać wymuszenie synchronizacji
            window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
@@ -1499,6 +1500,17 @@ export default function App() {
           playsInline 
           preload="auto"
           crossOrigin="anonymous"
+          className="hidden"
+          onPlay={() => {
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+            const btn = document.getElementById('media-status-indicator');
+            if (btn) btn.innerHTML = 'Status: Aktywny';
+          }}
+          onPause={() => {
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+            const btn = document.getElementById('media-status-indicator');
+            if (btn) btn.innerHTML = 'Status: Zatrzymany';
+          }}
         />
       </header>
 
