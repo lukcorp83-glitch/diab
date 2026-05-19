@@ -154,7 +154,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   glassmorphismEnabled: true,
   theme: 'system',
   accentColor: 'accent',
-  bgOption: 'default'
+  bgOption: 'default',
+  mediaWidgetEnabled: true
 };
 
 export default function App() {
@@ -1423,6 +1424,8 @@ export default function App() {
           src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAHRoZW9yZXRpY2FsLm5ldAD/48BAAAAAAArAAAAAAAAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX"
           loop 
           playsInline 
+          preload="auto"
+          crossOrigin="anonymous"
         />
       </header>
 

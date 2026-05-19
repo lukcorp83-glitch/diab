@@ -1,24 +1,36 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LogEntry } from '../types';
+import { Activity } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs: LogEntry[] }) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioElement = typeof document !== 'undefined' ? document.getElementById('pwa-media-player') as HTMLAudioElement : null;
+  const audioTrackRef = useRef<HTMLAudioElement | null>(null);
 
+  // Sync audio element reference
   useEffect(() => {
+    if (typeof document !== 'undefined') {
+      audioTrackRef.current = document.getElementById('pwa-media-player') as HTMLAudioElement;
+    }
+  }, []);
+
+  // Handle Playback State
+  useEffect(() => {
+    const audio = audioTrackRef.current;
+    if (!audio) return;
+
     if (!enabled) {
-      if (audioElement && !audioElement.paused) {
-        audioElement.pause();
+      if (!audio.paused) {
+        audio.pause();
         setIsPlaying(false);
       }
       return;
     }
 
-    // Try playing immediately
-    if (audioElement) {
-      audioElement.volume = 0.5; // low volume but not 0
-      if (audioElement.paused) {
-        audioElement.play()
+    const startPlayback = () => {
+      audio.volume = 0.5;
+      if (audio.paused) {
+        audio.play()
           .then(() => {
             setIsPlaying(true);
             if ("mediaSession" in navigator) {
@@ -26,75 +38,92 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
             }
           })
           .catch((err) => {
-            console.log("Media session auto-play blocked, waiting for interaction", err);
+            console.log("Media session playback blocked, waiting for interaction", err);
             setIsPlaying(false);
           });
       }
-    }
+    };
 
+    startPlayback();
+
+    // Setup MediaSession handlers
     if ("mediaSession" in navigator) {
-      const glucoseLogs = [...logs].filter(l => l.type === 'glucose').sort((a, b) => b.timestamp - a.timestamp);
-      let titleStr = "Oczekiwanie na dane...";
-      if (glucoseLogs.length > 0) {
-        const latestLog = glucoseLogs[0];
-        titleStr = `${latestLog.value} mg/dL`;
-      }
-
-      const baseUrl = window.location.origin + (window.location.pathname.startsWith('/diab') ? '/diab' : '');
-      const artworkPath = `${baseUrl}/pwa-icon.svg`;
-
-      navigator.mediaSession.metadata = new window.MediaMetadata({
-        title: titleStr,
-        artist: `GlikoControl Monitoring`,
-        album: 'Bieżący odczyt glukozy',
-        artwork: [
-          { src: artworkPath, sizes: '96x96', type: 'image/svg+xml' },
-          { src: artworkPath, sizes: '128x128', type: 'image/svg+xml' },
-          { src: artworkPath, sizes: '192x192', type: 'image/svg+xml' },
-          { src: artworkPath, sizes: '512x512', type: 'image/svg+xml' },
-        ]
-      });
-
       navigator.mediaSession.setActionHandler('play', () => {
-        audioElement?.play().then(() => {
+        audio.play().then(() => {
           setIsPlaying(true);
           navigator.mediaSession.playbackState = 'playing';
         }).catch(() => {});
       });
       navigator.mediaSession.setActionHandler('pause', () => {
-        audioElement?.pause();
+        audio.pause();
         setIsPlaying(false);
         navigator.mediaSession.playbackState = 'paused';
       });
       
-      // Dummy handlers to prevent the OS from thinking it's not a real player
       navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-        if (audioElement) audioElement.currentTime = Math.max(audioElement.currentTime - (details.seekOffset || 10), 0);
+        audio.currentTime = Math.max(audio.currentTime - (details.seekOffset || 10), 0);
       });
       navigator.mediaSession.setActionHandler('seekforward', (details) => {
-        if (audioElement) audioElement.currentTime = Math.min(audioElement.currentTime + (details.seekOffset || 10), audioElement.duration);
+        audio.currentTime = Math.min(audio.currentTime + (details.seekOffset || 10), audio.duration);
       });
       navigator.mediaSession.setActionHandler('previoustrack', () => {});
       navigator.mediaSession.setActionHandler('nexttrack', () => {});
     }
-  }, [logs, enabled, isPlaying]);
 
+    return () => {
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+      }
+    };
+  }, [enabled]);
+
+  // Update MediaSession Metadata independently
   useEffect(() => {
+    if (!enabled || !("mediaSession" in navigator)) return;
+
+    const glucoseLogs = [...logs].filter(l => l.type === 'glucose').sort((a, b) => b.timestamp - a.timestamp);
+    let titleStr = "GlikoControl Monitoring";
+    if (glucoseLogs.length > 0) {
+      const latestLog = glucoseLogs[0];
+      titleStr = `${latestLog.value} mg/dL`;
+    }
+
+    const baseUrl = window.location.origin + (window.location.pathname.startsWith('/diab') ? '/diab' : '');
+    const artworkPath = `${baseUrl}/pwa-icon.svg`;
+
+    navigator.mediaSession.metadata = new window.MediaMetadata({
+      title: titleStr,
+      artist: `GlikoControl`,
+      album: 'Aktywne Monitorowanie',
+      artwork: [
+        { src: artworkPath, sizes: '96x96', type: 'image/svg+xml' },
+        { src: artworkPath, sizes: '128x128', type: 'image/svg+xml' },
+        { src: artworkPath, sizes: '192x192', type: 'image/svg+xml' },
+        { src: artworkPath, sizes: '512x512', type: 'image/svg+xml' },
+      ]
+    });
+  }, [logs, enabled]);
+
+  // User Interaction requirement handler
+  useEffect(() => {
+    if (!enabled) return;
+
     const handleInteraction = () => {
-      if (enabled && audioElement && audioElement.paused) {
-        audioElement.play().then(() => {
+      const audio = audioTrackRef.current;
+      if (enabled && audio && audio.paused) {
+        console.log("[MediaWidget] Resuming playback from user interaction");
+        audio.play().then(() => {
           setIsPlaying(true);
           if ("mediaSession" in navigator) {
             navigator.mediaSession.playbackState = 'playing';
           }
-        }).catch(() => {});
+        }).catch((e) => console.warn("[MediaWidget] Interaction playback failed:", e));
       }
     };
 
-    if (enabled) {
-      document.addEventListener('click', handleInteraction, { once: true });
-      document.addEventListener('touchstart', handleInteraction, { once: true });
-    }
+    document.addEventListener('click', handleInteraction, { once: true });
+    document.addEventListener('touchstart', handleInteraction, { once: true });
 
     return () => {
       document.removeEventListener('click', handleInteraction);
@@ -102,5 +131,18 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
     };
   }, [enabled]);
 
-  return null;
+  if (!enabled) return null;
+
+  return (
+    <div 
+      title={isPlaying ? "Odtwarzacz glukozy w tle aktywny" : "Odtwarzacz oczekuje na start"}
+      className={cn(
+        "flex items-center justify-center w-8 h-8 rounded-xl transition-all",
+        isPlaying ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+      )}
+    >
+      <Activity size={16} className={cn(isPlaying && "animate-pulse")} />
+    </div>
+  );
 }
+
