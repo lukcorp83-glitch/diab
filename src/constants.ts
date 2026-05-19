@@ -1,6 +1,7 @@
 import { Product } from './types';
 
 export const APP_VERSION = '3.5.1';
+export const FACEBOOK_GROUP_URL = 'https://www.facebook.com/groups/4442689766059238/';
 
 export const CATEGORIES = [
   "Owoce i Warzywa",

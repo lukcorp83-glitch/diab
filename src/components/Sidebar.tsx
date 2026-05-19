@@ -32,10 +32,11 @@ import {
   PawPrint, 
   ShoppingBag,
   Sparkles,
-  Cpu
+  Cpu,
+  Facebook
 } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
-import { APP_VERSION } from '../constants';
+import { APP_VERSION, FACEBOOK_GROUP_URL } from '../constants';
 import GlikoSenseIcon from './GlikoSenseIcon';
 
 import Logo from './Logo';
@@ -125,6 +126,14 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
          { id: 'profile_meds', label: 'Leki & Przypomnienia', tab: 'profile', action: 'meds', icon: <Pill size={14} /> },
          { id: 'profile_api', label: 'Integracje (Nightscout)', tab: 'profile', action: 'api', icon: <Globe size={14} /> }, 
          { id: 'profile_simulator', label: 'Symulator Bolusa', tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
+       ]
+    },
+    { 
+       id: 'community', 
+       label: 'Społeczność', 
+       icon: <Facebook size={20} className="text-blue-500" />,
+       subItems: [
+         { id: 'fb_group', label: 'Grupa na Facebooku', action: 'fb_group', icon: <Facebook size={14} /> }
        ]
     },
   ];
@@ -229,8 +238,12 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                                   key={sub.id}
                                   onClick={() => {
                                     Haptics.light();
-                                    changeTab(sub.tab || item.id);
-                                    onAction && onAction(sub.action || sub.id);
+                                    if (sub.id === 'fb_group') {
+                                      window.open(FACEBOOK_GROUP_URL, '_blank');
+                                    } else {
+                                      changeTab(sub.tab || item.id);
+                                      onAction && onAction(sub.action || sub.id);
+                                    }
                                     onClose();
                                   }}
                                   className="flex items-center gap-3 text-left py-3.5 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-accent-600 dark:text-slate-500 dark:hover:text-accent-400 hover:bg-slate-50 dark:hover:bg-accent-500/5 transition-all group"
@@ -248,6 +261,21 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
             </div>
 
             <div className="mt-auto space-y-6 pt-10 border-t border-slate-200/50 dark:border-slate-800/30 relative">
+              <div className="px-4 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-4">
+                 <div className="flex items-center gap-2 mb-1">
+                    <Facebook size={14} className="text-blue-500" />
+                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">Dołącz do nas!</span>
+                 </div>
+                 <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Na naszej grupie Facebook pojawiają się wszystkie najważniejsze informacje i nowości o aplikacji.
+                 </p>
+                 <button 
+                   onClick={() => window.open(FACEBOOK_GROUP_URL, '_blank')}
+                   className="mt-2 text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 hover:underline"
+                 >
+                   Otwórz grupę →
+                 </button>
+              </div>
               <button 
                 onClick={() => {
                   Haptics.light();

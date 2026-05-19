@@ -14,14 +14,27 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
       return;
     }
 
-    // Try playing immediately if we just enabled it
-    if (audioRef.current && audioRef.current.paused) {
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    // Try playing immediately
+    if (audioRef.current) {
+      audioRef.current.volume = 0.5; // low volume but not 0
+      if (audioRef.current.paused) {
+        audioRef.current.play()
+          .then(() => {
+            setIsPlaying(true);
+            if ("mediaSession" in navigator) {
+              navigator.mediaSession.playbackState = 'playing';
+            }
+          })
+          .catch((err) => {
+            console.log("Media session auto-play blocked, waiting for interaction", err);
+            setIsPlaying(false);
+          });
+      }
     }
 
-    if (logs.length > 0 && "mediaSession" in navigator) {
-      const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => b.timestamp - a.timestamp);
-      let titleStr = "Oczekiwanie...";
+    if ("mediaSession" in navigator) {
+      const glucoseLogs = [...logs].filter(l => l.type === 'glucose').sort((a, b) => b.timestamp - a.timestamp);
+      let titleStr = "Oczekiwanie na dane...";
       if (glucoseLogs.length > 0) {
         const latestLog = glucoseLogs[0];
         titleStr = `${latestLog.value} mg/dL`;
@@ -29,24 +42,49 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
 
       navigator.mediaSession.metadata = new window.MediaMetadata({
         title: titleStr,
-        artist: `GlikoControl`,
-        album: 'Bieżący odczyt',
+        artist: `GlikoControl Monitoring`,
+        album: 'Bieżący odczyt glukozy',
+        artwork: [
+          { src: 'pwa-icon.svg', sizes: '96x96', type: 'image/svg+xml' },
+          { src: 'pwa-icon.svg', sizes: '128x128', type: 'image/svg+xml' },
+          { src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' },
+          { src: 'pwa-icon.svg', sizes: '512x512', type: 'image/svg+xml' },
+        ]
       });
-      
+
       navigator.mediaSession.setActionHandler('play', () => {
-        audioRef.current?.play().then(() => setIsPlaying(true)).catch(() => {});
+        audioRef.current?.play().then(() => {
+          setIsPlaying(true);
+          navigator.mediaSession.playbackState = 'playing';
+        }).catch(() => {});
       });
       navigator.mediaSession.setActionHandler('pause', () => {
         audioRef.current?.pause();
         setIsPlaying(false);
+        navigator.mediaSession.playbackState = 'paused';
       });
+      
+      // Dummy handlers to prevent the OS from thinking it's not a real player
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        if (audioRef.current) audioRef.current.currentTime = Math.max(audioRef.current.currentTime - (details.seekOffset || 10), 0);
+      });
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        if (audioRef.current) audioRef.current.currentTime = Math.min(audioRef.current.currentTime + (details.seekOffset || 10), audioRef.current.duration);
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {});
+      navigator.mediaSession.setActionHandler('nexttrack', () => {});
     }
-  }, [logs, enabled]);
+  }, [logs, enabled, isPlaying]);
 
   useEffect(() => {
     const handleInteraction = () => {
       if (enabled && audioRef.current && audioRef.current.paused) {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        audioRef.current.play().then(() => {
+          setIsPlaying(true);
+          if ("mediaSession" in navigator) {
+            navigator.mediaSession.playbackState = 'playing';
+          }
+        }).catch(() => {});
       }
     };
 
@@ -65,7 +103,8 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
     <audio 
       id="pwa-media-player"
       ref={audioRef} 
-      src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" 
+      // A longer silent MP3 (about 1s) is more reliable than a 44-byte WAV
+      src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAHRoZW9yZXRpY2FsLm5ldAD/48BAAAAAbW9kZWwgMTI4AAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/48BAAAAbm9uZS4uAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/48BAAAAbm9uZS4uAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX"
       loop 
       playsInline 
     />
