@@ -2617,6 +2617,32 @@ export default function Profile({
                     )} />
                   </button>
                 </div>
+                {settings.mediaWidgetEnabled && (
+                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                    <button
+                      onClick={() => {
+                        const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
+                        if (audio) {
+                          if (audio.paused) {
+                            audio.play().catch(e => console.warn("Manual audio play error:", e));
+                            toast("Odtwarzacz uruchomiony", { icon: '▶️' });
+                          } else {
+                            audio.pause();
+                            toast("Odtwarzacz zatrzymany", { icon: '⏸️' });
+                          }
+                          Haptics.light();
+                        }
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-purple-600 dark:text-purple-400 rounded-xl font-bold transition-all"
+                    >
+                      <MonitorPlay size={16} />
+                      Wymuś odtwarzanie (Graj / Pauza)
+                    </button>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
+                      Naciśnij, jeśli powiadomienia na zablokowanym ekranie przestały się odświeżać (np. system uspał proces).
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Visual Appearance Cards */}

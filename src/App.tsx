@@ -84,7 +84,6 @@ import Logo from './components/Logo';
 
 import OnboardingTutorial from './components/OnboardingTutorial';
 import NotificationCenter from './components/NotificationCenter';
-import MediaWidget from './components/MediaWidget';
 import NotebookManager from './components/NotebookManager';
 import ChangelogPopup from './components/ChangelogPopup';
 import PrivacyPopup from './components/PrivacyPopup';
@@ -843,16 +842,14 @@ export default function App() {
       try {
         setSyncStatus(prev => ({ ...prev, status: 'syncing' }));
         console.log("Starting Nightscout sync...");
-        
-        let currentWeather: any = null;
-        if (userSettingsRef.current?.weatherNeuralEnabled || userSettingsRef.current?.weatherWidgetEnabled) {
-          try {
-             const { fetchCurrentWeather } = await import('./services/weatherService');
-             currentWeather = await fetchCurrentWeather();
-          } catch (e) {
-             console.warn("Failed to fetch weather for Nightscout sync", e);
-          }
-        }
+
+        const sanitizeNested = (obj: any): any => {
+          Object.keys(obj).forEach(key => {
+            if (obj[key] && typeof obj[key] === 'object') sanitizeNested(obj[key]);
+            else if (obj[key] === undefined) delete obj[key];
+          });
+          return obj;
+        };
 
         // 1. FAST PATH: Fetch just the LATEST entry first for immediate feedback
         const latestEntries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 1);
@@ -867,29 +864,28 @@ export default function App() {
             nsId: latest.id,
             createdAt: serverTimestamp()
           };
-          if (currentWeather && latest.type === 'glucose' && (Date.now() - latest.timestamp < 3600000)) {
-            latestDataToSave.weather = currentWeather;
-          }
           
-          // Remove undefined values
-          Object.keys(latestDataToSave).forEach(key => latestDataToSave[key] === undefined && delete latestDataToSave[key]);
+          await setDoc(docRef, sanitizeNested(latestDataToSave), { merge: true });
 
-          await setDoc(docRef, latestDataToSave, { merge: true });
+          // 1.5. FIRE & FORGET: Background weather fetch
+          if (latest.type === 'glucose' && (Date.now() - latest.timestamp < 3600000)) {
+            if (userSettingsRef.current?.weatherNeuralEnabled || userSettingsRef.current?.weatherWidgetEnabled) {
+              import('./services/weatherService').then(async ({ fetchCurrentWeather }) => {
+                 try {
+                    const w = await fetchCurrentWeather();
+                    if (w) await setDoc(docRef, { weather: sanitizeNested(w) }, { merge: true });
+                 } catch(e) {
+                    console.warn("Failed to fetch weather in bg", e);
+                 }
+              }).catch(e => console.warn(e));
+            }
+          }
         }
 
         // 2. Fetch device status (important for battery/status)
         const devicestatus = await nightscoutService.fetchDeviceStatus(nsUrl, nsSecret);
         if (devicestatus) {
           const pumpRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump');
-          
-          // Deep sanitize undefined values
-          const sanitizeNested = (obj: any) => {
-            Object.keys(obj).forEach(key => {
-              if (obj[key] && typeof obj[key] === 'object') sanitizeNested(obj[key]);
-              else if (obj[key] === undefined) delete obj[key];
-            });
-            return obj;
-          };
           
           await setDoc(pumpRef, sanitizeNested({ ...devicestatus }), { merge: true });
         }
@@ -975,9 +971,8 @@ export default function App() {
                    nsId: nsId || firestoreId,
                    createdAt: serverTimestamp()
                  };
-                 Object.keys(finalLogData).forEach(key => (finalLogData as any)[key] === undefined && delete (finalLogData as any)[key]);
                  
-                 batch.set(docRef, finalLogData, { merge: true });
+                 batch.set(docRef, sanitizeNested(finalLogData), { merge: true });
               }
               await batch.commit();
           }
@@ -1418,7 +1413,6 @@ export default function App() {
           <div className="flex items-center gap-2">
             <NotebookManager user={user} />
             <NotificationCenter userSettings={userSettings} theme={theme} />
-            <MediaWidget enabled={userSettings?.mediaWidgetEnabled || false} logs={logs} />
             <button 
               onClick={() => {
                 Haptics.light();

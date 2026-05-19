@@ -403,17 +403,7 @@ export default function Dashboard({
       exit="hidden"
       className="space-y-6 pb-20 will-change-transform relative"
     >
-      {/* Swipe Hint (Left Edge) */}
-      <div className="fixed left-0 top-1/2 -translate-y-1/2 w-8 h-32 pointer-events-none z-40 md:hidden flex items-center justify-center opacity-40">
-        <motion.div
-          animate={{ x: [0, 8, 0], opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className="w-1 h-12 bg-accent-500/30 rounded-full blur-[1px]" />
-          <span className="text-[8px] font-black uppercase tracking-widest vertical-text text-accent-500/50">Wykres</span>
-        </motion.div>
-      </div>
+
 
       <div className="flex items-center justify-between px-2">
         <h2 className="text-xl font-black italic uppercase tracking-tighter text-slate-800 dark:text-white font-display">Pulpit</h2>

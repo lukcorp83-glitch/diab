@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, Product } from '../types';
-import { X, Save, Utensils, Apple, Syringe, Search, Globe, Loader2, Plus, Zap } from 'lucide-react';
+import { X, Save, Utensils, Apple, Syringe, Search, Globe, Loader2, Plus, Zap, Heart } from 'lucide-react';
 import { doc, updateDoc, deleteDoc, collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { getEffectiveUid, cn } from '../lib/utils';
@@ -39,6 +39,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
   const [isSearching, setIsSearching] = useState(false);
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
+  const [savedMeals, setSavedMeals] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -50,7 +51,11 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
     const unsub2 = onSnapshot(q2, (snap) => {
       setCommunityProducts(snap.docs.map(d => ({ id: d.id, isCommunity: true, ...d.data() })) as Product[]);
     });
-    return () => { unsub1(); unsub2(); };
+    const q3 = query(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "savedMeals"));
+    const unsub3 = onSnapshot(q3, (snap) => {
+      setSavedMeals(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
   }, [user]);
 
   const allLocal = [...customProducts, ...communityProducts, ...LIB_BASE];
@@ -59,6 +64,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
   ).slice(0, 5);
 
   const handleOnlineSearch = async () => {
+
     if (!searchTerm || isSearching) return;
     setIsSearching(true);
     setOnlineResults([]);
@@ -98,6 +104,28 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
     setSearchTerm("");
     setOnlineResults([]);
     toast.success(`Dodano ${p.name}`);
+  };
+
+  const addSavedMeal = (meal: any) => {
+    const mealCarbs = meal.items.reduce((acc: number, item: any) => acc + (item.carbs || 0), 0);
+    const mealPolyols = meal.items.reduce((acc: number, item: any) => acc + (item.polyols || 0), 0);
+    const mealProtein = meal.items.reduce((acc: number, item: any) => acc + (item.protein || 0), 0);
+    const mealFat = meal.items.reduce((acc: number, item: any) => acc + (item.fat || 0), 0);
+
+    const c = Math.round((parseFloat(carbs || '0') + mealCarbs) * 10) / 10;
+    const pol = Math.round((parseFloat(polyols || '0') + mealPolyols) * 10) / 10;
+    const pr = Math.round((parseFloat(protein || '0') + mealProtein) * 10) / 10;
+    const f = Math.round((parseFloat(fat || '0') + mealFat) * 10) / 10;
+    
+    setCarbs(c.toString());
+    setPolyols(pol.toString());
+    setProtein(pr.toString());
+    setFat(f.toString());
+    
+    const newNote = notes ? `${notes}, zestaw: ${meal.name}` : `Zestaw: ${meal.name}`;
+    setNotes(newNote);
+    
+    toast.success(`Dodano zestaw: ${meal.name}`);
   };
 
   const handleSave = async () => {
@@ -252,6 +280,33 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Saved Meals Horizontal Scroll */}
+            {savedMeals.length > 0 && (
+              <div className="space-y-4 pt-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5">
+                  <Heart size={14} className="text-accent-500 fill-accent-500" /> Baza Posiłków (Zapisane zestawy)
+                </label>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+                  {savedMeals.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={(e) => {
+                         e.preventDefault();
+                         addSavedMeal(m);
+                      }}
+                      className="snap-start shrink-0 w-[180px] text-left bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-accent-500/50 transition-all flex flex-col justify-between h-[80px]"
+                    >
+                      <div>
+                        <div className="text-[11px] font-black dark:text-white line-clamp-1">{m.name}</div>
+                        <div className="text-[9px] font-bold text-slate-400 mt-0.5">{m.items.length} skład.</div>
+                      </div>
+                      <div className="text-[10px] font-black text-accent-500">{m.items.reduce((acc: number, i: any) => acc + (i.carbs || 0), 0).toFixed(1)}g Węg.</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
               {isBolus && (
