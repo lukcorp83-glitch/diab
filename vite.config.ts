@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
-  const basePath = './';
+  const basePath = '/diab/';
   
   return {
     base: basePath,
@@ -16,11 +16,28 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        includeAssets: ['pwa-icon.svg', 'pwa-icon-maskable.svg'],
+        includeAssets: ['pwa-icon.svg', 'pwa-icon-maskable.svg', 'google.svg'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
           cleanupOutdatedCaches: true,
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          navigateFallback: 'index.html',
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            }
+          ]
         },
         manifest: {
           name: 'GlikoControl',
@@ -32,9 +49,9 @@ export default defineConfig(({ mode }) => {
           orientation: 'portrait',
           dir: 'ltr',
           lang: 'pl-PL',
-          start_url: '/',
-          scope: '/',
-          id: '/',
+          start_url: '.',
+          scope: '.',
+          id: '/diab/',
           categories: ['medical', 'health', 'fitness'],
           icons: [
             {
@@ -61,21 +78,21 @@ export default defineConfig(({ mode }) => {
               name: 'Dodaj Cukier',
               short_name: 'Cukier',
               description: 'Szybkie wpisanie poziomu glukozy',
-              url: '/?action=add_glucose',
+              url: './?action=add_glucose',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             },
             {
               name: 'Dodaj Bolus',
               short_name: 'Bolus',
               description: 'Szybkie wpisanie insuliny',
-              url: '/?action=add_bolus',
+              url: './?action=add_bolus',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             },
             {
               name: 'Dodaj Posiłek',
               short_name: 'Posiłek',
               description: 'Szybkie wpisanie posiłku',
-              url: '/?action=add_meal',
+              url: './?action=add_meal',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             }
           ],
