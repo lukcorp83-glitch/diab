@@ -126,20 +126,39 @@ export const nightscoutService = {
         
         const timestamp = ts;
         
-        // Comprehensive check for insulin - some systems use 'amount' or 'insulin'
         const insulin = Number(t.insulin || (t as any).amount || 0);
-        
+        const carbs = Number(t.carbs || 0);
+
         if (insulin > 0) {
-          logs.push({
+          const payload: any = {
             id: `ns-insulin-${t._id || timestamp}`,
             type: 'bolus',
             value: insulin,
             timestamp,
             notes: t.notes || t.eventType,
             source: 'nightscout'
+          };
+
+          if (carbs > 0) {
+            payload.linkedMeal = {
+              carbs,
+              protein: 0,
+              fat: 0
+            };
+          }
+
+          logs.push(payload);
+        } else if (carbs > 0) {
+          logs.push({
+            id: `ns-meal-${t._id || timestamp}`,
+            type: 'meal',
+            value: carbs,
+            timestamp,
+            notes: t.notes || t.eventType,
+            source: 'nightscout'
           });
         }
-        
+
         const lowerEventType = (t.eventType || '').toLowerCase();
         
         if (lowerEventType === 'site change' || lowerEventType === 'cartridge change' || lowerEventType === 'pump battery change') {
@@ -158,18 +177,6 @@ export const nightscoutService = {
             id: `ns-sensor-${t._id || timestamp}`,
             type: 'sensor_change',
             value: 1,
-            timestamp,
-            notes: t.notes || t.eventType,
-            source: 'nightscout'
-          });
-        }
-
-        const carbs = Number(t.carbs || 0);
-        if (carbs > 0) {
-          logs.push({
-            id: `ns-meal-${t._id || timestamp}`,
-            type: 'meal',
-            value: carbs,
             timestamp,
             notes: t.notes || t.eventType,
             source: 'nightscout'

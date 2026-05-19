@@ -30,7 +30,7 @@ import {
   Calendar,
   Gift
 } from "lucide-react";
-import { cn, calculateIOB } from "../lib/utils";
+import { cn, calculateIOB, getEffectiveIOB } from "../lib/utils";
 import { APP_VERSION } from "../constants";
 import GlucoseModal from "./GlucoseModal";
 import SwipeableItem from "./SwipeableItem";
@@ -234,7 +234,7 @@ export default function Dashboard({
     }
   };
 
-  const iob = calculateIOB(logs, settings.dia || 4);
+  const iob = getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
 
   const calculateTIR = () => {
     const glucoseLogs = logs.filter((l) => l.type === "glucose");
@@ -520,7 +520,7 @@ export default function Dashboard({
             datasetSize={mlInfo?.datasetSize}
           >
             {settings.childMode && (
-               <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} embedded={true} />
+               <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} embedded={true} pumpStatus={pumpStatus} />
             )}
           </GlikoSenseNeural>
         </div>
@@ -662,7 +662,7 @@ export default function Dashboard({
         }} />
         
         {/* Tips Section */}
-        <GlikoSenseTips logs={logs} />
+        <GlikoSenseTips logs={logs} pumpStatus={pumpStatus} />
         
         {/* Alert/Insight Section */}
         {patternInsights.length > 0 && (

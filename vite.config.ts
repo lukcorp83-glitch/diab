@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        includeAssets: ['pwa-icon.svg'],
+        includeAssets: ['pwa-icon.svg', 'pwa-icon-maskable.svg'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
           cleanupOutdatedCaches: true,
@@ -50,8 +50,8 @@ export default defineConfig(({ mode }) => {
               purpose: 'any'
             },
             {
-              src: 'pwa-icon.svg',
-              sizes: '192x192',
+              src: 'pwa-icon-maskable.svg',
+              sizes: '512x512',
               type: 'image/svg+xml',
               purpose: 'maskable'
             }
@@ -62,21 +62,21 @@ export default defineConfig(({ mode }) => {
               short_name: 'Cukier',
               description: 'Szybkie wpisanie poziomu glukozy',
               url: '/?action=add_glucose',
-              icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }]
+              icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             },
             {
               name: 'Dodaj Bolus',
               short_name: 'Bolus',
               description: 'Szybkie wpisanie insuliny',
               url: '/?action=add_bolus',
-              icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }]
+              icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             },
             {
               name: 'Dodaj Posiłek',
               short_name: 'Posiłek',
               description: 'Szybkie wpisanie posiłku',
               url: '/?action=add_meal',
-              icons: [{ src: 'pwa-icon.svg', sizes: '192x192' }]
+              icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             }
           ],
           widgets: [
@@ -96,7 +96,7 @@ export default defineConfig(({ mode }) => {
               ]
             }
           ]
-        }
+        } as any
       })
     ],
     define: {

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
 import { Droplets, Calculator, Info, TrendingUp, TrendingDown, Minus, Camera, Loader2, Edit3, X, Bell, AlertTriangle, BarChart2 } from 'lucide-react';
-import { cn, calculateIOB, calculateCOB } from '../lib/utils';
+import { cn, calculateIOB, calculateCOB, getEffectiveIOB } from '../lib/utils';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
 import { geminiService } from '../services/gemini';
@@ -14,7 +14,7 @@ import { Haptics } from '../lib/haptics';
 import { fetchCurrentWeather } from '../services/weatherService';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 
-export default function BolusCalculator({ logs, user, setTab, setSharedPlate }: { logs: LogEntry[], user: any, setTab?: (t: string) => void, setSharedPlate?: React.Dispatch<React.SetStateAction<any[]>> }) {
+export default function BolusCalculator({ logs, user, setTab, setSharedPlate, pumpStatus }: { logs: LogEntry[], user: any, setTab?: (t: string) => void, setSharedPlate?: React.Dispatch<React.SetStateAction<any[]>>, pumpStatus?: any }) {
   const [bg, setBg] = useState<string>('');
   const [carbs, setCarbs] = useState<string>('');
   const [polyols, setPolyols] = useState<string>('');
@@ -135,7 +135,7 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate }: 
        corrDose = (bgNum - target) / currentIsf; // negative correction
     }
     
-    const iob = calculateIOB(logs, settings.dia || 4);
+    const iob = getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
     const cob = calculateCOB(logs);
     const cobDose = cob / currentWwRatio;
 
@@ -346,7 +346,7 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate }: 
     setLoadingAi(true);
     try {
       const bgNum = parseFloat(bg) || 0;
-      const iob = calculateIOB(logs, settings.dia || 4);
+      const iob = getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
       const cob = calculateCOB(logs);
       const currentDose = manualDose !== null ? parseFloat(manualDose) : dose;
       const netCarbsNum = Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0));
@@ -718,22 +718,22 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate }: 
              </div>
              
              {/* Stacking Warning (IOB & COB) */}
-             {(calculateIOB(logs, settings.dia || 4) > 0.5 || calculateCOB(logs) > 5) && (
+             {(getEffectiveIOB(logs, pumpStatus, settings.dia || 4) > 0.5 || calculateCOB(logs) > 5) && (
                <motion.div 
                  initial={{ opacity: 0, y: -5 }} 
                  animate={{ opacity: 1, y: 0 }}
                  className="mt-2 mb-2 flex flex-col items-center justify-center gap-1 bg-slate-800/50 border border-white/5 py-2 px-3 rounded-xl mx-4"
                >
                  <div className="flex items-center gap-2">
-                   <AlertTriangle size={12} className={cn(calculateIOB(logs, settings.dia || 4) > 0.5 ? "text-rose-500 animate-pulse" : "text-amber-500")} />
+                   <AlertTriangle size={12} className={cn(getEffectiveIOB(logs, pumpStatus, settings.dia || 4) > 0.5 ? "text-rose-500 animate-pulse" : "text-amber-500")} />
                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center">
                      Status Aktywnych Składników
                    </span>
                  </div>
                  <div className="flex gap-4">
-                   {calculateIOB(logs, settings.dia || 4) > 0.1 && (
+                   {getEffectiveIOB(logs, pumpStatus, settings.dia || 4) > 0.1 && (
                      <span className="text-[9px] font-bold text-rose-400">
-                       Insulina (IOB): {calculateIOB(logs, settings.dia || 4).toFixed(2)}j
+                       Insulina (IOB): {getEffectiveIOB(logs, pumpStatus, settings.dia || 4).toFixed(2)}j
                      </span>
                    )}
                    {calculateCOB(logs) > 0 && (

@@ -15,7 +15,7 @@ export interface Product {
 
 export interface LogEntry {
   id?: string;
-  type: 'glucose' | 'meal' | 'bolus' | 'site_change' | 'sensor_change';
+  type: 'glucose' | 'meal' | 'bolus' | 'site_change' | 'sensor_change' | 'activity';
   value: number;
   timestamp: number;
   createdAt?: any;
@@ -23,6 +23,8 @@ export interface LogEntry {
   description?: string;
   notes?: string;
   source?: string;
+  nsId?: string;
+  userModified?: boolean;
   protein?: number;
   polyols?: number;
   fat?: number;

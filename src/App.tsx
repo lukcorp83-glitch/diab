@@ -1,4 +1,4 @@
-import { calculateIOB, calculateCOB, getEffectiveUid } from './lib/utils';
+import { calculateIOB, calculateCOB, getEffectiveUid, getEffectiveIOB } from './lib/utils';
 import { getGlikoSenseInsights } from './lib/insightGenerator';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
@@ -229,7 +229,7 @@ export default function App() {
           parts: [{ text: m.text }]
         }));
 
-      const iob = calculateIOB(logs);
+      const iob = getEffectiveIOB(logs, pumpStatus, userSettings?.dia || 4);
       const cob = calculateCOB(logs);
       
       const logGlucose = logs.filter(l => l.type === 'glucose')[0];
@@ -873,12 +873,49 @@ export default function App() {
         }
         
         // Use a set of unique fingerprints from current logs reference
-        const existingFingerprints = new Set(logsRef.current.map(l => `${l.type}-${Math.floor(l.timestamp / 60000)}-${l.value}`));
+        const existingLogs = logsRef.current;
         
-        const newLogsToSync = allNewLogs.filter(newLog => {
-           const fingerprint = `${newLog.type}-${Math.floor(newLog.timestamp / 60000)}-${newLog.value}`;
-           return !existingFingerprints.has(fingerprint);
+        const isDuplicate = (newLog: LogEntry) => {
+          return existingLogs.some(l => {
+            // Check by NS ID first (most reliable)
+            if (l.nsId && newLog.id && l.nsId === newLog.id) return true;
+            if (l.id && newLog.id && l.id === newLog.id) return true;
+
+            const timeDiff = Math.abs(l.timestamp - newLog.timestamp);
+            const isSimilarTime = timeDiff < 2 * 60 * 1000; // +/- 2 minutes
+            const isSameType = l.type === newLog.type;
+            
+            if (isSameType && isSimilarTime) {
+               // For glucose, we are more strict on value
+               if (l.type === 'glucose') return Math.abs(l.value - newLog.value) < 1;
+               // For bolus/meal, if it's the same time and type, and we haven't modified it manually, it's a dupe
+               if (l.userModified) return true; 
+               return Math.abs(l.value - newLog.value) < 0.1;
+            }
+            
+            // Check if a bolus in state already has this meal linked (or vice versa)
+            if (isSimilarTime && ((l.type === 'bolus' && newLog.type === 'meal') || (l.type === 'meal' && newLog.type === 'bolus'))) {
+               const mealVal = l.type === 'meal' ? l.value : l.linkedMeal?.carbs;
+               const newMealVal = newLog.type === 'meal' ? newLog.value : newLog.linkedMeal?.carbs;
+               if (mealVal !== undefined && newMealVal !== undefined && Math.abs(mealVal - newMealVal) < 1) return true;
+            }
+            return false;
+          });
+        };
+        
+        // Deduplicate allNewLogs itself first (internal NS duplicates)
+        const uniqueNSLogs: LogEntry[] = [];
+        allNewLogs.forEach(n => {
+          if (!uniqueNSLogs.some(u => 
+            u.type === n.type && 
+            Math.abs(u.timestamp - n.timestamp) < 60000 && 
+            Math.abs(u.value - n.value) < 0.01
+          )) {
+            uniqueNSLogs.push(n);
+          }
         });
+
+        const newLogsToSync = uniqueNSLogs.filter(newLog => !isDuplicate(newLog));
 
         if (newLogsToSync.length > 0) {
           console.log(`Syncing ${newLogsToSync.length} new records via batch...`);
@@ -906,8 +943,6 @@ export default function App() {
                    nsId: nsId || firestoreId,
                    createdAt: serverTimestamp()
                  }, { merge: true });
-                 
-                 existingFingerprints.add(fingerprint);
               }
               await batch.commit();
           }
@@ -1216,7 +1251,7 @@ export default function App() {
         />
       )}
       {activeTab === 'bolus' && (
-        <BolusCalculator logs={logs} user={user} setTab={changeTab} setSharedPlate={setSharedPlate} />
+        <BolusCalculator logs={logs} user={user} setTab={changeTab} setSharedPlate={setSharedPlate} pumpStatus={pumpStatus} />
       )}
       {activeTab === 'database' && (
         <MealPlate 
@@ -1489,7 +1524,7 @@ export default function App() {
         onClose={() => setShowStatusPopup(false)} 
         logs={logs}
         lastGlucose={lastGlucoseValue}
-        iob={calculateIOB(logs, userSettings?.dia || 4)}
+        iob={getEffectiveIOB(logs, pumpStatus, userSettings?.dia || 4)}
       />
     </div>
   );

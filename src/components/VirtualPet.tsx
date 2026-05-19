@@ -1,6 +1,6 @@
 import { Haptics } from '../lib/haptics';
 import { SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground, ITEMS, PetItem } from '../constants';
-import { getEffectiveUid, cn, calculateIOB } from '../lib/utils';
+import { getEffectiveUid, cn, calculateIOB, getEffectiveIOB } from '../lib/utils';
 import { playPetSound, playFeedSound, playLowGlucoseSound, playHighGlucoseSound, playNormalGlucoseSound, playLevelUpSound, playBuySound } from '../lib/audioUtils';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,7 +14,7 @@ import GlikoGarden from './GlikoGarden';
 import { toast } from 'react-hot-toast';
 
 
-export default function VirtualPet({ user, logs, glucose, setTab, embedded = false }: { user: any, logs: LogEntry[], glucose: number | null, setTab?: (t: string) => void, embedded?: boolean }) {
+export default function VirtualPet({ user, logs, glucose, setTab, embedded = false, pumpStatus }: { user: any, logs: LogEntry[], glucose: number | null, setTab?: (t: string) => void, embedded?: boolean, pumpStatus?: any }) {
   const [petData, setPetData] = useState<{ 
     type: string, 
     name: string, 
@@ -363,10 +363,8 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
 
   const currentIOB = useMemo(() => {
     // Basic IOB calculation for visuals
-    const bolusLogs = logs.filter(l => l.type === 'bolus');
-    const result = calculateIOB(bolusLogs, 3);
-    return typeof result === 'number' ? result : (result as any).iob || 0;
-  }, [logs]);
+    return getEffectiveIOB(logs, pumpStatus, 3);
+  }, [logs, pumpStatus]);
 
   if (!petData) return null;
 

@@ -106,16 +106,10 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
     try {
       const logRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id);
 
-      if (!isBolus && log.source === 'nightscout' && removeMeal) {
-        await deleteDoc(logRef);
-        toast.success("Usunięto posiłek, wpis bolusa pozostanie.");
-        onClose();
-        return;
-      }
-
       const updates: any = {
         notes: notes,
-        description: notes
+        description: notes,
+        userModified: true
       };
 
       if (isBolus) {
@@ -126,18 +120,26 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
           updates.linkedMeal = {
             carbs: Math.round((parseFloat(carbs) || 0) * 10) / 10,
             polyols: Math.round((parseFloat(polyols) || 0) * 10) / 10 || null,
-            protein: Math.round((parseFloat(protein) || 0) * 10) / 10,
-            fat: Math.round((parseFloat(fat) || 0) * 10) / 10
+            protein: Math.round((parseFloat(protein) || 0) * 10) / 10 || null,
+            fat: Math.round((parseFloat(fat) || 0) * 10) / 10 || null
           };
         } else {
           updates.linkedMeal = null;
         }
       } else {
-        const netCarbs = Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0));
-        updates.value = Math.round(netCarbs * 10) / 10;
-        updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
-        updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
-        updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
+        if (removeMeal) {
+          updates.value = 0;
+          updates.polyols = null;
+          updates.protein = null;
+          updates.fat = null;
+          updates.notes = (updates.notes || "") + " (Posiłek usunięty)";
+        } else {
+          const netCarbs = Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0));
+          updates.value = Math.round(netCarbs * 10) / 10;
+          updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
+          updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
+          updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
+        }
       }
 
       await updateDoc(logRef, updates);

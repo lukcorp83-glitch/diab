@@ -3,9 +3,9 @@ import { motion } from 'motion/react';
 import { Lightbulb, TrendingUp, TrendingDown, Clock, Info, CheckCircle2, AlertCircle, Activity, Sparkles, X, Zap } from 'lucide-react';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { LogEntry } from '../types';
-import { cn, calculateIOB, calculateCOB } from '../lib/utils';
+import { cn, calculateIOB, calculateCOB, getEffectiveIOB } from '../lib/utils';
 
-export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
+export default function GlikoSenseTips({ logs, pumpStatus }: { logs: LogEntry[], pumpStatus?: any }) {
   const [dismissedTips, setDismissedTips] = React.useState<string[]>(() => {
     const saved = localStorage.getItem('dismissed_tips');
     return saved ? JSON.parse(saved) : [];
@@ -17,7 +17,7 @@ export default function GlikoSenseTips({ logs }: { logs: LogEntry[] }) {
     const recentGlucose = logs.filter(l => l.type === 'glucose').slice(-10);
     
     // Calculate REAL values from central engine
-    const iob = calculateIOB(logs);
+    const iob = getEffectiveIOB(logs, pumpStatus);
     const cob = calculateCOB(logs);
     
     const results = [];
