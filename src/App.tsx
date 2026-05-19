@@ -149,12 +149,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   notificationsEnabled: true,
   weatherWidgetEnabled: true,
   weatherNeuralEnabled: true,
-  mediaWidgetEnabled: false,
+  mediaWidgetEnabled: true,
   glassmorphismEnabled: true,
-  theme: 'system',
-  accentColor: 'accent',
-  bgOption: 'default',
-  mediaWidgetEnabled: true
 };
 
 export default function App() {
@@ -182,6 +178,72 @@ export default function App() {
   const [direction, setDirection] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+
+  // Media Session Support for Lock Screen Updates
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !userSettings?.mediaWidgetEnabled) {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = null;
+      }
+      return;
+    }
+
+    const latest = logs.find(l => l.type === 'glucose');
+    if (latest) {
+      const getTrendArrow = (dir?: string) => {
+        switch(dir) {
+          case 'DoubleUp': return '↑↑';
+          case 'SingleUp': return '↑';
+          case 'FortyFiveUp': return '↗';
+          case 'Flat': return '→';
+          case 'FortyFiveDown': return '↘';
+          case 'SingleDown': return '↓';
+          case 'DoubleDown': return '↓↓';
+          default: return '';
+        }
+      };
+
+      const trendIcon = getTrendArrow(latest.direction);
+      const deltaStr = latest.delta !== undefined ? 
+        `${latest.delta > 0 ? '+' : ''}${latest.delta.toFixed(0)}` : '';
+      
+      const timeStr = new Date(latest.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const ageMinutes = Math.floor((Date.now() - latest.timestamp) / 60000);
+      const ageStr = ageMinutes > 5 ? ` (${ageMinutes} min temu)` : '';
+
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: `${latest.value} ${trendIcon} ${deltaStr}`,
+          artist: `GlikoSense • ${timeStr}${ageStr}`,
+          album: 'Monitoring Cukru na Żywo',
+          artwork: [
+            { src: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png', sizes: '512x512', type: 'image/png' }
+          ]
+        });
+
+        // Set action handlers to keep session active
+        const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
+        navigator.mediaSession.setActionHandler('play', () => {
+           audio?.play();
+           navigator.mediaSession.playbackState = 'playing';
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+           audio?.pause();
+           navigator.mediaSession.playbackState = 'paused';
+        });
+        navigator.mediaSession.playbackState = (audio && !audio.paused) ? 'playing' : 'paused';
+        navigator.mediaSession.setActionHandler('seekbackward', () => {
+           // Możemy tu dodać wymuszenie synchronizacji
+           window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
+        });
+        navigator.mediaSession.setActionHandler('seekforward', () => {
+           window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
+        });
+      } catch (err) {
+        console.warn("MediaSession error:", err);
+      }
+    }
+  }, [logs, userSettings?.mediaWidgetEnabled]);
 
   useEffect(() => {
     if (mainRef.current) {
@@ -1429,7 +1491,7 @@ export default function App() {
             )}
           </div>
         </div>
-        {/* Unified Audio Player for PWA Support */}
+        {/* Unified Audio Player for PWA Support - Silence Loop */}
         <audio 
           id="pwa-media-player"
           src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAHRoZW9yZXRpY2FsLm5ldAD/48BAAAAAAArAAAAAAAAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX"
