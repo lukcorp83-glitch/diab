@@ -139,6 +139,24 @@ const MeshBackground = ({ lastGlucose, isGlassmorphic }: { lastGlucose: number |
 
 import { Haptics } from './lib/haptics';
 
+const DEFAULT_SETTINGS: UserSettings = {
+  isf: 58,
+  wwRatio: 16,
+  wbtRatio: 18,
+  targetMin: 70,
+  targetMax: 140,
+  dia: 4,
+  showPrediction: true,
+  notificationsEnabled: true,
+  weatherWidgetEnabled: true,
+  weatherNeuralEnabled: true,
+  mediaWidgetEnabled: false,
+  glassmorphismEnabled: true,
+  theme: 'system',
+  accentColor: 'accent',
+  bgOption: 'default'
+};
+
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [pumpStatus, setPumpStatus] = useState<any>(null);
@@ -462,7 +480,6 @@ export default function App() {
 
 
   useEffect(() => {
-    // Check privacy acceptance locally first
     const hasAcceptedPrivacy = localStorage.getItem('hasAcceptedPrivacy');
     
     if (!hasAcceptedPrivacy) {
@@ -985,9 +1002,8 @@ export default function App() {
     const newTheme: 'light' | 'dark' = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     if (userSettings && user) {
-      const newSettings = { ...userSettings, theme: newTheme as 'light' | 'dark' | 'system' };
-      setUserSettings(newSettings as UserSettings);
-      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+      setUserSettings(prev => prev ? { ...prev, theme: newTheme } : null);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { theme: newTheme }, { merge: true });
     } else {
       localStorage.setItem('theme', newTheme);
       const root = window.document.documentElement;
@@ -1240,12 +1256,13 @@ export default function App() {
           nsSecret={nsSecret}
           petData={petData}
           syncStatus={syncStatus}
+          settings={userSettings || DEFAULT_SETTINGS}
         />
       )}
       {activeTab === 'chart' && (
         <ChartFullView
           logs={logs}
-          settings={userSettings || { isf: 50, wwRatio: 10, wbtRatio: 10, targetMin: 70, targetMax: 140 }}
+          settings={userSettings || DEFAULT_SETTINGS}
           theme={theme}
           setTab={changeTab}
         />
@@ -1308,6 +1325,7 @@ export default function App() {
            setTab={changeTab}
            initialAction={initialAction}
            onClearInitialAction={() => setInitialAction(null)}
+           settings={userSettings || DEFAULT_SETTINGS}
         />
       )}
       {activeTab === 'achievements' && (
@@ -1399,6 +1417,13 @@ export default function App() {
             )}
           </div>
         </div>
+        {/* Unified Audio Player for PWA Support */}
+        <audio 
+          id="pwa-media-player"
+          src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAHRoZW9yZXRpY2FsLm5ldAD/48BAAAAAAArAAAAAAAAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX"
+          loop 
+          playsInline 
+        />
       </header>
 
       <Sidebar 

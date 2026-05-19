@@ -69,6 +69,7 @@ interface DashboardProps {
   nsSecret?: string;
   petData?: any;
   syncStatus?: { status: 'idle' | 'syncing' | 'success' | 'error', lastSync?: number };
+  settings: UserSettings;
 }
 
 export default function Dashboard({
@@ -83,7 +84,8 @@ export default function Dashboard({
   nsUrl,
   nsSecret,
   petData,
-  syncStatus
+  syncStatus,
+  settings
 }: DashboardProps) {
   const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
 
@@ -92,9 +94,8 @@ export default function Dashboard({
     Haptics.light();
     const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
     await setDoc(settingsRef, {
-      ...settings,
       activeTraining: null
-    });
+    }, { merge: true });
   };
 
   const [range, setRange] = useState(3);
@@ -134,14 +135,6 @@ export default function Dashboard({
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [listFilter, setListFilter] = useState<'all' | 'glucose' | 'treatment'>('treatment');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
-  const [settings, setSettings] = useState<UserSettings>({
-    isf: 58,
-    wwRatio: 16,
-    wbtRatio: 18,
-    targetMin: 70,
-    targetMax: 140,
-    showPrediction: true,
-  });
 
   useEffect(() => {
     if (initialAction === "add_glucose") {
@@ -154,25 +147,6 @@ export default function Dashboard({
 
   useEffect(() => {
     if (!user) return;
-    const settingsRef = doc(
-      db,
-      "artifacts",
-      "diacontrolapp",
-      "users",
-      getEffectiveUid(user),
-      "settings",
-      "profile",
-    );
-    const unsubscribeSett = onSnapshot(
-      settingsRef,
-      (d) => {
-        if (d.exists())
-          setSettings({ showPrediction: true, ...d.data() } as any);
-      },
-      (error) => {
-        console.error("Dashboard settings error:", error);
-      },
-    );
 
     const q = query(
       collection(
@@ -196,7 +170,6 @@ export default function Dashboard({
       },
     );
     return () => {
-      unsubscribeSett();
       unsubscribe();
     };
   }, [user]);

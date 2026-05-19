@@ -104,12 +104,11 @@ export function Diets({ user, setTab, settings }: DietsProps) {
     if (!settings) return;
     try {
       const isActivating = settings.activeDiet !== dietId;
-      const updatedSettings = {
-        ...settings,
+      const updates = {
         activeDiet: isActivating ? dietId : null,
         dietStartDate: isActivating ? Date.now() : null
       };
-      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updatedSettings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updates, { merge: true });
       
       if (isActivating) {
         toast.success(`Aktywowano dietę: ${DIET_TYPES.find(d => d.id === dietId)?.name}`);

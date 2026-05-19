@@ -85,6 +85,7 @@ interface ProfileProps {
   setTab: (t: string) => void;
   initialAction?: string | null;
   onClearInitialAction?: () => void;
+  settings: UserSettings;
 }
 
 export default function Profile({ 
@@ -95,9 +96,14 @@ export default function Profile({
   toggleTheme,
   setTab,
   initialAction,
-  onClearInitialAction
+  onClearInitialAction,
+  settings: initialSettings
 }: ProfileProps) {
-  const [settings, setSettings] = useState<UserSettings>({ isf: 58, wwRatio: 16, wbtRatio: 18, targetMin: 70, targetMax: 140, showPrediction: true });
+  const [settings, setSettings] = useState<UserSettings>(initialSettings);
+  
+  useEffect(() => {
+    setSettings(initialSettings);
+  }, [initialSettings]);
   const [petData, setPetData] = useState<{ 
     coins: number, 
     skin: string, 
@@ -465,13 +471,8 @@ export default function Profile({
 
   useEffect(() => {
     if (!user) return;
-    const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
     const petRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
     
-    const unsubscribe = onSnapshot(settingsRef, (d) => {
-      if (d.exists()) setSettings({ showPrediction: true, ...d.data() } as UserSettings);
-    });
-
     const unsubscribePet = onSnapshot(petRef, (d) => {
       if (d.exists()) {
         const data = d.data();
@@ -508,7 +509,6 @@ export default function Profile({
       setShortcuts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => {
-      unsubscribe();
       unsubscribeNs();
       unsubscribeShortcuts();
       unsubscribePet();
@@ -723,7 +723,7 @@ export default function Profile({
       
       const newSettings = { ...settings, medications: updatedMeds };
       setSettings(newSettings);
-      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { medications: updatedMeds }, { merge: true });
       setNewMedication(null);
     } catch (e) {
       console.error(e);
@@ -739,7 +739,7 @@ export default function Profile({
       const updatedMeds = (settings.medications || []).filter(m => m.id !== id);
       const newSettings = { ...settings, medications: updatedMeds };
       setSettings(newSettings);
-      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { medications: updatedMeds }, { merge: true });
     } catch (e) {
       console.error(e);
     }
@@ -762,7 +762,7 @@ export default function Profile({
     if (!user) return;
     setSettingsLoading(true);
     try {
-      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), settings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), settings, { merge: true });
       toast("Ustawienia zapisane pomyślnie!");
     } catch (e) {
       console.error("Save settings error:", e);
@@ -1545,9 +1545,9 @@ export default function Profile({
                   const currentCgm = prompt("Jaka jest obecnie widoczna wartość na CGM?");
                   if (currentCgm) {
                     const offset = glukoValue - parseFloat(currentCgm);
-                    const newSettings = { ...settings, cgmCalibration: offset, cgmTimestamp: Date.now() };
-                    setSettings(newSettings);
-                    if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                    const updates = { cgmCalibration: offset, cgmTimestamp: Date.now() };
+                    setSettings(prev => ({ ...prev, ...updates }));
+                    if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updates, { merge: true });
                     alert(`Skalibrowano! Offset wynosi: ${offset > 0 ? '+' : ''}${offset} mg/dL.`);
                     input.value = '';
                     Haptics.success();
@@ -1712,10 +1712,10 @@ export default function Profile({
                 <button 
                   onClick={async () => {
                     const now = Date.now();
-                    const newSettings = { ...settings, sensorChangeDate: now };
-                    setSettings(newSettings);
+                    const updates = { sensorChangeDate: now };
+                    setSettings(prev => ({ ...prev, ...updates }));
                     if (user) {
-                      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updates, { merge: true });
                       await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
                         type: 'sensor_change',
                         value: 1,
@@ -1786,10 +1786,10 @@ export default function Profile({
                 <button 
                   onClick={async () => {
                     const now = Date.now();
-                    const newSettings = { ...settings, infusionSetChangeDate: now };
-                    setSettings(newSettings);
+                    const updates = { infusionSetChangeDate: now };
+                    setSettings(prev => ({ ...prev, ...updates }));
                     if (user) {
-                      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updates, { merge: true });
                       await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), {
                         type: 'site_change',
                         value: 1,
@@ -2048,11 +2048,11 @@ export default function Profile({
                     <div className="flex flex-col items-end gap-2">
                       <button 
                         onClick={async () => {
-                          const updatedMeds = settings.medications!.map(m => m.id === med.id ? { ...m, active: !m.active } : m);
-                          const newSettings = { ...settings, medications: updatedMeds };
-                          setSettings(newSettings);
-                          await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-                        }} 
+                          const updates = { active: !med.active };
+                          const updatedMeds = settings.medications!.map(m => m.id === med.id ? { ...m, ...updates } : m);
+                          setSettings(prev => ({ ...prev, medications: updatedMeds }));
+                          await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { medications: updatedMeds }, { merge: true });
+                        }}
                         className={cn(
                           "text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-all",
                           med.active ? "bg-teal-500 text-white" : "bg-slate-200 text-slate-400 dark:bg-slate-700"
@@ -2431,9 +2431,9 @@ export default function Profile({
                   </div>
                   <button 
                     onClick={async () => {
-                      const newSettings = { ...settings, childMode: !settings.childMode };
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      const newVal = !settings.childMode;
+                      setSettings(prev => ({ ...prev, childMode: newVal }));
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { childMode: newVal }, { merge: true });
                     }}
                     className={cn(
                       "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner",
@@ -2459,9 +2459,9 @@ export default function Profile({
                   </div>
                   <button 
                     onClick={async () => {
-                      const newSettings = { ...settings, showPumpWidget: settings.showPumpWidget === false ? true : false };
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      const newVal = settings.showPumpWidget === false ? true : false;
+                      setSettings(prev => ({ ...prev, showPumpWidget: newVal }));
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { showPumpWidget: newVal }, { merge: true });
                     }}
                     className={cn(
                       "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner",
@@ -2523,9 +2523,9 @@ export default function Profile({
                   </div>
                   <button 
                     onClick={async () => {
-                      const newSettings = { ...settings, weatherWidgetEnabled: !settings.weatherWidgetEnabled };
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      const newVal = !settings.weatherWidgetEnabled;
+                      setSettings(prev => ({ ...prev, weatherWidgetEnabled: newVal }));
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { weatherWidgetEnabled: newVal }, { merge: true });
                     }}
                     className={cn(
                       "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner shrink-0",
@@ -2553,9 +2553,9 @@ export default function Profile({
                   </div>
                   <button 
                     onClick={async () => {
-                      const newSettings = { ...settings, weatherNeuralEnabled: !settings.weatherNeuralEnabled };
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      const newVal = !settings.weatherNeuralEnabled;
+                      setSettings(prev => ({ ...prev, weatherNeuralEnabled: newVal }));
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { weatherNeuralEnabled: newVal }, { merge: true });
                     }}
                     className={cn(
                       "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner shrink-0",
@@ -2586,10 +2586,10 @@ export default function Profile({
                   </div>
                   <button 
                     onClick={async () => {
-                      const newSettings = { ...settings, mediaWidgetEnabled: !settings.mediaWidgetEnabled };
-                      setSettings(newSettings);
+                      const newVal = !settings.mediaWidgetEnabled;
+                      setSettings(prev => ({ ...prev, mediaWidgetEnabled: newVal }));
                       
-                      if (newSettings.mediaWidgetEnabled) {
+                      if (newVal) {
                         const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
                         if (audio) {
                           audio.play().catch(e => console.error("Audio unlock exception:", e));
@@ -2604,7 +2604,7 @@ export default function Profile({
                         Haptics.selection();
                       }
 
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { mediaWidgetEnabled: newVal }, { merge: true });
                     }}
                     className={cn(
                       "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner shrink-0",
@@ -2630,9 +2630,8 @@ export default function Profile({
                       <button
                         key={color}
                         onClick={async () => {
-                          const newSettings = { ...settings, accentColor: color };
-                          setSettings(newSettings);
-                          if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                          setSettings(prev => ({ ...prev, accentColor: color }));
+                          if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { accentColor: color }, { merge: true });
                         }}
                         className={cn(
                           "w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center transition-all relative",
@@ -2669,9 +2668,9 @@ export default function Profile({
                       <button
                         key={t.id}
                         onClick={async () => {
-                          const newSettings = { ...settings, theme: t.id as 'light' | 'dark' | 'system'};
-                          setSettings(newSettings);
-                          if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                          const newTheme = t.id as 'light' | 'dark' | 'system';
+                          setSettings(prev => ({ ...prev, theme: newTheme }));
+                          if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { theme: newTheme }, { merge: true });
                         }}
                         className={cn(
                           "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all border",
@@ -2700,9 +2699,9 @@ export default function Profile({
                         <button
                           key={option.id}
                           onClick={async () => {
-                            const newSettings = { ...settings, bgOption: option.id as any };
-                            setSettings(newSettings);
-                            if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                            const val = option.id as any;
+                            setSettings(prev => ({ ...prev, bgOption: val }));
+                            if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { bgOption: val }, { merge: true });
                           }}
                           className={cn(
                             "py-4 rounded-2xl border transition-all text-left px-5",
@@ -2727,9 +2726,9 @@ export default function Profile({
                  </div>
                  <button
                     onClick={async () => {
-                      const newSettings = { ...settings, glassmorphismEnabled: !settings.glassmorphismEnabled };
-                      setSettings(newSettings);
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                      const newVal = !settings.glassmorphismEnabled;
+                      setSettings(prev => ({ ...prev, glassmorphismEnabled: newVal }));
+                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { glassmorphismEnabled: newVal }, { merge: true });
                     }}
                     className={cn(
                       "flex items-center justify-between w-full p-4 rounded-2xl border transition-all",
@@ -2754,8 +2753,8 @@ export default function Profile({
                   user={user}
                   settings={settings} 
                   onImport={(s) => {
-                    setSettings({ ...settings, ...s });
-                    setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { ...settings, ...s });
+                    setSettings(prev => ({ ...prev, ...s }));
+                    setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), s, { merge: true });
                     toast.success("Ustawienia zaimportowane pomyślnie!");
                   }} 
                 />
@@ -2763,8 +2762,8 @@ export default function Profile({
                 <SettingsTransfer 
                   settings={settings}
                   onImport={(s) => {
-                    setSettings({ ...settings, ...s });
-                    setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { ...settings, ...s });
+                    setSettings(prev => ({ ...prev, ...s }));
+                    setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), s, { merge: true });
                     toast.success("Synchronizacja zakończona!");
                   }} 
                 />

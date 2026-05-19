@@ -2,23 +2,23 @@ import React, { useEffect, useRef, useState } from 'react';
 import { LogEntry } from '../types';
 
 export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs: LogEntry[] }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioElement = typeof document !== 'undefined' ? document.getElementById('pwa-media-player') as HTMLAudioElement : null;
 
   useEffect(() => {
     if (!enabled) {
-      if (audioRef.current && !audioRef.current.paused) {
-        audioRef.current.pause();
+      if (audioElement && !audioElement.paused) {
+        audioElement.pause();
         setIsPlaying(false);
       }
       return;
     }
 
     // Try playing immediately
-    if (audioRef.current) {
-      audioRef.current.volume = 0.5; // low volume but not 0
-      if (audioRef.current.paused) {
-        audioRef.current.play()
+    if (audioElement) {
+      audioElement.volume = 0.5; // low volume but not 0
+      if (audioElement.paused) {
+        audioElement.play()
           .then(() => {
             setIsPlaying(true);
             if ("mediaSession" in navigator) {
@@ -40,7 +40,8 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
         titleStr = `${latestLog.value} mg/dL`;
       }
 
-      const artworkPath = window.location.pathname.startsWith('/diab/') ? '/diab/pwa-icon.svg' : '/pwa-icon.svg';
+      const baseUrl = window.location.origin + (window.location.pathname.startsWith('/diab') ? '/diab' : '');
+      const artworkPath = `${baseUrl}/pwa-icon.svg`;
 
       navigator.mediaSession.metadata = new window.MediaMetadata({
         title: titleStr,
@@ -55,23 +56,23 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
       });
 
       navigator.mediaSession.setActionHandler('play', () => {
-        audioRef.current?.play().then(() => {
+        audioElement?.play().then(() => {
           setIsPlaying(true);
           navigator.mediaSession.playbackState = 'playing';
         }).catch(() => {});
       });
       navigator.mediaSession.setActionHandler('pause', () => {
-        audioRef.current?.pause();
+        audioElement?.pause();
         setIsPlaying(false);
         navigator.mediaSession.playbackState = 'paused';
       });
       
       // Dummy handlers to prevent the OS from thinking it's not a real player
       navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-        if (audioRef.current) audioRef.current.currentTime = Math.max(audioRef.current.currentTime - (details.seekOffset || 10), 0);
+        if (audioElement) audioElement.currentTime = Math.max(audioElement.currentTime - (details.seekOffset || 10), 0);
       });
       navigator.mediaSession.setActionHandler('seekforward', (details) => {
-        if (audioRef.current) audioRef.current.currentTime = Math.min(audioRef.current.currentTime + (details.seekOffset || 10), audioRef.current.duration);
+        if (audioElement) audioElement.currentTime = Math.min(audioElement.currentTime + (details.seekOffset || 10), audioElement.duration);
       });
       navigator.mediaSession.setActionHandler('previoustrack', () => {});
       navigator.mediaSession.setActionHandler('nexttrack', () => {});
@@ -80,8 +81,8 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
 
   useEffect(() => {
     const handleInteraction = () => {
-      if (enabled && audioRef.current && audioRef.current.paused) {
-        audioRef.current.play().then(() => {
+      if (enabled && audioElement && audioElement.paused) {
+        audioElement.play().then(() => {
           setIsPlaying(true);
           if ("mediaSession" in navigator) {
             navigator.mediaSession.playbackState = 'playing';
@@ -101,14 +102,5 @@ export default function MediaWidget({ enabled, logs }: { enabled: boolean, logs:
     };
   }, [enabled]);
 
-  return (
-    <audio 
-      id="pwa-media-player"
-      ref={audioRef} 
-      // A longer silent MP3 (about 1s) is more reliable than a 44-byte WAV
-      src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAHRoZW9yZXRpY2FsLm5ldAD/48BAAAAAbW9kZWwgMTI4AAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/48BAAAAbm9uZS4uAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/48BAAAAbm9uZS4uAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX"
-      loop 
-      playsInline 
-    />
-  );
+  return null;
 }
