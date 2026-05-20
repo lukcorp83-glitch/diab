@@ -6,11 +6,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Helper to normalize timestamps from various sources (number or Firestore Timestamp)
-function getTs(t: any): number {
+// Helper to normalize timestamps from various sources (number, string, Date, or Firestore Timestamp)
+export function getTs(t: any): number {
+  if (!t) return 0;
   if (typeof t === 'number') return t;
-  if (t?.seconds) return t.seconds * 1000;
-  if (t?.toMillis) return t.toMillis();
+  if (t instanceof Date) return t.getTime();
+  if (typeof t === 'string') {
+    const num = Number(t);
+    if (!isNaN(num) && num > 0) return num;
+    const parsed = Date.parse(t);
+    if (!isNaN(parsed)) return parsed;
+  }
+  if (t && typeof t === 'object') {
+    if (typeof t.seconds === 'number') return t.seconds * 1000;
+    if (typeof t.toMillis === 'function') return t.toMillis();
+    if (typeof t.getTime === 'function') return t.getTime();
+  }
   return 0;
 }
 
@@ -53,14 +64,24 @@ export function getEffectiveIOB(logs: LogEntry[], pumpStatus: any, diaHours: num
   const ageMs = Date.now() - lastUpdateMs;
   
   // If pump data is fresh (less than 20 mins), we consider it.
-  // HOWEVER, if our local calculation is significantly higher, it might mean 
-  // the pump hasn't reported the bolus yet, or we're in a dual-logging scenario.
   if (ageMs < 20 * 60 * 1000) {
     const pumpIOB = Number(pumpStatus.activeInsulin);
     // If pump says 0 but we have recent boluses, trust local
     if (pumpIOB === 0 && localIOB > 0.1) return localIOB;
-    // Otherwise trust the higher value to be safe (avoid hypo if bolus is still working)
-    return Math.max(localIOB, pumpIOB);
+    
+    // Check if there is any brand new bolus in the logs from the last 15 minutes,
+    // which might not have been synchronized back to the pump status yet.
+    const now = Date.now();
+    const hasRecentNewBolus = logs.some(l => l.type === 'bolus' && (now - getTs(l.timestamp)) < 15 * 60 * 1000);
+    
+    if (hasRecentNewBolus) {
+      // If we have a very brand new bolus, trust the maximum to be safe against hypo
+      return Math.max(localIOB, pumpIOB);
+    } else {
+      // If there are no raw boluses in the last 15 minutes, the pump's native activeInsulin is 100% correct,
+      // as it uses the pump's accurate DIA curve. Avoid over-summing older boluses with a static local curve.
+      return pumpIOB;
+    }
   }
   
   return localIOB;

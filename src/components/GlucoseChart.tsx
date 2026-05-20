@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
+import { getTs } from '../lib/utils';
 import {
   ComposedChart,
   Line,
@@ -21,7 +22,7 @@ import { Plus, Minus, Maximize2, Move, Droplets, Signal } from 'lucide-react';
 const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => {
   const diaMs = diaHours * 60 * 60 * 1000;
   return boluses.reduce((sum, b) => {
-    const timeSince = time - b.timestamp;
+    const timeSince = time - getTs(b.timestamp);
     if (timeSince < 0 || timeSince >= diaMs) return sum;
     
     const x = timeSince / diaMs;
@@ -36,7 +37,7 @@ const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => 
 const calculateActivityAt = (time: number, boluses: LogEntry[], diaHours: number) => {
   const diaMs = diaHours * 60 * 60 * 1000;
   return boluses.reduce((sum, b) => {
-    const timeSince = time - b.timestamp;
+    const timeSince = time - getTs(b.timestamp);
     if (timeSince < 0 || timeSince >= diaMs) return sum;
     
     const x = timeSince / diaMs;

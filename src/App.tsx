@@ -1313,107 +1313,205 @@ export default function App() {
       opacity: 0,
     })
   };
-
   const currentTabContent = (
     <React.Suspense fallback={
       <div className="w-full h-full flex items-center justify-center pt-32">
         <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-accent-500 animate-spin" />
       </div>
     }>
-      {activeTab === 'dashboard' && (
-        <Dashboard 
-          logs={logs} 
-          user={user} 
-          setTab={changeTab} 
-          theme={theme} 
-          initialAction={initialAction}
-          onClearInitialAction={() => setInitialAction(null)}
-          onAction={(action) => setInitialAction(action)}
-          pumpStatus={pumpStatus}
-          nsUrl={nsUrl}
-          nsSecret={nsSecret}
-          petData={petData}
-          syncStatus={syncStatus}
-          settings={userSettings || DEFAULT_SETTINGS}
-        />
+      {/* 1. Grupa 1: Wykres i Pulpit */}
+      {['dashboard', 'chart'].includes(activeTab) && (
+        <>
+          <div className="block lg:hidden w-full">
+            {activeTab === 'dashboard' && (
+              <Dashboard 
+                logs={logs} 
+                user={user} 
+                setTab={changeTab} 
+                theme={theme} 
+                initialAction={initialAction}
+                onClearInitialAction={() => setInitialAction(null)}
+                onAction={(action) => setInitialAction(action)}
+                pumpStatus={pumpStatus}
+                nsUrl={nsUrl}
+                nsSecret={nsSecret}
+                petData={petData}
+                syncStatus={syncStatus}
+                settings={userSettings || DEFAULT_SETTINGS}
+              />
+            )}
+            {activeTab === 'chart' && (
+              <ChartFullView
+                logs={logs}
+                settings={userSettings || DEFAULT_SETTINGS}
+                theme={theme}
+                setTab={changeTab}
+              />
+            )}
+          </div>
+          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6 w-full items-start">
+            <div className="lg:col-span-12 xl:col-span-8">
+              <ChartFullView
+                logs={logs}
+                settings={userSettings || DEFAULT_SETTINGS}
+                theme={theme}
+                setTab={changeTab}
+              />
+            </div>
+            <div className="lg:col-span-12 xl:col-span-4">
+              <Dashboard 
+                logs={logs} 
+                user={user} 
+                setTab={changeTab} 
+                theme={theme} 
+                initialAction={initialAction}
+                onClearInitialAction={() => setInitialAction(null)}
+                onAction={(action) => setInitialAction(action)}
+                pumpStatus={pumpStatus}
+                nsUrl={nsUrl}
+                nsSecret={nsSecret}
+                petData={petData}
+                syncStatus={syncStatus}
+                settings={userSettings || DEFAULT_SETTINGS}
+              />
+            </div>
+          </div>
+        </>
       )}
-      {activeTab === 'chart' && (
-        <ChartFullView
-          logs={logs}
-          settings={userSettings || DEFAULT_SETTINGS}
-          theme={theme}
-          setTab={changeTab}
-        />
+
+      {/* 2. Grupa 2: Baza i Talerz */}
+      {['database', 'meal'].includes(activeTab) && (
+        <>
+          <div className="block lg:hidden w-full">
+            {activeTab === 'database' && (
+              <MealPlate 
+                key="db-plate"
+                user={user} 
+                setTab={changeTab} 
+                sharedPlate={sharedPlate} 
+                setSharedPlate={setSharedPlate} 
+                mode="search" 
+                openHistory={() => changeTab('history')}
+                settings={userSettings || undefined}
+              />
+            )}
+            {activeTab === 'meal' && (
+              <MealPlate 
+                key="meal-plate"
+                user={user} 
+                setTab={changeTab} 
+                sharedPlate={sharedPlate} 
+                setSharedPlate={setSharedPlate} 
+                mode="plate" 
+                openHistory={() => changeTab('history')}
+                settings={userSettings || undefined}
+              />
+            )}
+          </div>
+          <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6 w-full items-start">
+            <div>
+              <MealPlate 
+                key="db-plate-desktop"
+                user={user} 
+                setTab={changeTab} 
+                sharedPlate={sharedPlate} 
+                setSharedPlate={setSharedPlate} 
+                mode="search" 
+                openHistory={() => changeTab('history')}
+                settings={userSettings || undefined}
+              />
+            </div>
+            <div>
+              <MealPlate 
+                key="meal-plate-desktop"
+                user={user} 
+                setTab={changeTab} 
+                sharedPlate={sharedPlate} 
+                setSharedPlate={setSharedPlate} 
+                mode="plate" 
+                openHistory={() => changeTab('history')}
+                settings={userSettings || undefined}
+              />
+            </div>
+          </div>
+        </>
       )}
-      {activeTab === 'bolus' && (
-        <BolusCalculator logs={logs} user={user} setTab={changeTab} setSharedPlate={setSharedPlate} pumpStatus={pumpStatus} />
+
+      {/* 3. Grupa 3: Czat i GlikoSense */}
+      {['chat', 'assistant', 'ai'].includes(activeTab) && (
+        <>
+          <div className="block lg:hidden w-full">
+            {activeTab === 'chat' && (
+              <GlikoChat petData={petData} />
+            )}
+            {activeTab === 'assistant' && (
+              <GlikoAssistant 
+                user={user} 
+                logs={logs} 
+                settings={userSettings || undefined} 
+                onAddToPlate={(item) => setSharedPlate(prev => [...prev, { ...item, plateItemId: Math.random().toString(36).substr(2, 9) }])}
+                messages={assistantMessages}
+                setMessages={setAssistantMessages}
+                isTyping={isAssistantTyping}
+                onSend={sendAssistantMessage}
+              />
+            )}
+            {activeTab === 'ai' && (
+              <AiReports user={user} logs={logs} settings={userSettings} />
+            )}
+          </div>
+          <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6 w-full items-start">
+            <div>
+              <GlikoAssistant 
+                user={user} 
+                logs={logs} 
+                settings={userSettings || undefined} 
+                onAddToPlate={(item) => setSharedPlate(prev => [...prev, { ...item, plateItemId: Math.random().toString(36).substr(2, 9) }])}
+                messages={assistantMessages}
+                setMessages={setAssistantMessages}
+                isTyping={isAssistantTyping}
+                onSend={sendAssistantMessage}
+              />
+            </div>
+            <div>
+              <AiReports user={user} logs={logs} settings={userSettings} />
+            </div>
+          </div>
+        </>
       )}
-      {activeTab === 'database' && (
-        <MealPlate 
-          key="db-plate"
-          user={user} 
-          setTab={changeTab} 
-          sharedPlate={sharedPlate} 
-          setSharedPlate={setSharedPlate} 
-          mode="search" 
-          openHistory={() => changeTab('history')}
-          settings={userSettings || undefined}
-        />
-      )}
-      {activeTab === 'meal' && (
-        <MealPlate 
-          key="meal-plate"
-          user={user} 
-          setTab={changeTab} 
-          sharedPlate={sharedPlate} 
-          setSharedPlate={setSharedPlate} 
-          mode="plate" 
-          openHistory={() => changeTab('history')}
-          settings={userSettings || undefined}
-        />
-      )}
-      {activeTab === 'chat' && (
-        <GlikoChat petData={petData} />
-      )}
-      {activeTab === 'assistant' && (
-        <GlikoAssistant 
-          user={user} 
-          logs={logs} 
-          settings={userSettings || undefined} 
-          onAddToPlate={(item) => setSharedPlate(prev => [...prev, { ...item, plateItemId: Math.random().toString(36).substr(2, 9) }])}
-          messages={assistantMessages}
-          setMessages={setAssistantMessages}
-          isTyping={isAssistantTyping}
-          onSend={sendAssistantMessage}
-        />
-      )}
-      {activeTab === 'ai' && (
-        <AiReports user={user} logs={logs} settings={userSettings} />
-      )}
-      {activeTab === 'history' && (
-        <HistoryView logs={logs} user={user} onBack={() => changeTab('dashboard')} />
-      )}
-      {activeTab === 'profile' && (
-        <Profile 
-           user={user} 
-           logs={logs}
-           handleLogout={handleLogout} 
-           theme={theme} 
-           toggleTheme={toggleTheme} 
-           setTab={changeTab}
-           initialAction={initialAction}
-           onClearInitialAction={() => setInitialAction(null)}
-           settings={userSettings || DEFAULT_SETTINGS}
-        />
-      )}
-      {activeTab === 'achievements' && (
-        <Achievements logs={logs} user={user} setTab={changeTab} petData={petData} />
-      )}
-      {activeTab === 'games' && (
-        <GlikoGames logs={logs} user={user} setTab={changeTab} />
-      )}
-      {activeTab === 'diets' && (
-        <Diets user={user} setTab={changeTab} settings={userSettings || undefined} />
+
+      {/* Inne zakładki */}
+      {!['dashboard', 'chart', 'database', 'meal', 'chat', 'assistant', 'ai'].includes(activeTab) && (
+        <div className="w-full max-w-4xl mx-auto">
+          {activeTab === 'bolus' && (
+            <BolusCalculator logs={logs} user={user} setTab={changeTab} setSharedPlate={setSharedPlate} pumpStatus={pumpStatus} />
+          )}
+          {activeTab === 'history' && (
+            <HistoryView logs={logs} user={user} onBack={() => changeTab('dashboard')} />
+          )}
+          {activeTab === 'profile' && (
+            <Profile 
+               user={user} 
+               logs={logs}
+               handleLogout={handleLogout} 
+               theme={theme} 
+               toggleTheme={toggleTheme} 
+               setTab={changeTab}
+               initialAction={initialAction}
+               onClearInitialAction={() => setInitialAction(null)}
+               settings={userSettings || DEFAULT_SETTINGS}
+            />
+          )}
+          {activeTab === 'achievements' && (
+            <Achievements logs={logs} user={user} setTab={changeTab} petData={petData} />
+          )}
+          {activeTab === 'games' && (
+            <GlikoGames logs={logs} user={user} setTab={changeTab} />
+          )}
+          {activeTab === 'diets' && (
+            <Diets user={user} setTab={changeTab} settings={userSettings || undefined} />
+          )}
+        </div>
       )}
     </React.Suspense>
   );
@@ -1450,7 +1548,7 @@ export default function App() {
       )}
       {/* Header */}
       <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
-        <div className="flex justify-between items-center max-w-md lg:max-w-5xl mx-auto">
+        <div className="flex justify-between items-center max-w-md lg:max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
             <button
                onClick={() => {
@@ -1538,7 +1636,7 @@ export default function App() {
       />
 
       {/* Main Content with Swipe Navigation */}
-      <main ref={mainRef} className="flex-1 max-w-md lg:max-w-5xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden">
+      <main ref={mainRef} className="flex-1 max-w-md lg:max-w-7xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden">
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.div
             key={activeTab}
@@ -1562,7 +1660,7 @@ export default function App() {
 
       {/* Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl">
-        <div className="max-w-md lg:max-w-5xl mx-auto flex items-center justify-around h-20 px-2 group">
+        <div className="max-w-md lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
           <NavButton active={activeTab === 'chart'} onClick={() => changeTab('chart')} icon={<Activity />} label="Wykres" />
           <NavButton active={activeTab === 'dashboard'} onClick={() => changeTab('dashboard')} icon={<LayoutDashboard />} label="Pulpit" />
           <NavButton active={activeTab === 'database'} onClick={() => changeTab('database')} icon={<Database />} label="Baza" />
