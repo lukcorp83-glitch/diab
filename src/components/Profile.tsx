@@ -1567,9 +1567,9 @@ export default function Profile({
                Aktywny offset: {settings.cgmCalibration > 0 ? '+' : ''}{settings.cgmCalibration} mg/dL
              </span>
              <button onClick={async () => {
-                 const newSettings = { ...settings, cgmCalibration: 0, cgmTimestamp: 0 };
-                 setSettings(newSettings);
-                 if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
+                 const updateObj = { cgmCalibration: 0, cgmTimestamp: 0 };
+                 setSettings({ ...settings, ...updateObj });
+                 if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updateObj, { merge: true });
              }} className="ml-4 text-[10px] text-rose-500 font-bold uppercase underline">Anuluj Kalibrację</button>
            </div>
         ) : null}

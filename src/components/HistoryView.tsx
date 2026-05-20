@@ -73,9 +73,9 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
       <div className="space-y-1 will-change-transform">
         {logs.filter(log => {
           if (listFilter === 'glucose') return log.type === 'glucose';
-          if (listFilter === 'treatment') return log.type === 'bolus' || log.type === 'meal' || log.type === 'site_change' || log.type === 'sensor_change';
+          if (listFilter === 'treatment') return log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal' || log.type === 'site_change' || log.type === 'sensor_change';
           return true;
-        }).slice(0, 100).map((log, idx) => (
+        }).slice(0, 1000).map((log, idx) => (
           <motion.div 
             key={`${log.id}-${idx}`} 
             initial={{ opacity: 0, y: 10 }}
@@ -94,13 +94,13 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
             >
               <div 
                 onClick={() => {
-                  if (log.type === 'meal' || log.type === 'bolus') {
+                  if (log.type === 'meal' || log.type === 'bolus' || (log.type as any) === 'insulin') {
                     setEditingLog(log);
                   }
                 }}
                 className={cn(
                   "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all mb-2 cursor-pointer",
-                  (log.type === 'meal' || log.type === 'bolus') && "hover:bg-amber-50/10"
+                  (log.type === 'meal' || log.type === 'bolus' || (log.type as any) === 'insulin') && "hover:bg-amber-50/10"
                 )}
               >
                 <div className={cn(
@@ -115,7 +115,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                   {log.type === 'site_change' && <Droplets size={18} strokeWidth={2.5} />}
                   {log.type === 'sensor_change' && <RefreshCw size={18} strokeWidth={2.5} />}
                   {log.type === 'activity' && <Activity size={18} className="text-emerald-500" strokeWidth={2.5} />}
-                  {log.type === 'bolus' && (
+                  {(log.type === 'bolus' || (log.type as any) === 'insulin') && (
                     <div className="flex items-center gap-0.5">
                       <Syringe size={log.linkedMeal ? 14 : 18} strokeWidth={2.5} />
                       {log.linkedMeal && <Utensils size={12} className="text-amber-500" />}
@@ -140,13 +140,13 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                            {log.polyols ? `${log.polyols.toFixed(0)}P / ` : ''}{log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}T
                         </span>
                       )}
-                      {log.type === 'bolus' && log.linkedMeal && (
+                      {(log.type === 'bolus' || (log.type as any) === 'insulin') && log.linkedMeal && (
                         <span className="text-[10px] font-bold text-amber-500 ml-2">
                            (+{(log.linkedMeal.carbs || 0).toFixed(1)}g W{log.linkedMeal.polyols ? `, ${(log.linkedMeal.polyols || 0).toFixed(1)}P` : ''})
                         </span>
                       )}
                     </p>
-                    {(log.type === 'meal' || log.type === 'bolus') && (
+                    {(log.type === 'meal' || log.type === 'bolus' || (log.type as any) === 'insulin') && (
                       <Edit2 size={12} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                     )}
                   </div>

@@ -4,7 +4,7 @@ import { LogEntry, UserSettings } from "../types";
 import GlucoseChart from "./GlucoseChart";
 import { Haptics } from "../lib/haptics";
 import GlikoSenseIcon from "./GlikoSenseIcon";
-import { Activity, Clock } from "lucide-react";
+import { Activity, Clock, Droplet, Apple, Droplets, RefreshCw, Zap, Signal } from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface ChartFullViewProps {
@@ -24,7 +24,7 @@ export default function ChartFullView({
   
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
     const saved = localStorage.getItem('glikosfera_loop_simulation');
-    return saved ? JSON.parse(saved) : false;
+    return saved ? JSON.parse(saved) : true;
   });
   
   const [showMLPrediction, setShowMLPrediction] = useState(() => {
@@ -117,6 +117,63 @@ export default function ChartFullView({
             showLoopSimulation={showLoopSimulation}
             showMLPrediction={showMLPrediction}
           />
+        </div>
+      </div>
+
+      <div className="w-full flex items-center gap-4 overflow-x-auto scrollbar-hide py-3 px-1 snap-x">
+        <div className="flex items-center gap-1.5 snap-start shrink-0">
+           <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 border border-white dark:border-slate-800 shadow-sm" />
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Glukoza</span>
+        </div>
+        <div className="flex items-center gap-1.5 snap-start shrink-0 text-pink-500">
+           <div className="p-1 max-w-fit rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+             <span className="text-[10px] leading-none mb-0.5">💉</span>
+           </div>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Bolus / IOB</span>
+        </div>
+        <div className="flex items-center gap-1.5 snap-start shrink-0 text-amber-500">
+           <div className="p-1 max-w-fit rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+             <span className="text-[10px] leading-none mb-0.5">🍽️</span>
+           </div>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Węgle (WW)</span>
+        </div>
+        <div className="flex items-center gap-1.5 snap-start shrink-0 text-teal-500">
+           <div className="p-1 max-w-fit rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+             <Droplets size={10} strokeWidth={2.5} />
+           </div>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Wkłucie</span>
+        </div>
+        <div className="flex items-center gap-1.5 snap-start shrink-0 text-indigo-500">
+           <div className="p-1 max-w-fit rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+             <Signal size={10} strokeWidth={2.5} />
+           </div>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Sensor</span>
+        </div>
+        <div 
+          onClick={() => {
+            Haptics.selection();
+            setShowLoopSimulation(!showLoopSimulation);
+          }}
+          className={cn(
+            "flex items-center gap-1.5 snap-start shrink-0 cursor-pointer transition-all hover:opacity-80 active:scale-95",
+            showLoopSimulation ? "opacity-100" : "opacity-30"
+          )}
+        >
+           <div className="w-3 h-[2px] border-b-2 border-emerald-500 border-dashed" />
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Prognoza Pętli</span>
+        </div>
+        <div 
+          onClick={() => {
+            Haptics.selection();
+            setShowMLPrediction(!showMLPrediction);
+          }}
+          className={cn(
+            "flex items-center gap-1.5 snap-start shrink-0 cursor-pointer transition-all hover:opacity-80 active:scale-95",
+            showMLPrediction ? "opacity-100" : "opacity-30"
+          )}
+        >
+           <div className="w-3 h-[2px] border-b-2 border-amber-400 border-dashed" />
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">GlikoSense</span>
         </div>
       </div>
     </div>

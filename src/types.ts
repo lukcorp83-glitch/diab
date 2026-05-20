@@ -25,6 +25,8 @@ export interface LogEntry {
   source?: string;
   nsId?: string;
   userModified?: boolean;
+  direction?: string;
+  delta?: number;
   protein?: number;
   polyols?: number;
   fat?: number;

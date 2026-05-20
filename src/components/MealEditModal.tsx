@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, Product } from '../types';
 import { X, Save, Utensils, Apple, Syringe, Search, Globe, Loader2, Plus, Zap, Heart } from 'lucide-react';
@@ -181,7 +182,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -435,6 +436,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
           </button>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

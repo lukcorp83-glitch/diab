@@ -472,9 +472,9 @@ export default function App() {
       if (action === 'set_setting' && user && userSettings) {
         if (['isf', 'wwRatio', 'wbtRatio', 'targetMin', 'targetMax', 'tdee'].includes(key)) {
           try {
-            const newSettings = { ...userSettings, [key]: Number(value) };
-            await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), newSettings);
-            setUserSettings(newSettings);
+            const updateField = { [key]: Number(value) };
+            await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updateField, { merge: true });
+            setUserSettings({ ...userSettings, ...updateField });
             toast.success(`AI zaktualizowało: ${key} na ${value}`);
           } catch(err) {
             console.error("Failed to update setting from AI", err);
@@ -498,15 +498,14 @@ export default function App() {
              
              if (logData.type === 'site_change' || logData.type === 'sensor_change') {
                  const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
-                 const settingsSnap = await getDocFromServer(settingsRef);
-                 let currentSettings = settingsSnap.exists() ? settingsSnap.data() : {};
                  
+                 const updates: any = {};
                  if (logData.type === 'site_change') {
-                     currentSettings.infusionSetChangeDate = nowTimestamp;
+                     updates.infusionSetChangeDate = nowTimestamp;
                  } else if (logData.type === 'sensor_change') {
-                     currentSettings.sensorChangeDate = nowTimestamp;
+                     updates.sensorChangeDate = nowTimestamp;
                  }
-                 await setDoc(settingsRef, currentSettings, { merge: true });
+                 await setDoc(settingsRef, updates, { merge: true });
              }
              
              toast.success(`Zapisano dzienniczek z poziomu AI!`);
@@ -1027,12 +1026,6 @@ export default function App() {
               
               for (const newLog of chunk) {
                  const { id: nsId, ...logData } = newLog;
-                 if (currentWeather && logData.type === 'glucose') {
-                   // Only append weather if the log is recent (last 1 hour), to avoid attaching current weather to old imported logs
-                   if (Date.now() - logData.timestamp < 3600000) {
-                     (logData as any).weather = currentWeather;
-                   }
-                 }
 
                  const fingerprint = `${newLog.type}-${Math.floor(newLog.timestamp / 60000)}-${newLog.value}`;
                  const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, '_');
@@ -1504,7 +1497,7 @@ export default function App() {
         {/* Unified Audio Player for PWA Support - Silence Loop */}
         <audio 
           id="pwa-media-player"
-          src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAHRoZW9yZXRpY2FsLm5ldAD/48BAAAAAAArAAAAAAAAAAABmxhbWUzLjk5AFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX"
+          src="/silence.mp3"
           loop 
           playsInline 
           preload="auto"

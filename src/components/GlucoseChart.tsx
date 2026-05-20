@@ -15,7 +15,7 @@ import {
   Tooltip,
   Area
 } from 'recharts';
-import { Plus, Minus, Maximize2, Move } from 'lucide-react';
+import { Plus, Minus, Maximize2, Move, Droplets, Signal } from 'lucide-react';
 
 // Insulin on Board calculation using a more realistic decay model
 const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => {
@@ -130,23 +130,23 @@ const CustomMealShape = (props: any) => {
 };
 
 const CustomSiteShape = (props: any) => {
-  const { cx, cy, payload, onDotClick } = props;
+  const { cx, cy, payload, onDotClick, isDark } = props;
   if (!payload.siteVal || isNaN(cx) || isNaN(cy)) return null;
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSite); }} style={{ cursor: 'pointer', outline: 'none' }}>
       <circle cx={cx} cy={cy - 10} r={15} fill="transparent" />
-      <text x={cx} y={cy - 10} textAnchor="middle" fontSize={18}>🔄</text>
+      <Droplets x={cx - 9} y={cy - 19} size={18} color="#14b8a6" strokeWidth={2.5} />
     </g>
   );
 };
 
 const CustomSensorShape = (props: any) => {
-  const { cx, cy, payload, onDotClick } = props;
+  const { cx, cy, payload, onDotClick, isDark } = props;
   if (!payload.sensorVal || isNaN(cx) || isNaN(cy)) return null;
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSensor); }} style={{ cursor: 'pointer', outline: 'none' }}>
       <circle cx={cx} cy={cy - 10} r={15} fill="transparent" />
-      <text x={cx} y={cy - 10} textAnchor="middle" fontSize={18}>🩹</text>
+      <Signal x={cx - 9} y={cy - 19} size={18} color="#6366f1" strokeWidth={2.5} />
     </g>
   );
 };
@@ -413,7 +413,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     
     if (dataG.length > 0) {
        const lastG = dataG[dataG.length - 1];
-       mlPredictionData = mlPredictionData.filter(p => p.timestamp >= lastG.timestamp);
+       mlPredictionData = mlPredictionData.filter(p => p.timestamp >= lastG.timestamp - 300000); // 5 minute buffer
     }
     
     if ((showLoopSimulation || showMLPrediction) && dataG.length >= 2) {

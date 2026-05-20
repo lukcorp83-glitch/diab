@@ -1,5 +1,6 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
@@ -59,7 +60,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div 
@@ -131,6 +132,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

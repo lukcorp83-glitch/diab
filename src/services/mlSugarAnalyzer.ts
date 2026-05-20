@@ -193,7 +193,7 @@ export const MLAnalyzer = {
 
       const now = Date.now();
       // Tryb szybki: ostatnie 4h. Tryb pełny: 14 dni.
-      const lookbackMs = mode === 'quick' ? (4 * 60 * 60 * 1000) : (14 * 24 * 60 * 60 * 1000);
+      const lookbackMs = mode === 'quick' ? (24 * 60 * 60 * 1000) : (14 * 24 * 60 * 60 * 1000);
       const cutoffTime = now - lookbackMs;
       
       let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
@@ -502,13 +502,11 @@ export const MLAnalyzer = {
     // Pobieranie pogody z ostatnich logów
     let weatherTemp: number | null = null;
     let weatherCondition: string | null = null;
-    if (userSettings?.weatherNeuralEnabled) {
-      for (let i = glucoseLogsOrig.length - 1; i >= Math.max(0, glucoseLogsOrig.length - 20); i--) {
-        if (glucoseLogsOrig[i].weather?.temp !== undefined) {
-          weatherTemp = glucoseLogsOrig[i].weather!.temp;
-          weatherCondition = glucoseLogsOrig[i].weather!.condition;
-          break;
-        }
+    for (let i = glucoseLogsOrig.length - 1; i >= Math.max(0, glucoseLogsOrig.length - 20); i--) {
+      if (glucoseLogsOrig[i].weather?.temp !== undefined) {
+        weatherTemp = glucoseLogsOrig[i].weather!.temp;
+        weatherCondition = glucoseLogsOrig[i].weather!.condition;
+        break;
       }
     }
 

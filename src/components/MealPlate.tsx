@@ -1,6 +1,7 @@
 import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, PlateItem } from "../types";
 import {
@@ -698,8 +699,9 @@ export default function MealPlate({
       className="space-y-6 pb-64"
     >
       {/* Weight Modal etc. */}
-      <AnimatePresence>
-        {isScannerOpen && (
+      {createPortal(
+        <AnimatePresence>
+          {isScannerOpen && (
           <motion.div 
             initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
             animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
@@ -962,7 +964,9 @@ export default function MealPlate({
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Search & Browser */}
       {(mode === 'search' || mode === 'both') && (

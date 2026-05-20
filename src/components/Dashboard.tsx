@@ -101,7 +101,7 @@ export default function Dashboard({
   const [range, setRange] = useState(3);
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
     const saved = localStorage.getItem('glikosfera_loop_simulation');
-    return saved ? JSON.parse(saved) : false;
+    return saved ? JSON.parse(saved) : true;
   });
   const [showMLPrediction, setShowMLPrediction] = useState(() => {
     const saved = localStorage.getItem('glikosfera_ml_prediction');
@@ -772,7 +772,7 @@ export default function Dashboard({
           </motion.div>
         )}
 
-        {logs.filter(log => log.type === 'bolus' || log.type === 'meal').length > 0 && (
+        {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').length > 0 && (
           <motion.div variants={itemVariants} className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
@@ -782,7 +782,7 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'bolus' || log.type === 'meal').slice(0, 3).map((log, idx) => (
+               {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').slice(0, 6).map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => {}}>
                       <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">

@@ -1,6 +1,7 @@
 import { toast } from "react-hot-toast";
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import QRCode from 'react-qr-code';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Share2, Download, X, Copy, Check, Users, Link as LinkIcon, Unlink, Camera } from 'lucide-react';
@@ -176,8 +177,9 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
         </div>
       )}
 
-      <AnimatePresence>
-      {showExport && (
+      {createPortal(
+        <AnimatePresence>
+        {showExport && (
         <motion.div 
           initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
           animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
@@ -213,10 +215,13 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
           </motion.div>
         </motion.div>
       )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      <AnimatePresence>
-      {showImport && (
+      {createPortal(
+        <AnimatePresence>
+        {showImport && (
         <motion.div 
           initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
           animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
@@ -265,7 +270,9 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
           </motion.div>
         </motion.div>
       )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 }
