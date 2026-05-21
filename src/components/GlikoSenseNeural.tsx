@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Cpu, Zap, Shield, TrendingUp, AlertCircle, Heart, Sparkles } from 'lucide-react';
 import GlikoSenseIcon from './GlikoSenseIcon';
+import { cn } from '../lib/utils';
 
 interface NeuralNode {
   id: number;
@@ -51,8 +52,26 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
     return 'rgba(16, 185, 129, 0.5)';
   }, [glucose]);
 
+  const dynamicBg = useMemo(() => {
+    const isHigh = glucose && glucose > 180;
+    const isLow = glucose && (glucose < 70 || glucose < 55);
+    const rising = trend === 'DoubleUp' || trend === 'SingleUp' || trend === 'FortyFiveUp';
+    const dropping = trend === 'DoubleDown' || trend === 'SingleDown' || trend === 'FortyFiveDown';
+
+    if (isHigh || rising) {
+      // Soft, warm golden-coral tint for high glucose or rapid rise
+      return "bg-gradient-to-br from-orange-50/90 via-rose-50/80 to-amber-50/70 dark:from-orange-950/20 dark:via-red-950/15 dark:to-orange-950/20 border border-orange-100/80 dark:border-orange-900/30 shadow-orange-500/5";
+    }
+    if (isLow || dropping) {
+      // Soft, warm sand-rose tint for low glucose or rapid fall
+      return "bg-gradient-to-br from-yellow-50/90 via-orange-50/80 to-rose-50/80 dark:from-yellow-950/25 dark:via-red-950/20 dark:to-yellow-950/20 border border-yellow-100/80 dark:border-red-900/30 shadow-yellow-500/5";
+    }
+    // Deep premium soft teal-blue for stable/in-range
+    return "bg-gradient-to-br from-teal-50 to-blue-50 dark:from-teal-900/20 dark:to-blue-950/25 border border-teal-100 dark:border-teal-900/30";
+  }, [glucose, trend]);
+
   return (
-    <div className="relative w-full p-6 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden shadow-xl">
+    <div className={cn("relative w-full p-6 rounded-[2.5rem] overflow-hidden shadow-lg transition-all duration-700 text-slate-800 dark:text-slate-100", dynamicBg)}>
       {/* Neural Background Animation */}
       <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none">
         {nodes.map((node, i) => {
@@ -168,12 +187,12 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
         {isChildMode ? (
           <div className="space-y-4">
             {children}
-            <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 glass-target">
+            <div className="p-4 rounded-3xl bg-white/40 dark:bg-slate-900/30 border border-white/60 dark:border-slate-800/40 backdrop-blur-sm glass-target">
                <div className="flex items-start gap-3">
                  <div className="mt-1">
                    <Heart className="text-rose-500 fill-rose-500" size={16} />
                  </div>
-                 <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
+                 <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-relaxed">
                    {glucose && glucose < 70 
                      ? `GlikoSense czuje, że ${petName} traci siły! Szybko, zjedzmy coś pysznego, żeby go rozweselić. 🍎`
                      : glucose && glucose > 180
@@ -219,7 +238,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                   className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${
                     fn.active 
                       ? `${statusColor} text-white border-transparent shadow-sm` 
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
+                      : 'bg-white/30 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 border-slate-200/70 dark:border-slate-800/40'
                   }`}
                 >
                   {fn.label}
@@ -281,7 +300,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               </div>
             )}
 
-            <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4 glass-target">
+            <div className="p-4 rounded-3xl bg-white/40 dark:bg-slate-900/30 border border-white/60 dark:border-slate-800/40 backdrop-blur-sm grid grid-cols-2 gap-4 glass-target">
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <TrendingUp size={12} />

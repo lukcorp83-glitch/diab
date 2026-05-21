@@ -882,11 +882,27 @@ export const MLAnalyzer = {
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
 
+    // Smooth the prediction curve to prevent wiggles, zigzags, and micro-oscillations
+    if (predictionCurve.length > 2) {
+      const smoothedCurve = [...predictionCurve];
+      const alpha = 0.35; // optimal blend ratio for medical trend lines
+      for (let pass = 0; pass < 2; pass++) {
+        let lastVal = smoothedCurve[0].value;
+        for (let i = 1; i < smoothedCurve.length; i++) {
+          smoothedCurve[i].value = lastVal + (smoothedCurve[i].value - lastVal) * alpha;
+          lastVal = smoothedCurve[i].value;
+        }
+      }
+      for (let i = 1; i < predictionCurve.length; i++) {
+        predictionCurve[i].value = smoothedCurve[i].value;
+      }
+    }
+
     const accuracyValue = Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80)));
     const datasetSize = dataset.length;
 
     return {
-        predictedNextHour: Math.round(predictedNextHour),
+        predictedNextHour: Math.round(predictionCurve[predictionCurve.length - 1].value),
         riskOfHypo,
         insights,
         accuracy: accuracyValue,

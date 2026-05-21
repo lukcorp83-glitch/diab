@@ -535,8 +535,9 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
     let timeMap = new Map<number, any>();
     const addPoint = (time: number, key: string, value: any, extra?: any) => {
-       if (!timeMap.has(time)) timeMap.set(time, { timestamp: time });
-       const p = timeMap.get(time);
+       const roundedTime = Math.round(time / 60000) * 60000;
+       if (!timeMap.has(roundedTime)) timeMap.set(roundedTime, { timestamp: roundedTime });
+       const p = timeMap.get(roundedTime);
        p[key] = value;
        if (extra) Object.assign(p, extra);
     };
@@ -556,8 +557,10 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
     });
 
-    // Add points for the IOB curve every 10 minutes to ensure smoothness
-    for (let t = start; t <= end; t += 10 * 60000) {
+    // Add points for the IOB curve every 5 minutes on clean 5-minute ticks to ensure perfect alignment
+    const roundedStart = Math.floor(start / 300000) * 300000;
+    const roundedEnd = Math.ceil(end / 300000) * 300000;
+    for (let t = roundedStart; t <= roundedEnd; t += 5 * 60000) {
       if (!timeMap.has(t)) timeMap.set(t, { timestamp: t });
     }
 
@@ -578,7 +581,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     // Stitch predictions to the last actual glucose point to ensure lines are connected
     if (dataG.length > 0) {
       const lastG = dataG[dataG.length - 1];
-      const lastPoint = timeMap.get(lastG.timestamp);
+      const lastGTimeRounded = Math.round(lastG.timestamp / 60000) * 60000;
+      const lastPoint = timeMap.get(lastGTimeRounded);
       if (lastPoint) {
         if (showLoopSimulation && loopPredictions.length > 0) {
           lastPoint.loopPrediction = lastG.value;
@@ -589,8 +593,10 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
     }
 
-    if (!timeMap.has(start)) timeMap.set(start, { timestamp: start });
-    if (!timeMap.has(end)) timeMap.set(end, { timestamp: end });
+    const startRounded = Math.round(start / 60000) * 60000;
+    const endRounded = Math.round(end / 60000) * 60000;
+    if (!timeMap.has(startRounded)) timeMap.set(startRounded, { timestamp: startRounded });
+    if (!timeMap.has(endRounded)) timeMap.set(endRounded, { timestamp: endRounded });
 
     const sortedData = Array.from(timeMap.values()).sort((a, b) => a.timestamp - b.timestamp);
     const lastMlTimestamp = mlPredictionDataState.length > 0 ? mlPredictionDataState[mlPredictionDataState.length - 1].timestamp : 0;
@@ -779,11 +785,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           
           {showLoopSimulation && (
              <Line 
-               type="monotone" 
+               type="linear" 
                dataKey="loopPrediction" 
                stroke="#10b981" 
                strokeWidth={2.5}
-               strokeDasharray="3 4"
+               strokeDasharray="4 4"
                dot={<LoopSimulationDot />}
                activeDot={false}
                connectNulls
@@ -793,11 +799,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
           {showMLPrediction && (
              <Line 
-                 type="monotone" 
+                 type="linear" 
                  dataKey="mlPrediction" 
                  stroke="#fbbf24" 
                  strokeWidth={3} 
-                 strokeDasharray="5 5"
+                 strokeDasharray="6 4"
                  dot={false}
                  label={<MLPredictionLabel isDark={isDark} lastMlTimestamp={lastMlTimestamp} />}
                  activeDot={{ r: 5, fill: '#fbbf24', stroke: '#fff', strokeWidth: 2 }}

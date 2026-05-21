@@ -1595,7 +1595,7 @@ export default function App() {
         {/* Unified Audio Player for PWA Support - Silence Loop */}
         <audio 
           id="pwa-media-player"
-          src="data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+          src="/silence.mp3"
           loop 
           playsInline 
           preload="auto"
