@@ -124,6 +124,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
          { id: 'profile_settings', label: 'Ustawienia Profilu', tab: 'profile', icon: <Sliders size={14} /> },
          { id: 'profile_devices', label: 'Osprzęt & CGM', tab: 'profile', action: 'devices', icon: <Signal size={14} /> },
          { id: 'profile_meds', label: 'Leki & Przypomnienia', tab: 'profile', action: 'meds', icon: <Pill size={14} /> },
+         { id: 'profile_tutorial', label: 'Samouczek & Baza Wiedzy', tab: 'profile', action: 'tutorial', icon: <BookOpen size={14} /> },
          { id: 'profile_api', label: 'Integracje (Nightscout)', tab: 'profile', action: 'api', icon: <Globe size={14} /> }, 
          { id: 'profile_simulator', label: 'Symulator Bolusa', tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
        ]

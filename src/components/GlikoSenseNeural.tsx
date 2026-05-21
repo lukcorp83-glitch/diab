@@ -31,6 +31,12 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
     }));
   }, []);
 
+  const nextTarget = useMemo(() => {
+    if (!datasetSize) return 300;
+    const targets = [300, 1000, 3000, 10000, 25000, 50000, 100000];
+    return targets.find(t => datasetSize < t) || (Math.floor(datasetSize / 50000) + 1) * 50000;
+  }, [datasetSize]);
+
   const statusColor = useMemo(() => {
     if (!glucose) return 'bg-slate-400';
     if (glucose < 70) return 'bg-rose-500';
@@ -234,7 +240,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               </div>
               <div className="text-right">
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pewność</div>
-                <div className="text-sm font-black dark:text-white">{accuracy}%</div>
+                <div className="text-sm font-black dark:text-white">{accuracy !== undefined ? `${accuracy}%` : '---'}</div>
               </div>
             </div>
 
@@ -251,12 +257,12 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     </motion.div>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Postęp Nauki:</span>
                   </div>
-                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} pkt / 300 pkt</span>
+                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} pkt / {nextTarget} pkt</span>
                 </div>
                 <div className="relative h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (datasetSize / 300) * 100)}%` }}
+                    animate={{ width: `${Math.min(100, (datasetSize / nextTarget) * 100)}%` }}
                     className="absolute inset-y-0 bg-gradient-to-r from-indigo-500 to-purple-500"
                   />
                   {/* Learning Waves */}
@@ -267,9 +273,10 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                   />
                 </div>
                 <p className="text-[8px] font-bold text-slate-400 leading-tight">
-                  {datasetSize < 50 ? "Model w fazie bazowej. Gromadzę dane..." : 
-                   datasetSize < 200 ? "Model uczy się Twoich nawyków. Coraz wyższa precyzja." :
-                   "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne."}
+                  {datasetSize < 300 ? "Model w fazie bazowej. Gromadzę dane..." : 
+                   datasetSize < 1000 ? "Model uczy się Twoich nawyków. Coraz wyższa precyzja." :
+                   datasetSize < 3000 ? "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne." :
+                   "Model klasy mistrzowskiej. Ekstremalna precyzja analityczna."}
                 </p>
               </div>
             )}

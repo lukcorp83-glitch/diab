@@ -55,14 +55,17 @@ import {
   BarChart2,
   MonitorPlay,
   AlertTriangle,
-  Dumbbell
+  Dumbbell,
+  Box,
+  Minus,
+  Edit3
 } from 'lucide-react';
 import { db, auth, onConnectionChange } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
 import { cn } from '../lib/utils';
 import { doc, getDoc, getDocs, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { notificationService } from '../services/notificationService';
-import { UserSettings, LogEntry } from '../types';
+import { UserSettings, LogEntry, InventoryItem } from '../types';
 import { APP_VERSION, SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground } from '../constants';
 import { VERSIONS } from '../constants/versions';
 
@@ -172,6 +175,9 @@ export default function Profile({
     active: boolean;
     expiryDate?: string;
   } | null>(null);
+
+  const [newInventoryItem, setNewInventoryItem] = useState<InventoryItem | null>(null);
+
 
   const icons = ['🍎', '🍌', '🍇', '🍓', '🥪', '🍕', '🍔', '🥤', '🍬', '🥣', '🍫', '🥨', '🍪', '🥛'];
 
@@ -745,6 +751,42 @@ export default function Profile({
     }
   };
 
+  const saveInventoryItem = async () => {
+    if (!newInventoryItem?.name || !user) return;
+    try {
+      const updatedInventory = [...(settings.inventory || [])];
+      
+      if (newInventoryItem.id) {
+        const index = updatedInventory.findIndex(m => m.id === newInventoryItem.id);
+        if (index >= 0) updatedInventory[index] = { ...newInventoryItem };
+        toast.success("Sprzęt zaktualizowany!");
+      } else {
+        updatedInventory.push({ ...newInventoryItem, id: Date.now().toString() });
+        toast.success("Sprzęt dodany do zapasów!");
+      }
+      
+      const newSettings = { ...settings, inventory: updatedInventory };
+      setSettings(newSettings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { inventory: updatedInventory }, { merge: true });
+      setNewInventoryItem(null);
+    } catch (e) {
+      console.error(e);
+      toast.error("Błąd zapisu zapasów");
+    }
+  };
+
+  const deleteInventoryItem = async (id: string) => {
+    if (!user) return;
+    try {
+      const updatedInventory = (settings.inventory || []).filter(m => m.id !== id);
+      const newSettings = { ...settings, inventory: updatedInventory };
+      setSettings(newSettings);
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { inventory: updatedInventory }, { merge: true });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     // Live preview of settings before saving
     const root = window.document.documentElement;
@@ -1308,16 +1350,16 @@ export default function Profile({
               <div className="space-y-4">
                 <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Czułość & Dieta</h4>
                 <div className="space-y-3">
-                  <SettingInput label="Wrażliwość (ISF)" value={settings.isf} onChange={v => setSettings({ ...settings, isf: v })} />
-                  <SettingInput label="Ratio WW" value={settings.wwRatio} onChange={v => setSettings({ ...settings, wwRatio: v })} />
-                  <SettingInput label="Ratio WBT" value={settings.wbtRatio} onChange={v => setSettings({ ...settings, wbtRatio: v })} />
+                  <SettingInput label="Wrażliwość (ISF)" value={settings.isf} onChange={v => setSettings({ ...settings, isf: v })} min={10} max={300} />
+                  <SettingInput label="Ratio WW" value={settings.wwRatio} onChange={v => setSettings({ ...settings, wwRatio: v })} min={1} max={100} />
+                  <SettingInput label="Ratio WBT" value={settings.wbtRatio} onChange={v => setSettings({ ...settings, wbtRatio: v })} min={1} max={100} />
                 </div>
               </div>
               <div className="space-y-4">
                 <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Zakresy Docelowe</h4>
                 <div className="space-y-3">
-                  <SettingInput label="Cel Dolny (Min)" value={settings.targetMin} onChange={v => setSettings({ ...settings, targetMin: v })} />
-                  <SettingInput label="Cel Górny (Max)" value={settings.targetMax} onChange={v => setSettings({ ...settings, targetMax: v })} />
+                  <SettingInput label="Cel Dolny (Min)" value={settings.targetMin} onChange={v => setSettings({ ...settings, targetMin: v })} min={50} max={200} />
+                  <SettingInput label="Cel Górny (Max)" value={settings.targetMax} onChange={v => setSettings({ ...settings, targetMax: v })} min={100} max={300} />
                   
                   <div className={cn("p-4 rounded-3xl border flex flex-col items-center justify-center text-center", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50")}>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Czas Insuliny (DIA)</span>
@@ -1476,19 +1518,39 @@ export default function Profile({
                   <div className="flex-1 grid grid-cols-2 gap-2">
                     <div className="relative">
                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">ISF</span>
-                       <input type="number" step="0.1" value={hp.isf} onChange={e => {
+                       <input type="number" step="0.1" min="10" max="300" value={hp.isf} onChange={e => {
                          const newProfiles = [...(settings.hourlyProfiles || [])];
                          newProfiles[idx].isf = Number(e.target.value);
                          setSettings({ ...settings, hourlyProfiles: newProfiles });
-                       }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-xl font-black text-xs text-center dark:text-white" />
+                       }} 
+                       onBlur={e => {
+                         const newProfiles = [...(settings.hourlyProfiles || [])];
+                         let val = Number(e.target.value);
+                         if (isNaN(val)) val = 50;
+                         if (val < 10) val = 10;
+                         if (val > 300) val = 300;
+                         newProfiles[idx].isf = val;
+                         setSettings({ ...settings, hourlyProfiles: newProfiles });
+                       }}
+                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-xl font-black text-xs text-center dark:text-white" />
                     </div>
                     <div className="relative">
                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">WW</span>
-                       <input type="number" step="0.1" value={hp.wwRatio} onChange={e => {
+                       <input type="number" step="0.1" min="1" max="100" value={hp.wwRatio} onChange={e => {
                          const newProfiles = [...(settings.hourlyProfiles || [])];
                          newProfiles[idx].wwRatio = Number(e.target.value);
                          setSettings({ ...settings, hourlyProfiles: newProfiles });
-                       }} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-xl font-black text-xs text-center dark:text-white" />
+                       }} 
+                       onBlur={e => {
+                         const newProfiles = [...(settings.hourlyProfiles || [])];
+                         let val = Number(e.target.value);
+                         if (isNaN(val)) val = 10;
+                         if (val < 1) val = 1;
+                         if (val > 100) val = 100;
+                         newProfiles[idx].wwRatio = val;
+                         setSettings({ ...settings, hourlyProfiles: newProfiles });
+                       }}
+                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-xl font-black text-xs text-center dark:text-white" />
                     </div>
                   </div>
                   <button onClick={() => {
@@ -1528,8 +1590,18 @@ export default function Profile({
               <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">Wartość z Glukometru (mg/dL)</label>
               <input 
                 type="number" 
+                min="0"
+                max="600"
                 id="cgmCalibrationInput"
                 placeholder="np. 110" 
+                onBlur={(e) => {
+                  let val = parseFloat(e.target.value);
+                  if (!isNaN(val)) {
+                    if (val < 0) val = 0;
+                    if (val > 600) val = 600;
+                    e.target.value = val.toString();
+                  }
+                }}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white text-center"
               />
            </div>
@@ -2180,6 +2252,208 @@ export default function Profile({
               </motion.div>
             )}
           </div>
+          
+          <div className={cn("rounded-[2.5rem] p-6 border shadow-xl space-y-6 mt-4", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-500/10 text-rose-600 rounded-2xl">
+                  <Box size={20} />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-base font-black dark:text-white leading-tight">Apteczka <span className="text-[10px] bg-rose-500/10 text-rose-600 px-2 py-0.5 rounded-full ml-1 relative -top-0.5">Zapasy</span></h3>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Sprzęt & Insulina</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {(settings.inventory || []).map(item => (
+                <motion.div 
+                  layout
+                  key={item.id} 
+                  className={cn(
+                    "relative overflow-hidden p-5 rounded-[2rem] border transition-all flex flex-col group",
+                    (settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700") 
+                  )}
+                >
+                  <div className="flex items-start justify-between relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
+                        item.quantity <= item.lowStockThreshold ? "bg-rose-500/20 text-rose-600" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400"
+                      )}>
+                         <Box size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm dark:text-white leading-tight">{item.name}</h4>
+                        <p className="text-[10px] text-slate-500 font-medium">Kategoria: {item.category}</p>
+                        {item.expiryDate && (
+                          <p className="text-[9px] font-bold mt-1 uppercase tracking-widest flex items-center gap-1 text-amber-600 dark:text-amber-500">
+                             <Calendar size={10} /> Data ważn: {item.expiryDate}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="text-right flex flex-col items-end">
+                       <h3 className={cn("text-xl font-black leading-none", item.quantity <= item.lowStockThreshold ? "text-rose-500" : "dark:text-white")}>
+                         {item.quantity} <span className="text-xs text-slate-400 uppercase font-bold">{item.unit}</span>
+                       </h3>
+                       {item.quantity <= item.lowStockThreshold && (
+                         <span className="text-[7px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded-full uppercase tracking-widest animate-pulse mt-1">Mało!</span>
+                       )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 flex flex-wrap items-center justify-between gap-2 relative z-10">
+                     <div className="flex items-center gap-2">
+                        <button onClick={() => {
+                          const updatedInventory = [...settings.inventory!];
+                          const index = updatedInventory.findIndex(m => m.id === item.id);
+                          if(updatedInventory[index].quantity > 0) {
+                            updatedInventory[index].quantity -= 1;
+                            setSettings(prev => ({ ...prev, inventory: updatedInventory }));
+                            setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user!), 'settings', 'profile'), { inventory: updatedInventory }, { merge: true });
+                          }
+                        }} className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all text-slate-600 dark:text-slate-300">
+                           <Minus size={14} />
+                        </button>
+                        <button onClick={() => {
+                          const updatedInventory = [...settings.inventory!];
+                          const index = updatedInventory.findIndex(m => m.id === item.id);
+                          updatedInventory[index].quantity += 1;
+                          setSettings(prev => ({ ...prev, inventory: updatedInventory }));
+                          setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user!), 'settings', 'profile'), { inventory: updatedInventory }, { merge: true });
+                        }} className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all text-slate-600 dark:text-slate-300">
+                           <Plus size={14} />
+                        </button>
+                     </div>
+                     <div className="flex gap-2">
+                       <button onClick={() => setNewInventoryItem(item)} className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                         <Edit3 size={14} />
+                       </button>
+                       <button onClick={() => deleteInventoryItem(item.id)} className="p-2 text-slate-500 hover:text-rose-500 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                         <Trash size={14} />
+                       </button>
+                     </div>
+                  </div>
+                </motion.div>
+              ))}
+
+              {!newInventoryItem && (
+                <button 
+                  onClick={() => setNewInventoryItem({
+                    id: '', name: '', quantity: 1, unit: 'szt.', lowStockThreshold: 1, category: 'other'
+                  })}
+                  className="w-full py-4 bg-rose-50 dark:bg-slate-800/50 text-rose-600 dark:text-rose-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-rose-200 dark:border-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} /> Dodaj zapas do apteczki
+                </button>
+              )}
+            </div>
+
+            {/* Edit / Add Inventory Form */}
+            {newInventoryItem && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-slate-50 dark:bg-slate-800 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-700 space-y-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
+                    <Box size={14} className="text-rose-500" />
+                    {newInventoryItem.id ? 'Edytuj Sprzęt' : 'Nowy Sprzęt'}
+                  </h4>
+                  <button onClick={() => setNewInventoryItem(null)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-white dark:bg-slate-900 rounded-full shadow-sm">
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Nazwa</label>
+                    <input 
+                      type="text" 
+                      placeholder="np. Sensor Dexcom G6" 
+                      value={newInventoryItem.name}
+                      onChange={e => setNewInventoryItem({...newInventoryItem, name: e.target.value})}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Ilość</label>
+                      <input 
+                        type="number" 
+                        value={newInventoryItem.quantity}
+                        onChange={e => setNewInventoryItem({...newInventoryItem, quantity: Number(e.target.value)})}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Jednostka</label>
+                      <input 
+                        type="text" 
+                        placeholder="np. szt., fiolki" 
+                        value={newInventoryItem.unit}
+                        onChange={e => setNewInventoryItem({...newInventoryItem, unit: e.target.value})}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Kategoria</label>
+                      <select 
+                        value={newInventoryItem.category}
+                        onChange={e => setNewInventoryItem({...newInventoryItem, category: e.target.value as any})}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all appearance-none"
+                      >
+                        <option value="sensors">Sensory</option>
+                        <option value="insulin">Insulina</option>
+                        <option value="infusion_sets">Wkłucia</option>
+                        <option value="strips">Paski</option>
+                        <option value="other">Inne</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Ostrzeżenie (poniżej ilosc)</label>
+                      <input 
+                        type="number" 
+                        value={newInventoryItem.lowStockThreshold}
+                        onChange={e => setNewInventoryItem({...newInventoryItem, lowStockThreshold: Number(e.target.value)})}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Krótka data ważności (Opcjonalnie)</label>
+                    <div className="relative">
+                      <Calendar size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500" />
+                      <input 
+                        type="date" 
+                        value={newInventoryItem.expiryDate || ''}
+                        onChange={e => setNewInventoryItem({...newInventoryItem, expiryDate: e.target.value})}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-9 pr-3 rounded-xl font-bold text-[10px] outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={saveInventoryItem}
+                  className="w-full bg-rose-600 hover:bg-rose-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-rose-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 size={14} />
+                  {newInventoryItem.id ? 'Aktualizuj zapas' : 'Zapisz w apteczce'}
+                </button>
+              </motion.div>
+            )}
+          </div>
         </motion.div>
       )}
 
@@ -2394,7 +2668,7 @@ export default function Profile({
           animate={{ opacity: 1, x: 0 }}
           className="pb-20 space-y-4"
         >
-          <StatisticsView logs={logs} />
+          <StatisticsView logs={logs} settings={settings} />
         </motion.div>
       )}
 
@@ -2987,7 +3261,7 @@ export default function Profile({
   );
 }
 
-function SettingInput({ label, value, onChange, step = "0.01" }: { label: string, value: number, onChange: (v: number) => void, step?: string }) {
+function SettingInput({ label, value, onChange, step = "0.01", min = 0, max = 9999 }: { label: string, value: number, onChange: (v: number) => void, step?: string, min?: number, max?: number }) {
   const [localValue, setLocalValue] = React.useState(Number.isInteger(value) ? value.toString() : Number(value).toFixed(2).replace(/\.00$/, ''));
 
   React.useEffect(() => {
@@ -3003,6 +3277,8 @@ function SettingInput({ label, value, onChange, step = "0.01" }: { label: string
       <input 
         type="number" 
         step={step}
+        min={min}
+        max={max}
         value={localValue} 
         onChange={e => {
           setLocalValue(e.target.value);
@@ -3012,15 +3288,14 @@ function SettingInput({ label, value, onChange, step = "0.01" }: { label: string
           }
         }}
         onBlur={() => {
-          const parsed = parseFloat(localValue);
-          if (isNaN(parsed)) {
-            setLocalValue("0");
-            onChange(0);
-          } else {
-            const formatted = Number.isInteger(parsed) ? parsed.toString() : Number(parsed).toFixed(2).replace(/\.00$/, '').replace(/(\.[0-9])0$/, '$1');
-            setLocalValue(formatted);
-            onChange(parseFloat(formatted));
-          }
+          let parsed = parseFloat(localValue);
+          if (isNaN(parsed)) parsed = 0;
+          if (parsed < min) parsed = min;
+          if (parsed > max) parsed = max;
+          
+          const formatted = Number.isInteger(parsed) ? parsed.toString() : Number(parsed).toFixed(2).replace(/\.00$/, '').replace(/(\.[0-9])0$/, '$1');
+          setLocalValue(formatted);
+          onChange(parseFloat(formatted));
         }}
         className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
       />

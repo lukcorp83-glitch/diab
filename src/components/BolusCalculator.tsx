@@ -444,8 +444,16 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate, pu
              <input 
                type="number" 
                min="0"
+               max="600"
                value={bg} 
                onChange={e => setBg(e.target.value)}
+               onBlur={() => {
+                 let v = parseFloat(bg);
+                 if (isNaN(v)) return;
+                 if (v < 0) v = 0;
+                 if (v > 600) v = 600;
+                 setBg(v.toString());
+               }}
                placeholder="mg/dL"
                className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
              />
@@ -456,8 +464,16 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate, pu
               <input 
                 type="number" 
                 min="0"
+                max="500"
                 value={carbs} 
                 onChange={e => setCarbs(e.target.value)}
+                onBlur={() => {
+                  let v = parseFloat(carbs);
+                  if (isNaN(v)) return;
+                  if (v < 0) v = 0;
+                  if (v > 500) v = 500;
+                  setCarbs(v.toString());
+                }}
                 placeholder="g"
                 className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
               />
@@ -490,8 +506,16 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate, pu
             <input 
               type="number" 
               min="0"
+              max="200"
               value={polyols} 
               onChange={e => setPolyols(e.target.value)}
+              onBlur={() => {
+                let v = parseFloat(polyols);
+                if (isNaN(v)) return;
+                if (v < 0) v = 0;
+                if (v > 200) v = 200;
+                setPolyols(v.toString());
+              }}
               placeholder="0"
               className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
             />
@@ -554,8 +578,16 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate, pu
                <input 
                  type="number" 
                  min="0"
+                 max="200"
                  value={protein} 
                  onChange={e => setProtein(e.target.value)}
+                 onBlur={() => {
+                   let v = parseFloat(protein);
+                   if (isNaN(v)) return;
+                   if (v < 0) v = 0;
+                   if (v > 200) v = 200;
+                   setProtein(v.toString());
+                 }}
                  placeholder="g"
                  className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-rose-500 transition-all dark:text-white"
                />
@@ -565,8 +597,16 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate, pu
                <input 
                  type="number" 
                  min="0"
+                 max="200"
                  value={fat} 
                  onChange={e => setFat(e.target.value)}
+                 onBlur={() => {
+                   let v = parseFloat(fat);
+                   if (isNaN(v)) return;
+                   if (v < 0) v = 0;
+                   if (v > 200) v = 200;
+                   setFat(v.toString());
+                 }}
                  placeholder="g"
                  className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-amber-500 transition-all dark:text-white"
                />
@@ -709,9 +749,18 @@ export default function BolusCalculator({ logs, user, setTab, setSharedPlate, pu
                 <input 
                   type="number"
                   min="0"
+                  max="50"
                   step="0.1"
                   value={manualDose !== null ? manualDose : dose.toFixed(1)}
                   onChange={e => setManualDose(e.target.value)}
+                  onBlur={() => {
+                    if (manualDose === null) return;
+                    let v = parseFloat(manualDose);
+                    if (isNaN(v)) return;
+                    if (v < 0) v = 0;
+                    if (v > 50) v = 50;
+                    setManualDose(v.toFixed(1));
+                  }}
                   className="w-32 bg-accent-500/20 text-center text-5xl font-black text-accent-400 outline-none rounded-2xl py-2 focus:bg-accent-500/30 transition-all border border-accent-500/30"
                 />
                 <span className="text-xl font-bold opacity-30">j.</span>

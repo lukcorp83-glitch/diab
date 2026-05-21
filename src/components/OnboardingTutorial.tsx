@@ -13,9 +13,19 @@ const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
       icon: <HeartPulse className="w-16 h-16 text-rose-500" />
     },
     {
-      title: 'Mądre prowadzenie diety',
-      description: 'Zarządzaj posiłkami łatwiej niż kiedykolwiek. Ustawiaj swój rodzaj diety, komponuj posiłki na intuicyjnym talerzu i analizuj jedzenie prosto ze zdjęć, by idealnie dobierać profil bolusa.',
+      title: 'Dodawanie posiłku',
+      description: 'Zarządzaj posiłkami łatwiej niż kiedykolwiek. Użyj Talerza Posiłków, by szybko zsumować węglowodany i białka z produktów, a aplikacja wyliczy wymienniki za Ciebie.',
       icon: <Utensils className="w-16 h-16 text-orange-500" />
+    },
+    {
+      title: 'Logowanie bolusa',
+      description: 'Po podaniu insuliny wpisz ją w Dzienniku lub za pomocą Kalkulatora. Dzięki temu algorytmy wyliczą Twoją Aktywną Insulinę (IOB) i zapobiegną nakładaniu się dawek.',
+      icon: <Database className="w-16 h-16 text-indigo-500" />
+    },
+    {
+      title: 'Kalibracja CGM',
+      description: 'Jeżeli różnica między sensorem (CGM) a glukometrem jest duża, w profilu (sekcja Osprzęt) możesz wpisać wynik z palca, a GlikoControl skoryguje kolejne odczyty.',
+      icon: <Scan className="w-16 h-16 text-teal-500" />
     },
     {
       title: 'Pogoda a wrażliwość',
@@ -38,24 +48,9 @@ const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
       icon: <Activity className="w-16 h-16 text-accent-500" />
     },
     {
-      title: 'Dla nowicjuszy i "chwiejnych"',
-      description: 'Dopiero zaczynasz walkę? A może masz duże wahania cukrów? GlikoSense wyłapuje wzorce, których my nie widzimy, pomagając ustabilizować glikemię i uniknąć "zjazdów".',
-      icon: <Bot className="w-16 h-16 text-amber-500" />
-    },
-    {
-      title: 'Własny klucz AI',
-      description: 'Zdarza się, że ogólnodostępna AI ma gorsze dni lub limity. Dlatego w Opcjach możesz dodać swój własny klucz (np. Gemini) – znajdziesz tam prostą instrukcję jak to zrobić.',
-      icon: <Scan className="w-16 h-16 text-emerald-500" />
-    },
-    {
       title: 'Gliko – przyjaciel dla dzieciaków',
       description: 'Dla najmłodszych (i tych starszych duchem!) mamy Gliko. Dbaj o swoje cukry, a Twój zwierzak będzie rósł, zdobywał poziomy i nowe przebrania.',
       icon: <Star className="w-16 h-16 text-purple-500" />
-    },
-    {
-      title: 'Współdzielenie i Nightscout',
-      description: 'Sparuj konta Opiekun-Dziecko, by mieć podgląd na żywo. Aplikacja pięknie współpracuje z Nightscout, dając Ci pełną kontrolę gdziekolwiek jesteś.',
-      icon: <Users className="w-16 h-16 text-blue-500" />
     },
     {
       title: 'Ważna Klauzula Medyczna',

@@ -9,7 +9,7 @@
   <rect width="100" height="100" fill="#020617"/>
   <rect width="100" height="100" fill="url(#logoGradient)" opacity="0.05" />
   
-  <g transform="scale(0.7) translate(21.4, 21.4)">
+  <g>
     <path 
       d="M 60,15 A 35,35 0 1 0 85,50" 
       stroke="url(#logoGradient)" 

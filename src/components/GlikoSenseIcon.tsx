@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { motion } from 'motion/react';
 
 interface GlikoSenseIconProps {
@@ -8,6 +8,8 @@ interface GlikoSenseIconProps {
 }
 
 export default function GlikoSenseIcon({ className = "", size = 24, isAnalyzing = false }: GlikoSenseIconProps) {
+  const gradientId = useId();
+  
   return (
     <div className={`relative flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       <svg
@@ -20,7 +22,7 @@ export default function GlikoSenseIcon({ className = "", size = 24, isAnalyzing 
         {isAnalyzing && (
           <motion.path
             d="M12 21.5C16.5 21.5 20 18 20 13.5C20 9 12 2.5 12 2.5C12 2.5 4 9 4 13.5C4 18 7.5 21.5 12 21.5Z"
-            fill="url(#gliko-gradient)"
+            fill={`url(#${gradientId})`}
             initial={{ opacity: 0.1, scale: 0.8 }}
             animate={{ opacity: [0.1, 0.4, 0.1], scale: [0.8, 1.2, 0.8] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -30,7 +32,7 @@ export default function GlikoSenseIcon({ className = "", size = 24, isAnalyzing 
         {/* Main Drop Shape */}
         <path
           d="M12 21.5C16.5 21.5 20 18 20 13.5C20 9 12 2.5 12 2.5C12 2.5 4 9 4 13.5C4 18 7.5 21.5 12 21.5Z"
-          fill="url(#gliko-gradient)"
+          fill={`url(#${gradientId})`}
           stroke="white"
           strokeWidth="0.5"
           className="drop-shadow-sm"
@@ -65,7 +67,7 @@ export default function GlikoSenseIcon({ className = "", size = 24, isAnalyzing 
         </g>
 
         <defs>
-          <linearGradient id="gliko-gradient" x1="4" y1="2.5" x2="20" y2="21.5" gradientUnits="userSpaceOnUse">
+          <linearGradient id={gradientId} x1="4" y1="2.5" x2="20" y2="21.5" gradientUnits="userSpaceOnUse">
             <stop stopColor="#6366f1" />
             <stop offset="1" stopColor="#10b981" />
           </linearGradient>

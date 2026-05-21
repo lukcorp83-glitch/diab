@@ -7,13 +7,15 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
+import OnboardingTutorial from './OnboardingTutorial';
 
 interface TutorialViewProps {
   setTab: (t: string) => void;
 }
 
 export default function TutorialView({ setTab }: TutorialViewProps) {
-  const [activeList, setActiveList] = useState<'faq' | 'compendium'>('faq');
+  const [activeList, setActiveList] = useState<'faq' | 'compendium' | 'tutorial'>('tutorial');
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const faqs = [
     {
@@ -169,6 +171,15 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
         </div>
         <div className="flex mt-6 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl">
           <button 
+            onClick={() => setActiveList('tutorial')}
+            className={cn(
+              "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-center",
+              activeList === 'tutorial' ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            )}
+          >
+            Samouczek
+          </button>
+          <button 
             onClick={() => setActiveList('faq')}
             className={cn(
               "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-center",
@@ -191,7 +202,40 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
 
       <div>
         <AnimatePresence mode="wait">
-          {activeList === 'faq' ? (
+          {activeList === 'tutorial' ? (
+            <motion.div key="tutorial" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+              <div className="mb-6 rounded-3xl bg-indigo-50 dark:bg-indigo-500/10 p-6 border border-indigo-100 dark:border-indigo-500/20 text-center">
+                 <h2 className="text-xl font-black text-indigo-900 dark:text-indigo-400 mb-2 font-display">Przewodnik po Aplikacji</h2>
+                 <p className="text-xs font-medium text-indigo-700/80 dark:text-indigo-300 leading-relaxed mb-6">
+                   Uruchom nasz interaktywny samouczek krok po kroku, który oprowadzi Cię po podstawach obsługi GlikoControl. Idealny dla nowych użytkowników!
+                 </p>
+                 <button 
+                   onClick={() => setShowTutorial(true)}
+                   className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/30 active:scale-95 transition-all"
+                 >
+                   Odtwórz Samouczek
+                 </button>
+              </div>
+              
+              <div className="mt-8 p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-700">
+                <h3 className="font-black text-slate-800 dark:text-white mb-4 text-sm font-display">Przydatne porady:</h3>
+                <ul className="text-xs font-medium text-slate-600 dark:text-slate-400 space-y-4">
+                  <li className="flex items-start gap-3">
+                    <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <div>Zawsze zaczynaj od uzupełnienia swoich profili czasowych i <strong>wrażliwości na insulinę</strong> w zakładce Profil & Ustawienia.</div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <div>Kalkulator Bolusa opiera się na Twoich ustawieniach - im dokładniej je wpiszesz, tym lepsze będą wyliczenia.</div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <div>Jeśli używasz CGM, skasuj hasło do Nightscout, by aplikacja mogła automatycznie pobierać poziomy glukozy z chmury.</div>
+                  </li>
+                </ul>
+              </div>
+            </motion.div>
+          ) : activeList === 'faq' ? (
             <motion.div key="faq" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
               <div className="mb-6 rounded-3xl bg-indigo-50 dark:bg-indigo-500/10 p-6 border border-indigo-100 dark:border-indigo-500/20">
                  <h2 className="text-sm font-black text-indigo-900 dark:text-indigo-400 mb-2">Jak korzystać z aplikacji?</h2>
@@ -259,6 +303,10 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {showTutorial && <OnboardingTutorial onComplete={() => setShowTutorial(false)} />}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -7,6 +7,17 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.5.2",
+    date: "2026-05-20",
+    title: "Najnowsza Wersja 3.5.2",
+    changes: [
+      "Nowe animacje i zaktualizowane, super nowoczesne okno nowości (pop-up) po pomyślnym załadowaniu aktualizacji.",
+      "Dodano dodatkowe wsparcie i lepszą responsywność dla większych ekranów.",
+      "Poprawki wydajnościowe i optymalizacja działania pod maską aplikacji.",
+      "Zwiększono niezawodność wyświetlania statystyk i ulepszono walidację formularzy."
+    ]
+  },
+  {
     version: "3.5.1",
     date: "2026-05-18",
     title: "Ulepszenia Gliko Czat i Profilu",
@@ -196,4 +207,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.5.1";
+export const CURRENT_VERSION = "3.5.2";

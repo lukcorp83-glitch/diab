@@ -1548,7 +1548,7 @@ export default function App() {
       )}
       {/* Header */}
       <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
-        <div className="flex justify-between items-center max-w-md lg:max-w-7xl mx-auto">
+        <div className="flex justify-between items-center max-w-md landscape:max-w-7xl lg:max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
             <button
                onClick={() => {
@@ -1595,7 +1595,7 @@ export default function App() {
         {/* Unified Audio Player for PWA Support - Silence Loop */}
         <audio 
           id="pwa-media-player"
-          src="/silence.mp3"
+          src="data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
           loop 
           playsInline 
           preload="auto"
@@ -1636,7 +1636,7 @@ export default function App() {
       />
 
       {/* Main Content with Swipe Navigation */}
-      <main ref={mainRef} className="flex-1 max-w-md lg:max-w-7xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden">
+      <main ref={mainRef} className="flex-1 max-w-md landscape:max-w-7xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden">
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.div
             key={activeTab}
@@ -1660,7 +1660,7 @@ export default function App() {
 
       {/* Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl">
-        <div className="max-w-md lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
+        <div className="max-w-md landscape:max-w-7xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
           <NavButton active={activeTab === 'chart'} onClick={() => changeTab('chart')} icon={<Activity />} label="Wykres" />
           <NavButton active={activeTab === 'dashboard'} onClick={() => changeTab('dashboard')} icon={<LayoutDashboard />} label="Pulpit" />
           <NavButton active={activeTab === 'database'} onClick={() => changeTab('database')} icon={<Database />} label="Baza" />

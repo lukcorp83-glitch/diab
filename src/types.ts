@@ -65,6 +65,16 @@ export interface Medication {
   expiryDate?: string; // "YYYY-MM-DD"
 }
 
+export interface InventoryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  lowStockThreshold: number;
+  category: 'sensors' | 'insulin' | 'infusion_sets' | 'strips' | 'other';
+  expiryDate?: string;
+}
+
 export interface UserSettings {
   isf: number;
   wwRatio: number;
@@ -74,6 +84,7 @@ export interface UserSettings {
   dia?: number; // Duration of Insulin Action in hours
   hourlyProfiles?: HourlyProfile[];
   medications?: Medication[];
+  inventory?: InventoryItem[];
   cgmCalibration?: number; // Calibration offset in mg/dL
   cgmTimestamp?: number; // When was the last calibration 
   sensorChangeDate?: number;

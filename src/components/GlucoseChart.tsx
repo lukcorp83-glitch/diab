@@ -135,8 +135,8 @@ const CustomSiteShape = (props: any) => {
   if (!payload.siteVal || isNaN(cx) || isNaN(cy)) return null;
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSite); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <circle cx={cx} cy={cy - 10} r={15} fill="transparent" />
-      <Droplets x={cx - 9} y={cy - 19} size={18} color="#14b8a6" strokeWidth={2.5} />
+      <circle cx={cx} cy={cy + 15} r={15} fill="transparent" />
+      <Droplets x={cx - 9} y={cy + 6} size={18} color="#14b8a6" strokeWidth={2.5} />
     </g>
   );
 };
@@ -146,8 +146,8 @@ const CustomSensorShape = (props: any) => {
   if (!payload.sensorVal || isNaN(cx) || isNaN(cy)) return null;
   return (
     <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSensor); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <circle cx={cx} cy={cy - 10} r={15} fill="transparent" />
-      <Signal x={cx - 9} y={cy - 19} size={18} color="#6366f1" strokeWidth={2.5} />
+      <circle cx={cx} cy={cy + 15} r={15} fill="transparent" />
+      <Signal x={cx - 9} y={cy + 6} size={18} color="#6366f1" strokeWidth={2.5} />
     </g>
   );
 };
@@ -569,8 +569,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     });
 
     dataM.forEach(d => addPoint(d.timestamp, 'mealVal', true, { originalM: d, mealY: chartMinY }));
-    dataSite.forEach(d => addPoint(d.timestamp, 'siteVal', true, { originalSite: d, yVal: chartMinY }));
-    dataSensor.forEach(d => addPoint(d.timestamp, 'sensorVal', true, { originalSensor: d, yVal: chartMinY }));
+    dataSite.forEach(d => addPoint(d.timestamp, 'siteVal', true, { originalSite: d, yVal: chartMaxY }));
+    dataSensor.forEach(d => addPoint(d.timestamp, 'sensorVal', true, { originalSensor: d, yVal: chartMaxY }));
 
     loopPredictions.forEach(p => addPoint(p.timestamp, 'loopPrediction', p.value, { loopAction: p.actionType }));
     mlPredictionData.forEach(p => addPoint(p.timestamp, 'mlPrediction', p.value));
@@ -779,7 +779,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           
           {showLoopSimulation && (
              <Line 
-               type="natural" 
+               type="monotone" 
                dataKey="loopPrediction" 
                stroke="#10b981" 
                strokeWidth={2.5}
@@ -793,7 +793,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
           {showMLPrediction && (
              <Line 
-                 type="natural" 
+                 type="monotone" 
                  dataKey="mlPrediction" 
                  stroke="#fbbf24" 
                  strokeWidth={3} 

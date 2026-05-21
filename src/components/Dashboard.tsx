@@ -480,7 +480,7 @@ export default function Dashboard({
             isChildMode={settings.childMode || false}
             petName={petData?.name}
             accuracy={mlInfo?.accuracy}
-            datasetSize={mlInfo?.datasetSize}
+            datasetSize={logs.length}
           >
             {settings.childMode && (
                <VirtualPet user={user} logs={logs} glucose={lastG ? lastG.value : null} setTab={setTab} embedded={true} pumpStatus={pumpStatus} />
@@ -782,7 +782,7 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">Wszystkie</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').slice(0, 6).map((log, idx) => (
+               {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').slice(0, 3).map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => {}}>
                       <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">

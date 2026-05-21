@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
         },
         manifest: {
           name: 'GlikoControl',
-          short_name: 'Gliko',
+          short_name: 'GlikoControl',
           description: 'Asystent Twojej cukrzycy z systemem GlikoSense AI',
           theme_color: '#0f172a',
           background_color: '#0f172a',
