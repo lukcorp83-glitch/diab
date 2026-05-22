@@ -78,6 +78,34 @@ const CustomGlucoseDot = (props: any) => {
   if (val < targetMin) fill = '#f59e0b'; // Amber instead of red
   else if (val > targetMax) fill = '#f59e0b';
 
+  const isLatest = payload.isLatest;
+  const direction = payload.originalG?.direction;
+  const velocity = payload.velocity;
+
+  let arrow = '';
+  if (isLatest) {
+    if (direction) {
+      switch (direction) {
+        case 'DoubleUp': arrow = '⇈'; break;
+        case 'SingleUp': arrow = '↑'; break;
+        case 'FortyFiveUp': arrow = '↗'; break;
+        case 'Flat': arrow = '→'; break;
+        case 'FortyFiveDown': arrow = '↘'; break;
+        case 'SingleDown': arrow = '↓'; break;
+        case 'DoubleDown': arrow = '⇊'; break;
+        default: arrow = '→'; break;
+      }
+    } else if (velocity !== undefined) {
+      if (velocity > 2) arrow = '⇈';
+      else if (velocity > 1) arrow = '↑';
+      else if (velocity > 0.5) arrow = '↗';
+      else if (velocity < -2) arrow = '⇊';
+      else if (velocity < -1) arrow = '↓';
+      else if (velocity < -0.5) arrow = '↘';
+      else arrow = '→';
+    }
+  }
+
   return (
     <g 
       onClick={(e) => {
@@ -88,11 +116,23 @@ const CustomGlucoseDot = (props: any) => {
     >
       <circle cx={cx} cy={cy} r={20} fill="transparent" />
       <circle 
-        cx={cx} cy={cy} r={5} 
+        cx={cx} cy={cy} r={isLatest ? 7 : 5} 
         fill={fill} 
         stroke={isDark ? '#0f172a' : '#ffffff'} 
-        strokeWidth={2}
+        strokeWidth={isLatest ? 3 : 2}
       />
+      {isLatest && arrow && (
+        <text 
+          x={cx + 12} 
+          y={cy + 5} 
+          fill={fill} 
+          fontSize={16} 
+          fontWeight="900" 
+          className="pointer-events-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]"
+        >
+          {arrow}
+        </text>
+      )}
     </g>
   );
 };
@@ -379,7 +419,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
     }
 
-    const predictionTime = 2 * 60 * 60 * 1000;
+    const predictionTime = 3 * 60 * 60 * 1000;
     const baseRangeMs = hours * 60 * 60 * 1000;
     const rangeMs = baseRangeMs / zoomLevel;
     
@@ -542,7 +582,32 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
        if (extra) Object.assign(p, extra);
     };
 
-    dataG.forEach(d => addPoint(d.timestamp, 'glucose', d.value, { originalG: d }));
+    const allG = logs.filter(l => l.type === 'glucose').sort((a,b) => a.timestamp - b.timestamp);
+    const absoluteLatest = allG.length > 0 ? allG[allG.length - 1].timestamp : 0;
+    
+    let globalVelocity = 0;
+    if (allG.length >= 2) {
+      const last = allG[allG.length - 1];
+      let prev = allG[allG.length - 2];
+      for (let i = allG.length - 2; i >= 0; i--) {
+        if (last.timestamp - allG[i].timestamp >= 20 * 60000) {
+          prev = allG[i];
+          break;
+        }
+      }
+      const timeDiffMin = (last.timestamp - prev.timestamp) / 60000;
+      if (timeDiffMin > 0) {
+         globalVelocity = (last.value - prev.value) / timeDiffMin;
+      }
+    }
+
+    const startRoundedMap = Math.round(start / 60000) * 60000;
+    
+    dataG.forEach(d => addPoint(d.timestamp, 'glucose', d.value, { 
+      originalG: d, 
+      isLatest: d.timestamp === absoluteLatest,
+      velocity: d.timestamp === absoluteLatest ? globalVelocity : undefined
+    }));
     dataB.forEach(d => {
       addPoint(d.timestamp, 'bolusVal', true, { 
         originalB: d, 
@@ -680,7 +745,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       </div>
 
 
-      <div className="w-full relative h-[400px] outline-none focus:outline-none focus-visible:outline-none">
+      <div className="w-full relative h-[400px] landscape:h-[230px] md:landscape:h-[320px] lg:landscape:h-[400px] outline-none focus:outline-none focus-visible:outline-none">
         {!hasData && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-[2px] rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 glass-target">
             <div className="w-12 h-12 rounded-full bg-accent-500/10 flex items-center justify-center mb-4 animate-pulse">
@@ -690,7 +755,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 max-w-[200px] leading-relaxed">System właśnie synchronizuje Twoje ostatnie wyniki z Nightscout. Zaraz się pojawią!</p>
           </div>
         )}
-        <ResponsiveContainer width="100%" height={400} className="outline-none focus:outline-none focus-visible:outline-none border-none">
+        <ResponsiveContainer width="100%" height="100%" className="outline-none focus:outline-none focus-visible:outline-none border-none">
           <ComposedChart
             data={chartData}
             margin={{ top: 10, right: 10, left: -25, bottom: 20 }}

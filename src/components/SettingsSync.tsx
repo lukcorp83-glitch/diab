@@ -7,7 +7,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { Share2, Download, X, Copy, Check, Users, Link as LinkIcon, Unlink, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserSettings } from '../types';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export default function SettingsSync({ user, settings, onImport }: { user: any, settings: UserSettings, onImport: (s: UserSettings) => void }) {
@@ -21,6 +21,7 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
   const [qrPayload, setQrPayload] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(Number(localStorage.getItem('pairing_failed_attempts') || 0));
   const [isBlocked, setIsBlocked] = useState(false);
+  const [groupCount, setGroupCount] = useState<number>(0);
 
   useEffect(() => {
     const blockUntil = Number(localStorage.getItem('pairing_block_until') || 0);
@@ -30,6 +31,25 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
       setTimeout(() => setIsBlocked(false), remaining);
     }
   }, []);
+
+  // Fetch count of paired devices
+  useEffect(() => {
+    if (user && !linkedUid) {
+      const getFollowers = async () => {
+        try {
+          const reqsRef = collection(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'linkRequests');
+          const snap = await getDocs(reqsRef);
+          setGroupCount(snap.size + 1); // master + followers
+        } catch(e) {
+          console.error('Error fetching group count', e);
+        }
+      };
+      getFollowers();
+    } else if (linkedUid) {
+      // If we are linked, we know there is at least a pair
+      setGroupCount(2); // Can't easily know exact count without server fn, but 2+
+    }
+  }, [user, linkedUid]);
 
   // Refresh payload when showing export to reset timestamp
   useEffect(() => {
@@ -145,9 +165,14 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
           <Users className="text-accent-500" size={20} />
           <span className="text-xs font-bold dark:text-white">Rodzina / Parowanie</span>
         </div>
-        {linkedUid && (
-          <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-1 rounded-full flex items-center gap-1"><LinkIcon size={10} /> Sparowano</span>
-        )}
+        <div className="flex items-center gap-2">
+          {groupCount > 1 && (
+            <span className="text-[10px] bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold px-2 py-1 rounded-full flex items-center gap-1">👥 {groupCount} osoby</span>
+          )}
+          {linkedUid && (
+            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-1 rounded-full flex items-center gap-1"><LinkIcon size={10} /> Sparowano</span>
+          )}
+        </div>
       </div>
       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-2">
         Spraw, aby drugi rodzic lub bliska osoba widziała i dodawała dokładnie te same dane (Posiłki, Insulina, Cukry dziecka).
@@ -174,6 +199,27 @@ export default function SettingsSync({ user, settings, onImport }: { user: any, 
           >
             <Download size={14} /> Zeskanuj QR
           </button>
+        </div>
+      )}
+
+      {!linkedUid && groupCount > 1 && (
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+           <label className="flex items-center justify-between cursor-pointer group">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-xl group-hover:bg-indigo-500/20 transition-colors">
+                    <LinkIcon size={16} />
+                 </div>
+                 <div className="text-left">
+                    <h4 className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">Blokada terapii (Dziecko)</h4>
+                    <p className="text-[9px] text-slate-500 font-bold leading-tight">Połączone urządzenia nie będą mogły edytować ustawień terapii.</p>
+                 </div>
+              </div>
+              <div className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-slate-200 dark:bg-slate-700">
+                 <input type="checkbox" className="peer sr-only" checked={settings.groupTherapyLock || false} onChange={e => onImport({ ...settings, groupTherapyLock: e.target.checked })} />
+                 <div className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.groupTherapyLock ? 'translate-x-6' : 'translate-x-1'}`} />
+                 <div className="absolute inset-0 rounded-full peer-checked:bg-indigo-500 transition-colors -z-10" />
+              </div>
+           </label>
         </div>
       )}
 

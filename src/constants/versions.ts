@@ -7,6 +7,17 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "3.5.3",
+    date: "2026-05-21",
+    title: "Aktualizacja 3.5.3: Wizualne Strzałki i Optymalizacja Sync",
+    changes: [
+      "Nowość: Dodano graficzne strzałki trendów w czasie rzeczywistym (np. ↑, ↓, ↗) bezpośrednio przy najnowszym punkcie glikemii na głównym wykresie.",
+      "Optymalizacja: Wdrożono inteligentną warstwę buforowania (caching layer) dla zapytań Nightscout (buforowanie na 5 minut przy zapytaniach w tle) w celu oszczędzania baterii i transferu danych.",
+      "Ulepszenie: Wprowadzono opcję natychmiastowego wymuszenia pełnej synchronizacji przy ręcznym odświeżeniu.",
+      "Stabilność: Drobne udoskonalenia interfejsu wykresów oraz poprawki wydajnościowe na telefonach i tabletach."
+    ]
+  },
+  {
     version: "3.5.2",
     date: "2026-05-20",
     title: "Najnowsza Wersja 3.5.2",
@@ -207,4 +218,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.5.2";
+export const CURRENT_VERSION = "3.5.3";

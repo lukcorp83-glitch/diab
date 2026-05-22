@@ -129,7 +129,8 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                         (log.type === 'glucose' ? Math.round(log.value) : 
                          log.type === 'activity' ? log.value :
                          log.type === 'site_change' || log.type === 'sensor_change' ? '' : 
-                         log.value.toFixed(1)) : log.value}
+                         (Math.round(log.value * 100) / 100)) : 
+                       (log.type === 'bolus' || (log.type as any) === 'insulin' ? (Math.round(Number(log.value) * 100) / 100) : log.value)}
                       {(log.type === 'site_change' || log.type === 'sensor_change') ? (log.notes || 'Wymiana') : 
                        (log.type === 'glucose' ? ' mg/dL' : 
                         log.type === 'meal' ? 'g W' : 

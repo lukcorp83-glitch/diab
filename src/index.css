@@ -301,7 +301,7 @@ body {
 }
 
 /* Wparcie dla układu poziomego na urządzeniach mobilnych (Landscape) */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 600px) {
   nav.fixed.bottom-0 {
     top: 0 !important;
     bottom: 0 !important;

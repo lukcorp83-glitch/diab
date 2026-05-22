@@ -3,7 +3,7 @@ import React from 'react';
 export default function Logo({ className }: { className?: string }) {
   return (
     <div className={`relative flex items-center justify-center rounded-xl bg-slate-950 shadow-lg ${className}`}>
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full scale-[0.8]">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full scale-[0.85]">
         <defs>
           <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#4f46e5" />

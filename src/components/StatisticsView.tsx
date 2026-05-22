@@ -15,6 +15,8 @@ interface DayStats {
   insulin: number;
   hypos: number;
   hypers: number;
+  siteChange: boolean;
+  sensorChange: boolean;
 }
 
 interface MonthStats {
@@ -59,7 +61,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
       }
       
       if (!data[monthKey].days[dayKey]) {
-        data[monthKey].days[dayKey] = { dateStr: dayKey, carbs: 0, insulin: 0, hypos: 0, hypers: 0 };
+        data[monthKey].days[dayKey] = { dateStr: dayKey, carbs: 0, insulin: 0, hypos: 0, hypers: 0, siteChange: false, sensorChange: false };
       }
 
       if (log.type === 'glucose') {
@@ -92,9 +94,11 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
       
       if (log.type === 'site_change') {
         data[monthKey].siteChanges += 1;
+        data[monthKey].days[dayKey].siteChange = true;
       }
       if (log.type === 'sensor_change') {
         data[monthKey].sensorChanges += 1;
+        data[monthKey].days[dayKey].sensorChange = true;
       }
     });
 
@@ -263,7 +267,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                                 {stats.insulin > 0 && (
                                   <div className="text-[9px] font-black text-indigo-500 leading-none">{stats.insulin.toFixed(1)}j</div>
                                 )}
-                                {(stats.hypos > 0 || stats.hypers > 0) && (
+                                {(stats.hypos > 0 || stats.hypers > 0 || stats.siteChange || stats.sensorChange) && (
                                   <div className="flex gap-1 justify-center w-full mt-0.5">
                                     {stats.hypos > 0 && (
                                       <div className="text-white bg-rose-500 text-[7px] px-1 rounded-sm leading-tight font-bold">
@@ -273,6 +277,16 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                                     {stats.hypers > 0 && (
                                       <div className="text-white bg-orange-500 text-[7px] px-1 rounded-sm leading-tight font-bold">
                                         {stats.hypers}
+                                      </div>
+                                    )}
+                                    {stats.siteChange && (
+                                      <div className="flex items-center justify-center text-white bg-teal-500 px-0.5 rounded-sm" title="Wymiana wkłucia">
+                                        <Droplets size={8} />
+                                      </div>
+                                    )}
+                                    {stats.sensorChange && (
+                                      <div className="flex items-center justify-center text-white bg-emerald-500 px-0.5 rounded-sm" title="Wymiana sensora">
+                                        <RefreshCw size={8} />
                                       </div>
                                     )}
                                   </div>

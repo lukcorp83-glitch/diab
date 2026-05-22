@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
           theme_color: '#0f172a',
           background_color: '#0f172a',
           display: 'standalone',
-          orientation: 'portrait',
+          orientation: 'any',
           dir: 'ltr',
           lang: 'pl-PL',
           start_url: '/diab/',

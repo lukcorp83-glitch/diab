@@ -53,8 +53,39 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
   throw new Error(`All proxies failed. Initial error: ${errorMsg}`);
 }
 
+const CACHE_TTL = 5 * 60 * 1000;
+
+function getCachedData<T>(key: string): T | null {
+  try {
+    const item = localStorage.getItem(key);
+    if (item) {
+      const parsed = JSON.parse(item);
+      if (Date.now() - parsed.timestamp < CACHE_TTL) {
+        return parsed.data as T;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse cache', e);
+  }
+  return null;
+}
+
+function setCachedData<T>(key: string, data: T) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {
+    console.warn('Failed to set cache', e);
+  }
+}
+
 export const nightscoutService = {
-  async fetchEntries(url: string, secret?: string, count = 1000): Promise<LogEntry[]> {
+  async fetchEntries(url: string, secret?: string, count = 1000, forceSync = false): Promise<LogEntry[]> {
+    const cacheKey = `ns-entries-${url}-${count}`;
+    if (!forceSync) {
+      const cached = getCachedData<LogEntry[]>(cacheKey);
+      if (cached) return cached;
+    }
+
     try {
       const headers: Record<string, string> = { 'Accept': 'application/json' };
       if (secret) {
@@ -78,20 +109,29 @@ export const nightscoutService = {
 
       if (!Array.isArray(data)) return [];
       
-      return data.filter(e => e.sgv).map((e, index) => ({
+      const result = data.filter(e => e.sgv).map((e, index) => ({
         id: `ns-entry-${e.date}-${index}`,
-        type: 'glucose',
+        type: 'glucose' as const,
         value: e.sgv,
         timestamp: e.date,
-        source: 'nightscout'
+        source: 'nightscout' as const,
+        direction: e.direction,
       }));
+      setCachedData(cacheKey, result);
+      return result;
     } catch (error) {
       console.error("Nightscout entries error:", error instanceof Error ? error.message : error);
       return [];
     }
   },
 
-  async fetchTreatments(url: string, secret?: string, count = 1000): Promise<LogEntry[]> {
+  async fetchTreatments(url: string, secret?: string, count = 1000, forceSync = false): Promise<LogEntry[]> {
+    const cacheKey = `ns-treatments-${url}-${count}`;
+    if (!forceSync) {
+      const cached = getCachedData<LogEntry[]>(cacheKey);
+      if (cached) return cached;
+    }
+
     try {
       const headers: Record<string, string> = { 'Accept': 'application/json' };
       if (secret) {
@@ -184,6 +224,7 @@ export const nightscoutService = {
         }
       });
       
+      setCachedData(cacheKey, logs);
       return logs;
     } catch (error) {
       console.error("Nightscout treatments error:", error instanceof Error ? error.message : error);
@@ -191,7 +232,13 @@ export const nightscoutService = {
     }
   },
 
-  async fetchDeviceStatus(url: string, secret?: string, count = 1): Promise<any> {
+  async fetchDeviceStatus(url: string, secret?: string, count = 1, forceSync = false): Promise<any> {
+    const cacheKey = `ns-devicestatus-${url}-${count}`;
+    if (!forceSync) {
+      const cached = getCachedData<any>(cacheKey);
+      if (cached) return cached;
+    }
+
     try {
       const headers: Record<string, string> = { 'Accept': 'application/json' };
       if (secret) {
@@ -228,7 +275,7 @@ export const nightscoutService = {
       // If no pump info, but we have uploader info, still return something
       if (!pumpInfo && !uploaderInfo) return null;
       
-      return {
+      const result = {
         battery: batteryPercent,
         reservoir: pumpInfo?.reservoir ?? 0,
         activeInsulin: pumpInfo?.iob?.iob ?? 0,
@@ -242,6 +289,9 @@ export const nightscoutService = {
         } : null,
         lastUpdate: { seconds: Math.floor(new Date(latest.created_at).getTime() / 1000) }
       };
+
+      setCachedData(cacheKey, result);
+      return result;
     } catch (error) {
       console.error("Nightscout devicestatus error:", error instanceof Error ? error.message : error);
       return null;

@@ -791,7 +791,7 @@ export default function Dashboard({
                         </div>
                         <div className="flex-1">
                           <p className="font-black text-base dark:text-white font-display">
-                            {log.value.toFixed(1)} <span className="text-[10px] opacity-40 uppercase">{log.type === "meal" ? "g" : " j."}</span>
+                            {typeof log.value === 'number' ? (Math.round(log.value * 100) / 100) : (Math.round(Number(log.value) * 100) / 100)} <span className="text-[10px] opacity-40 uppercase">{log.type === "meal" ? "g" : " j."}</span>
                           </p>
                           <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
                             {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.type === 'meal' ? 'Posiłek' : 'Bolus'}

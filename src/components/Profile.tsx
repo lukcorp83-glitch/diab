@@ -58,7 +58,8 @@ import {
   Dumbbell,
   Box,
   Minus,
-  Edit3
+  Edit3,
+  LayoutDashboard
 } from 'lucide-react';
 import { db, auth, onConnectionChange } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
@@ -180,6 +181,9 @@ export default function Profile({
 
 
   const icons = ['🍎', '🍌', '🍇', '🍓', '🥪', '🍕', '🍔', '🥤', '🍬', '🥣', '🍫', '🥨', '🍪', '🥛'];
+
+  const isFollower = !!localStorage.getItem('diacontrol_linked_uid');
+  const therapyLocked = isFollower && settings.groupTherapyLock;
 
   const [medLoading, setMedLoading] = useState(false);
   const [cleaning, setCleaning] = useState(false);
@@ -1350,30 +1354,32 @@ export default function Profile({
               <div className="space-y-4">
                 <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Czułość & Dieta</h4>
                 <div className="space-y-3">
-                  <SettingInput label="Wrażliwość (ISF)" value={settings.isf} onChange={v => setSettings({ ...settings, isf: v })} min={10} max={300} />
-                  <SettingInput label="Ratio WW" value={settings.wwRatio} onChange={v => setSettings({ ...settings, wwRatio: v })} min={1} max={100} />
-                  <SettingInput label="Ratio WBT" value={settings.wbtRatio} onChange={v => setSettings({ ...settings, wbtRatio: v })} min={1} max={100} />
+                  <SettingInput disabled={therapyLocked} label="Wrażliwość (ISF)" value={settings.isf} onChange={v => setSettings({ ...settings, isf: v })} min={10} max={300} />
+                  <SettingInput disabled={therapyLocked} label="Ratio WW" value={settings.wwRatio} onChange={v => setSettings({ ...settings, wwRatio: v })} min={1} max={100} />
+                  <SettingInput disabled={therapyLocked} label="Ratio WBT" value={settings.wbtRatio} onChange={v => setSettings({ ...settings, wbtRatio: v })} min={1} max={100} />
                 </div>
               </div>
               <div className="space-y-4">
                 <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Zakresy Docelowe</h4>
                 <div className="space-y-3">
-                  <SettingInput label="Cel Dolny (Min)" value={settings.targetMin} onChange={v => setSettings({ ...settings, targetMin: v })} min={50} max={200} />
-                  <SettingInput label="Cel Górny (Max)" value={settings.targetMax} onChange={v => setSettings({ ...settings, targetMax: v })} min={100} max={300} />
+                  <SettingInput disabled={therapyLocked} label="Cel Dolny (Min)" value={settings.targetMin} onChange={v => setSettings({ ...settings, targetMin: v })} min={50} max={200} />
+                  <SettingInput disabled={therapyLocked} label="Cel Górny (Max)" value={settings.targetMax} onChange={v => setSettings({ ...settings, targetMax: v })} min={100} max={300} />
                   
-                  <div className={cn("p-4 rounded-3xl border flex flex-col items-center justify-center text-center", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50")}>
+                  <div className={cn("p-4 rounded-3xl border flex flex-col items-center justify-center text-center", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50", therapyLocked && "opacity-50 pointer-events-none")}>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Czas Insuliny (DIA)</span>
                     <div className="flex items-center gap-3">
                       <button 
                         onClick={() => setSettings({ ...settings, dia: Math.max(2, (settings.dia || 4) - 0.5) })}
-                        className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 hover:text-accent-500 transition-colors"
+                        disabled={therapyLocked}
+                        className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 hover:text-accent-500 transition-colors disabled:opacity-50"
                       >
                         -
                       </button>
                       <span className="text-xl font-black dark:text-white">{settings.dia || 4}h</span>
                       <button 
                         onClick={() => setSettings({ ...settings, dia: Math.min(8, (settings.dia || 4) + 0.5) })}
-                        className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 hover:text-accent-500 transition-colors"
+                        disabled={therapyLocked}
+                        className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 hover:text-accent-500 transition-colors disabled:opacity-50"
                       >
                         +
                       </button>
@@ -1383,12 +1389,18 @@ export default function Profile({
               </div>
             </div>
 
+            {therapyLocked && (
+              <div className="bg-rose-500/10 text-rose-500 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-3 text-xs font-bold ring-1 ring-rose-500/20">
+                <LucideLock size={20} /> Urządzenie główne zablokowało możliwość edycji tych ustawień.
+              </div>
+            )}
+
             <button 
               onClick={() => {
                 Haptics.medium();
                 saveSettings();
               }}
-              disabled={settingsLoading}
+              disabled={settingsLoading || therapyLocked}
               className="w-full bg-accent-600 hover:bg-accent-500 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-accent-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
             >
               {settingsLoading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
@@ -1667,7 +1679,7 @@ export default function Profile({
                     return;
                   }
                   const token = await notificationService.requestPermission();
-                  if (token) {
+                  if (token || Notification.permission === 'granted') {
                      setSettings({ 
                        ...settings, 
                        notificationsEnabled: true,
@@ -1688,6 +1700,47 @@ export default function Profile({
              <div className={cn(
                "w-4 h-4 rounded-full bg-white transition-all absolute shadow",
                settings.notificationsEnabled ? "left-7" : "left-1"
+             )} />
+           </button>
+        </div>
+
+        <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700 mt-4">
+           <div className="flex items-center gap-2.5">
+             <Activity className="text-accent-500" size={18} />
+             <div>
+                <p className="text-xs font-black dark:text-white leading-tight">Ciągły Widżet Powiadomień</p>
+                <p className="text-[9px] font-medium text-slate-500">Pokazuje glikemię w cichym powiadomieniu (wymaga włączonych alertów)</p>
+             </div>
+           </div>
+           <button 
+             onClick={async () => {
+               if (!settings.persistentWidgetEnabled) {
+                 if (window.self !== window.top) {
+                    alert('📢 WAŻNE: Przeglądarki blokują powiadomienia wewnątrz podglądu (iframe).\n\nAby włączyć ten widżet, otwórz aplikację w nowej karcie (przycisk w prawym górnym rogu tego okna).');
+                    return;
+                 }
+                 if ('Notification' in window) {
+                   const perm = await Notification.requestPermission();
+                   if (perm === 'granted') {
+                     setSettings({ ...settings, persistentWidgetEnabled: true });
+                   } else {
+                     alert("Zezwól na powiadomienia w przeglądarce, aby używać tego widżetu.");
+                   }
+                 } else {
+                   alert("Twoja przeglądarka nie obsługuje powiadomień.");
+                 }
+               } else {
+                 setSettings({ ...settings, persistentWidgetEnabled: false });
+               }
+             }}
+             className={cn(
+               "w-12 h-6 rounded-full transition-all relative flex items-center shadow-inner",
+               settings.persistentWidgetEnabled ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-600"
+             )}
+           >
+             <div className={cn(
+               "w-4 h-4 rounded-full bg-white transition-all absolute shadow",
+               settings.persistentWidgetEnabled ? "left-7" : "left-1"
              )} />
            </button>
         </div>
@@ -2949,6 +3002,38 @@ export default function Profile({
                 )}
               </div>
 
+              {/* Micro-Dashboard Feature */}
+              <div className={cn("p-6 rounded-[2.5rem] border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                      <LayoutDashboard size={20} className="text-white" />
+                    </div>
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-sm font-black dark:text-white leading-tight">Micro-Dashboard</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
+                        Twój osobisty widget na pulpicie. Użyj przycisku poniżej, a następnie dodaj skrót do paska głównego systemu.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 space-y-3">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Jak zainstalować jako Widget?</p>
+                    <ol className="text-[10px] text-slate-600 dark:text-slate-400 list-decimal pl-4 space-y-1">
+                      <li>Otwórz Micro-Dashboard (przycisk poniżej).</li>
+                      <li>Z menu przeglądarki wybierz <strong className="text-slate-800 dark:text-slate-200">"Dodaj do ekranu głównego"</strong> lub <strong className="text-slate-800 dark:text-slate-200">"Zainstaluj aplikację"</strong>.</li>
+                      <li>Po dodaniu do ekranu skrót zadziała jak podręczny widżet!</li>
+                    </ol>
+                    <button 
+                      onClick={() => window.open(window.location.origin + '?mini=true', '_blank')}
+                      className="w-full flex items-center justify-center py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-md mt-2"
+                    >
+                      Otwórz Micro-Dashboard
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Visual Appearance Cards */}
               <div className={cn("p-6 rounded-[2.5rem] border space-y-6", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
                 <div className="space-y-3">
@@ -3261,7 +3346,7 @@ export default function Profile({
   );
 }
 
-function SettingInput({ label, value, onChange, step = "0.01", min = 0, max = 9999 }: { label: string, value: number, onChange: (v: number) => void, step?: string, min?: number, max?: number }) {
+function SettingInput({ label, value, onChange, step = "0.01", min = 0, max = 9999, disabled = false }: { label: string, value: number, onChange: (v: number) => void, step?: string, min?: number, max?: number, disabled?: boolean }) {
   const [localValue, setLocalValue] = React.useState(Number.isInteger(value) ? value.toString() : Number(value).toFixed(2).replace(/\.00$/, ''));
 
   React.useEffect(() => {
@@ -3280,6 +3365,7 @@ function SettingInput({ label, value, onChange, step = "0.01", min = 0, max = 99
         min={min}
         max={max}
         value={localValue} 
+        disabled={disabled}
         onChange={e => {
           setLocalValue(e.target.value);
           const parsed = parseFloat(e.target.value);
@@ -3297,7 +3383,7 @@ function SettingInput({ label, value, onChange, step = "0.01", min = 0, max = 99
           setLocalValue(formatted);
           onChange(parseFloat(formatted));
         }}
-        className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
+        className={`w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       />
     </div>
   );

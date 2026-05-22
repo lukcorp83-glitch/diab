@@ -4,6 +4,7 @@
   "description": "System monitorowania glikemii i analizy danych",
   "start_url": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [

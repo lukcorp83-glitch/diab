@@ -12,7 +12,8 @@ const tips = [
   "Czy wiesz, że możesz skanować kody kreskowe produktów, aby szybko i precyzyjnie dodawać je do swojego posiłku?",
   "Czy wiesz, że możesz użyć aparatu AI, aby zrobić zdjęcie swojego talerza, a sztuczna inteligencja automatycznie rozpozna i oszacuje dla Ciebie posiłek?",
   "Czy wiesz, że możesz dodać własny klucz API w ustawieniach 'Integracje', aby korzystać z szybszego asystenta AI oraz podnieść limit zapytań?",
-  "Czy wiesz, że możesz zainstalować tę aplikację na telefonie? Użyj opcji 'Dodaj do ekranu głównego' w przeglądarce, by mieć do niej szybki dostęp!"
+  "Czy wiesz, że możesz zainstalować tę aplikację na telefonie? Użyj opcji 'Dodaj do ekranu głównego' w przeglądarce, by mieć do niej szybki dostęp!",
+  "Czy wiesz, że możesz stworzyć własny serwer do łączenia z xDrip przez wygenerowanie kodu w zakładce 'Integracje (API)'?"
 ];
 
 export default function DidYouKnowWidget({ onClick }: { onClick: () => void }) {

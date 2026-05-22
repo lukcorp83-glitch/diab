@@ -1,8 +1,25 @@
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// This will be replaced or you can hardcode your config here if needed, 
-// but Firebase usually handles the initialization of the SW if it's in the root.
+self.addEventListener('notificationclick', function(event) {
+  const notification = event.notification;
+  
+  if (notification.tag === 'persistent-stats-widget') {
+    notification.close();
+    event.waitUntil(
+      clients.matchAll({ type: 'window' }).then((clientList) => {
+        for (const client of clientList) {
+          if (client.url === '/' && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        if (clients.openWindow) {
+          return clients.openWindow('/diab/');
+        }
+      })
+    );
+  }
+});
 firebase.initializeApp({
   apiKey: "AIzaSyDYYDnRl9zIZmCySB6lk0yQweY6uosWuD4",
   authDomain: "diacontrolapp.firebaseapp.com",

@@ -75,6 +75,7 @@ const GlikoGames = lazyWithReload(() => import('./components/GlikoGames'));
 const GlikoChat = lazyWithReload(() => import('./components/GlikoChat'));
 const GlikoAssistant = lazyWithReload(() => import('./components/GlikoAssistant'));
 const TutorialView = lazyWithReload(() => import('./components/TutorialView'));
+const MiniDashboard = lazyWithReload(() => import('./components/MiniDashboard'));
 import Sidebar from './components/Sidebar';
 import { cn } from './lib/utils';
 import { nightscoutService } from './services/nightscout';
@@ -232,8 +233,8 @@ export default function App() {
           navigator.mediaSession.playbackState = (audio && !audio.paused) ? 'playing' : 'paused';
           if (audio && audio.volume === 1) audio.volume = 0.01;
           
-          navigator.mediaSession.setActionHandler('seekbackward', () => window.dispatchEvent(new CustomEvent('force-nightscout-sync')));
-          navigator.mediaSession.setActionHandler('seekforward', () => window.dispatchEvent(new CustomEvent('force-nightscout-sync')));
+          navigator.mediaSession.setActionHandler('previoustrack', () => window.dispatchEvent(new CustomEvent('force-nightscout-sync')));
+          navigator.mediaSession.setActionHandler('nexttrack', () => window.dispatchEvent(new CustomEvent('force-nightscout-sync')));
           
           console.log("[MediaSession] Metadata updated:", latest.value);
         } catch (err) {
@@ -252,6 +253,60 @@ export default function App() {
       window.removeEventListener('force-nightscout-sync', updateMediaMetadata);
     };
   }, [logs, userSettings?.mediaWidgetEnabled]);
+
+  // Persistent Notification Widget
+  useEffect(() => {
+    const updateNotificationWidget = async () => {
+      if (!userSettings?.persistentWidgetEnabled || !('Notification' in window) || Notification.permission !== 'granted') {
+        if ('serviceWorker' in navigator) {
+           navigator.serviceWorker.ready.then(reg => {
+              reg.getNotifications({ tag: 'persistent-stats-widget' }).then(notifications => {
+                 notifications.forEach(n => n.close());
+              });
+           });
+        }
+        return;
+      }
+      
+      const latest = logsRef.current.find(l => l.type === 'glucose');
+      if (latest && 'serviceWorker' in navigator) {
+        const getTrendArrow = (dir?: string) => {
+          switch(dir) {
+            case 'DoubleUp': return '↑↑';
+            case 'SingleUp': return '↑';
+            case 'FortyFiveUp': return '↗';
+            case 'Flat': return '→';
+            case 'FortyFiveDown': return '↘';
+            case 'SingleDown': return '↓';
+            case 'DoubleDown': return '↓↓';
+            default: return '';
+          }
+        };
+
+        const trendIcon = getTrendArrow(latest.direction);
+        const deltaStr = latest.delta !== undefined ? `${latest.delta > 0 ? '+' : ''}${latest.delta.toFixed(0)}` : '';
+        const timeStr = new Date(latest.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          if (reg) {
+            await reg.showNotification(`${latest.value} ${trendIcon} ${deltaStr}`, {
+              body: `Ostatni odczyt glikemii (${timeStr})`,
+              icon: '/pwa-icon.svg',
+              tag: 'persistent-stats-widget',
+              renotify: false,
+              silent: true,
+              requireInteraction: true
+            } as any);
+          }
+        } catch (e) {
+          console.error("Failed to show persistent notification:", e);
+        }
+      }
+    };
+
+    updateNotificationWidget();
+  }, [logs, userSettings?.persistentWidgetEnabled, userSettings?.notificationsEnabled]);
 
   useEffect(() => {
     if (mainRef.current) {
@@ -560,7 +615,12 @@ export default function App() {
 
     // Check version for changelog
     const lastSeen = localStorage.getItem('lastSeenVersion');
-    if (lastSeen !== CURRENT_VERSION) {
+    const hasSeenChangelog353 = localStorage.getItem('hasSeen353Changelog_v1');
+    if (!hasSeenChangelog353) {
+      setShowChangelog(true);
+      localStorage.setItem('hasSeen353Changelog_v1', 'true');
+      localStorage.setItem('lastSeenVersion', CURRENT_VERSION);
+    } else if (lastSeen !== CURRENT_VERSION) {
       // Only show if it's not the very first visit (we show tutorial then)
       if (lastSeen || localStorage.getItem('hasSeenTutorial')) {
         setShowChangelog(true);
@@ -923,7 +983,7 @@ export default function App() {
         };
 
         // 1. FAST PATH: Fetch just the LATEST entry first for immediate feedback
-        const latestEntries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 1);
+        const latestEntries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 1, manual);
         if (latestEntries.length > 0) {
           const latest = latestEntries[0];
           const fingerprint = `${latest.type}-${Math.floor(latest.timestamp / 60000)}-${latest.value}`;
@@ -954,7 +1014,7 @@ export default function App() {
         }
 
         // 2. Fetch device status (important for battery/status)
-        const devicestatus = await nightscoutService.fetchDeviceStatus(nsUrl, nsSecret);
+        const devicestatus = await nightscoutService.fetchDeviceStatus(nsUrl, nsSecret, 1, manual);
         if (devicestatus) {
           const pumpRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'status', 'pump');
           
@@ -962,8 +1022,8 @@ export default function App() {
         }
 
         // 3. FULL SYNC: Fetch background history
-        const entries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 300); 
-        const treatments = await nightscoutService.fetchTreatments(nsUrl, nsSecret, 500); 
+        const entries = await nightscoutService.fetchEntries(nsUrl, nsSecret, 300, manual); 
+        const treatments = await nightscoutService.fetchTreatments(nsUrl, nsSecret, 500, manual); 
         
         const allNewLogs = [...entries, ...treatments];
         
@@ -1282,6 +1342,20 @@ export default function App() {
     );
   }
 
+  const isMini = new URLSearchParams(window.location.search).get('mini') === 'true';
+  if (isMini) {
+    return (
+      <React.Suspense fallback={
+        <div className="w-full min-h-screen flex items-center justify-center bg-slate-900">
+          <div className="w-8 h-8 rounded-full border-4 border-slate-700 border-t-accent-500 animate-spin" />
+        </div>
+      }>
+        <Toaster position="top-center" />
+        <MiniDashboard logs={logs} userSettings={userSettings} />
+      </React.Suspense>
+    );
+  }
+
   const tabs = userSettings?.childMode 
     ? ['chart', 'dashboard', 'database', 'meal', 'chat', 'assistant', 'ai', 'profile', 'games']
     : ['chart', 'dashboard', 'database', 'meal', 'chat', 'assistant', 'ai', 'profile'];
@@ -1566,8 +1640,16 @@ export default function App() {
               <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
               <div>
                 <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">GlikoControl</h1>
-                <p className="text-accent-500 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono">
-                  <span className="w-1 h-1 rounded-full bg-accent-500 animate-pulse" />
+                <p 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    Haptics.medium();
+                    setShowChangelog(true);
+                  }}
+                  title="Kliknij, aby zobaczyć co nowego"
+                  className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
                   v{APP_VERSION}
                 </p>
               </div>

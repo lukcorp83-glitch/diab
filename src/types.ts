@@ -99,6 +99,8 @@ export interface UserSettings {
     predictions: boolean;
   };
   childMode?: boolean;
+  groupTherapyLock?: boolean;
+  persistentWidgetEnabled?: boolean;
   accentColor?: string;
   theme?: 'light' | 'dark' | 'system';
   bgOption?: 'default' | 'true-black';

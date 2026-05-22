@@ -614,7 +614,7 @@ export const MLAnalyzer = {
         
         predictionCurve.push({ timestamp: latestTimeMs, offsetMs: 0, value: currentPredictBg });
 
-        for(let step = 1; step <= 12; step++) {
+        for(let step = 1; step <= 36; step++) {
             const futureTimeMs = latestTimeMs + (step * 5 * 60 * 1000);
             const { iob: fIob, cob: fCob, pob: fPob, fob: fFob } = calculateActiveAtTime(futureTimeMs, sorted);
             const fDate = new Date(futureTimeMs);
@@ -677,7 +677,7 @@ export const MLAnalyzer = {
       predictionCurve.length = 0; 
       predictionCurve.push({ timestamp: latestTimeMs, offsetMs: 0, value: currentPredictBg });
       
-      for(let step = 1; step <= 12; step++) {
+      for(let step = 1; step <= 36; step++) {
         const futureTimeMs = latestTimeMs + (step * 5 * 60 * 1000);
         const { iob: fIob, cob: fCob } = calculateActiveAtTime(futureTimeMs, sorted);
         const carbImpact = (fCob > currentCob ? 0 : (currentCob - fCob)) * 3.0; // was 2.5
