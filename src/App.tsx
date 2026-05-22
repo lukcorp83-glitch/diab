@@ -215,7 +215,6 @@ const DEFAULT_SETTINGS: UserSettings = {
   notificationsEnabled: true,
   weatherWidgetEnabled: true,
   weatherNeuralEnabled: true,
-  mediaWidgetEnabled: true,
   glassmorphismEnabled: true,
 };
 
@@ -248,203 +247,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
-  // Media Session Support for Lock Screen Updates
-  useEffect(() => {
-    const updateMediaMetadata = () => {
-      if (!("mediaSession" in navigator) || !userSettings?.mediaWidgetEnabled) {
-        if ("mediaSession" in navigator) navigator.mediaSession.metadata = null;
-        return;
-      }
 
-      const latest = logsRef.current.find((l) => l.type === "glucose");
-      if (latest) {
-        const getTrendArrow = (dir?: string) => {
-          switch (dir) {
-            case "DoubleUp":
-              return "↑↑";
-            case "SingleUp":
-              return "↑";
-            case "FortyFiveUp":
-              return "↗";
-            case "Flat":
-              return "→";
-            case "FortyFiveDown":
-              return "↘";
-            case "SingleDown":
-              return "↓";
-            case "DoubleDown":
-              return "↓↓";
-            default:
-              return "";
-          }
-        };
-
-        const trendIcon = getTrendArrow(latest.direction);
-        const deltaStr =
-          latest.delta !== undefined
-            ? `${latest.delta > 0 ? "+" : ""}${latest.delta.toFixed(0)}`
-            : "";
-
-        const timeStr = new Date(latest.timestamp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        const ageMinutes = Math.floor((Date.now() - latest.timestamp) / 60000);
-        const ageStr = ageMinutes > 3 ? ` (${ageMinutes} min)` : "";
-
-        try {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: `${latest.value} ${trendIcon} ${deltaStr}`,
-            artist: `GlikoSense • ${timeStr}${ageStr}`,
-            album: "Monitoring Cukru na Żywo",
-            artwork: [
-              {
-                src: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
-                sizes: "512x512",
-                type: "image/png",
-              },
-            ],
-          });
-
-          const audio = document.getElementById(
-            "pwa-media-player",
-          ) as HTMLAudioElement;
-          navigator.mediaSession.setActionHandler("play", () => {
-            audio?.play();
-            navigator.mediaSession.playbackState = "playing";
-          });
-          navigator.mediaSession.setActionHandler("pause", () => {
-            audio?.pause();
-            navigator.mediaSession.playbackState = "paused";
-          });
-          navigator.mediaSession.playbackState =
-            audio && !audio.paused ? "playing" : "paused";
-          if (audio && audio.volume === 1) audio.volume = 0.01;
-
-          navigator.mediaSession.setActionHandler("previoustrack", () =>
-            window.dispatchEvent(new CustomEvent("force-nightscout-sync")),
-          );
-          navigator.mediaSession.setActionHandler("nexttrack", () =>
-            window.dispatchEvent(new CustomEvent("force-nightscout-sync")),
-          );
-
-          console.log("[MediaSession] Metadata updated:", latest.value);
-        } catch (err) {
-          console.warn("MediaSession error:", err);
-        }
-      }
-    };
-
-    updateMediaMetadata();
-
-    window.addEventListener("force-media-update", updateMediaMetadata);
-    window.addEventListener("force-nightscout-sync", updateMediaMetadata);
-
-    return () => {
-      window.removeEventListener("force-media-update", updateMediaMetadata);
-      window.removeEventListener("force-nightscout-sync", updateMediaMetadata);
-    };
-  }, [logs, userSettings?.mediaWidgetEnabled]);
-
-  // Persistent Notification Widget
-  useEffect(() => {
-    const updateNotificationWidget = async () => {
-      if (
-        !userSettings?.persistentWidgetEnabled ||
-        !("Notification" in window) ||
-        Notification.permission !== "granted"
-      ) {
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg
-              .getNotifications({ tag: "persistent-stats-widget" })
-              .then((notifications) => {
-                notifications.forEach((n) => n.close());
-              });
-          });
-        }
-        return;
-      }
-
-      const latest = logsRef.current.find((l) => l.type === "glucose");
-      if (latest && "serviceWorker" in navigator) {
-        const getTrendArrow = (dir?: string) => {
-          switch (dir) {
-            case "DoubleUp":
-              return "↑↑";
-            case "SingleUp":
-              return "↑";
-            case "FortyFiveUp":
-              return "↗";
-            case "Flat":
-              return "→";
-            case "FortyFiveDown":
-              return "↘";
-            case "SingleDown":
-              return "↓";
-            case "DoubleDown":
-              return "↓↓";
-            default:
-              return "";
-          }
-        };
-
-        const trendIcon = getTrendArrow(latest.direction);
-        const deltaStr =
-          latest.delta !== undefined
-            ? `${latest.delta > 0 ? "+" : ""}${latest.delta.toFixed(0)}`
-            : "";
-        const timeStr = new Date(latest.timestamp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-        try {
-          if (
-            "serviceWorker" in navigator &&
-            navigator.serviceWorker.controller
-          ) {
-            const reg = await navigator.serviceWorker.ready;
-            if (reg) {
-              await reg.showNotification(
-                `${latest.value} ${trendIcon} ${deltaStr}`,
-                {
-                  body: `Ostatni odczyt glikemii (${timeStr})`,
-                  icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(
-                    /\/+/g,
-                    "/",
-                  ),
-                  tag: "persistent-stats-widget",
-                  renotify: false,
-                  silent: true,
-                  requireInteraction: true,
-                } as any,
-              );
-            }
-          } else {
-            new Notification(`${latest.value} ${trendIcon} ${deltaStr}`, {
-              body: `Ostatni odczyt glikemii (${timeStr})`,
-              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(
-                /\/+/g,
-                "/",
-              ),
-              tag: "persistent-stats-widget",
-              silent: true,
-              requireInteraction: true,
-            } as any);
-          }
-        } catch (e) {
-          console.error("Failed to show persistent notification:", e);
-        }
-      }
-    };
-
-    updateNotificationWidget();
-  }, [
-    logs,
-    userSettings?.persistentWidgetEnabled,
-    userSettings?.notificationsEnabled,
-  ]);
 
   useEffect(() => {
     if (mainRef.current) {
@@ -1052,10 +855,20 @@ export default function App() {
     const unsubscribe = onSnapshot(
       settingsRef,
       (d) => {
+        const localNotificationsEnabled = localStorage.getItem("notificationsEnabled");
+
         if (d.exists()) {
-          setUserSettings(d.data() as UserSettings);
+          const data = d.data() as UserSettings;
+          if (localNotificationsEnabled !== null) {
+            data.notificationsEnabled = localNotificationsEnabled === "true";
+          }
+          setUserSettings(data);
         } else {
-          setUserSettings(DEFAULT_SETTINGS);
+          const defaultSettings = { ...DEFAULT_SETTINGS };
+          if (localNotificationsEnabled !== null) {
+            defaultSettings.notificationsEnabled = localNotificationsEnabled === "true";
+          }
+          setUserSettings(defaultSettings);
         }
       },
       (err) => {
@@ -2282,40 +2095,6 @@ export default function App() {
             )}
           </div>
         </div>
-        {/* Unified Audio Player for PWA Support - Silence Loop */}
-        <audio
-          id="pwa-media-player"
-          src="/silence.mp3"
-          loop
-          playsInline
-          preload="auto"
-          style={{
-            position: "fixed",
-            bottom: -100,
-            left: -100,
-            width: 1,
-            height: 1,
-            opacity: 0.01,
-          }}
-          onPlay={() => {
-            if ("mediaSession" in navigator)
-              navigator.mediaSession.playbackState = "playing";
-            const btn = document.getElementById("media-status-indicator");
-            if (btn) {
-              btn.innerHTML = "Status: Aktywny";
-              btn.classList.replace("text-slate-400", "text-emerald-500");
-            }
-          }}
-          onPause={() => {
-            if ("mediaSession" in navigator)
-              navigator.mediaSession.playbackState = "paused";
-            const btn = document.getElementById("media-status-indicator");
-            if (btn) {
-              btn.innerHTML = "Status: Zatrzymany";
-              btn.classList.replace("text-emerald-500", "text-slate-400");
-            }
-          }}
-        />
       </header>
 
       <Sidebar

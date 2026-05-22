@@ -53,7 +53,6 @@ import {
   CloudRain,
   Calculator,
   BarChart2,
-  MonitorPlay,
   AlertTriangle,
   Dumbbell,
   Box,
@@ -1680,16 +1679,36 @@ export default function Profile({
                   }
                   const token = await notificationService.requestPermission();
                   if (token || Notification.permission === 'granted') {
+                     const prefs = settings.notificationPrefs || { hypo: true, hyper: true, reminders: true, predictions: true };
                      setSettings({ 
                        ...settings, 
                        notificationsEnabled: true,
-                       notificationPrefs: settings.notificationPrefs || { hypo: true, hyper: true, reminders: true, predictions: true }
+                       notificationPrefs: prefs
                      });
+                     localStorage.setItem('notificationsEnabled', 'true');
+                     if (user) {
+                       await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { 
+                         notificationsEnabled: true,
+                         notificationPrefs: prefs
+                       }, { merge: true });
+                     }
                   } else {
                      setSettings({ ...settings, notificationsEnabled: false });
+                     localStorage.setItem('notificationsEnabled', 'false');
+                     if (user) {
+                       await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { 
+                         notificationsEnabled: false 
+                       }, { merge: true });
+                     }
                   }
                } else {
                   setSettings({ ...settings, notificationsEnabled: false });
+                  localStorage.setItem('notificationsEnabled', 'false');
+                  if (user) {
+                    await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { 
+                      notificationsEnabled: false 
+                    }, { merge: true });
+                  }
                }
              }}
              className={cn(
@@ -1700,47 +1719,6 @@ export default function Profile({
              <div className={cn(
                "w-4 h-4 rounded-full bg-white transition-all absolute shadow",
                settings.notificationsEnabled ? "left-7" : "left-1"
-             )} />
-           </button>
-        </div>
-
-        <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700 mt-4">
-           <div className="flex items-center gap-2.5">
-             <Activity className="text-accent-500" size={18} />
-             <div>
-                <p className="text-xs font-black dark:text-white leading-tight">Ciągły Widżet Powiadomień</p>
-                <p className="text-[9px] font-medium text-slate-500">Pokazuje glikemię w cichym powiadomieniu (wymaga włączonych alertów)</p>
-             </div>
-           </div>
-           <button 
-             onClick={async () => {
-               if (!settings.persistentWidgetEnabled) {
-                 if (window.self !== window.top) {
-                    alert('📢 WAŻNE: Przeglądarki blokują powiadomienia wewnątrz podglądu (iframe).\n\nAby włączyć ten widżet, otwórz aplikację w nowej karcie (przycisk w prawym górnym rogu tego okna).');
-                    return;
-                 }
-                 if ('Notification' in window) {
-                   const perm = await Notification.requestPermission();
-                   if (perm === 'granted') {
-                     setSettings({ ...settings, persistentWidgetEnabled: true });
-                   } else {
-                     alert("Zezwól na powiadomienia w przeglądarce, aby używać tego widżetu.");
-                   }
-                 } else {
-                   alert("Twoja przeglądarka nie obsługuje powiadomień.");
-                 }
-               } else {
-                 setSettings({ ...settings, persistentWidgetEnabled: false });
-               }
-             }}
-             className={cn(
-               "w-12 h-6 rounded-full transition-all relative flex items-center shadow-inner",
-               settings.persistentWidgetEnabled ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-600"
-             )}
-           >
-             <div className={cn(
-               "w-4 h-4 rounded-full bg-white transition-all absolute shadow",
-               settings.persistentWidgetEnabled ? "left-7" : "left-1"
              )} />
            </button>
         </div>
@@ -1762,11 +1740,17 @@ export default function Profile({
                 <button
                   key={pref.id}
                   disabled={!settings.notificationsEnabled}
-                  onClick={() => {
+                  onClick={async () => {
+                    const newPrefs = { ...prefs, [pref.id]: !isActive };
                     setSettings({
                       ...settings,
-                      notificationPrefs: { ...prefs, [pref.id]: !isActive }
+                      notificationPrefs: newPrefs
                     });
+                    if (user) {
+                      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { 
+                        notificationPrefs: newPrefs 
+                      }, { merge: true });
+                    }
                   }}
                   className={cn(
                     "flex items-center gap-2 p-3 rounded-xl border transition-all text-left",
@@ -1784,6 +1768,7 @@ export default function Profile({
             })}
           </div>
         </div>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
            <div className={cn("group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
@@ -1937,7 +1922,6 @@ export default function Profile({
         <button onClick={saveSettings} disabled={settingsLoading} className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all mt-4">
           Zapisz Żywotność
         </button>
-      </div>
       </div>
       )}
 
@@ -2895,111 +2879,6 @@ export default function Profile({
                     )} />
                   </button>
                 </div>
-              </div>
-
-              {/* Media Player Widget Toggle */}
-              <div className={cn("p-6 rounded-[2.5rem] border", settings.glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700")}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                      <MonitorPlay size={20} className="text-white" />
-                    </div>
-                    <div className="text-left max-w-[150px] sm:max-w-none">
-                      <p className="text-sm font-black dark:text-white leading-tight">Odtwarzacz (PWA)</p>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
-                        Pokazuje cukier w komponencie powiadomień. Może zwiększać zużycie baterii. Działa w tle (wyłączenie widżetu górnego paska).
-                      </p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={async () => {
-                      const newVal = !settings.mediaWidgetEnabled;
-                      setSettings(prev => ({ ...prev, mediaWidgetEnabled: newVal }));
-                      
-                      if (newVal) {
-                        const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
-                        if (audio) {
-                          audio.play().catch(e => console.error("Audio unlock exception:", e));
-                        }
-                        
-                        toast("Audio PWA aktywne. Zablokuj ekran, aby sprawdzić powiadomienia mediów.", { 
-                          icon: '🎵',
-                          duration: 4000
-                        });
-                        Haptics.success();
-                      } else {
-                        Haptics.selection();
-                      }
-
-                      if (user) await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), { mediaWidgetEnabled: newVal }, { merge: true });
-                    }}
-                    className={cn(
-                      "w-14 h-8 rounded-full transition-all relative flex items-center shadow-inner shrink-0",
-                      settings.mediaWidgetEnabled ? "bg-purple-500" : "bg-slate-300 dark:bg-slate-700"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-6 h-6 rounded-full bg-white transition-all absolute shadow-lg",
-                      settings.mediaWidgetEnabled ? "left-7" : "left-1"
-                    )} />
-                  </button>
-                </div>
-                {settings.mediaWidgetEnabled && (
-                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
-                    <button
-                      onClick={() => {
-                        const audio = document.getElementById('pwa-media-player') as HTMLAudioElement;
-                        if (audio) {
-                          if (audio.paused) {
-                            toast.loading("Uruchamianie...", { id: 'media-load' });
-                            
-                            // Re-load if needed
-                            if (audio.readyState === 0 || audio.error) {
-                              audio.load();
-                            }
-                            
-                            audio.play().then(() => {
-                               if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-                               toast.success("Odtwarzacz aktywny", { id: 'media-load' });
-                            }).catch(e => {
-                               console.warn("Manual audio play error:", e);
-                               toast.error(`Błąd: ${e.name}. Dotknij ponownie ekranu.`, { id: 'media-load' });
-                            });
-                          } else {
-                            audio.pause();
-                            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-                            toast("Odtwarzacz zatrzymany", { icon: '⏸️', id: 'media-load' });
-                          }
-                          Haptics.light();
-                        }
-                      }}
-                      className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-purple-600 dark:text-purple-400 rounded-xl font-bold transition-all border border-purple-100 dark:border-purple-900/30 shadow-sm active:scale-95"
-                    >
-                      <MonitorPlay size={16} />
-                      Odblokuj / Wymuś Media (PWA)
-                    </button>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex justify-center">
-                        <span id="media-status-indicator" className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800">
-                           Status: {(document.getElementById('pwa-media-player') as HTMLAudioElement)?.paused ? 'Zatrzymany' : 'Aktywny'}
-                        </span>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
-                          toast.success("Wymuszono synchronizację i odświeżenie widgetu");
-                          Haptics.medium();
-                        }}
-                        className="text-[9px] font-black uppercase tracking-widest text-accent-500 hover:underline"
-                      >
-                        Odśwież widget (Sync)
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
-                      Naciśnij, jeśli powiadomienia na zablokowanym ekranie przestały się odświeżać (np. system uspał proces).
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Micro-Dashboard Feature */}

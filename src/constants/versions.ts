@@ -8,13 +8,14 @@ export interface VersionEntry {
 export const VERSIONS: VersionEntry[] = [
   {
     version: "3.5.3",
-    date: "2026-05-21",
-    title: "Aktualizacja 3.5.3: Wizualne Strzałki i Optymalizacja Sync",
+    date: "2026-05-22",
+    title: "Aktualizacja 3.5.3: Wizualne Strzałki, Optymalizacja Sync i Okno Czatu",
     changes: [
       "Nowość: Dodano graficzne strzałki trendów w czasie rzeczywistym (np. ↑, ↓, ↗) bezpośrednio przy najnowszym punkcie glikemii na głównym wykresie.",
       "Optymalizacja: Wdrożono inteligentną warstwę buforowania (caching layer) dla zapytań Nightscout (buforowanie na 5 minut przy zapytaniach w tle) w celu oszczędzania baterii i transferu danych.",
       "Ulepszenie: Wprowadzono opcję natychmiastowego wymuszenia pełnej synchronizacji przy ręcznym odświeżeniu.",
-      "Stabilność: Drobne udoskonalenia interfejsu wykresów oraz poprawki wydajnościowe na telefonach i tabletach."
+      "Interfejs: Pełne dostosowanie i optymalizacja okna Gliko Czat w trybie poziomym (landscape) na telefonach (kompaktowy nagłówek, zmniejszony avatar, ulepszone pole wpisywania oraz prawidłowe wypełnienie wysokości ekranu).",
+      "Stabilność: Drobne udoskonalenia interfejsu wykresów oraz poprawki wydajnościowe na telefonach i tabletach (usunięcie błędu typowania delta w integracji Nightscout)."
     ]
   },
   {
