@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
             }
           ]
         },
-        manifest: {
+          manifest: {
           name: 'GlikoControl',
           short_name: 'GlikoControl',
           description: 'Asystent Twojej cukrzycy z systemem GlikoSense AI',
@@ -113,7 +113,11 @@ export default defineConfig(({ mode }) => {
               ]
             }
           ]
-        } as any
+        } as any,
+        devOptions: {
+          enabled: true,
+          type: 'module'
+        }
       })
     ],
     define: {

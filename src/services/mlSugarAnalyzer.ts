@@ -641,6 +641,13 @@ export const MLAnalyzer = {
             
             let nextBg = currentPredictBg + (bgDiff * 0.7); 
             
+            // Blending z rzeczywistym pędem (momentum) na pierwszych krokach
+            const momentumWeight = Math.max(0, 1 - (step / 7)); // Wygasa po około 35 minutach
+            const expectedMomentumDiff = lastTrendNum * Math.pow(0.95, step);
+            const kinematicBg = currentPredictBg + expectedMomentumDiff;
+            
+            nextBg = (nextBg * (1 - momentumWeight)) + (kinematicBg * momentumWeight);
+            
             // Aplikacja modyfikatora pogody (tylko w kierunku spadków/wzrostów w zależności od IOA)
             nextBg += weatherBgModifier;
             
@@ -885,7 +892,7 @@ export const MLAnalyzer = {
     // Smooth the prediction curve to prevent wiggles, zigzags, and micro-oscillations
     if (predictionCurve.length > 2) {
       const smoothedCurve = [...predictionCurve];
-      const alpha = 0.35; // optimal blend ratio for medical trend lines
+      const alpha = 0.5; // Zmniejszono agresywne wygładzanie
       for (let pass = 0; pass < 2; pass++) {
         let lastVal = smoothedCurve[0].value;
         for (let i = 1; i < smoothedCurve.length; i++) {
@@ -893,8 +900,15 @@ export const MLAnalyzer = {
           lastVal = smoothedCurve[i].value;
         }
       }
+      // Re-apply strict momentum at the very beginning to prevent the line from dropping artificially
       for (let i = 1; i < predictionCurve.length; i++) {
-        predictionCurve[i].value = smoothedCurve[i].value;
+        const strictMomentumWeight = Math.max(0, 1 - (i / 5)); // Fades out over first few steps
+        let smoothedVal = smoothedCurve[i].value;
+        if (strictMomentumWeight > 0) {
+            const expectedMomentumVal = predictionCurve[0].value + (lastTrendNum * Math.pow(0.96, i) * i * (isModelLoaded ? 1.0 : 0.8));
+            smoothedVal = (smoothedVal * (1 - strictMomentumWeight)) + (expectedMomentumVal * strictMomentumWeight);
+        }
+        predictionCurve[i].value = smoothedVal;
       }
     }
 

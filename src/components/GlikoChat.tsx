@@ -306,19 +306,20 @@ export default function GlikoChat({ petData }: { petData: any }) {
   ];
 
   return (
-    <div className="flex flex-col h-[70vh] md:h-[75vh] w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-indigo-100 dark:border-indigo-900/30">
+    <div className="flex flex-col h-[75vh] landscape:h-full landscape:flex-1 md:h-[75vh] w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-indigo-100 dark:border-indigo-900/30">
       {/* Header */}
-      <div className="p-4 md:p-6 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white flex items-center justify-between shadow-lg relative overflow-hidden">
+      <div className="p-3 landscape:py-2 md:p-6 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white flex items-center justify-between shadow-lg relative overflow-hidden shrink-0">
         {/* Animated bubbles in the background */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-pink-400/20 rounded-full -ml-10 -mb-10 blur-xl" />
         
-        <div className="flex items-center gap-4 relative z-10">
-          {renderPetAvatar('md')}
+        <div className="flex items-center gap-3 landscape:gap-2 relative z-10">
+          <div className="landscape:hidden">{renderPetAvatar('md')}</div>
+          <div className="hidden landscape:block">{renderPetAvatar('sm')}</div>
           <div>
-            <h2 className="text-xl md:text-2xl font-black flex items-center gap-2">
+            <h2 className="text-xl landscape:text-lg md:text-2xl font-black flex items-center gap-2">
               {petData?.name || 'Gliko'}
-              <Sparkles size={18} className="text-yellow-300 animate-pulse" />
+              <Sparkles size={16} className="text-yellow-300 animate-pulse" />
             </h2>
           </div>
         </div>
@@ -418,9 +419,9 @@ export default function GlikoChat({ petData }: { petData: any }) {
       />
 
       {/* Input */}
-      <div className="p-4 md:p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <div className="p-3 landscape:py-2 md:p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
         {/* Quick Suggestions container */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto pb-4 mb-2 landscape:pb-2 landscape:mb-0 no-scrollbar">
           {suggestions.map((s, i) => (
             <motion.button
               key={`typing-${i}`}
@@ -434,19 +435,19 @@ export default function GlikoChat({ petData }: { petData: any }) {
           ))}
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 landscape:gap-2">
           <div className="flex-1 relative group flex gap-2">
             <button
               onClick={toggleListening}
               className={cn(
-                "w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-md active:scale-95 group shrink-0",
+                "w-14 h-14 landscape:w-10 landscape:h-10 rounded-2xl flex items-center justify-center transition-all shadow-md active:scale-95 group shrink-0",
                 isListening 
                   ? "bg-rose-500 text-white animate-pulse" 
                   : "bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-indigo-500"
               )}
               title="Rozmowa głosowa"
             >
-              {isListening ? <Mic size={24} /> : <Mic size={24} />}
+              {isListening ? <Mic size={24} className="landscape:w-5 landscape:h-5" /> : <Mic size={24} className="landscape:w-5 landscape:h-5" />}
             </button>
             <input
               type="text"
@@ -455,7 +456,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder={isListening ? "Słucham Cię..." : "Zapytaj AI"}
               className={cn(
-                "w-full bg-slate-100 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-400 rounded-[1.5rem] py-4 pl-6 pr-6 text-sm focus:ring-0 transition-all dark:text-white font-medium italic shadow-inner",
+                "w-full bg-slate-100 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-400 rounded-[1.5rem] py-4 landscape:py-2 pl-6 pr-6 text-sm focus:ring-0 transition-all dark:text-white font-medium italic shadow-inner",
                 isListening && "border-rose-400 placeholder-rose-400"
               )}
             />
@@ -464,17 +465,17 @@ export default function GlikoChat({ petData }: { petData: any }) {
             onClick={() => handleSend()}
             disabled={!input.trim() || isTyping}
             className={cn(
-              "w-14 h-14 rounded-[1.25rem] flex items-center justify-center transition-all shadow-xl active:scale-95 group",
+              "w-14 h-14 landscape:w-10 landscape:h-10 rounded-[1.25rem] flex items-center justify-center transition-all shadow-xl active:scale-95 group",
               input.trim() && !isTyping 
                 ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white hover:shadow-indigo-500/40" 
                 : "bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed shadow-none"
             )}
           >
-            <Send size={24} className={cn("transition-transform", input.trim() && "group-hover:translate-x-1 group-hover:-translate-y-1")} />
+            <Send size={24} className={cn("transition-transform landscape:w-5 landscape:h-5", input.trim() && "group-hover:translate-x-1 group-hover:-translate-y-1")} />
           </button>
         </div>
         
-        <div className="flex items-center justify-center gap-3 mt-4">
+        <div className="flex items-center justify-center gap-3 mt-4 landscape:hidden">
            <div className="h-px bg-slate-100 dark:bg-slate-800 flex-1" />
            <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] whitespace-nowrap">
               Zawsze słuchaj rodziców ✨

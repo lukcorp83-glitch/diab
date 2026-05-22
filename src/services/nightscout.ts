@@ -7,6 +7,7 @@ export interface NightscoutEntry {
   dateString: string;
   type: string;
   direction?: string;
+  delta?: number;
 }
 
 export interface NightscoutTreatment {
@@ -116,6 +117,7 @@ export const nightscoutService = {
         timestamp: e.date,
         source: 'nightscout' as const,
         direction: e.direction,
+        delta: e.delta,
       }));
       setCachedData(cacheKey, result);
       return result;
