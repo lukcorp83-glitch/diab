@@ -11,6 +11,10 @@ const VAPID_KEY = 'BDpTWMeEWqqbg9i1S4P33GC51S2TgPs_cozqFLQrYJl0y6RXMXUym50gG-1d3
 export const notificationService = {
   async requestPermission(): Promise<string | null> {
     try {
+      if (Capacitor.isNativePlatform()) {
+        return await this.registerToken();
+      }
+
       if (!window.Notification) {
         toast("Twoja przeglądarka lub aplikacja może nie obsługiwać systemowych powiadomień Push. Krytyczne alerty będą wyświetlane wewnątrz aplikacji.", { icon: 'ℹ️', duration: 8000 });
         return null;
@@ -184,6 +188,28 @@ export const notificationService = {
   },
 
   async setupForegroundListener() {
+    if (Capacitor.isNativePlatform()) {
+      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        console.log('Push received in foreground:', notification);
+        const title = notification.title || 'GlikoSense';
+        const body = notification.body || '';
+
+        import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
+            Haptics.impact({ style: ImpactStyle.Heavy });
+        }).catch(() => {
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        });
+
+        toast(body, { 
+          icon: '⚠️', 
+          duration: 20000, 
+          position: 'top-center',
+          style: { border: '2px solid #f43f5e', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
+        });
+      });
+      return;
+    }
+
     const msg = await messaging();
     if (!msg) return;
 
