@@ -166,8 +166,14 @@ export default function Profile({
   const [geminiSaveStatus, setGeminiSaveStatus] = useState("");
   const [isTestingKey, setIsTestingKey] = useState(false);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+  const [isInIframe, setIsInIframe] = useState(false);
 
   useEffect(() => {
+    try {
+      setIsInIframe(window.self !== window.top);
+    } catch (e) {
+      setIsInIframe(true);
+    }
     return onConnectionChange(setIsFirebaseConnected);
   }, []);
 
@@ -4683,18 +4689,39 @@ export default function Profile({
               i mniejsze zużycie baterii.
             </p>
 
-            <a
-              href="/pobierz/glikocontrol.apk"
-              download
-              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors"
-              onClick={() => {
-                Haptics.success();
-                localStorage.setItem("dismissedApkVersion", "1.0.0"); // automatically dismiss banner if downloaded manually
-              }}
-            >
-              <Download size={20} />
-              Pobierz wersję 1.0.0
-            </a>
+            {isInIframe ? (
+              <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-center space-y-3.5">
+                <p className="text-xs text-indigo-700 dark:text-indigo-400 leading-relaxed font-medium">
+                  💡 <strong>Wskazówka:</strong> Ponieważ korzystasz z podglądu w ramce AI Studio, przeglądarka zabezpiecza i blokuje pobieranie ciężkich plików .apk bezpośrednio stąd.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    Haptics.success();
+                    window.open(window.location.href, "_blank");
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-colors cursor-pointer"
+                >
+                  <span>Zainstaluj: Otwórz w Nowej Karcie ↗️</span>
+                </button>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                  Po otwarciu w nowej karcie przycisk pobierania zadziała od razu!
+                </p>
+              </div>
+            ) : (
+              <a
+                href="/pobierz/glikocontrol.apk"
+                download="glikocontrol.apk"
+                className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors"
+                onClick={() => {
+                  Haptics.success();
+                  localStorage.setItem("dismissedApkVersion", "1.0.0"); // automatically dismiss banner if downloaded manually
+                }}
+              >
+                <Download size={20} />
+                Pobierz wersję 1.0.0
+              </a>
+            )}
 
             <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
               <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
