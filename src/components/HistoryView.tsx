@@ -264,11 +264,17 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                        {new Date(log.timestamp).toLocaleDateString()}{" "}
-                        {new Date(log.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {!isNaN(new Date(log.timestamp).getTime()) ? (
+                          <>
+                            {new Date(log.timestamp).toLocaleDateString()}{" "}
+                            {new Date(log.timestamp).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </>
+                        ) : (
+                          "Brak daty"
+                        )}
                       </span>
                       <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
                       <span className="text-[9px] font-bold text-slate-500 truncate italic">

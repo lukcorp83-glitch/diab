@@ -442,6 +442,18 @@ export default function Profile({
 
   const [nukeLoading, setNukeLoading] = useState(false);
   const [showRodo, setShowRodo] = useState(false);
+  const [apkVersion, setApkVersion] = useState<string>("1.0.0");
+  const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/tag/1.0.0");
+
+  useEffect(() => {
+    fetch('./pobierz/version.json?t=' + Date.now())
+      .then(res => res.json())
+      .then(data => {
+        if (data.version) setApkVersion(data.version);
+        if (data.url) setApkUrl(data.url);
+      })
+      .catch(() => {});
+  }, []);
 
   const nukeAllData = async () => {
     if (
@@ -4689,39 +4701,19 @@ export default function Profile({
               i mniejsze zużycie baterii.
             </p>
 
-            {isInIframe ? (
-              <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-center space-y-3.5">
-                <p className="text-xs text-indigo-700 dark:text-indigo-400 leading-relaxed font-medium">
-                  💡 <strong>Wskazówka:</strong> Ponieważ korzystasz z podglądu w ramce AI Studio, przeglądarka zabezpiecza i blokuje pobieranie ciężkich plików .apk bezpośrednio stąd.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    Haptics.success();
-                    window.open(window.location.href, "_blank");
-                  }}
-                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-colors cursor-pointer"
-                >
-                  <span>Zainstaluj: Otwórz w Nowej Karcie ↗️</span>
-                </button>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                  Po otwarciu w nowej karcie przycisk pobierania zadziała od razu!
-                </p>
-              </div>
-            ) : (
               <a
-                href="/pobierz/glikocontrol.apk"
-                download="glikocontrol.apk"
+                href={apkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors"
                 onClick={() => {
                   Haptics.success();
-                  localStorage.setItem("dismissedApkVersion", "1.0.0"); // automatically dismiss banner if downloaded manually
+                  localStorage.setItem("dismissedApkVersion", apkVersion); // automatically dismiss banner if downloaded manually
                 }}
               >
                 <Download size={20} />
-                Pobierz wersję 1.0.0
+                Pobierz aplikację (.apk)
               </a>
-            )}
 
             <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
               <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
@@ -4974,59 +4966,7 @@ export default function Profile({
                   </button>
                 </div>
 
-                <div
-                  className={cn(
-                    "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md",
-                    settings.glassmorphismEnabled
-                      ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
-                      : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
-                  )}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-900/30 text-sky-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
-                      <Cloud size={22} />
-                    </div>
-                    <div className="text-left max-w-[150px] sm:max-w-none">
-                      <p className="text-sm font-black dark:text-white leading-tight">
-                        Widżet i Alerty Pogodowe
-                      </p>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight flex-wrap">
-                        Zezwól na pobieranie pogody, aby widzieć informacje i
-                        ostrzeżenia.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      const newVal = !settings.weatherWidgetEnabled;
-                      setSettings((prev) => ({
-                        ...prev,
-                        weatherWidgetEnabled: newVal,
-                      }));
-                      if (user)
-                        await setDoc(
-                          doc(
-                            db,
-                            "artifacts",
-                            "diacontrolapp",
-                            "users",
-                            getEffectiveUid(user),
-                            "settings",
-                            "profile",
-                          ),
-                          { weatherWidgetEnabled: newVal },
-                          { merge: true },
-                        );
-                    }}
-                    className={cn(
-                      "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
-                      settings.weatherWidgetEnabled && "bg-sky-500 pl-5",
-                    )}
-                  >
-                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                  </button>
-                </div>
-
+                {/* GlikoSense & Pogoda */}
                 <div
                   className={cn(
                     "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md",

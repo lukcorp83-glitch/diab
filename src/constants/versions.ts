@@ -7,6 +7,17 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "4.1",
+    date: "2026-05-27",
+    title: "Najnowsza Wersja 4.1",
+    changes: [
+      "Nowy Pop-up ułatwiający zarządzanie nowościami i powiadomieniami o aktualizacjach.",
+      "Ulepszono stabilność i synchronizację z systemem powiadomień w locie (Push/Firebase).",
+      "GlikoSense AI: Nazewnictwo dostosowane dla funkcji analitycznych i skanera posiłków.",
+      "Dzienny widget TIR zachowuje poprawny stan zapisu pulpitu w chmurze i układzie."
+    ]
+  },
+  {
     version: "4.0",
     date: "2026-05-26",
     title: "Aktualizacja 4.0: Gotowość na pliki APK i ulepszony GlikoSense",
@@ -231,4 +242,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "4.0";
+export const CURRENT_VERSION = "4.1";

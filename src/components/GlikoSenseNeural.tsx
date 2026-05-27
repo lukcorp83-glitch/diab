@@ -19,9 +19,10 @@ interface GlikoSenseNeuralProps {
   accuracy?: number;
   datasetSize?: number;
   children?: React.ReactNode;
+  compact?: boolean;
 }
 
-export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, children }: GlikoSenseNeuralProps) {
+export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, children, compact }: GlikoSenseNeuralProps) {
   // Generate stable random nodes for the background animation
   const nodes = useMemo(() => {
     return Array.from({ length: 15 }).map((_, i) => ({
@@ -69,6 +70,98 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
     // Deep premium soft teal-blue for stable/in-range
     return "bg-gradient-to-br from-teal-50 to-blue-50 dark:from-teal-900/20 dark:to-blue-950/25 border border-teal-100 dark:border-teal-900/30";
   }, [glucose, trend]);
+
+  if (compact) {
+    return (
+      <div className={cn("relative w-full p-4 rounded-[2.5rem] overflow-hidden shadow-lg transition-all duration-700 text-slate-800 dark:text-slate-100 h-full flex flex-col justify-between min-h-[160px]", dynamicBg)}>
+        {/* Neural Background Animation */}
+        <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none">
+          {nodes.map((node, i) => {
+            const nextNode = nodes[(i + 1) % nodes.length];
+            return (
+              <line
+                key={`line-compact-${node.id}`}
+                x1={`${node.x}%`}
+                y1={`${node.y}%`}
+                x2={`${nextNode.x}%`}
+                y2={`${nextNode.y}%`}
+                stroke={statusColor.replace('bg-', '') === 'slate-400' ? '#94a3b8' : statusColor.replace('bg-', '') === 'rose-500' ? '#f43f5e' : statusColor.replace('bg-', '') === 'amber-500' ? '#f59e0b' : '#10b981'}
+                strokeWidth="0.5"
+                style={{ opacity: 0.2 }}
+              />
+            );
+          })}
+        </svg>
+
+        <div className="relative z-10 flex flex-col justify-between h-full flex-1">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <div className={`p-1 rounded-lg ${statusColor} bg-opacity-20`}>
+                <GlikoSenseIcon size={14} isAnalyzing={true} />
+              </div>
+              <span className="text-[10px] font-black dark:text-white leading-none">GlikoSense</span>
+            </div>
+            
+            <div className="flex items-center gap-1 scale-75 origin-right">
+              {[1, 2, 3].map(i => (
+                <motion.div 
+                  key={`link-compact-${i}`}
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.4 }}
+                  className={`w-1 h-2 rounded-full ${statusColor} opacity-40`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Body Content */}
+          <div className="flex-1 flex flex-col justify-center my-1">
+            {isChildMode ? (
+              <div className="scale-90 origin-center my-auto">
+                {children}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="p-2 rounded-2xl bg-white/40 dark:bg-slate-900/30 border border-white/60 dark:border-slate-800/40 backdrop-blur-sm space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Predykcja:</span>
+                    <span className="text-xs font-black dark:text-white">
+                      {glucose ? Math.round(glucose + (trend?.includes('UP') ? 18 : trend?.includes('DOWN') ? -12 : 0)) : '--'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Pewność:</span>
+                    <span className="text-xs font-black dark:text-white">{accuracy}%</span>
+                  </div>
+                </div>
+                <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 text-center uppercase tracking-wider">
+                  {glucose && (glucose > 250 || glucose < 60) ? '⚠️ Ryzyko' : '✅ Stabilny'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer status dot */}
+          <div className="flex items-center justify-between border-t border-slate-200/50 dark:border-white/5 pt-1.5 text-[8px] font-black uppercase text-slate-400">
+            <span>{isChildMode ? petName : 'GlikoSense AI'}</span>
+            <motion.div
+              animate={{ 
+                scale: [1, 1.2, 1],
+                boxShadow: [
+                  `0 0 0px ${glowColor}`,
+                  `0 0 10px ${glowColor}`,
+                  `0 0 0px ${glowColor}`
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className={`w-2 h-2 rounded-full ${statusColor}`}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("relative w-full p-6 rounded-[2.5rem] overflow-hidden shadow-lg transition-all duration-700 text-slate-800 dark:text-slate-100", dynamicBg)}>

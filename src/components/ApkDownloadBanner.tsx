@@ -16,7 +16,7 @@ export default function ApkDownloadBanner() {
   useEffect(() => {
     const checkApkUpdate = async () => {
       try {
-        const response = await fetch('/pobierz/version.json?t=' + Date.now());
+        const response = await fetch('./pobierz/version.json?t=' + Date.now());
         if (response.ok) {
           const data = await response.json();
           const lastDismissedVersion = localStorage.getItem('dismissedApkVersion');
@@ -72,6 +72,8 @@ export default function ApkDownloadBanner() {
            <p className="text-xs text-indigo-100 mt-1.5 leading-relaxed">{apkInfo.whatsNew}</p>
            <a 
              href={apkInfo.url} 
+             target="_blank"
+             rel="noopener noreferrer"
              onClick={handleDismiss}
              className="inline-flex items-center gap-1.5 mt-3 bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm"
            >

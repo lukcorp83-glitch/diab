@@ -13,9 +13,10 @@ interface GlikoWidgetProps {
   tir: { low: number; inRange: number; high: number };
   hba1c: number;
   glassmorphismEnabled?: boolean;
+  compact?: boolean;
 }
 
-export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir, hba1c, glassmorphismEnabled }: GlikoWidgetProps) {
+export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir, hba1c, glassmorphismEnabled, compact }: GlikoWidgetProps) {
   const lastGlucose = logs.find(l => l.type === 'glucose');
   const lastBolus = logs.find(l => l.type === 'bolus');
   const lastMeal = logs.find(l => l.type === 'meal');
@@ -26,6 +27,84 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
     if (min < 60) return `${min}m temu`;
     return `${Math.round(min / 60)}h temu`;
   };
+
+  if (compact) {
+    return (
+      <motion.div 
+        whileTap={{ scale: 0.98 }}
+        onClick={() => setTab('chart')}
+        className={cn(
+          "p-4 text-slate-900 dark:text-white shadow-2xl rounded-[2rem] border-l-[6px] overflow-hidden relative group h-full flex flex-col justify-between min-h-[160px] cursor-pointer",
+          glassmorphismEnabled ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset" : "bg-white/60 dark:bg-slate-950/60 border border-slate-200/50 dark:border-slate-800",
+          (lastGlucose?.value || 100) > 180 ? 'border-l-amber-500' :
+          (lastGlucose?.value || 100) < 70 ? 'border-l-rose-500' :
+          'border-l-emerald-500'
+        )}
+      >
+        {/* Background Accent (Animated Pulse) */}
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1], 
+            opacity: [0.05, 0.1, 0.05] 
+          }}
+          transition={{ 
+            duration: 10, 
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className={cn(
+            "absolute top-0 right-0 w-32 h-32 blur-[50px] -mr-16 -mt-16 transition-colors duration-1000",
+            (lastGlucose?.value || 100) > 180 ? 'bg-amber-500/30' :
+            (lastGlucose?.value || 100) < 70 ? 'bg-rose-500/30' :
+            'bg-emerald-500/30'
+          )}
+        />
+
+        <div className="flex justify-between items-center relative z-10 mb-1">
+          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Glikemia</span>
+          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+            {lastGlucose ? getTimeAgo(lastGlucose.timestamp) : '--'}
+          </span>
+        </div>
+
+        <div className="relative z-10 my-auto flex flex-col justify-center">
+          <div className="flex items-baseline gap-1 justify-center py-1">
+            <motion.span 
+              key={`val-${lastGlucose?.timestamp || 'none'}`}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter"
+            >
+              {lastGlucose?.value || '--'}
+            </motion.span>
+            <div className="flex flex-col items-start">
+              <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">mg/dL</span>
+              {trend && (
+                <div className={cn("scale-90 origin-left mt-0.5", trend.color)}>
+                  {trend.icon}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex justify-center mt-1">
+            <span className={`p-0.5 px-2 rounded-full text-[8px] font-black uppercase inline-block border ${
+              (lastGlucose?.value || 100) > 180 ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+              (lastGlucose?.value || 100) < 70 ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+              'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+            }`}>
+              {(lastGlucose?.value || 100) > 180 ? 'Wysoki' : (lastGlucose?.value || 100) < 70 ? 'Niski' : 'Norma'}
+            </span>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 relative z-10 flex items-center justify-between text-[9px] font-bold text-slate-500 dark:text-slate-400">
+          <span>IOB: <span className="font-black text-accent-500">{iob.toFixed(1)}j</span></span>
+          <span>HbA1c: <span className="font-black text-accent-500">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span></span>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 

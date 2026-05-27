@@ -1,0 +1,35 @@
+6:import React, { useState, useEffect, useRef, useMemo } from "react";
+126:  const [settings, setSettings] = useState<UserSettings>(initialSettings);
+131:  const [petData, setPetData] = useState<{
+153:  const [settingsLoading, setSettingsLoading] = useState(false);
+154:  const [nsSyncLoading, setNsSyncLoading] = useState(false);
+155:  const [updateLoading, setUpdateLoading] = useState(false);
+156:  const [cleaningLoading, setCleaningLoading] = useState(false);
+157:  const [nsUrl, setNsUrl] = useState("");
+158:  const [nsSecret, setNsSecret] = useState("");
+159:  const [shopTab, setShopTab] = useState<
+162:  const [saveStatus, setSaveStatus] = useState<string>("");
+163:  const [geminiApiKey, setGeminiApiKey] = useState(
+166:  const [geminiSaveStatus, setGeminiSaveStatus] = useState("");
+167:  const [isTestingKey, setIsTestingKey] = useState(false);
+168:  const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+169:  const [isInIframe, setIsInIframe] = useState(false);
+198:  const [telemetryEnabled, setTelemetryEnabled] = useState(
+201:  const [shortcuts, setShortcuts] = useState<any[]>([]);
+202:  const [newShortcut, setNewShortcut] = useState({
+209:  const [newMedication, setNewMedication] = useState<{
+219:    useState<InventoryItem | null>(null);
+220:  const [insertionSite, setInsertionSite] = useState<string>("Prawy brzuch");
+242:  const [medLoading, setMedLoading] = useState(false);
+243:  const [cleaning, setCleaning] = useState(false);
+244:  const [cleaningResult, setCleaningResult] = useState<string | null>(null);
+245:  const [auditLoading, setAuditLoading] = useState(false);
+246:  const [auditResult, setAuditResult] = useState<string | null>(null);
+247:  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+248:  const [isEditingTiles, setIsEditingTiles] = useState(false);
+249:  const [categoryOrder, setCategoryOrder] = useState<string[]>(() => {
+443:  const [nukeLoading, setNukeLoading] = useState(false);
+444:  const [showRodo, setShowRodo] = useState(false);
+850:  const [editingName, setEditingName] = useState(false);
+851:  const [newName, setNewName] = useState(petData.name || "Gliko");
+5573:  const [localValue, setLocalValue] = React.useState(

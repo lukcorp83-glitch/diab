@@ -19,9 +19,10 @@ interface PumpStatusProps {
     } | null;
   } | null;
   loading?: boolean;
+  compact?: boolean;
 }
 
-export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => {
+export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compact = false }) => {
   if (!data) return null;
 
   const getBatteryColor = (level: number) => {
@@ -46,21 +47,21 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="glass p-6 rounded-[2.5rem] border-l-4 border-l-blue-500 relative overflow-hidden"
+      className={cn("glass rounded-[2.5rem] border-l-4 border-l-blue-500 relative overflow-hidden", compact ? "p-4" : "p-6")}
     >
       {/* Background Accent */}
       <div className="absolute -right-4 -top-4 opacity-5 pointer-events-none">
         <Activity size={120} />
       </div>
 
-      <div className="flex justify-between items-start mb-6">
+      <div className={cn("flex justify-between items-start", compact ? "mb-4" : "mb-6")}>
         <div>
           <h3 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] mb-1">
             {isPump ? 'Status Pompy' : 'Status Urządzenia'}
           </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-black dark:text-white">{deviceName}</span>
-            <div className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black rounded-full uppercase">{deviceSource}</div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={cn("font-black dark:text-white", compact ? "text-base" : "text-xl")}>{deviceName}</span>
+            <div className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 text-[8px] font-black rounded-full uppercase">{deviceSource}</div>
           </div>
         </div>
         
@@ -159,7 +160,7 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading }) => 
         )}
       </div>
 
-      <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+      <div className={cn("pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center", compact ? "mt-4" : "mt-6")}>
         <div>
           <span className="text-[8px] font-black text-slate-400 uppercase block">Profil Działania Insuliny (IOB)</span>
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">{data.activeInsulin != null ? Number(data.activeInsulin).toFixed(2) : '--'} U</span>

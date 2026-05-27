@@ -729,14 +729,13 @@ export default function MealPlate({
 
   const activeMeal = useMemo(() => {
     if (!logs) return null;
-    const meals = logs
-      .filter((l) => l.type === "meal" || l.linkedMeal)
-      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    const meals = logs.filter((l) => l.type === "meal" || l.linkedMeal);
     if (meals.length === 0) return null;
 
-    for (const latest of meals) {
-      const mSrc = latest.type === "meal" ? latest : latest.linkedMeal;
-      if (!mSrc) continue;
+    // Przetwarzamy wszystkie posiłki, obliczając ich czas zakończenia wchłaniania (end time)
+    const mealsWithEndTime = meals.map((m) => {
+      const mSrc = m.type === "meal" ? m : m.linkedMeal;
+      if (!mSrc) return { m, endTimeMs: 0, isCurrentlyAbsorbing: false };
 
       const mWW =
         (mSrc as any).value !== undefined
@@ -747,14 +746,27 @@ export default function MealPlate({
       const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
 
       const absorptionTimeHr = getMealAbsorptionTime(mWW, mWBT);
+      const endTimeMs = (m.timestamp || 0) + absorptionTimeHr * 60 * 60 * 1000;
+      const isCurrentlyAbsorbing = Date.now() < endTimeMs;
 
-      const ageHr = (Date.now() - (latest.timestamp || 0)) / (1000 * 60 * 60);
+      return { m, endTimeMs, isCurrentlyAbsorbing };
+    });
 
-      // If it's still absorbing, this is our active meal
-      if (ageHr < absorptionTimeHr || settings?.showMealWidget) {
-        return latest;
-      }
+    // Wybieramy te posiłki, których wchłanianie wciąż trwa
+    const absorbingMeals = mealsWithEndTime.filter((x) => x.isCurrentlyAbsorbing);
+
+    if (absorbingMeals.length > 0) {
+      // Wybieramy ten, którego wchłanianie kończy się najpóźniej w przyszłości
+      absorbingMeals.sort((a, b) => b.endTimeMs - a.endTimeMs);
+      return absorbingMeals[0].m;
     }
+
+    // Jeśli żaden posiłek się obecnie nie wchłania, a ustawienie pokazuje widżet
+    if (settings?.showMealWidget) {
+      const sortedMeals = [...mealsWithEndTime].sort((a, b) => (b.m.timestamp || 0) - (a.m.timestamp || 0));
+      return sortedMeals.length > 0 ? sortedMeals[0].m : null;
+    }
+
     return null;
   }, [logs, settings?.showMealWidget]);
 
@@ -926,6 +938,59 @@ export default function MealPlate({
 
     return data;
   }, [activeMeal, activeBolus, logs]);
+
+  const plateChartData = useMemo(() => {
+    if (plate.length === 0) return [];
+
+    const WW = totalWW;
+    const WBT = totalWBT;
+    const totalWeightsWithGi = plate.filter(i => typeof i.gi === 'number').reduce((s, i) => s + i.weight, 0);
+    const weightedGiSum = plate.filter(i => typeof i.gi === 'number').reduce((s, i) => s + (i.gi as number) * i.weight, 0);
+    const averageGi = totalWeightsWithGi > 0 ? weightedGiSum / totalWeightsWithGi : 50;
+
+    const data = [];
+    const getCarbAbsorption = (t: number, gi: number) => {
+      let peakT = gi > 70 ? 0.75 : gi < 50 ? 1.5 : 1.0;
+      let val = Math.max(0, 1 - Math.pow((t - peakT) / 1.5, 2));
+      return val;
+    };
+
+    const getWbtAbsorption = (t: number) => {
+      if (t < 1) return 0;
+      if (t < 3) return (t - 1) * 0.5;
+      return 1 - (t - 3) * 0.5;
+    };
+
+    const startTime = new Date(entryTime).getTime();
+
+    for (let currentHr = 0; currentHr <= 4; currentHr += 0.5) {
+      let tCarbProfile = 0;
+      for (let step = 0; step <= 4; step += 0.5) {
+        tCarbProfile += getCarbAbsorption(step, averageGi);
+      }
+      let tWbtProfile = 0;
+      for (let step = 0; step <= 4; step += 0.5) {
+        tWbtProfile += getWbtAbsorption(step);
+      }
+
+      let c = tCarbProfile > 0 ? (getCarbAbsorption(currentHr, averageGi) / tCarbProfile) * WW : 0;
+      let w = tWbtProfile > 0 ? (getWbtAbsorption(currentHr) / tWbtProfile) * WBT : 0;
+
+      const chartTime = new Date(startTime + currentHr * 60 * 60 * 1000);
+
+      data.push({
+        time: chartTime.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        Posiłek: Math.round((c + w) * 10),
+        WW: WW,
+        WBT: WBT,
+      });
+    }
+
+    return data;
+  }, [plate, totalWW, totalWBT, entryTime]);
 
   const handleLogMeal = async () => {
     if (!user || plate.length === 0) return;
@@ -1386,17 +1451,17 @@ export default function MealPlate({
                     Haptics.light();
                     handleOnlineSearch();
                   }}
-                  className="flex-1 bg-accent-600 text-white p-4 rounded-[2rem] shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest"
+                  className="flex-1 bg-accent-600 text-white p-3.5 sm:p-4 rounded-[2rem] shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all font-bold text-[10px] sm:text-xs uppercase tracking-widest"
                   title="Szukaj z GlikoSense AI"
                   disabled={isSearching}
                 >
                   {isSearching ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" /> Szukam...
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> Szukam...
                     </>
                   ) : (
                     <>
-                      <Globe size={20} /> GlikoSense AI
+                      <Globe size={18} className="sm:w-5 sm:h-5" /> Szukaj
                     </>
                   )}
                 </button>
@@ -1480,15 +1545,17 @@ export default function MealPlate({
                       if (elem) elem.click();
                     }
                   }}
-                  className="bg-emerald-600 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center justify-center transition-all"
+                  className="bg-emerald-600 text-white p-3.5 sm:p-4 rounded-[2rem] px-4 sm:px-6 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 transition-all text-[9px] sm:text-xs font-bold uppercase tracking-widest"
                   title="Zrób zdjęcie (Analiza AI)"
                 >
                   {isAnalyzing ? (
                     <div className="flex items-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                     </div>
                   ) : (
-                    <Camera size={20} />
+                    <>
+                      <Camera size={18} className="sm:w-5 sm:h-5" /> <span>Analiza</span>
+                    </>
                   )}
                 </button>
                 <button
@@ -1496,9 +1563,9 @@ export default function MealPlate({
                     Haptics.light();
                     startScanner();
                   }}
-                  className="bg-slate-800 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center transition-all justify-center"
+                  className="bg-slate-800 text-white p-3.5 sm:p-4 rounded-[2rem] px-4 sm:px-6 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 transition-all text-[9px] sm:text-xs font-bold uppercase tracking-widest"
                 >
-                  <Scan size={20} />
+                  <Scan size={18} className="sm:w-5 sm:h-5" /> <span>Skaner</span>
                 </button>
               </div>
               <input
@@ -2924,6 +2991,87 @@ export default function MealPlate({
           >
             Przejdź do Kalkulatora
           </button>
+
+          {/* Dynamic absorption wizard for composing food - ALWAYS at the bottom as requested */}
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h4 className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Zap size={14} className="text-accent-400 animate-pulse" />
+                  Profil wchłaniania posiłku
+                </h4>
+                <p className="text-[10px] text-slate-400">
+                  Planowane tempo uwalniania się energii ze składników na talerzu
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest block">
+                  Koniec wchłaniania
+                </span>
+                <span className="text-xs font-black text-accent-300">
+                  {new Date(
+                    new Date(entryTime).getTime() +
+                      getMealAbsorptionTime(totalWW, totalWBT) * 60 * 60 * 1000
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            </div>
+
+            <div className="h-32 w-full select-none mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={plateChartData}
+                  margin={{ top: 5, right: 10, left: -22, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="colorPosilekPlate"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="time"
+                    stroke="#475569"
+                    fontSize={8}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis hide />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "rgba(15, 23, 42, 0.9)",
+                      border: "1px solid #1e293b",
+                      borderRadius: "12px",
+                      fontSize: "10px",
+                      color: "#f8fafc",
+                    }}
+                    labelStyle={{ color: "#94a3b8" }}
+                    formatter={(value: any, name: any) => [`${value} jedn.`, "Profil wchłaniania"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Posiłek"
+                    stroke="#f43f5e"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#colorPosilekPlate)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-[8px] text-slate-400 mt-2 text-center italic">
+              *Wykres przedstawia dynamiczną krzywą metaboliczną na podstawie wskaźnika IG oraz WBT dodanych składników.
+            </p>
+          </div>
         </div>
       )}
     </motion.div>

@@ -4,7 +4,7 @@ import { CloudRain, Sun, Cloud, Thermometer, Wind, Droplets, AlertTriangle, Clou
 import { fetchCurrentWeather } from '../services/weatherService';
 import { Haptics } from '../lib/haptics';
 
-export default function WeatherWidget() {
+export default function WeatherWidget({ compact = false }: { compact?: boolean }) {
   const [weather, setWeather] = useState<any>(null);
   const [loadingLoc, setLoadingLoc] = useState(false);
 
@@ -143,54 +143,62 @@ export default function WeatherWidget() {
   };
 
   return (
-    <div className="glass-card mb-6 overflow-hidden relative">
+    <div className="glass-card mb-0 overflow-hidden relative">
       {/* Dekoracyjne rozmycie w tle */}
       {weather.temp >= 25 && <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[50px] -mr-10 -mt-10 pointer-events-none"></div>}
       {weather.temp <= 0 && <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 blur-[50px] -mr-10 -mt-10 pointer-events-none"></div>}
 
-      <div className="p-6">
-         <div className="flex items-start justify-between mb-4">
+      <div className={compact ? "p-4" : "p-6"}>
+         <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shadow-inner border border-slate-100 dark:border-slate-800 glass-target">
+              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shadow-inner border border-slate-100 dark:border-slate-800 glass-target shrink-0">
                  {renderWeatherIcon()}
               </div>
-              <div>
-                <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">
+              <div className="min-w-0">
+                <p className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">
                   {weather.temp}°C
                 </p>
-                <div className="flex items-center gap-2 mt-1">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                     {weather.city ? `${weather.city} • ${weather.condition}` : weather.condition}
+                <div className="flex items-center gap-1.5 mt-1">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[100px]">
+                     {weather.city ? `${weather.city}` : weather.condition}
                    </p>
                    <button 
                      onClick={handleRefreshLoc}
                      disabled={loadingLoc}
-                     className="ml-2 text-slate-400 hover:text-indigo-500 transition-colors disabled:opacity-50"
+                     className="text-slate-400 hover:text-indigo-500 transition-colors disabled:opacity-50"
                      title="Odśwież lokalizację GPS"
                    >
-                     {loadingLoc ? <RefreshCw size={12} className="animate-spin" /> : <MapPin size={12} />}
+                     {loadingLoc ? <RefreshCw size={10} className="animate-spin" /> : <MapPin size={10} />}
                    </button>
                 </div>
               </div>
             </div>
             
-            <div className="flex flex-col items-end gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
-               <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 py-1 px-2.5 rounded-full border border-slate-100 dark:border-white/5">
-                 <Wind size={10} />
-                 <span>{weather.pressure} hPa</span>
-               </div>
-            </div>
+            {!compact && (
+              <div className="flex flex-col items-end gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                 <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 py-1 px-2.5 rounded-full border border-slate-100 dark:border-white/5">
+                   <Wind size={10} />
+                   <span>{weather.pressure} hPa</span>
+                 </div>
+              </div>
+            )}
          </div>
 
-         <div className={`flex flex-col gap-1.5 p-3.5 rounded-[1.6rem] border border-black/[0.03] dark:border-white/[0.03] ${alertBg}`}>
-            <div className="flex items-center gap-1.5 border-b border-black/[0.04] dark:border-white/[0.04] pb-1.5">
+         <div className={`flex flex-col gap-1 p-3 rounded-[1.3rem] border border-black/[0.03] dark:border-white/[0.03] ${alertBg}`}>
+            <div className="flex items-center gap-1.5 border-b border-black/[0.04] dark:border-white/[0.04] pb-1">
                {alertIcon}
-               <span className={`text-[10px] font-black uppercase tracking-widest ${alertColor}`}>
-                 {alertTitle}
+               <span className={`text-[9px] font-black uppercase tracking-widest leading-none ${alertColor}`}>
+                 {compact ? "Wskazówka" : alertTitle}
                </span>
             </div>
-            <p className={`text-xs font-medium leading-relaxed ${alertColor}`}>
-              {alertText}
+            <p className={`text-[10px] font-bold leading-relaxed line-clamp-3 ${alertColor}`}>
+               {compact 
+                 ? (weather.temp >= 30 
+                     ? "Upał: Insulina szybciej się wchłania. Nawodnij się!" 
+                     : weather.temp <= 0 
+                     ? "Mróz: opóźnienie wchłaniania insuliny. Chroń sprzęt!" 
+                     : "Stabilne temperatury, bezpieczne warunki dla insuliny.") 
+                 : alertText}
             </p>
          </div>
       </div>

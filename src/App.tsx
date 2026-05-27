@@ -83,6 +83,7 @@ import { Toaster, toast } from "react-hot-toast";
 
 import Dashboard from "./components/Dashboard";
 import ChartFullView from "./components/ChartFullView";
+import { LocalErrorBoundary } from "./components/LocalErrorBoundary";
 
 const lazyWithReload = (importFunc: () => Promise<any>) => {
   return React.lazy(async () => {
@@ -2027,16 +2028,17 @@ export default function App() {
     }),
   };
   const currentTabContent = (
-    <React.Suspense
-      fallback={
-        <div className="w-full h-full flex flex-col p-4 space-y-4 pt-10 animate-pulse">
-           <div className="w-1/3 h-8 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-           <div className="w-full h-48 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
-           <div className="w-full h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
-           <div className="w-full h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
-        </div>
-      }
-    >
+    <LocalErrorBoundary>
+      <React.Suspense
+        fallback={
+          <div className="w-full h-full flex flex-col p-4 space-y-4 pt-10 animate-pulse">
+            <div className="w-1/3 h-8 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+            <div className="w-full h-48 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+            <div className="w-full h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+            <div className="w-full h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+          </div>
+        }
+      >
       {/* 1. Grupa 1: Wykres i Pulpit */}
       {["dashboard", "chart"].includes(activeTab) && (
         <>
@@ -2282,6 +2284,7 @@ export default function App() {
         </div>
       )}
     </React.Suspense>
+    </LocalErrorBoundary>
   );
 
   const lastGlucoseValue =
@@ -2426,7 +2429,7 @@ export default function App() {
             dragElastic={0.1}
             onDragEnd={handleSwipe}
             className={cn(
-              "w-full min-h-full p-4 will-change-transform flex flex-col transition-all duration-300",
+              "w-full min-h-full p-4 flex flex-col transition-all duration-300",
               isKeyboardOpen ? "pb-8" : "pb-32"
             )}
           >

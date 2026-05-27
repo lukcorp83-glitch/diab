@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Activity, Dumbbell, Bike, Waves, Mountain, Wind, Play, Clock, Info, Footprints, Music, Trophy, Target, History, Calendar } from 'lucide-react';
 import { cn, getEffectiveUid } from '../lib/utils';
 import { Haptics } from '../lib/haptics';

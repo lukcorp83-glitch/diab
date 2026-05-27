@@ -5,7 +5,7 @@ import GlikoSenseIcon from './GlikoSenseIcon';
 import { LogEntry } from '../types';
 import { cn, calculateIOB, calculateCOB, getEffectiveIOB } from '../lib/utils';
 
-export default function GlikoSenseTips({ logs, pumpStatus }: { logs: LogEntry[], pumpStatus?: any }) {
+export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { logs: LogEntry[], pumpStatus?: any, compact?: boolean }) {
   const [dismissedTips, setDismissedTips] = React.useState<string[]>(() => {
     const saved = localStorage.getItem('dismissed_tips');
     return saved ? JSON.parse(saved) : [];
@@ -125,6 +125,31 @@ export default function GlikoSenseTips({ logs, pumpStatus }: { logs: LogEntry[],
   };
 
   if (tips.length === 0) return null;
+
+  if (compact) {
+    const tip = tips[0];
+    return (
+      <div className="flex items-start gap-2 relative group w-full text-left">
+        <div className={cn(
+          "p-1.5 rounded-xl shrink-0",
+          tip.color === 'pink' ? 'bg-pink-500/10 text-pink-500' :
+          tip.color === 'amber' ? 'bg-amber-500/10 text-amber-500' :
+          tip.color === 'rose' ? 'bg-rose-500/10 text-rose-500' :
+          tip.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-500' :
+          tip.color === 'indigo' ? 'bg-indigo-500/10 text-indigo-500' :
+          'bg-accent-500/10 text-accent-500'
+        )}>
+          {React.cloneElement(tip.icon as any, { size: 12 })}
+        </div>
+        <div className="flex-1 min-w-0 pr-1">
+          <h4 className="font-black text-[9px] dark:text-white leading-none tracking-tight mb-1 truncate">{tip.title}</h4>
+          <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold leading-normal opacity-85">
+            {tip.content}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

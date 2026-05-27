@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { ArrowLeft, BookOpen, Utensils, Heart, Info, Clock, AlertTriangle, Check, X } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
 import { User } from 'firebase/auth';
