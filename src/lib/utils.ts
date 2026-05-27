@@ -25,6 +25,32 @@ export function getTs(t: any): number {
   return 0;
 }
 
+/** 
+ * Zgodnie z wytycznymi Warszawskiej Szkoły Pompowej i Polskiego Towarzystwa Diabetologicznego:
+ * - Węglowodany wchłaniają się w zależności od porcji (do ~3-4h)
+ * - WBT (Wymienniki Białkowo-Tłuszczowe) wchłaniają się znacznie dłużej (pizza, fast food nawet 8+ godzin)
+ * 1 WBT = 100 kcal z białka i tłuszczu
+ * Do 1 WBT = ~3h
+ * 1-2 WBT = ~4h
+ * 2-3 WBT = ~5h
+ * >3 WBT = ~8h
+ */
+export function getMealAbsorptionTime(ww: number, wbt: number): number {
+  let carbTime = 0.5;
+  if (ww > 0 && ww <= 2) carbTime = 1.5;
+  else if (ww > 2 && ww <= 4) carbTime = 2.5;
+  else if (ww > 4 && ww <= 6) carbTime = 3.5;
+  else if (ww > 6) carbTime = 4.0;
+
+  let wbtTime = 0;
+  if (wbt >= 0.5 && wbt < 1.5) wbtTime = 3;
+  else if (wbt >= 1.5 && wbt < 2.5) wbtTime = 4;
+  else if (wbt >= 2.5 && wbt < 3.5) wbtTime = 5;
+  else if (wbt >= 3.5) wbtTime = 8; // np. Pizza
+
+  return Math.max(carbTime, wbtTime);
+}
+
 export function calculateIOB(logs: LogEntry[], diaHours: number = 4) {
   const now = Date.now();
   const diaMs = diaHours * 60 * 60 * 1000;
@@ -121,4 +147,15 @@ export function calculateCOB(logs: LogEntry[], absorptionMinutes: number = 180) 
 export function getEffectiveUid(user: any): string {
   if (!user || !user.uid) return '';
   return localStorage.getItem('diacontrol_linked_uid') || user.uid;
+}
+
+/**
+ * Zwraca true jeśli aplikacja działa wewnątrz wtyczki (APK Webview) lub z ekranu początkowego (PWA standalone).
+ */
+export function isNativeApp(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent.toLowerCase();
+  const isWebView = ua.includes('wv') || (ua.includes('android') && ua.includes('version/'));
+  const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  return isWebView || isStandalone || !!(window as any).Capacitor || !!(window as any).cordova;
 }

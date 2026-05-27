@@ -7,6 +7,18 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "4.0",
+    date: "2026-05-26",
+    title: "Aktualizacja 4.0: Gotowość na pliki APK i ulepszony GlikoSense",
+    changes: [
+      "Nowe wsparcie dla aplikacji APK na system Android: Dodano bezpieczny eksport i import modelu oraz danych za pomocą plików JSON, chroniąc przed utratą danych w trybie gościa.",
+      "Zaawansowana analiza wchłaniania posiłków: Lepsze szacowanie uwalniania się węglowodanów złożonych, białek i tłuszczów w czasie.",
+      "Ulepszony i dokładniejszy asystent prognoz GlikoSense: Zwiększona dokładność predykcji przyszłych trendów glikemicznych i dawkowań.",
+      "Liczne podręczne poprawki w UI: Przebudowany interfejs widgetów, zoptymalizowana nawigacja oraz lepsza responsywność na ekranach dotykowych.",
+      "Naprawa błędów: Usunięcie problemów z synchronizacją bazy oraz drobnych błędów działania algorytmów."
+    ]
+  },
+  {
     version: "3.5.3",
     date: "2026-05-22",
     title: "Aktualizacja 3.5.3: Wizualne Strzałki, Optymalizacja Sync i Okno Czatu",
@@ -219,4 +231,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "3.5.3";
+export const CURRENT_VERSION = "4.0";

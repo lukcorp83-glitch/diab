@@ -1,143 +1,103 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Check, ChevronRight, Zap, Trophy, HelpCircle, Book, Flower2, Box, Info, Settings, MousePointer2, ArrowRight } from 'lucide-react';
-import { VERSIONS, CURRENT_VERSION } from '../constants/versions';
+import { 
+  Sparkles, 
+  Smartphone, 
+  Brain, 
+  Utensils, 
+  Layout, 
+  Wrench, 
+  ArrowRight,
+  X
+} from 'lucide-react';
+import { VERSIONS } from '../constants/versions';
 import { cn } from '../lib/utils';
-import confetti from 'canvas-confetti';
 
 export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
-  const current = VERSIONS[0];
-
-  useEffect(() => {
-    const duration = 3000;
-    const end = Date.now() + duration;
-
-    const frame = () => {
-      confetti({
-        particleCount: 3,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
-        colors: ['#6366f1', '#a855f7', '#ec4899']
-      });
-      confetti({
-        particleCount: 3,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 },
-        colors: ['#6366f1', '#a855f7', '#ec4899']
-      });
-
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
-    };
-    frame();
-  }, []);
+  const current = VERSIONS[0]; // Active top release (ver 4.0)
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 backdrop-blur-md">
       <motion.div
-        initial={{ opacity: 0, scale: 0.8, y: 30 }}
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden relative border border-slate-100 dark:border-slate-800"
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-lg bg-white dark:bg-slate-950 rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-900 flex flex-col"
+        id="changelog-popup-container"
       >
-        <div className="relative pt-12 pb-8 px-8 bg-gradient-to-br from-accent-600 via-indigo-600 to-purple-700 text-white overflow-hidden">
-          {/* Decorative background circles */}
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10 blur-3xl mix-blend-overlay"></div>
-          <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 rounded-full bg-accent-400/30 blur-3xl mix-blend-overlay"></div>
-          
-          <div className="absolute top-4 right-4 p-4 opacity-20">
-            <Sparkles size={140} className="text-white animate-pulse" />
+        {/* Subtle decorative top border accent */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all cursor-pointer"
+          aria-label="Zamknij"
+          id="changelog-close-btn"
+        >
+          <X size={18} />
+        </button>
+
+        {/* Header section */}
+        <div className="pt-10 px-8 pb-6 border-b border-slate-100/80 dark:border-slate-900/40">
+          <div className="flex items-center gap-2.5 mb-2">
+            <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40">
+              <Sparkles size={11} className="animate-pulse" />
+              Aktualizacja
+            </span>
+            <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400">
+              v{current.version}
+            </span>
           </div>
-            <div className="relative z-10">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 mb-4 shadow-lg"
-              >
-                <Zap size={12} className="fill-white" />
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white">Nowa Wersja</span>
-              </motion.div>
-              <div className="flex items-center gap-2 mb-3">
-                <h2 className="text-4xl font-black leading-none tracking-tighter font-display uppercase italic flex items-center drop-shadow-md">
-                  <span className="mr-3 text-white/90">Gliko</span>
-                  <div className="flex bg-black/30 rounded-2xl shadow-[inset_0_4px_12px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 relative py-1 lg:py-2 px-2">
-                    {/* Shadow overlay to look like a mechanical counter */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60 pointer-events-none z-10" />
-                    {current.version.split('').map((char, i) => (
-                      <div key={i} className="relative flex justify-center items-center min-w-[18px]">
-                        <motion.span
-                          initial={{ y: "150%", opacity: 0, filter: "blur(2px)", scale: 0.8 }}
-                          animate={{ y: "0%", opacity: 1, filter: "blur(0px)", scale: 1 }}
-                          transition={{ 
-                            type: "spring", 
-                            damping: 12, 
-                            stiffness: 100, 
-                            mass: 0.5,
-                            delay: 0.4 + i * 0.15 
-                          }}
-                          className={cn(
-                            "inline-block font-mono tracking-tighter text-2xl lg:text-3xl font-black",
-                            char === '.' ? "text-white/50" : "text-white"
-                          )}
-                          style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}
-                        >
-                          {char}
-                        </motion.span>
-                      </div>
-                    ))}
-                  </div>
-                </h2>
-              </div>
-              <motion.p 
+
+          <h2 className="text-2xl font-black text-slate-950 dark:text-white tracking-tight leading-snug">
+            {current.title}
+          </h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">
+            Odkryj najnowsze inteligentne funkcje i ulepszenia w wersji mobilnej.
+          </p>
+        </div>
+
+        {/* List of changes */}
+        <div className="px-8 py-6 max-h-[50vh] overflow-y-auto space-y-4 no-scrollbar">
+          {current.changes.map((change, idx) => {
+            const iconInfo = getChangeIconAndColor(change);
+            return (
+              <motion.div
+                key={`change-${idx}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="text-white/80 text-[11px] font-bold uppercase tracking-widest pl-1"
+                transition={{ delay: 0.12 + idx * 0.06 }}
+                className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100/50 dark:border-slate-900/30 transition-all group"
               >
-                {current.title}
-              </motion.p>
-            </div>
-        </div>
-
-        <div className="p-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex justify-center -mt-6">
-            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full z-20"></div>
-          </div>
-        </div>
-
-        <div className="p-8 max-h-[50vh] overflow-y-auto no-scrollbar bg-slate-50 dark:bg-slate-900">
-          <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 ml-2">Co nowego?</h3>
-          <div className="space-y-4">
-            {current.changes.map((change, idx) => (
-              <motion.div
-                key={`change-${current.version}-${idx}`}
-                initial={{ opacity: 0, x: -10, y: 10 }}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                transition={{ delay: 0.4 + idx * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                className="flex items-start gap-4 p-5 rounded-[2rem] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-accent-200 dark:hover:border-accent-500/30 hover:shadow-lg hover:shadow-accent-500/5 transition-all group"
-              >
-                <div className="shrink-0 w-12 h-12 rounded-[1.2rem] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-accent-500 group-hover:scale-110 group-hover:bg-accent-500 group-hover:text-white group-hover:border-accent-400 transition-all shadow-sm">
-                   {getChangeIcon(change)}
+                <div className={cn(
+                  "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm",
+                  iconInfo.bgColor
+                )}>
+                  {iconInfo.icon}
                 </div>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed pt-1.5">
-                  {change}
-                </p>
+                <div className="space-y-0.5 flex-1 pt-0.5">
+                  <h4 className="text-xs font-bold text-slate-950 dark:text-slate-200">
+                    {iconInfo.title}
+                  </h4>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {iconInfo.desc}
+                  </p>
+                </div>
               </motion.div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
-        <div className="p-8 pt-4 bg-slate-50 dark:bg-slate-900">
+        {/* Footer with action button */}
+        <div className="p-8 pt-4 border-t border-slate-100/80 dark:border-slate-900/40 bg-slate-50/50 dark:bg-slate-950">
           <button
             onClick={onClose}
-            className="w-full bg-gradient-to-r from-accent-600 to-indigo-600 hover:from-accent-500 hover:to-indigo-500 text-white font-black py-5 rounded-[2rem] uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-accent-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 group font-display"
+            className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/10 active:scale-98 transition-all cursor-pointer font-display"
+            id="changelog-start-btn"
           >
-            Zaczynamy zabawę <ArrowRight size={18} className="group-hover:translate-x-1.5 transition-transform" />
+            Sprawdź nowości <ArrowRight size={16} />
           </button>
         </div>
       </motion.div>
@@ -145,15 +105,57 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
   );
 }
 
-function getChangeIcon(text: string) {
+interface ChangeMeta {
+  icon: React.ReactNode;
+  bgColor: string;
+  title: string;
+  desc: string;
+}
+
+function getChangeIconAndColor(text: string): ChangeMeta {
   const t = text.toLowerCase();
-  if (t.includes('quiz')) return <HelpCircle size={16} />;
-  if (t.includes('ogród')) return <Flower2 size={16} />;
-  if (t.includes('dziennik') || t.includes('historia')) return <Book size={16} />;
-  if (t.includes('energia') || t.includes('wydajność')) return <Zap size={16} />;
-  if (t.includes('monety') || t.includes('xp')) return <Trophy size={16} />;
-  if (t.includes('haptyka') || t.includes('wibracje')) return <MousePointer2 size={16} />;
-  if (t.includes('ustawienia') || t.includes('opcje')) return <Settings size={16} />;
-  if (t.includes('poprawka') || t.includes('stabilność')) return <Box size={16} />;
-  return <Sparkles size={16} />;
+  
+  if (t.includes('apk') || t.includes('android')) {
+    return {
+      icon: <Smartphone size={16} className="text-emerald-500 dark:text-emerald-400" />,
+      bgColor: "bg-emerald-50 dark:bg-emerald-950/40",
+      title: "Wersja APK & mobilna",
+      desc: text
+    };
+  }
+  
+  if (t.includes('wchłaniania') || t.includes('posiłków') || t.includes('makroskładników')) {
+    return {
+      icon: <Utensils size={16} className="text-amber-500 dark:text-amber-400" />,
+      bgColor: "bg-amber-50 dark:bg-amber-950/40",
+      title: "Wchłanianie posiłków",
+      desc: text
+    };
+  }
+  
+  if (t.includes('glikosense') || t.includes('model')) {
+    return {
+      icon: <Brain size={16} className="text-indigo-500 dark:text-indigo-400" />,
+      bgColor: "bg-indigo-50 dark:bg-indigo-950/40",
+      title: "Ulepszony GlikoSense",
+      desc: text
+    };
+  }
+  
+  if (t.includes('poprawki') || t.includes('interfejs') || t.includes('ui')) {
+    return {
+      icon: <Layout size={16} className="text-sky-500 dark:text-sky-400" />,
+      bgColor: "bg-sky-50 dark:bg-sky-950/40",
+      title: "Podręczne poprawki UI",
+      desc: text
+    };
+  }
+  
+  // Bug fixes / standard
+  return {
+    icon: <Wrench size={16} className="text-indigo-500 dark:text-indigo-400" />,
+    bgColor: "bg-indigo-50 dark:bg-indigo-950/40",
+    title: "Naprawa błędów",
+    desc: text
+  };
 }

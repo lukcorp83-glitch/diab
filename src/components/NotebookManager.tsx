@@ -46,12 +46,39 @@ export default function NotebookManager({ user }: { user: any }) {
         if (n.reminderDate) {
           const d = new Date(n.reminderDate);
           if (now.getTime() >= d.getTime()) { 
-             // we could use the notificationService here or browser alert
-             if (Notification.permission === 'granted') {
-               new Notification('GlikoControl Przypomnienie', { body: n.content });
-             } else {
-               toast(`Przypomnienie: ${n.content}`);
+             
+             if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+             
+             toast(`Przypomnienie: ${n.content}`, { 
+                icon: '🔔', 
+                duration: 25000, 
+                position: 'top-center',
+                style: { border: '2px solid #3b82f6', padding: '16px', color: '#1e293b', fontWeight: 'bold' } 
+             });
+
+             const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');
+             if (apkPref !== 'false' && 'Notification' in window && Notification.permission === 'granted') {
+               try {
+                 navigator.serviceWorker.ready.then(reg => {
+                   if (reg) {
+                     reg.showNotification('GlikoControl Przypomnienie', {
+                       body: n.content,
+                       icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+                       vibrate: [200, 100, 200, 100, 200],
+                       tag: 'glikocontrol-reminder',
+                       requireInteraction: true
+                     } as any);
+                   } else {
+                     new Notification('GlikoControl Przypomnienie', { body: n.content });
+                   }
+                 }).catch(() => {
+                   new Notification('GlikoControl Przypomnienie', { body: n.content });
+                 });
+               } catch(e) {
+                 try { new Notification('GlikoControl Przypomnienie', { body: n.content }); } catch(err) {}
+               }
              }
+             
              // Optional: remove reminder after showing
              if (user) {
                 const uid = getEffectiveUid(user);
@@ -163,10 +190,16 @@ export default function NotebookManager({ user }: { user: any }) {
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
                   {notes.length === 0 ? (
-                    <div className="text-center p-8 mt-10 text-slate-400 flex flex-col items-center">
-                      <Book size={48} className="mb-4 text-slate-200 dark:text-slate-800" />
-                      <p className="text-sm font-black text-slate-500 dark:text-slate-400">Brak notatek</p>
-                      <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-1">Tutaj zapiszesz ważne uwagi.</p>
+                    <div className="flex flex-col items-center justify-center p-12 mt-4 bg-gradient-to-b from-slate-50/50 to-slate-100/50 dark:from-slate-800/10 dark:to-slate-900/10 rounded-[2.5rem] border-2 border-dashed border-slate-200/60 dark:border-slate-800/60 opacity-90 backdrop-blur-sm mx-2">
+                        <div className="w-16 h-16 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-900/20 flex items-center justify-center mb-4 shadow-inner ring-1 ring-indigo-100 dark:ring-indigo-800/50">
+                          <Book size={24} className="text-indigo-400 dark:text-indigo-400/80" />
+                        </div>
+                        <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
+                          Brak notatek
+                        </p>
+                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
+                          Zapisz tutaj ważne informacje dla lekarza lub na przyszłość.
+                        </p>
                     </div>
                   ) : (
                     notes.map(note => (

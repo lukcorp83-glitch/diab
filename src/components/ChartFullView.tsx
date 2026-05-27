@@ -137,6 +137,12 @@ export default function ChartFullView({
            </div>
            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Węgle (WW)</span>
         </div>
+        <div className="flex items-center gap-1.5 snap-start shrink-0 text-rose-500">
+           <div className="p-1 max-w-fit rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+             <span className="text-[10px] leading-none mb-0.5">⚠️</span>
+           </div>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center">Nakładanie dawek</span>
+        </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-teal-500">
            <div className="p-1 max-w-fit rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
              <Droplets size={10} strokeWidth={2.5} />

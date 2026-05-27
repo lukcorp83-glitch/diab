@@ -4,6 +4,11 @@ interface CachedWeather {
     pressure: number;
     condition: string;
     city?: string;
+    todayMax?: number;
+    todayMin?: number;
+    tomorrowMax?: number;
+    tomorrowMin?: number;
+    tomorrowCondition?: string;
   };
   timestamp: number;
 }
@@ -55,7 +60,7 @@ export async function fetchCurrentWeather(lat?: number, lon?: number, force: boo
     }
 
     // Open-Meteo is free and doesn't require an API key
-    const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${finalLat}&longitude=${finalLon}&current=temperature_2m,surface_pressure,weather_code&timezone=auto`);
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${finalLat}&longitude=${finalLon}&current=temperature_2m,surface_pressure,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto`);
     
     if (!response.ok) {
       throw new Error('Network response was not ok');
@@ -67,6 +72,21 @@ export async function fetchCurrentWeather(lat?: number, lon?: number, force: boo
       pressure: data.current.surface_pressure,
       condition: getWeatherCondition(data.current.weather_code)
     };
+    
+    if (data.daily) {
+      if (Array.isArray(data.daily.temperature_2m_max) && data.daily.temperature_2m_max.length > 1) {
+        result.todayMax = data.daily.temperature_2m_max[0];
+        result.tomorrowMax = data.daily.temperature_2m_max[1];
+      }
+      if (Array.isArray(data.daily.temperature_2m_min) && data.daily.temperature_2m_min.length > 1) {
+        result.todayMin = data.daily.temperature_2m_min[0];
+        result.tomorrowMin = data.daily.temperature_2m_min[1];
+      }
+      if (Array.isArray(data.daily.weather_code) && data.daily.weather_code.length > 1) {
+        result.tomorrowCondition = getWeatherCondition(data.daily.weather_code[1]);
+      }
+    }
+
     if (finalCity) {
       result.city = finalCity;
     }

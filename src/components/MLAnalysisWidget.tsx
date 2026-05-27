@@ -1,22 +1,36 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe } from 'lucide-react';
+import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
-import { cn } from '../lib/utils';
+import { cn, getEffectiveUid } from '../lib/utils';
 import GlikoSenseIcon from './GlikoSenseIcon';
+import { db, auth } from '../lib/firebase';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 interface MLAnalysisWidgetProps {
   logs: LogEntry[];
   settings?: UserSettings;
+  user?: any;
 }
 
-export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetProps) {
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export default function MLAnalysisWidget({ logs, settings, user }: MLAnalysisWidgetProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mlResult, setMlResult] = useState<{
     predictedNextHour: number,
+    predictedNext2Hours: number,
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
@@ -36,6 +50,243 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
     }
     return null;
   });
+
+  // Backup-related state variables
+  const [backupInfo, setBackupInfo] = useState<{ timestamp: number; datasetSize?: number } | null>(null);
+  const [loadingBackup, setLoadingBackup] = useState(false);
+  const [hasBackupConsent, setHasBackupConsent] = useState(() => {
+    return localStorage.getItem('glikosense_backup_consent') === 'true';
+  });
+  const [showBackupPanel, setShowBackupPanel] = useState(false);
+  const [isBackupActionRunning, setIsBackupActionRunning] = useState(false);
+
+  function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+    const errInfo = {
+      error: error instanceof Error ? error.message : String(error),
+      authInfo: {
+        userId: auth.currentUser?.uid,
+        email: auth.currentUser?.email,
+        emailVerified: auth.currentUser?.emailVerified,
+      },
+      operationType,
+      path
+    };
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    throw new Error(JSON.stringify(errInfo));
+  }
+
+  // Fetch backup info from Cloud Firestore
+  useEffect(() => {
+    if (!user || user.isAnonymous) {
+      setBackupInfo(null);
+      return;
+    }
+
+    const fetchBackupStatus = async () => {
+      setLoadingBackup(true);
+      try {
+        const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setBackupInfo({
+            timestamp: data.timestamp,
+            datasetSize: data.datasetSize
+          });
+        } else {
+          setBackupInfo(null);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch backup status", err);
+      } finally {
+        setLoadingBackup(false);
+      }
+    };
+
+    fetchBackupStatus();
+  }, [user]);
+
+  const handleBackupConsentChange = (checked: boolean) => {
+    setHasBackupConsent(checked);
+    localStorage.setItem('glikosense_backup_consent', checked ? 'true' : 'false');
+    if (checked) {
+      toast.success("Zgoda udzielona. Możesz teraz zarządzać kopią zapasową.");
+    }
+  };
+
+  const handleBackupToCloud = async () => {
+    if (!user || user.isAnonymous) {
+      toast.error("Zaloguj się na pełne konto (E-mail lub Google), aby korzystać z kopii zapasowej.");
+      return;
+    }
+    if (!hasBackupConsent) {
+      toast.error("Musisz najpierw zaakceptować informację o zgodzie.");
+      return;
+    }
+
+    setIsBackupActionRunning(true);
+    const toastId = toast.loading("Archiwizowanie modelu GlikoSense 3.0 w chmurze...");
+    const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+    try {
+      const modelData = await MLAnalyzer.exportCurrentModel();
+      if (!modelData) {
+        toast.dismiss(toastId);
+        toast.error("Nie znaleziono wyuczonego lokalnego modelu. Przeanalizuj panel najpierw!");
+        setIsBackupActionRunning(false);
+        return;
+      }
+
+      const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+      await setDoc(docRef, {
+        ...modelData,
+        datasetSize: mlResult?.datasetSize || 0
+      });
+
+      setBackupInfo({
+        timestamp: modelData.timestamp,
+        datasetSize: mlResult?.datasetSize || 0
+      });
+
+      toast.success("Kopia zapasowa modelu GlikoSense 3.0 została zapisana pomyślnie!", { id: toastId });
+    } catch (err) {
+      toast.error("Błąd podczas eksportowania lub zapisu kopii zapasowej.", { id: toastId });
+      handleFirestoreError(err, OperationType.WRITE, docPath);
+    } finally {
+      setIsBackupActionRunning(false);
+    }
+  };
+
+  const handleRestoreFromCloud = async () => {
+    if (!user || user.isAnonymous) {
+      toast.error("Zaloguj się na pełne konto (E-mail lub Google), aby pobrać kopię zapasową.");
+      return;
+    }
+    if (!hasBackupConsent) {
+      toast.error("Udziel najpierw zgody na zarządzanie kopią zapasową.");
+      return;
+    }
+
+    const confirmRestore = window.confirm(
+      "UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej GlikoSense 3.0 zainstalowane w przeglądarce. Czy chcesz kontynuować?"
+    );
+    if (!confirmRestore) return;
+
+    setIsBackupActionRunning(true);
+    const toastId = toast.loading("Pobieranie i importowanie modelu z chmury...");
+    const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+    try {
+      const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        toast.dismiss(toastId);
+        toast.error("Brak kopii zapasowej w chmurze.");
+        setIsBackupActionRunning(false);
+        return;
+      }
+
+      const backupData = docSnap.data();
+      const success = await MLAnalyzer.importModelFromBackup({
+        modelTopology: backupData.modelTopology,
+        weightSpecs: backupData.weightSpecs,
+        weightDataB64: backupData.weightDataB64
+      });
+
+      if (success) {
+        toast.success("Model GlikoSense 3.0 został pomyślnie przywrócony z chmury!", { id: toastId });
+        runML(true);
+      } else {
+        toast.error("Wystąpił nieznany problem z plikiem modelu.", { id: toastId });
+      }
+    } catch (err) {
+      toast.error("Błąd podczas przywracania kopii zapasowej.", { id: toastId });
+      handleFirestoreError(err, OperationType.GET, docPath);
+    } finally {
+      setIsBackupActionRunning(false);
+    }
+  };
+
+  const handleDeleteBackup = async () => {
+    if (!user || user.isAnonymous) return;
+    const confirmDelete = window.confirm("Czy na pewno chcesz usunąć kopię zapasową modelu z chmury? Ta operacja jest nieodwracalna.");
+    if (!confirmDelete) return;
+
+    setIsBackupActionRunning(true);
+    const toastId = toast.loading("Usuwanie kopii zapasowej...");
+    const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+    try {
+      const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+      await deleteDoc(docRef);
+      setBackupInfo(null);
+      toast.success("Kopia zapasowa w chmurze została usunięta.", { id: toastId });
+    } catch (err) {
+      toast.error("Błąd podczas usuwania kopii zapasowej.", { id: toastId });
+      handleFirestoreError(err, OperationType.DELETE, docPath);
+    } finally {
+      setIsBackupActionRunning(false);
+    }
+  };
+
+  const handleExportToFile = async () => {
+    try {
+      const modelData = await MLAnalyzer.exportCurrentModel();
+      if (!modelData) {
+        toast.error("Brak wytrenowanego modelu do pobrania. Wykonaj najpierw analizę!");
+        return;
+      }
+      
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+        JSON.stringify(modelData, null, 2)
+      )}`;
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", jsonString);
+      downloadAnchor.setAttribute("download", `glikosense_model_backup_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      toast.success("Pomyślnie pobrano model do pliku JSON!");
+    } catch (err) {
+      toast.error("Błąd eksportu do pliku.");
+      console.error(err);
+    }
+  };
+
+  const handleImportFromFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileReader = new FileReader();
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    fileReader.readAsText(files[0], "UTF-8");
+    fileReader.onload = async (event) => {
+      try {
+        const textStr = event.target?.result as string;
+        if (!textStr) throw new Error("Plik jest pusty.");
+        
+        const parsed = JSON.parse(textStr);
+        if (!parsed.modelTopology || !parsed.weightSpecs || !parsed.weightDataB64) {
+          throw new Error("Nieprawidłowy format pliku modelu GlikoSense.");
+        }
+        
+        const confirmRestore = window.confirm(
+          "Uwaga: Wgranie modelu z pliku nadpisze aktualny model w przeglądarce. Czy chcesz kontynuować?"
+        );
+        if (!confirmRestore) return;
+        
+        const success = await MLAnalyzer.importModelFromBackup(parsed);
+        if (success) {
+          toast.success("Pomyślnie wgrano model z pliku JSON!");
+          runML(true);
+        } else {
+          toast.error("Błąd podczas importu modelu.");
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Błąd odczytu pliku. Upewnij się, że plik jest poprawnym JSONem modelu.");
+        console.error(err);
+      } finally {
+        e.target.value = '';
+      }
+    };
+  };
 
   const lastProcessedLogsRef = React.useRef<string>("");
 
@@ -142,7 +393,7 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
     
     data.push({
       name: 'Pred',
-      value: mlResult.predictedNextHour,
+      value: mlResult.predictedNext2Hours,
       isPrediction: true
     });
     
@@ -237,6 +488,158 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
         </button>
       </div>
 
+      {/* GlikoSense Neural Backup Control Trigger & Panel */}
+      <div className="relative z-20 mb-6 bg-slate-50 dark:bg-slate-800/20 p-4 border border-slate-200/40 dark:border-slate-800/40 rounded-[2rem] hover:border-indigo-500/20 transition-all">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Cloud size={18} className="text-indigo-500" />
+            <div className="flex flex-col">
+              <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">Sieć neuronowa GlikoSense 3.0</span>
+              <span className="text-[10px] font-bold text-slate-400 opacity-80 mt-1">Kopia zapasowa modelu w zabezpieczonej chmurze</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowBackupPanel(!showBackupPanel)}
+            className="px-3 py-1.5 text-xs font-bold text-indigo-500 hover:text-indigo-600 bg-indigo-500/5 hover:bg-indigo-500/10 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/15 rounded-xl transition-all"
+          >
+            {showBackupPanel ? "Zwiń" : "Zarządzaj"}
+          </button>
+        </div>
+
+        {showBackupPanel && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mt-4 pt-4 border-t border-slate-200/40 dark:border-slate-800/40 space-y-4 overflow-hidden"
+          >
+            {/* Warning / Risk Info Panel */}
+            <div className="bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 text-amber-700 dark:text-amber-400">
+              <ShieldAlert size={20} className="shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="text-xs font-black uppercase tracking-wider block">Ważna Informacja o Modelu</span>
+                <p className="text-xs font-medium leading-relaxed">
+                  Twoja sieć neuronowa uczy się lokalnie na Twoim urządzeniu. 
+                  Czyszczenie pamięci podręcznej przeglądarki lub zmiana urządzenia spowoduje{" "}
+                  <strong className="font-extrabold text-amber-600 dark:text-amber-300">bezzwrotną utratę wyuczonego modelu GlikoSense 3.0</strong>{" "}
+                  i przywrócenie wartości podstawowych. Kopia w chmurze chroni przed utratą Twojej spersonalizowanej inteligencji.
+                </p>
+              </div>
+            </div>
+
+            {/* Checkbox for explicit consent */}
+            <div 
+              onClick={() => handleBackupConsentChange(!hasBackupConsent)}
+              className="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/40 dark:border-slate-800/40 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 cursor-pointer transition-all"
+            >
+              <div className="text-indigo-500 shrink-0 mt-0.5">
+                {hasBackupConsent ? (
+                  <CheckSquare size={18} className="fill-indigo-500/10" />
+                ) : (
+                  <Square size={18} />
+                )}
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                  Rozumiem ryzyko i wyrażam świadomą zgodę
+                </span>
+                <p className="text-[10px] text-slate-400">
+                  Wyrażam zgodę na bezpieczny, szyfrowany zapis wag i topologii mojej lokalnej sieci neuronowej w moim profilu bazy danych Firebase.
+                </p>
+              </div>
+            </div>
+
+            {/* If user is not logged in or is guest */}
+            {!user ? (
+              <div className="bg-indigo-500/5 border border-indigo-500/15 p-3 rounded-2xl text-center text-xs text-indigo-500 font-bold">
+                ⚠️ Zaloguj się na pełne konto (e-mailem lub Google), aby uzyskać dostęp do kopii zapasowej w bezpiecznej chmurze.
+              </div>
+            ) : user.isAnonymous ? (
+              <div className="bg-amber-500/5 border border-amber-500/15 p-3 rounded-2xl text-center text-xs text-amber-600 dark:text-amber-400 font-bold">
+                ⚠️ Kopia zapasowa modelu jest niedostępna w trybie gościa. Zapobiegaj utracie modelu logując się na pełne konto (E-mail lub Google).
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Last backup info */}
+                <div className="flex items-center justify-between text-xs p-3 bg-slate-100/60 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800/40">
+                  <span className="font-black uppercase text-slate-400 tracking-wider text-[9px]">Stan kopii chmury</span>
+                  {loadingBackup ? (
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <Loader2 size={12} className="animate-spin" /> Sprawdzanie...
+                    </div>
+                  ) : backupInfo ? (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-bold text-emerald-500">Kopia jest aktywna</span>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        Zapisano: {new Date(backupInfo.timestamp).toLocaleString('pl-PL')}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-amber-500 font-bold">Brak zapisu w chmurze</span>
+                  )}
+                </div>
+
+                {/* Cloud Actions Row */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={handleBackupToCloud}
+                    disabled={isBackupActionRunning || !hasBackupConsent}
+                    className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-black text-white bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-500/30 disabled:text-indigo-500/50 rounded-xl transition-all shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <CloudUpload size={14} /> EKSPORTUJ DO CHMURY
+                  </button>
+
+                  <button
+                    onClick={handleRestoreFromCloud}
+                    disabled={isBackupActionRunning || !hasBackupConsent || !backupInfo}
+                    className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-black text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/30 disabled:text-emerald-500/50 rounded-xl transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <CloudDownload size={14} /> PRZYWRÓĆ Z CHMURY
+                  </button>
+
+                  {backupInfo && (
+                    <button
+                      onClick={handleDeleteBackup}
+                      disabled={isBackupActionRunning}
+                      className="p-2.5 text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 rounded-xl transition-all shrink-0 cursor-pointer disabled:opacity-50"
+                      title="Usuń kopię zapasową z chmury"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Opcja offline dla gości, urządzeń lokalnych oraz eksportu dla APK */}
+            <div className="pt-3.5 border-t border-slate-200/40 dark:border-slate-800/40 space-y-3">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Kopia Lokalna / Plik (Idealne dla pliku APK & Gości)</span>
+                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                  Całkowicie bezpłatne pobieranie spersonalizowanych wag sieci neuronowej bezpośrednio na pamięć urządzenia lub ich wczytywanie z pliku JSON.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleExportToFile}
+                  className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 rounded-xl transition-all cursor-pointer"
+                >
+                  📥 Pobierz plik modelu (.json)
+                </button>
+                <label className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 rounded-xl transition-all cursor-pointer text-center">
+                  📤 Wgraj plik modelu (.json)
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportFromFile}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
       <AnimatePresence mode="wait">
           {logs.filter(l => l.type === 'glucose' || l.bg).length < 5 ? (
             <motion.div 
@@ -271,11 +674,17 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
-               className="h-48 flex flex-col items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 glass-target"
+               className="h-48 flex flex-col p-6 space-y-4 relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 glass-target animate-pulse"
             >
-               <Loader2 size={32} className="animate-spin text-accent-500 mb-4 opacity-50" />
-               <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Pierwsza analiza GlikoSense...</span>
-               <span className="text-[10px] text-slate-400 mt-2">To może potrwać kilka sekund</span>
+               <div className="w-1/3 h-6 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+               <div className="flex gap-4">
+                 <div className="w-20 h-20 bg-slate-200 dark:bg-slate-700 rounded-[1.5rem]" />
+                 <div className="flex-1 space-y-2 py-2">
+                   <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                   <div className="w-5/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                   <div className="w-4/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                 </div>
+               </div>
             </motion.div>
           ) : mlResult ? (
               <motion.div 
@@ -299,10 +708,10 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                               <div className="bg-indigo-500/30 p-1.5 md:p-2 rounded-xl backdrop-blur-md">
                                 <Target size={16} className="text-indigo-200" />
                               </div>
-                              <span className="text-[10px] md:text-[11px] font-black text-indigo-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">Kierunek (1h)</span>
+                              <span className="text-[10px] md:text-[11px] font-black text-indigo-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">Kierunek (2h)</span>
                           </div>
                           <div className="flex items-baseline gap-1 md:gap-2 relative z-10 mt-auto">
-                              <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{mlResult.predictedNextHour}</span>
+                              <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{mlResult.predictedNext2Hours}</span>
                               <span className="text-[10px] md:text-sm font-bold text-indigo-300 tracking-wider md:tracking-widest">mg/dL</span>
                           </div>
                           
@@ -478,11 +887,16 @@ export default function MLAnalysisWidget({ logs, settings }: MLAnalysisWidgetPro
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
-               className="h-48 flex items-center justify-center relative z-10"
+               className="h-48 flex flex-col p-6 space-y-4 relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 glass-target animate-pulse"
             >
-               <div className="flex flex-col items-center gap-4 text-accent-500">
-                 <Loader2 size={32} className="animate-spin opacity-80" />
-                 <span className="text-xs font-bold uppercase tracking-widest opacity-80">Przetwarzanie danych lokalnych...</span>
+               <div className="w-1/3 h-6 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+               <div className="flex gap-4">
+                 <div className="w-20 h-20 bg-slate-200 dark:bg-slate-700 rounded-[1.5rem]" />
+                 <div className="flex-1 space-y-2 py-2">
+                   <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                   <div className="w-5/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                   <div className="w-4/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                 </div>
                </div>
             </motion.div>
           )}

@@ -48,27 +48,80 @@ export default function WeatherWidget() {
 
   if (!weather) return null;
 
-  // Generuj komunikaty (alerty pogodowe) w zależności od temperatury
-  let alertColor = "text-slate-400";
+  const nowHour = new Date().getHours();
+  const isMorning = nowHour >= 5 && nowHour < 15; // 5:00 do 14:59
+  const isEvening = nowHour >= 17 || nowHour < 5; // 17:00 do 4:59 rano
+
+  let alertColor = "text-slate-500 dark:text-slate-400";
   let alertBg = "bg-slate-100 dark:bg-slate-800/50";
-  let alertText = "Zwykły dzień, brak wpływu na insulinę.";
+  let alertText = "";
+  let alertTitle = "Status pogody";
   let alertIcon = null;
 
-  if (weather.temp >= 30) {
-    alertColor = "text-rose-500";
-    alertBg = "bg-rose-50 dark:bg-rose-500/10";
-    alertText = "Ekstremalny upał! Uważaj, insulina może szybciej się wchłaniać, a ryzyko hipoglikemii i odwodnienia gwałtownie rośnie. Trzymaj insulinę z daleka od słońca.";
-    alertIcon = <AlertTriangle size={14} className="text-rose-500 mt-0.5 shrink-0" />;
-  } else if (weather.temp >= 25) {
-    alertColor = "text-orange-500";
-    alertBg = "bg-orange-50 dark:bg-orange-500/10";
-    alertText = "Upał: Możliwe szybsze wchłanianie insuliny. Monitoruj cukry i pij dużo wody.";
-    alertIcon = <Thermometer size={14} className="text-orange-500 mt-0.5 shrink-0" />;
-  } else if (weather.temp <= 0) {
-    alertColor = "text-sky-500";
-    alertBg = "bg-sky-50 dark:bg-sky-500/10";
-    alertText = "Mróz: Twoje zapotrzebowanie na insulinę może się zmienić. Chroń sprzęt przed zamarznięciem!";
-    alertIcon = <AlertTriangle size={14} className="text-sky-500 mt-0.5 shrink-0" />;
+  if (isMorning) {
+    const todayMax = weather.todayMax !== undefined ? weather.todayMax : weather.temp;
+    alertTitle = `Prognoza na dziś (Rano) • maks. ${todayMax}°C`;
+    
+    if (todayMax >= 30) {
+      alertColor = "text-rose-600 dark:text-rose-400";
+      alertBg = "bg-rose-50 dark:bg-rose-500/10 border border-rose-500/20";
+      alertText = `Dziś zapowiadany jest upał do ${todayMax}°C! Uważaj rano i w południe – insulina może wchłaniać się znacznie szybciej, gwałtownie zwiększając ryzyko nagłej hipoglikemii i odwodnienia. Zabezpiecz peny/pompy przed słońcem!`;
+      alertIcon = <AlertTriangle size={14} className="text-rose-500 shrink-0" />;
+    } else if (todayMax >= 25) {
+      alertColor = "text-orange-600 dark:text-orange-400";
+      alertBg = "bg-orange-50 dark:bg-orange-500/10 border border-orange-500/20";
+      alertText = `Dziś ciepły dzień (do ${todayMax}°C). Wyższa temperatura może przyspieszyć działanie bolusów posiłkowych. Pamiętaj o piciu wody i miej przy sobie szybkie węglowodany.`;
+      alertIcon = <Thermometer size={14} className="text-orange-500 shrink-0" />;
+    } else if (todayMax <= 0) {
+      alertColor = "text-sky-600 dark:text-sky-400";
+      alertBg = "bg-sky-50 dark:bg-sky-500/10 border border-sky-500/20";
+      alertText = `Dziś prognozowany jest mróz (maks. ${todayMax}°C). Kurczenie naczyń krwionośnych w zimnie może opóźnić wchłanianie insuliny, a nagłe wejście do ciepłego pokoju wywoła spadek. Chroń glukometr i insulinę!`;
+      alertIcon = <AlertTriangle size={14} className="text-sky-500 shrink-0" />;
+    } else {
+      alertText = "Temperatura umiarkowana, stabilne warunki zewnętrzne dla Twojej insuliny na resztę dnia.";
+      alertIcon = <Sun size={14} className="text-indigo-400 shrink-0" />;
+    }
+  } else if (isEvening) {
+    const tomorrowMax = weather.tomorrowMax !== undefined ? weather.tomorrowMax : weather.temp;
+    const tomorrowCond = weather.tomorrowCondition ? ` (${weather.tomorrowCondition.toLowerCase()})` : '';
+    alertTitle = `Prognoza na jutro (Wieczór) • maks. ${tomorrowMax}°C`;
+
+    if (tomorrowMax >= 30) {
+      alertColor = "text-rose-600 dark:text-rose-400";
+      alertBg = "bg-rose-50 dark:bg-rose-500/10 border border-rose-500/20";
+      alertText = `Jutro szykuje się bardzo upalny dzień, aż do ${tomorrowMax}°C${tomorrowCond}. Zaplanuj schronienie dla zapasu insuliny i przygotuj się na ewentualną redukcję dawek na jutrzejszą aktywność w ciągu dnia.`;
+      alertIcon = <AlertTriangle size={14} className="text-rose-500 shrink-0" />;
+    } else if (tomorrowMax >= 25) {
+      alertColor = "text-orange-600 dark:text-orange-400";
+      alertBg = "bg-orange-50 dark:bg-orange-500/10 border border-orange-500/20";
+      alertText = `Jutro cieplejszy dzień (do ${tomorrowMax}°C)${tomorrowCond}. Rozważ przygotowanie dodatkowych zapasów lub delikatną korektę bazy w pompie podczas dłuższego przebywania na słońcu.`;
+      alertIcon = <Thermometer size={14} className="text-orange-500 shrink-0" />;
+    } else if (tomorrowMax <= 0) {
+      alertColor = "text-sky-600 dark:text-sky-400";
+      alertBg = "bg-sky-50 dark:bg-sky-500/10 border border-sky-500/20";
+      alertText = `Jutro prognozowany mróz (maks. ${tomorrowMax}°C)${tomorrowCond}. Organizm może rano zużywać więcej energii na ogrzanie, co podnosi wrażliwość na insulinę rano, a stres termiczny może dać chwilowy skok cukru.`;
+      alertIcon = <AlertTriangle size={14} className="text-sky-500 shrink-0" />;
+    } else {
+      alertText = `Stabilne warunki na jutro (maks. ${tomorrowMax}°C)${tomorrowCond}. Brak przewidywanych anomalii wywołanych aurą pogodową.`;
+      alertIcon = <Cloud size={14} className="text-slate-400 shrink-0" />;
+    }
+  } else {
+    // Popołudnie (15:00 - 16:59)
+    alertTitle = `Status popołudniowy • aktualnie ${weather.temp}°C`;
+    if (weather.temp >= 30) {
+      alertColor = "text-rose-600 dark:text-rose-400";
+      alertBg = "bg-rose-50 dark:bg-rose-500/10 border border-rose-500/20";
+      alertText = `Upał trwa (${weather.temp}°C). Chroń wkłucie i pompę przed słońcem. Przegrzany analog insuliny powyżej 30°C traci swoje właściwości lecznicze!`;
+      alertIcon = <AlertTriangle size={14} className="text-rose-500 shrink-0" />;
+    } else if (weather.temp >= 25) {
+      alertColor = "text-orange-600 dark:text-orange-400";
+      alertBg = "bg-orange-50 dark:bg-orange-500/10 border border-orange-500/20";
+      alertText = `Ciepło (${weather.temp}°C). Utrzymuj nawodnienie organizmu. Gęstsza krew z odwodnienia sztucznie zawyża wyniki poziomu glukozy.`;
+      alertIcon = <Thermometer size={14} className="text-orange-500 shrink-0" />;
+    } else {
+      alertText = `Warunki stabilne, temperatura wynosi ${weather.temp}°C. Brak aktywnych alertów ze strony GlikoSense.`;
+      alertIcon = <Sun size={14} className="text-amber-400 shrink-0" />;
+    }
   }
 
   const renderWeatherIcon = () => {
@@ -129,8 +182,13 @@ export default function WeatherWidget() {
             </div>
          </div>
 
-         <div className={`flex items-start gap-2 p-3 rounded-2xl ${alertBg}`}>
-            {alertIcon}
+         <div className={`flex flex-col gap-1.5 p-3.5 rounded-[1.6rem] border border-black/[0.03] dark:border-white/[0.03] ${alertBg}`}>
+            <div className="flex items-center gap-1.5 border-b border-black/[0.04] dark:border-white/[0.04] pb-1.5">
+               {alertIcon}
+               <span className={`text-[10px] font-black uppercase tracking-widest ${alertColor}`}>
+                 {alertTitle}
+               </span>
+            </div>
             <p className={`text-xs font-medium leading-relaxed ${alertColor}`}>
               {alertText}
             </p>

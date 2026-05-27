@@ -171,59 +171,62 @@ export const nightscoutService = {
         const insulin = Number(t.insulin || (t as any).amount || 0);
         const carbs = Number(t.carbs || 0);
 
-        if (insulin > 0) {
-          const payload: any = {
-            id: `ns-insulin-${t._id || timestamp}`,
-            type: 'bolus',
-            value: insulin,
-            timestamp,
-            notes: t.notes || t.eventType,
-            source: 'nightscout'
-          };
-
-          if (carbs > 0) {
-            payload.linkedMeal = {
-              carbs,
-              protein: 0,
-              fat: 0
+          const rawNotes = t.notes || t.eventType || "";
+          const cleanNotes = rawNotes === "<none>" ? "" : rawNotes;
+          
+          if (insulin > 0) {
+            const payload: any = {
+              id: `ns-insulin-${t._id || timestamp}`,
+              type: 'bolus',
+              value: insulin,
+              timestamp,
+              notes: cleanNotes,
+              source: 'nightscout'
             };
+
+            if (carbs > 0) {
+              payload.linkedMeal = {
+                carbs,
+                protein: 0,
+                fat: 0
+              };
+            }
+
+            logs.push(payload);
+          } else if (carbs > 0) {
+            logs.push({
+              id: `ns-meal-${t._id || timestamp}`,
+              type: 'meal',
+              value: carbs,
+              timestamp,
+              notes: cleanNotes,
+              source: 'nightscout'
+            });
           }
 
-          logs.push(payload);
-        } else if (carbs > 0) {
-          logs.push({
-            id: `ns-meal-${t._id || timestamp}`,
-            type: 'meal',
-            value: carbs,
-            timestamp,
-            notes: t.notes || t.eventType,
-            source: 'nightscout'
-          });
-        }
+          const lowerEventType = (t.eventType || '').toLowerCase();
+          
+          if (lowerEventType === 'site change' || lowerEventType === 'cartridge change' || lowerEventType === 'pump battery change') {
+            logs.push({
+              id: `ns-site-${t._id || timestamp}`,
+              type: 'site_change',
+              value: 1,
+              timestamp,
+              notes: cleanNotes,
+              source: 'nightscout'
+            });
+          }
 
-        const lowerEventType = (t.eventType || '').toLowerCase();
-        
-        if (lowerEventType === 'site change' || lowerEventType === 'cartridge change' || lowerEventType === 'pump battery change') {
-          logs.push({
-            id: `ns-site-${t._id || timestamp}`,
-            type: 'site_change',
-            value: 1,
-            timestamp,
-            notes: t.notes || t.eventType,
-            source: 'nightscout'
-          });
-        }
-
-        if (lowerEventType === 'sensor change' || lowerEventType === 'sensor start') {
-          logs.push({
-            id: `ns-sensor-${t._id || timestamp}`,
-            type: 'sensor_change',
-            value: 1,
-            timestamp,
-            notes: t.notes || t.eventType,
-            source: 'nightscout'
-          });
-        }
+          if (lowerEventType === 'sensor change' || lowerEventType === 'sensor start') {
+            logs.push({
+              id: `ns-sensor-${t._id || timestamp}`,
+              type: 'sensor_change',
+              value: 1,
+              timestamp,
+              notes: cleanNotes,
+              source: 'nightscout'
+            });
+          }
       });
       
       setCachedData(cacheKey, logs);

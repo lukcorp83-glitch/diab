@@ -3,9 +3,11 @@ import {
   calculateCOB,
   getEffectiveUid,
   getEffectiveIOB,
+  getMealAbsorptionTime,
 } from "./lib/utils";
+import { Capacitor } from '@capacitor/core';
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Activity,
   Database,
@@ -121,9 +123,6 @@ const GlikoAssistant = lazyWithReload(
   () => import("./components/GlikoAssistant"),
 );
 const TutorialView = lazyWithReload(() => import("./components/TutorialView"));
-const MiniDashboard = lazyWithReload(
-  () => import("./components/MiniDashboard"),
-);
 import Sidebar from "./components/Sidebar";
 import { cn } from "./lib/utils";
 import { nightscoutService } from "./services/nightscout";
@@ -136,6 +135,7 @@ import NotificationCenter from "./components/NotificationCenter";
 import NotebookManager from "./components/NotebookManager";
 import ChangelogPopup from "./components/ChangelogPopup";
 import PrivacyPopup from "./components/PrivacyPopup";
+import ApkDownloadBanner from "./components/ApkDownloadBanner";
 import QuickStatusPopup from "./components/QuickStatusPopup";
 import { Diets } from "./components/Diets";
 import { CURRENT_VERSION } from "./constants/versions";
@@ -215,7 +215,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   notificationsEnabled: true,
   weatherWidgetEnabled: true,
   weatherNeuralEnabled: true,
-  glassmorphismEnabled: true,
+  glassmorphismEnabled: false,
+  material3Enabled: false,
 };
 
 export default function App() {
@@ -247,7 +248,101 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
+  useEffect(() => {
+    const handleResize = () => {
+      // Jeśli szerokość okna jest mniejsza niż 768px i wysokość jest mniejsza niż 560px,
+      // ekran jest drastycznie ściśnięty w pionie (klawiatura w pionie lub obrócony mały telefon) - chowamy bottom bar
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      if (width < 768 && height < 560) {
+        setIsKeyboardOpen(true);
+      } else {
+        setIsKeyboardOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
+    // Dodatkowy nasłuch na visualViewport jeśli istnieje (dokładniejszy przy soft-klawiaturze mobilnej)
+    if (window.visualViewport) {
+      const handleVisualResize = () => {
+        const vv = window.visualViewport;
+        if (vv) {
+          const isCompressed = window.innerHeight - vv.height > 120;
+          if (isCompressed && window.innerWidth < 768) {
+            setIsKeyboardOpen(true);
+            return;
+          }
+        }
+        handleResize();
+      };
+      window.visualViewport.addEventListener("resize", handleVisualResize);
+      return () => {
+        window.removeEventListener("resize", handleResize);
+        window.visualViewport?.removeEventListener("resize", handleVisualResize);
+      };
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  const activeMenuMeal = useMemo(() => {
+    const meals = logs
+      .filter((l) => l.type === "meal" || l.linkedMeal)
+      .sort((a, b) => b.timestamp - a.timestamp);
+
+    for (const latest of meals) {
+      const mSrc = latest.type === "meal" ? latest : latest.linkedMeal;
+      if (!mSrc) continue;
+
+      const mWW =
+        (mSrc as any).value !== undefined
+          ? (mSrc as any).value / 10
+          : (mSrc as any).carbs !== undefined
+            ? (mSrc as any).carbs / 10
+            : 0;
+      const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+
+      const durationH = getMealAbsorptionTime(mWW, mWBT);
+      const ageH = (Date.now() - (latest.timestamp || 0)) / (1000 * 60 * 60);
+
+      // If it's still absorbing, this is our active meal
+      if (ageH < durationH || userSettings?.showMealWidget) {
+        return latest;
+      }
+    }
+    return undefined;
+  }, [logs, userSettings?.showMealWidget]);
+
+  const mealProgress = useMemo(() => {
+    if (!activeMenuMeal) return null;
+    const mSrc =
+      activeMenuMeal.type === "meal"
+        ? activeMenuMeal
+        : activeMenuMeal.linkedMeal;
+    if (!mSrc) return null;
+
+    const mWW =
+      (mSrc as any).value !== undefined
+        ? (mSrc as any).value / 10
+        : (mSrc as any).carbs !== undefined
+          ? (mSrc as any).carbs / 10
+          : 0;
+    const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+
+    const durationH = getMealAbsorptionTime(mWW, mWBT);
+    const ageH =
+      (Date.now() - (activeMenuMeal.timestamp || 0)) / (1000 * 60 * 60);
+
+    if (ageH >= durationH && !userSettings?.showMealWidget) return null;
+
+    return Math.max(0, Math.min(1, ageH / durationH));
+  }, [activeMenuMeal, userSettings?.showMealWidget]);
 
   useEffect(() => {
     if (mainRef.current) {
@@ -435,8 +530,8 @@ export default function App() {
           { duration: 6000, position: "top-right" },
         );
 
-        if (Notification.permission === "granted") {
-          new Notification("Nowa odpowiedź od Asystenta AI", {
+        if (window.Notification && window.Notification.permission === "granted") {
+          new window.Notification("Nowa odpowiedź od Asystenta AI", {
             body: "Twój asystent przygotował analizę. Kliknij aby zobaczyć.",
             icon: "/apple-touch-icon.png",
           });
@@ -789,18 +884,12 @@ export default function App() {
   const changeTab = React.useCallback(
     (newTab: string) => {
       Haptics.light();
-      const defaultTabs = [
-        "chart",
-        "dashboard",
-        "database",
-        "meal",
-        "chat",
-        "ai",
-        "profile",
-        "games",
-      ];
-      const getIndex = (tab: string) =>
-        defaultTabs.indexOf(tab) >= 0 ? defaultTabs.indexOf(tab) : 0;
+      const getIndex = (tab: string) => {
+        const currentTabs = userSettings?.childMode
+          ? ["chart", "dashboard", "database", "meal", "chat", "assistant", "ai", "profile", "games"]
+          : ["chart", "dashboard", "database", "meal", "assistant", "ai", "profile"];
+        return currentTabs.indexOf(tab) >= 0 ? currentTabs.indexOf(tab) : 0;
+      };
       setDirection(getIndex(newTab) >= getIndex(activeTab) ? 1 : -1);
       setActiveTab(newTab);
     },
@@ -855,7 +944,9 @@ export default function App() {
     const unsubscribe = onSnapshot(
       settingsRef,
       (d) => {
-        const localNotificationsEnabled = localStorage.getItem("notificationsEnabled");
+        const localNotificationsEnabled = localStorage.getItem(
+          "notificationsEnabled",
+        );
 
         if (d.exists()) {
           const data = d.data() as UserSettings;
@@ -866,7 +957,8 @@ export default function App() {
         } else {
           const defaultSettings = { ...DEFAULT_SETTINGS };
           if (localNotificationsEnabled !== null) {
-            defaultSettings.notificationsEnabled = localNotificationsEnabled === "true";
+            defaultSettings.notificationsEnabled =
+              localNotificationsEnabled === "true";
           }
           setUserSettings(defaultSettings);
         }
@@ -882,8 +974,63 @@ export default function App() {
   useEffect(() => {
     if (!userSettings?.notificationsEnabled) return;
 
+    const sendAppNotification = (title: string, body: string) => {
+      const apkNotificationsEnabled = userSettings?.apkSystemNotificationsEnabled ?? true;
+      if (!apkNotificationsEnabled) return;
+
+      toast(body, {
+        icon: '⏰',
+        duration: 15000,
+        position: 'top-center',
+        style: {
+          border: '2px solid #6366f1',
+          padding: '16px',
+          color: '#1e293b',
+          fontWeight: 'bold',
+          background: '#fff'
+        }
+      });
+
+      if (Capacitor.isNativePlatform()) {
+        import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+          LocalNotifications.schedule({
+            notifications: [
+              {
+                title: title,
+                body: body,
+                id: Math.floor(Math.random() * 100000),
+                schedule: { at: new Date() },
+                sound: null,
+                attachments: null,
+                actionTypeId: "",
+                extra: null
+              }
+            ]
+          }).catch(e => console.error("Native notification error:", e));
+        });
+      } else if (window.Notification && window.Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then((registration) => {
+          if (registration) {
+            registration.showNotification(title, {
+              body,
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+              vibrate: [200, 100, 200]
+            } as any);
+          } else {
+            new window.Notification(title, { body });
+          }
+        }).catch(() => {
+          try {
+            new window.Notification(title, { body });
+          } catch (e) {}
+        });
+      }
+    };
+
     const checkExpiries = () => {
-      if (Notification.permission !== "granted") return;
+      const hasPermission = Capacitor.isNativePlatform() || 
+        (window.Notification && window.Notification.permission === "granted");
+      if (!hasPermission) return;
 
       const now = Date.now();
       const warningThresholdMs = 12 * 60 * 60 * 1000; // 12 hours
@@ -897,12 +1044,10 @@ export default function App() {
         if (sensorMsLeft > 0 && sensorMsLeft <= warningThresholdMs) {
           const notifiedKey = `notified_sensor_${userSettings.sensorChangeDate}`;
           if (!localStorage.getItem(notifiedKey)) {
-            navigator.serviceWorker.ready.then((registration) => {
-              registration.showNotification("Zbliża się wymiana sensora!", {
-                body: `Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!`,
-                icon: "/apple-touch-icon.png",
-              });
-            });
+            sendAppNotification(
+              "Zbliża się wymiana sensora!",
+              "Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!"
+            );
             localStorage.setItem(notifiedKey, "true");
           }
         }
@@ -920,12 +1065,10 @@ export default function App() {
         if (infusionMsLeft > 0 && infusionMsLeft <= warningThresholdMs) {
           const notifiedKey = `notified_infusion_${userSettings.infusionSetChangeDate}`;
           if (!localStorage.getItem(notifiedKey)) {
-            navigator.serviceWorker.ready.then((registration) => {
-              registration.showNotification("Zbliża się wymiana wkłucia!", {
-                body: `Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!`,
-                icon: "/apple-touch-icon.png",
-              });
-            });
+            sendAppNotification(
+              "Zbliża się wymiana wkłucia!",
+              "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!"
+            );
             localStorage.setItem(notifiedKey, "true");
           }
         }
@@ -941,15 +1084,10 @@ export default function App() {
             if (daysToExpiry <= 7 && daysToExpiry > 0) {
               const notifiedKey = `notified_expiry_${med.id}_${med.expiryDate}`;
               if (!localStorage.getItem(notifiedKey)) {
-                navigator.serviceWorker.ready.then((registration) => {
-                  registration.showNotification(
-                    `Kończy się ważność: ${med.name}`,
-                    {
-                      body: `Lek straci ważność za ${Math.ceil(daysToExpiry)} dni (${med.expiryDate}). Pamiętaj o uzupełnieniu zapasów!`,
-                      icon: "/apple-touch-icon.png",
-                    },
-                  );
-                });
+                sendAppNotification(
+                  `Kończy się ważność: ${med.name}`,
+                  `Lek straci ważność za ${Math.ceil(daysToExpiry)} dni (${med.expiryDate}). Pamiętaj o uzupełnieniu zapasów!`
+                );
                 localStorage.setItem(notifiedKey, "true");
               }
             }
@@ -963,6 +1101,160 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [userSettings]);
+
+  useEffect(() => {
+    if (!userSettings?.notificationsEnabled) return;
+    if (!logs || logs.length === 0) return;
+
+    // Filter to glucose logs and sort descending by timestamp (latest first)
+    const glucoseLogs = logs
+      .filter((l) => l.type === "glucose")
+      .sort((a, b) => b.timestamp - a.timestamp);
+
+    if (glucoseLogs.length === 0) return;
+    const latest = glucoseLogs[0];
+
+    // Check if the reading is recent (e.g., within the last 30 minutes) to avoid back-notifying historical syncs
+    const isRecent = Date.now() - latest.timestamp < 30 * 60 * 1000;
+    if (!isRecent) return;
+
+    const bgVal = latest.value;
+    const minSafe = userSettings.targetMin || 70;
+    const maxSafe = userSettings.targetMax || 140;
+
+    const hypoPref = userSettings.notificationPrefs?.hypo !== false;
+    const hyperPref = userSettings.notificationPrefs?.hyper !== false;
+
+    let currentViolation: "hypo" | "hyper" | null = null;
+    if (bgVal < minSafe && hypoPref) {
+      currentViolation = "hypo";
+    } else if (bgVal > maxSafe && hyperPref) {
+      currentViolation = "hyper";
+    }
+
+    const lastAlertType = localStorage.getItem("last_glucose_alert_type") as "hypo" | "hyper" | null;
+    const lastAlertTimeStr = localStorage.getItem("last_glucose_alert_time");
+    const lastAlertTime = lastAlertTimeStr ? parseInt(lastAlertTimeStr, 10) : 0;
+
+    if (currentViolation === null) {
+      // Glucose went back into target range - clear any active alert tracking
+      if (lastAlertType !== null) {
+        localStorage.removeItem("last_glucose_alert_type");
+        localStorage.removeItem("last_glucose_alert_time");
+      }
+      return;
+    }
+
+    // Determine if we should send an alert
+    let shouldAlert = false;
+    let isReminder = false;
+    const nowMs = Date.now();
+
+    // Check if this specific reading wasn't already alerted on (to be safe)
+    const notifiedKey = `notified_glucose_${latest.id || latest.timestamp}`;
+    const wasAlreadyNotifiedOnThisReading = localStorage.getItem(notifiedKey) === "true";
+
+    if (!wasAlreadyNotifiedOnThisReading) {
+      if (lastAlertType === currentViolation) {
+        // Same type of violation is ongoing (e.g., still high or still low).
+        // Trigger a reminder only if at least 30 minutes have elapsed since the last alert.
+        const minutesSinceLastAlert = (nowMs - lastAlertTime) / (60 * 1000);
+        if (minutesSinceLastAlert >= 30) {
+          shouldAlert = true;
+          isReminder = true;
+        }
+      } else {
+        // Brand new violation, or changed from hypo to hyper (or vice-versa), alert immediately!
+        shouldAlert = true;
+        isReminder = false;
+      }
+    }
+
+    if (shouldAlert) {
+      // Mark as notified immediately
+      localStorage.setItem(notifiedKey, "true");
+      localStorage.setItem("last_glucose_alert_type", currentViolation);
+      localStorage.setItem("last_glucose_alert_time", nowMs.toString());
+
+      let alertTitle = "";
+      let alertBody = "";
+
+      if (currentViolation === "hypo") {
+        if (isReminder) {
+          alertTitle = "⏳ PRZYPOMNIENIE: Cukier nadal niski (Hipoglikemia)!";
+          alertBody = `Twoja glikemia od ponad 30 minut utrzymuje się poniżej normy. Aktualny odczyt: ${Math.round(bgVal)} mg/dL. Zjedz szybko węglowodany proste!`;
+        } else {
+          alertTitle = "🚨 NISKI POZIOM CUKRU (Hipoglikemia)!";
+          alertBody = `Twoja glikemia wynosi ${Math.round(bgVal)} mg/dL, co jest poniżej bezpiecznej granicy ${minSafe} mg/dL. Zjedz szybko węglowodany proste!`;
+        }
+      } else {
+        if (isReminder) {
+          alertTitle = "⏳ PRZYPOMNIENIE: Cukier nadal wysoki (Hiperglikemia)!";
+          alertBody = `Twoja glikemia od ponad 30 minut utrzymuje się powyżej normy. Aktualny odczyt: ${Math.round(bgVal)} mg/dL. Rozważ podanie korekty insuliną.`;
+        } else {
+          alertTitle = "⚠️ WYSOKI POZIOM CUKRU (Hiperglikemia)!";
+          alertBody = `Twoja glikemia wynosi ${Math.round(bgVal)} mg/dL, co przewyższa bezpieczną granicę ${maxSafe} mg/dL. Rozważ korektę insuliną.`;
+        }
+      }
+
+      // UI feedback (toast alert)
+      toast.error(`${alertTitle}\n${alertBody}`, {
+        duration: 20000,
+        position: "top-center",
+        style: {
+          border: "2px solid #ef4444",
+          padding: "16px",
+          color: "#1e293b",
+          fontWeight: "bold",
+          background: "#fff"
+        },
+      });
+
+      if (navigator.vibrate) {
+        navigator.vibrate([400, 200, 400, 200, 400]);
+      }
+
+      const apkNotificationsEnabled = userSettings.apkSystemNotificationsEnabled ?? true;
+      if (apkNotificationsEnabled) {
+        if (Capacitor.isNativePlatform()) {
+          import("@capacitor/local-notifications").then(({ LocalNotifications }) => {
+            LocalNotifications.schedule({
+              notifications: [
+                {
+                  title: alertTitle,
+                  body: alertBody,
+                  id: Math.floor(Math.random() * 100000),
+                  schedule: { at: new Date() },
+                  sound: null,
+                  attachments: null,
+                  actionTypeId: "",
+                  extra: null
+                }
+              ]
+            }).catch(e => console.error("Error scheduling native glucose alert:", e));
+          });
+        } else if (window.Notification && window.Notification.permission === "granted") {
+          navigator.serviceWorker.ready.then((registration) => {
+            if (registration) {
+              registration.showNotification(alertTitle, {
+                body: alertBody,
+                icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, "/"),
+                vibrate: [400, 200, 400, 200, 400],
+                tag: "glikocontrol-alarm-glucose",
+                requireInteraction: true
+              } as any);
+            } else {
+              new window.Notification(alertTitle, { body: alertBody });
+            }
+          }).catch(() => {
+            try {
+              new window.Notification(alertTitle, { body: alertBody });
+            } catch (e) {}
+          });
+        }
+      }
+    }
+  }, [logs, userSettings]);
 
   useEffect(() => {
     // Handle PWA shortcuts
@@ -1013,6 +1305,11 @@ export default function App() {
     } else {
       root.removeAttribute("data-glassmorphism");
     }
+    if (userSettings?.material3Enabled) {
+      root.setAttribute("data-material3", "true");
+    } else {
+      root.removeAttribute("data-material3");
+    }
 
     if (userSettings?.theme) {
       localStorage.setItem("theme", userSettings.theme);
@@ -1025,6 +1322,7 @@ export default function App() {
     userSettings?.accentColor,
     userSettings?.bgOption,
     userSettings?.glassmorphismEnabled,
+    userSettings?.material3Enabled,
   ]);
 
   useEffect(() => {
@@ -1679,23 +1977,6 @@ export default function App() {
     );
   }
 
-  const isMini =
-    new URLSearchParams(window.location.search).get("mini") === "true";
-  if (isMini) {
-    return (
-      <React.Suspense
-        fallback={
-          <div className="w-full min-h-screen flex items-center justify-center bg-slate-900">
-            <div className="w-8 h-8 rounded-full border-4 border-slate-700 border-t-accent-500 animate-spin" />
-          </div>
-        }
-      >
-        <Toaster position="top-center" />
-        <MiniDashboard logs={logs} userSettings={userSettings} />
-      </React.Suspense>
-    );
-  }
-
   const tabs = userSettings?.childMode
     ? [
         "chart",
@@ -1713,7 +1994,6 @@ export default function App() {
         "dashboard",
         "database",
         "meal",
-        "chat",
         "assistant",
         "ai",
         "profile",
@@ -1749,8 +2029,11 @@ export default function App() {
   const currentTabContent = (
     <React.Suspense
       fallback={
-        <div className="w-full h-full flex items-center justify-center pt-32">
-          <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-accent-500 animate-spin" />
+        <div className="w-full h-full flex flex-col p-4 space-y-4 pt-10 animate-pulse">
+           <div className="w-1/3 h-8 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+           <div className="w-full h-48 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+           <div className="w-full h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+           <div className="w-full h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
         </div>
       }
     >
@@ -1828,6 +2111,7 @@ export default function App() {
                 mode="search"
                 openHistory={() => changeTab("history")}
                 settings={userSettings || undefined}
+                logs={logs}
               />
             )}
             {activeTab === "meal" && (
@@ -1840,6 +2124,7 @@ export default function App() {
                 mode="plate"
                 openHistory={() => changeTab("history")}
                 settings={userSettings || undefined}
+                logs={logs}
               />
             )}
           </div>
@@ -1854,6 +2139,7 @@ export default function App() {
                 mode="search"
                 openHistory={() => changeTab("history")}
                 settings={userSettings || undefined}
+                logs={logs}
               />
             </div>
             <div>
@@ -1866,6 +2152,7 @@ export default function App() {
                 mode="plate"
                 openHistory={() => changeTab("history")}
                 settings={userSettings || undefined}
+                logs={logs}
               />
             </div>
           </div>
@@ -1875,7 +2162,12 @@ export default function App() {
       {/* 3. Grupa 3: Czat i GlikoSense */}
       {["chat", "assistant", "ai"].includes(activeTab) && (
         <>
-          <div className={cn("block lg:hidden w-full", activeTab === "chat" && "flex-1 flex flex-col h-full")}>
+          <div
+            className={cn(
+              "block lg:hidden w-full",
+              activeTab === "chat" && "flex-1 flex flex-col h-full",
+            )}
+          >
             {activeTab === "chat" && <GlikoChat petData={petData} />}
             {activeTab === "assistant" && (
               <GlikoAssistant
@@ -2034,7 +2326,7 @@ export default function App() {
       )}
       {/* Header */}
       <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
-        <div className="flex justify-between items-center max-w-md landscape:max-w-7xl lg:max-w-7xl mx-auto">
+        <div className="flex justify-between items-center max-w-md md:max-w-5xl lg:max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
             <button
               onClick={() => {
@@ -2096,6 +2388,7 @@ export default function App() {
           </div>
         </div>
       </header>
+      <ApkDownloadBanner />
 
       <Sidebar
         isOpen={isSidebarOpen}
@@ -2116,7 +2409,7 @@ export default function App() {
       {/* Main Content with Swipe Navigation */}
       <main
         ref={mainRef}
-        className="flex-1 max-w-md landscape:max-w-7xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden"
+        className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden"
       >
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.div
@@ -2132,7 +2425,10 @@ export default function App() {
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.1}
             onDragEnd={handleSwipe}
-            className="w-full h-full p-4 pb-32 will-change-transform flex flex-col"
+            className={cn(
+              "w-full min-h-full p-4 will-change-transform flex flex-col transition-all duration-300",
+              isKeyboardOpen ? "pb-8" : "pb-32"
+            )}
           >
             {currentTabContent}
           </motion.div>
@@ -2140,8 +2436,11 @@ export default function App() {
       </main>
 
       {/* Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl">
-        <div className="max-w-md landscape:max-w-7xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
+      <nav className={cn(
+        "fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl transition-all duration-300",
+        isKeyboardOpen ? "opacity-0 pointer-events-none translate-y-24" : "opacity-100 translate-y-0"
+      )}>
+        <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
           <NavButton
             active={activeTab === "chart"}
             onClick={() => changeTab("chart")}
@@ -2174,11 +2473,30 @@ export default function App() {
                   : "bg-slate-800 text-slate-400 hover:bg-slate-700",
               )}
             >
+              {mealProgress !== null && (
+                <svg
+                  className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none"
+                  viewBox="0 0 56 56"
+                >
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r="26"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="transparent"
+                    strokeDasharray="163.36"
+                    strokeDashoffset={163.36 * mealProgress}
+                    className="text-emerald-500 transition-all duration-1000 dark:text-emerald-400 opacity-80"
+                  />
+                </svg>
+              )}
               <motion.div
                 animate={{
                   rotate: activeTab === "meal" ? [0, -20, 20, -10, 10, 0] : 0,
                 }}
                 transition={{ duration: 0.5 }}
+                className="z-10"
               >
                 <Utensils />
               </motion.div>
@@ -2186,7 +2504,7 @@ export default function App() {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm"
+                  className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm z-20"
                 >
                   {sharedPlate.length}
                 </motion.div>

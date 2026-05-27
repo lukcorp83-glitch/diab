@@ -212,15 +212,27 @@ export const geminiService = {
   async getPeriodAnalysis(period: 'day' | 'week' | 'month', logs: any[], settings?: any) {
     const days = period === 'day' ? 1 : period === 'week' ? 7 : 30;
     const periodName = period === 'day' ? 'Dzienny' : period === 'week' ? 'Tygodniowy' : 'Miesięczny';
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
     
-    let logsToAnalyze = logs;
+    let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoff);
     const MAX_PERIOD_LOGS = 300;
     if (logsToAnalyze.length > MAX_PERIOD_LOGS) {
-       const important = logs.filter(l => l.type !== 'glucose' && !l.bg);
-       const bgLogs = logs.filter(l => l.type === 'glucose' || l.bg);
-       const decimationFactor = Math.ceil(bgLogs.length / Math.max(1, (MAX_PERIOD_LOGS - important.length)));
-       const sampledBg = bgLogs.filter((_, i) => i % (decimationFactor > 0 ? decimationFactor : 1) === 0);
-       logsToAnalyze = [...important, ...sampledBg].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime())).slice(0, MAX_PERIOD_LOGS);
+       const important = logsToAnalyze.filter(l => l.type !== 'glucose' && !l.bg);
+       let bgLogs = logsToAnalyze.filter(l => l.type === 'glucose' || l.bg);
+       
+       bgLogs = bgLogs.sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+       
+       const allowedBgCount = Math.max(50, MAX_PERIOD_LOGS - important.length);
+       const decimationFactor = Math.max(1, Math.ceil(bgLogs.length / allowedBgCount));
+       const sampledBg = bgLogs.filter((_, i) => i % decimationFactor === 0);
+       
+       logsToAnalyze = [...important, ...sampledBg];
+    }
+    
+    logsToAnalyze = logsToAnalyze.sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+    
+    if (logsToAnalyze.length > MAX_PERIOD_LOGS) {
+        logsToAnalyze = logsToAnalyze.slice(-MAX_PERIOD_LOGS);
     }
 
     const formattedLogs = logsToAnalyze.map(l => ({
@@ -229,31 +241,42 @@ export const geminiService = {
       czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
     }));
     const dietInfo = settings?.activeDiet ? `DODATKOWY KONTEKST: Użytkownik jest na diecie: ${settings.activeDiet}. Skup się na ewaluacji tej diety.` : '';
-    const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj logi z ostatnich ${days} dni (próbka ${formattedLogs.length} wpisów): ${JSON.stringify(formattedLogs)}. ${dietInfo}
-    Stwórz ${periodName} Raport Postępów.
+    const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj rozłożoną w czasie próbkę danych z ${days === 1 ? 'OSTATNIEJ DOBY' : `OSTATNICH ${days} DNI`} (${formattedLogs.length} wpisów): ${JSON.stringify(formattedLogs)}. ${dietInfo}
+    Stwórz ${periodName} Raport Postępów (obejmujący CAŁY TEN OKRES, od najstarszych do najnowszych powierzonych danych).
     Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):
     1. <b>Podsumowanie Okresu</b> (ogólny stan, średni cukier).
     2. <b>Największe Wyzwania</b> (momenty dnia z największymi wahaniami).
     3. <b>Pozytywne Trendy</b> (co udało się poprawić).
     4. <b>Cele na Kolejny Okres</b> (konkretne wskazówki).
-    Pisz merytorycznie, po polsku, bez formatowania markdown (gwiazdek).`;
+    Pamiętaj: Odpowiadaj WYŁĄCZNIE W JĘZYKU POLSKIM. Pisz merytorycznie, zwięźle, bez formatowania markdown (gwiazdek).`;
     return this.generateContent(prompt);
   },
 
   async getMasterAnalysis(logs: any[], settings?: any) {
-    let logsToAnalyze = logs;
+    const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
+    let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoff);
     const MAX_MASTER_LOGS = 400;
-    // Podobieństwo heurystyczne z GlikoSense: ograniczamy ilość by uchronić AI przed Payload Too Large.
+
     if (logsToAnalyze.length > MAX_MASTER_LOGS) {
-       // Starajmy się brać nowsze wpisy, ew. dając priorytet posiłkom i bolusom, oraz pomijając niektóre CGMy.
-       const important = logs.filter(l => l.type !== 'glucose' && !l.bg);
-       const bgLogs = logs.filter(l => l.type === 'glucose' || l.bg);
+       const important = logsToAnalyze.filter(l => l.type !== 'glucose' && !l.bg);
+       let bgLogs = logsToAnalyze.filter(l => l.type === 'glucose' || l.bg);
        
-       // Decimate BG logs jeśli jest ich dużo
-       const decimationFactor = Math.ceil(bgLogs.length / Math.max(1, (MAX_MASTER_LOGS - important.length)));
-       const sampledBg = bgLogs.filter((_, i) => i % (decimationFactor > 0 ? decimationFactor : 1) === 0);
+       // Sort chronologically for decimation
+       bgLogs = bgLogs.sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+
+       const allowedBgCount = Math.max(50, MAX_MASTER_LOGS - important.length);
+       const decimationFactor = Math.max(1, Math.ceil(bgLogs.length / allowedBgCount));
+       const sampledBg = bgLogs.filter((_, i) => i % decimationFactor === 0);
        
-       logsToAnalyze = [...important, ...sampledBg].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime())).slice(0, MAX_MASTER_LOGS);
+       logsToAnalyze = [...important, ...sampledBg];
+    }
+    
+    // Zawsze sortujemy od najstarszych do najnowszych (chronologicznie) dla lepszego widzenia trendów przez AI
+    logsToAnalyze = logsToAnalyze.sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+    
+    if (logsToAnalyze.length > MAX_MASTER_LOGS) {
+        // Jeśli nadal jest za dużo (np. bardzo dużo wpisów important), obcinamy z przodu, zostawiając nowsze
+        logsToAnalyze = logsToAnalyze.slice(-MAX_MASTER_LOGS);
     }
     
     const formattedLogs = logsToAnalyze.map(l => ({
@@ -262,25 +285,26 @@ export const geminiService = {
       czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
     }));
     const dietInfo = settings?.activeDiet ? `DODATKOWY KONTEKST: Użytkownik przebywa na diecie: ${settings.activeDiet}. Skup się na ewaluacji jak ta dieta na niego działa, uwzględnij rekomendacje żywieniowe dla niej.` : '';
-    const prompt = `Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl. Przeanalizuj reprezentatywną próbkę danych (${formattedLogs.length} wpisów): ${JSON.stringify(formattedLogs)}. ${dietInfo}
-    Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego.
+    const prompt = `Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl (GlikoSense). Otrzymujesz rozłożoną w czasie próbkę danych z OSTATNICH 15 DNI (łącznie ${formattedLogs.length} rzadkich próbek obejmujących cały ten okres): ${JSON.stringify(formattedLogs)}. ${dietInfo}
+    Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego bazującego na PEŁNYCH 15 Dniach (nie skupiaj się tylko na ostatnich wpisach!).
     Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):
-    1. <b>Krótki przegląd obecnej sytuacji</b> (ostatnie wpisy).
-    2. <b>Analiza trendów i wzorców</b> (kiedy cukier skacze, dlaczego, czy bolusy są trafne).
+    1. <b>Krótki przegląd ostatnich 15 dni</b>.
+    2. <b>Analiza trendów i wzorców</b> (kiedy cukier skacze, dlaczego, czy bolusy są trafne na przestrzeni ostatnich dwóch tygodni).
     3. <b>Ocena długoterminowa</b> (przewidywane HbA1c, czas w zakresie).
     4. <b>Konkretne rekomendacje</b> (co poprawić w diecie, dawkowaniu lub aktywności).
     5. <b>Sugestie profili godzinowych</b> (zaproponuj konkretne przedziały czasowe i wartości ISF oraz WW Ratio na podstawie zaobserwowanych trendów - np. zwiększony ISF rano jeśli cukier rośnie).
-    Zwracaj uwagę na: nocne hipoglikemie, skoki po posiłkach, efektywność insuliny. 
-    Pisz zwięźle, konkretnie, po polsku. Bez formatowania markdown (gwiazdek (**) ani (###)).`;
+    Zwracaj uwagę na: nocne hipoglikemie, skoki po posiłkach, efektywność insuliny z CAŁEGO okresu. 
+    Ważne: Odpowiadaj WYŁĄCZNIE i ZAWSZE w JĘZYKU POLSKIM. Piszesz po polsku. Bez formatowania markdown (gwiazdek (**) ani (###)).`;
     return this.generateContent(prompt);
   },
 
   async analyzeMeal(imageData: string, settings?: any) {
     const dietInfo = settings?.activeDiet ? `UWAGA: Użytkownik przestrzega diety: ${settings.activeDiet}. Zwróć szczególną uwagę jak ten posiłek wpisuje się w jej zasady.` : '';
-    const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj orientacyjną wagę, ilość węglowodanów (g), białek (g), tłuszczy (g) oraz ładunek glikemiczny (ŁG - jeśli to możliwe) i indeks glikemiczny (IG - POWINIEN BYĆ KONKRETNĄ LICZBĄ, korzystaj z profesjonalnych tabel wartości odżywczych). Dodaj szczegółową analizę dla diabetyka ("analysis") - co zawiera posiłek i jak może wpłynąć na glikemię uwzględniając ŁG i IG. ${dietInfo}
+    const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj CAŁKOWITĄ orientacyjną wagę posiłku (w gramach). Następnie oszacuj CAŁKOWITĄ ilość węglowodanów (g), białek (g) i tłuszczy (g) W CAŁYM WIDOCZNYM POSIŁKU (nie na 100g, lecz w całej szacowanej porcji). Podaj również indeks glikemiczny (IG - POWINIEN BYĆ KONKRETNĄ LICZBĄ). Dodaj szczegółową analizę dla diabetyka ("analysis") - co zawiera posiłek i jak może wpłynąć na glikemię. ${dietInfo}
     Zwróć odpowiedź absolutnie w formacie JSON (tylko czysty JSON, bez markdown):
     {
       "mealName": "nazwa posiłku",
+      "weight": 0,
       "carbs": 0,
       "protein": 0,
       "fat": 0,

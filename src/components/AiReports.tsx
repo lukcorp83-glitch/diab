@@ -131,7 +131,7 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <MLAnalysisWidget logs={logs} settings={settings} />
+      <MLAnalysisWidget logs={logs} settings={settings} user={user} />
       
       {/* Glucose Trend Chart */}
       {chartData.length > 0 && (
@@ -297,8 +297,16 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
             </SwipeableItem>
           ))}
           {reports.length === 0 && !loading && (
-             <div className="text-center py-12 text-slate-400 text-xs font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                Brak raportów do wyświetlenia
+             <div className="flex flex-col items-center justify-center py-20 bg-gradient-to-b from-slate-50/50 to-slate-100/50 dark:from-slate-800/10 dark:to-slate-900/10 rounded-[2.5rem] border-2 border-dashed border-slate-200/60 dark:border-slate-800/60 opacity-90 backdrop-blur-sm">
+                <div className="w-16 h-16 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-900/20 flex items-center justify-center mb-4 shadow-inner ring-1 ring-indigo-100 dark:ring-indigo-800/50">
+                  <span className="text-2xl opacity-80">🤖</span>
+                </div>
+                <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
+                  Brak raportów
+                </p>
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
+                  Twój inteligentny analityk czeka na więcej danych, by móc wyciągnąć wnioski.
+                </p>
              </div>
           )}
         </div>

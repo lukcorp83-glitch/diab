@@ -31,6 +31,7 @@ import {
   Gift
 } from "lucide-react";
 import { cn, calculateIOB, getEffectiveIOB } from "../lib/utils";
+import { toast } from "react-hot-toast";
 import { APP_VERSION } from "../constants";
 import GlucoseModal from "./GlucoseModal";
 import SwipeableItem from "./SwipeableItem";
@@ -376,6 +377,92 @@ export default function Dashboard({
 
   const todayStats = getTodayStats();
 
+  const quickCorrectionWidget = useMemo(() => {
+    if (!lastG) return null;
+    const bgNum = lastG.value;
+    const targetMax = settings.targetMax || 140;
+    
+    // Check if glucose is above target range
+    const isHigh = bgNum >= targetMax;
+    if (!isHigh) return null;
+
+    // Resolve current ISF based on hourly profiles
+    let currentIsfValue = settings.isf || 50;
+    if (settings.hourlyProfiles && settings.hourlyProfiles.length > 0) {
+      const nowTime = new Date();
+      const currentHourStr =
+        nowTime.getHours().toString().padStart(2, "0") +
+        ":" +
+        nowTime.getMinutes().toString().padStart(2, "0");
+      const sorted = [...settings.hourlyProfiles].sort((a, b) =>
+        a.time.localeCompare(b.time)
+      );
+      let activeProfile = sorted
+        .slice()
+        .reverse()
+        .find((p) => p.time <= currentHourStr);
+      if (!activeProfile && sorted.length > 0)
+        activeProfile = sorted[sorted.length - 1];
+
+      if (activeProfile) {
+        currentIsfValue = activeProfile.isf || currentIsfValue;
+      }
+    }
+
+    const targetBg = Math.round(((settings.targetMin || 70) + (settings.targetMax || 140)) / 2);
+    const rawCorr = bgNum > targetBg ? (bgNum - targetBg) / currentIsfValue : 0;
+    
+    // IOB is already defined as `iob`
+    const rawSuggestedDose = Math.max(0, rawCorr - iob);
+    const roundedSuggestedDose = Math.round(rawSuggestedDose * 10) / 10;
+
+    if (roundedSuggestedDose <= 0) {
+      return null;
+    }
+
+    const timeString = new Date(lastG.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    return (
+      <div className="mx-2 p-6 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-[2.5rem] border border-indigo-100/70 dark:border-indigo-900/30 space-y-4 shadow-xl shadow-indigo-500/5 font-display">
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+            <span className="text-xl">⚡</span>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider">Sugerowana Szybka Korekta</h4>
+              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">Na podstawie pomiaru z godziny {timeString}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              Haptics.medium();
+              sessionStorage.setItem("pending_correction", JSON.stringify({
+                bg: bgNum,
+                dose: roundedSuggestedDose
+              }));
+              toast.success(`Przeniesiono korektę ${roundedSuggestedDose}j do kalkulatora`);
+              setTab("bolus");
+            }}
+            className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 active:scale-95 cursor-pointer pointer-events-auto shrink-0"
+          >
+            Podaj {roundedSuggestedDose} j.
+          </button>
+        </div>
+
+        <div className="p-4 bg-white/70 dark:bg-slate-900/60 rounded-3xl text-[11px] text-indigo-950 dark:text-indigo-200 font-bold border border-indigo-100 dark:border-indigo-900/20 leading-normal space-y-2">
+          <div>
+            ⚠️ Glikemia w wysokim zakresie ({Math.round(bgNum)} mg/dL)! Sugerujemy podanie <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm">{roundedSuggestedDose} j.</span> insuliny.
+          </div>
+          <div className="text-[9px] text-slate-500 dark:text-indigo-400/65 font-mono leading-relaxed border-t border-indigo-100 dark:border-indigo-950/50 pt-2 flex flex-wrap gap-x-3 gap-y-1">
+            <span>Sugerowany bolus: {roundedSuggestedDose}j</span>
+            <span>Cel: {targetBg} mg/dL</span>
+            <span>ISF: {currentIsfValue} mg/dL</span>
+            <span>IOB: {iob.toFixed(1)}j</span>
+          </div>
+        </div>
+      </div>
+    );
+  }, [lastG, settings, iob, setTab]);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -470,6 +557,13 @@ export default function Dashboard({
           glassmorphismEnabled={settings.glassmorphismEnabled}
         />
       </motion.div>
+
+      {/* Szybka korekta na pulpicie */}
+      {quickCorrectionWidget && (
+        <motion.div variants={itemVariants}>
+          {quickCorrectionWidget}
+        </motion.div>
+      )}
 
       {/* 2. GlikoSense Neural Heart / Pet */}
       <motion.div variants={itemVariants}>
@@ -791,7 +885,7 @@ export default function Dashboard({
                         </div>
                         <div className="flex-1">
                           <p className="font-black text-base dark:text-white font-display">
-                            {typeof log.value === 'number' ? (Math.round(log.value * 100) / 100) : (Math.round(Number(log.value) * 100) / 100)} <span className="text-[10px] opacity-40 uppercase">{log.type === "meal" ? "g" : " j."}</span>
+                            {typeof log.value === 'number' ? Number(log.value.toFixed(2)) : Number(Number(log.value).toFixed(2))} <span className="text-[10px] opacity-40 uppercase">{log.type === "meal" ? "g" : " j."}</span>
                           </p>
                           <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
                             {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.type === 'meal' ? 'Posiłek' : 'Bolus'}

@@ -257,9 +257,11 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
            </div>
            
            {isLoadingPlan ? (
-             <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
-                <Loader2 size={32} className="text-indigo-500 animate-spin" />
-                <p className="text-xs text-slate-500 font-medium">Dietetyk AI układa Twoje menu...</p>
+             <div className="space-y-4 animate-pulse pt-2 w-full">
+                <div className="w-full h-16 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                <div className="w-full h-14 bg-slate-200 dark:bg-slate-800 rounded-xl opacity-80" />
+                <div className="w-full h-14 bg-slate-200 dark:bg-slate-800 rounded-xl opacity-60" />
+                <div className="w-full h-14 bg-slate-200 dark:bg-slate-800 rounded-xl opacity-40" />
              </div>
            ) : mealPlan ? (
              <div className="space-y-4">
@@ -401,9 +403,9 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
             </div>
 
             {isLoadingSingleMeal && (
-              <div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
-                 <Loader2 size={24} className="text-indigo-500 animate-spin" />
-                 <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Wymyślam przepis...</p>
+              <div className="w-full space-y-3 animate-pulse pt-2">
+                <div className="w-full h-12 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                <div className="w-full h-12 bg-slate-200 dark:bg-slate-800 rounded-xl opacity-60" />
               </div>
             )}
 

@@ -75,8 +75,8 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
                />
                <StatusItem 
                   icon={<Zap size={14} className="text-amber-500" />} 
-                  label="Silnik AI" 
-                  value="GlikoSense v2.4" 
+                  label="sieć neuronowa" 
+                  value="GlikoSense 3.0" 
                   status="ok" 
                />
                <StatusItem 

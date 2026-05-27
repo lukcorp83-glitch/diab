@@ -240,7 +240,7 @@ const CustomTooltip = ({ active, payload, isDark }: any) => {
                </div>
                <div className="flex items-baseline gap-1">
                  <span className="text-lg font-black dark:text-white tracking-tighter">
-                 {p.type === 'glucose' ? Math.round(Number(p.value)) : Number(p.value).toFixed(2)}
+                 {p.type === 'glucose' ? Math.round(Number(p.value)) : Number(Number(p.value).toFixed(2))}
                </span>
                <span className="text-[9px] font-bold text-slate-500 uppercase">
                  {p.type === 'glucose' ? 'mg/dL' : p.type === 'bolus' ? 'j' : 'g'}
@@ -419,7 +419,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
     }
 
-    const predictionTime = 3 * 60 * 60 * 1000;
+    const predictionTime = 2 * 60 * 60 * 1000;
     const baseRangeMs = hours * 60 * 60 * 1000;
     const rangeMs = baseRangeMs / zoomLevel;
     

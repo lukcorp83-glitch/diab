@@ -1,14 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { LogEntry, Product } from '../types';
-import { X, Save, Utensils, Apple, Syringe, Search, Globe, Loader2, Plus, Zap, Heart } from 'lucide-react';
-import { doc, updateDoc, deleteDoc, collection, query, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { getEffectiveUid, cn } from '../lib/utils';
-import { toast } from 'react-hot-toast';
-import { LIB_BASE } from '../constants';
-import { geminiService } from '../services/gemini';
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "motion/react";
+import { LogEntry, Product } from "../types";
+import {
+  X,
+  Save,
+  Utensils,
+  Apple,
+  Syringe,
+  Search,
+  Globe,
+  Loader2,
+  Plus,
+  Zap,
+  Heart,
+} from "lucide-react";
+import {
+  doc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  query,
+  onSnapshot,
+} from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { getEffectiveUid, cn } from "../lib/utils";
+import { toast } from "react-hot-toast";
+import { LIB_BASE } from "../constants";
+import { geminiService } from "../services/gemini";
 
 interface MealEditModalProps {
   log: LogEntry;
@@ -16,23 +35,45 @@ interface MealEditModalProps {
   onClose: () => void;
 }
 
-export default function MealEditModal({ log, user, onClose }: MealEditModalProps) {
-  const isBolus = log.type === 'bolus';
-  const initialCarbs = (log.type === 'bolus') ? (log.linkedMeal?.carbs?.toString() || '') : (log.value?.toString() || '');
-  const initialPolyols = (log.type === 'bolus') ? (log.linkedMeal?.polyols?.toString() || '') : (log.polyols?.toString() || '');
-  const initialProtein = (log.type === 'bolus') ? (log.linkedMeal?.protein?.toString() || '') : (log.protein?.toString() || '');
-  const initialFat = (log.type === 'bolus') ? (log.linkedMeal?.fat?.toString() || '') : (log.fat?.toString() || '');
-  const initialInsulin = isBolus ? (log.value?.toString() || '') : '';
+export default function MealEditModal({
+  log,
+  user,
+  onClose,
+}: MealEditModalProps) {
+  const isBolus = log.type === "bolus";
+  const formatVal = (v: any) =>
+    typeof v === "number"
+      ? Number(v.toFixed(2)).toString()
+      : v?.toString() || "";
+  const initialCarbs =
+    log.type === "bolus"
+      ? formatVal(log.linkedMeal?.carbs)
+      : formatVal(log.value);
+  const initialPolyols =
+    log.type === "bolus"
+      ? formatVal(log.linkedMeal?.polyols)
+      : formatVal(log.polyols);
+  const initialProtein =
+    log.type === "bolus"
+      ? formatVal(log.linkedMeal?.protein)
+      : formatVal(log.protein);
+  const initialFat =
+    log.type === "bolus" ? formatVal(log.linkedMeal?.fat) : formatVal(log.fat);
+  const initialInsulin = isBolus ? formatVal(log.value) : "";
+
+  const initialName = isBolus
+    ? log.linkedMeal?.name || ""
+    : log.notes || log.description || "";
 
   const [carbs, setCarbs] = useState(initialCarbs);
   const [polyols, setPolyols] = useState(initialPolyols);
   const [protein, setProtein] = useState(initialProtein);
   const [fat, setFat] = useState(initialFat);
+  const [mealName, setMealName] = useState(initialName);
   const [insulin, setInsulin] = useState(initialInsulin);
-  const [notes, setNotes] = useState(log.notes || log.description || '');
+  const [notes, setNotes] = useState(log.notes || log.description || "");
   const [loading, setLoading] = useState(false);
   const [removeMeal, setRemoveMeal] = useState(false);
-
 
   // Search functionality
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,28 +85,69 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
 
   useEffect(() => {
     if (!user) return;
-    const q1 = query(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "customProducts"));
+    const q1 = query(
+      collection(
+        db,
+        "artifacts",
+        "diacontrolapp",
+        "users",
+        getEffectiveUid(user),
+        "customProducts",
+      ),
+    );
     const unsub1 = onSnapshot(q1, (snap) => {
-      setCustomProducts(snap.docs.map(d => ({ id: d.id, isCustom: true, ...d.data() })) as Product[]);
+      setCustomProducts(
+        snap.docs.map((d) => ({
+          id: d.id,
+          isCustom: true,
+          ...d.data(),
+        })) as Product[],
+      );
     });
-    const q2 = query(collection(db, "artifacts", "diacontrolapp", "communityProducts"));
+    const q2 = query(
+      collection(db, "artifacts", "diacontrolapp", "communityProducts"),
+    );
     const unsub2 = onSnapshot(q2, (snap) => {
-      setCommunityProducts(snap.docs.map(d => ({ id: d.id, isCommunity: true, ...d.data() })) as Product[]);
+      setCommunityProducts(
+        snap.docs.map((d) => ({
+          id: d.id,
+          isCommunity: true,
+          ...d.data(),
+        })) as Product[],
+      );
     });
-    const q3 = query(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "savedMeals"));
+    const q3 = query(
+      collection(
+        db,
+        "artifacts",
+        "diacontrolapp",
+        "users",
+        getEffectiveUid(user),
+        "savedMeals",
+      ),
+    );
     const unsub3 = onSnapshot(q3, (snap) => {
-      setSavedMeals(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setSavedMeals(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
-    return () => { unsub1(); unsub2(); unsub3(); };
+    return () => {
+      unsub1();
+      unsub2();
+      unsub3();
+    };
   }, [user]);
 
   const allLocal = [...customProducts, ...communityProducts, ...LIB_BASE];
-  const searchResults = allLocal.filter(p => 
-    p && p.name && searchTerm.length >= 2 && p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  ).slice(0, 5);
+  const searchResults = allLocal
+    .filter(
+      (p) =>
+        p &&
+        p.name &&
+        searchTerm.length >= 2 &&
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+    .slice(0, 5);
 
   const handleOnlineSearch = async () => {
-
     if (!searchTerm || isSearching) return;
     setIsSearching(true);
     setOnlineResults([]);
@@ -76,9 +158,15 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
       const result = await geminiService.generateContent(prompt);
       const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
       if (jsonMatch) {
-         const parsed = JSON.parse(jsonMatch[0]);
-         const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
-         setOnlineResults(resultsArray.map((p, i) => ({ ...p, id: `online_${i}_${Date.now()}`, isOnline: true })));
+        const parsed = JSON.parse(jsonMatch[0]);
+        const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
+        setOnlineResults(
+          resultsArray.map((p, i) => ({
+            ...p,
+            id: `online_${i}_${Date.now()}`,
+            isOnline: true,
+          })),
+        );
       }
     } catch (err) {
       console.error("AI search failed:", err);
@@ -89,43 +177,60 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
   };
 
   const addProduct = (p: Product) => {
-    const c = Math.round((parseFloat(carbs || '0') + (p.carbs || 0)) * 10) / 10;
-    const pol = Math.round((parseFloat(polyols || '0') + (p.polyols || 0)) * 10) / 10;
-    const pr = Math.round((parseFloat(protein || '0') + (p.protein || 0)) * 10) / 10;
-    const f = Math.round((parseFloat(fat || '0') + (p.fat || 0)) * 10) / 10;
-    
+    const c = Math.round((parseFloat(carbs || "0") + (p.carbs || 0)) * 10) / 10;
+    const pol =
+      Math.round((parseFloat(polyols || "0") + (p.polyols || 0)) * 10) / 10;
+    const pr =
+      Math.round((parseFloat(protein || "0") + (p.protein || 0)) * 10) / 10;
+    const f = Math.round((parseFloat(fat || "0") + (p.fat || 0)) * 10) / 10;
+
     setCarbs(c.toString());
     setPolyols(pol.toString());
     setProtein(pr.toString());
     setFat(f.toString());
-    
+
     const newNote = notes ? `${notes}, ${p.name}` : p.name;
     setNotes(newNote);
-    
+
     setSearchTerm("");
     setOnlineResults([]);
     toast.success(`Dodano ${p.name}`);
   };
 
   const addSavedMeal = (meal: any) => {
-    const mealCarbs = meal.items.reduce((acc: number, item: any) => acc + (item.carbs || 0), 0);
-    const mealPolyols = meal.items.reduce((acc: number, item: any) => acc + (item.polyols || 0), 0);
-    const mealProtein = meal.items.reduce((acc: number, item: any) => acc + (item.protein || 0), 0);
-    const mealFat = meal.items.reduce((acc: number, item: any) => acc + (item.fat || 0), 0);
+    const mealCarbs = meal.items.reduce(
+      (acc: number, item: any) => acc + (item.carbs || 0),
+      0,
+    );
+    const mealPolyols = meal.items.reduce(
+      (acc: number, item: any) => acc + (item.polyols || 0),
+      0,
+    );
+    const mealProtein = meal.items.reduce(
+      (acc: number, item: any) => acc + (item.protein || 0),
+      0,
+    );
+    const mealFat = meal.items.reduce(
+      (acc: number, item: any) => acc + (item.fat || 0),
+      0,
+    );
 
-    const c = Math.round((parseFloat(carbs || '0') + mealCarbs) * 10) / 10;
-    const pol = Math.round((parseFloat(polyols || '0') + mealPolyols) * 10) / 10;
-    const pr = Math.round((parseFloat(protein || '0') + mealProtein) * 10) / 10;
-    const f = Math.round((parseFloat(fat || '0') + mealFat) * 10) / 10;
-    
+    const c = Math.round((parseFloat(carbs || "0") + mealCarbs) * 10) / 10;
+    const pol =
+      Math.round((parseFloat(polyols || "0") + mealPolyols) * 10) / 10;
+    const pr = Math.round((parseFloat(protein || "0") + mealProtein) * 10) / 10;
+    const f = Math.round((parseFloat(fat || "0") + mealFat) * 10) / 10;
+
     setCarbs(c.toString());
     setPolyols(pol.toString());
     setProtein(pr.toString());
     setFat(f.toString());
-    
-    const newNote = notes ? `${notes}, zestaw: ${meal.name}` : `Zestaw: ${meal.name}`;
+
+    const newNote = notes
+      ? `${notes}, zestaw: ${meal.name}`
+      : `Zestaw: ${meal.name}`;
     setNotes(newNote);
-    
+
     toast.success(`Dodano zestaw: ${meal.name}`);
   };
 
@@ -133,12 +238,20 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
     if (!user || loading) return;
     setLoading(true);
     try {
-      const logRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id);
+      const logRef = doc(
+        db,
+        "artifacts",
+        "diacontrolapp",
+        "users",
+        getEffectiveUid(user),
+        "logs",
+        log.id,
+      );
 
       const updates: any = {
         notes: notes,
         description: notes,
-        userModified: true
+        userModified: true,
       };
 
       if (isBolus) {
@@ -150,7 +263,8 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
             carbs: Math.round((parseFloat(carbs) || 0) * 10) / 10,
             polyols: Math.round((parseFloat(polyols) || 0) * 10) / 10 || null,
             protein: Math.round((parseFloat(protein) || 0) * 10) / 10 || null,
-            fat: Math.round((parseFloat(fat) || 0) * 10) / 10 || null
+            fat: Math.round((parseFloat(fat) || 0) * 10) / 10 || null,
+            name: mealName || undefined,
           };
         } else {
           updates.linkedMeal = null;
@@ -163,20 +277,28 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
           updates.fat = null;
           updates.notes = (updates.notes || "") + " (Posiłek usunięty)";
         } else {
-          const netCarbs = Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0));
+          const netCarbs = Math.max(
+            0,
+            (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0),
+          );
           updates.value = Math.round(netCarbs * 10) / 10;
-          updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
-          updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
+          updates.polyols =
+            Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
+          updates.protein =
+            Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
           updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
+          if (mealName) updates.name = mealName;
         }
       }
 
       await updateDoc(logRef, updates);
-      toast.success(isBolus ? 'Zaktualizowano bolus!' : 'Zaktualizowano posiłek!');
+      toast.success(
+        isBolus ? "Zaktualizowano bolus!" : "Zaktualizowano posiłek!",
+      );
       onClose();
     } catch (err) {
       console.error("Update failed:", err);
-      toast.error('Błąd aktualizacji');
+      toast.error("Błąd aktualizacji");
     } finally {
       setLoading(false);
     }
@@ -184,7 +306,7 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto"
@@ -192,20 +314,29 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
         <div className="p-6 space-y-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-2xl flex items-center justify-center",
-                isBolus ? "bg-accent-500/10 text-accent-500" : "bg-amber-500/10 text-amber-500"
-              )}>
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-2xl flex items-center justify-center",
+                  isBolus
+                    ? "bg-accent-500/10 text-accent-500"
+                    : "bg-amber-500/10 text-amber-500",
+                )}
+              >
                 {isBolus ? <Syringe size={20} /> : <Utensils size={20} />}
               </div>
               <div>
                 <h3 className="text-lg font-black dark:text-white leading-none">
-                  {isBolus ? 'Edytuj Bolus' : 'Edytuj Posiłek'}
+                  {isBolus ? "Edytuj Bolus" : "Edytuj Posiłek"}
                 </h3>
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Popraw dane wpisu</p>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">
+                  Popraw dane wpisu
+                </p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+            >
               <X size={24} />
             </button>
           </div>
@@ -213,47 +344,58 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
           <div className="space-y-4">
             {/* Search Section */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Dodaj produkty do posiłku</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                Dodaj produkty do posiłku
+              </label>
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input 
+                <Search
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={16}
+                />
+                <input
                   type="text"
                   placeholder="NP. Banan, Pizza, Chleb..."
                   value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleOnlineSearch()}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleOnlineSearch()}
                   className="w-full bg-slate-50 dark:bg-slate-800 p-4 pl-12 pr-12 rounded-2xl font-bold outline-none border border-slate-200 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white text-sm"
                 />
-                <button 
+                <button
                   onClick={handleOnlineSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-accent-500 text-white rounded-xl shadow-sm hover:bg-accent-600 transition-all disabled:opacity-50"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-accent-500 text-white rounded-2xl shadow-sm hover:bg-accent-600 transition-all disabled:opacity-50"
                   disabled={isSearching || !searchTerm}
                 >
-                  {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
+                  {isSearching ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Globe size={16} />
+                  )}
                 </button>
               </div>
 
               {/* Search Results */}
               <AnimatePresence>
                 {(searchResults.length > 0 || onlineResults.length > 0) && (
-                  <motion.div 
+                  <motion.div
                     initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
+                    animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden max-h-48 overflow-y-auto glass-target"
                   >
                     {[...searchResults, ...onlineResults].map((p, idx) => (
-                      <button 
-                        key={`modal-search-${p.id || 'p'}-${idx}`}
+                      <button
+                        key={`modal-search-${p.id || "p"}-${idx}`}
                         onClick={() => addProduct(p)}
                         className="w-full p-4 flex items-center justify-between hover:bg-white dark:hover:bg-slate-700/50 transition-all text-left border-b border-slate-100 dark:border-slate-800 last:border-0 group active:scale-[0.98]"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                             <Utensils size={16} />
                           </div>
                           <div>
-                            <div className="text-xs font-black dark:text-white line-clamp-1">{p.name}</div>
+                            <div className="text-xs font-black dark:text-white line-clamp-1">
+                              {p.name}
+                            </div>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
                                 {p.carbs}g W
@@ -261,13 +403,19 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                               <span className="text-[9px] font-bold text-slate-400">
                                 {p.protein}B / {p.fat}T
                               </span>
-                              <span className={cn(
-                                "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                                typeof p.gi === 'number' 
-                                  ? (p.gi <= 55 ? "bg-emerald-500/10 text-emerald-500" : p.gi < 70 ? "bg-amber-500/10 text-amber-500" : "bg-rose-500/10 text-rose-500")
-                                  : "bg-slate-500/10 text-slate-500",
-                              )}>
-                                IG: {typeof p.gi === 'number' ? p.gi : '??*'}
+                              <span
+                                className={cn(
+                                  "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                                  typeof p.gi === "number"
+                                    ? p.gi <= 55
+                                      ? "bg-emerald-500/10 text-emerald-500"
+                                      : p.gi < 70
+                                        ? "bg-amber-500/10 text-amber-500"
+                                        : "bg-rose-500/10 text-rose-500"
+                                    : "bg-slate-500/10 text-slate-500 dark:text-slate-400",
+                                )}
+                              >
+                                IG: {typeof p.gi === "number" ? p.gi : "??*"}
                               </span>
                             </div>
                           </div>
@@ -286,23 +434,39 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
             {savedMeals.length > 0 && (
               <div className="space-y-4 pt-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 flex items-center gap-1.5">
-                  <Heart size={14} className="text-accent-500 fill-accent-500" /> Baza Posiłków (Zapisane zestawy)
+                  <Heart
+                    size={14}
+                    className="text-accent-500 fill-accent-500"
+                  />{" "}
+                  Baza Posiłków (Zapisane zestawy)
                 </label>
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
                   {savedMeals.map((m) => (
                     <button
                       key={m.id}
                       onClick={(e) => {
-                         e.preventDefault();
-                         addSavedMeal(m);
+                        e.preventDefault();
+                        addSavedMeal(m);
                       }}
                       className="snap-start shrink-0 w-[180px] text-left bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-accent-500/50 transition-all flex flex-col justify-between h-[80px]"
                     >
                       <div>
-                        <div className="text-[11px] font-black dark:text-white line-clamp-1">{m.name}</div>
-                        <div className="text-[9px] font-bold text-slate-400 mt-0.5">{m.items.length} skład.</div>
+                        <div className="text-[11px] font-black dark:text-white line-clamp-1">
+                          {m.name}
+                        </div>
+                        <div className="text-[9px] font-bold text-slate-400 mt-0.5">
+                          {m.items.length} skład.
+                        </div>
                       </div>
-                      <div className="text-[10px] font-black text-accent-500">{m.items.reduce((acc: number, i: any) => acc + (i.carbs || 0), 0).toFixed(1)}g Węg.</div>
+                      <div className="text-[10px] font-black text-accent-500">
+                        {m.items
+                          .reduce(
+                            (acc: number, i: any) => acc + (i.carbs || 0),
+                            0,
+                          )
+                          .toFixed(1)}
+                        g Węg.
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -312,44 +476,69 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
               {isBolus && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Dawka Insuliny (j.)</label>
-                  <input 
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                    Dawka Insuliny (j.)
+                  </label>
+                  <input
                     type="number"
                     value={insulin}
-                    onChange={e => setInsulin(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-black text-center outline-none border border-slate-200 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
+                    onChange={(e) => setInsulin(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800/80 p-3 rounded-[1.5rem] font-black text-center outline-none border border-slate-200 dark:border-slate-700/50 focus:ring-2 focus:ring-accent-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all dark:text-white"
                     placeholder="0.0"
                     step="0.1"
                   />
                 </div>
               )}
 
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                  Nazwa / Skład
+                </label>
+                <input
+                  type="text"
+                  value={mealName}
+                  onChange={(e) => setMealName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800/80 p-3 rounded-[1.5rem] font-bold outline-none border border-slate-200 dark:border-slate-700/50 focus:ring-2 focus:ring-accent-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all dark:text-white text-sm"
+                  placeholder="NP. Zestaw śniadaniowy"
+                />
+              </div>
+
               {isBolus && log.linkedMeal && (
                 <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors glass-target">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={removeMeal}
                     onChange={(e) => setRemoveMeal(e.target.checked)}
                     className="w-5 h-5 rounded-lg border-2 border-slate-500 text-accent-500 bg-transparent focus:ring-accent-500/20"
                   />
                   <div>
-                    <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">Usuń Posiłek (Pozostaw Bolus)</div>
-                    <div className="text-[8px] font-bold text-slate-500 leading-tight">Posiłek zniknie rano ze statystyk, zostanie sam wpis z podaną dawką insuliny</div>
+                    <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">
+                      Usuń Posiłek (Pozostaw Bolus)
+                    </div>
+                    <div className="text-[8px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
+                      Posiłek zniknie rano ze statystyk, zostanie sam wpis z
+                      podaną dawką insuliny
+                    </div>
                   </div>
                 </label>
               )}
 
-              {!isBolus && log.source === 'nightscout' && (
+              {!isBolus && log.source === "nightscout" && (
                 <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors glass-target">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={removeMeal}
                     onChange={(e) => setRemoveMeal(e.target.checked)}
                     className="w-5 h-5 rounded-lg border-2 border-slate-500 text-accent-500 bg-transparent focus:ring-accent-500/20"
                   />
                   <div>
-                    <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">Usuń Posiłek (Pozostaw Bolus)</div>
-                    <div className="text-[8px] font-bold text-slate-500 leading-tight">Posiłek zniknie ze statystyk. Bolus pobrany z Nightscout pozostanie nienaruszony.</div>
+                    <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">
+                      Usuń Posiłek (Pozostaw Bolus)
+                    </div>
+                    <div className="text-[8px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
+                      Posiłek zniknie ze statystyk. Bolus pobrany z Nightscout
+                      pozostanie nienaruszony.
+                    </div>
                   </div>
                 </label>
               )}
@@ -358,66 +547,90 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1 flex flex-col justify-center text-center">
-                      <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400">Netto WW: {(Math.max(0, (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0))).toFixed(1)}g</span>
+                      <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400">
+                        Netto WW:{" "}
+                        {Math.max(
+                          0,
+                          (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0),
+                        ).toFixed(1)}
+                        g
+                      </span>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest ml-2">Poliole (g)</label>
-                      <input 
+                      <label className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest ml-2">
+                        Poliole (g)
+                      </label>
+                      <input
                         type="number"
                         value={polyols}
-                        onChange={e => setPolyols(e.target.value)}
+                        onChange={(e) => setPolyols(e.target.value)}
                         className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-black text-center outline-none border border-slate-200 dark:border-slate-700 focus:border-emerald-500 transition-all dark:text-white"
                         placeholder="0.0"
                       />
                     </div>
-                </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                 <div className="space-y-1">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Węglowodany (g)</label>
-                   <input 
-                    type="number"
-                    value={carbs}
-                    onChange={e => setCarbs(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-black text-center outline-none border border-slate-200 dark:border-slate-700 focus:border-amber-500 transition-all dark:text-white"
-                   />
-                 </div>
-                 <div className="space-y-1">
-                   <label className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest ml-2">Białko (g)</label>
-                   <input 
-                    type="number"
-                    value={protein}
-                    onChange={e => setProtein(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-black text-center outline-none border border-slate-200 dark:border-slate-700 focus:border-emerald-500 transition-all dark:text-white"
-                   />
-                 </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                        Węglowodany (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={carbs}
+                        onChange={(e) => setCarbs(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800/80 p-3 rounded-[1.5rem] font-black text-center outline-none border border-slate-200 dark:border-slate-700/50 focus:ring-2 focus:ring-amber-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all dark:text-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest ml-2">
+                        Białko (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={protein}
+                        onChange={(e) => setProtein(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-black text-center outline-none border border-slate-200 dark:border-slate-700 focus:border-emerald-500 transition-all dark:text-white"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                 <div className="space-y-1">
-                   <label className="text-[10px] font-black text-rose-500/60 uppercase tracking-widest ml-2">Tłuszcz (g)</label>
-                   <input 
-                    type="number"
-                    value={fat}
-                    onChange={e => setFat(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-black text-center outline-none border border-slate-200 dark:border-slate-700 focus:border-rose-500 transition-all dark:text-white"
-                   />
-                 </div>
-                 <div className="space-y-1">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Data / Godzina</label>
-                   <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-bold text-[10px] text-center text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center justify-center glass-target">
-                      {new Date(log.timestamp).toLocaleString([], {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}
-                   </div>
-                 </div>
-              </div>
-              </>
-            )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-rose-500/60 uppercase tracking-widest ml-2">
+                        Tłuszcz (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={fat}
+                        onChange={(e) => setFat(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800/80 p-3 rounded-[1.5rem] font-black text-center outline-none border border-slate-200 dark:border-slate-700/50 focus:ring-2 focus:ring-rose-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all dark:text-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                        Data / Godzina
+                      </label>
+                      <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-bold text-[10px] text-center text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center justify-center glass-target">
+                        {new Date(log.timestamp).toLocaleString([], {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Notatka (produkty)</label>
-                <textarea 
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+                  Notatka (produkty)
+                </label>
+                <textarea
                   value={notes}
-                  onChange={e => setNotes(e.target.value)}
+                  onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-bold text-sm outline-none border border-slate-200 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white resize-none"
                   placeholder="Opis posiłku..."
@@ -431,12 +644,16 @@ export default function MealEditModal({ log, user, onClose }: MealEditModalProps
             disabled={loading}
             className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-accent-700 transition-all disabled:opacity-50"
           >
-            {loading ? <Loader2 className="animate-spin" /> : <Save size={18} />}
+            {loading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Save size={18} />
+            )}
             Zaktualizuj Wpis
           </button>
         </div>
       </motion.div>
     </div>,
-    document.body
+    document.body,
   );
 }

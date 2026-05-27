@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
-import { Calendar, Droplets, Utensils, RefreshCw, Syringe, ChevronDown, ChevronUp, ActivitySquare, AlertTriangle } from 'lucide-react';
+import { Calendar, Droplets, Utensils, Syringe, ChevronDown, ChevronUp, ActivitySquare, AlertTriangle, Signal } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface StatisticsViewProps {
@@ -195,12 +195,12 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                   <span className="text-lg font-black text-teal-700 dark:text-teal-500 leading-none">{month.siteChanges}</span>
                 </div>
 
-                <div className="bg-emerald-500/10 rounded-2xl p-3 flex flex-col justify-center">
-                  <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
-                    <RefreshCw size={14} />
+                <div className="bg-indigo-500/10 rounded-2xl p-3 flex flex-col justify-center">
+                  <div className="flex items-center gap-1.5 text-indigo-600 mb-1">
+                    <Signal size={14} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Wymiany sensorów</span>
                   </div>
-                  <span className="text-lg font-black text-emerald-700 dark:text-emerald-500 leading-none">{month.sensorChanges}</span>
+                  <span className="text-lg font-black text-indigo-700 dark:text-indigo-500 leading-none">{month.sensorChanges}</span>
                 </div>
               </div>
             </div>
@@ -238,55 +238,70 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                         ))}
                       </div>
                       
-                      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                      <div className="grid grid-cols-7 gap-1">
                         {blankDays.map((_, i) => (
-                          <div key={`blank-${i}`} className="aspect-square rounded-xl bg-slate-50 dark:bg-transparent"></div>
+                          <div key={`blank-${i}`} className="min-h-[4.4rem] sm:min-h-[5.2rem] rounded-xl bg-slate-50 dark:bg-transparent"></div>
                         ))}
                         {monthDays.map(({ d, dayKey, stats }) => (
                           <div 
                             key={dayKey} 
                             className={cn(
-                              "aspect-square rounded-xl flex flex-col items-center justify-center relative border p-1",
+                              "min-h-[4.4rem] sm:min-h-[5.2rem] rounded-xl flex flex-col justify-between items-center relative border p-1 py-1.5",
                               stats 
-                                ? "bg-white dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50 hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-colors" 
+                                ? "bg-white dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50 hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all shadow-sm" 
                                 : "bg-slate-50/50 dark:bg-transparent border-transparent opacity-50"
                             )}
                           >
                             <span className={cn(
-                              "text-xs font-black absolute top-1 left-1.5", 
+                              "text-[10px] sm:text-xs font-black absolute top-1 left-1.5", 
                               stats ? "text-slate-700 dark:text-slate-300" : "text-slate-400"
                             )}>
                               {d}
                             </span>
+
+                            {/* Górne sygnalizatory pulsujące przy wymianie sensora lub wkłucia */}
+                            <div className="absolute top-1 right-1.5 flex gap-0.5 z-10">
+                              {stats?.sensorChange && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-sm animate-pulse" title="Dzień wymiany sensora" />}
+                              {stats?.siteChange && <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shadow-sm animate-pulse" title="Dzień wymiany wkłucia" />}
+                            </div>
                             
                             {stats && (
-                              <div className="mt-3 flex flex-col items-center gap-0.5 w-full">
-                                {stats.carbs > 0 && (
-                                  <div className="text-[9px] font-black text-amber-500 leading-none">{Math.round(stats.carbs)}g</div>
-                                )}
-                                {stats.insulin > 0 && (
-                                  <div className="text-[9px] font-black text-indigo-500 leading-none">{stats.insulin.toFixed(1)}j</div>
-                                )}
+                              <div className="flex flex-col items-center justify-between h-full w-full">
+                                {/* Węglowodany i Insulina w jednym wierszu flex-wrap */}
+                                <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5 w-full mt-3 px-0.5 text-center">
+                                  {stats.carbs > 0 && (
+                                    <div className="text-[8px] sm:text-[9.5px] font-black text-amber-500 leading-none" title="Węglowodany">
+                                      {Math.round(stats.carbs)}g
+                                    </div>
+                                  )}
+                                  {stats.insulin > 0 && (
+                                    <div className="text-[8px] sm:text-[9.5px] font-black text-indigo-600 dark:text-indigo-400 leading-none" title="Insulina">
+                                      {stats.insulin.toFixed(1)}j
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Hipoglikemia / Hiperglikemia / Wymiany na dole */}
                                 {(stats.hypos > 0 || stats.hypers > 0 || stats.siteChange || stats.sensorChange) && (
-                                  <div className="flex gap-1 justify-center w-full mt-0.5">
+                                  <div className="flex flex-wrap gap-0.5 sm:gap-1 justify-center items-center w-full mt-auto pt-1">
                                     {stats.hypos > 0 && (
-                                      <div className="text-white bg-rose-500 text-[7px] px-1 rounded-sm leading-tight font-bold">
-                                        {stats.hypos}
+                                      <div className="text-white bg-rose-500 text-[7px] sm:text-[8px] px-0.5 sm:px-1 py-0.5 rounded font-black leading-none min-w-[12px] text-center" title={`Niski cukier: ${stats.hypos} razy`}>
+                                        {stats.hypos}↓
                                       </div>
                                     )}
                                     {stats.hypers > 0 && (
-                                      <div className="text-white bg-orange-500 text-[7px] px-1 rounded-sm leading-tight font-bold">
-                                        {stats.hypers}
+                                      <div className="text-white bg-orange-500 text-[7px] sm:text-[8px] px-0.5 sm:px-1 py-0.5 rounded font-black leading-none min-w-[12px] text-center" title={`Wysoki cukier: ${stats.hypers} razy`}>
+                                        {stats.hypers}↑
                                       </div>
                                     )}
                                     {stats.siteChange && (
-                                      <div className="flex items-center justify-center text-white bg-teal-500 px-0.5 rounded-sm" title="Wymiana wkłucia">
-                                        <Droplets size={8} />
+                                      <div className="flex items-center justify-center text-white bg-teal-500 p-0.5 rounded shadow-sm hover:scale-110 transition-transform" title="Wymiana wkłucia">
+                                        <Droplets size={8} className="stroke-[3]" />
                                       </div>
                                     )}
                                     {stats.sensorChange && (
-                                      <div className="flex items-center justify-center text-white bg-emerald-500 px-0.5 rounded-sm" title="Wymiana sensora">
-                                        <RefreshCw size={8} />
+                                      <div className="flex items-center justify-center text-white bg-indigo-500 p-0.5 rounded shadow-sm hover:scale-110 transition-transform" title="Wymiana sensora">
+                                        <Signal size={8} className="stroke-[3]" />
                                       </div>
                                     )}
                                   </div>

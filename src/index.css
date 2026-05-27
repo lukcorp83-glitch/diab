@@ -111,11 +111,16 @@
 
 body {
   background-color: var(--app-bg-light, #f8fafc);
-
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: contain;
   font-family: var(--font-plus);
   transition: background-color 0.3s, color 0.3s;
+  
+  /* PWA Safe Area Overrides */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .dark body {
@@ -355,3 +360,105 @@ body {
     padding-left: 100px !important;
   }
 }
+
+.recharts-legend-wrapper {
+  @apply rounded-2xl transition-all duration-300;
+  background: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
+  padding: 4px 8px !important;
+  margin-top: 10px !important;
+}
+
+.dark .recharts-legend-wrapper {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+/* --- MATERIAL DESIGN 3 OVERRIDES --- */
+:root[data-material3="true"] {
+  /* Tonal backgrounds */
+  --app-bg-light: var(--app-accent-50);
+  --app-bg-dark: #121318;
+}
+
+:root[data-material3="true"] .bg-slate-50,
+:root[data-material3="true"] .bg-slate-100 {
+  background-color: var(--app-accent-50) !important;
+}
+:root[data-material3="true"].dark .dark\:bg-slate-800 {
+  background-color: #1e1f26 !important;
+}
+:root[data-material3="true"].dark .dark\:bg-slate-900 {
+  background-color: #191a20 !important;
+}
+
+/* Remove default borders and rely on tonal contrast */
+:root[data-material3="true"] .border-slate-200,
+:root[data-material3="true"] .border-slate-100,
+:root[data-material3="true"] .border-slate-200\/60,
+:root[data-material3="true"] .dark\:border-slate-700,
+:root[data-material3="true"] .dark\:border-slate-800,
+:root[data-material3="true"] .dark\:border-slate-700\/50,
+:root[data-material3="true"] .dark\:border-slate-800\/50 {
+  border-color: transparent !important;
+}
+
+/* M3 Elevated cards instead of borders */
+:root[data-material3="true"] .bg-white {
+  box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+:root[data-material3="true"].dark .dark\:bg-slate-900,
+:root[data-material3="true"].dark .dark\:bg-slate-800 {
+  box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* M3 Input Fields (Outlined Variant) */
+:root[data-material3="true"] input[type="text"],
+:root[data-material3="true"] input[type="number"],
+:root[data-material3="true"] input[type="password"],
+:root[data-material3="true"] input[type="datetime-local"],
+:root[data-material3="true"] select,
+:root[data-material3="true"] textarea {
+  border-radius: 0.25rem !important;
+  border: 1px solid var(--app-accent-300) !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+:root[data-material3="true"].dark input[type="text"],
+:root[data-material3="true"].dark input[type="number"],
+:root[data-material3="true"].dark input[type="password"],
+:root[data-material3="true"].dark input[type="datetime-local"],
+:root[data-material3="true"].dark select,
+:root[data-material3="true"].dark textarea {
+  border: 1px solid var(--app-accent-800) !important;
+}
+
+:root[data-material3="true"] input:focus,
+:root[data-material3="true"] select:focus,
+:root[data-material3="true"] textarea:focus {
+  outline: 2px solid var(--app-accent-500) !important;
+  outline-offset: -1px;
+}
+
+/* M3 Standard Container Radii (Reduce extreme rounded corners) */
+:root[data-material3="true"] .rounded-\[2\.5rem\],
+:root[data-material3="true"] .rounded-\[3rem\] {
+  border-radius: 1.5rem !important;
+}
+
+:root[data-material3="true"] .rounded-\[2rem\] {
+  border-radius: 1rem !important;
+}
+
+:root[data-material3="true"] button {
+  border-radius: 9999px !important; /* Pill shaped buttons */
+}
+:root[data-material3="true"] .rounded-2xl {
+  border-radius: 1rem !important;
+}
+

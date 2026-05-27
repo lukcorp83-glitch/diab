@@ -15,7 +15,13 @@ export interface Product {
 
 export interface LogEntry {
   id?: string;
-  type: 'glucose' | 'meal' | 'bolus' | 'site_change' | 'sensor_change' | 'activity';
+  type:
+    | "glucose"
+    | "meal"
+    | "bolus"
+    | "site_change"
+    | "sensor_change"
+    | "activity";
   value: number;
   timestamp: number;
   createdAt?: any;
@@ -35,6 +41,7 @@ export interface LogEntry {
     polyols?: number;
     protein?: number;
     fat?: number;
+    name?: string;
   };
   weather?: {
     temp: number;
@@ -71,7 +78,7 @@ export interface InventoryItem {
   quantity: number;
   unit: string;
   lowStockThreshold: number;
-  category: 'sensors' | 'insulin' | 'infusion_sets' | 'strips' | 'other';
+  category: "sensors" | "insulin" | "infusion_sets" | "strips" | "other";
   expiryDate?: string;
 }
 
@@ -86,12 +93,13 @@ export interface UserSettings {
   medications?: Medication[];
   inventory?: InventoryItem[];
   cgmCalibration?: number; // Calibration offset in mg/dL
-  cgmTimestamp?: number; // When was the last calibration 
+  cgmTimestamp?: number; // When was the last calibration
   sensorChangeDate?: number;
   infusionSetChangeDate?: number;
   sensorDurationDays?: number;
   infusionSetDurationDays?: number;
   notificationsEnabled?: boolean;
+  apkSystemNotificationsEnabled?: boolean;
   notificationPrefs?: {
     hypo: boolean;
     hyper: boolean;
@@ -102,9 +110,10 @@ export interface UserSettings {
   groupTherapyLock?: boolean;
   persistentWidgetEnabled?: boolean;
   accentColor?: string;
-  theme?: 'light' | 'dark' | 'system';
-  bgOption?: 'default' | 'true-black';
+  theme?: "light" | "dark" | "system";
+  bgOption?: "default" | "true-black";
   glassmorphismEnabled?: boolean;
+  material3Enabled?: boolean;
   showPumpWidget?: boolean;
   showPrediction?: boolean;
   autoGIEnabled?: boolean;
@@ -115,17 +124,18 @@ export interface UserSettings {
   weatherWidgetEnabled?: boolean;
   weatherNeuralEnabled?: boolean;
   mediaWidgetEnabled?: boolean;
+  showMealWidget?: boolean;
   activeTraining?: {
     sportId: string;
     startTime: number;
     duration: number; // minutes
-    intensity: 'low' | 'medium' | 'high';
+    intensity: "low" | "medium" | "high";
   } | null;
 }
 
 export interface AssistantMessage {
   id: string;
-  role: 'user' | 'model';
+  role: "user" | "model";
   text: string;
   timestamp: number;
 }

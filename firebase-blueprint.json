@@ -70,6 +70,18 @@
         "createdAt": { "type": "number" }
       },
       "required": ["userId", "createdAt"]
+    },
+    "NeuralBackup": {
+      "title": "GlikoSense Neural Backup",
+      "description": "Backup of the GlikoSense offline neural network",
+      "type": "object",
+      "properties": {
+        "modelTopology": { "type": "object" },
+        "weightSpecs": { "type": "array" },
+        "weightDataB64": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["modelTopology", "weightSpecs", "weightDataB64", "timestamp"]
     }
   },
   "firestore": {
@@ -88,6 +100,10 @@
     "/artifacts/diacontrolapp/users/{userId}/settings/profile": {
       "schema": "UserProfile",
       "description": "User profile settings"
+    },
+    "/artifacts/diacontrolapp/users/{userId}/neural_model/backup": {
+      "schema": "NeuralBackup",
+      "description": "GlikoSense neural network backup"
     }
   }
 }

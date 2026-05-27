@@ -1,4 +1,7 @@
 import { toast } from "react-hot-toast";
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { getToken, onMessage } from 'firebase/messaging';
 import { messaging, auth, db } from '../lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -8,28 +11,44 @@ const VAPID_KEY = 'BDpTWMeEWqqbg9i1S4P33GC51S2TgPs_cozqFLQrYJl0y6RXMXUym50gG-1d3
 export const notificationService = {
   async requestPermission(): Promise<string | null> {
     try {
-      if (!('Notification' in window)) {
-        toast("Twoja przeglądarka (lub urządzenie) nie obsługuje powiadomień. Na iOS upewnij się, że masz system w wersji 16.4+ oraz aplikację dodaną do ekranu głównego.");
+      if (!window.Notification) {
+        toast("Twoja przeglądarka lub aplikacja może nie obsługiwać systemowych powiadomień Push. Krytyczne alerty będą wyświetlane wewnątrz aplikacji.", { icon: 'ℹ️', duration: 8000 });
         return null;
       }
-      const permission = await Notification.requestPermission();
+      const permission = await window.Notification.requestPermission();
       if (permission === 'granted') {
         return await this.registerToken();
       }
-      alert(`Odmowa dostępu do powiadomień. 
-Aby to naprawić:
-- Android: Ustawienia -> Aplikacje lub Chrome -> Uprawnienia -> Powiadomienia.
-- iOS (iPhone): Ustawienia -> GlikoControl (lub Safari) -> Powiadomienia -> 'Zezwalaj'.`);
+      alert(`Odmowa dostępu do powiadomień.\nAby to naprawić:\n- Android: Ustawienia -> Aplikacje -> Uprawnienia -> Powiadomienia.\n- iOS: Ustawienia -> GlikoControl -> Powiadomienia -> 'Zezwalaj'.`);
       return null;
     } catch (error) {
-      alert(`Błąd podczas żądania uprawnień: ${error instanceof Error ? error.message : String(error)}`);
       console.error('Permission request failed:', error);
+      toast("Nie udało się aktywować powiadomień systemowych. Alerty będą wyświetlane jako komunikaty wewnątrz aplikacji.", { icon: 'ℹ️' });
       return null;
     }
   },
 
   async registerToken(): Promise<string | null> {
     try {
+      if (Capacitor.isNativePlatform()) {
+        const result = await PushNotifications.requestPermissions();
+        if (result.receive === 'granted') {
+          return new Promise((resolve) => {
+             PushNotifications.addListener('registration', async (token) => {
+                console.log('Native Push Registration token:', token.value);
+                await this.saveTokenToFirestore(token.value);
+                resolve(token.value);
+             });
+             PushNotifications.addListener('registrationError', (error: any) => {
+                console.error('Native Push registration error:', error);
+                resolve(null);
+             });
+             PushNotifications.register();
+          });
+        }
+        return null;
+      }
+
       const msg = await messaging();
       if (!msg) {
         alert("Twoja przeglądarka nie obsługuje powiadomień Firebase PUSH.");
@@ -72,34 +91,78 @@ Aby to naprawić:
   },
 
   async scheduleLocalNotification(title: string, body: string, delayMinutes: number) {
-    if (!('Notification' in window)) {
+    const delayMs = delayMinutes * 60 * 1000;
+    toast.success(`Przypomnienie ustawione na za ${delayMinutes} minut! ⏰`);
+
+    if (Capacitor.isNativePlatform()) {
+      const scheduleDate = new Date(Date.now() + delayMs);
+      await LocalNotifications.requestPermissions();
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: title,
+            body: body,
+            id: Math.floor(Math.random() * 100000),
+            schedule: { at: scheduleDate },
+            sound: null,
+            attachments: null,
+            actionTypeId: "",
+            extra: null
+          }
+        ]
+      });
+      return;
+    }
+
+    if (!window.Notification) {
       toast.error("Powiadomienia nie są obsługiwane na tym urządzeniu.");
       return;
     }
 
-    if (Notification.permission !== 'granted') {
-      const permission = await Notification.requestPermission();
+    if (window.Notification && window.Notification.permission !== 'granted') {
+      const permission = await window.Notification.requestPermission();
       if (permission !== 'granted') {
         toast.error("Brak uprawnień do powiadomień. Nie można ustawić przypomnienia.");
         return;
       }
     }
 
-    const delayMs = delayMinutes * 60 * 1000;
-    toast.success(`Przypomnienie ustawione na za ${delayMinutes} minut! ⏰`);
-
     setTimeout(async () => {
-      const registration = await navigator.serviceWorker.ready;
-      registration.showNotification(title, {
-        body,
-        icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
-        vibrate: [200, 100, 200, 100, 200],
-        tag: 'glikocontrol-reminder',
-        requireInteraction: true
-      } as any);
+      // Wibracje fallback
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+      }
       
-      // Also play a sound if possible or a toast if the app is open
-      toast(body, { icon: '🍽️', duration: 10000 });
+      // Pokazujemy zawsze wyraźny toast w aplikacji
+      toast(body, { 
+        icon: '🍽️', 
+        duration: 20000, 
+        position: 'top-center',
+        style: { border: '2px solid #6366f1', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
+      });
+
+      const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');
+      if (apkPref !== 'false') {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration) {
+             registration.showNotification(title, {
+              body,
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+              vibrate: [200, 100, 200, 100, 200],
+              tag: 'glikocontrol-reminder',
+              requireInteraction: true
+            } as any);
+          } else {
+             new window.Notification(title, { body });
+          }
+        } catch (e) {
+          console.log("Fallback powiadomienia", e);
+          try {
+             new window.Notification(title, { body });
+          } catch(err) {}
+        }
+      }
     }, delayMs);
   },
 
@@ -127,14 +190,35 @@ Aby to naprawić:
     onMessage(msg, async (payload) => {
       console.log('Message received in foreground:', payload);
       
-      if (Notification.permission === 'granted') {
-        const registration = await navigator.serviceWorker.ready;
-        registration.showNotification(payload.notification?.title || 'GlikoSense', {
-          body: payload.notification?.body,
-          icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
-          vibrate: [200, 100, 200],
-          tag: 'glikosense-alert'
-        } as any);
+      const title = payload.notification?.title || 'GlikoSense';
+      const body = payload.notification?.body || '';
+
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      
+      toast(body, { 
+        icon: '⚠️', 
+        duration: 20000, 
+        position: 'top-center',
+        style: { border: '2px solid #f43f5e', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
+      });
+
+      const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');
+      if (apkPref !== 'false' && window.Notification && window.Notification.permission === 'granted') {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration) {
+            registration.showNotification(title, {
+              body,
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+              vibrate: [200, 100, 200],
+              tag: 'glikosense-alert'
+            } as any);
+          } else {
+            new window.Notification(title, { body });
+          }
+        } catch(e) {
+          try { new window.Notification(title, { body }) } catch(err) {}
+        }
       }
     });
   }

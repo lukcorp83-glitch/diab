@@ -1,5 +1,7 @@
+import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 import { toast } from "react-hot-toast";
-import { getEffectiveUid } from '../lib/utils';
+import { getEffectiveUid, getMealAbsorptionTime } from "../lib/utils";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
@@ -32,7 +34,7 @@ import {
   AlertTriangle,
   Info,
   Heart,
-  Share2
+  Share2,
 } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
 import { cn } from "../lib/utils";
@@ -50,30 +52,80 @@ import {
 import { LIB_BASE, CATEGORIES } from "../constants";
 import { geminiService } from "../services/gemini";
 import { Html5Qrcode } from "html5-qrcode";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 import { Haptics } from "../lib/haptics";
 
 const getDietBadge = (product: Product, activeDiet: string | null) => {
   if (!activeDiet) return null;
   const pName = product.name.toLowerCase();
-  
-  if (activeDiet === 'keto') {
-    if ((product.carbs || 0) > 10) return { type: 'warning', text: 'Wysokie Węgle', icon: <AlertTriangle size={10} className="text-rose-500" />, color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' };
-    if ((product.carbs || 0) <= 5) return { type: 'success', text: 'Keto Friendly', icon: <Leaf size={10} className="text-emerald-500" />, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
-  }
-  
-  if (activeDiet === 'gluten') {
-    const glutenWords = ['chleb', 'bułka', 'makaron', 'pszenic', 'mąka', 'ciasto', 'ciastk', 'krakers', 'paluszk', 'płatki'];
-    if (glutenWords.some(w => pName.includes(w))) return { type: 'warning', text: 'Uwaga! Gluten?', icon: <AlertTriangle size={10} className="text-rose-500" />, color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' };
-  }
-  
-  if (activeDiet === 'plate') {
-    if ((product.carbs || 0) > 40 && (product.protein || 0) < 5) return { type: 'warning', text: 'Same węgle', icon: <AlertTriangle size={10} className="text-rose-500" />, color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' };
+
+  if (activeDiet === "keto") {
+    if ((product.carbs || 0) > 10)
+      return {
+        type: "warning",
+        text: "Wysokie Węgle",
+        icon: <AlertTriangle size={10} className="text-rose-500" />,
+        color: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+      };
+    if ((product.carbs || 0) <= 5)
+      return {
+        type: "success",
+        text: "Keto Friendly",
+        icon: <Leaf size={10} className="text-emerald-500" />,
+        color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+      };
   }
 
-  if (activeDiet === 'if') {
+  if (activeDiet === "gluten") {
+    const glutenWords = [
+      "chleb",
+      "bułka",
+      "makaron",
+      "pszenic",
+      "mąka",
+      "ciasto",
+      "ciastk",
+      "krakers",
+      "paluszk",
+      "płatki",
+    ];
+    if (glutenWords.some((w) => pName.includes(w)))
+      return {
+        type: "warning",
+        text: "Uwaga! Gluten?",
+        icon: <AlertTriangle size={10} className="text-rose-500" />,
+        color: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+      };
+  }
+
+  if (activeDiet === "plate") {
+    if ((product.carbs || 0) > 40 && (product.protein || 0) < 5)
+      return {
+        type: "warning",
+        text: "Same węgle",
+        icon: <AlertTriangle size={10} className="text-rose-500" />,
+        color: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+      };
+  }
+
+  if (activeDiet === "if") {
     // Intermittent Fasting doesn't restrict specific items usually, but let's encourage low glycemic index
-    if (typeof product.gi === 'number' && product.gi > 70) return { type: 'warning', text: 'Wysoki IG', icon: <AlertTriangle size={10} className="text-amber-500" />, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+    if (typeof product.gi === "number" && product.gi > 70)
+      return {
+        type: "warning",
+        text: "Wysoki IG",
+        icon: <AlertTriangle size={10} className="text-amber-500" />,
+        color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+      };
   }
 
   return null;
@@ -87,6 +139,7 @@ export default function MealPlate({
   mode = "both",
   openHistory,
   settings,
+  logs = [],
 }: {
   user: any;
   setTab: (t: string) => void;
@@ -95,6 +148,7 @@ export default function MealPlate({
   mode?: "search" | "plate" | "both";
   openHistory?: () => void;
   settings?: any;
+  logs?: any[];
 }) {
   const plate = sharedPlate;
   const setPlate = setSharedPlate || (() => {});
@@ -112,7 +166,8 @@ export default function MealPlate({
   const handleScrollHaptics = (e: React.UIEvent<HTMLDivElement>) => {
     const currentScrollY = e.currentTarget.scrollTop;
     const diff = Math.abs(currentScrollY - lastScrollY.current);
-    if (diff > 40) { // Trigger tick every 40px scroll
+    if (diff > 40) {
+      // Trigger tick every 40px scroll
       Haptics.tick();
       lastScrollY.current = currentScrollY;
     }
@@ -150,17 +205,21 @@ export default function MealPlate({
     const q2 = query(
       collection(db, "artifacts", "diacontrolapp", "communityProducts"),
     );
-    const unsubscribe2 = onSnapshot(q2, (snapshot) => {
-      setCommunityProducts(
-        snapshot.docs.map((doc) => ({
-          id: doc.id,
-          isCommunity: true,
-          ...doc.data(),
-        })) as Product[],
-      );
-    }, (error) => {
-      console.error("MealPlate communityProducts error:", error);
-    });
+    const unsubscribe2 = onSnapshot(
+      q2,
+      (snapshot) => {
+        setCommunityProducts(
+          snapshot.docs.map((doc) => ({
+            id: doc.id,
+            isCommunity: true,
+            ...doc.data(),
+          })) as Product[],
+        );
+      },
+      (error) => {
+        console.error("MealPlate communityProducts error:", error);
+      },
+    );
 
     return () => {
       unsubscribe1();
@@ -176,7 +235,7 @@ export default function MealPlate({
           .filter((item) => item && item.name)
           .map((item) => [`${item.id || item.name.toLowerCase()}`, item]),
       ).values(),
-    ).sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+    ).sort((a, b) => a.name.localeCompare(b.name, "pl"));
   }, [customProducts, communityProducts]);
 
   const browseResults = useMemo(() => {
@@ -184,7 +243,7 @@ export default function MealPlate({
       const matchesSearch =
         searchTerm.length < 2 ||
         p.name.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       let matchesCategory = false;
       if (activeCategory === "Wszystko") {
         matchesCategory = true;
@@ -195,7 +254,7 @@ export default function MealPlate({
       } else {
         matchesCategory = p.category === activeCategory;
       }
-      
+
       return matchesSearch && matchesCategory;
     });
   }, [allLocal, searchTerm, activeCategory]);
@@ -211,7 +270,7 @@ export default function MealPlate({
         const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`;
         const offRes = await fetch(offUrl);
         const offData = await offRes.json();
-        
+
         if (offData.products && offData.products.length > 0) {
           const validOffProducts = offData.products.map((p: any) => {
             // "Algorytm" - jeśli brak danych w bazie, szacujemy na podstawie słów kluczowych
@@ -220,21 +279,39 @@ export default function MealPlate({
             let fat = Number(p.nutriments?.fat_100g);
             let gi = 50;
 
-            const name = (p.product_name_pl || p.product_name || "").toLowerCase();
-            
+            const name = (
+              p.product_name_pl ||
+              p.product_name ||
+              ""
+            ).toLowerCase();
+
             // Heurystyka lokalna (Algorytm GlikoSense Offline)
             if (isNaN(carbs)) {
               if (name.includes("chleb") || name.includes("bułka")) carbs = 50;
-              else if (name.includes("ryż") || name.includes("kasza")) carbs = 25;
+              else if (name.includes("ryż") || name.includes("kasza"))
+                carbs = 25;
               else if (name.includes("ziemniak")) carbs = 17;
-              else if (name.includes("jogurt") || name.includes("mleko")) carbs = 5;
-              else if (name.includes("mięso") || name.includes("kurczak") || name.includes("ryba")) carbs = 0;
-              else if (name.includes("jabłko") || name.includes("owoc")) carbs = 12;
+              else if (name.includes("jogurt") || name.includes("mleko"))
+                carbs = 5;
+              else if (
+                name.includes("mięso") ||
+                name.includes("kurczak") ||
+                name.includes("ryba")
+              )
+                carbs = 0;
+              else if (name.includes("jabłko") || name.includes("owoc"))
+                carbs = 12;
               else carbs = 0;
             }
 
-            if (name.includes("pełnoziarnist") || name.includes("razow")) gi = 40;
-            if (name.includes("cukier") || name.includes("biał") || name.includes("miód")) gi = 70;
+            if (name.includes("pełnoziarnist") || name.includes("razow"))
+              gi = 40;
+            if (
+              name.includes("cukier") ||
+              name.includes("biał") ||
+              name.includes("miód")
+            )
+              gi = 70;
 
             return {
               id: p._id || `off_${Date.now()}_${Math.random()}`,
@@ -243,7 +320,7 @@ export default function MealPlate({
               protein: isNaN(protein) ? 0 : protein,
               fat: isNaN(fat) ? 0 : fat,
               gi,
-              category: "Baza Sieciowa (Smart)"
+              category: "Baza Sieciowa (Smart)",
             };
           });
 
@@ -252,8 +329,8 @@ export default function MealPlate({
               validOffProducts.map((p: any) => ({
                 ...p,
                 isOnline: true,
-                isDatabase: true
-              }))
+                isDatabase: true,
+              })),
             );
             return true;
           }
@@ -278,7 +355,10 @@ export default function MealPlate({
         const result = await geminiService.generateContent(prompt);
         const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
         let cleanJson = jsonMatch ? jsonMatch[0] : result;
-        cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
+        cleanJson = cleanJson
+          .replace(/^```json/, "")
+          .replace(/```$/, "")
+          .trim();
         const parsed = JSON.parse(cleanJson);
         const resultsArray = Array.isArray(parsed) ? parsed : [parsed];
         setOnlineResults(
@@ -292,20 +372,22 @@ export default function MealPlate({
       } catch (aiError) {
         console.warn("AI search failed, falling back to OFF:", aiError);
       }
-      
+
       // 2. Fallback do "Tradycyjnej Sieci" + Algorytm GlikoSense
       const offSuccess = await runOFFSearch();
       if (offSuccess) return;
 
       // 3. Ostateczny Fallback Lokalny (Baza wewnętrzna)
-      const localMatches = allLocal.filter(p => 
-        p.name.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 5);
+      const localMatches = allLocal
+        .filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 5);
 
       if (localMatches.length > 0) {
-        setOnlineResults(localMatches.map(p => ({ ...p, isOnline: true })));
+        setOnlineResults(localMatches.map((p) => ({ ...p, isOnline: true })));
       } else {
-        setSearchError("Brak dostępu do AI i nie znaleziono dopasowań w bazach tradycyjnych.");
+        setSearchError(
+          "Brak dostępu do AI i nie znaleziono dopasowań w bazach tradycyjnych.",
+        );
       }
     } catch (e) {
       console.error("Online search failed:", e);
@@ -381,7 +463,7 @@ export default function MealPlate({
           carbs: product.carbs,
           protein: product.protein || 0,
           fat: product.fat || 0,
-          gi: typeof product.gi === 'number' ? product.gi : 50,
+          gi: typeof product.gi === "number" ? product.gi : 50,
           category: "Z Sieci",
         },
       );
@@ -402,13 +484,15 @@ export default function MealPlate({
           carbs: product.carbs,
           protein: product.protein || 0,
           fat: product.fat || 0,
-          gi: typeof product.gi === 'number' ? product.gi : 50,
+          gi: typeof product.gi === "number" ? product.gi : 50,
           category: product.category || "Z Sieci",
           authorId: getEffectiveUid(user),
           createdAt: serverTimestamp(),
-        }
+        },
       );
-      toast.success(`Udostępniono "${product.name}" społeczności GlikoControl!`);
+      toast.success(
+        `Udostępniono "${product.name}" społeczności GlikoControl!`,
+      );
       Haptics.success();
     } catch (e) {
       console.error("Error publishing to community:", e);
@@ -417,9 +501,12 @@ export default function MealPlate({
   };
 
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
-  const [isShortcutConfirmModalOpen, setIsShortcutConfirmModalOpen] = useState(false);
+  const [isShortcutConfirmModalOpen, setIsShortcutConfirmModalOpen] =
+    useState(false);
   const [shortcutWeight, setShortcutWeight] = useState("100");
-  const [shortcutToConfirm, setShortcutToConfirm] = useState<Product | null>(null);
+  const [shortcutToConfirm, setShortcutToConfirm] = useState<Product | null>(
+    null,
+  );
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [weightInput, setWeightInput] = useState("100");
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -431,10 +518,13 @@ export default function MealPlate({
 
   const now = new Date();
   const tzOffset = now.getTimezoneOffset() * 60000;
-  const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
+  const localISOTime = new Date(Date.now() - tzOffset)
+    .toISOString()
+    .slice(0, 16);
   const [entryTime, setEntryTime] = useState(localISOTime);
-  const [cookingMethod, setCookingMethod] = useState<'raw' | 'boiled' | 'baked' | 'fried' | 'blended'>('raw');
-
+  const [cookingMethod, setCookingMethod] = useState<
+    "raw" | "boiled" | "baked" | "fried" | "blended"
+  >("raw");
 
   useEffect(() => {
     if (!user) return;
@@ -480,11 +570,13 @@ export default function MealPlate({
       setSelectedProduct(null);
       setSearchTerm("");
       setOnlineResults([]);
-      
+
       // Skrolujemy do góry by użytkownik widział dodany produkt na talerzu
       setTimeout(() => {
-        document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document
+          .querySelector("main")
+          ?.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }, 50);
     }
   };
@@ -494,11 +586,13 @@ export default function MealPlate({
     setIsAnalyzing(true);
     setAnalysis(null);
     try {
-      const dietContext = settings?.activeDiet ? `UWAGA: Użytkownik przebywa na diecie: ${settings.activeDiet}. Koniecznie uwzględnij to podczas analizy i precyzuj jak bardzo ten zestaw do niej pasuje!` : '';
+      const dietContext = settings?.activeDiet
+        ? `UWAGA: Użytkownik przebywa na diecie: ${settings.activeDiet}. Koniecznie uwzględnij to podczas analizy i precyzuj jak bardzo ten zestaw do niej pasuje!`
+        : "";
       const prompt = `Jesteś zaawansowanym asystentem diabetologicznym. Przeanalizuj poniższy skład posiłku pacjenta:
-      ${JSON.stringify(plate.map(p => ({ nazwa: p.name, waga: p.weight, wegle: p.carbs, bialko: p.protein, tluszcz: p.fat, IG: p.gi })))}
+      ${JSON.stringify(plate.map((p) => ({ nazwa: p.name, waga: p.weight, wegle: p.carbs, bialko: p.protein, tluszcz: p.fat, IG: p.gi })))}
       
-      Wybrana obróbka termiczna całego posiłku: ${cookingMethod === 'raw' ? 'Surowe / Brak' : cookingMethod === 'boiled' ? 'Gotowane' : cookingMethod === 'baked' ? 'Pieczone' : cookingMethod === 'fried' ? 'Smażone' : 'Zblendowane'}
+      Wybrana obróbka termiczna całego posiłku: ${cookingMethod === "raw" ? "Surowe / Brak" : cookingMethod === "boiled" ? "Gotowane" : cookingMethod === "baked" ? "Pieczone" : cookingMethod === "fried" ? "Smażone" : "Zblendowane"}
       ${dietContext}
       
       Zwróć szczegółową analizę w czytelnym formacie HTML (używaj <b>, <ul>, <li>, <br>, ale ZABRANIAM używania markdown, w szczególności gwazdek).
@@ -574,7 +668,8 @@ export default function MealPlate({
       {
         ...product,
         weight,
-        plateItemId: Math.random().toString(36).substring(2, 9) + Date.now().toString(36)
+        plateItemId:
+          Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
       },
     ]);
     // Don't clear search automatically so user can add more
@@ -588,42 +683,263 @@ export default function MealPlate({
   const totalWeight = plate.reduce((s, i) => s + i.weight, 0);
 
   const rawCarbs = plate.reduce((s, i) => s + (i.carbs * i.weight) / 100, 0);
-  const rawPolyols = plate.reduce((s, i) => s + ((i.polyols || 0) * i.weight) / 100, 0);
-  const rawProtein = plate.reduce((s, i) => s + ((i.protein || 0) * i.weight) / 100, 0);
+  const rawPolyols = plate.reduce(
+    (s, i) => s + ((i.polyols || 0) * i.weight) / 100,
+    0,
+  );
+  const rawProtein = plate.reduce(
+    (s, i) => s + ((i.protein || 0) * i.weight) / 100,
+    0,
+  );
   const rawFat = plate.reduce((s, i) => s + ((i.fat || 0) * i.weight) / 100, 0);
 
   const totalCarbs = Math.max(0, rawCarbs - rawPolyols); // Net carbs
   const totalProtein = rawProtein;
-  const totalFat = cookingMethod === 'fried' ? rawFat + (totalWeight / 100) * 10 : rawFat;
-  
-  const totalCalsFromMacros = (totalCarbs * 4) + (totalProtein * 4) + (totalFat * 9);
-  const carbsPct = totalCalsFromMacros > 0 ? (totalCarbs * 4 / totalCalsFromMacros) * 100 : 0;
-  const proteinPct = totalCalsFromMacros > 0 ? (totalProtein * 4 / totalCalsFromMacros) * 100 : 0;
-  const fatPct = totalCalsFromMacros > 0 ? (totalFat * 9 / totalCalsFromMacros) * 100 : 0;
+  const totalFat =
+    cookingMethod === "fried" ? rawFat + (totalWeight / 100) * 10 : rawFat;
+
+  const totalCalsFromMacros = totalCarbs * 4 + totalProtein * 4 + totalFat * 9;
+  const carbsPct =
+    totalCalsFromMacros > 0
+      ? ((totalCarbs * 4) / totalCalsFromMacros) * 100
+      : 0;
+  const proteinPct =
+    totalCalsFromMacros > 0
+      ? ((totalProtein * 4) / totalCalsFromMacros) * 100
+      : 0;
+  const fatPct =
+    totalCalsFromMacros > 0 ? ((totalFat * 9) / totalCalsFromMacros) * 100 : 0;
 
   const totalWW = totalCarbs / 10;
   const totalWBT = (totalProtein * 4 + totalFat * 9) / 100;
-  
+
   const rawGL = plate.reduce((s, i) => {
-    if (typeof i.gi !== 'number') return s;
+    if (typeof i.gi !== "number") return s;
     const itemNetCarbs = Math.max(0, i.carbs - (i.polyols || 0));
-    return s + ((itemNetCarbs * i.weight / 100) * i.gi) / 100;
+    return s + (((itemNetCarbs * i.weight) / 100) * i.gi) / 100;
   }, 0);
 
   let avgGI = rawCarbs > 0 ? (rawGL * 100) / rawCarbs : 0;
-  if (cookingMethod === 'boiled') avgGI = Math.min(100, avgGI * 1.3);
-  if (cookingMethod === 'baked') avgGI = Math.min(100, avgGI * 1.15);
-  if (cookingMethod === 'blended') avgGI = Math.min(100, avgGI * 1.2);
-  if (cookingMethod === 'fried') avgGI = avgGI * 0.9;
-  
+  if (cookingMethod === "boiled") avgGI = Math.min(100, avgGI * 1.3);
+  if (cookingMethod === "baked") avgGI = Math.min(100, avgGI * 1.15);
+  if (cookingMethod === "blended") avgGI = Math.min(100, avgGI * 1.2);
+  if (cookingMethod === "fried") avgGI = avgGI * 0.9;
+
   const totalGL = (totalCarbs * avgGI) / 100;
+
+  const activeMeal = useMemo(() => {
+    if (!logs) return null;
+    const meals = logs
+      .filter((l) => l.type === "meal" || l.linkedMeal)
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    if (meals.length === 0) return null;
+
+    for (const latest of meals) {
+      const mSrc = latest.type === "meal" ? latest : latest.linkedMeal;
+      if (!mSrc) continue;
+
+      const mWW =
+        (mSrc as any).value !== undefined
+          ? (mSrc as any).value / 10
+          : (mSrc as any).carbs !== undefined
+            ? (mSrc as any).carbs / 10
+            : 0;
+      const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+
+      const absorptionTimeHr = getMealAbsorptionTime(mWW, mWBT);
+
+      const ageHr = (Date.now() - (latest.timestamp || 0)) / (1000 * 60 * 60);
+
+      // If it's still absorbing, this is our active meal
+      if (ageHr < absorptionTimeHr || settings?.showMealWidget) {
+        return latest;
+      }
+    }
+    return null;
+  }, [logs, settings?.showMealWidget]);
+
+  const activeBolus = useMemo(() => {
+    if (!logs || !activeMeal) return null;
+
+    // If the active meal is actually a bolus with a linked meal, it IS the bolus
+    if (activeMeal.type === "bolus" || activeMeal.type === "insulin") {
+      return activeMeal;
+    }
+
+    const boluses = logs.filter(
+      (l) => l.type === "bolus" || l.type === "insulin",
+    );
+    for (const b of boluses) {
+      if (
+        Math.abs((b.timestamp || 0) - (activeMeal.timestamp || 0)) <
+        1000 * 60 * 30
+      ) {
+        return b;
+      }
+    }
+    return null;
+  }, [logs, activeMeal]);
+
+  const activeChartData = useMemo(() => {
+    if (!activeMeal) return [];
+
+    const carbSrc =
+      activeMeal.type === "meal" ? activeMeal : activeMeal.linkedMeal;
+
+    // Default to WW and WBT from activeMeal
+    const WW =
+      carbSrc?.value !== undefined
+        ? carbSrc.value / 10
+        : carbSrc?.carbs !== undefined
+          ? carbSrc.carbs / 10
+          : 0;
+    const WBT = ((carbSrc?.protein || 0) * 4 + (carbSrc?.fat || 0) * 9) / 100;
+    const gI = 50;
+
+    const data = [];
+
+    const insulinProfile = {
+      0: 0,
+      0.5: 0.15,
+      1.0: 0.35,
+      1.5: 0.25,
+      2.0: 0.15,
+      2.5: 0.08,
+      3.0: 0.02,
+      3.5: 0.0,
+      4.0: 0.0,
+    };
+
+    const getCarbAbsorption = (t: number, gi: number) => {
+      let peakT = gi > 70 ? 0.75 : gi < 50 ? 1.5 : 1.0;
+      let val = Math.max(0, 1 - Math.pow((t - peakT) / 1.5, 2));
+      return val;
+    };
+
+    const getWbtAbsorption = (t: number) => {
+      if (t < 1) return 0;
+      if (t < 3) return (t - 1) * 0.5;
+      return 1 - (t - 3) * 0.5;
+    };
+
+    // Find all meals and boluses within 6h window before activeMeal
+    const recentMeals = logs.filter(
+      (l) =>
+        (l.type === "meal" || l.linkedMeal) &&
+        (activeMeal.timestamp || 0) - (l.timestamp || 0) < 1000 * 60 * 60 * 6,
+    );
+    const recentBoluses = logs.filter(
+      (l) =>
+        (l.type === "bolus" || l.type === "insulin") &&
+        Math.abs((activeMeal.timestamp || 0) - (l.timestamp || 0)) <
+          1000 * 60 * 60 * 6,
+    );
+    const bgLogs = logs
+      .filter((l) => l.type === "glucose")
+      .sort((a, b) => b.timestamp - a.timestamp);
+
+    for (let currentHr = -1; currentHr <= 4; currentHr += 0.5) {
+      let totalMealImpact = 0;
+      let totalInsImpact = 0;
+
+      const chartTime = new Date(
+        (activeMeal.timestamp || 0) + currentHr * 60 * 60 * 1000,
+      );
+
+      // Meal Impacts
+      for (const m of recentMeals) {
+        const mSrc = m.type === "meal" ? m : m.linkedMeal;
+        if (!mSrc) continue;
+        const mWW =
+          mSrc.value !== undefined
+            ? mSrc.value / 10
+            : mSrc.carbs !== undefined
+              ? mSrc.carbs / 10
+              : 0;
+        const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+
+        // Relative age in hours for this meal at this chart point
+        const relativeAgeHr =
+          (chartTime.getTime() - (m.timestamp || 0)) / (1000 * 60 * 60);
+
+        if (relativeAgeHr >= 0 && relativeAgeHr <= 6) {
+          let tCarbProfile = 0;
+          for (let step = 0; step <= 4; step += 0.5)
+            tCarbProfile += getCarbAbsorption(step, gI);
+          let tWbtProfile = 0;
+          for (let step = 0; step <= 4; step += 0.5)
+            tWbtProfile += getWbtAbsorption(step);
+
+          let c =
+            tCarbProfile > 0
+              ? (getCarbAbsorption(relativeAgeHr, gI) / tCarbProfile) * mWW
+              : 0;
+          let w =
+            tWbtProfile > 0
+              ? (getWbtAbsorption(relativeAgeHr) / tWbtProfile) * mWBT
+              : 0;
+
+          totalMealImpact += c + w;
+        }
+      }
+
+      // Insulin Impacts
+      for (const b of recentBoluses) {
+        const bVal = parseFloat(b.value || 0);
+        const relativeAgeHr =
+          (chartTime.getTime() - (b.timestamp || 0)) / (1000 * 60 * 60);
+        // Find nearest 0.5 step
+        const step = Math.round(relativeAgeHr * 2) / 2;
+        if (
+          step >= 0 &&
+          step <= 4 &&
+          (insulinProfile as any)[step] !== undefined
+        ) {
+          totalInsImpact += (insulinProfile as any)[step] * bVal;
+        }
+      }
+
+      // Find closest BG within 15 mins for historical points
+      let Cukier = null;
+      if (chartTime.getTime() <= Date.now() + 15 * 60000) {
+        const closestBg = bgLogs.find(
+          (l) => Math.abs(l.timestamp - chartTime.getTime()) < 1000 * 60 * 15,
+        );
+        if (closestBg) {
+          Cukier = parseFloat(closestBg.value);
+        }
+      }
+
+      data.push({
+        time: chartTime.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        Posiłek: Math.round(totalMealImpact * 10),
+        Insulina: -Math.round(totalInsImpact * 10),
+        Netto: Math.round((totalMealImpact - totalInsImpact) * 10),
+        Cukier: Cukier,
+        WW,
+        WBT,
+      });
+    }
+
+    return data;
+  }, [activeMeal, activeBolus, logs]);
 
   const handleLogMeal = async () => {
     if (!user || plate.length === 0) return;
     Haptics.medium();
     try {
       await addDoc(
-        collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
+        collection(
+          db,
+          "artifacts",
+          "diacontrolapp",
+          "users",
+          getEffectiveUid(user),
+          "logs",
+        ),
         {
           type: "meal",
           value: totalCarbs,
@@ -645,7 +961,8 @@ export default function MealPlate({
   const startVoiceSearch = () => {
     // @ts-ignore
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Twoja przeglądarka nie obsługuje wyszukiwania głosowego.");
       return;
@@ -680,7 +997,9 @@ export default function MealPlate({
     recognition.onerror = (event: any) => {
       console.warn("Speech recognition error:", event.error);
       if (event.error === "not-allowed") {
-        setSearchError("Brak dostępu do mikrofonu. Uprawnienia mogą być blokowane przez przeglądarkę.");
+        setSearchError(
+          "Brak dostępu do mikrofonu. Uprawnienia mogą być blokowane przez przeglądarkę.",
+        );
       } else {
         setSearchError("Błąd rozpoznawania mowy. Spróbuj powtórzyć.");
       }
@@ -702,274 +1021,319 @@ export default function MealPlate({
       {createPortal(
         <AnimatePresence>
           {isScannerOpen && (
-          <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/60"
-          >
-            <motion.div 
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 border border-slate-800 shadow-2xl relative overflow-hidden will-change-transform"
+            <motion.div
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/60"
             >
-              <button onClick={() => setIsScannerOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors z-10">
-                <X size={20} />
-              </button>
-              <h2 className="text-xl font-black text-white mb-6 pr-8">
-                Skaner Produktów
-              </h2>
-              <div className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2 relative shadow-inner">
-                <MealScanner 
-                  onResult={async (decodedText) => {
-                    setIsScannerOpen(false);
-                    setIsSearching(true);
-                    try {
-                      const response = await fetch(
-                        `https://world.openfoodfacts.org/api/v2/product/${decodedText}.json`,
-                      );
-                      const data = await response.json();
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 border border-slate-800 shadow-2xl relative overflow-hidden will-change-transform"
+              >
+                <button
+                  onClick={() => setIsScannerOpen(false)}
+                  className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors z-10"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="text-xl font-black text-white mb-6 pr-8">
+                  Skaner Produktów
+                </h2>
+                <div className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2 relative shadow-inner">
+                  <MealScanner
+                    onResult={async (decodedText) => {
+                      setIsScannerOpen(false);
+                      setIsSearching(true);
+                      try {
+                        const response = await fetch(
+                          `https://world.openfoodfacts.org/api/v2/product/${decodedText}.json`,
+                        );
+                        const data = await response.json();
 
-                      if (data.status === 1 && data.product) {
-                        const p = data.product;
-                        const product: Product = {
-                          id: `scan_${Date.now()}`,
-                          name: p.product_name_pl || p.product_name || "Produkt nieznany",
-                          carbs: p.nutriments?.carbohydrates_100g || 0,
-                          protein: p.nutriments?.proteins_100g || 0,
-                          fat: p.nutriments?.fat_100g || 0,
-                          gi: 50,
-                          category: "Skanowane",
-                        };
-                        openWeightModal(product);
-                      } else {
+                        if (data.status === 1 && data.product) {
+                          const p = data.product;
+                          const product: Product = {
+                            id: `scan_${Date.now()}`,
+                            name:
+                              p.product_name_pl ||
+                              p.product_name ||
+                              "Produkt nieznany",
+                            carbs: p.nutriments?.carbohydrates_100g || 0,
+                            protein: p.nutriments?.proteins_100g || 0,
+                            fat: p.nutriments?.fat_100g || 0,
+                            gi: 50,
+                            category: "Skanowane",
+                          };
+                          openWeightModal(product);
+                        } else {
+                          setSearchTerm(decodedText);
+                          await performOnlineSearch(decodedText);
+                        }
+                      } catch (err) {
                         setSearchTerm(decodedText);
                         await performOnlineSearch(decodedText);
+                      } finally {
+                        setIsSearching(false);
                       }
-                    } catch (err) {
-                      setSearchTerm(decodedText);
-                      await performOnlineSearch(decodedText);
-                    } finally {
-                      setIsSearching(false);
-                    }
-                  }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 text-center mt-4 uppercase tracking-[0.2em] font-black opacity-50">Nakieruj na kod kreskowy</p>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {isWeightModalOpen && selectedProduct && (
-          <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
-          >
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-slate-50 dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
-            >
-              <button 
-                onClick={() => setIsWeightModalOpen(false)} 
-                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-              <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
-                Dodaj: {selectedProduct.name}
-              </h2>
-              <div className="bg-white dark:bg-slate-800 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 mb-6 text-center shadow-inner">
-                <input
-                  type="number"
-                  pattern="[0-9]*"
-                  inputMode="decimal"
-                  value={weightInput}
-                  onChange={(e) => setWeightInput(e.target.value)}
-                  className="text-6xl font-black w-full bg-transparent outline-none text-center dark:text-white"
-                  autoFocus
-                />
-                <span className="text-sm font-black text-slate-400 mt-2 block uppercase tracking-widest">
-                  Gramy (g)
-                </span>
-                {parseFloat(weightInput) > 0 && selectedProduct && (
-                  <div className="mt-4 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-2xl flex justify-center gap-4 text-xs font-black flex-wrap">
-                    <span className="text-accent-600 dark:text-accent-400">
-                      Węgle: {((selectedProduct.carbs * parseFloat(weightInput)) / 100).toFixed(1)}g
-                      {selectedProduct.polyols ? ` (w tym ${((selectedProduct.polyols * parseFloat(weightInput)) / 100).toFixed(1)}g poliole)` : ''}
-                    </span>
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      B+T: {(((selectedProduct.protein || 0) + (selectedProduct.fat || 0)) * parseFloat(weightInput) / 100).toFixed(1)}g
-                    </span>
-                    {typeof selectedProduct.gi === 'number' && (() => {
-                      const glV = (((selectedProduct.carbs * parseFloat(weightInput)) / 100) * selectedProduct.gi / 100);
-                      return (
-                        <span className={cn(
-                          glV <= 10 ? "text-emerald-600 dark:text-emerald-400" : glV < 20 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
-                        )}>
-                          ŁG: {glV.toFixed(1)}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={handleWeightSubmit}
-                className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95"
-              >
-                Dodaj do Talerza
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {isShortcutConfirmModalOpen && shortcutToConfirm && (
-          <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
-          >
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-slate-50 dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
-            >
-              <button 
-                onClick={() => setIsShortcutConfirmModalOpen(false)} 
-                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-              <h2 className="text-xl font-black mb-4 dark:text-white pr-8 leading-tight">
-                Zapisz skrót?
-              </h2>
-              <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-[2rem] border border-amber-100 dark:border-amber-900/20 mb-8">
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                  Zapisz <span className="text-amber-600 font-extrabold">{shortcutToConfirm.name}</span> jako szybki skrót.
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 text-center mt-4 uppercase tracking-[0.2em] font-black opacity-50">
+                  Nakieruj na kod kreskowy
                 </p>
-                
-                <div className="mt-4">
-                  <label className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-2 block">
-                    Gramatura (g)
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={shortcutWeight}
-                      onChange={(e) => setShortcutWeight(e.target.value)}
-                      className="flex-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-black text-xl text-amber-600 focus:border-amber-500 outline-none transition-all"
-                    />
-                    <div className="text-slate-400 font-bold">g</div>
-                  </div>
-                  
-                  <div className="flex gap-2 mt-3">
-                    {["50", "100", "150", "200"].map((w) => (
-                      <button
-                        key={w}
-                        onClick={() => setShortcutWeight(w)}
-                        className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${
-                          shortcutWeight === w 
-                            ? "bg-amber-500 text-white" 
-                            : "bg-slate-200 dark:bg-slate-800 text-slate-500"
-                        }`}
-                      >
-                        {w}g
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              </motion.div>
+            </motion.div>
+          )}
 
-                <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-800/50">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] uppercase font-black text-slate-400">Suma węgli:</span>
-                    <span className="text-sm font-black text-amber-600">
-                      {((shortcutToConfirm.carbs * (parseFloat(shortcutWeight) || 0)) / 100).toFixed(1)}g
-                    </span>
-                  </div>
+          {isWeightModalOpen && selectedProduct && (
+            <motion.div
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
+            >
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-slate-50 dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
+              >
+                <button
+                  onClick={() => setIsWeightModalOpen(false)}
+                  className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
+                  Dodaj: {selectedProduct.name}
+                </h2>
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 mb-6 text-center shadow-inner">
+                  <input
+                    type="number"
+                    pattern="[0-9]*"
+                    inputMode="decimal"
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    className="text-6xl font-black w-full bg-transparent outline-none text-center dark:text-white"
+                    autoFocus
+                  />
+                  <span className="text-sm font-black text-slate-400 mt-2 block uppercase tracking-widest">
+                    Gramy (g)
+                  </span>
+                  {parseFloat(weightInput) > 0 && selectedProduct && (
+                    <div className="mt-4 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-2xl flex justify-center gap-4 text-xs font-black flex-wrap">
+                      <span className="text-accent-600 dark:text-accent-400">
+                        Węgle:{" "}
+                        {(
+                          (selectedProduct.carbs * parseFloat(weightInput)) /
+                          100
+                        ).toFixed(1)}
+                        g
+                        {selectedProduct.polyols
+                          ? ` (w tym ${((selectedProduct.polyols * parseFloat(weightInput)) / 100).toFixed(1)}g poliole)`
+                          : ""}
+                      </span>
+                      <span className="text-emerald-600 dark:text-emerald-400">
+                        B+T:{" "}
+                        {(
+                          (((selectedProduct.protein || 0) +
+                            (selectedProduct.fat || 0)) *
+                            parseFloat(weightInput)) /
+                          100
+                        ).toFixed(1)}
+                        g
+                      </span>
+                      {typeof selectedProduct.gi === "number" &&
+                        (() => {
+                          const glV =
+                            (((selectedProduct.carbs *
+                              parseFloat(weightInput)) /
+                              100) *
+                              selectedProduct.gi) /
+                            100;
+                          return (
+                            <span
+                              className={cn(
+                                glV <= 10
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : glV < 20
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-rose-600 dark:text-rose-400",
+                              )}
+                            >
+                              ŁG: {glV.toFixed(1)}
+                            </span>
+                          );
+                        })()}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="flex gap-3">
+                <button
+                  onClick={handleWeightSubmit}
+                  className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95"
+                >
+                  Dodaj do Talerza
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {isShortcutConfirmModalOpen && shortcutToConfirm && (
+            <motion.div
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
+            >
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-slate-50 dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
+              >
                 <button
                   onClick={() => setIsShortcutConfirmModalOpen(false)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                  className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
                 >
-                  Anuluj
+                  <X size={20} />
                 </button>
-                <button
-                  onClick={handleShortcutConfirm}
-                  className="flex-2 bg-amber-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-500/20 transition-all active:scale-95"
-                >
-                  Tak, Zapisz
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+                <h2 className="text-xl font-black mb-4 dark:text-white pr-8 leading-tight">
+                  Zapisz skrót?
+                </h2>
+                <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-[2rem] border border-amber-100 dark:border-amber-900/20 mb-8">
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    Zapisz{" "}
+                    <span className="text-amber-600 font-extrabold">
+                      {shortcutToConfirm.name}
+                    </span>{" "}
+                    jako szybki skrót.
+                  </p>
 
-        {isSaveModalOpen && (
-          <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
-          >
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
-            >
-              <button 
-                onClick={() => setIsSaveModalOpen(false)} 
-                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-              <h2 className="text-xl font-black mb-1 dark:text-white">
-                Zapisz jako szablon
-              </h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
-                Szybkie dodawanie zestawu w przyszłości
-              </p>
-              <input
-                type="text"
-                placeholder="Nazwa zestawu (np. Śniadanie)"
-                value={mealName}
-                onChange={(e) => setMealName(e.target.value)}
-                className="w-full bg-white dark:bg-slate-800 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-700 font-bold mb-6 outline-none dark:text-white focus:border-accent-500 transition-colors"
-                autoFocus
-              />
-              <button
-                onClick={saveMealSet}
-                className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase shadow-xl transition-all active:scale-95 tracking-widest"
-              >
-                Zapisz Szablon
-              </button>
+                  <div className="mt-4">
+                    <label className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-2 block">
+                      Gramatura (g)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={shortcutWeight}
+                        onChange={(e) => setShortcutWeight(e.target.value)}
+                        className="flex-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-black text-xl text-amber-600 focus:border-amber-500 outline-none transition-all"
+                      />
+                      <div className="text-slate-400 font-bold">g</div>
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      {["50", "100", "150", "200"].map((w) => (
+                        <button
+                          key={w}
+                          onClick={() => setShortcutWeight(w)}
+                          className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${
+                            shortcutWeight === w
+                              ? "bg-amber-500 text-white"
+                              : "bg-slate-200 dark:bg-slate-800 text-slate-500"
+                          }`}
+                        >
+                          {w}g
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-800/50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] uppercase font-black text-slate-400">
+                        Suma węgli:
+                      </span>
+                      <span className="text-sm font-black text-amber-600">
+                        {(
+                          (shortcutToConfirm.carbs *
+                            (parseFloat(shortcutWeight) || 0)) /
+                          100
+                        ).toFixed(1)}
+                        g
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsShortcutConfirmModalOpen(false)}
+                    className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    onClick={handleShortcutConfirm}
+                    className="flex-2 bg-amber-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+                  >
+                    Tak, Zapisz
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>,
-      document.body
-    )}
+          )}
+
+          {isSaveModalOpen && (
+            <motion.div
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
+            >
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative"
+              >
+                <button
+                  onClick={() => setIsSaveModalOpen(false)}
+                  className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="text-xl font-black mb-1 dark:text-white">
+                  Zapisz jako szablon
+                </h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
+                  Szybkie dodawanie zestawu w przyszłości
+                </p>
+                <input
+                  type="text"
+                  placeholder="Nazwa zestawu (np. Śniadanie)"
+                  value={mealName}
+                  onChange={(e) => setMealName(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-800 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-700 font-bold mb-6 outline-none dark:text-white focus:border-accent-500 transition-colors"
+                  autoFocus
+                />
+                <button
+                  onClick={saveMealSet}
+                  className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase shadow-xl transition-all active:scale-95 tracking-widest"
+                >
+                  Zapisz Szablon
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
 
       {/* Search & Browser */}
-      {(mode === 'search' || mode === 'both') && (
+      {(mode === "search" || mode === "both") && (
         <>
           <div className="px-1">
             <h2 className="text-xl font-black dark:text-white mb-2">
@@ -981,596 +1345,823 @@ export default function MealPlate({
           </div>
           <div className="space-y-4">
             <div className="flex flex-col gap-3">
-          <div className="relative w-full">
-            <Search
-              className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder="Wyszukaj produkt / danie..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleOnlineSearch();
-              }}
-              className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-24 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:border-accent-500 transition-all shadow-sm"
-            />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
-                  title="Wyczyść"
-                >
-                  <X size={16} />
-                </button>
-              )}
-              <button
-                onClick={startVoiceSearch}
-                className={`p-2 rounded-full transition-all ${isListening ? "bg-rose-500 text-white animate-pulse" : "text-slate-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/30"}`}
-                title="Wyszukiwanie głosowe"
-              >
-                <Mic size={18} />
-              </button>
-            </div>
-          </div>
-          
-          <div className="flex gap-2 w-full">
-            <button
-              onClick={() => {
-                Haptics.light();
-                handleOnlineSearch();
-              }}
-              className="flex-1 bg-accent-600 text-white p-4 rounded-[2rem] shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest"
-              title="Szukaj z GlikoSense AI"
-              disabled={isSearching}
-            >
-              {isSearching ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Szukam...</>
-              ) : (
-                <><Globe size={20} /> GlikoSense AI</>
-              )}
-            </button>
-            <button
-              onClick={() => {
-                Haptics.light();
-                const elem = document.getElementById("meal-photo-input");
-                if (elem) elem.click();
-              }}
-              className="bg-emerald-600 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center justify-center transition-all"
-              title="Zrób zdjęcie (Analiza AI)"
-            >
-              {isAnalyzing ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Camera size={20} />
-              )}
-            </button>
-            <button
-              onClick={() => {
-                Haptics.light();
-                startScanner();
-              }}
-              className="bg-slate-800 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center transition-all justify-center"
-            >
-              <Scan size={20} />
-            </button>
-          </div>
-          <input
-            type="file"
-            id="meal-photo-input"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setIsAnalyzing(true);
-              setSearchError(''); // reset errors
-              try {
-                // compress image
-                const max_size = 1000;
-                const compressedDataUrl = await new Promise<string>((resolve, reject) => {
-                  const reader = new FileReader();
-                  reader.readAsDataURL(file);
-                  reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target?.result as string;
-                    img.onload = () => {
-                      const canvas = document.createElement('canvas');
-                      let width = img.width;
-                      let height = img.height;
-                      
-                      if (width > height) {
-                        if (width > max_size) {
-                          height *= max_size / width;
-                          width = max_size;
-                        }
-                      } else {
-                        if (height > max_size) {
-                          width *= max_size / height;
-                          height = max_size;
-                        }
-                      }
-                      
-                      canvas.width = width;
-                      canvas.height = height;
-                      const ctx = canvas.getContext('2d');
-                      ctx?.drawImage(img, 0, 0, width, height);
-                      resolve(canvas.toDataURL('image/jpeg', 0.8));
-                    };
-                    img.onerror = () => reject(new Error('Image load failed'));
-                  };
-                  reader.onerror = () => reject(new Error('File read failed'));
-                });
-
-                const result = await geminiService.analyzeMeal(compressedDataUrl, settings);
-                const p: Product = {
-                  id: `ai_${Date.now()}`,
-                  name: result.mealName || "Posiłek AI",
-                  carbs: result.carbs || 0,
-                  protein: result.protein || 0,
-                  fat: result.fat || 0,
-                  gi: result.ig || result.gi || 50,
-                  category: "AI Wizja",
-                };
-                const weight = 100;
-                setPlate((prev) => [
-                  ...prev,
-                  {
-                    ...p,
-                    weight,
-                    carbs: p.carbs,
-                    protein: p.protein,
-                    fat: p.fat,
-                  },
-                ]);
-                setTimeout(() => {
-                  document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }, 50);
-              } catch (err) {
-                console.error("Camera vision analysis:", err);
-                setSearchError("Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie.");
-              } finally {
-                setIsAnalyzing(false);
-                e.target.value = "";
-              }
-            }}
-          />
-        </div>
-
-        {/* Cookbook / Saved Meals Horizontal Scroll */}
-        {(isLoadingSavedMeals || savedMeals.length > 0) && (
-          <div className="pt-2 pb-4">
-            <div className="flex items-center justify-between px-2 mb-3">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-accent-500 to-rose-500 flex items-center gap-1.5">
-                <Heart size={14} className="text-accent-500 fill-accent-500" />
-                Baza Posiłków
-              </h4>
-              {!isLoadingSavedMeals && (
-                <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                  {savedMeals.length} Zapisanych
-                </span>
-              )}
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-4 pt-1 px-1 scrollbar-none snap-x snap-mandatory">
-              {isLoadingSavedMeals ? (
-                <div className="flex gap-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={`skel-${i}`} className="snap-start shrink-0 w-[220px] h-[98px] bg-slate-100 dark:bg-slate-800/80 animate-pulse rounded-3xl border border-slate-200 dark:border-slate-800"></div>
-                  ))}
-                </div>
-              ) : (
-                savedMeals.map((m) => (
-                  <div
-                    key={m.id}
-                    onClick={() => {
-                      Haptics.light();
-                      addSavedMeal(m);
-                    }}
-                    className="snap-start shrink-0 w-[220px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm hover:border-accent-500/50 hover:shadow-md transition-all cursor-pointer relative group flex flex-col justify-between glass-target"
+              <div className="relative w-full">
+                <Search
+                  className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
+                />
+                <input
+                  type="text"
+                  placeholder="Wyszukaj produkt / danie..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleOnlineSearch();
+                  }}
+                  className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-24 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:border-accent-500 transition-all shadow-sm"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+                      title="Wyczyść"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                  <button
+                    onClick={startVoiceSearch}
+                    className={`p-2 rounded-full transition-all ${isListening ? "bg-rose-500 text-white animate-pulse" : "text-slate-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/30"}`}
+                    title="Wyszukiwanie głosowe"
                   >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        Haptics.light();
-                        try {
-                          import('firebase/firestore').then(({ deleteDoc, doc }) => {
-                            deleteDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "savedMeals", m.id));
-                          });
-                        } catch (err) {
-                          console.error("Delete meal failed:", err);
-                        }
-                      }}
-                      className="absolute top-3 right-3 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full transition-colors"
-                      title="Usuń z bazy"
-                    >
-                      <X size={14} />
-                    </button>
-                    <div className="mb-3 pr-6">
-                      <h5 className="font-black text-sm text-slate-800 dark:text-slate-100 leading-tight mb-1 line-clamp-2">
-                        {m.name}
-                      </h5>
-                      <p className="text-[10px] font-bold text-slate-400">
-                        {m.items.length} {m.items.length === 1 ? 'składnik' : 'składników'}
-                      </p>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div className="text-[11px] font-black text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20 px-2.5 py-1 rounded-xl">
-                        {m.items.reduce((acc: number, i: any) => acc + i.carbs, 0).toFixed(1)}g Węg.
-                      </div>
-                      <div className="w-8 h-8 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-lg shadow-accent-500/30">
-                        <Plus size={16} />
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Category Filter */}
-        <div 
-          className="flex gap-2 overflow-x-auto pb-2 scrollbar-none"
-          onScroll={handleScrollHaptics}
-        >
-          <button
-            onClick={() => {
-              Haptics.selection();
-              setActiveCategory("Wszystko");
-            }}
-            className={cn(
-              "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-              activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"
-            )}
-          >
-            Wszystko
-          </button>
-          <button
-            onClick={() => {
-              Haptics.selection();
-              setActiveCategory("Społeczność");
-            }}
-            className={cn(
-              "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-              activeCategory === "Społeczność" ? "bg-sky-600 text-white shadow-lg" : "bg-sky-50 dark:bg-sky-900/10 text-sky-500 border border-sky-100 dark:border-sky-900/20"
-            )}
-          >
-            Społeczność
-          </button>
-          <button
-            onClick={() => {
-              Haptics.selection();
-              setActiveCategory("Moje Produkty");
-            }}
-            className={cn(
-              "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-              activeCategory === "Moje Produkty" ? "bg-amber-600 text-white shadow-lg" : "bg-amber-50 dark:bg-amber-900/10 text-amber-500 border border-amber-100 dark:border-amber-900/20"
-            )}
-          >
-            Moje Produkty
-          </button>
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => {
-                Haptics.selection();
-                setActiveCategory(cat);
-              }}
-              className={cn(
-                "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                activeCategory === cat ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800"
-              )}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <div 
-          className="max-h-[70vh] overflow-y-auto pr-1 space-y-2 custom-scrollbar"
-          onScroll={handleScrollHaptics}
-        >
-          {searchError && (
-            <div className="mb-4 bg-rose-50 dark:bg-rose-900/20 p-5 rounded-[2rem] border border-rose-100 dark:border-rose-800">
-               <p className="text-sm text-rose-600 dark:text-rose-400 font-bold text-center">{searchError}</p>
-            </div>
-          )}
-          {onlineResults.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-[9px] font-black text-accent-500 uppercase tracking-widest mb-2 px-2">
-                Wyniki AI
-              </h4>
-              <div className="space-y-2">
-                {onlineResults.map((p, i) => (
-                  <div key={`online-${i}`} className="flex items-center gap-2">
-                    <button
-                      onClick={() => openWeightModal(p)}
-                      className="flex-1 bg-accent-50 dark:bg-accent-900/20 p-4 rounded-3xl border border-accent-100 dark:border-accent-800 flex justify-between items-center text-left hover:border-accent-500 transition-colors"
-                    >
-                      <div>
-                        <div className="font-black text-xs dark:text-white flex items-center gap-2">
-                          {p.name}
-                          <span className="bg-accent-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black">
-                            AI
-                          </span>
-                          {(() => {
-                            const badge = getDietBadge(p, settings?.activeDiet || null);
-                            if (!badge) return null;
-                            return (
-                              <span className={cn("text-[8px] px-1.5 py-0.5 rounded border font-black flex items-center gap-1", badge.color)}>
-                                {badge.icon} {badge.text}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                        <div className="text-[9px] font-bold text-accent-500/60 uppercase tracking-widest mt-0.5 flex items-center gap-2">
-                          <span>
-                            Węgle: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
-                          </span>
-                            <span
-                              className={cn(
-                                "px-1.5 py-0.5 rounded font-black text-[8px]",
-                                typeof p.gi === 'number'
-                                  ? (p.gi <= 55 ? "bg-emerald-500/10 text-emerald-500" : p.gi < 70 ? "bg-amber-500/10 text-amber-500" : "bg-rose-500/10 text-rose-500")
-                                  : "bg-slate-500/10 text-slate-500",
-                              )}
-                            >
-                              IG: {typeof p.gi === 'number' ? p.gi : "??*"}
-                            </span>
-                            {(() => {
-                              const giVal = typeof p.gi === 'number' ? p.gi : 50;
-                              const lgVal = (Number(p.carbs || 0) * giVal) / 100;
-                              return (
-                                <span
-                                  className={cn(
-                                    "px-1.5 py-0.5 rounded font-black text-[8px]",
-                                    lgVal <= 10
-                                      ? "bg-emerald-500/10 text-emerald-500"
-                                      : lgVal < 20
-                                        ? "bg-amber-500/10 text-amber-500"
-                                        : "bg-rose-500/10 text-rose-500",
-                                  )}
-                                >
-                                  ŁG: {lgVal.toFixed(1)}
-                                </span>
-                              );
-                            })()}
-                        </div>
-                      </div>
-                      <ChevronRight size={16} className="text-accent-300" />
-                    </button>
-                    <button
-                      onClick={() => openShortcutConfirmModal(p)}
-                      className="bg-amber-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
-                      title="Dodaj jako skrót"
-                    >
-                      <BookMarked size={16} />
-                      <span className="text-[8px] font-bold leading-none">Skrót</span>
-                    </button>
-                    <button
-                      onClick={() => publishToCommunity(p)}
-                      className="bg-sky-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
-                      title="Udostępnij społeczności"
-                    >
-                      <Share2 size={16} />
-                      <span className="text-[8px] font-bold leading-none">Społeczność</span>
-                    </button>
-                    <button
-                      onClick={() => saveToCustomDb(p)}
-                      className="bg-accent-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
-                      title="Zapisz do bazy"
-                    >
-                      <Save size={16} />
-                      <span className="text-[8px] font-bold leading-none">Zapisz</span>
-                    </button>
-                  </div>
-                ))}
+                    <Mic size={18} />
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
 
-          <div className="flex flex-col gap-2 mb-2">
-            <div className="flex justify-between items-end px-4">
-              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                Baza GlikoSense 
-                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-accent-600 text-[9px]">
-                  {browseResults.length} {browseResults.length === 1 ? 'produkt' : 'produkty'}
-                </span>
-              </h4>
-              <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
-                {activeCategory !== 'Wszystko' ? `Kategoria: ${activeCategory}` : 'Wszystkie kategorie'}
-              </div>
-            </div>
-            {searchTerm.length > 2 && (
-              <div className="px-4">
+              <div className="flex gap-2 w-full">
                 <button
-                  onClick={handleOnlineSearch}
-                  className="w-full py-2 bg-accent-50 dark:bg-accent-900/20 rounded-xl text-[9px] font-black text-accent-600 uppercase tracking-widest flex items-center justify-center gap-2 border border-accent-100 dark:border-accent-800/50 hover:bg-accent-100 transition-all"
+                  onClick={() => {
+                    Haptics.light();
+                    handleOnlineSearch();
+                  }}
+                  className="flex-1 bg-accent-600 text-white p-4 rounded-[2rem] shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest"
+                  title="Szukaj z GlikoSense AI"
+                  disabled={isSearching}
                 >
-                  {isSearching ? <Loader2 className="animate-spin" size={12} /> : <Globe size={12} />}
-                  Głębsze wyszukiwanie w sieci (AI)
+                  {isSearching ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" /> Szukam...
+                    </>
+                  ) : (
+                    <>
+                      <Globe size={20} /> GlikoSense AI
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={async () => {
+                    Haptics.light();
+                    if (Capacitor.isNativePlatform()) {
+                      try {
+                        const photo = await CapCamera.getPhoto({
+                          quality: 80,
+                          allowEditing: false,
+                          resultType: CameraResultType.DataUrl,
+                          source: CameraSource.Camera,
+                          width: 1000
+                        });
+                        if (photo.dataUrl) {
+                          setIsAnalyzing(true);
+                          setSearchError("");
+                          try {
+                            const result = await geminiService.analyzeMeal(
+                              photo.dataUrl,
+                              settings
+                            );
+                            const estimatedWeight =
+                              result.weight && result.weight > 0 ? result.weight : 100;
+
+                            const p: Product = {
+                              id: `ai_${Date.now()}`,
+                              name: result.mealName || "Posiłek AI",
+                              carbs: Number(
+                                (((result.carbs || 0) / estimatedWeight) * 100).toFixed(
+                                  1,
+                                )
+                              ),
+                              protein: Number(
+                                (
+                                  ((result.protein || 0) / estimatedWeight) *
+                                  100
+                                ).toFixed(1)
+                              ),
+                              fat: Number(
+                                (((result.fat || 0) / estimatedWeight) * 100).toFixed(
+                                  1,
+                                )
+                              ),
+                              gi: result.ig || result.gi || 50,
+                              category: "AI Wizja",
+                            };
+                            const weight = estimatedWeight;
+                            setPlate((prev) => [
+                              ...prev,
+                              {
+                                ...p,
+                                weight,
+                                carbs: p.carbs,
+                                protein: p.protein,
+                                fat: p.fat,
+                              },
+                            ]);
+                            setTimeout(() => {
+                              document
+                                .querySelector("main")
+                                ?.scrollTo({ top: 0, behavior: "smooth" });
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }, 50);
+                            toast.success("Składniki dodane do talerza", { icon: "📸" });
+                          } catch (err) {
+                            console.error("Camera vision analysis:", err);
+                            setSearchError(
+                              "Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie."
+                            );
+                          } finally {
+                            setIsAnalyzing(false);
+                          }
+                        }
+                      } catch (e) {
+                        console.error("Camera error or cancelled:", e);
+                      }
+                    } else {
+                      const elem = document.getElementById("meal-photo-input");
+                      if (elem) elem.click();
+                    }
+                  }}
+                  className="bg-emerald-600 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center justify-center transition-all"
+                  title="Zrób zdjęcie (Analiza AI)"
+                >
+                  {isAnalyzing ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    </div>
+                  ) : (
+                    <Camera size={20} />
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    Haptics.light();
+                    startScanner();
+                  }}
+                  className="bg-slate-800 text-white p-4 rounded-[2.5rem] px-6 shadow-lg active:scale-95 flex items-center transition-all justify-center"
+                >
+                  <Scan size={20} />
                 </button>
               </div>
-            )}
-          </div>
+              <input
+                type="file"
+                id="meal-photo-input"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setIsAnalyzing(true);
+                  setSearchError(""); // reset errors
+                  try {
+                    // compress image
+                    const max_size = 1000;
+                    const compressedDataUrl = await new Promise<string>(
+                      (resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = (event) => {
+                          const img = new Image();
+                          img.src = event.target?.result as string;
+                          img.onload = () => {
+                            const canvas = document.createElement("canvas");
+                            let width = img.width;
+                            let height = img.height;
 
-          {browseResults.length > 0 ? (
-            <div 
-              className="grid gap-1 will-change-transform pb-20 max-h-[60vh] overflow-y-auto scrollbar-none"
+                            if (width > height) {
+                              if (width > max_size) {
+                                height *= max_size / width;
+                                width = max_size;
+                              }
+                            } else {
+                              if (height > max_size) {
+                                width *= max_size / height;
+                                height = max_size;
+                              }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext("2d");
+                            ctx?.drawImage(img, 0, 0, width, height);
+                            resolve(canvas.toDataURL("image/jpeg", 0.8));
+                          };
+                          img.onerror = () =>
+                            reject(new Error("Image load failed"));
+                        };
+                        reader.onerror = () =>
+                          reject(new Error("File read failed"));
+                      },
+                    );
+
+                    const result = await geminiService.analyzeMeal(
+                      compressedDataUrl,
+                      settings,
+                    );
+                    const estimatedWeight =
+                      result.weight && result.weight > 0 ? result.weight : 100;
+
+                    const p: Product = {
+                      id: `ai_${Date.now()}`,
+                      name: result.mealName || "Posiłek AI",
+                      carbs: Number(
+                        (((result.carbs || 0) / estimatedWeight) * 100).toFixed(
+                          1,
+                        ),
+                      ),
+                      protein: Number(
+                        (
+                          ((result.protein || 0) / estimatedWeight) *
+                          100
+                        ).toFixed(1),
+                      ),
+                      fat: Number(
+                        (((result.fat || 0) / estimatedWeight) * 100).toFixed(
+                          1,
+                        ),
+                      ),
+                      gi: result.ig || result.gi || 50,
+                      category: "AI Wizja",
+                    };
+                    const weight = estimatedWeight;
+                    setPlate((prev) => [
+                      ...prev,
+                      {
+                        ...p,
+                        weight,
+                        carbs: p.carbs,
+                        protein: p.protein,
+                        fat: p.fat,
+                      },
+                    ]);
+                    setTimeout(() => {
+                      document
+                        .querySelector("main")
+                        ?.scrollTo({ top: 0, behavior: "smooth" });
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }, 50);
+                  } catch (err) {
+                    console.error("Camera vision analysis:", err);
+                    setSearchError(
+                      "Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie.",
+                    );
+                  } finally {
+                    setIsAnalyzing(false);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </div>
+
+            {/* Cookbook / Saved Meals Horizontal Scroll */}
+            {(isLoadingSavedMeals || savedMeals.length > 0) && (
+              <div className="pt-2 pb-4">
+                <div className="flex items-center justify-between px-2 mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-accent-500 to-rose-500 flex items-center gap-1.5">
+                    <Heart
+                      size={14}
+                      className="text-accent-500 fill-accent-500"
+                    />
+                    Baza Posiłków
+                  </h4>
+                  {!isLoadingSavedMeals && (
+                    <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                      {savedMeals.length} Zapisanych
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-4 pt-1 px-1 scrollbar-none snap-x snap-mandatory">
+                  {isLoadingSavedMeals ? (
+                    <div className="flex gap-3">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={`skel-${i}`}
+                          className="snap-start shrink-0 w-[220px] h-[98px] bg-slate-100 dark:bg-slate-800/80 animate-pulse rounded-3xl border border-slate-200 dark:border-slate-800"
+                        ></div>
+                      ))}
+                    </div>
+                  ) : (
+                    savedMeals.map((m) => (
+                      <div
+                        key={m.id}
+                        onClick={() => {
+                          Haptics.light();
+                          addSavedMeal(m);
+                        }}
+                        className="snap-start shrink-0 w-[220px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm hover:border-accent-500/50 hover:shadow-md transition-all cursor-pointer relative group flex flex-col justify-between glass-target"
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            Haptics.light();
+                            try {
+                              import("firebase/firestore").then(
+                                ({ deleteDoc, doc }) => {
+                                  deleteDoc(
+                                    doc(
+                                      db,
+                                      "artifacts",
+                                      "diacontrolapp",
+                                      "users",
+                                      getEffectiveUid(user),
+                                      "savedMeals",
+                                      m.id,
+                                    ),
+                                  );
+                                },
+                              );
+                            } catch (err) {
+                              console.error("Delete meal failed:", err);
+                            }
+                          }}
+                          className="absolute top-3 right-3 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full transition-colors"
+                          title="Usuń z bazy"
+                        >
+                          <X size={14} />
+                        </button>
+                        <div className="mb-3 pr-6">
+                          <h5 className="font-black text-sm text-slate-800 dark:text-slate-100 leading-tight mb-1 line-clamp-2">
+                            {m.name}
+                          </h5>
+                          <p className="text-[10px] font-bold text-slate-400">
+                            {m.items.length}{" "}
+                            {m.items.length === 1 ? "składnik" : "składników"}
+                          </p>
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <div className="text-[11px] font-black text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20 px-2.5 py-1 rounded-xl">
+                            {m.items
+                              .reduce((acc: number, i: any) => acc + i.carbs, 0)
+                              .toFixed(1)}
+                            g Węg.
+                          </div>
+                          <div className="w-8 h-8 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-lg shadow-accent-500/30">
+                            <Plus size={16} />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Category Filter */}
+            <div
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-none"
               onScroll={handleScrollHaptics}
             >
-              <AnimatePresence>
-                {browseResults.slice(0, 500).map((p, i) => (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
-                    transition={{ duration: 0.2 }}
-                    key={p.id || p.name || `p-${i}`}
-                  >
-                    <SwipeableItem
-                      id={p.id || p.name || `p-${i}`}
-                      onDelete={() => {
-                        Haptics.success();
-                        addToPlate(p, 100);
-                        toast.success(`Dodano 100g: ${p.name}`);
-                      }}
-                      actionIcon={<Plus size={24} />}
-                      actionColor="from-accent-600 to-accent-500"
-                      noConfirm={true}
-                      bgClass="bg-white dark:bg-slate-900"
-                    >
+              <button
+                onClick={() => {
+                  Haptics.selection();
+                  setActiveCategory("Wszystko");
+                }}
+                className={cn(
+                  "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                  activeCategory === "Wszystko"
+                    ? "bg-accent-600 text-white shadow-lg"
+                    : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800",
+                )}
+              >
+                Wszystko
+              </button>
+              <button
+                onClick={() => {
+                  Haptics.selection();
+                  setActiveCategory("Społeczność");
+                }}
+                className={cn(
+                  "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                  activeCategory === "Społeczność"
+                    ? "bg-sky-600 text-white shadow-lg"
+                    : "bg-sky-50 dark:bg-sky-900/10 text-sky-500 border border-sky-100 dark:border-sky-900/20",
+                )}
+              >
+                Społeczność
+              </button>
+              <button
+                onClick={() => {
+                  Haptics.selection();
+                  setActiveCategory("Moje Produkty");
+                }}
+                className={cn(
+                  "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                  activeCategory === "Moje Produkty"
+                    ? "bg-amber-600 text-white shadow-lg"
+                    : "bg-amber-50 dark:bg-amber-900/10 text-amber-500 border border-amber-100 dark:border-amber-900/20",
+                )}
+              >
+                Moje Produkty
+              </button>
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    Haptics.selection();
+                    setActiveCategory(cat);
+                  }}
+                  className={cn(
+                    "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                    activeCategory === cat
+                      ? "bg-accent-600 text-white shadow-lg"
+                      : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800",
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            <div
+              className="max-h-[70vh] overflow-y-auto pr-1 space-y-2 custom-scrollbar"
+              onScroll={handleScrollHaptics}
+            >
+              {searchError && (
+                <div className="mb-4 bg-rose-50 dark:bg-rose-900/20 p-5 rounded-[2rem] border border-rose-100 dark:border-rose-800">
+                  <p className="text-sm text-rose-600 dark:text-rose-400 font-bold text-center">
+                    {searchError}
+                  </p>
+                </div>
+              )}
+              {onlineResults.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-[9px] font-black text-accent-500 uppercase tracking-widest mb-2 px-2">
+                    Wyniki AI
+                  </h4>
+                  <div className="space-y-2">
+                    {onlineResults.map((p, i) => (
                       <div
-                        onClick={() => openWeightModal(p)}
-                        className="w-full p-4 flex justify-between items-center text-left hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            openWeightModal(p);
-                          }
-                        }}
+                        key={`online-${i}`}
+                        className="flex items-center gap-2"
                       >
-                        <div>
-                          <div className="font-black text-xs dark:text-white flex items-center gap-2">
-                            {p.name}
-                            {p.isCustom && !p.isCommunity && (
-                              <span className="bg-amber-500/10 text-amber-500 text-[8px] px-1.5 py-0.5 rounded border border-amber-500/20">
-                                Twoje
+                        <button
+                          onClick={() => openWeightModal(p)}
+                          className="flex-1 bg-accent-50 dark:bg-accent-900/20 p-4 rounded-3xl border border-accent-100 dark:border-accent-800 flex justify-between items-center text-left hover:border-accent-500 transition-colors"
+                        >
+                          <div>
+                            <div className="font-black text-xs dark:text-white flex items-center gap-2">
+                              {p.name}
+                              <span className="bg-accent-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black">
+                                AI
                               </span>
-                            )}
-                            {p.isCommunity && (
-                              <span className="bg-sky-500/10 text-sky-500 text-[8px] px-1.5 py-0.5 rounded border border-sky-500/20">
-                                Społeczność
+                              {(() => {
+                                const badge = getDietBadge(
+                                  p,
+                                  settings?.activeDiet || null,
+                                );
+                                if (!badge) return null;
+                                return (
+                                  <span
+                                    className={cn(
+                                      "text-[8px] px-1.5 py-0.5 rounded border font-black flex items-center gap-1",
+                                      badge.color,
+                                    )}
+                                  >
+                                    {badge.icon} {badge.text}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                            <div className="text-[9px] font-bold text-accent-500/60 uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                              <span>
+                                Węgle:{" "}
+                                {Number(p.carbs || 0)
+                                  .toFixed(1)
+                                  .replace(/\.0$/, "")}
+                                g | B:{" "}
+                                {Number(p.protein || 0)
+                                  .toFixed(1)
+                                  .replace(/\.0$/, "")}
+                                g | T:{" "}
+                                {Number(p.fat || 0)
+                                  .toFixed(1)
+                                  .replace(/\.0$/, "")}
+                                g
                               </span>
-                            )}
-                            {(() => {
-                              const badge = getDietBadge(p, settings?.activeDiet || null);
-                              if (!badge) return null;
-                              return (
-                                <span className={cn("text-[8px] px-1.5 py-0.5 rounded border font-black flex items-center gap-1", badge.color)}>
-                                  {badge.icon} {badge.text}
-                                </span>
-                              );
-                            })()}
+                              <span
+                                className={cn(
+                                  "px-1.5 py-0.5 rounded font-black text-[8px]",
+                                  typeof p.gi === "number"
+                                    ? p.gi <= 55
+                                      ? "bg-emerald-500/10 text-emerald-500"
+                                      : p.gi < 70
+                                        ? "bg-amber-500/10 text-amber-500"
+                                        : "bg-rose-500/10 text-rose-500"
+                                    : "bg-slate-500/10 text-slate-500",
+                                )}
+                              >
+                                IG: {typeof p.gi === "number" ? p.gi : "??*"}
+                              </span>
+                              {(() => {
+                                const giVal =
+                                  typeof p.gi === "number" ? p.gi : 50;
+                                const lgVal =
+                                  (Number(p.carbs || 0) * giVal) / 100;
+                                return (
+                                  <span
+                                    className={cn(
+                                      "px-1.5 py-0.5 rounded font-black text-[8px]",
+                                      lgVal <= 10
+                                        ? "bg-emerald-500/10 text-emerald-500"
+                                        : lgVal < 20
+                                          ? "bg-amber-500/10 text-amber-500"
+                                          : "bg-rose-500/10 text-rose-500",
+                                    )}
+                                  >
+                                    ŁG: {lgVal.toFixed(1)}
+                                  </span>
+                                );
+                              })()}
+                            </div>
                           </div>
-                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
-                            <span>
-                              Węgle: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g | B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g
-                            </span>
-                            <span
-                              className={cn(
-                                "px-1.5 py-0.5 rounded font-black text-[8px]",
-                                typeof p.gi === 'number' 
-                                  ? (p.gi <= 55 ? "bg-emerald-500/10 text-emerald-500" : p.gi < 70 ? "bg-amber-500/10 text-amber-500" : "bg-rose-500/10 text-rose-500")
-                                  : "bg-slate-500/10 text-slate-500",
-                              )}
-                            >
-                              IG: {typeof p.gi === 'number' ? p.gi : "??*"}
-                            </span>
-                            {/* Restoring ŁG (Glycemic Load) calculation */}
-                            {typeof p.gi === 'number' && (() => {
-                              const lgVal = (Number(p.carbs || 0) * p.gi) / 100;
-                              return (
+                          <ChevronRight size={16} className="text-accent-300" />
+                        </button>
+                        <button
+                          onClick={() => openShortcutConfirmModal(p)}
+                          className="bg-amber-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
+                          title="Dodaj jako skrót"
+                        >
+                          <BookMarked size={16} />
+                          <span className="text-[8px] font-bold leading-none">
+                            Skrót
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => publishToCommunity(p)}
+                          className="bg-sky-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
+                          title="Udostępnij społeczności"
+                        >
+                          <Share2 size={16} />
+                          <span className="text-[8px] font-bold leading-none">
+                            Społeczność
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => saveToCustomDb(p)}
+                          className="bg-accent-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
+                          title="Zapisz do bazy"
+                        >
+                          <Save size={16} />
+                          <span className="text-[8px] font-bold leading-none">
+                            Zapisz
+                          </span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 mb-2">
+                <div className="flex justify-between items-end px-4">
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    Baza GlikoSense
+                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-accent-600 text-[9px]">
+                      {browseResults.length}{" "}
+                      {browseResults.length === 1 ? "produkt" : "produkty"}
+                    </span>
+                  </h4>
+                  <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
+                    {activeCategory !== "Wszystko"
+                      ? `Kategoria: ${activeCategory}`
+                      : "Wszystkie kategorie"}
+                  </div>
+                </div>
+                {searchTerm.length > 2 && (
+                  <div className="px-4">
+                    <button
+                      onClick={handleOnlineSearch}
+                      className="w-full py-2 bg-accent-50 dark:bg-accent-900/20 rounded-xl text-[9px] font-black text-accent-600 uppercase tracking-widest flex items-center justify-center gap-2 border border-accent-100 dark:border-accent-800/50 hover:bg-accent-100 transition-all"
+                    >
+                      {isSearching ? (
+                        <Loader2 className="animate-spin" size={12} />
+                      ) : (
+                        <Globe size={12} />
+                      )}
+                      Głębsze wyszukiwanie w sieci (AI)
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {browseResults.length > 0 ? (
+                <div
+                  className="grid gap-1 will-change-transform pb-20 max-h-[60vh] overflow-y-auto scrollbar-none"
+                  onScroll={handleScrollHaptics}
+                >
+                  <AnimatePresence>
+                    {browseResults.slice(0, 500).map((p, i) => (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.95,
+                          transition: { duration: 0.1 },
+                        }}
+                        transition={{ duration: 0.2 }}
+                        key={p.id || p.name || `p-${i}`}
+                      >
+                        <SwipeableItem
+                          id={p.id || p.name || `p-${i}`}
+                          onDelete={() => {
+                            Haptics.success();
+                            addToPlate(p, 100);
+                            toast.success(`Dodano 100g: ${p.name}`);
+                          }}
+                          actionIcon={<Plus size={24} />}
+                          actionColor="from-accent-600 to-accent-500"
+                          noConfirm={true}
+                          bgClass="bg-white dark:bg-slate-900"
+                        >
+                          <div
+                            onClick={() => openWeightModal(p)}
+                            className="w-full p-4 flex justify-between items-center text-left hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                openWeightModal(p);
+                              }
+                            }}
+                          >
+                            <div>
+                              <div className="font-black text-xs dark:text-white flex items-center gap-2">
+                                {p.name}
+                                {p.isCustom && !p.isCommunity && (
+                                  <span className="bg-amber-500/10 text-amber-500 text-[8px] px-1.5 py-0.5 rounded border border-amber-500/20">
+                                    Twoje
+                                  </span>
+                                )}
+                                {p.isCommunity && (
+                                  <span className="bg-sky-500/10 text-sky-500 text-[8px] px-1.5 py-0.5 rounded border border-sky-500/20">
+                                    Społeczność
+                                  </span>
+                                )}
+                                {(() => {
+                                  const badge = getDietBadge(
+                                    p,
+                                    settings?.activeDiet || null,
+                                  );
+                                  if (!badge) return null;
+                                  return (
+                                    <span
+                                      className={cn(
+                                        "text-[8px] px-1.5 py-0.5 rounded border font-black flex items-center gap-1",
+                                        badge.color,
+                                      )}
+                                    >
+                                      {badge.icon} {badge.text}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                                <span>
+                                  Węgle:{" "}
+                                  {Number(p.carbs || 0)
+                                    .toFixed(1)
+                                    .replace(/\.0$/, "")}
+                                  g | B:{" "}
+                                  {Number(p.protein || 0)
+                                    .toFixed(1)
+                                    .replace(/\.0$/, "")}
+                                  g | T:{" "}
+                                  {Number(p.fat || 0)
+                                    .toFixed(1)
+                                    .replace(/\.0$/, "")}
+                                  g
+                                </span>
                                 <span
                                   className={cn(
                                     "px-1.5 py-0.5 rounded font-black text-[8px]",
-                                    lgVal <= 10
-                                      ? "bg-emerald-500/10 text-emerald-500"
-                                      : lgVal < 20
-                                        ? "bg-amber-500/10 text-amber-500"
-                                        : "bg-rose-500/10 text-rose-500",
+                                    typeof p.gi === "number"
+                                      ? p.gi <= 55
+                                        ? "bg-emerald-500/10 text-emerald-500"
+                                        : p.gi < 70
+                                          ? "bg-amber-500/10 text-amber-500"
+                                          : "bg-rose-500/10 text-rose-500"
+                                      : "bg-slate-500/10 text-slate-500",
                                   )}
                                 >
-                                  ŁG: {lgVal.toFixed(1)}
+                                  IG: {typeof p.gi === "number" ? p.gi : "??*"}
                                 </span>
-                              );
-                            })()}
+                                {/* Restoring ŁG (Glycemic Load) calculation */}
+                                {typeof p.gi === "number" &&
+                                  (() => {
+                                    const lgVal =
+                                      (Number(p.carbs || 0) * p.gi) / 100;
+                                    return (
+                                      <span
+                                        className={cn(
+                                          "px-1.5 py-0.5 rounded font-black text-[8px]",
+                                          lgVal <= 10
+                                            ? "bg-emerald-500/10 text-emerald-500"
+                                            : lgVal < 20
+                                              ? "bg-amber-500/10 text-amber-500"
+                                              : "bg-rose-500/10 text-rose-500",
+                                        )}
+                                      >
+                                        ŁG: {lgVal.toFixed(1)}
+                                      </span>
+                                    );
+                                  })()}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openShortcutConfirmModal(p);
+                                }}
+                                className="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors z-10 min-w-[48px] gap-1"
+                                title="Dodaj do skrótów"
+                              >
+                                <BookMarked size={16} />
+                                <span className="text-[8px] font-bold leading-none">
+                                  Skrót
+                                </span>
+                              </button>
+                              {p.isCustom && !p.isCommunity && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    publishToCommunity(p);
+                                  }}
+                                  className="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-sky-500 dark:hover:text-sky-400 transition-colors z-10 min-w-[48px] gap-1"
+                                  title="Udostępnij społeczności"
+                                >
+                                  <Share2 size={16} />
+                                  <span className="text-[8px] font-bold leading-none">
+                                    Społeczność
+                                  </span>
+                                </button>
+                              )}
+                              <div className="flex flex-col items-center justify-center p-2 text-accent-500 z-10 min-w-[48px] gap-1">
+                                <Plus
+                                  size={16}
+                                  className="bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
+                                />
+                                <span className="text-[8px] font-bold leading-none">
+                                  Talerz
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openShortcutConfirmModal(p);
-                            }}
-                            className="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors z-10 min-w-[48px] gap-1"
-                            title="Dodaj do skrótów"
-                          >
-                            <BookMarked size={16} />
-                            <span className="text-[8px] font-bold leading-none">Skrót</span>
-                          </button>
-                          {p.isCustom && !p.isCommunity && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                publishToCommunity(p);
-                              }}
-                              className="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-sky-500 dark:hover:text-sky-400 transition-colors z-10 min-w-[48px] gap-1"
-                              title="Udostępnij społeczności"
-                            >
-                              <Share2 size={16} />
-                              <span className="text-[8px] font-bold leading-none">Społeczność</span>
-                            </button>
-                          )}
-                          <div className="flex flex-col items-center justify-center p-2 text-accent-500 z-10 min-w-[48px] gap-1">
-                            <Plus
-                              size={16}
-                              className="bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
-                            />
-                            <span className="text-[8px] font-bold leading-none">Talerz</span>
-                          </div>
-                        </div>
-                      </div>
-                    </SwipeableItem>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                        </SwipeableItem>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="text-center py-12 p-8 bg-slate-100 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+                  <Tag size={32} className="mx-auto text-slate-300 mb-3" />
+                  <p className="text-xs font-bold text-slate-400">
+                    Nie znaleziono produktów w tej kategorii.
+                  </p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-12 p-8 bg-slate-100 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
-              <Tag size={32} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-xs font-bold text-slate-400">
-                Nie znaleziono produktów w tej kategorii.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-      </>
+          </div>
+        </>
       )}
 
-      {(mode === 'plate' || mode === 'both') && plate.length === 0 && (
-        <motion.div 
+      {(mode === "plate" || mode === "both") && plate.length === 0 && (
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[3.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden relative"
         >
           {/* Floating Food Icons Animation */}
           <div className="absolute inset-0 pointer-events-none opacity-20 dark:opacity-10 overflow-hidden">
-            {[AppleIcon, Utensils, Zap, Database, Star, Soup, Salad, Pizza, Sandwich].map((Icon, i) => (
+            {[
+              AppleIcon,
+              Utensils,
+              Zap,
+              Database,
+              Star,
+              Soup,
+              Salad,
+              Pizza,
+              Sandwich,
+            ].map((Icon, i) => (
               <motion.div
                 key={i}
-                initial={{ 
-                  x: Math.random() * 300 - 150, 
+                initial={{
+                  x: Math.random() * 300 - 150,
                   y: Math.random() * 300 - 150,
                   rotate: 0,
-                  opacity: 0 
+                  opacity: 0,
                 }}
-                animate={{ 
+                animate={{
                   y: [null, Math.random() * 40 - 20],
                   rotate: [0, 360],
-                  opacity: [0, 1, 0]
+                  opacity: [0, 1, 0],
                 }}
-                transition={{ 
-                  duration: 5 + Math.random() * 5, 
-                  repeat: Infinity, 
+                transition={{
+                  duration: 5 + Math.random() * 5,
+                  repeat: Infinity,
                   delay: i * 0.5,
-                  ease: "easeInOut"
+                  ease: "easeInOut",
                 }}
                 className="absolute left-1/2 top-1/2"
               >
@@ -1579,40 +2170,290 @@ export default function MealPlate({
             ))}
           </div>
 
-          <motion.div 
-            animate={{ 
+          <motion.div
+            animate={{
               y: [0, -15, 0],
               rotate: [0, 5, -5, 0],
-              scale: [1, 1.05, 1]
+              scale: [1, 1.05, 1],
             }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             className="w-32 h-32 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mb-8 shadow-inner relative z-10"
           >
             <div className="absolute inset-0 rounded-full border-4 border-accent-500/20 animate-ping opacity-20" />
-            <Utensils size={64} className="text-accent-500/40 dark:text-accent-400/30" />
+            <Utensils
+              size={64}
+              className="text-accent-500/40 dark:text-accent-400/30"
+            />
           </motion.div>
 
-          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-3 relative z-10 font-display">Talerz jeszcze pusty</h3>
+          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-3 relative z-10 font-display">
+            Talerz jeszcze pusty
+          </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-[280px] mb-10 leading-relaxed font-medium relative z-10">
-            Twój talerz czeka na smakołyki! Odwiedź bazę i wybierz coś pysznego do przeliczenia.
+            Twój talerz czeka na smakołyki! Odwiedź bazę i wybierz coś pysznego
+            do przeliczenia.
           </p>
 
-          <button 
+          <button
             onClick={() => {
               Haptics.medium();
-              setTab('database');
+              setTab("database");
             }}
             className="group relative px-10 py-5 bg-accent-600 hover:bg-accent-700 active:scale-95 transition-all text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-2xl shadow-accent-600/40 z-10"
           >
-            <Database size={18} className="group-hover:rotate-12 transition-transform" />
+            <Database
+              size={18}
+              className="group-hover:rotate-12 transition-transform"
+            />
             <span>Przeglądaj Składniki</span>
             <div className="absolute inset-0 rounded-[2rem] bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
           </button>
         </motion.div>
       )}
 
+      {(mode === "plate" || mode === "both") && activeMeal && (
+        <div className="mt-6 mb-6 space-y-4">
+          <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="relative w-12 h-12 flex items-center justify-center">
+                  <svg
+                    className="absolute inset-0 w-full h-full transform -rotate-90"
+                    viewBox="0 0 48 48"
+                  >
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="22"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      fill="transparent"
+                      className="text-slate-200 dark:text-slate-800"
+                    />
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="22"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      fill="transparent"
+                      strokeDasharray="138.2"
+                      strokeDashoffset={
+                        138.2 *
+                        (activeMeal && activeChartData?.length
+                          ? Math.max(
+                              0,
+                              Math.min(
+                                1,
+                                (Date.now() - (activeMeal.timestamp || 0)) /
+                                  (getMealAbsorptionTime(
+                                    activeChartData[0]?.WW || 0,
+                                    activeChartData[0]?.WBT || 0,
+                                  ) *
+                                    60 *
+                                    60 *
+                                    1000),
+                              ),
+                            )
+                          : 0)
+                      }
+                      className="text-emerald-500 transition-all duration-1000"
+                    />
+                  </svg>
+                  <div className="bg-emerald-500/10 w-full h-full rounded-full absolute" />
+                  <Zap className="text-emerald-500 z-10" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 dark:text-white text-sm">
+                    {activeMeal.type === "bolus" && activeMeal.linkedMeal
+                      ? activeMeal.linkedMeal.name || "Posiłek z pompy"
+                      : activeMeal.name ||
+                        activeMeal.notes ||
+                        "Aktywny posiłek"}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Podano:{" "}
+                    {new Date(activeMeal.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
+                  Szacowane Makro
+                </div>
+                <div className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
+                  <span className="text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-lg">
+                    {activeChartData[0]?.WW?.toFixed(1) || "?"} WW
+                  </span>
+                  <span className="text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-lg">
+                    {activeChartData[0]?.WBT?.toFixed(1) || "?"} WBT
+                  </span>
+                </div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
+                  Koniec wchłaniania
+                </div>
+                <div className="text-xl font-black text-slate-800 dark:text-white">
+                  {new Date(
+                    (activeMeal.timestamp || 0) +
+                      getMealAbsorptionTime(
+                        activeChartData[0]?.WW || 0,
+                        activeChartData[0]?.WBT || 0,
+                      ) *
+                        60 *
+                        60 *
+                        1000,
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
+            <div className="mb-4">
+              <h3 className="font-bold text-slate-800 dark:text-white text-sm">
+                Wykres wchłaniania
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[250px]">
+                Przebieg uwalniania się glukozy oraz insuliny w czasie
+              </p>
+            </div>
+
+            <div className="h-44 w-full mb-3 select-none">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={activeChartData}
+                  margin={{ top: 10, right: 35, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="colorPosilekAct"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient
+                      id="colorInsulinaAct"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="time"
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis yAxisId="left" hide />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    domain={["dataMin - 20", "dataMax + 20"]}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "rgba(15, 23, 42, 0.9)",
+                      border: "1px solid #1e293b",
+                      borderRadius: "16px",
+                      fontSize: "12px",
+                      color: "#f8fafc",
+                      fontWeight: "bold",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
+                      backdropFilter: "blur(8px)",
+                    }}
+                    itemStyle={{ color: "#f8fafc" }}
+                    formatter={(value: any, name: any) => [`${value}`, name]}
+                    labelStyle={{ color: "#94a3b8", marginBottom: "4px" }}
+                  />
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="Posiłek"
+                    stroke="#f43f5e"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorPosilekAct)"
+                  />
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="Insulina"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorInsulinaAct)"
+                  />
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="Netto"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    fillOpacity={0}
+                  />
+                  <Area
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="Cukier"
+                    stroke="#fbbf24"
+                    strokeWidth={3}
+                    fillOpacity={0}
+                    strokeDasharray="4 4"
+                    connectNulls={true}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-4">
+              <span className="text-rose-500 font-bold">Czerwona strefa</span>{" "}
+              to wchłanianie posiłku.{" "}
+              <span className="text-blue-500 font-bold">Niebieska</span> to
+              działanie insuliny.
+              <span className="text-emerald-500 dark:text-emerald-400 font-bold">
+                {" "}
+                Zielona linia{" "}
+              </span>
+              to profil netto.
+              <span className="text-amber-500 dark:text-amber-400 font-bold">
+                {" "}
+                Żółta linia (przerywana){" "}
+              </span>
+              to rzeczywista glikemia (prawa oś).{" "}
+              {activeBolus
+                ? `Obliczono z ujęciem bolusa: ${activeBolus.value}U.`
+                : "Brak zarejestrowanego bolusa."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Plate Stats */}
-      {(mode === 'plate' || mode === 'both') && plate.length > 0 && (
+      {(mode === "plate" || mode === "both") && plate.length > 0 && (
         <div className="bg-slate-900 rounded-[2.5rem] p-6 text-white shadow-2xl border-l-[6px] border-accent-500">
           <div className="flex justify-between items-center mb-4 border-b border-accent-500/20 pb-4">
             <div className="flex items-center gap-2">
@@ -1716,30 +2557,37 @@ export default function MealPlate({
                           <div
                             className={cn(
                               "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                              typeof item.gi === 'number'
-                                ? (item.gi <= 55 ? "bg-emerald-500/20 text-emerald-400" : item.gi < 70 ? "bg-amber-500/20 text-amber-400" : "bg-rose-500/20 text-rose-400")
+                              typeof item.gi === "number"
+                                ? item.gi <= 55
+                                  ? "bg-emerald-500/20 text-emerald-400"
+                                  : item.gi < 70
+                                    ? "bg-amber-500/20 text-amber-400"
+                                    : "bg-rose-500/20 text-rose-400"
                                 : "bg-slate-500/20 text-slate-400",
                             )}
                           >
-                            IG: {typeof item.gi === 'number' ? item.gi : "??*"}
+                            IG: {typeof item.gi === "number" ? item.gi : "??*"}
                           </div>
-                          {typeof item.gi === 'number' && (() => {
-                            const glValue = (((item.carbs * item.weight) / 100) * item.gi / 100);
-                            return (
-                              <div
-                                className={cn(
-                                  "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                                  glValue <= 10
-                                    ? "bg-emerald-500/20 text-emerald-400"
-                                    : glValue < 20
-                                      ? "bg-amber-500/20 text-amber-400"
-                                      : "bg-rose-500/20 text-rose-400",
-                                )}
-                              >
-                                ŁG: {glValue.toFixed(1)}
-                              </div>
-                            );
-                          })()}
+                          {typeof item.gi === "number" &&
+                            (() => {
+                              const glValue =
+                                (((item.carbs * item.weight) / 100) * item.gi) /
+                                100;
+                              return (
+                                <div
+                                  className={cn(
+                                    "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                                    glValue <= 10
+                                      ? "bg-emerald-500/20 text-emerald-400"
+                                      : glValue < 20
+                                        ? "bg-amber-500/20 text-amber-400"
+                                        : "bg-rose-500/20 text-rose-400",
+                                  )}
+                                >
+                                  ŁG: {glValue.toFixed(1)}
+                                </div>
+                              );
+                            })()}
                         </div>
                       </div>
                     </div>
@@ -1755,12 +2603,12 @@ export default function MealPlate({
             </h5>
             <div className="flex flex-wrap gap-2">
               {[
-                { id: 'raw', label: 'Brak / Surowe' },
-                { id: 'boiled', label: 'Gotowane' },
-                { id: 'baked', label: 'Pieczone' },
-                { id: 'fried', label: 'Smażone na tłuszczu' },
-                { id: 'blended', label: 'Zblendowane' },
-              ].map(method => (
+                { id: "raw", label: "Brak / Surowe" },
+                { id: "boiled", label: "Gotowane" },
+                { id: "baked", label: "Pieczone" },
+                { id: "fried", label: "Smażone na tłuszczu" },
+                { id: "blended", label: "Zblendowane" },
+              ].map((method) => (
                 <button
                   key={method.id}
                   onClick={() => {
@@ -1771,116 +2619,165 @@ export default function MealPlate({
                     "text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider transition-all",
                     cookingMethod === method.id
                       ? "bg-accent-500 text-white"
-                      : "bg-white/5 text-slate-400 hover:bg-white/10"
+                      : "bg-white/5 text-slate-400 hover:bg-white/10",
                   )}
                 >
                   {method.label}
                 </button>
               ))}
             </div>
-            {cookingMethod === 'fried' && (
+            {cookingMethod === "fried" && (
               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
-                Uwaga: Smażenie automatycznie dodaje ~10g tłuszczu na 100g składników. Obniża IG, ale podbija WBT i Kcal.
+                Uwaga: Smażenie automatycznie dodaje ~10g tłuszczu na 100g
+                składników. Obniża IG, ale podbija WBT i Kcal.
               </p>
             )}
-            {cookingMethod === 'boiled' && (
+            {cookingMethod === "boiled" && (
               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
-                Gotowanie może mocno podnieść IG węglowodanów (np. stają się szybciej przyswajalne).
+                Gotowanie może mocno podnieść IG węglowodanów (np. stają się
+                szybciej przyswajalne).
               </p>
             )}
-            {cookingMethod === 'baked' && (
-               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
-                 Pieczenie podnosi Indeks Glikemiczny potrawy.
-               </p>
+            {cookingMethod === "baked" && (
+              <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
+                Pieczenie podnosi Indeks Glikemiczny potrawy.
+              </p>
             )}
-            {cookingMethod === 'blended' && (
-               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
-                 Rozdrabnianie (blendowanie) ułatwia trawienie i podnosi IG.
-               </p>
+            {cookingMethod === "blended" && (
+              <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
+                Rozdrabnianie (blendowanie) ułatwia trawienie i podnosi IG.
+              </p>
             )}
           </div>
 
           {(() => {
             const dietAlerts = [];
             if (settings?.activeDiet) {
-              if (settings.activeDiet === 'keto' && totalCarbs > 20) {
-                 dietAlerts.push('Posiłek dostarczy ponad 20g węgl., co mocno utrudnia pobyt w ketozie (Keto)!');
-              } else if (settings.activeDiet === 'keto' && fatPct > carbsPct + proteinPct) {
-                 dietAlerts.push({ text: 'Świetny stosunek makro dla diety Keto!', type: 'success' });
+              if (settings.activeDiet === "keto" && totalCarbs > 20) {
+                dietAlerts.push(
+                  "Posiłek dostarczy ponad 20g węgl., co mocno utrudnia pobyt w ketozie (Keto)!",
+                );
+              } else if (
+                settings.activeDiet === "keto" &&
+                fatPct > carbsPct + proteinPct
+              ) {
+                dietAlerts.push({
+                  text: "Świetny stosunek makro dla diety Keto!",
+                  type: "success",
+                });
               }
-              
-              if (settings.activeDiet === 'plate') {
-                if (carbsPct > 40) dietAlerts.push('Zbyt duża przewaga węglowodanów względem talerza (Pamiętaj by 1/4 stanowiły węgle).');
-                if (proteinPct < 15) dietAlerts.push('Odrobinę za mało białka w porcji. (Pamiętaj by 1/4 stanowiło białko).');
+
+              if (settings.activeDiet === "plate") {
+                if (carbsPct > 40)
+                  dietAlerts.push(
+                    "Zbyt duża przewaga węglowodanów względem talerza (Pamiętaj by 1/4 stanowiły węgle).",
+                  );
+                if (proteinPct < 15)
+                  dietAlerts.push(
+                    "Odrobinę za mało białka w porcji. (Pamiętaj by 1/4 stanowiło białko).",
+                  );
               }
             }
 
             if (dietAlerts.length > 0) {
-               return (
-                 <div className="mb-6 space-y-2">
-                   {dietAlerts.map((a, i) => {
-                     const isSuccess = typeof a === 'object' && a.type === 'success';
-                     const msg = typeof a === 'object' ? a.text : a;
-                     return (
-                       <div key={i} className={cn("p-4 rounded-2xl border", isSuccess ? "bg-emerald-500/10 border-emerald-500/20" : "bg-rose-500/10 border-rose-500/20")}>
-                         <h5 className={cn("text-[10px] font-black uppercase tracking-widest mb-1 flex items-center gap-1", isSuccess ? "text-emerald-400" : "text-rose-400")}>
-                           {isSuccess ? <Leaf size={12} /> : <AlertTriangle size={12} />} 
-                           GlikoSense: Twoja Dieta
-                         </h5>
-                         <p className={cn("text-xs font-bold leading-relaxed", isSuccess ? "text-emerald-300" : "text-rose-300")}>
-                           {msg}
-                         </p>
-                       </div>
-                     );
-                   })}
-                 </div>
-               );
-             }
-             return null;
+              return (
+                <div className="mb-6 space-y-2">
+                  {dietAlerts.map((a, i) => {
+                    const isSuccess =
+                      typeof a === "object" && a.type === "success";
+                    const msg = typeof a === "object" ? a.text : a;
+                    return (
+                      <div
+                        key={i}
+                        className={cn(
+                          "p-4 rounded-2xl border",
+                          isSuccess
+                            ? "bg-emerald-500/10 border-emerald-500/20"
+                            : "bg-rose-500/10 border-rose-500/20",
+                        )}
+                      >
+                        <h5
+                          className={cn(
+                            "text-[10px] font-black uppercase tracking-widest mb-1 flex items-center gap-1",
+                            isSuccess ? "text-emerald-400" : "text-rose-400",
+                          )}
+                        >
+                          {isSuccess ? (
+                            <Leaf size={12} />
+                          ) : (
+                            <AlertTriangle size={12} />
+                          )}
+                          GlikoSense: Twoja Dieta
+                        </h5>
+                        <p
+                          className={cn(
+                            "text-xs font-bold leading-relaxed",
+                            isSuccess ? "text-emerald-300" : "text-rose-300",
+                          )}
+                        >
+                          {msg}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+            return null;
           })()}
 
           {/* Makroskładniki Procentowo */}
           <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5 glass-target">
-             <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Balans Posiłku (Energia %)</span>
-                <span className="text-[10px] font-black text-accent-400">{Math.round(totalCalsFromMacros)} kcal</span>
-             </div>
-             
-             <div className="flex h-3 w-full rounded-full overflow-hidden mb-4">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${carbsPct}%` }}
-                  className="bg-accent-500 h-full"
-                  title={`Węgle: ${Math.round(carbsPct)}%`}
-                />
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${proteinPct}%` }}
-                  className="bg-emerald-500 h-full"
-                  title={`Białka: ${Math.round(proteinPct)}%`}
-                />
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${fatPct}%` }}
-                  className="bg-amber-500 h-full"
-                  title={`Tłuszcze: ${Math.round(fatPct)}%`}
-                />
-             </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                Balans Posiłku (Energia %)
+              </span>
+              <span className="text-[10px] font-black text-accent-400">
+                {Math.round(totalCalsFromMacros)} kcal
+              </span>
+            </div>
 
-             <div className="flex flex-wrap gap-4 justify-between">
-                <div className="flex items-center gap-1.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-accent-500" />
-                   <span className="text-[9px] font-bold text-slate-300">W: {carbsPct.toFixed(0)}%</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                   <span className="text-[9px] font-bold text-slate-300">B: {proteinPct.toFixed(0)}%</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                   <span className="text-[9px] font-bold text-slate-300">T: {fatPct.toFixed(0)}%</span>
-                </div>
-             </div>
+            <div className="flex h-3 w-full rounded-full overflow-hidden mb-4">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${carbsPct}%` }}
+                className="bg-accent-500 h-full"
+                title={`Węgle: ${Math.round(carbsPct)}%`}
+              />
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${proteinPct}%` }}
+                className="bg-emerald-500 h-full"
+                title={`Białka: ${Math.round(proteinPct)}%`}
+              />
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${fatPct}%` }}
+                className="bg-amber-500 h-full"
+                title={`Tłuszcze: ${Math.round(fatPct)}%`}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-4 justify-between">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent-500" />
+                <span className="text-[9px] font-bold text-slate-300">
+                  W: {carbsPct.toFixed(0)}%
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[9px] font-bold text-slate-300">
+                  B: {proteinPct.toFixed(0)}%
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="text-[9px] font-bold text-slate-300">
+                  T: {fatPct.toFixed(0)}%
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-center flex-col items-center py-6 border-t border-white/10 mb-2 mt-2">
@@ -1913,7 +2810,7 @@ export default function MealPlate({
               </span>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-4 gap-2 mb-6 border-t border-white/10 pt-4">
             <div>
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
@@ -1946,20 +2843,30 @@ export default function MealPlate({
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
                 Ładunek Gl.
               </span>
-              <span className={cn("text-lg font-black", totalGL <= 10 ? "text-emerald-400" : totalGL < 20 ? "text-amber-400" : "text-rose-400")}>
+              <span
+                className={cn(
+                  "text-lg font-black",
+                  totalGL <= 10
+                    ? "text-emerald-400"
+                    : totalGL < 20
+                      ? "text-amber-400"
+                      : "text-rose-400",
+                )}
+              >
                 {totalGL.toFixed(1)}
                 <span className="text-[9px] font-bold opacity-30 ml-1">ŁG</span>
               </span>
             </div>
           </div>
-          
           <div className="flex justify-between items-center mt-6">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Czas podania zjedzenia:</span>
-            <input 
-               type="datetime-local" 
-               value={entryTime}
-               onChange={e => setEntryTime(e.target.value)}
-               className="bg-slate-50 dark:bg-slate-800 text-slate-500 text-[10px] font-black p-2 rounded-xl border border-slate-100 dark:border-slate-700 outline-none"
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+              Czas podania zjedzenia:
+            </span>
+            <input
+              type="datetime-local"
+              value={entryTime}
+              onChange={(e) => setEntryTime(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800 text-slate-500 text-[10px] font-black p-2 rounded-xl border border-slate-100 dark:border-slate-700 outline-none"
             />
           </div>
 
@@ -2002,12 +2909,15 @@ export default function MealPlate({
 
           <button
             onClick={() => {
-              sessionStorage.setItem('pending_meal', JSON.stringify({
-                carbs: Math.round(totalCarbs * 10) / 10,
-                protein: Math.round(totalProtein * 10) / 10,
-                fat: Math.round(totalFat * 10) / 10,
-                name: "Mój Talerz"
-              }));
+              sessionStorage.setItem(
+                "pending_meal",
+                JSON.stringify({
+                  carbs: Math.round(totalCarbs * 10) / 10,
+                  protein: Math.round(totalProtein * 10) / 10,
+                  fat: Math.round(totalFat * 10) / 10,
+                  name: plate.map((i) => i.name).join(", ") || "Własny posiłek",
+                }),
+              );
               setTab("bolus");
             }}
             className="w-full bg-slate-800 py-3 rounded-xl mt-3 font-black text-[9px] uppercase tracking-widest text-slate-400 active:scale-95 transition-all"
@@ -2016,9 +2926,6 @@ export default function MealPlate({
           </button>
         </div>
       )}
-
-
-
     </motion.div>
   );
 }
@@ -2026,66 +2933,80 @@ export default function MealPlate({
 function MealScanner({ onResult }: { onResult: (res: string) => void }) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameras, setCameras] = useState<any[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
   const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
 
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("reader-meal");
     setScanner(html5QrCode);
 
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length > 0) {
-        setCameras(devices);
-        const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('tył'));
-        setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
-        setHasPermission(true);
-      } else {
+    Html5Qrcode.getCameras()
+      .then((devices) => {
+        if (devices && devices.length > 0) {
+          setCameras(devices);
+          const backCamera = devices.find(
+            (d) =>
+              d.label.toLowerCase().includes("back") ||
+              d.label.toLowerCase().includes("tył"),
+          );
+          setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
+          setHasPermission(true);
+        } else {
+          setHasPermission(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Camera permission error", err);
         setHasPermission(false);
-      }
-    }).catch(err => {
-      console.error("Camera permission error", err);
-      setHasPermission(false);
-    });
+      });
 
     return () => {
       if (html5QrCode.isScanning) {
-        html5QrCode.stop().catch(e => console.error(e));
+        html5QrCode.stop().catch((e) => console.error(e));
       }
     };
   }, []);
 
   useEffect(() => {
     if (scanner && selectedCameraId && !scanner.isScanning) {
-      scanner.start(
-        selectedCameraId,
-        {
-          fps: 10,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-             // For barcodes, a wider box is often better, but dynamic 70% works well for general
-             const width = Math.floor(viewfinderWidth * 0.8);
-             const height = Math.floor(viewfinderHeight * 0.5);
-             return { width, height };
-          }
-        },
-        (decodedText) => {
-          scanner.stop().then(() => onResult(decodedText)).catch(e => console.error(e));
-        },
-        () => {} // scan error
-      ).catch(err => {
-        console.error("Scanner start error", err);
-      });
+      scanner
+        .start(
+          selectedCameraId,
+          {
+            fps: 10,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              // For barcodes, a wider box is often better, but dynamic 70% works well for general
+              const width = Math.floor(viewfinderWidth * 0.8);
+              const height = Math.floor(viewfinderHeight * 0.5);
+              return { width, height };
+            },
+          },
+          (decodedText) => {
+            scanner
+              .stop()
+              .then(() => onResult(decodedText))
+              .catch((e) => console.error(e));
+          },
+          () => {}, // scan error
+        )
+        .catch((err) => {
+          console.error("Scanner start error", err);
+        });
     }
   }, [scanner, selectedCameraId]);
 
   const switchCamera = () => {
     if (!scanner) return;
-    const currentIndex = cameras.findIndex(c => c.id === selectedCameraId);
+    const currentIndex = cameras.findIndex((c) => c.id === selectedCameraId);
     const nextIndex = (currentIndex + 1) % cameras.length;
-    
+
     if (scanner.isScanning) {
-      scanner.stop().then(() => {
-        setSelectedCameraId(cameras[nextIndex].id);
-      }).catch(e => console.error(e));
+      scanner
+        .stop()
+        .then(() => {
+          setSelectedCameraId(cameras[nextIndex].id);
+        })
+        .catch((e) => console.error(e));
     } else {
       setSelectedCameraId(cameras[nextIndex].id);
     }
@@ -2095,7 +3016,9 @@ function MealScanner({ onResult }: { onResult: (res: string) => void }) {
     return (
       <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
         <X className="text-rose-500 mb-2" size={32} />
-        <p className="text-[10px] font-bold text-white uppercase tracking-widest">Brak dostępu do aparatu</p>
+        <p className="text-[10px] font-bold text-white uppercase tracking-widest">
+          Brak dostępu do aparatu
+        </p>
       </div>
     );
   }
@@ -2103,7 +3026,7 @@ function MealScanner({ onResult }: { onResult: (res: string) => void }) {
   return (
     <div className="relative w-full h-full">
       <div id="reader-meal" className="w-full h-full bg-black"></div>
-      
+
       {/* Overlay UI */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
         <div className="w-[80%] h-[50%] border-2 border-accent-500 rounded-3xl relative">
@@ -2111,9 +3034,9 @@ function MealScanner({ onResult }: { onResult: (res: string) => void }) {
           <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-accent-500 -mt-1 -mr-1 rounded-tr-xl"></div>
           <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-accent-500 -mb-1 -ml-1 rounded-bl-xl"></div>
           <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-accent-500 -mb-1 -mr-1 rounded-br-xl"></div>
-          
+
           {/* Scanning Line Animation */}
-          <motion.div 
+          <motion.div
             animate={{ top: ["0%", "100%", "0%"] }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             className="absolute left-0 right-0 h-0.5 bg-accent-500/50 shadow-[0_0_15px_rgba(var(--accent-500),0.5)] z-10"
@@ -2123,7 +3046,7 @@ function MealScanner({ onResult }: { onResult: (res: string) => void }) {
 
       {/* Camera Switch Button */}
       {cameras.length > 1 && (
-        <button 
+        <button
           onClick={switchCamera}
           className="absolute bottom-4 left-1/2 -translate-x-1/2 p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white/30 transition-all pointer-events-auto shadow-lg"
         >
@@ -2133,7 +3056,9 @@ function MealScanner({ onResult }: { onResult: (res: string) => void }) {
 
       {hasPermission === null && (
         <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-          <p className="text-[10px] font-black text-white uppercase tracking-widest animate-pulse">Ładowanie...</p>
+          <p className="text-[10px] font-black text-white uppercase tracking-widest animate-pulse">
+            Ładowanie...
+          </p>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Capacitor } from '@capacitor/core';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, X, AlertTriangle, Info, Clock, CheckCircle2, Pill, Trash2, Check } from 'lucide-react';
 import { UserSettings } from '../types';
@@ -20,148 +21,159 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    // Check hidden/deleted notifications from localStorage
-    const deletedIds = JSON.parse(localStorage.getItem('deletedNotifications') || '[]');
-    const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+    let lastCheckedMinute = -1;
 
-    // Generate notifications based on userSettings
-    const newNotifications: AppNotification[] = [];
-    const now = Date.now();
-    const warningThresholdMs = 12 * 60 * 60 * 1000; // 12 hours
+    const checkNotifications = () => {
+      // Check hidden/deleted notifications from localStorage
+      const deletedIds = JSON.parse(localStorage.getItem('deletedNotifications') || '[]');
+      const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+      const notifiedIds = JSON.parse(localStorage.getItem('systemNotifiedIds') || '[]');
 
-    if (userSettings?.sensorChangeDate && userSettings?.sensorDurationDays) {
-      const sensorExpiryDate = userSettings.sensorChangeDate + (userSettings.sensorDurationDays * 24 * 60 * 60 * 1000);
-      const sensorMsLeft = sensorExpiryDate - now;
-      
-      const id = sensorMsLeft <= 0 ? 'sensor-expired' : (sensorMsLeft <= warningThresholdMs ? 'sensor-warning' : 'sensor-info');
-      
-      if (!deletedIds.includes(id)) {
-        if (sensorMsLeft <= 0) {
-          newNotifications.push({
-            id: 'sensor-expired',
-            title: 'Sensor wygasł',
-            message: 'Czas na wymianę sensora!',
-            type: 'alert',
-            timestamp: sensorExpiryDate,
-            read: false
-          });
-        } else if (sensorMsLeft <= warningThresholdMs) {
-          newNotifications.push({
-            id: 'sensor-warning',
-            title: 'Zbliża się wymiana sensora',
-            message: 'Pozostało mniej niż 12 godzin do końca cyklu życia sensora.',
-            type: 'warning',
-            timestamp: sensorExpiryDate - warningThresholdMs,
-            read: false
-          });
-        } else {
-          newNotifications.push({
-            id: 'sensor-info',
-            title: 'Aktywny sensor',
-            message: `Kolejna wymiana: ${new Date(sensorExpiryDate).toLocaleDateString()}`,
-            type: 'info',
-            timestamp: userSettings.sensorChangeDate,
-            read: true
-          });
+      // Generate notifications based on userSettings
+      const newNotifications: AppNotification[] = [];
+      const now = Date.now();
+      const warningThresholdMs = 12 * 60 * 60 * 1000; // 12 hours
+
+      const triggerSystemAlert = (id: string, title: string, message: string) => {
+        const apkNotificationsEnabled = userSettings?.apkSystemNotificationsEnabled ?? true;
+        if (!apkNotificationsEnabled) return;
+
+        if (!notifiedIds.includes(id)) {
+          if (Capacitor.isNativePlatform()) {
+             try {
+               import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+                 LocalNotifications.schedule({
+                   notifications: [
+                     {
+                       title: title,
+                       body: message,
+                       id: Math.floor(Math.random() * 100000),
+                       schedule: { at: new Date() },
+                       sound: null,
+                       attachments: null,
+                       actionTypeId: "",
+                       extra: null
+                     }
+                   ]
+                 });
+               });
+             } catch(e) {
+               console.error("Capacitor local notification error:", e);
+             }
+          } else if ('Notification' in window && Notification.permission === 'granted') {
+             try {
+                navigator.serviceWorker.ready.then(reg => {
+                  if (reg) reg.showNotification(title, { body: message, icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'), vibrate: [200, 100, 200] } as any);
+                  else new Notification(title, { body: message });
+                }).catch(() => { new Notification(title, { body: message }); });
+             } catch(e) {}
+          }
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          
+          notifiedIds.push(id);
+          localStorage.setItem('systemNotifiedIds', JSON.stringify(notifiedIds));
+        }
+      };
+
+      if (userSettings?.sensorChangeDate && userSettings?.sensorDurationDays) {
+        const sensorExpiryDate = userSettings.sensorChangeDate + (userSettings.sensorDurationDays * 24 * 60 * 60 * 1000);
+        const sensorMsLeft = sensorExpiryDate - now;
+        
+        const id = sensorMsLeft <= 0 ? 'sensor-expired' : (sensorMsLeft <= warningThresholdMs ? 'sensor-warning' : 'sensor-info');
+        
+        if (!deletedIds.includes(id)) {
+          if (sensorMsLeft <= 0) {
+            newNotifications.push({ id: 'sensor-expired', title: 'Sensor wygasł', message: 'Czas na wymianę sensora!', type: 'alert', timestamp: sensorExpiryDate, read: false });
+            triggerSystemAlert('sensor-expired-alert', 'Wymień Sensor', 'Twój sensor wygasł. Czas na wymianę!');
+          } else if (sensorMsLeft <= warningThresholdMs) {
+            newNotifications.push({ id: 'sensor-warning', title: 'Zbliża się wymiana sensora', message: 'Pozostało mniej niż 12 godzin do końca cyklu życia sensora.', type: 'warning', timestamp: sensorExpiryDate - warningThresholdMs, read: false });
+            triggerSystemAlert('sensor-warning-alert', 'Zbliża się wymiana sensora', 'Pozostało mniej niż 12 godzin do końca cyklu życia sensora.');
+          } else {
+            newNotifications.push({ id: 'sensor-info', title: 'Aktywny sensor', message: `Kolejna wymiana: ${new Date(sensorExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: userSettings.sensorChangeDate, read: true });
+          }
         }
       }
-    }
 
-    if (userSettings?.infusionSetChangeDate && userSettings?.infusionSetDurationDays) {
-      const infusionExpiryDate = userSettings.infusionSetChangeDate + (userSettings.infusionSetDurationDays * 24 * 60 * 60 * 1000);
-      const infusionMsLeft = infusionExpiryDate - now;
-      
-      const id = infusionMsLeft <= 0 ? 'infusion-expired' : (infusionMsLeft <= warningThresholdMs ? 'infusion-warning' : 'infusion-info');
-      
-      if (!deletedIds.includes(id)) {
-        if (infusionMsLeft <= 0) {
-          newNotifications.push({
-            id: 'infusion-expired',
-            title: 'Wkłucie wygasło',
-            message: 'Czas na wymianę wkłucia!',
-            type: 'alert',
-            timestamp: infusionExpiryDate,
-            read: false
-          });
-        } else if (infusionMsLeft <= warningThresholdMs) {
-          newNotifications.push({
-            id: 'infusion-warning',
-            title: 'Zbliża się wymiana wkłucia',
-            message: 'Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia.',
-            type: 'warning',
-            timestamp: infusionExpiryDate - warningThresholdMs,
-            read: false
-          });
-        } else {
-          newNotifications.push({
-            id: 'infusion-info',
-            title: 'Aktywne wkłucie',
-            message: `Kolejna wymiana: ${new Date(infusionExpiryDate).toLocaleDateString()}`,
-            type: 'info',
-            timestamp: userSettings.infusionSetChangeDate,
-            read: true
-          });
+      if (userSettings?.infusionSetChangeDate && userSettings?.infusionSetDurationDays) {
+        const infusionExpiryDate = userSettings.infusionSetChangeDate + (userSettings.infusionSetDurationDays * 24 * 60 * 60 * 1000);
+        const infusionMsLeft = infusionExpiryDate - now;
+        
+        const id = infusionMsLeft <= 0 ? 'infusion-expired' : (infusionMsLeft <= warningThresholdMs ? 'infusion-warning' : 'infusion-info');
+        
+        if (!deletedIds.includes(id)) {
+          if (infusionMsLeft <= 0) {
+            newNotifications.push({ id: 'infusion-expired', title: 'Wkłucie wygasło', message: 'Czas na wymianę wkłucia!', type: 'alert', timestamp: infusionExpiryDate, read: false });
+            triggerSystemAlert('infusion-expired-alert', 'Wymień Wkłucie', 'Cykl życia wkłucia dobiegł końca!');
+          } else if (infusionMsLeft <= warningThresholdMs) {
+            newNotifications.push({ id: 'infusion-warning', title: 'Zbliża się wymiana wkłucia', message: 'Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia.', type: 'warning', timestamp: infusionExpiryDate - warningThresholdMs, read: false });
+            triggerSystemAlert('infusion-warning-alert', 'Zbliża się wymiana wkłucia', 'Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia.');
+          } else {
+            newNotifications.push({ id: 'infusion-info', title: 'Aktywne wkłucie', message: `Kolejna wymiana: ${new Date(infusionExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: userSettings.infusionSetChangeDate, read: true });
+          }
         }
       }
-    }
 
-    if (userSettings?.medications) {
-      const nowObj = new Date(now);
-      const currentHours = nowObj.getHours();
-      const currentMinutes = nowObj.getMinutes();
-      const currentTotalMinutes = currentHours * 60 + currentMinutes;
-      const todayString = nowObj.toLocaleDateString();
+      if (userSettings?.medications) {
+        const nowObj = new Date(now);
+        const currentHours = nowObj.getHours();
+        const currentMinutes = nowObj.getMinutes();
+        const currentTotalMinutes = currentHours * 60 + currentMinutes;
+        const todayString = nowObj.toLocaleDateString();
 
-      userSettings.medications.forEach(med => {
-         if (med.active) {
-            med.reminders.forEach(rem => {
-               const [hStr, mStr] = rem.split(':');
-               const h = parseInt(hStr, 10);
-               const m = parseInt(mStr, 10);
-               if (!isNaN(h) && !isNaN(m)) {
-                 const remTotalMinutes = h * 60 + m;
-                 const id = `med-${med.id}-${rem}-${todayString}`;
-                 // If the reminder time has passed today (or is right now)
-                 if (currentTotalMinutes >= remTotalMinutes && !deletedIds.includes(id)) {
-                    const remDate = new Date();
-                    remDate.setHours(h, m, 0, 0);
-                    
-                    newNotifications.push({
-                       id: id, // Unique per day
-                       title: `Czas na lek: ${med.name}`,
-                       message: `Zamierzona dawka: ${med.dosage} (${rem})`,
-                       type: 'medication',
-                       timestamp: remDate.getTime(),
-                       read: false
-                    });
+        userSettings.medications.forEach(med => {
+           if (med.active) {
+              med.reminders.forEach(rem => {
+                 const [hStr, mStr] = rem.split(':');
+                 const h = parseInt(hStr, 10);
+                 const m = parseInt(mStr, 10);
+                 if (!isNaN(h) && !isNaN(m)) {
+                   const remTotalMinutes = h * 60 + m;
+                   const id = `med-${med.id}-${rem}-${todayString}`;
+                   // Actively alert if it matches current minute (giving 2 minutes window to avoid missing exactly on tick)
+                   if (currentTotalMinutes >= remTotalMinutes && currentTotalMinutes <= remTotalMinutes + 2) {
+                       triggerSystemAlert(id + '-sysalert', `Czas na lek: ${med.name}`, `Weź dawkę: ${med.dosage} o ${rem}`);
+                   }
+
+                   if (currentTotalMinutes >= remTotalMinutes && !deletedIds.includes(id)) {
+                      const remDate = new Date();
+                      remDate.setHours(h, m, 0, 0);
+                      newNotifications.push({
+                         id: id,
+                         title: `Czas na lek: ${med.name}`,
+                         message: `Zamierzona dawka: ${med.dosage} (${rem})`,
+                         type: 'medication',
+                         timestamp: remDate.getTime(),
+                         read: false
+                      });
+                   }
                  }
-               }
-            });
-         }
-      });
-    }
+              });
+           }
+        });
+      }
 
-    if (newNotifications.length === 0 && !deletedIds.includes('welcome')) {
-      newNotifications.push({
-        id: 'welcome',
-        title: 'Witaj w GlikoControl',
-        message: 'Twoje centrum powiadomień jest gotowe.',
-        type: 'success',
-        timestamp: 0,
-        read: true
-      });
-    }
+      if (newNotifications.length === 0 && !deletedIds.includes('welcome')) {
+        newNotifications.push({ id: 'welcome', title: 'Witaj w GlikoControl', message: 'Twoje centrum powiadomień jest gotowe.', type: 'success', timestamp: 0, read: true });
+      }
 
-    // Sort by timestamp desc
-    newNotifications.sort((a, b) => b.timestamp - a.timestamp);
-    
-    const withReadStatus = newNotifications.map(n => ({
-      ...n,
-      read: n.read || readIds.includes(n.id)
-    }));
+      newNotifications.sort((a, b) => b.timestamp - a.timestamp);
+      
+      const withReadStatus = newNotifications.map(n => ({
+        ...n,
+        read: n.read || readIds.includes(n.id)
+      }));
 
-    setNotifications(withReadStatus);
-    setUnreadCount(withReadStatus.filter(n => !n.read).length);
+      setNotifications(withReadStatus);
+      setUnreadCount(withReadStatus.filter(n => !n.read).length);
+    };
+
+    // Run once on mount and settings change
+    checkNotifications();
+
+    // Run every minute to check alarms
+    const interval = setInterval(checkNotifications, 60000);
+
+    return () => clearInterval(interval);
   }, [userSettings]);
 
   const markAllAsRead = () => {
@@ -274,12 +286,16 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-400 text-center px-8">
-                      <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-4">
-                        <Bell size={32} className="opacity-20" />
-                      </div>
-                      <p className="text-xs font-black uppercase tracking-widest opacity-40">Brak powiadomień</p>
-                      <p className="text-[10px] font-bold mt-2 opacity-30">Twoje centrum komunikatów jest puste. Odpocznij.</p>
+                    <div className="flex flex-col items-center justify-center p-12 mt-4 mx-4 bg-gradient-to-b from-slate-50/50 to-slate-100/50 dark:from-slate-800/20 dark:to-slate-900/20 rounded-[3rem] border-2 border-dashed border-slate-200/60 dark:border-slate-800/60 opacity-90 backdrop-blur-sm">
+                        <div className="w-16 h-16 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-900/20 flex items-center justify-center mb-4 shadow-inner ring-1 ring-indigo-100 dark:ring-indigo-800/50">
+                          <Bell size={24} className="text-indigo-400 dark:text-indigo-400/80" />
+                        </div>
+                        <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
+                          Brak powiadomień
+                        </p>
+                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
+                          Twoje centrum komunikatów jest puste. Odpocznij.
+                        </p>
                     </div>
                   ) : (
                     notifications.map((notification, idx) => (
