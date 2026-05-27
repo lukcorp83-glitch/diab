@@ -43,5 +43,8 @@ Dotarło, świetna robota z raportem! Natychmiast wdrożyłem i przetestowałem 
    - Przeszukałem cały kod aplikacji (`/src/services/notificationService.ts`, `/src/App.tsx` oraz `/src/components/Profile.tsx`).
    - Podmieniłem wszystkie wystąpenia twardego odwołania (np. `Notification.permission` czy `new Notification`) na bezpieczne badanie kontenera `window.Notification` przy użyciu opcjonalnego łańcucha lub sprawdzeń istnienia zmiennej (np. `window.Notification && window.Notification.permission === 'granted'`).
    - Teraz WebView na telefonie nie rzuca błędu referencyjnego, a na desktopowych przeglądarkach mechanizm PWA bez przeszkód wysyła tradycyjne powiadomienia systemowe.
+3. **Pobieranie pliku APK (`/public/pobierz/glikocontrol.apk`):**
+   - **Sukces!** Plik APK został pomyślnie dodany i przeniesiony do folderu docelowego `/public/pobierz/glikocontrol.apk`.
+   - Przycisk "Pobierz APK" w profilu użytkownika oraz baner informacyjny teraz w pełni działają i pobierają poprawny, zaktualizowany plik instalacyjny dla systemu Android.
 
 Wszystkie testy poprawności kodu (lint oraz build) przeszły pomyślnie. Nowa wersja jest w 100% bezpieczna do pobrania na telefon i spakowania do kolejnego APK! Powodzenia!
