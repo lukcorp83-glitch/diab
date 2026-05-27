@@ -11,10 +11,10 @@ export const VERSIONS: VersionEntry[] = [
     date: "2026-05-27",
     title: "Najnowsza Wersja 4.1",
     changes: [
-      "Nowy Pop-up ułatwiający zarządzanie nowościami i powiadomieniami o aktualizacjach.",
-      "Ulepszono stabilność i synchronizację z systemem powiadomień w locie (Push/Firebase).",
-      "GlikoSense AI: Nazewnictwo dostosowane dla funkcji analitycznych i skanera posiłków.",
-      "Dzienny widget TIR zachowuje poprawny stan zapisu pulpitu w chmurze i układzie."
+      "Możliwość edycji i kustomizacji pulpitu",
+      "Drobne poprawy UI",
+      "Ulepszenie widżetu wchłaniania posiłków",
+      "Możliwość pobrania natywnej aplikacji Android (APK)"
     ]
   },
   {

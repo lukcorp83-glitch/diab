@@ -4712,7 +4712,7 @@ export default function Profile({
                 }}
               >
                 <Download size={20} />
-                Pobierz aplikację (.apk)
+                Pobierz APK
               </a>
 
             <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
