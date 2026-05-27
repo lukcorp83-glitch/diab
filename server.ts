@@ -47,6 +47,27 @@ async function startServer() {
     });
   });
 
+  // Dedicated Route for APK files to ensure correct mobile headers
+  app.get(["/pobierz/glikocontrol.apk", "/diab/pobierz/glikocontrol.apk"], (req, res) => {
+    const isProd = process.env.NODE_ENV === "production";
+    const dirName = isProd ? "dist" : "public";
+    const filePath = path.join(process.cwd(), dirName, "pobierz/glikocontrol.apk");
+    
+    console.log(`[APK Download] Serving from path: ${filePath}`);
+    
+    res.setHeader("Content-Type", "application/vnd.android.package-archive");
+    res.setHeader("Content-Disposition", "attachment; filename=\"glikocontrol.apk\"");
+    
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error("[APK Download] Failed to send APK file:", err);
+        if (!res.headersSent) {
+          res.status(404).send("Wystąpił błąd: brak pliku APK na serwerze.");
+        }
+      }
+    });
+  });
+
   // API route to manage API secrets securely (Admin SDK bypasses broken rules)
   app.post("/api/server/apiSecrets", async (req, res) => {
     try {

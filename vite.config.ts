@@ -22,6 +22,12 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           navigateFallback: 'index.html',
+          navigateFallbackDenylist: [
+            /^\/pobierz/,
+            /^\/diab\/pobierz/,
+            /^\/api/,
+            /\.apk$/
+          ],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
