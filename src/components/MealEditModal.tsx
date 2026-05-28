@@ -22,6 +22,7 @@ import {
   collection,
   query,
   onSnapshot,
+  limit,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { getEffectiveUid, cn } from "../lib/utils";
@@ -106,6 +107,7 @@ export default function MealEditModal({
     });
     const q2 = query(
       collection(db, "artifacts", "diacontrolapp", "communityProducts"),
+      limit(200)
     );
     const unsub2 = onSnapshot(q2, (snap) => {
       setCommunityProducts(

@@ -224,7 +224,29 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [pumpStatus, setPumpStatus] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [fbLogs, setFbLogs] = useState<LogEntry[]>([]);
+  const [nsLogs, setNsLogs] = useState<LogEntry[]>([]);
+
+  const logs = useMemo(() => {
+    const all = [...fbLogs, ...nsLogs];
+    const unique: LogEntry[] = [];
+    all.forEach((a) => {
+      if (
+        !unique.some(
+          (u) =>
+            (u.id && a.id && u.id === a.id) ||
+            (u.nsId && a.nsId && u.nsId === a.nsId) ||
+            (u.type === a.type &&
+              Math.abs(u.timestamp - a.timestamp) < 60000 &&
+              Math.abs(u.value - a.value) < 0.1),
+        )
+      ) {
+        unique.push(a);
+      }
+    });
+    return unique.sort((a, b) => b.timestamp - a.timestamp);
+  }, [fbLogs, nsLogs]);
+
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");
   const [email, setEmail] = useState("");
@@ -1364,7 +1386,7 @@ export default function App() {
         "logs",
       ),
       orderBy("timestamp", "desc"),
-      limit(10000),
+      limit(300),
     );
     const unsubscribe = onSnapshot(
       q,
@@ -1373,7 +1395,7 @@ export default function App() {
           ...doc.data(),
           id: doc.id,
         })) as LogEntry[];
-        setLogs(data);
+        setFbLogs(data);
       },
       (error) => {
         console.error("Firestore subscription error:", error);
@@ -1469,26 +1491,10 @@ export default function App() {
         );
         if (latestEntries.length > 0) {
           const latest = latestEntries[0];
-          const fingerprint = `${latest.type}-${Math.floor(latest.timestamp / 60000)}-${latest.value}`;
-          const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, "_");
-          const docRef = doc(
-            db,
-            "artifacts",
-            "diacontrolapp",
-            "users",
-            getEffectiveUid(user),
-            "logs",
-            firestoreId,
-          );
-
-          let latestDataToSave: any = {
-            ...latest,
-            nsId: latest.id,
-            createdAt: serverTimestamp(),
-          };
-
-          await setDoc(docRef, sanitizeNested(latestDataToSave), {
-            merge: true,
+          setNsLogs((prev) => {
+            const hasLatest = prev.some((p) => p.id === latest.id || p.nsId === latest.id);
+            if (hasLatest) return prev;
+            return [{ ...latest, nsId: latest.id }, ...prev];
           });
 
           // 1.5. FIRE & FORGET: Background weather fetch
@@ -1504,12 +1510,16 @@ export default function App() {
                 .then(async ({ fetchCurrentWeather }) => {
                   try {
                     const w = await fetchCurrentWeather();
-                    if (w)
-                      await setDoc(
-                        docRef,
-                        { weather: sanitizeNested(w) },
-                        { merge: true },
-                      );
+                    if (w) {
+                       setNsLogs((prev) => {
+                         const updated = [...prev];
+                         const idx = updated.findIndex((p) => p.nsId === latest.id || p.id === latest.id);
+                         if (idx >= 0) {
+                           updated[idx] = { ...updated[idx], weather: sanitizeNested(w) };
+                         }
+                         return updated;
+                       });
+                    }
                   } catch (e) {
                     console.warn("Failed to fetch weather in bg", e);
                   }
@@ -1552,7 +1562,7 @@ export default function App() {
         const treatments = await nightscoutService.fetchTreatments(
           nsUrl,
           nsSecret,
-          500,
+          100,
           manual,
         );
 
@@ -1629,42 +1639,17 @@ export default function App() {
 
         if (newLogsToSync.length > 0) {
           console.log(
-            `Syncing ${newLogsToSync.length} new records via batch...`,
+            `Syncing ${newLogsToSync.length} new records to memory...`,
           );
+          
+          setNsLogs((prev) => {
+             const all = [...prev, ...newLogsToSync];
+             return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 500);
+          });
 
-          const CHUNK_SIZE = 400;
-          for (let i = 0; i < newLogsToSync.length; i += CHUNK_SIZE) {
-            const chunk = newLogsToSync.slice(i, i + CHUNK_SIZE);
-            const batch = writeBatch(db);
-
-            for (const newLog of chunk) {
-              const { id: nsId, ...logData } = newLog;
-
-              const fingerprint = `${newLog.type}-${Math.floor(newLog.timestamp / 60000)}-${newLog.value}`;
-              const firestoreId = fingerprint.replace(/[^a-zA-Z0-9_\-]/g, "_");
-              const docRef = doc(
-                db,
-                "artifacts",
-                "diacontrolapp",
-                "users",
-                getEffectiveUid(user),
-                "logs",
-                firestoreId,
-              );
-
-              const finalLogData = {
-                ...logData,
-                nsId: nsId || firestoreId,
-                createdAt: serverTimestamp(),
-              };
-
-              batch.set(docRef, sanitizeNested(finalLogData), { merge: true });
-            }
-            await batch.commit();
-          }
           if (manual) {
             console.log(
-              `Nightscout: Synchronizacja zakończona. Dodano ${newLogsToSync.length} nowych wpisów.`,
+              `Nightscout: Synchronizacja zakończona. Pobrano ${newLogsToSync.length} nowych wpisów (w pamięci).`,
             );
           }
         } else if (manual && allNewLogs.length > 0) {
@@ -1695,7 +1680,7 @@ export default function App() {
     window.addEventListener("force-nightscout-sync", handleForceSync);
 
     const timeout = setTimeout(() => syncNightscout(false), 500);
-    const interval = setInterval(() => syncNightscout(false), 2 * 60 * 1000); // 2 min instead of 5
+    const interval = setInterval(() => syncNightscout(false), 5 * 60 * 1000);
     return () => {
       clearTimeout(timeout);
       clearInterval(interval);

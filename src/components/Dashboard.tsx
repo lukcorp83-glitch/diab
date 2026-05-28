@@ -73,6 +73,8 @@ export interface DashboardWidget {
   visible: boolean;
   size: "2x2" | "2x1" | "1x2" | "1x1";
   canResize: boolean;
+  canChangeShape?: boolean;
+  shape?: "default" | "circle" | "leaf" | "diamond" | "leaf-mirror";
 }
 
 export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "2x2")[] => {
@@ -114,23 +116,23 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
 };
 
 export const DEFAULT_WIDGETS: DashboardWidget[] = [
-  { id: "main_stats", name: "Podsumowanie glikemii (Gliko)", visible: true, size: "2x2", canResize: false },
-  { id: "daily_tir", name: "Dzienny TIR (Wykres)", visible: false, size: "1x1", canResize: true },
-  { id: "quick_correction", name: "Sugerowana szybka korekta (Alerty)", visible: true, size: "2x2", canResize: true },
-  { id: "neural_pet", name: "GlikoSense AI & Zwierzak", visible: true, size: "2x2", canResize: false },
-  { id: "weather", name: "Wpływ pogody na insulinę", visible: true, size: "1x1", canResize: true },
-  { id: "sensor_reminder", name: "Wymiana sensora (Urządzenie)", visible: true, size: "1x1", canResize: true },
-  { id: "infusion_reminder", name: "Wymiana wkłucia (Urządzenie)", visible: true, size: "1x1", canResize: true },
-  { id: "assistant", name: "Skrót do Asystenta AI", visible: true, size: "2x1", canResize: true },
-  { id: "glikosense_suggestions", name: "Sugestie i analizy GlikoSense", visible: true, size: "2x1", canResize: true },
-  { id: "tips", name: "Porady i ciekawostki (DidYouKnow)", visible: true, size: "2x1", canResize: true },
-  { id: "shortcuts", name: "Szybkie akcje i ulubione posiłki", visible: true, size: "2x1", canResize: true },
-  { id: "training_widget", name: "Trening i Aktywność fizyczna", visible: true, size: "2x1", canResize: true },
-  { id: "quick_measurement", name: "Szybki pomiar glikemii (Przycisk)", visible: true, size: "1x1", canResize: true },
-  { id: "quick_bolus", name: "Zapis bolusa / kalkulator (Przycisk)", visible: true, size: "1x1", canResize: true },
-  { id: "history_measurements", name: "Historia ostatnich pomiarów", visible: true, size: "2x1", canResize: true },
-  { id: "history_treatments", name: "Historia leczenia i posiłków", visible: true, size: "2x1", canResize: true },
-  { id: "pump", name: "Status pompy insulinowej / xDrip", visible: true, size: "1x1", canResize: true },
+  { id: "main_stats", name: "Podsumowanie glikemii (Gliko)", visible: true, size: "2x2", canResize: false, canChangeShape: false },
+  { id: "neural_pet", name: "GlikoSense AI & Zwierzak", visible: true, size: "2x2", canResize: false, canChangeShape: false },
+  { id: "weather", name: "Wpływ pogody na insulinę", visible: true, size: "2x1", canResize: true, canChangeShape: true },
+  { id: "sensor_reminder", name: "Wymiana sensora (Urządzenie)", visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
+  { id: "infusion_reminder", name: "Wymiana wkłucia (Urządzenie)", visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
+  { id: "assistant", name: "Skrót do Asystenta AI", visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "tips", name: "Porady i ciekawostki (DidYouKnow)", visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "glikosense_suggestions", name: "Sugestie i analizy GlikoSense", visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "shortcuts", name: "Szybkie akcje i ulubione posiłki", visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "quick_measurement", name: "Szybki pomiar glikemii (Przycisk)", visible: true, size: "1x1", canResize: true, canChangeShape: true },
+  { id: "quick_bolus", name: "Zapis bolusa / kalkulator (Przycisk)", visible: true, size: "1x1", canResize: true, canChangeShape: true },
+  { id: "history_measurements", name: "Historia ostatnich pomiarów", visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "history_treatments", name: "Historia leczenia i posiłków", visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "pump", name: "Status pompy insulinowej / xDrip", visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "daily_tir", name: "Dzienny TIR (Wykres)", visible: false, size: "1x1", canResize: true, canChangeShape: false },
+  { id: "quick_correction", name: "Sugerowana szybka korekta (Alerty)", visible: false, size: "2x2", canResize: true, canChangeShape: false },
+  { id: "training_widget", name: "Trening i Aktywność fizyczna", visible: false, size: "2x1", canResize: true, canChangeShape: false },
 ];
 
 interface DashboardProps {
@@ -295,19 +297,37 @@ export default function Dashboard({
   const handleDragEnter = (e: any, targetIndex: number) => {
     if (!isEditingLayout || draggedIndex === null || draggedIndex === targetIndex) return;
     const now = Date.now();
-    if (now - lastSwapTimeRef.current < 450) return; // 450ms cooldown prevents infinite bouncing!
+    if (now - lastSwapTimeRef.current < 150) return; // lower cooldown for more responsive dragging
     lastSwapTimeRef.current = now;
 
     Haptics.light();
     const newWidgets = [...widgets];
     const [draggedItem] = newWidgets.splice(draggedIndex, 1);
-    newWidgets.splice(targetIndex, 0, draggedItem);
+    const clampIndex = Math.min(targetIndex, newWidgets.length);
+    newWidgets.splice(clampIndex, 0, draggedItem);
     setWidgets(newWidgets);
-    setDraggedIndex(targetIndex);
+    setDraggedIndex(clampIndex);
   };
 
   const handleDragOver = (e: any) => {
     e.preventDefault();
+    
+    // Auto-scroll when dragging near top/bottom edges
+    if (e.clientY && isEditingLayout) {
+      const scrollThreshold = 120;
+      const maxSpeed = 20;
+      
+      if (e.clientY < scrollThreshold) {
+        // Scroll up
+        const speed = Math.max(1, maxSpeed * (1 - e.clientY / scrollThreshold));
+        window.scrollBy(0, -speed);
+      } else if (window.innerHeight - e.clientY < scrollThreshold) {
+        // Scroll down
+        const distanceToBottom = window.innerHeight - e.clientY;
+        const speed = Math.max(1, maxSpeed * (1 - distanceToBottom / scrollThreshold));
+        window.scrollBy(0, speed);
+      }
+    }
   };
 
   const handleDrop = (e: any, targetIndex: number) => {
@@ -333,31 +353,40 @@ export default function Dashboard({
     Haptics.medium();
     const newWidgets = [...widgets];
     const [draggedItem] = newWidgets.splice(sourceIndex, 1);
-    newWidgets.splice(targetIndex, 0, draggedItem);
+    const clampIndex = Math.min(targetIndex, newWidgets.length);
+    newWidgets.splice(clampIndex, 0, draggedItem);
     setWidgets(newWidgets);
     setMovingWidgetId(null);
     toast.success("Przeniesiono kafel!");
   };
 
+  const saveLayoutToFirebase = async () => {
+    if (!user) return;
+    try {
+      if (settings && (settings as any).dashboardLayout) {
+         const currentStr = JSON.stringify((settings as any).dashboardLayout);
+         const newStr = JSON.stringify(widgets);
+         if (currentStr === newStr) return;
+      }
+      const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+      await setDoc(settingsRef, {
+        dashboardLayout: widgets
+      }, { merge: true });
+    } catch (e) {
+      console.error("Failed to sync dashboard to Firebase:", e);
+    }
+  };
+
+  const handleFinishEditing = () => {
+    Haptics.medium();
+    setIsEditingLayout(false);
+    saveLayoutToFirebase();
+    toast.success("Zapisano układ!");
+  };
+
   useEffect(() => {
     localStorage.setItem('glikocontrol_dashboard_widgets_v6', JSON.stringify(widgets));
-
-    if (!isEditingLayout && user) {
-      const syncToFirebase = async () => {
-        try {
-          const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
-          await setDoc(settingsRef, {
-            dashboardLayout: widgets
-          }, { merge: true });
-        } catch (e) {
-          console.error("Failed to sync dashboard to Firebase:", e);
-        }
-      };
-      
-      // Sync po załadowaniu (migracja) i po wyjściu z trybu edycji
-      syncToFirebase();
-    }
-  }, [widgets, isEditingLayout, user]);
+  }, [widgets]);
 
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
@@ -369,6 +398,21 @@ export default function Dashboard({
   const [inlineBolusDose, setInlineBolusDose] = useState("");
   const [inlineBolusCarbs, setInlineBolusCarbs] = useState("");
   const [inlineBolusNotes, setInlineBolusNotes] = useState("");
+
+  const handleInlineBolusCarbsChange = (val: string) => {
+    setInlineBolusCarbs(val);
+    if (settings.wwRatio && val) {
+      const carbs = parseFloat(val.replace(',', '.'));
+      if (!isNaN(carbs) && carbs > 0) {
+         const dose = ((carbs / 10) * settings.wwRatio).toFixed(1);
+         setInlineBolusDose(dose.endsWith('.0') ? dose.replace('.0', '') : dose);
+      } else {
+         setInlineBolusDose("");
+      }
+    } else if (!val) {
+      setInlineBolusDose("");
+    }
+  };
 
   const handleInlineBgSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -489,24 +533,48 @@ export default function Dashboard({
     }));
   };
 
-  const resetWidgets = () => {
+  const cycleWidgetShape = (id: string) => {
+    Haptics.light();
+    setWidgets(prev => prev.map(w => {
+      if (w.id === id && w.canChangeShape) {
+        const allowed: ("default" | "circle" | "leaf" | "diamond" | "leaf-mirror")[] = ["default", "circle", "leaf", "leaf-mirror", "diamond"];
+        const currentIndex = allowed.indexOf(w.shape || "default");
+        const nextShape = allowed[(currentIndex + 1) % allowed.length];
+        return { ...w, shape: nextShape };
+      }
+      return w;
+    }));
+  };
+
+  const resetWidgets = async () => {
     Haptics.medium();
-    if (window.confirm("Czy na pewno chcesz zresetować wygląd ekranu do domyślnego wyglądu Diacontrol 4.0?")) {
-      const clonedDefault = DEFAULT_WIDGETS.map(w => ({ ...w }));
-      // Wyczyść stare wersje zapisów z localStorage, aby uniknąć konfliktów i przywrócić czysty stan
-      localStorage.removeItem('glikocontrol_dashboard_widgets');
-      localStorage.removeItem('glikocontrol_dashboard_widgets_v4');
-      localStorage.removeItem('glikocontrol_dashboard_widgets_v3');
-      localStorage.removeItem('glikocontrol_dashboard_widgets_v5');
-      localStorage.removeItem('glikosfera_layout_mode_v5');
-      localStorage.setItem('glikocontrol_dashboard_widgets_v6', JSON.stringify(clonedDefault));
-      localStorage.setItem('glikosfera_layout_mode_v6', 'classic');
-      setWidgets(clonedDefault);
-      setLayoutMode('classic');
-      setMovingWidgetId(null);
-      setDraggedIndex(null);
-      toast.success("Przywrócono domyślny, klasyczny wygląd z początku wersji 4.0");
+    
+    const clonedDefault = DEFAULT_WIDGETS.map(w => ({ ...w }));
+    // Wyczyść stare wersje zapisów z localStorage, aby uniknąć konfliktów i przywrócić czysty stan
+    localStorage.removeItem('glikocontrol_dashboard_widgets');
+    localStorage.removeItem('glikocontrol_dashboard_widgets_v4');
+    localStorage.removeItem('glikocontrol_dashboard_widgets_v3');
+    localStorage.removeItem('glikocontrol_dashboard_widgets_v5');
+    localStorage.removeItem('glikosfera_layout_mode_v5');
+    localStorage.setItem('glikocontrol_dashboard_widgets_v6', JSON.stringify(clonedDefault));
+    localStorage.setItem('glikosfera_layout_mode_v6', 'grid');
+    setWidgets(clonedDefault);
+    setLayoutMode('grid');
+    setMovingWidgetId(null);
+    setDraggedIndex(null);
+    
+    if (user) {
+      try {
+        const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+        await setDoc(settingsRef, {
+          dashboardLayout: clonedDefault
+        }, { merge: true });
+      } catch (e) {
+        console.error(e);
+      }
     }
+
+    toast.success("Przywrócono domyślny układ zgodny z najnowszym wyglądem Diacontrol!");
   };
 
   useEffect(() => {
@@ -1424,16 +1492,16 @@ export default function Dashboard({
                 }
               }}
               className={cn(
-                "glass-card flex flex-col items-center justify-center gap-2 active:scale-95 group relative overflow-hidden border border-white/50 dark:border-white/5 shadow-2xl transition-all w-full select-none h-full py-5 min-h-[140px]"
+                "bg-rose-500 flex flex-col items-center justify-center gap-2 shadow-2xl shadow-rose-500/40 active:scale-95 group transition-all text-white overflow-hidden relative w-full select-none h-full py-5 rounded-[2.5rem] min-h-[140px]"
               )}
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-[40px] -mr-12 -mt-12 group-hover:bg-rose-500/10 transition-all pointer-events-none"></div>
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shrink-0 pointer-events-none">
-                <Shield size={22} />
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all pointer-events-none"></div>
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shrink-0 pointer-events-none">
+                <Droplet size={22} strokeWidth={2.5} />
               </div>
               <div className="text-center pointer-events-none">
-                <span className="font-black text-[10px] uppercase tracking-widest text-slate-600 dark:text-slate-300 font-display block">Pomiar</span>
-                <span className="text-[8px] text-slate-400 font-bold leading-none">Ręczny wynik</span>
+                <span className="font-black text-[10px] uppercase tracking-widest font-display block">Pomiar</span>
+                <span className="text-[8px] text-white/70 font-bold leading-none">Ręczny wynik</span>
               </div>
             </button>
           );
@@ -1630,7 +1698,7 @@ export default function Dashboard({
                         type="number"
                         placeholder="Węgle"
                         value={inlineBolusCarbs}
-                        onChange={(e) => setInlineBolusCarbs(e.target.value)}
+                        onChange={(e) => handleInlineBolusCarbsChange(e.target.value)}
                         disabled={isEditingLayout}
                         className="w-full px-2.5 py-1.5 rounded-xl bg-white/20 text-white placeholder-white/80 text-xs font-black border border-white/10 focus:outline-none focus:ring-1 focus:ring-white pr-6"
                       />
@@ -1644,7 +1712,7 @@ export default function Dashboard({
                         (!inlineBolusDose && !inlineBolusCarbs || isEditingLayout) && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      Zapisz
+                      Podaj
                     </button>
                   </form>
                 </div>
@@ -1700,7 +1768,7 @@ export default function Dashboard({
                     type="number"
                     placeholder="Węgle g"
                     value={inlineBolusCarbs}
-                    onChange={(e) => setInlineBolusCarbs(e.target.value)}
+                    onChange={(e) => handleInlineBolusCarbsChange(e.target.value)}
                     disabled={isEditingLayout}
                     className="w-full px-3 py-1.5 rounded-xl bg-white/20 text-white placeholder-white/80 text-xs font-black border border-white/10 focus:outline-none focus:ring-1 focus:ring-white pr-6"
                   />
@@ -1730,7 +1798,7 @@ export default function Dashboard({
                     (!inlineBolusDose && !inlineBolusCarbs || isEditingLayout) && "opacity-50 cursor-not-allowed"
                   )}
                 >
-                  Zapisz
+                  Podaj
                 </button>
                 <button
                   type="button"
@@ -1980,7 +2048,14 @@ export default function Dashboard({
         </div>
         <div className="flex gap-2">
           <button 
-            onClick={() => { Haptics.light(); setIsEditingLayout(!isEditingLayout); }}
+            onClick={() => { 
+                Haptics.light(); 
+                if (isEditingLayout) {
+                    handleFinishEditing();
+                } else {
+                    setIsEditingLayout(true);
+                }
+            }}
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all active:scale-95 glass-target select-none",
               isEditingLayout
@@ -2033,7 +2108,7 @@ export default function Dashboard({
                 Domyślne
               </button>
               <button
-                onClick={() => { Haptics.medium(); setIsEditingLayout(false); toast.success("Zapisano układ!"); }}
+                onClick={handleFinishEditing}
                 className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-[9px] font-black uppercase tracking-tight transition-all active:scale-95 shadow-md shadow-indigo-600/10"
               >
                 Gotowe
@@ -2078,24 +2153,7 @@ export default function Dashboard({
               : "📐 Korzystasz z układu kafelkowego. Możesz układać kafelki przeciągając je za ikonę uchwytu lub używając strzałek! Kliknij przycisk „📐 [rozmiar]” przy kafelku, aby cyklicznie powiększyć lub pomniejszyć go (1x1 ➡️ 2x1 ➡️ 1x2 ➡️ 2x2)."}
           </p>
 
-          {movingWidgetId && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-3.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-[1.8rem] border border-amber-500/30 flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-wider animate-pulse"
-            >
-              <span className="flex items-center gap-2">
-                <Move size={12} />
-                Tryb Przenoszenia: Kliknij na dowolny inny kafel poniżej, aby umieścić tam kafel "{widgets.find(w => w.id === movingWidgetId)?.name}"!
-              </span>
-              <button 
-                onClick={() => setMovingWidgetId(null)}
-                className="px-2.5 py-1 bg-amber-500 text-white rounded-xl hover:bg-amber-600 text-[9px] font-black uppercase tracking-wider cursor-pointer active:scale-95 shrink-0"
-              >
-                Anuluj
-              </button>
-            </motion.div>
-          )}
+
 
           {widgets.some(w => !w.visible) && (
             <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-white/5">
@@ -2147,7 +2205,12 @@ export default function Dashboard({
       )}
 
       {/* 1. Main Stats Widget */}
-      <div className="grid grid-cols-2 grid-flow-row-dense gap-4 md:gap-6 min-h-[100px] px-1 pb-6">
+      <div className={cn(
+        "grid grid-cols-2 grid-flow-row-dense gap-4 md:gap-6 min-h-[100px] px-1 pb-6 transition-transform duration-300 transform-gpu origin-top",
+        (isEditingLayout && (movingWidgetId !== null || draggedIndex !== null)) ? "scale-[0.45] sm:scale-[0.5] translate-y-6 mb-32" : ""
+      )}
+      onDragOver={isEditingLayout ? handleDragOver : undefined}
+      >
         {widgets.filter(w => w.visible).length === 0 ? (
           <div className="col-span-2 py-12 px-6 text-center bg-slate-500/5 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-white/5 flex flex-col items-center justify-center min-h-[220px]">
             <span className="text-3xl block mb-2">📭</span>
@@ -2196,19 +2259,34 @@ export default function Dashboard({
              const isCurrentlyMovingTarget = movingWidgetId !== null && movingWidgetId !== w.id;
              
              return (
-               <motion.div 
+                 <motion.div 
                  key={w.id} 
                  layout
                  draggable={isEditingLayout && layoutMode === "grid"}
                  onDragStart={(e: any) => handleDragStart(e, index)}
+                 onDrag={(e: any) => {
+                   if (e.clientY) {
+                     const scrollThreshold = 120;
+                     const maxSpeed = 15;
+                     if (e.clientY < scrollThreshold) {
+                       const speed = Math.max(1, maxSpeed * (1 - e.clientY / scrollThreshold));
+                       window.scrollBy(0, -speed);
+                     } else if (window.innerHeight - e.clientY < scrollThreshold) {
+                       const distanceToBottom = window.innerHeight - e.clientY;
+                       const speed = Math.max(1, maxSpeed * (1 - distanceToBottom / scrollThreshold));
+                       window.scrollBy(0, speed);
+                     }
+                   }
+                 }}
                  onDragOver={handleDragOver}
                  onDragEnter={(e: any) => handleDragEnter(e, index)}
                  onDrop={(e: any) => handleDrop(e, index)}
                  onDragEnd={handleDragEnd as any}
                  onClick={isCurrentlyMovingTarget ? () => handlePlaceWidget(index) : undefined}
                  className={cn(
-                   "relative rounded-[2.6rem] transition-all overflow-hidden flex flex-col", widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
+                   "relative transition-all overflow-hidden flex flex-col", widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
                    widgetSize.startsWith('2') ? "col-span-2" : "col-span-1",
+                   "rounded-[2.6rem]",
                    (isEditingLayout && layoutMode === "grid") ? "border-2 border-dashed border-indigo-500/40 p-2.5 dark:bg-indigo-950/20 bg-indigo-50/20 min-h-[140px] flex flex-col cursor-grab active:cursor-grabbing hover:border-indigo-500/60" : "",
                    (isEditingLayout && layoutMode === "classic") ? "border-2 border-dashed border-slate-500/20 p-2.5 dark:bg-slate-950/20 bg-slate-50/10 min-h-[110px] flex flex-col" : "",
                    isCurrentlyMovingTarget ? "cursor-pointer scale-[0.98] border-2 border-dashed border-amber-500/50 bg-amber-500/5 animate-pulse" : "",
@@ -2233,54 +2311,61 @@ export default function Dashboard({
                          <Plus size={10} className="rotate-45" />
                        </button>
                      </div>
-                     <div className={cn("flex items-center justify-between gap-1 w-full", layoutMode !== "grid" && "hidden")}>
-                       <div className="flex items-center gap-1">
-                         <button
-                           onClick={() => setMovingWidgetId(movingWidgetId === w.id ? null : w.id)}
-                           className={cn("p-1.5 rounded-lg text-white transition-all active:scale-90", movingWidgetId === w.id ? "bg-amber-500 text-slate-950" : "bg-white/10 hover:bg-white/20")}
-                           title={movingWidgetId === w.id ? "Anuluj przenoszenie" : "Rozpocznij przenoszenie (oraz kliknij cel poniżej)"}
-                         >
-                           <Move size={10} />
-                         </button>
-                         <button
-                           disabled={isFirstActive}
-                           onClick={() => moveWidget(index, 'up')}
-                           className="p-1 hover:bg-white/15 rounded-lg disabled:opacity-20 disabled:hover:bg-transparent transition-all text-white active:scale-90"
-                           title="Przesuń wyżej"
-                         >
-                           <ArrowUp size={10} />
-                         </button>
-                         <button
-                           disabled={isLastActive}
-                           onClick={() => moveWidget(index, 'down')}
-                           className="p-1 hover:bg-white/15 rounded-lg disabled:opacity-20 disabled:hover:bg-transparent transition-all text-white active:scale-90"
-                           title="Przesuń niżej"
-                         >
-                           <ArrowDown size={10} />
-                         </button>
+                     <div className={cn("flex flex-wrap items-center justify-between gap-1.5 w-full mt-1.5", layoutMode !== "grid" && "hidden")}>
+                       <div className="flex items-center gap-1 w-full justify-between">
+                         {w.canResize && (
+                           <button
+                             onClick={() => cycleWidgetSize(w.id)}
+                             className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-[8px] font-black uppercase tracking-wider active:scale-90 flex items-center gap-1 text-white shadow-sm shrink-0"
+                             title="Zmień rozmiar"
+                           >
+                             📐 {w.size}
+                           </button>
+                         )}
+                         {w.canChangeShape && (
+                           <button
+                             onClick={() => cycleWidgetShape(w.id)}
+                             className="px-2 py-1 bg-pink-500 hover:bg-pink-600 rounded-lg text-[8px] font-black uppercase tracking-wider active:scale-90 flex items-center gap-1 text-white shadow-sm shrink-0"
+                             title="Zmień kształt"
+                           >
+                             ✨ {(!w.shape || w.shape === "default") ? "standardowy" : w.shape === "circle" ? "pigułka" : w.shape === "leaf" ? "liść" : w.shape === "leaf-mirror" ? "liść (odbity)" : "dysk"}
+                           </button>
+                         )}
                        </div>
-                       {w.canResize && layoutMode === "grid" && (
-                         <button
-                           onClick={() => cycleWidgetSize(w.id)}
-                           className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-[8px] font-black uppercase tracking-wider active:scale-90 flex items-center gap-1 text-white shadow-sm shrink-0"
-                           title="Zmień rozmiar (cykl: 1x1 ➡️ 2x1 ➡️ 1x2 ➡️ 2x2)"
-                         >
-                           📐 {w.size}
-                         </button>
-                       )}
                      </div>
                    </div>
                  )}
                  
-                 <div className="flex-1 w-full">
+                 <div className={cn("flex-1 w-full flex flex-col justify-center transition-all duration-500 h-full",
+                      w.shape === "circle" && "[&>div:first-child]:!rounded-[200px] [&>button:first-child]:!rounded-[200px] [&>button:first-child]:aspect-square [&>div:first-child]:aspect-square px-1",
+                      w.shape === "leaf" && "[&>div:first-child]:!rounded-tl-[3.5rem] [&>div:first-child]:!rounded-br-[3.5rem] [&>div:first-child]:!rounded-tr-[1.2rem] [&>div:first-child]:!rounded-bl-[1.2rem] [&>button:first-child]:!rounded-tl-[3.5rem] [&>button:first-child]:!rounded-br-[3.5rem] [&>button:first-child]:!rounded-tr-[1.2rem] [&>button:first-child]:!rounded-bl-[1.2rem] [&>button:first-child]:aspect-square [&>div:first-child]:aspect-square px-1",
+                      w.shape === "leaf-mirror" && "[&>div:first-child]:!rounded-tr-[3.5rem] [&>div:first-child]:!rounded-bl-[3.5rem] [&>div:first-child]:!rounded-tl-[1.2rem] [&>div:first-child]:!rounded-br-[1.2rem] [&>button:first-child]:!rounded-tr-[3.5rem] [&>button:first-child]:!rounded-bl-[3.5rem] [&>button:first-child]:!rounded-tl-[1.2rem] [&>button:first-child]:!rounded-br-[1.2rem] [&>button:first-child]:aspect-square [&>div:first-child]:aspect-square px-1",
+                      w.shape === "diamond" && "[&>div:first-child]:!rounded-[2.4rem] [&>button:first-child]:!rounded-[2.4rem] scale-[0.98] rotate-[0.5deg]"
+                  )}>
                    {renderWidget(w.id, widgetSize)}
                  </div>
                </motion.div>
              );
           })
         )}
+        {isEditingLayout && layoutMode === "grid" && (
+           <div
+             onDragOver={handleDragOver}
+             onDragEnter={(e: any) => handleDragEnter(e, widgets.length)}
+             onDrop={(e: any) => handleDrop(e, widgets.length)}
+             onClick={movingWidgetId ? () => handlePlaceWidget(widgets.length) : undefined}
+             className={cn(
+               "relative rounded-[2.6rem] border-2 border-dashed border-slate-500/30 p-2.5 dark:bg-slate-950/20 bg-slate-50/10 min-h-[140px] flex flex-col items-center justify-center opacity-50 hover:opacity-100 transition-all cursor-pointer col-span-1",
+               draggedIndex === widgets.length ? "border-indigo-400 bg-indigo-500/5 ring-4 ring-indigo-500/20 opacity-100 scale-95" : "",
+               movingWidgetId ? "ring-4 ring-amber-500/60 border-amber-500/50 bg-amber-500/5 animate-pulse" : ""
+             )}
+           >
+             <Plus size={24} className="text-slate-400 mb-2 opacity-50" />
+             <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 text-center leading-tight">Wolne<br/>miejsce</span>
+           </div>
+        )}
       </div>
-      
+
       {/* Dynamic Grid replaced all static elements below. We keep the overlay modals. */}
       {false && (
         <>
@@ -2500,13 +2585,13 @@ export default function Dashboard({
               Haptics.light();
               setIsGlucoseModalOpen(true);
             }}
-            className="glass-card h-32 flex flex-col items-center justify-center gap-3 active:scale-95 group relative overflow-hidden border border-white/50 dark:border-white/5 shadow-2xl transition-all"
+            className="bg-rose-500 h-32 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-2xl shadow-rose-500/40 active:scale-95 group transition-all text-white overflow-hidden relative"
           >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-[40px] -mr-12 -mt-12 group-hover:bg-rose-500/10 transition-all"></div>
-            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-              <Shield size={32} />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all"></div>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+              <Droplet size={32} strokeWidth={2.5} />
             </div>
-            <span className="font-black text-[11px] uppercase tracking-widest text-slate-600 dark:text-slate-300 font-display">Pomiar</span>
+            <span className="font-black text-[11px] uppercase tracking-widest font-display">Pomiar</span>
           </button>
 
           <button

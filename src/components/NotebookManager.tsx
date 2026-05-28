@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Book, X, Plus, Trash, Clock, Save, Bell } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { getEffectiveUid } from '../lib/utils';
 import { cn } from '../lib/utils';
 
@@ -25,7 +25,11 @@ export default function NotebookManager({ user }: { user: any }) {
   useEffect(() => {
     if (!user) return;
     const uid = getEffectiveUid(user);
-    const q = collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'notebook');
+    const q = query(
+      collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'notebook'),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
     const unsub = onSnapshot(q, (snapshot) => {
       const arr: Note[] = [];
       snapshot.forEach(d => {

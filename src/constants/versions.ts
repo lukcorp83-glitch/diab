@@ -7,6 +7,16 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: "4.1.1",
+    date: "2026-05-28",
+    title: "Najnowsza Wersja 4.1.1",
+    changes: [
+      "Nowość! ✨ Możesz teraz zmieniać kształt wybranych ikon i kafelków na pulpicie, dopasowując go bardziej do własnych upodobań.",
+      "Ulepszono działanie i płynność edycji pulpitu oraz znacznie zoptymalizowano zapisy jego układu w chmurze (Firebase).",
+      "Usprawniono proces pobierania najnowszych aktualizacji dla wydania APK aplikacji.",
+    ]
+  },
+  {
     version: "4.1",
     date: "2026-05-27",
     title: "Najnowsza Wersja 4.1",
@@ -242,4 +252,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "4.1";
+export const CURRENT_VERSION = "4.1.1";

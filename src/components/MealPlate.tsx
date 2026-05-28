@@ -43,6 +43,7 @@ import {
   collection,
   query,
   onSnapshot,
+  limit,
   addDoc,
   deleteDoc,
   doc,
@@ -204,6 +205,7 @@ export default function MealPlate({
 
     const q2 = query(
       collection(db, "artifacts", "diacontrolapp", "communityProducts"),
+      limit(200)
     );
     const unsubscribe2 = onSnapshot(
       q2,

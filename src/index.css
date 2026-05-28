@@ -385,10 +385,12 @@ body {
   --app-bg-dark: #121318;
 }
 
-:root[data-material3="true"] .bg-slate-50,
-:root[data-material3="true"] .bg-slate-100 {
+:root[data-material3="true"]:not(.dark) .bg-slate-50,
+:root[data-material3="true"]:not(.dark) .bg-slate-100 {
   background-color: var(--app-accent-50) !important;
 }
+:root[data-material3="true"].dark .bg-slate-50,
+:root[data-material3="true"].dark .bg-slate-100,
 :root[data-material3="true"].dark .dark\:bg-slate-800 {
   background-color: #1e1f26 !important;
 }
@@ -397,32 +399,39 @@ body {
 }
 
 /* Remove default borders and rely on tonal contrast */
-:root[data-material3="true"] .border-slate-200,
-:root[data-material3="true"] .border-slate-100,
-:root[data-material3="true"] .border-slate-200\/60,
-:root[data-material3="true"] .dark\:border-slate-700,
-:root[data-material3="true"] .dark\:border-slate-800,
-:root[data-material3="true"] .dark\:border-slate-700\/50,
-:root[data-material3="true"] .dark\:border-slate-800\/50 {
+:root[data-material3="true"]:not(.dark) .border-slate-200,
+:root[data-material3="true"]:not(.dark) .border-slate-100,
+:root[data-material3="true"]:not(.dark) .border-slate-200\/60 {
+  border-color: transparent !important;
+}
+:root[data-material3="true"].dark .border-slate-200,
+:root[data-material3="true"].dark .border-slate-100,
+:root[data-material3="true"].dark .border-slate-200\/60,
+:root[data-material3="true"].dark .dark\:border-slate-700,
+:root[data-material3="true"].dark .dark\:border-slate-800,
+:root[data-material3="true"].dark .dark\:border-slate-700\/50,
+:root[data-material3="true"].dark .dark\:border-slate-800\/50 {
   border-color: transparent !important;
 }
 
 /* M3 Elevated cards instead of borders */
-:root[data-material3="true"] .bg-white {
+:root[data-material3="true"]:not(.dark) .bg-white {
   box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
 }
+:root[data-material3="true"].dark .bg-white,
 :root[data-material3="true"].dark .dark\:bg-slate-900,
 :root[data-material3="true"].dark .dark\:bg-slate-800 {
+  background-color: #191a20 !important;
   box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* M3 Input Fields (Outlined Variant) */
-:root[data-material3="true"] input[type="text"],
-:root[data-material3="true"] input[type="number"],
-:root[data-material3="true"] input[type="password"],
-:root[data-material3="true"] input[type="datetime-local"],
-:root[data-material3="true"] select,
-:root[data-material3="true"] textarea {
+:root[data-material3="true"]:not(.dark) input[type="text"],
+:root[data-material3="true"]:not(.dark) input[type="number"],
+:root[data-material3="true"]:not(.dark) input[type="password"],
+:root[data-material3="true"]:not(.dark) input[type="datetime-local"],
+:root[data-material3="true"]:not(.dark) select,
+:root[data-material3="true"]:not(.dark) textarea {
   border-radius: 0.25rem !important;
   border: 1px solid var(--app-accent-300) !important;
   background-color: transparent !important;
@@ -435,7 +444,10 @@ body {
 :root[data-material3="true"].dark input[type="datetime-local"],
 :root[data-material3="true"].dark select,
 :root[data-material3="true"].dark textarea {
+  border-radius: 0.25rem !important;
   border: 1px solid var(--app-accent-800) !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
 
 :root[data-material3="true"] input:focus,

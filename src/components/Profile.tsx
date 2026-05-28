@@ -1572,22 +1572,26 @@ export default function Profile({
                   id: "tutorial",
                   label: "Samouczek",
                   icon: <HelpCircle size={14} />,
+                  color: "text-indigo-500 bg-indigo-500/10",
                 },
                 {
                   id: "simulator",
                   label: "Symulator",
                   icon: <Calculator size={14} />,
+                  color: "text-orange-500 bg-orange-500/10",
                 },
-                { id: "account", label: "Profil", icon: <User size={14} /> },
+                { id: "account", label: "Profil", icon: <User size={14} />, color: "text-blue-500 bg-blue-500/10" },
                 {
                   id: "therapy",
                   label: "Terapia",
                   icon: <Activity size={14} />,
+                  color: "text-emerald-500 bg-emerald-500/10",
                 },
                 {
                   id: "training",
                   label: "Trening",
                   icon: <Dumbbell size={14} />,
+                  color: "text-emerald-500 bg-emerald-500/10",
                 },
                 ...(settings.childMode
                   ? [
@@ -1595,25 +1599,28 @@ export default function Profile({
                         id: "shop",
                         label: "Sklepik",
                         icon: <ShoppingBag size={14} />,
+                        color: "text-amber-500 bg-amber-500/10",
                       },
                     ]
                   : []),
-                { id: "devices", label: "Osprzęt", icon: <Signal size={14} /> },
-                { id: "diets", label: "Diety", icon: <BookOpen size={14} /> },
+                { id: "devices", label: "Osprzęt", icon: <Signal size={14} />, color: "text-indigo-500 bg-indigo-500/10" },
+                { id: "diets", label: "Diety", icon: <BookOpen size={14} />, color: "text-rose-500 bg-rose-500/10" },
                 {
                   id: "stats",
                   label: "Statystyki",
                   icon: <BarChart2 size={14} />,
+                  color: "text-indigo-600 bg-indigo-600/10",
                 },
-                { id: "food", label: "Skróty", icon: <Utensils size={14} /> },
-                { id: "meds", label: "Leki", icon: <Pill size={14} /> },
-                { id: "api", label: "API", icon: <Globe size={14} /> },
+                { id: "food", label: "Skróty", icon: <Utensils size={14} />, color: "text-amber-500 bg-amber-500/10" },
+                { id: "meds", label: "Leki", icon: <Pill size={14} />, color: "text-teal-500 bg-teal-500/10" },
+                { id: "api", label: "API", icon: <Globe size={14} />, color: "text-sky-500 bg-sky-500/10" },
                 {
                   id: "android",
                   label: "Aplikacja",
                   icon: <Smartphone size={14} />,
+                  color: "text-green-500 bg-green-500/10",
                 },
-                { id: "system", label: "System", icon: <Settings size={14} /> },
+                { id: "system", label: "System", icon: <Settings size={14} />, color: "text-slate-500 bg-slate-500/10" },
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -1622,7 +1629,7 @@ export default function Profile({
                     setActiveCategory(cat.id);
                   }}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 rounded-2xl text-[10px] font-bold transition-all whitespace-nowrap",
+                    "flex items-center gap-2 px-3 py-2 rounded-2xl text-[10px] font-bold transition-all whitespace-nowrap",
                     activeCategory === cat.id
                       ? settings.glassmorphismEnabled
                         ? "bg-white/20 dark:bg-slate-700/30 shadow-sm text-slate-900 dark:text-white border border-white/20 dark:border-white/5"
@@ -1632,7 +1639,7 @@ export default function Profile({
                         : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300",
                   )}
                 >
-                  <span className="opacity-70">{cat.icon}</span>
+                  <span className={cn("p-1.5 flex items-center justify-center rounded-xl shrink-0 opacity-100", cat.color)}>{cat.icon}</span>
                   <span className="uppercase tracking-widest leading-none flex items-center gap-1.5">
                     {cat.label}
                     {cat.id === "android" && (
@@ -5383,14 +5390,38 @@ export default function Profile({
                   </div>
 
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (navigator.vibrate) navigator.vibrate(50);
                       setUpdateLoading(true);
-                      setCleaningResult("Szukanie aktualizacji...");
-                      setTimeout(() => {
-                        toast.success(`Wersja ${APP_VERSION} jest aktualna.`);
-                        setTimeout(() => window.location.reload(), 1000);
-                      }, 1500);
+                      setCleaningResult("Czyszczenie pamięci podręcznej powłoki (PWA)...");
+                      
+                      try {
+                        if ('serviceWorker' in navigator) {
+                          const registrations = await navigator.serviceWorker.getRegistrations();
+                          for (const registration of registrations) {
+                            await registration.unregister();
+                          }
+                        }
+                        
+                        if ('caches' in window) {
+                          const cacheNames = await caches.keys();
+                          for (const cacheName of cacheNames) {
+                            await caches.delete(cacheName);
+                          }
+                        }
+
+                        toast.success(`Zaktualizowano pliki PWA. Trwa restartowanie aplikacji...`);
+                        
+                        setTimeout(() => {
+                          window.location.href = window.location.href.split('?')[0] + '?update=' + new Date().getTime();
+                        }, 1500);
+
+                      } catch (err) {
+                        console.error('Błąd aktualizacji PWA:', err);
+                        toast.error('Wystąpił problem podczas próby wymuszenia aktualizacji.');
+                        setUpdateLoading(false);
+                        setCleaningResult("");
+                      }
                     }}
                     disabled={updateLoading}
                     className="flex-1 bg-slate-50 dark:bg-slate-800 border border-transparent text-slate-500 dark:text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2 glass-target"
