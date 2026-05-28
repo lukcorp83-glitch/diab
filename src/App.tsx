@@ -85,6 +85,8 @@ import Dashboard from "./components/Dashboard";
 import ChartFullView from "./components/ChartFullView";
 import { LocalErrorBoundary } from "./components/LocalErrorBoundary";
 
+import { saveLocalLogs, loadLocalLogs } from "./lib/localLogs";
+
 const lazyWithReload = (importFunc: () => Promise<any>) => {
   return React.lazy(async () => {
     try {
@@ -225,28 +227,45 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [pumpStatus, setPumpStatus] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [cachedLogs, setCachedLogs] = useState<LogEntry[]>([]);
   const [fbLogs, setFbLogs] = useState<LogEntry[]>([]);
   const [nsLogs, setNsLogs] = useState<LogEntry[]>([]);
 
+  // Wczytywanie z lokalnej bazy na start
+  useEffect(() => {
+    loadLocalLogs().then(logs => setCachedLogs(logs)).catch(console.error);
+  }, []);
+
   const logs = useMemo(() => {
-    const all = [...fbLogs, ...nsLogs];
-    const unique: LogEntry[] = [];
+    const all = [...cachedLogs, ...fbLogs, ...nsLogs];
+    const uniqueMap = new Map<string, LogEntry>();
+    
     all.forEach((a) => {
-      if (
-        !unique.some(
-          (u) =>
-            (u.id && a.id && u.id === a.id) ||
-            (u.nsId && a.nsId && u.nsId === a.nsId) ||
-            (u.type === a.type &&
-              Math.abs(u.timestamp - a.timestamp) < 60000 &&
-              Math.abs(u.value - a.value) < 0.1),
-        )
-      ) {
-        unique.push(a);
+      // Create a unique key for grouping.
+      // Priority: id > nsId > type+timestamp(rounded)+value(rounded)
+      let key = "";
+      if (a.id) key = a.id;
+      else if (a.nsId) key = a.nsId;
+      else key = `${a.type}_${Math.floor(a.timestamp / 60000)}_${a.value.toFixed(1)}`;
+      
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, a);
       }
     });
-    return unique.sort((a, b) => b.timestamp - a.timestamp);
-  }, [fbLogs, nsLogs]);
+
+    const uniqueLogs = Array.from(uniqueMap.values());
+    uniqueLogs.sort((a, b) => b.timestamp - a.timestamp);
+    
+    return uniqueLogs;
+  }, [cachedLogs, fbLogs, nsLogs]);
+
+  // Zapisy do IDB za każdym razem gdy zmieni się docelowy useMemo logs
+  // Żeby nie dusić wątku głównego:
+  useEffect(() => {
+    if (logs.length > 0) {
+      saveLocalLogs(logs.slice(0, 15000)).catch(console.error);
+    }
+  }, [logs]);
 
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");

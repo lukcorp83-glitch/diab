@@ -10,7 +10,9 @@
     "test:login": "tsx test_cl.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "sync": "npx cap sync",
+    "build:android": "npm run build && npx cap sync"
   },
   "dependencies": {
     "@capacitor-firebase/authentication": "^6.3.1",
