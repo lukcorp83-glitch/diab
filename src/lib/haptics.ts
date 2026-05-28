@@ -1,15 +1,38 @@
 import { Haptics as CapHaptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+const AndroidHaptic = registerPlugin<any>('AndroidHaptic');
 
 const isEnabled = () => {
   if (typeof window === 'undefined') return false;
   return localStorage.getItem('gliko_haptics_enabled') !== 'false';
 };
 
+const triggerAndroidHaptic = async (type: 'tick' | 'click' | 'heavy') => {
+  try {
+    if (type === 'tick') {
+      await AndroidHaptic.tick();
+    } else if (type === 'click') {
+      await AndroidHaptic.click();
+    } else if (type === 'heavy') {
+      await AndroidHaptic.heavyClick();
+    }
+  } catch (err) {
+    console.warn("Failed to trigger native Android haptics, falling back:", err);
+    throw err;
+  }
+};
+
 export const Haptics = {
   light: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await triggerAndroidHaptic('tick');
+          return;
+        } catch (ignored) {}
+      }
       await CapHaptics.impact({ style: ImpactStyle.Light });
     } else if ('vibrate' in navigator) {
       navigator.vibrate(8);
@@ -18,6 +41,12 @@ export const Haptics = {
   medium: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await triggerAndroidHaptic('click');
+          return;
+        } catch (ignored) {}
+      }
       await CapHaptics.impact({ style: ImpactStyle.Medium });
     } else if ('vibrate' in navigator) {
       navigator.vibrate(15);
@@ -26,10 +55,49 @@ export const Haptics = {
   selection: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await triggerAndroidHaptic('tick');
+          return;
+        } catch (ignored) {}
+      }
       await CapHaptics.selectionStart();
+      await CapHaptics.selectionChanged();
+      await CapHaptics.selectionEnd();
+    } else if ('vibrate' in navigator) {
+      navigator.vibrate(5);
+    }
+  },
+  selectionStart: async () => {
+    if (!isEnabled()) return;
+    if (Capacitor.isNativePlatform()) {
+      if (Capacitor.getPlatform() === 'android') {
+        return;
+      }
+      await CapHaptics.selectionStart();
+    }
+  },
+  selectionChanged: async () => {
+    if (!isEnabled()) return;
+    if (Capacitor.isNativePlatform()) {
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await triggerAndroidHaptic('tick');
+          return;
+        } catch (ignored) {}
+      }
       await CapHaptics.selectionChanged();
     } else if ('vibrate' in navigator) {
       navigator.vibrate(5);
+    }
+  },
+  selectionEnd: async () => {
+    if (!isEnabled()) return;
+    if (Capacitor.isNativePlatform()) {
+      if (Capacitor.getPlatform() === 'android') {
+        return;
+      }
+      await CapHaptics.selectionEnd();
     }
   },
   success: async () => {
@@ -59,6 +127,12 @@ export const Haptics = {
   impact: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await triggerAndroidHaptic('heavy');
+          return;
+        } catch (ignored) {}
+      }
       await CapHaptics.impact({ style: ImpactStyle.Heavy });
     } else if ('vibrate' in navigator) {
       navigator.vibrate(40);
@@ -67,9 +141,15 @@ export const Haptics = {
   tick: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {
-      await CapHaptics.impact({ style: ImpactStyle.Light });
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await triggerAndroidHaptic('tick');
+          return;
+        } catch (ignored) {}
+      }
+      await CapHaptics.selectionChanged();
     } else if ('vibrate' in navigator) {
-      navigator.vibrate(10);
+      navigator.vibrate(4);
     }
   }
 };

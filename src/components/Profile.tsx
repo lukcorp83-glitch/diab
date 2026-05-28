@@ -1,6 +1,7 @@
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
 import { Haptics } from "../lib/haptics";
+import { healthService } from "../services/healthService";
 import { toast } from "react-hot-toast";
 import { getEffectiveUid, cn, isNativeApp } from "../lib/utils";
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -124,6 +125,23 @@ export default function Profile({
   settings: initialSettings,
 }: ProfileProps) {
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
+  const [widgetDebug, setWidgetDebug] = useState<any>(null);
+
+  const fetchWidgetDebug = async () => {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      const { registerPlugin } = await import('@capacitor/core');
+      const WidgetUpdater = registerPlugin<any>('WidgetUpdater');
+      const info = await WidgetUpdater.getDebugInfo();
+      setWidgetDebug(info);
+    } catch (e) {
+      console.warn("Failed to get widget debug info:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchWidgetDebug();
+  }, []);
 
   useEffect(() => {
     setSettings(initialSettings);
@@ -1348,6 +1366,25 @@ export default function Profile({
           secret: nsSecret.trim(),
         },
       );
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { registerPlugin } = await import('@capacitor/core');
+          const WidgetUpdater = registerPlugin<any>('WidgetUpdater');
+          const minVal = settings.targetMin ?? 70;
+          const maxVal = settings.targetMax ?? 140;
+          await WidgetUpdater.update({
+            url: cleanUrl,
+            secret: nsSecret.trim(),
+            targetMin: String(minVal),
+            targetMax: String(maxVal)
+          });
+          console.log("Natywna synchronizacja ustawień zakończona sukcesem");
+        } catch (err) {
+          console.error("Błąd synchronizacji z wtyczką widgetów:", err);
+        }
+      }
+
       setSaveStatus("Zapisano pomyślnie!");
       setTimeout(() => setSaveStatus(""), 3000);
     } catch (e) {
@@ -4530,7 +4567,189 @@ export default function Profile({
                   </button>
                 </div>
               </div>
+              
+              {/* Sekcja Diagnostyki Widgetów (Tylko na Androidzie) */}
+              {Capacitor.isNativePlatform() && (
+                <div
+                  className={cn(
+                    "p-4 rounded-2xl border space-y-3",
+                    settings.glassmorphismEnabled
+                      ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                      : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+                  )}
+                >
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Signal size={12} /> Diagnostyka Widżetów
+                  </p>
+                  
+                  {widgetDebug ? (
+                    <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                      <div className="flex justify-between">
+                        <span>Status widgetu:</span>
+                        <span className={cn(
+                          "font-black uppercase",
+                          widgetDebug.lastSyncStatus === "SUCCESS" ? "text-emerald-500" :
+                          widgetDebug.lastSyncStatus === "NO_URL" ? "text-amber-500" : "text-rose-500"
+                        )}>
+                          {widgetDebug.lastSyncStatus === "SUCCESS" ? "Połączono" :
+                           widgetDebug.lastSyncStatus === "NO_URL" ? "Brak adresu" : "Błąd połączenia"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Ostatnia próba:</span>
+                        <span className="font-bold">{widgetDebug.lastSyncTime}</span>
+                      </div>
+                      {widgetDebug.lastUrlUsed && (
+                        <div className="text-[10px] text-slate-400 break-all select-all text-left">
+                          URL: {widgetDebug.lastUrlUsed}
+                        </div>
+                      )}
+                      {widgetDebug.lastSyncCode !== 0 && (
+                        <div className="flex justify-between">
+                          <span>Kod HTTP:</span>
+                          <span className="font-bold">{widgetDebug.lastSyncCode}</span>
+                        </div>
+                      )}
+                      {widgetDebug.lastSyncError && (
+                        <div className="p-2 mt-1 rounded bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] leading-relaxed break-all text-left">
+                          Błąd: {widgetDebug.lastSyncError}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 text-left">Brak danych diagnostycznych. Wykonaj test połączenia.</p>
+                  )}
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={async () => {
+                        setNsSyncLoading(true);
+                        await saveNsUrl(); // Zapisuje i wywołuje natychmiastową synchronizację widgetu przez wtyczkę
+                        setTimeout(async () => {
+                          await fetchWidgetDebug();
+                          setNsSyncLoading(false);
+                          toast.success("Zakończono test widgetów", { icon: "⚙️" });
+                        }, 2500);
+                      }}
+                      disabled={nsSyncLoading}
+                      className="flex items-center gap-2 text-[10px] font-black text-accent-500 uppercase tracking-widest hover:text-accent-600 active:scale-95 transition-all"
+                    >
+                      <RefreshCw
+                        size={12}
+                        className={cn(nsSyncLoading && "animate-spin")}
+                      />
+                      Testuj połączenie
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+
+          {/* Health Connect Integration Card */}
+          {Capacitor.isNativePlatform() && (
+            <div
+              className={cn(
+                "rounded-[2.5rem] p-6 border shadow-xl space-y-4",
+                settings.glassmorphismEnabled
+                  ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                  : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800",
+              )}
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-emerald-500/10 p-3 rounded-2xl text-emerald-500">
+                  <Activity size={24} />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm uppercase tracking-wider dark:text-white leading-none">
+                    Google Health Connect
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    Systemowa Baza Zdrowia
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed text-left">
+                Synchronizuj dane o aktywności (kroki) oraz wpisy glikemii bezpośrednio z systemową bazą danych Health Connect na swoim telefonie.
+              </p>
+
+              <div className="space-y-4 pt-2">
+                {/* Toggle Kroki */}
+                <div className="flex items-center justify-between">
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase dark:text-white">Odczyt kroków (Aktywność)</p>
+                    <p className="text-[9px] text-slate-400">Pobiera liczbę kroków z ostatnich 24h</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const isSyncSteps = !settings.healthConnectSyncSteps;
+                      const updated = { ...settings, healthConnectSyncSteps: isSyncSteps };
+                      setSettings(updated);
+                      await setDoc(
+                        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "general"),
+                        { healthConnectSyncSteps: isSyncSteps },
+                        { merge: true }
+                      );
+                    }}
+                    className={cn(
+                      "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
+                      settings.healthConnectSyncSteps ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                        settings.healthConnectSyncSteps ? "translate-x-6" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Toggle Glikemia */}
+                <div className="flex items-center justify-between">
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase dark:text-white">Zapis glikemii</p>
+                    <p className="text-[9px] text-slate-400">Zapisuje nowe odczyty cukru w Health Connect</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const isSyncGlucose = !settings.healthConnectSyncGlucose;
+                      const updated = { ...settings, healthConnectSyncGlucose: isSyncGlucose };
+                      setSettings(updated);
+                      await setDoc(
+                        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "general"),
+                        { healthConnectSyncGlucose: isSyncGlucose },
+                        { merge: true }
+                      );
+                    }}
+                    className={cn(
+                      "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
+                      settings.healthConnectSyncGlucose ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                        settings.healthConnectSyncGlucose ? "translate-x-6" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  const granted = await healthService.requestAuthorization();
+                  if (granted) {
+                    toast.success("Połączono pomyślnie z Health Connect!");
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-md transition-colors"
+              >
+                Połącz i nadaj uprawnienia
+              </button>
+            </div>
+          )}
 
             <CgmImport
               user={user}
@@ -5393,34 +5612,37 @@ export default function Profile({
                     onClick={async () => {
                       if (navigator.vibrate) navigator.vibrate(50);
                       setUpdateLoading(true);
-                      setCleaningResult("Czyszczenie pamięci podręcznej powłoki (PWA)...");
+                      setCleaningResult("Czyszczenie pamięci podręcznej i sprawdzanie aktualizacji...");
                       
                       try {
-                        if ('serviceWorker' in navigator) {
-                          const registrations = await navigator.serviceWorker.getRegistrations();
-                          for (const registration of registrations) {
-                            await registration.unregister();
-                          }
-                        }
-                        
+                        // 1. Clear all Cache Storage
                         if ('caches' in window) {
                           const cacheNames = await caches.keys();
-                          for (const cacheName of cacheNames) {
-                            await caches.delete(cacheName);
-                          }
+                          await Promise.all(
+                            cacheNames.map(name => caches.delete(name))
+                          );
                         }
 
-                        toast.success(`Zaktualizowano pliki PWA. Trwa restartowanie aplikacji...`);
+                        // 2. Unregister all Service Workers
+                        if ('serviceWorker' in navigator) {
+                          const registrations = await navigator.serviceWorker.getRegistrations();
+                          await Promise.all(
+                            registrations.map(reg => reg.unregister())
+                          );
+                        }
+
+                        toast.success("Pamięć podręczna wyczyszczona. Trwa pobieranie nowej wersji...");
+                        setCleaningResult("Ładowanie nowej wersji...");
                         
                         setTimeout(() => {
-                          window.location.href = window.location.href.split('?')[0] + '?update=' + new Date().getTime();
-                        }, 1500);
-
+                          window.location.reload();
+                        }, 1000);
                       } catch (err) {
-                        console.error('Błąd aktualizacji PWA:', err);
-                        toast.error('Wystąpił problem podczas próby wymuszenia aktualizacji.');
-                        setUpdateLoading(false);
-                        setCleaningResult("");
+                        console.error("Błąd podczas aktualizacji PWA:", err);
+                        toast.error("Wystąpił błąd podczas czyszczenia pamięci podręcznej.");
+                        setTimeout(() => {
+                          window.location.reload();
+                        }, 1000);
                       }
                     }}
                     disabled={updateLoading}

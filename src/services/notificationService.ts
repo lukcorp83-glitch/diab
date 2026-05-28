@@ -37,6 +37,7 @@ export const notificationService = {
       if (Capacitor.isNativePlatform()) {
         const result = await PushNotifications.requestPermissions();
         if (result.receive === 'granted') {
+          await PushNotifications.removeAllListeners();
           return new Promise((resolve) => {
              PushNotifications.addListener('registration', async (token) => {
                 console.log('Native Push Registration token:', token.value);
@@ -46,6 +47,21 @@ export const notificationService = {
              PushNotifications.addListener('registrationError', (error: any) => {
                 console.error('Native Push registration error:', error);
                 resolve(null);
+             });
+             PushNotifications.addListener('pushNotificationReceived', (notification) => {
+                console.log('Push received in foreground:', notification);
+                const body = notification.body || '';
+                import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
+                    Haptics.impact({ style: ImpactStyle.Heavy });
+                }).catch(() => {
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                });
+                toast(body, { 
+                  icon: '⚠️', 
+                  duration: 20000, 
+                  position: 'top-center',
+                  style: { border: '2px solid #f43f5e', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
+                });
              });
              PushNotifications.register();
           });
@@ -189,24 +205,7 @@ export const notificationService = {
 
   async setupForegroundListener() {
     if (Capacitor.isNativePlatform()) {
-      PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('Push received in foreground:', notification);
-        const title = notification.title || 'GlikoSense';
-        const body = notification.body || '';
-
-        import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
-            Haptics.impact({ style: ImpactStyle.Heavy });
-        }).catch(() => {
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        });
-
-        toast(body, { 
-          icon: '⚠️', 
-          duration: 20000, 
-          position: 'top-center',
-          style: { border: '2px solid #f43f5e', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
-        });
-      });
+      // Listeners are added inside registerToken() to avoid duplicates
       return;
     }
 

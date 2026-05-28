@@ -5,7 +5,7 @@ import {
   getEffectiveIOB,
   getMealAbsorptionTime,
 } from "./lib/utils";
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -128,6 +128,7 @@ import Sidebar from "./components/Sidebar";
 import { cn } from "./lib/utils";
 import { nightscoutService } from "./services/nightscout";
 import { maintenanceService } from "./services/maintenanceService";
+import { healthService } from "./services/healthService";
 
 import Logo from "./components/Logo";
 
@@ -1248,7 +1249,8 @@ export default function App() {
                   body: alertBody,
                   id: Math.floor(Math.random() * 100000),
                   schedule: { at: new Date() },
-                  sound: null,
+                  channelId: "glucose_alerts_v2",
+                  sound: "critical_alarm",
                   attachments: null,
                   actionTypeId: "",
                   extra: null
@@ -1458,6 +1460,72 @@ export default function App() {
   useEffect(() => {
     userSettingsRef.current = userSettings;
   }, [userSettings]);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const syncWidgetPreferences = async () => {
+      if (!Capacitor.isNativePlatform()) return;
+      try {
+        const WidgetUpdater = registerPlugin<any>('WidgetUpdater');
+        const minVal = userSettings?.targetMin ?? 70;
+        const maxVal = userSettings?.targetMax ?? 140;
+        
+        await WidgetUpdater.update({
+          url: nsUrl || "",
+          secret: nsSecret || "",
+          targetMin: String(minVal),
+          targetMax: String(maxVal)
+        });
+        console.log("Widget preferences synced to Android successfully: URL =", nsUrl, "min =", minVal, "max =", maxVal);
+      } catch (err) {
+        console.error("Failed to sync widget preferences to Android:", err);
+      }
+    };
+
+    const timeout = setTimeout(syncWidgetPreferences, 1000);
+    return () => clearTimeout(timeout);
+  }, [user, nsUrl, nsSecret, userSettings?.targetMin, userSettings?.targetMax]);
+
+  // Synchronizacja kroków z Health Connect (zapisywanie w localStorage i event)
+  useEffect(() => {
+    if (!userSettings?.healthConnectSyncSteps) return;
+    if (!healthService.isAvailable()) return;
+
+    const syncSteps = async () => {
+      try {
+        const steps = await healthService.getStepsLast24h();
+        console.log("[HealthConnect] Synced steps:", steps);
+        localStorage.setItem("health_connect_steps_24h", steps.toString());
+        window.dispatchEvent(new CustomEvent("health_connect_steps_updated", { detail: steps }));
+      } catch (e) {
+        console.warn("[HealthConnect] Error syncing steps:", e);
+      }
+    };
+
+    syncSteps();
+    const interval = setInterval(syncSteps, 15 * 60 * 1000); // co 15 minut
+    return () => clearInterval(interval);
+  }, [userSettings?.healthConnectSyncSteps]);
+
+  // Synchronizacja glikemii (zapisywanie) do Health Connect
+  useEffect(() => {
+    if (!userSettings?.healthConnectSyncGlucose) return;
+    if (!healthService.isAvailable()) return;
+
+    const latest = logs[0];
+    if (!latest || latest.type !== "glucose") return;
+
+    const lastSyncedId = localStorage.getItem("last_health_connect_synced_glucose_id");
+    if (latest.id === lastSyncedId) return;
+
+    // Zapisz do bazy systemowej
+    healthService.writeBloodGlucose(latest.value, latest.timestamp).then(success => {
+      if (success) {
+        localStorage.setItem("last_health_connect_synced_glucose_id", latest.id || "");
+      }
+    }).catch(e => console.warn("[HealthConnect] Error writing glucose:", e));
+  }, [logs, userSettings?.healthConnectSyncGlucose]);
 
   useEffect(() => {
     if (!user || !nsUrl) return;
