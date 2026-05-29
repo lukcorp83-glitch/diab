@@ -26,19 +26,7 @@ export default function ApkDownloadBanner() {
             return;
           }
           
-          // Wykrywanie czy aplikacja jest uruchomiona wewnątrz Android WebView (Aplikacja natywna APK)
-          // Zwykłe PWA oraz przeglądarka nie pokażą tego banera
-          const ua = navigator.userAgent;
-          const isAndroidWebView = /wv/.test(ua) || (/Android/.test(ua) && /Version\/[\d.]+/.test(ua));
-          
-          // W trybie deweloperskim pokazujmy (localhost/127.0.0.1) albo tylko gdy to faktycznie APK
-          const isDev = window.location.hostname === 'localhost';
-          
-          if (!isAndroidWebView && !isDev) {
-            // Użytkownik przeglądarki / PWA - nie pokazujemy baneru automatycznie
-            return;
-          }
-          
+          // Użytkownik chce by baner wyświetlał się przy pierwszym uruchomieniu by informować o nowym wydaniu
           setApkInfo(data);
         }
       } catch (err) {

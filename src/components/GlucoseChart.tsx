@@ -233,7 +233,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       let velocity = 0;
       const timeDiffMin = (last.timestamp - prev.timestamp) / 60000;
       if (timeDiffMin > 0) {
-         velocity = ((last.value || last.glucose) - (prev.value || prev.glucose)) / timeDiffMin;
+         velocity = (last.value - prev.value) / timeDiffMin;
       }
       
       const diaMs = (settings?.dia || 4) * 60 * 60 * 1000;
@@ -263,7 +263,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       const expectedBgRise = (cob / cr) * isf;
       
       const steps = 12; 
-      let loopVal = last.value || last.glucose;
+      let loopVal = last.value;
       let simulatedIob = iob;
       
       for (let i = 1; i <= steps; i++) {
@@ -359,13 +359,13 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
       const timeDiffMin = (last.timestamp - prev.timestamp) / 60000;
       if (timeDiffMin > 0) {
-         globalVelocity = ((last.value || last.glucose) - (prev.value || prev.glucose)) / timeDiffMin;
+         globalVelocity = (last.value - prev.value) / timeDiffMin;
       }
     }
 
     const startRoundedMap = Math.round(start / 60000) * 60000;
     
-    dataG.forEach(d => addPoint(d.timestamp, 'glucose', d.value || d.glucose, { 
+    dataG.forEach(d => addPoint(d.timestamp, 'glucose', d.value, { 
       originalG: d, 
       isLatest: d.timestamp === absoluteLatest,
       velocity: d.timestamp === absoluteLatest ? globalVelocity : undefined
@@ -410,7 +410,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       const lastG = dataG[dataG.length - 1];
       const lastGTimeRounded = Math.round(lastG.timestamp / 60000) * 60000;
       const lastPoint = timeMap.get(lastGTimeRounded);
-      const lastVal = lastG.value || lastG.glucose;
+      const lastVal = lastG.value;
       if (lastPoint) {
         if (showLoopSimulation && loopPredictions.length > 0) {
           lastPoint.loopPrediction = lastVal;
@@ -657,7 +657,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             const x = getX(d.timestamp);
             const y = getY(d.glucose);
             let fill = isDark ? '#818cf8' : '#4f46e5';
-            if (d.glucose < (targetMin||70) || d.glucose > (targetMax||140)) fill = '#f59e0b';
+            if (d.value < (targetMin||70) || d.value > (targetMax||140)) fill = '#f59e0b';
             
             ctx.beginPath();
             ctx.arc(x, y, d.isLatest ? 5 : 2.5, 0, 2*Math.PI);

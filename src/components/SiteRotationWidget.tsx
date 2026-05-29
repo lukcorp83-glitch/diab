@@ -23,7 +23,7 @@ export default function SiteRotationWidget({ logs, settings, size, onAction, set
 
   const lastSiteChange = useMemo(() => {
     const sorted = [...logs].sort((a, b) => b.timestamp - a.timestamp);
-    return sorted.find(l => l.type === 'site_change' || l.type === 'infusion_site_change');
+    return sorted.find(l => l.type === 'site_change');
   }, [logs]);
 
   const locationText = lastSiteChange?.notes || 'Brak danych';

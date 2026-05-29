@@ -4957,11 +4957,21 @@ export default function Profile({
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
               Pobierz najnowszą wersję oficjalnej aplikacji na system Android
               (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia
               i mniejsze zużycie baterii.
             </p>
+            
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4 border border-blue-100 dark:border-blue-800/30 border-l-4 border-l-blue-500">
+              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">Co nowego w wersji 1.1 Beta?</h4>
+              <ul className="text-[10px] text-blue-700 dark:text-blue-300 list-disc pl-4 space-y-0.5">
+                 <li>Działające widżety systemowe</li>
+                 <li>Informacje i akcje na belce powiadomień</li>
+                 <li>Kafelek systemowy w Szybkich Skrótach</li>
+                 <li>Synchronizacja danych z Health Connect</li>
+              </ul>
+            </div>
 
               <a
                 href={apkUrl}
@@ -4979,21 +4989,36 @@ export default function Profile({
 
             <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
               <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
-                Instrukcja instalacji:
+                Instrukcja instalacji (Android PWA):
+              </h4>
+              <ol className="list-decimal pl-4 text-[10px] space-y-1 text-amber-700 dark:text-amber-400/80 mb-3">
+                <li>Otwórz tę stronę w przeglądarce <b>Chrome</b>.</li>
+                <li>Rozwiń menu przeglądarki (trzy kropki prawy górny róg).</li>
+                <li>Wybierz opcję <b>Dodaj do ekranu głównego</b> (lub Zainstaluj aplikację).</li>
+                <li>Potwierdź instalację. Aplikacja PWA ma pełne wsparcie offline.</li>
+              </ol>
+
+              <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
+                Instrukcja instalacji (iOS PWA):
+              </h4>
+              <ol className="list-decimal pl-4 text-[10px] space-y-1 text-amber-700 dark:text-amber-400/80 mb-3">
+                <li>Otwórz tę stronę w przeglądarce <b>Safari</b>.</li>
+                <li>Wybierz przycisk udostępniania (kwadrat ze strzałką) na dolnym pasku.</li>
+                <li>Przewiń w dół i wybierz opcję <b>Do ekranu początkowego</b>.</li>
+                <li>Potwierdź dodanie.</li>
+              </ol>
+
+              <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
+                Instrukcja instalacji (Plik .apk):
               </h4>
               <ol className="list-decimal pl-4 text-[10px] space-y-1 text-amber-700 dark:text-amber-400/80">
-                <li>Pobierz plik klikając przycisk powyżej</li>
+                <li>Pobierz plik klikając przycisk powyżej.</li>
                 <li>
                   Otwórz pobrany plik .apk z powiadomienia lub menedżera plików
                 </li>
                 <li>
                   Jeśli system zapyta, zezwól na &quot;Instalację z nieznanych
-                  źródeł&quot; dla swojej przeglądarki
-                </li>
-                <li>
-                  Potwierdź instalację. Możesz przeskanować plik za pomocą
-                  Google Play Protect dla pewności, a w razie ostrzeżenia Play
-                  Protect kliknij &quot;Zainstaluj mimo to&quot;.
+                  źródeł&quot;.
                 </li>
               </ol>
             </div>

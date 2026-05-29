@@ -723,7 +723,7 @@ export default function MealEditModal({
 
               <button
                 onClick={() => {
-                  Haptics.light();
+                  // Haptics.light();
                   addSavedMeal({ ...expandedMeal.meal, items: expandedMeal.items });
                   setExpandedMeal(null);
                   alert(`Dodano zmodyfikowany zestaw: ${expandedMeal.meal.name}`);
