@@ -83,6 +83,7 @@ export default function MealEditModal({
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
+  const [expandedMeal, setExpandedMeal] = useState<{ meal: any; items: any[] } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -238,6 +239,10 @@ export default function MealEditModal({
 
   const handleSave = async () => {
     if (!user || loading) return;
+    if (!log.id) {
+      toast.error("Nie można edytować wpisu (brak ID elementu).");
+      return;
+    }
     setLoading(true);
     try {
       const logRef = doc(
@@ -266,7 +271,7 @@ export default function MealEditModal({
             polyols: Math.round((parseFloat(polyols) || 0) * 10) / 10 || null,
             protein: Math.round((parseFloat(protein) || 0) * 10) / 10 || null,
             fat: Math.round((parseFloat(fat) || 0) * 10) / 10 || null,
-            name: mealName || undefined,
+            name: mealName || null,
           };
         } else {
           updates.linkedMeal = null;
@@ -293,11 +298,18 @@ export default function MealEditModal({
         }
       }
 
-      await updateDoc(logRef, updates);
+      // Update locally immediately
+      window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: log.id, updates } }));
+      
       toast.success(
-        isBolus ? "Zaktualizowano bolus!" : "Zaktualizowano posiłek!",
+        isBolus ? "Zaktualizowano bolus (lokalnie)!" : "Zaktualizowano posiłek (lokalnie)!",
       );
       onClose();
+
+      // Fire-and-forget remote update (if they hit Quota, it just fails silently or logs warning)
+      updateDoc(logRef, updates).catch((err) => {
+        console.warn("Could not sync to Firebase (offline or quota exceeded):", err);
+      });
     } catch (err) {
       console.error("Update failed:", err);
       toast.error("Błąd aktualizacji");
@@ -448,7 +460,7 @@ export default function MealEditModal({
                       key={m.id}
                       onClick={(e) => {
                         e.preventDefault();
-                        addSavedMeal(m);
+                        setExpandedMeal({ meal: m, items: JSON.parse(JSON.stringify(m.items)) });
                       }}
                       className="snap-start shrink-0 w-[180px] text-left bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-accent-500/50 transition-all flex flex-col justify-between h-[80px]"
                     >
@@ -655,6 +667,75 @@ export default function MealEditModal({
           </button>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {expandedMeal && (
+          <motion.div
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-4"
+          >
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-slate-50 dark:bg-slate-900 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative scrollbar-none"
+            >
+              <button
+                onClick={() => setExpandedMeal(null)}
+                className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors z-10"
+              >
+                <X size={20} />
+              </button>
+              <h2 className="text-xl font-black mb-1 dark:text-white pr-10">
+                {expandedMeal.meal.name}
+              </h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
+                Dostosuj i dodaj
+              </p>
+
+              <div className="space-y-4 mb-6">
+                {expandedMeal.items.map((item, idx) => (
+                  <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm dark:text-white truncate" title={item.name}>{item.name}</div>
+                      <div className="text-[10px] font-bold text-slate-400">{(item.carbs * expandedMeal.items[idx].weight / 100).toFixed(1)}g W | {(item.protein * expandedMeal.items[idx].weight / 100).toFixed(1)}g B | {(item.fat * expandedMeal.items[idx].weight / 100).toFixed(1)}g T</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number"
+                        value={item.weight || ""}
+                        onChange={(e) => {
+                          const newItems = [...expandedMeal.items];
+                          newItems[idx].weight = Number(e.target.value) || 0;
+                          setExpandedMeal({ ...expandedMeal, items: newItems });
+                        }}
+                        className="w-16 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5 text-center font-bold text-sm dark:text-white outline-none focus:border-accent-500"
+                      />
+                      <span className="text-xs font-bold text-slate-400">g</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => {
+                  Haptics.light();
+                  addSavedMeal({ ...expandedMeal.meal, items: expandedMeal.items });
+                  setExpandedMeal(null);
+                  alert(`Dodano zmodyfikowany zestaw: ${expandedMeal.meal.name}`);
+                }}
+                className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
+              >
+                Dodaj Składniki
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>,
     document.body,
   );

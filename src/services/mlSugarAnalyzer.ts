@@ -348,7 +348,7 @@ export const MLAnalyzer = {
   },
 
   // Import model from serialized backup object and save to IndexedDB
-  async importModelFromBackup(backup: { modelTopology: any, weightSpecs: any, weightDataB64: string }): Promise<boolean> {
+  async importModelFromBackup(backup: { modelTopology: any, weightSpecs: any, weightDataB64: string, datasetSize?: number }): Promise<boolean> {
     try {
       if (!backup || !backup.modelTopology || !backup.weightSpecs || !backup.weightDataB64) {
         throw new Error("Invalid backup data format.");
@@ -367,6 +367,10 @@ export const MLAnalyzer = {
       await loadedModel.save('indexeddb://glikosense-mlp-v3');
       _cachedModel = loadedModel;
       
+      if (backup.datasetSize) {
+        localStorage.setItem('glikosense_dataset_size', backup.datasetSize.toString());
+      }
+
       // Update last train time so it doesn't immediately overwrite with standard training
       localStorage.setItem('glikosense_last_train_time', Date.now().toString());
       
@@ -1277,7 +1281,7 @@ export const MLAnalyzer = {
     }
 
     const accuracyValue = Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80)));
-    const datasetSize = dataset.length;
+    const datasetSize = Math.max(logs ? logs.length : dataset.length, parseInt(localStorage.getItem('glikosense_dataset_size') || '0'));
 
     const pred1h = predictionCurve[Math.min(predictionCurve.length - 1, 12)]?.value || latestBg;
     const pred2h = predictionCurve[Math.min(predictionCurve.length - 1, 24)]?.value || latestBg;

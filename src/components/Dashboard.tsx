@@ -4,6 +4,10 @@ import { motion } from "motion/react";
 import { LogEntry, UserSettings } from "../types";
 import GlucoseChart from "./GlucoseChart";
 import VirtualPet from "./VirtualPet";
+import MedicationsWidget from "./MedicationsWidget";
+import CarbsBalanceWidget from "./CarbsBalanceWidget";
+import HydrationWidget from "./HydrationWidget";
+import SiteRotationWidget from "./SiteRotationWidget";
 import { PumpStatusCard } from "./PumpStatusCard";
 import {
   Activity,
@@ -102,6 +106,8 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
       return ["2x1", "1x1", "1x2", "2x2"];
     case "training_widget":
       return ["2x1", "1x1", "2x2"];
+    case "medications":
+      return ["1x1", "1x2", "2x1"];
     case "quick_measurement":
     case "quick_bolus":
       return ["1x1", "2x1", "1x2", "2x2"];
@@ -133,6 +139,10 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "daily_tir", name: "Dzienny TIR (Wykres)", visible: false, size: "1x1", canResize: true, canChangeShape: false },
   { id: "quick_correction", name: "Sugerowana szybka korekta (Alerty)", visible: false, size: "2x2", canResize: true, canChangeShape: false },
   { id: "training_widget", name: "Trening i Aktywność fizyczna", visible: false, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "medications", name: "Leki (Przypomnienia)", visible: false, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "carbs_balance", name: "Dzienny bilans węglowodanów", visible: false, size: "1x1", canResize: true, canChangeShape: false },
+  { id: "hydration", name: "Nawodnienie (Woda)", visible: false, size: "1x1", canResize: true, canChangeShape: false },
+  { id: "site_rotation", name: "Rotacja wkłuć", visible: false, size: "2x1", canResize: true, canChangeShape: false },
 ];
 
 interface DashboardProps {
@@ -200,7 +210,7 @@ export default function Dashboard({
       if (logs.length >= 5) {
         try {
           const res = await MLAnalyzer.analyzeData(logs, false, 'quick');
-          setMlInfo({ accuracy: res.accuracy, datasetSize: logs.length });
+          setMlInfo({ accuracy: res.accuracy, datasetSize: res.datasetSize || logs.length });
         } catch (e) {
           console.error("Dashboard ML analysis error:", e);
         }
@@ -488,11 +498,11 @@ export default function Dashboard({
   };
 
   useEffect(() => {
-    if (initialAction === "add_glucose") {
+    if (initialAction === "add_glucose" && !settings.followerMode) {
       setIsGlucoseModalOpen(true);
       onClearInitialAction?.();
     }
-  }, [initialAction]);
+  }, [initialAction, settings.followerMode]);
 
   const lastG = logs.find((l) => l.type === "glucose");
 
@@ -1002,7 +1012,7 @@ export default function Dashboard({
               isChildMode={settings.childMode || false}
               petName={petData?.name}
               accuracy={mlInfo?.accuracy}
-              datasetSize={logs.length}
+              datasetSize={mlInfo?.datasetSize || logs.length}
               compact={size.startsWith("1")}
             >
               {settings.childMode && (
@@ -1404,6 +1414,22 @@ export default function Dashboard({
             </div>
           </div>
         );
+
+      case "medications":
+        return (
+          <div className="w-full h-full p-0">
+            <MedicationsWidget medications={settings?.medications || []} size={size} />
+          </div>
+        );
+
+      case "carbs_balance":
+        return <CarbsBalanceWidget logs={logs} settings={settings} size={size} setTab={setTab} onAction={onAction} />;
+
+      case "hydration":
+        return <HydrationWidget size={size} />;
+
+      case "site_rotation":
+        return <SiteRotationWidget logs={logs} settings={settings} size={size} setTab={setTab} onAction={onAction} />;
 
       case "training_widget":
         const isTrCompact = size === "1x1";
@@ -1990,7 +2016,7 @@ export default function Dashboard({
               {treatmentLogs.slice(0, isHistTreatCompactHeight ? 2 : 3).map((log, idx) => (
                 <div key={`${log.id}-${idx}`}>
                   <SwipeableItem id={log.id} onDelete={() => {}}>
-                    <div onClick={() => { if (!isEditingLayout) setEditingLog(log); }} className="glass-card !p-4 flex items-center gap-4 cursor-pointer w-full">
+                    <div onClick={() => { if (!isEditingLayout && !settings.followerMode) setEditingLog(log); }} className="glass-card !p-4 flex items-center gap-4 cursor-pointer w-full">
                       <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0", log.type === "meal" ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500")}>
                         {log.type === "meal" ? <Utensils size={18} /> : <Syringe size={18} />}
                       </div>
@@ -2229,6 +2255,7 @@ export default function Dashboard({
         ) : (
           widgets.map((w, index) => {
              if (!w.visible) return null;
+             if (settings.followerMode && !["main_stats", "history_measurements", "history_treatments"].includes(w.id)) return null;
 
              const widgetSize = layoutMode === "classic"
                ? (

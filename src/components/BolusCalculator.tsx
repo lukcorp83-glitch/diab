@@ -419,14 +419,16 @@ export default function BolusCalculator({
             polyols: parseFloat(polyols) || 0,
             protein: protNum,
             fat: fNum,
-            name: mealName || undefined,
+            name: mealName || null,
           };
         }
         if (isPizzaMode && extendedTime > 0) {
           payload.isExtended = true;
           payload.extendedTime = extendedTime;
         }
-        batch.set(doc(logsRef), payload);
+        const bolusDoc = doc(logsRef);
+        batch.set(bolusDoc, payload);
+        window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { id: bolusDoc.id, ...payload } }));
         ops++;
       }
 
@@ -455,7 +457,9 @@ export default function BolusCalculator({
         };
         if (weather) glucosePayload.weather = weather;
 
-        batch.set(doc(logsRef), glucosePayload);
+        const gluDoc = doc(logsRef);
+        batch.set(gluDoc, glucosePayload);
+        window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { id: gluDoc.id, ...glucosePayload } }));
         ops++;
       }
 
@@ -470,7 +474,10 @@ export default function BolusCalculator({
         if (parseFloat(polyols) > 0) payload.polyols = parseFloat(polyols);
         if (protNum > 0) payload.protein = Math.round(protNum * 10) / 10;
         if (fNum > 0) payload.fat = Math.round(fNum * 10) / 10;
-        batch.set(doc(logsRef), payload);
+        
+        const mealDoc = doc(logsRef);
+        batch.set(mealDoc, payload);
+        window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { id: mealDoc.id, ...payload } }));
         ops++;
       }
 

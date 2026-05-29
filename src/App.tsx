@@ -37,8 +37,9 @@ import {
   LayoutDashboard,
   Beaker,
   Sparkles,
+  X,
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { auth, db } from "./lib/firebase";
 import {
   onAuthStateChanged,
@@ -79,7 +80,7 @@ import { CATEGORIES, LIB_BASE, APP_VERSION } from "./constants";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { notificationService } from "./services/notificationService";
-import { Toaster, toast } from "react-hot-toast";
+import { Toaster, toast, ToastBar } from "react-hot-toast";
 
 import Dashboard from "./components/Dashboard";
 import ChartFullView from "./components/ChartFullView";
@@ -228,12 +229,51 @@ export default function App() {
   const [pumpStatus, setPumpStatus] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [cachedLogs, setCachedLogs] = useState<LogEntry[]>([]);
+  const [cachedLogsLoaded, setCachedLogsLoaded] = useState(false);
   const [fbLogs, setFbLogs] = useState<LogEntry[]>([]);
   const [nsLogs, setNsLogs] = useState<LogEntry[]>([]);
 
+  useEffect(() => {
+    const handleLogUpdate = (e: any) => {
+      const { id, updates } = e.detail;
+      setCachedLogs((prev) => 
+        prev.map(l => l.id === id ? { ...l, ...updates } : l)
+      );
+      setFbLogs((prev) => 
+        prev.map(l => l.id === id ? { ...l, ...updates } : l)
+      );
+    };
+    const handleLogDelete = (e: any) => {
+      const { id } = e.detail;
+      setCachedLogs((prev) => prev.filter(l => l.id !== id));
+      setFbLogs((prev) => prev.filter(l => l.id !== id));
+    };
+    const handleLogAdd = (e: any) => {
+      const newLog = e.detail;
+      setCachedLogs((prev) => [newLog, ...prev]);
+      setFbLogs((prev) => [newLog, ...prev]);
+    };
+    window.addEventListener("localLogUpdate", handleLogUpdate);
+    window.addEventListener("localLogDelete", handleLogDelete);
+    window.addEventListener("localLogAdd", handleLogAdd);
+    return () => {
+      window.removeEventListener("localLogUpdate", handleLogUpdate);
+      window.removeEventListener("localLogDelete", handleLogDelete);
+      window.removeEventListener("localLogAdd", handleLogAdd);
+    };
+  }, []);
+
   // Wczytywanie z lokalnej bazy na start
   useEffect(() => {
-    loadLocalLogs().then(logs => setCachedLogs(logs)).catch(console.error);
+    loadLocalLogs()
+      .then((logs) => {
+        setCachedLogs(logs);
+        setCachedLogsLoaded(true);
+      })
+      .catch((e) => {
+        console.error(e);
+        setCachedLogsLoaded(true);
+      });
   }, []);
 
   const logs = useMemo(() => {
@@ -752,6 +792,7 @@ export default function App() {
 
   // Test Firestore connection
   useEffect(() => {
+    if (!user) return;
     const testConnection = async () => {
       try {
         await getDocFromServer(doc(db, "connection_tests", "touch"));
@@ -769,7 +810,7 @@ export default function App() {
       }
     };
     testConnection();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const hasAcceptedPrivacy = localStorage.getItem("hasAcceptedPrivacy");
@@ -1354,6 +1395,11 @@ export default function App() {
     } else {
       root.removeAttribute("data-material3");
     }
+    if (userSettings?.ecoMode) {
+      root.setAttribute("data-eco", "true");
+    } else {
+      root.removeAttribute("data-eco");
+    }
 
     if (userSettings?.theme) {
       localStorage.setItem("theme", userSettings.theme);
@@ -1367,6 +1413,7 @@ export default function App() {
     userSettings?.bgOption,
     userSettings?.glassmorphismEnabled,
     userSettings?.material3Enabled,
+    userSettings?.ecoMode,
   ]);
 
   useEffect(() => {
@@ -1396,19 +1443,35 @@ export default function App() {
   }, [user, userSettings?.notificationsEnabled]);
 
   useEffect(() => {
-    if (!user) return;
-    const q = query(
-      collection(
-        db,
-        "artifacts",
-        "diacontrolapp",
-        "users",
-        getEffectiveUid(user),
-        "logs",
-      ),
-      orderBy("timestamp", "desc"),
-      limit(300),
+    if (!user || !cachedLogsLoaded) return;
+
+    let q;
+    // Znajdź najnowszą datę w buforze
+    const newestLocalTs =
+      cachedLogs.length > 0 ? cachedLogs[0].timestamp : 0;
+
+    const logsCollection = collection(
+      db,
+      "artifacts",
+      "diacontrolapp",
+      "users",
+      getEffectiveUid(user),
+      "logs",
     );
+
+    if (newestLocalTs > 0) {
+      // Fetch only what's new since our last sync/cache (+ mały zapas - 2 dni)
+      const safeTs = newestLocalTs - 2 * 24 * 3600 * 1000;
+      q = query(
+        logsCollection,
+        where("timestamp", ">", safeTs),
+        orderBy("timestamp", "desc"),
+        limit(150),
+      );
+    } else {
+      q = query(logsCollection, orderBy("timestamp", "desc"), limit(300));
+    }
+
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -1549,42 +1612,39 @@ export default function App() {
   useEffect(() => {
     if (!user || !nsUrl) return;
 
-    const syncNightscout = async (manual = false) => {
-      if (syncTaskRef.current) {
-        if (manual) console.log("Nightscout: Synchronizacja już trwa...");
-        return;
-      }
-      syncTaskRef.current = true;
+    let worker: Worker;
+    try {
+      worker = new Worker(new URL('./workers/nightscout.worker.ts', import.meta.url), { type: 'module' });
+    } catch (e) {
+      console.warn("Failed to initialize worker", e);
+      return;
+    }
 
-      try {
-        setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
-        console.log("Starting Nightscout sync...");
+    const sanitizeNested = (obj: any): any => {
+      Object.keys(obj).forEach((key) => {
+        if (obj[key] && typeof obj[key] === "object")
+          sanitizeNested(obj[key]);
+        else if (obj[key] === undefined) delete obj[key];
+      });
+      return obj;
+    };
 
-        const sanitizeNested = (obj: any): any => {
-          Object.keys(obj).forEach((key) => {
-            if (obj[key] && typeof obj[key] === "object")
-              sanitizeNested(obj[key]);
-            else if (obj[key] === undefined) delete obj[key];
-          });
-          return obj;
-        };
+    worker.onmessage = (e) => {
+      const { type, payload } = e.data;
 
-        // 1. FAST PATH: Fetch just the LATEST entry first for immediate feedback
-        const latestEntries = await nightscoutService.fetchEntries(
-          nsUrl,
-          nsSecret,
-          1,
-          manual,
-        );
-        if (latestEntries.length > 0) {
-          const latest = latestEntries[0];
+      if (type === 'SYNC_SUCCESS') {
+        const { entries, treatments, deviceStatus: devicestatus } = payload;
+        
+        // 1. FRESH UI FEEDBACK - Get the latest and check if we need weather
+        if (entries.length > 0) {
+          const latest = entries[0];
           setNsLogs((prev) => {
             const hasLatest = prev.some((p) => p.id === latest.id || p.nsId === latest.id);
             if (hasLatest) return prev;
             return [{ ...latest, nsId: latest.id }, ...prev];
           });
 
-          // 1.5. FIRE & FORGET: Background weather fetch
+          // 1.5. Background weather fetch
           if (
             latest.type === "glucose" &&
             Date.now() - latest.timestamp < 3600000
@@ -1608,21 +1668,15 @@ export default function App() {
                        });
                     }
                   } catch (e) {
-                    console.warn("Failed to fetch weather in bg", e);
+                    // ignore weather errors in bg
                   }
                 })
-                .catch((e) => console.warn(e));
+                .catch(() => {});
             }
           }
         }
 
-        // 2. Fetch device status (important for battery/status)
-        const devicestatus = await nightscoutService.fetchDeviceStatus(
-          nsUrl,
-          nsSecret,
-          1,
-          manual,
-        );
+        // 2. Extract and save device status
         if (devicestatus) {
           const pumpRef = doc(
             db,
@@ -1634,56 +1688,31 @@ export default function App() {
             "pump",
           );
 
-          await setDoc(pumpRef, sanitizeNested({ ...devicestatus }), {
+          setDoc(pumpRef, sanitizeNested({ ...devicestatus }), {
             merge: true,
-          });
+          }).catch(() => {});
         }
 
-        // 3. FULL SYNC: Fetch background history
-        const entries = await nightscoutService.fetchEntries(
-          nsUrl,
-          nsSecret,
-          300,
-          manual,
-        );
-        const treatments = await nightscoutService.fetchTreatments(
-          nsUrl,
-          nsSecret,
-          100,
-          manual,
-        );
-
+        // 3. FULL SYNC logic for all remaining entries and treatments
         const allNewLogs = [...entries, ...treatments];
-
-        if (manual && allNewLogs.length === 0) {
-          console.warn(
-            "Nightscout: Nie udało się pobrać żadnych danych. Sprawdź poprawność URL.",
-          );
-        }
-
-        // Use a set of unique fingerprints from current logs reference
         const existingLogs = logsRef.current;
 
         const isDuplicate = (newLog: LogEntry) => {
           return existingLogs.some((l) => {
-            // Check by NS ID first (most reliable)
             if (l.nsId && newLog.id && l.nsId === newLog.id) return true;
             if (l.id && newLog.id && l.id === newLog.id) return true;
 
             const timeDiff = Math.abs(l.timestamp - newLog.timestamp);
-            const isSimilarTime = timeDiff < 2 * 60 * 1000; // +/- 2 minutes
+            const isSimilarTime = timeDiff < 2 * 60 * 1000;
             const isSameType = l.type === newLog.type;
 
             if (isSameType && isSimilarTime) {
-              // For glucose, we are more strict on value
               if (l.type === "glucose")
                 return Math.abs(l.value - newLog.value) < 1;
-              // For bolus/meal, if it's the same time and type, and we haven't modified it manually, it's a dupe
               if (l.userModified) return true;
               return Math.abs(l.value - newLog.value) < 0.1;
             }
 
-            // Check if a bolus in state already has this meal linked (or vice versa)
             if (
               isSimilarTime &&
               ((l.type === "bolus" && newLog.type === "meal") ||
@@ -1705,7 +1734,6 @@ export default function App() {
           });
         };
 
-        // Deduplicate allNewLogs itself first (internal NS duplicates)
         const uniqueNSLogs: LogEntry[] = [];
         allNewLogs.forEach((n) => {
           if (
@@ -1725,52 +1753,39 @@ export default function App() {
         );
 
         if (newLogsToSync.length > 0) {
-          console.log(
-            `Syncing ${newLogsToSync.length} new records to memory...`,
-          );
+          console.log(`Worker synced ${newLogsToSync.length} new records to memory`);
           
           setNsLogs((prev) => {
              const all = [...prev, ...newLogsToSync];
              return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 500);
           });
-
-          if (manual) {
-            console.log(
-              `Nightscout: Synchronizacja zakończona. Pobrano ${newLogsToSync.length} nowych wpisów (w pamięci).`,
-            );
-          }
-        } else if (manual && allNewLogs.length > 0) {
-          console.log(
-            `Nightscout: Pobrano ${allNewLogs.length} wpisów, ale wszystkie są już zsynchronizowane.`,
-          );
         }
-        console.log("Nightscout sync complete.");
+        
         setSyncStatus({ status: "success", lastSync: Date.now() });
-      } catch (err) {
-        console.error("Nightscout sync error:", err);
+      }
+
+      if (type === 'SYNC_ERROR') {
+        console.error("Worker sync error:", payload);
         setSyncStatus({ status: "error", lastSync: Date.now() });
-        if (manual) {
-          console.error(
-            "Nightscout: Wystąpił nieoczekiwany błąd podczas synchronizacji.",
-          );
-        }
-      } finally {
-        syncTaskRef.current = false;
       }
     };
 
+    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000 } });
+    setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
+
     const handleForceSync = () => {
-      console.log("Force sync manually triggered");
-      syncNightscout(true);
+      console.log("Force sync manually triggered (Worker)");
+      setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
+      // Stopping and starting again forces an immediate wipe/sync in worker
+      worker.postMessage({ type: 'STOP_SYNC' });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000 } });
     };
 
     window.addEventListener("force-nightscout-sync", handleForceSync);
 
-    const timeout = setTimeout(() => syncNightscout(false), 500);
-    const interval = setInterval(() => syncNightscout(false), 5 * 60 * 1000);
     return () => {
-      clearTimeout(timeout);
-      clearInterval(interval);
+      worker.postMessage({ type: 'STOP_SYNC' });
+      worker.terminate();
       window.removeEventListener("force-nightscout-sync", handleForceSync);
     };
   }, [user, nsUrl]);
@@ -1862,7 +1877,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
         <Logo className="w-20 h-20 animate-pulse drop-shadow-2xl opacity-70 mb-4" />
         <p className="text-slate-400 dark:text-slate-500 font-medium tracking-widest text-sm uppercase">
           powered by GlikoSense
@@ -1875,7 +1890,7 @@ export default function App() {
     return (
       <div
         className={cn(
-          "min-h-screen flex items-center justify-center p-4 transition-colors duration-500",
+          "min-h-[100dvh] flex items-center justify-center p-4 transition-colors duration-500",
           theme === "dark" ? "bg-slate-950" : "bg-slate-50",
         )}
       >
@@ -2175,7 +2190,7 @@ export default function App() {
       {["database", "meal"].includes(activeTab) && (
         <>
           <div className="block lg:hidden w-full">
-            {activeTab === "database" && (
+            {activeTab === "database" && !userSettings?.followerMode && (
               <MealPlate
                 key="db-plate"
                 user={user}
@@ -2188,7 +2203,7 @@ export default function App() {
                 logs={logs}
               />
             )}
-            {activeTab === "meal" && (
+            {activeTab === "meal" && !userSettings?.followerMode && (
               <MealPlate
                 key="meal-plate"
                 user={user}
@@ -2203,38 +2218,42 @@ export default function App() {
             )}
           </div>
           <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6 w-full items-start">
-            <div>
-              <MealPlate
-                key="db-plate-desktop"
-                user={user}
-                setTab={changeTab}
-                sharedPlate={sharedPlate}
-                setSharedPlate={setSharedPlate}
-                mode="search"
-                openHistory={() => changeTab("history")}
-                settings={userSettings || undefined}
-                logs={logs}
-              />
-            </div>
-            <div>
-              <MealPlate
-                key="meal-plate-desktop"
-                user={user}
-                setTab={changeTab}
-                sharedPlate={sharedPlate}
-                setSharedPlate={setSharedPlate}
-                mode="plate"
-                openHistory={() => changeTab("history")}
-                settings={userSettings || undefined}
-                logs={logs}
-              />
-            </div>
+            {!userSettings?.followerMode && (
+              <>
+                <div>
+                  <MealPlate
+                    key="db-plate-desktop"
+                    user={user}
+                    setTab={changeTab}
+                    sharedPlate={sharedPlate}
+                    setSharedPlate={setSharedPlate}
+                    mode="search"
+                    openHistory={() => changeTab("history")}
+                    settings={userSettings || undefined}
+                    logs={logs}
+                  />
+                </div>
+                <div>
+                  <MealPlate
+                    key="meal-plate-desktop"
+                    user={user}
+                    setTab={changeTab}
+                    sharedPlate={sharedPlate}
+                    setSharedPlate={setSharedPlate}
+                    mode="plate"
+                    openHistory={() => changeTab("history")}
+                    settings={userSettings || undefined}
+                    logs={logs}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
 
       {/* 3. Grupa 3: Czat i GlikoSense */}
-      {["chat", "assistant", "ai"].includes(activeTab) && (
+      {["chat", "assistant", "ai"].includes(activeTab) && !userSettings?.followerMode && (
         <>
           <div
             className={cn(
@@ -2306,7 +2325,7 @@ export default function App() {
         "ai",
       ].includes(activeTab) && (
         <div className="w-full max-w-4xl mx-auto">
-          {activeTab === "bolus" && (
+          {activeTab === "bolus" && !userSettings?.followerMode && (
             <BolusCalculator
               logs={logs}
               user={user}
@@ -2320,6 +2339,7 @@ export default function App() {
               logs={logs}
               user={user}
               onBack={() => changeTab("dashboard")}
+              settings={userSettings!}
             />
           )}
           {activeTab === "profile" && (
@@ -2363,9 +2383,10 @@ export default function App() {
     logs.find((l) => l.type === "glucose")?.value || null;
 
   return (
+    <MotionConfig reducedMotion={userSettings?.ecoMode ? "always" : "user"}>
     <div
       className={cn(
-        "min-h-screen flex flex-col transition-colors duration-500 overflow-x-hidden relative z-10",
+        "min-h-[100dvh] flex flex-col transition-colors duration-500 overflow-x-hidden relative z-10",
         userSettings?.glassmorphismEnabled
           ? "bg-transparent dark:bg-transparent"
           : theme === "dark"
@@ -2501,8 +2522,7 @@ export default function App() {
             dragElastic={0.1}
             onDragEnd={handleSwipe}
             className={cn(
-              "w-full min-h-full p-4 flex flex-col transition-all duration-300",
-              isKeyboardOpen ? "pb-8" : "pb-32"
+              "w-full min-h-full p-4 pb-32 flex flex-col",
             )}
           >
             {currentTabContent}
@@ -2521,98 +2541,112 @@ export default function App() {
             onClick={() => changeTab("chart")}
             icon={<Activity />}
             label="Wykres"
+            ecoMode={userSettings?.ecoMode}
           />
           <NavButton
             active={activeTab === "dashboard"}
             onClick={() => changeTab("dashboard")}
             icon={<LayoutDashboard />}
             label="Pulpit"
+            ecoMode={userSettings?.ecoMode}
           />
-          <NavButton
-            active={activeTab === "database"}
-            onClick={() => changeTab("database")}
-            icon={<Database />}
-            label="Baza"
-          />
+          {!userSettings?.followerMode && (
+            <NavButton
+              active={activeTab === "database"}
+              onClick={() => changeTab("database")}
+              icon={<Database />}
+              label="Baza"
+              ecoMode={userSettings?.ecoMode}
+            />
+          )}
 
-          <div className="relative -top-6">
-            <motion.button
-              onClick={() => changeTab("meal")}
-              whileTap={{ scale: 0.85 }}
-              animate={{ y: activeTab === "meal" ? -5 : 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
-              className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950 relative",
-                activeTab === "meal"
-                  ? "bg-accent-600 text-white shadow-accent-500/40"
-                  : "bg-slate-800 text-slate-400 hover:bg-slate-700",
-              )}
-            >
-              {mealProgress !== null && (
-                <svg
-                  className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none"
-                  viewBox="0 0 56 56"
+          {!userSettings?.followerMode && (
+            <div className="relative -top-6">
+              <motion.button
+                onClick={() => changeTab("meal")}
+                whileTap={{ scale: 0.85 }}
+                animate={{ y: activeTab === "meal" ? -5 : 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                className={cn(
+                  "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950 relative",
+                  activeTab === "meal"
+                    ? "bg-accent-600 text-white shadow-accent-500/40"
+                    : "bg-slate-800 text-slate-400 hover:bg-slate-700",
+                )}
+              >
+                {mealProgress !== null && (
+                  <svg
+                    className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none"
+                    viewBox="0 0 56 56"
+                  >
+                    <circle
+                      cx="28"
+                      cy="28"
+                      r="26"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="transparent"
+                      strokeDasharray="163.36"
+                      strokeDashoffset={163.36 * mealProgress}
+                      className="text-emerald-500 transition-all duration-1000 dark:text-emerald-400 opacity-80"
+                    />
+                  </svg>
+                )}
+                <motion.div
+                  animate={{
+                    rotate: activeTab === "meal" ? [0, -20, 20, -10, 10, 0] : 0,
+                  }}
+                  transition={{ duration: 0.5 }}
+                  className="z-10"
                 >
-                  <circle
-                    cx="28"
-                    cy="28"
-                    r="26"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="transparent"
-                    strokeDasharray="163.36"
-                    strokeDashoffset={163.36 * mealProgress}
-                    className="text-emerald-500 transition-all duration-1000 dark:text-emerald-400 opacity-80"
-                  />
-                </svg>
-              )}
+                  <Utensils />
+                </motion.div>
+                {sharedPlate.length > 0 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm z-20"
+                  >
+                    {sharedPlate.length}
+                  </motion.div>
+                )}
+              </motion.button>
               <motion.div
                 animate={{
-                  rotate: activeTab === "meal" ? [0, -20, 20, -10, 10, 0] : 0,
+                  opacity: activeTab === "meal" ? 1 : 0.6,
+                  y: activeTab === "meal" ? -2 : 0,
                 }}
-                transition={{ duration: 0.5 }}
-                className="z-10"
+                className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
               >
-                <Utensils />
+                Talerz
               </motion.div>
-              {sharedPlate.length > 0 && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm z-20"
-                >
-                  {sharedPlate.length}
-                </motion.div>
-              )}
-            </motion.button>
-            <motion.div
-              animate={{
-                opacity: activeTab === "meal" ? 1 : 0.6,
-                y: activeTab === "meal" ? -2 : 0,
-              }}
-              className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
-            >
-              Talerz
-            </motion.div>
-          </div>
+            </div>
+          )}
 
-          <NavButton
-            active={activeTab === "assistant"}
-            onClick={() => changeTab("assistant")}
-            icon={<MessageSquare />}
-            label="Czat"
-          />
-          <NavButton
-            active={activeTab === "ai"}
-            onClick={() => changeTab("ai")}
-            icon={<GlikoSenseIcon size={20} isAnalyzing={activeTab === "ai"} />}
-            label="GlikoSense"
-          />
+          {!userSettings?.followerMode && (
+            <NavButton
+              active={activeTab === "assistant"}
+              onClick={() => changeTab("assistant")}
+              icon={<MessageSquare />}
+              label="Czat"
+              ecoMode={userSettings?.ecoMode}
+            />
+          )}
+          {!userSettings?.followerMode && (
+            <NavButton
+              active={activeTab === "ai"}
+              onClick={() => changeTab("ai")}
+              icon={<GlikoSenseIcon size={20} isAnalyzing={activeTab === "ai"} />}
+              label="GlikoSense"
+              ecoMode={userSettings?.ecoMode}
+            />
+          )}
           <NavButton
             active={activeTab === "profile"}
             onClick={() => changeTab("profile")}
             icon={<Menu />}
             label="Więcej"
+            ecoMode={userSettings?.ecoMode}
           />
         </div>
       </nav>
@@ -2621,8 +2655,8 @@ export default function App() {
         position="top-center"
         toastOptions={{
           className:
-            "glass-card !text-slate-900 dark:!text-white !border-black/5 dark:!border-white/10 !shadow-2xl !rounded-[1.5rem] !text-[10px] !font-black !uppercase !tracking-widest !font-display !px-6 !py-3",
-          duration: 3000,
+            "glass-card !text-slate-900 dark:!text-white !border-black/5 dark:!border-white/10 !shadow-2xl !rounded-[1.5rem] !text-[10px] !font-black !uppercase !tracking-widest !font-display !pl-6 !pr-2 !py-2 flex items-center justify-between min-w-[300px]",
+          duration: 4000,
           success: {
             iconTheme: {
               primary: "#10b981",
@@ -2636,7 +2670,29 @@ export default function App() {
             },
           },
         }}
-      />
+      >
+        {(t) => (
+          <ToastBar toast={t} style={{ padding: 0, background: 'transparent', boxShadow: 'none' }}>
+            {({ icon, message }) => (
+              <div className="flex items-center gap-3 w-full">
+                {icon}
+                <div className="flex-1 min-w-0 pr-2">
+                  {message}
+                </div>
+                {t.type !== 'loading' && (
+                  <button
+                    onClick={() => toast.dismiss(t.id)}
+                    className="p-2 ml-auto rounded-xl hover:bg-rose-500/10 text-rose-500 transition-colors shrink-0 group flex items-center justify-center hover:scale-110 active:scale-95"
+                    aria-label="Zamknij powiadomienie"
+                  >
+                    <X size={18} className="drop-shadow-sm group-hover:drop-shadow-md" strokeWidth={2.5} />
+                  </button>
+                )}
+              </div>
+            )}
+          </ToastBar>
+        )}
+      </Toaster>
       <AnimatePresence>
         {showTutorial && (
           <OnboardingTutorial
@@ -2658,6 +2714,7 @@ export default function App() {
         iob={getEffectiveIOB(logs, pumpStatus, userSettings?.dia || 4)}
       />
     </div>
+    </MotionConfig>
   );
 }
 
@@ -2666,11 +2723,13 @@ function NavButton({
   onClick,
   icon,
   label,
+  ecoMode,
 }: {
   active: boolean;
   onClick: () => void;
   icon: any;
   label: string;
+  ecoMode?: boolean;
 }) {
   return (
     <button
@@ -2703,7 +2762,7 @@ function NavButton({
       </motion.span>
       {active && (
         <motion.div
-          layoutId="nav-indicator"
+          layoutId={ecoMode ? undefined : "nav-indicator"}
           className="absolute bottom-2 w-1 h-1 rounded-full bg-accent-600 dark:bg-accent-400"
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />

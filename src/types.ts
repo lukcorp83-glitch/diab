@@ -21,7 +21,8 @@ export interface LogEntry {
     | "bolus"
     | "site_change"
     | "sensor_change"
-    | "activity";
+    | "activity"
+    | "water";
   value: number;
   timestamp: number;
   createdAt?: any;
@@ -88,6 +89,9 @@ export interface UserSettings {
   wbtRatio: number;
   targetMin: number;
   targetMax: number;
+  healthConnectSyncSteps?: boolean;
+  healthConnectSyncGlucose?: boolean;
+  followerMode?: boolean;  // Add follower mode for read-only view
   dia?: number; // Duration of Insulin Action in hours
   hourlyProfiles?: HourlyProfile[];
   medications?: Medication[];
@@ -114,6 +118,7 @@ export interface UserSettings {
   bgOption?: "default" | "true-black";
   glassmorphismEnabled?: boolean;
   material3Enabled?: boolean;
+  ecoMode?: boolean;
   showPumpWidget?: boolean;
   showPrediction?: boolean;
   autoGIEnabled?: boolean;

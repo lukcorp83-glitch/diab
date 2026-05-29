@@ -515,6 +515,7 @@ export default function MealPlate({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mealName, setMealName] = useState("");
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [expandedMeal, setExpandedMeal] = useState<{ meal: any; items: any[] } | null>(null);
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
   const [isLoadingSavedMeals, setIsLoadingSavedMeals] = useState(true);
 
@@ -1395,6 +1396,76 @@ export default function MealPlate({
               </motion.div>
             </motion.div>
           )}
+
+          {expandedMeal && (
+            <motion.div
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-4"
+            >
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-slate-50 dark:bg-slate-900 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative scrollbar-none"
+              >
+                <button
+                  onClick={() => setExpandedMeal(null)}
+                  className="absolute top-6 right-6 p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors z-10"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="text-xl font-black mb-1 dark:text-white pr-10">
+                  {expandedMeal.meal.name}
+                </h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
+                  Dostosuj i dodaj do talerza
+                </p>
+
+                <div className="space-y-4 mb-6">
+                  {expandedMeal.items.map((item, idx) => (
+                    <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm dark:text-white truncate" title={item.name}>{item.name}</div>
+                        <div className="text-[10px] font-bold text-slate-400">{(item.carbs * expandedMeal.items[idx].weight / 100).toFixed(1)}g W | {(item.protein * expandedMeal.items[idx].weight / 100).toFixed(1)}g B | {(item.fat * expandedMeal.items[idx].weight / 100).toFixed(1)}g T</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number"
+                          value={item.weight || ""}
+                          onChange={(e) => {
+                            const newItems = [...expandedMeal.items];
+                            newItems[idx].weight = Number(e.target.value) || 0;
+                            setExpandedMeal({ ...expandedMeal, items: newItems });
+                          }}
+                          className="w-16 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5 text-center font-bold text-sm dark:text-white outline-none focus:border-accent-500"
+                        />
+                        <span className="text-xs font-bold text-slate-400">g</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    Haptics.light();
+                    setPlate([...plate, ...expandedMeal.items]);
+                    if (expandedMeal.meal.cookingMethod) {
+                      setCookingMethod(expandedMeal.meal.cookingMethod);
+                    }
+                    setExpandedMeal(null);
+                    alert(`Dodano zmodyfikowany zestaw: ${expandedMeal.meal.name}`);
+                  }}
+                  className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
+                >
+                  Do Talerza
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
         </AnimatePresence>,
         document.body,
       )}
@@ -1714,7 +1785,7 @@ export default function MealPlate({
                         key={m.id}
                         onClick={() => {
                           Haptics.light();
-                          addSavedMeal(m);
+                          setExpandedMeal({ meal: m, items: JSON.parse(JSON.stringify(m.items)) });
                         }}
                         className="snap-start shrink-0 w-[220px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm hover:border-accent-500/50 hover:shadow-md transition-all cursor-pointer relative group flex flex-col justify-between glass-target"
                       >
@@ -1747,7 +1818,45 @@ export default function MealPlate({
                         >
                           <X size={14} />
                         </button>
-                        <div className="mb-3 pr-6">
+                        {plate.length > 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!window.confirm(`Czy chcesz zaktualizować szablon "${m.name}" aktualnym talerzem?`)) return;
+                              Haptics.light();
+                              try {
+                                import("firebase/firestore").then(
+                                  ({ updateDoc, doc }) => {
+                                    updateDoc(
+                                      doc(
+                                        db,
+                                        "artifacts",
+                                        "diacontrolapp",
+                                        "users",
+                                        getEffectiveUid(user),
+                                        "savedMeals",
+                                        m.id,
+                                      ),
+                                      {
+                                        items: plate,
+                                        cookingMethod: cookingMethod || null,
+                                        timestamp: Date.now()
+                                      }
+                                    );
+                                    alert("Szablon zaktualizowany!");
+                                  },
+                                );
+                              } catch (err) {
+                                console.error("Update meal failed:", err);
+                              }
+                            }}
+                            className="absolute top-3 right-10 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/30 rounded-full transition-colors"
+                            title="Zaktualizuj obecnym talerzem"
+                          >
+                            <Save size={14} />
+                          </button>
+                        )}
+                        <div className="mb-3 pr-6 mt-1">
                           <h5 className="font-black text-sm text-slate-800 dark:text-slate-100 leading-tight mb-1 line-clamp-2">
                             {m.name}
                           </h5>

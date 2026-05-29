@@ -3,19 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 import { getTs } from '../lib/utils';
-import {
-  ComposedChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ReferenceArea,
-  ResponsiveContainer,
-  Scatter,
-  ReferenceLine,
-  Tooltip,
-  Area
-} from 'recharts';
+
 import { Plus, Minus, Maximize2, Move, Droplets, Signal } from 'lucide-react';
 
 // Insulin on Board calculation using a more realistic decay model
@@ -49,16 +37,6 @@ const calculateActivityAt = (time: number, boluses: LogEntry[], diaHours: number
   }, 0);
 };
 
-const StackingWarning = (props: any) => {
-  const { cx, cy, payload } = props;
-  if (!payload.stackingWarning || isNaN(cx) || isNaN(cy)) return null;
-  return (
-    <g className="pointer-events-none">
-       <text x={cx} y={cy + 15} textAnchor="middle" fontSize={12} className="drop-shadow-sm">⚠️</text>
-    </g>
-  );
-};
-
 interface GlucoseChartProps {
   logs: LogEntry[];
   hours: number;
@@ -69,222 +47,6 @@ interface GlucoseChartProps {
   showLoopSimulation?: boolean;
   showMLPrediction?: boolean;
 }
-
-const CustomGlucoseDot = (props: any) => {
-  const { cx, cy, payload, targetMin, targetMax, isDark, onDotClick } = props;
-  if (isNaN(cx) || isNaN(cy) || payload.glucose === undefined || payload.glucose === null) return null;
-  const val = payload.glucose;
-  let fill = isDark ? '#818cf8' : '#4f46e5';
-  if (val < targetMin) fill = '#f59e0b'; // Amber instead of red
-  else if (val > targetMax) fill = '#f59e0b';
-
-  const isLatest = payload.isLatest;
-  const direction = payload.originalG?.direction;
-  const velocity = payload.velocity;
-
-  let arrow = '';
-  if (isLatest) {
-    if (direction) {
-      switch (direction) {
-        case 'DoubleUp': arrow = '⇈'; break;
-        case 'SingleUp': arrow = '↑'; break;
-        case 'FortyFiveUp': arrow = '↗'; break;
-        case 'Flat': arrow = '→'; break;
-        case 'FortyFiveDown': arrow = '↘'; break;
-        case 'SingleDown': arrow = '↓'; break;
-        case 'DoubleDown': arrow = '⇊'; break;
-        default: arrow = '→'; break;
-      }
-    } else if (velocity !== undefined) {
-      if (velocity > 2) arrow = '⇈';
-      else if (velocity > 1) arrow = '↑';
-      else if (velocity > 0.5) arrow = '↗';
-      else if (velocity < -2) arrow = '⇊';
-      else if (velocity < -1) arrow = '↓';
-      else if (velocity < -0.5) arrow = '↘';
-      else arrow = '→';
-    }
-  }
-
-  return (
-    <g 
-      onClick={(e) => {
-          e.stopPropagation();
-          onDotClick && onDotClick(payload.originalG);
-      }}
-      style={{ cursor: 'pointer', outline: 'none' }}
-    >
-      <circle cx={cx} cy={cy} r={20} fill="transparent" />
-      <circle 
-        cx={cx} cy={cy} r={isLatest ? 7 : 5} 
-        fill={fill} 
-        stroke={isDark ? '#0f172a' : '#ffffff'} 
-        strokeWidth={isLatest ? 3 : 2}
-      />
-      {isLatest && arrow && (
-        <text 
-          x={cx + 12} 
-          y={cy + 5} 
-          fill={fill} 
-          fontSize={16} 
-          fontWeight="900" 
-          className="pointer-events-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]"
-        >
-          {arrow}
-        </text>
-      )}
-    </g>
-  );
-};
-
-const CustomBolusShape = (props: any) => {
-  const { cx, cy, payload, onDotClick } = props;
-  if (!payload.bolusVal || isNaN(cx) || isNaN(cy)) return null;
-  
-  const val = payload.originalB?.value || 0;
-  const h = Math.min(40, val * 5);
-  return (
-    <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalB); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <rect x={cx - 15} y={cy - 50} width={30} height={60} fill="transparent" />
-      <rect x={cx - 2} y={cy - h} width={4} height={h} fill="rgba(79, 70, 229, 0.4)" />
-      <text x={cx} y={cy - h - 5} textAnchor="middle" fontSize={14}>💉</text>
-    </g>
-  );
-};
-
-const CustomMealShape = (props: any) => {
-  const { cx, cy, payload, onDotClick } = props;
-  if (!payload.mealVal || isNaN(cx) || isNaN(cy)) return null;
-
-  const hasBolus = !!payload.bolusVal;
-  const bolusVal = payload.originalB?.value || 0;
-  const h = hasBolus ? Math.min(40, bolusVal * 5) : 0;
-  
-  const baseCy = cy - h - (hasBolus ? 20 : 10);
-
-  return (
-    <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalM); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <circle cx={cx} cy={baseCy - 10} r={20} fill="transparent" />
-      <text x={cx} y={baseCy} textAnchor="middle" fontSize={16}>🍽️</text>
-    </g>
-  );
-};
-
-const CustomSiteShape = (props: any) => {
-  const { cx, cy, payload, onDotClick, isDark } = props;
-  if (!payload.siteVal || isNaN(cx) || isNaN(cy)) return null;
-  return (
-    <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSite); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <circle cx={cx} cy={cy + 15} r={15} fill="transparent" />
-      <Droplets x={cx - 9} y={cy + 6} size={18} color="#14b8a6" strokeWidth={2.5} />
-    </g>
-  );
-};
-
-const CustomSensorShape = (props: any) => {
-  const { cx, cy, payload, onDotClick, isDark } = props;
-  if (!payload.sensorVal || isNaN(cx) || isNaN(cy)) return null;
-  return (
-    <g onClick={(e) => { e.stopPropagation(); onDotClick && onDotClick(payload.originalSensor); }} style={{ cursor: 'pointer', outline: 'none' }}>
-      <circle cx={cx} cy={cy + 15} r={15} fill="transparent" />
-      <Signal x={cx - 9} y={cy + 6} size={18} color="#6366f1" strokeWidth={2.5} />
-    </g>
-  );
-};
-
-const LoopSimulationDot = (props: any) => {
-  const { cx, cy, payload } = props;
-  if (!payload.loopPrediction || !payload.loopAction || isNaN(cx) || isNaN(cy)) return null;
-  return (
-    <g>
-      {payload.loopAction === 'bolus' && <text x={cx} y={cy - 8} textAnchor="middle" fontSize={12}>💉</text>}
-      {payload.loopAction === 'suspend' && <rect x={cx - 4} y={cy + 8} width={8} height={8} fill="#ef4444" />}
-    </g>
-  );
-};
-
-const MLPredictionLabel = (props: any) => {
-  const { x, y, payload, isDark, lastMlTimestamp } = props;
-  if (payload && payload.timestamp === lastMlTimestamp && payload.mlPrediction !== undefined && !isNaN(x) && !isNaN(y)) {
-    return (
-      <g>
-        <text x={x} y={y - 12} fill={isDark ? '#fcd34d' : '#b45309'} fontSize={8} fontWeight="black" textAnchor="middle" className="uppercase tracking-widest pointer-events-none">
-          GlikoSense
-        </text>
-        <text x={x} y={y - 22} textAnchor="middle" fontSize={16} className="pointer-events-none drop-shadow-md">
-          🦄
-        </text>
-      </g>
-    );
-  }
-  return null;
-};
-
-const CustomTooltip = ({ active, payload, isDark }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    const points: LogEntry[] = [];
-    if (data.originalG) points.push(data.originalG);
-    if (data.originalB) points.push(data.originalB);
-    if (data.originalM) points.push(data.originalM);
-    if (data.originalSite) points.push(data.originalSite);
-    if (data.originalSensor) points.push(data.originalSensor);
-    
-    return (
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-3 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-2xl min-w-[160px] pointer-events-none select-none glass-target">
-        {points.length > 0 ? (
-          points.map((p, idx) => (
-            <div key={idx} className={idx > 0 ? "mt-2 pt-2 border-t border-slate-100 dark:border-slate-800" : ""}>
-               <div className="text-[7px] font-black uppercase text-accent-500 tracking-[0.2em] mb-0.5">
-                 {p.type === 'meal' ? 'Posiłek' : p.type === 'bolus' ? 'Bolus' : p.type === 'glucose' ? 'Glukoza' : 'Wymiana'}
-               </div>
-               <div className="flex items-baseline gap-1">
-                 <span className="text-lg font-black dark:text-white tracking-tighter">
-                 {p.type === 'glucose' ? Math.round(Number(p.value)) : Number(Number(p.value).toFixed(2))}
-               </span>
-               <span className="text-[9px] font-bold text-slate-500 uppercase">
-                 {p.type === 'glucose' ? 'mg/dL' : p.type === 'bolus' ? 'j' : 'g'}
-               </span>
-               </div>
-               {p.notes && <div className="text-[9px] text-slate-400 italic line-clamp-1 truncate max-w-[160px] mt-0.5 leading-tight">"{p.notes}"</div>}
-               {p.type === 'bolus' && data.stackingWarning && (
-                 <div className="mt-1.5 flex items-center gap-1 text-[7px] font-black text-rose-500 uppercase tracking-widest bg-rose-500/5 px-2 py-1 rounded-lg border border-rose-500/10">
-                   <span>⚠️</span> Nakładanie dawek
-                 </div>
-               )}
-            </div>
-          ))
-        ) : (
-          <div className="text-[7px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Status</div>
-        )}
-
-        {/* IOB and Activity */}
-        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
-          <div className="flex justify-between items-center">
-            <span className="text-[7px] font-black uppercase text-pink-500 tracking-wider">Aktualna IOB</span>
-            <span className="text-[10px] font-black dark:text-pink-400">{(data.iob || 0).toFixed(2)} j</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[7px] font-black uppercase text-slate-500 tracking-wider">Aktywność</span>
-            <div className="flex items-center gap-1">
-              <div className="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-pink-500" 
-                  style={{ width: `${Math.min(100, (data.activity || 0) * 100)}%` }} 
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-2 text-[7px] font-black text-slate-400 text-right uppercase tracking-widest border-t border-slate-100 dark:border-slate-800 pt-1.5">
-           {new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
 
 export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction }: GlucoseChartProps) {
   const [selectedPoint, setSelectedPoint] = useState<LogEntry | null>(null);
@@ -471,7 +233,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       let velocity = 0;
       const timeDiffMin = (last.timestamp - prev.timestamp) / 60000;
       if (timeDiffMin > 0) {
-         velocity = (last.value - prev.value) / timeDiffMin;
+         velocity = ((last.value || last.glucose) - (prev.value || prev.glucose)) / timeDiffMin;
       }
       
       const diaMs = (settings?.dia || 4) * 60 * 60 * 1000;
@@ -501,7 +263,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       const expectedBgRise = (cob / cr) * isf;
       
       const steps = 12; 
-      let loopVal = last.value;
+      let loopVal = last.value || last.glucose;
       let simulatedIob = iob;
       
       for (let i = 1; i <= steps; i++) {
@@ -597,13 +359,13 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
       const timeDiffMin = (last.timestamp - prev.timestamp) / 60000;
       if (timeDiffMin > 0) {
-         globalVelocity = (last.value - prev.value) / timeDiffMin;
+         globalVelocity = ((last.value || last.glucose) - (prev.value || prev.glucose)) / timeDiffMin;
       }
     }
 
     const startRoundedMap = Math.round(start / 60000) * 60000;
     
-    dataG.forEach(d => addPoint(d.timestamp, 'glucose', d.value, { 
+    dataG.forEach(d => addPoint(d.timestamp, 'glucose', d.value || d.glucose, { 
       originalG: d, 
       isLatest: d.timestamp === absoluteLatest,
       velocity: d.timestamp === absoluteLatest ? globalVelocity : undefined
@@ -648,12 +410,13 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       const lastG = dataG[dataG.length - 1];
       const lastGTimeRounded = Math.round(lastG.timestamp / 60000) * 60000;
       const lastPoint = timeMap.get(lastGTimeRounded);
+      const lastVal = lastG.value || lastG.glucose;
       if (lastPoint) {
         if (showLoopSimulation && loopPredictions.length > 0) {
-          lastPoint.loopPrediction = lastG.value;
+          lastPoint.loopPrediction = lastVal;
         }
         if (showMLPrediction && mlPredictionData.length > 0) {
-          lastPoint.mlPrediction = lastG.value;
+          lastPoint.mlPrediction = lastVal;
         }
       }
     }
@@ -695,7 +458,316 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end, hasData };
   }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction, mlPredictionDataState, zoomLevel, panOffsetMs]);
 
-  const isDark = theme === 'dark';
+    const isDark = theme === 'dark';
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const canvas = container.querySelector('canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const draw = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      const w = rect.width;
+      const h = rect.height;
+      
+      ctx.clearRect(0, 0, w, h);
+      
+      const pL = 20, pR = 10, pT = 10, pB = 20;
+      const cw = w - pL - pR;
+      const ch = h - pT - pB;
+      
+      const getX = (t) => pL + ((t - start) / (end - start)) * cw;
+      const getY = (v) => pT + ch - ((v - chartMinY) / (chartMaxY - chartMinY)) * ch;
+      
+      // Target area
+      const yMin = getY(targetMin || 70);
+      const yMax = getY(targetMax || 140);
+      ctx.fillStyle = isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)';
+      ctx.fillRect(pL, Math.max(0, yMax), cw, Math.max(0, yMin - yMax));
+
+      // Target boundaries
+      ctx.strokeStyle = isDark ? 'rgba(16, 185, 129, 0.4)' : 'rgba(16, 185, 129, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pL, yMin);
+      ctx.lineTo(pL + cw, yMin);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pL, yMax);
+      ctx.lineTo(pL + cw, yMax);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // X axis ticks
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+      ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+      ctx.lineWidth = 1;
+      
+      for (const t of xAxisTicks) {
+         const x = getX(t);
+         const diff = Math.abs(t - now);
+         let text = '';
+         if (diff < 30000) text = 'TERAZ';
+         else if (t > now + 30000) { if (t - now >= 110*60*1000) text = '+2H'; }
+         else text = new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+         
+         ctx.beginPath();
+         ctx.moveTo(x, pT);
+         ctx.lineTo(x, h - pB);
+         ctx.stroke();
+         if (text) ctx.fillText(text, x, h - pB + 5);
+      }
+      
+      // Y axis labels
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      [chartMinY, targetMin, targetMax, chartMaxY].filter(Boolean).forEach(v => {
+         // handle safely
+         ctx.fillText(Math.round(v).toString(), pL - 2, getY(v));
+      });
+      
+      // Now Line
+      const xNow = getX(now);
+      ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(xNow, pT);
+      ctx.lineTo(xNow, h - pB);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Activity
+      ctx.beginPath();
+      let firstA = true;
+      for (const d of chartData) {
+         if (d.activity !== undefined && !isNaN(d.activity)) {
+             const x = getX(d.timestamp);
+             const y = pT + ch - Math.min(1, Math.max(0, d.activity / 5)) * ch;
+             if (firstA) { ctx.moveTo(x, pT + ch); ctx.lineTo(x, y); firstA = false; }
+             else ctx.lineTo(x, y);
+         }
+      }
+      if (!firstA && chartData.length > 0) {
+          ctx.lineTo(getX(chartData[chartData.length-1].timestamp), pT + ch);
+          const grad = ctx.createLinearGradient(0, pT, 0, pT + ch);
+          grad.addColorStop(0, 'rgba(236,72,153,0.3)');
+          grad.addColorStop(1, 'rgba(236,72,153,0)');
+          ctx.fillStyle = grad;
+          ctx.fill();
+      }
+      
+      // ML Prediction
+      if (showMLPrediction) {
+         ctx.beginPath();
+         let first = true;
+         for (const d of chartData) {
+            if (d.mlPrediction !== undefined) {
+               const x = getX(d.timestamp);
+               const y = getY(d.mlPrediction);
+               if (first) { ctx.moveTo(x, y); first = false; }
+               else ctx.lineTo(x, y);
+            }
+         }
+         ctx.strokeStyle = '#fbbf24';
+         ctx.lineWidth = 3;
+         ctx.setLineDash([6,4]);
+         ctx.stroke();
+         ctx.setLineDash([]);
+         
+         const lastMl = chartData.find(d => d.timestamp === lastMlTimestamp);
+         if (lastMl && lastMl.mlPrediction !== undefined) {
+            const x = getX(lastMl.timestamp);
+            const y = getY(lastMl.mlPrediction);
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, 2*Math.PI);
+            ctx.fillStyle = '#fbbf24';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+         }
+      }
+      
+      // Loop
+      if (showLoopSimulation) {
+         ctx.beginPath();
+         let first = true;
+         for (const d of chartData) {
+            if (d.loopPrediction !== undefined) {
+               const x = getX(d.timestamp);
+               const y = getY(d.loopPrediction);
+               if (first) { ctx.moveTo(x, y); first = false; }
+               else ctx.lineTo(x, y);
+            }
+         }
+         ctx.strokeStyle = '#10b981';
+         ctx.lineWidth = 2.5;
+         ctx.setLineDash([4,4]);
+         ctx.stroke();
+         ctx.setLineDash([]);
+         
+         ctx.font = '12px serif';
+         ctx.textBaseline = 'middle';
+         ctx.textAlign = 'center';
+         for (const d of chartData) {
+            if (d.loopPrediction !== undefined && d.loopAction) {
+               const x = getX(d.timestamp);
+               const y = getY(d.loopPrediction);
+               if (d.loopAction === 'bolus') ctx.fillText('💉', x, y - 8);
+               if (d.loopAction === 'suspend') {
+                  ctx.fillStyle = '#ef4444';
+                  ctx.fillRect(x - 4, y + 4, 8, 8);
+               }
+            }
+         }
+      }
+      
+      // Glucose Line
+      ctx.beginPath();
+      let firstG = true;
+      for (const d of chartData) {
+         if (d.glucose !== undefined && !isNaN(d.glucose)) {
+            const x = getX(d.timestamp);
+            const y = getY(d.glucose);
+            if (firstG) { ctx.moveTo(x, y); firstG = false; }
+            else ctx.lineTo(x, y);
+         }
+      }
+      ctx.strokeStyle = isDark ? '#818cf8' : '#4f46e5';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // Glucose dots
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      for (const d of chartData) {
+         if (d.glucose !== undefined && !isNaN(d.glucose)) {
+            const x = getX(d.timestamp);
+            const y = getY(d.glucose);
+            let fill = isDark ? '#818cf8' : '#4f46e5';
+            if (d.glucose < (targetMin||70) || d.glucose > (targetMax||140)) fill = '#f59e0b';
+            
+            ctx.beginPath();
+            ctx.arc(x, y, d.isLatest ? 5 : 2.5, 0, 2*Math.PI);
+            ctx.fillStyle = fill;
+            ctx.fill();
+            ctx.lineWidth = d.isLatest ? 2 : 1;
+            ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
+            ctx.stroke();
+            
+            if (d.isLatest && d.velocity !== undefined) {
+               let arrow = '→';
+               if (d.velocity > 2) arrow = '⇈';
+               else if (d.velocity > 1) arrow = '↑';
+               else if (d.velocity > 0.5) arrow = '↗';
+               else if (d.velocity < -2) arrow = '⇊';
+               else if (d.velocity < -1) arrow = '↓';
+               else if (d.velocity < -0.5) arrow = '↘';
+               ctx.font = '900 24px sans-serif';
+               ctx.fillStyle = fill;
+               ctx.shadowColor = 'rgba(0,0,0,0.8)';
+               ctx.shadowBlur = 6;
+               ctx.fillText(arrow, x + 24, y);
+               ctx.shadowBlur = 0;
+            }
+         }
+      }
+      
+      // Bolus, Meal, Site, Sensor
+      ctx.font = '14px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (const d of chartData) {
+         const x = getX(d.timestamp);
+         if (d.bolusVal && d.originalB) {
+             const yObj = getY(chartMinY);
+             const bh = Math.min(40, (d.originalB.value || 0) * 5);
+             ctx.fillStyle = 'rgba(79, 70, 229, 0.4)';
+             ctx.fillRect(x - 2, yObj - bh, 4, bh);
+             ctx.fillText('💉', x, yObj - bh - 8);
+             if (d.stackingWarning) {
+                 ctx.font = '12px serif';
+                 ctx.fillText('⚠️', x, yObj - bh - 24);
+                 ctx.font = '14px serif';
+             }
+         }
+         if (d.mealVal) {
+             let baseCy = getY(chartMinY) - 10;
+             if (d.bolusVal) baseCy -= Math.min(40, (d.originalB?.value||0)*5) + 10;
+             ctx.font = '16px serif';
+             ctx.fillText('🍽️', x, baseCy);
+         }
+         if (d.siteVal) {
+             ctx.font = '16px serif';
+             ctx.fillText('💧', x, getY(chartMaxY) + 15);
+         }
+         if (d.sensorVal) {
+             ctx.font = '16px serif';
+             ctx.fillText('📡', x, getY(chartMaxY) + 15);
+         }
+      }
+    };
+    
+    let frameId;
+    const triggerDraw = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(draw);
+    };
+    
+    triggerDraw();
+    window.addEventListener('resize', triggerDraw);
+    return () => {
+      window.removeEventListener('resize', triggerDraw);
+      cancelAnimationFrame(frameId);
+    };
+  }, [chartData, start, end, chartMinY, chartMaxY, targetMin, targetMax, now, isDark, showLoopSimulation, showMLPrediction, xAxisTicks, lastMlTimestamp]);
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.stopPropagation();
+    const container = containerRef.current;
+    if (!container) return;
+    const canvas = container.querySelector('canvas');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    
+    const pL = 20, pR = 10;
+    const cw = rect.width - pL - pR;
+    const tClick = start + ((clickX - pL) / cw) * (end - start);
+    
+    let closestTimeDiff = Infinity;
+    let closestData: any = null;
+    
+    for (const d of chartData) {
+       const diff = Math.abs(d.timestamp - tClick);
+       if (diff < closestTimeDiff && diff < 20 * 60000) { 
+          closestTimeDiff = diff;
+          closestData = d;
+       }
+    }
+    
+    if (closestData) {
+       if (closestData.originalG) setSelectedPoint(closestData.originalG);
+       else if (closestData.originalB) setSelectedPoint(closestData.originalB);
+       else if (closestData.originalM) setSelectedPoint(closestData.originalM);
+       else if (closestData.originalSite) setSelectedPoint(closestData.originalSite);
+       else if (closestData.originalSensor) setSelectedPoint(closestData.originalSensor);
+    } else {
+       setSelectedPoint(null);
+    }
+  };
 
   return (
     <div 
@@ -755,137 +827,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 max-w-[200px] leading-relaxed">System właśnie synchronizuje Twoje ostatnie wyniki z Nightscout. Zaraz się pojawią!</p>
           </div>
         )}
-        <ResponsiveContainer width="100%" height="100%" className="outline-none focus:outline-none focus-visible:outline-none border-none">
-          <ComposedChart
-            data={chartData}
-            margin={{ top: 10, right: 10, left: -25, bottom: 20 }}
-            className="outline-none focus:outline-none focus-visible:outline-none border-none"
-            style={{ outline: 'none' }}
-            onClick={(data: any) => {
-               if (data && data.activePayload && data.activePayload.length > 0) {
-                 const payload = data.activePayload[0].payload;
-                 if (payload.originalG) setSelectedPoint(payload.originalG);
-                 else if (payload.originalB) setSelectedPoint(payload.originalB);
-                 else if (payload.originalM) setSelectedPoint(payload.originalM);
-                 else if (payload.originalSite) setSelectedPoint(payload.originalSite);
-                 else if (payload.originalSensor) setSelectedPoint(payload.originalSensor);
-               }
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} vertical={false} />
-            <Tooltip 
-              content={<CustomTooltip isDark={isDark} />} 
-              cursor={{ stroke: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', strokeWidth: 1 }}
-            />
-          <XAxis 
-            dataKey="timestamp" 
-            type="number" 
-            domain={[start, end]} 
-            ticks={xAxisTicks}
-            className="outline-none"
-            style={{ outline: 'none' }}
-            tickFormatter={(unixTime) => {
-                const diff = Math.abs(unixTime - now);
-                if (diff < 30000) return 'TERAZ';
-                if (unixTime > now + 30000) {
-                   const futureDiffMin = Math.round((unixTime - now) / 60000);
-                   if (futureDiffMin >= 110) return '+2H';
-                   return '';
-                }
-                const date = new Date(unixTime);
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            }}
-            axisLine={{ stroke: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
-            tickLine={false}
-            tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 8, fontWeight: 'bold' }}
-          />
-          <YAxis 
-            yAxisId="right"
-            orientation="right"
-            domain={[0, (data) => Math.max(5, data * 1.2)]} 
-            hide={true}
-            style={{ outline: 'none' }}
-          />
-          <YAxis 
-            domain={[chartMinY, chartMaxY]} 
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 9, fontWeight: 'bold' }}
-            style={{ outline: 'none' }}
-          />
-
-          <ReferenceArea y1={targetMin || 70} y2={targetMax || 140} fill={isDark ? 'rgba(79, 70, 229, 0.1)' : 'rgba(79, 70, 229, 0.05)'} />
-          
-          <ReferenceLine x={now} stroke={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'} strokeDasharray="3 3" />
-
-          {/* Lines */}
-          <Area
-            type="monotone"
-            dataKey="activity"
-            yAxisId="right"
-            stroke="none"
-            fill="url(#iobGradient)"
-            fillOpacity={0.3}
-            connectNulls
-            isAnimationActive={false}
-          />
-          
-          <defs>
-            <linearGradient id="iobGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-
-          <Line 
-            type="monotone" 
-            dataKey="glucose" 
-            stroke={isDark ? '#818cf8' : '#4f46e5'} 
-            strokeWidth={3} 
-            dot={<CustomGlucoseDot targetMin={targetMin} targetMax={targetMax} isDark={isDark} onDotClick={setSelectedPoint} />}
-            activeDot={{ r: 6, fill: '#4f46e5' }}
-            connectNulls
-            isAnimationActive={false}
-          />
-          
-          {showLoopSimulation && (
-             <Line 
-               type="linear" 
-               dataKey="loopPrediction" 
-               stroke="#10b981" 
-               strokeWidth={2.5}
-               strokeDasharray="4 4"
-               dot={<LoopSimulationDot />}
-               activeDot={false}
-               connectNulls
-               isAnimationActive={false}
-             />
-          )}
-
-          {showMLPrediction && (
-             <Line 
-                 type="linear" 
-                 dataKey="mlPrediction" 
-                 stroke="#fbbf24" 
-                 strokeWidth={3} 
-                 strokeDasharray="6 4"
-                 dot={false}
-                 label={<MLPredictionLabel isDark={isDark} lastMlTimestamp={lastMlTimestamp} />}
-                 activeDot={{ r: 5, fill: '#fbbf24', stroke: '#fff', strokeWidth: 2 }}
-                 connectNulls
-                 isAnimationActive={false}
-               />
-          )}
-
-          {/* Scatters for Bolus and Meal Icons */}
-          <Scatter key="scatter-bolus" dataKey="bolusY" shape={<CustomBolusShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
-          <Scatter key="scatter-stacking" dataKey="bolusY" shape={<StackingWarning />} isAnimationActive={false} />
-          <Scatter key="scatter-meal" dataKey="mealY" shape={<CustomMealShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
-          <Scatter key="scatter-site" dataKey="yVal" shape={<CustomSiteShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
-          <Scatter key="scatter-sensor" dataKey="yVal" shape={<CustomSensorShape onDotClick={setSelectedPoint} />} isAnimationActive={false} />
-
-        </ComposedChart>
-      </ResponsiveContainer>
+        <canvas 
+          className="w-full h-full outline-none select-none touch-none" 
+          onClick={handleCanvasClick}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerMove={(e) => e.stopPropagation()}
+          style={{ cursor: "pointer", touchAction: "none" }} 
+        />
       </div>
 
       <AnimatePresence>

@@ -62,3 +62,43 @@ Hej! Przesyłam najnowszy raport dotyczący wprowadzonych optymalizacji i aktual
    - Usprawniłem kod wspierający instalację i aktualizację mechanizmu APK, tak aby powiadomienia i cała infrastruktura dystrybuująca zaktualizowaną aplikację ("Pobierz APK") działały płynniej. Przygotowałem te ulepszenia, aby ułatwić użytkownikom bezpośrednie przechodzenie do świeżych wydań.
 
 Kod jest przygotowany, testy aplikacji (TypeScript checker) dały zwrotkę bezawaryjną. Śmiało pobieraj aktualne źródła Diacontrol i przygotuj nam nowiutki build WebView w systemie Android!
+
+---
+
+### 🌐 Od Agenta Web (Do Agenta Android / APK):
+Hej! Oto krótki zrzut zmian z dzisiejszej sesji pod najnowszy kompilat APK:
+
+1. **Uspójnienie UI przełączników (Toggle):** 
+   - Przełącznik "Tryb Eko" w ustawieniach (`Profile.tsx`) został wizualnie ustandaryzowany, aby zgrywał się wymiarami i animacjami z pozostałymi switchami (np. Glikemia/Synchronizacja). 
+
+2. **Aktualizacja gotowych posiłków w Bibliotece:**
+   - Dodałem przycisk nadpisywania (ikona dyskietki) do zapisanych szablonów posiłków (`MealPlate.tsx`). Użytkownicy mogą teraz zaktualizować konkretny stary zestaw posiłków na podstawie aktualnego Talerza, co rozwiązuje prośbę o modyfikację zmieniających się z czasem składów.
+
+3. **Edycja gramatury Zapisanych Posiłków przed wczytaniem:**
+   - Znacznie rozbudowałem mechanizm wywoływania "Zapisanych Zestawów" zarówno z Kalkulatora (Talerza), jak i z okna Edycji posiłku.
+   - Po kliknięciu w zapisany posiłek w Bibliotece otwiera się teraz specjalne półprzezroczyste okno modalne, gdzie wypisane są wszystkie składniki oraz precyzyjne interaktywne pola wagi (w gramach). Użytkownik może edytować wybrane wartości lub je doprecyzować tuż przed wciągnięciem szablonu na "talerz bazowy", bez żmudnego szukania tego na głównym talerzu.
+
+4. **Poprawa skaczącego i niestabilnego UI przy wysuwaniu klawiatury (Capacitor/Mobile):**
+   - Zmodyfikowałem architekturę kontenerów głównych aplikacji i usunąłem responsywny parametr dopasowujący padding (`pb-8` na `pb-32`) uzależniony od zdarzenia `isKeyboardOpen`. Okazało się to strzałem w dziesiątkę, by ukrócić skaczący, nienaturalny interfejs na mobilkach podczas edycji na Talerzu i wysuwania klawiatury z Androida (ponieważ po połączeniu z zachowaniem WebView generowało to layout shift).
+   - Zastąpiłem globalne warianty sztywno spiętym CSS `min-h-[100dvh]` aby zoptymalizować rendering pod telefony, wliczając w the dynamiczne paski powiadomień. Nawigacja nadal ładnie znika podczas pisania, ale cała reszta stoi stabilnie tak jak użytkownik chce.
+
+5. **Silnik GlikoSense – Naprawa naliczania Punktów Wyuczenia w AI (Model Importu):**
+   - Wykryłem niefortunny fallback do `logs.length` (rozmiaru historii Pielęgniarki/Wykresu) podczas liczenia punktów doświadczenia dla zaimportowanego modułu sieci neuronowej w komponencie Dashboard.
+   - Dopisałem w klasie `mlSugarAnalyzer` oraz analizie w locie, żeby zawsze respektował zapisany w backupie (zaimportowanym pliku) rzeczywisty rozpięty `datasetSize`. Parametr aktualizuje się też na żywo po ściągnięciu modelu (wyciąga najstarsze doświadczenie pamięci). Teraz w komponencie *Pulpitu*, a także *Postępów Nauki GlikoSenseNeural* od razu wskoczy wyuczony próg (np. 15 tys. pkt zamiast np. 400 z powierzchownego historyka zapytań).
+
+6. **Tryb Eko a zachowanie paska nawigacji:**
+   - Poprawiłem zachowanie dolnej belki podczas Trybu Eko - aplikacja w wersji eko blokuje teraz narzuty animacji globalnie przez wymuszanie braku tranzycji w CSS `data-eco` i usunięcie drogiego wyliczania layoutId z Framer Motion, niemniej belka i tak zachowuje wyraźne wskaźniki nawigacji dla aktywnych elementów (animacje płynnego przejścia plamki usunięto, ale kropka się pojawia na wybranych ikonach). W ten sposób "Tryb Eko" odciąża UI o wiele lżej operując po GPU przeglądarki na urządzeniach mobilnych, ale nie psuje czytelności powiadomień na dole. 
+
+7. **Dodanie Widżetu Leków (Przypomnienia):**
+   - Stworzyłem nowy, niezależny komponent `MedicationsWidget.tsx` od obsługi listy leków wyciąganych z ustawień.
+   - Usunięto rozmiar 2x2 dla tego widżetu (ze względu na formatowanie).
+   - Jeśli bieżący czas znajduje się w oknie przypomnienia (-30 min / +60 min od podanej w opcjach godziny aptekarskiej), widget podświetla się i ukazuje przycisk "Przyjąłem".
+   - Stan przyjętych leków w danym dniu zapisywany jest lokalnie i wyświetla odpowiednie animacje oraz potwierdzenie w formie ikonki `CheckCircle2` po wzięciu, a zrealizowane porcje się przekreślają.
+   - Widżet został na starcie dodany (jako standardowy) do puli Domyślnych Wyłączonych (może być rozszerzony/aktywny z dolnego szufladowego menu `Layoutu 2.0`). Zastosowano dynamiczne odświeżanie podglądu co 1 min., tak by okno przypomnienia bez ingerencji na żywo wskakiwało kolorystycznie na kafelki układu domowego.
+
+8. **Nowe widżety (Wyłączone domyślnie):**
+   - **Dzienny bilans węglowodanów** - zlicza dzienne makro z dzisiejszych logów `meal` pokazując cel i estetyczny pasek postępu. Dodano możliwość ustawienia celu klikając na ikonkę edycji na prawym brzegu.
+   - **Nawodnienie (Woda)** - klikalny widżet do zliczania/wypijania szklanek z wodą na dany dzień. System oparto w pełni na `localStorage` odciążając Firebase. Zastosowano `window.addEventListener('hydration_updated')` – dodanie szklanki na zakładce Dieta płynnie i w locie pojawia się na widżecie głównym i odwrotnie. Zaimplementowano falujące wodne tło z drop shadow.
+   - **Rotacja wkłuć** - potężna zmiana wizualna. Dołożono sylwetkę w SVG jako ludzika. Animacja startuje od widoku całego ciała, by po ~400ms płynnie przybliżyć i zeskalować się na faktyczne miejsce nakłucia. Zwiększyło się to czytelność lewo/prawo (które też teraz odróżnia parser, mapując właściwą ćwiartkę brzucha czy uda na punkty X,Y przed zoomem). Zgodnie z prośbą usunięto napis o ilości dni od wymiany, pozostawiając samą informację o zlokalizowanym miejscu nakłucia by uniknąć duplikacji z innym widżetem.
+
+Czekam na zwrotkę, powodzenia przy nowym paczkowaniu!

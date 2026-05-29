@@ -404,13 +404,21 @@ export default function Profile({
         color: "bg-slate-600",
       },
     ];
-    const availableIds = ALL_CATEGORIES.map((c) => c.id);
+    
+    let filteredCategories = ALL_CATEGORIES;
+    if (settings.followerMode) {
+      filteredCategories = ALL_CATEGORIES.filter(c => 
+        ["system", "android", "account", "devices"].includes(c.id)
+      );
+    }
+
+    const availableIds = filteredCategories.map((c) => c.id);
     const ordered = categoryOrder
       .filter((id) => availableIds.includes(id))
-      .map((id) => ALL_CATEGORIES.find((c) => c.id === id)!);
-    const missing = ALL_CATEGORIES.filter((c) => !categoryOrder.includes(c.id));
+      .map((id) => filteredCategories.find((c) => c.id === id)!);
+    const missing = filteredCategories.filter((c) => !categoryOrder.includes(c.id));
     return [...ordered, ...missing];
-  }, [settings.childMode, petData.name, categoryOrder]);
+  }, [settings.childMode, petData.name, categoryOrder, settings.followerMode]);
 
   const performTherapyAudit = async () => {
     if (auditLoading) return;
@@ -1485,6 +1493,34 @@ export default function Profile({
 
       {activeCategory === null ? (
         <div className="pb-6 pt-2">
+          {settings.followerMode && (
+            <div className="mb-6 bg-cyan-500/10 border border-cyan-500/20 rounded-[2.5rem] p-5 shadow-lg flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="bg-cyan-500 p-3 text-white rounded-2xl">
+                  <Activity size={24} />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-black text-cyan-600 dark:text-cyan-400 leading-none">Tryb Śledzący</h3>
+                  <p className="text-[10px] text-cyan-700/70 dark:text-cyan-300/70 font-bold uppercase tracking-widest mt-1">Tylko Odczyt</p>
+                </div>
+              </div>
+              <button 
+                onClick={async () => {
+                  const updated = { ...settings, followerMode: false };
+                  setSettings(updated);
+                  await setDoc(
+                    doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user!), "settings", "profile"),
+                    { followerMode: false },
+                    { merge: true }
+                  );
+                  toast.success("Wyłączono Tryb Śledzący. Wrócono do pełnej wersji.");
+                }} 
+                className="bg-cyan-500 hover:bg-cyan-600 text-white text-[10px] font-black uppercase px-4 py-3 rounded-xl transition-all shadow-md active:scale-95"
+              >
+                Wyłącz
+              </button>
+            </div>
+          )}
           <div className="flex items-center justify-between mb-4 px-2">
             <h2 className="text-xl font-black text-slate-800 dark:text-white">
               Więcej opcji
@@ -4971,6 +5007,70 @@ export default function Profile({
           animate={{ opacity: 1, x: 0 }}
           className="space-y-4 pb-20"
         >
+          {/* Follower Mode (Tryb Obserwatora) */}
+          <div
+            className={cn(
+              "rounded-[2.5rem] p-6 border shadow-xl space-y-4",
+              settings.glassmorphismEnabled
+                ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800",
+            )}
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-cyan-500/10 p-3 rounded-2xl text-cyan-500">
+                <Activity size={24} />
+              </div>
+              <div>
+                <h3 className="font-black text-sm uppercase tracking-wider dark:text-white leading-none">
+                  Tryb Śledzący (Tylko Odczyt)
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  Dla obserwatorów (followers)
+                </p>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed text-left">
+              Wyłącz funkcje zapisywania (bolusy, posiłki, modyfikacje) oraz ukryj zaawansowane analizy. Aplikacja stanie się czystym podglądem wyników i wykresów – idealne rozwiązanie dla członków rodziny i śledzących.
+            </p>
+
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-left">
+                <p className="text-[11px] font-black uppercase dark:text-white">Aktywuj tryb</p>
+              </div>
+              <button
+                onClick={async () => {
+                  const isFollower = !settings.followerMode;
+                  const updated = { ...settings, followerMode: isFollower };
+                  setSettings(updated);
+                  
+                  await setDoc(
+                    doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user!), "settings", "profile"),
+                    { followerMode: isFollower },
+                    { merge: true }
+                  );
+                  
+                  if (isFollower) {
+                    toast.success("Włączono Tryb Śledzący");
+                  } else {
+                    toast.success("Wyłączono Tryb Śledzący");
+                  }
+                }}
+                className={cn(
+                  "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
+                  settings.followerMode ? "bg-cyan-500" : "bg-slate-300 dark:bg-slate-700"
+                )}
+              >
+                <div
+                  className={cn(
+                    "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                    settings.followerMode ? "translate-x-6" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+          </div>
+
           {/* System & Experience Section */}
           <div
             className={cn(
@@ -5468,6 +5568,42 @@ export default function Profile({
                       </span>
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  "p-6 rounded-[2.5rem] border space-y-6 mt-4",
+                  settings.glassmorphismEnabled
+                    ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                    : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-black dark:text-white">Tryb Eko (Maksymalna wydajność)</h3>
+                    <p className="text-[10px] text-slate-500">Wyłącza animacje, cienie oraz rozmycia szklane by przyspieszyć działanie.</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const mode = !settings.ecoMode;
+                      setSettings(prev => ({ ...prev, ecoMode: mode }));
+                      if (user) {
+                        await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true });
+                      }
+                    }}
+                    className={cn(
+                      "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
+                      settings.ecoMode ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                        settings.ecoMode ? "translate-x-6" : "translate-x-0"
+                      )}
+                    />
+                  </button>
                 </div>
               </div>
 

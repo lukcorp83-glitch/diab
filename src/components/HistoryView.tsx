@@ -22,9 +22,10 @@ interface HistoryProps {
   logs: LogEntry[];
   user: any;
   onBack: () => void;
+  settings?: any;
 }
 
-export default function HistoryView({ logs, user, onBack }: HistoryProps) {
+export default function HistoryView({ logs, user, onBack, settings }: HistoryProps) {
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [listFilter, setListFilter] = useState<"all" | "glucose" | "treatment">(
     "treatment",
@@ -125,8 +126,10 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
               <SwipeableItem
                 id={log.id}
                 onDelete={async () => {
+                  if (settings?.followerMode) return;
                   try {
-                    await deleteDoc(
+                    window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id } }));
+                    deleteDoc(
                       doc(
                         db,
                         "artifacts",
@@ -136,7 +139,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
                         "logs",
                         log.id,
                       ),
-                    );
+                    ).catch(err => console.warn("Failed to delete remotely", err));
                   } catch (err) {
                     console.error("Delete failed:", err);
                   }
@@ -144,6 +147,7 @@ export default function HistoryView({ logs, user, onBack }: HistoryProps) {
               >
                 <div
                   onClick={() => {
+                    if (settings?.followerMode) return;
                     if (
                       log.type === "meal" ||
                       log.type === "bolus" ||
