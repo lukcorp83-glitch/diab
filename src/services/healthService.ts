@@ -19,6 +19,7 @@ export const healthService = {
     if (!this.isAvailable()) return false;
 
     return new Promise((resolve) => {
+      
       const win = window as any;
       const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
       if (!healthObj) { resolve(false); return; }
@@ -45,10 +46,11 @@ export const healthService = {
     if (!this.isAvailable()) return 0;
 
     return new Promise((resolve) => {
-      const win = window as any;
+      
       const now = new Date();
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
+      
       const win = window as any;
       const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
       if (!healthObj) { resolve(0); return; }
@@ -80,9 +82,10 @@ export const healthService = {
     if (!this.isAvailable()) return false;
 
     return new Promise((resolve) => {
-      const win = window as any;
+      
       const date = new Date(timestamp);
 
+      
       const win = window as any;
       const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
       if (!healthObj) { resolve(false); return; }
