@@ -9,9 +9,11 @@ interface LowGlucoseMealAlertProps {
   logs: LogEntry[];
   lastGlucose: number | null;
   onAddCarbs: () => void;
+  shortcuts?: any[];
+  onQuickAdd?: (shortcut: any) => void;
 }
 
-export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs }: LowGlucoseMealAlertProps) {
+export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, shortcuts, onQuickAdd }: LowGlucoseMealAlertProps) {
   const shouldAlert = useMemo(() => {
     if (!lastGlucose || lastGlucose > 70) return false;
     
@@ -75,6 +77,28 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs }: L
             Dodaj posiłek
           </button>
         </div>
+
+        {shortcuts && shortcuts.length > 0 && onQuickAdd && (
+          <div className="relative z-10 mt-5 pt-5 border-t border-white/20">
+            <p className="text-[9px] text-white/90 font-black uppercase tracking-widest mb-3">Szybkie skróty:</p>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 snap-x scrollbar-hide">
+              {shortcuts.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    Haptics.selection();
+                    onQuickAdd(s);
+                  }}
+                  className="flex-shrink-0 snap-start bg-white/10 hover:bg-white/20 transition-all border border-white/20 rounded-2xl p-3 flex flex-col items-center gap-2 min-w-[80px]"
+                >
+                  <span className="text-2xl">{s.icon || '🍽️'}</span>
+                  <span className="text-[10px] font-bold text-white text-center line-clamp-1 w-full">{s.name}</span>
+                  <span className="text-[9px] font-black text-white/80 bg-white/10 px-2 py-0.5 rounded-full">{s.carbs}g W</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </motion.div>
     </AnimatePresence>
   );

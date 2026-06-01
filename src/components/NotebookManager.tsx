@@ -73,13 +73,13 @@ export default function NotebookManager({ user }: { user: any }) {
                        requireInteraction: true
                      } as any);
                    } else {
-                     new Notification('GlikoControl Przypomnienie', { body: n.content });
+                     new window.Notification('GlikoControl Przypomnienie', { body: n.content });
                    }
                  }).catch(() => {
-                   new Notification('GlikoControl Przypomnienie', { body: n.content });
+                   new window.Notification('GlikoControl Przypomnienie', { body: n.content });
                  });
                } catch(e) {
-                 try { new Notification('GlikoControl Przypomnienie', { body: n.content }); } catch(err) {}
+                 try { new window.Notification('GlikoControl Przypomnienie', { body: n.content }); } catch(err) {}
                }
              }
              
@@ -96,8 +96,10 @@ export default function NotebookManager({ user }: { user: any }) {
   }, [notes, user]);
 
   useEffect(() => {
-    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      Notification.requestPermission();
+    if (typeof window !== 'undefined' && window.Notification) {
+      if (window.Notification.permission !== 'granted' && window.Notification.permission !== 'denied') {
+        window.Notification.requestPermission();
+      }
     }
   }, []);
 

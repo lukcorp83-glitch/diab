@@ -38,6 +38,20 @@ export default function ApiIntegration({ user }: { user: any }) {
       } catch (e) {} // Not on Android or bridge not loaded
     };
     checkPerm();
+    
+    // Refresh when app comes back to foreground (e.g. returning from settings)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkPerm();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', checkPerm);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', checkPerm);
+    };
   }, [user]);
 
   const requestNotificationPermission = async () => {

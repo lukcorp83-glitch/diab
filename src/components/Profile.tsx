@@ -4750,7 +4750,7 @@ export default function Profile({
                       const updated = { ...settings, healthConnectSyncSteps: isSyncSteps };
                       setSettings(updated);
                       await setDoc(
-                        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "general"),
+                        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
                         { healthConnectSyncSteps: isSyncSteps },
                         { merge: true }
                       );
@@ -4781,7 +4781,7 @@ export default function Profile({
                       const updated = { ...settings, healthConnectSyncGlucose: isSyncGlucose };
                       setSettings(updated);
                       await setDoc(
-                        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "general"),
+                        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
                         { healthConnectSyncGlucose: isSyncGlucose },
                         { merge: true }
                       );
@@ -4803,9 +4803,19 @@ export default function Profile({
 
               <button
                 onClick={async () => {
-                  const granted = await healthService.requestAuthorization();
-                  if (granted) {
-                    toast.success("Połączono pomyślnie z Health Connect!");
+                  if (!healthService.isAvailable()) {
+                    toast.error("Usługa Health Connect nie jest obsługiwana na tym urządzeniu lub wtyczka nie została załadowana.");
+                    return;
+                  }
+                  try {
+                    const granted = await healthService.requestAuthorization();
+                    if (granted) {
+                      toast.success("Połączono pomyślnie z Health Connect!");
+                    } else {
+                      toast.error("Brak uprawnień. Upewnij się, że zezwoliłeś na dostęp do danych.");
+                    }
+                  } catch (e: any) {
+                    toast.error("Błąd połączenia: " + e.message);
                   }
                 }}
                 className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-md transition-colors"

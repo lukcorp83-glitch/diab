@@ -60,7 +60,7 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
              } catch(e) {
                console.error("Capacitor local notification error:", e);
              }
-          } else if ('Notification' in window && Notification.permission === 'granted') {
+          } else if ('Notification' in window && window.Notification.permission === 'granted') {
              try {
                 navigator.serviceWorker.ready.then(reg => {
                   if (reg) reg.showNotification(title, { body: message, icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'), vibrate: [200, 100, 200] } as any);

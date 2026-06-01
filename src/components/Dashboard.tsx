@@ -2064,7 +2064,13 @@ export default function Dashboard({
     <div
       className="space-y-6 pb-20 will-change-transform relative"
     >
-      <LowGlucoseMealAlert logs={logs} lastGlucose={lastG ? Math.round(lastG.value) : null} onAddCarbs={() => setTab("meal")} />
+      <LowGlucoseMealAlert 
+        logs={logs} 
+        lastGlucose={lastG ? Math.round(lastG.value) : null} 
+        onAddCarbs={() => setTab("meal")} 
+        shortcuts={shortcuts}
+        onQuickAdd={quickAdd}
+      />
 
       <div className="flex items-center justify-between px-2">
         <div className="flex items-baseline gap-2">
