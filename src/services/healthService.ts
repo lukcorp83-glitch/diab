@@ -35,7 +35,7 @@ export const healthService = {
         },
         (err: any) => {
           console.error('[HealthConnect] Authorization failed:', err);
-          toast.error('Odmowa dostępu do Health Connect.');
+          toast.error('Odmowa: ' + (typeof err === 'string' ? err : JSON.stringify(err)));
           resolve(false);
         }
       );
