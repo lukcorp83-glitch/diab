@@ -18,7 +18,7 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
         now - Number(l.timestamp) < timeLimit &&
         now - Number(l.timestamp) >= 0 &&
         (!l.items || l.items.length === 0) &&
-        ((l as any).carbs > 0 || l.value > 0 || l.linkedMeal?.carbs > 0)
+        ((l as any).carbs > 0 || l.linkedMeal?.carbs > 0 || (l.type === "meal" && l.value > 0))
     ).sort((a,b) => b.timestamp - a.timestamp);
 
     return unlinkedLogs.length > 0 ? unlinkedLogs[0] : null;
@@ -26,7 +26,9 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
 
   if (!latestUnlinked) return null;
 
-  const carbs = (latestUnlinked as any).carbs || latestUnlinked.value || latestUnlinked.linkedMeal?.carbs || 0;
+  const rawCarbs = (latestUnlinked as any).carbs || latestUnlinked.linkedMeal?.carbs || (latestUnlinked.type === "meal" ? latestUnlinked.value : 0);
+  const carbs = Math.round(rawCarbs * 10) / 10;
+  if (carbs <= 0) return null;
   const timeStr = new Date(latestUnlinked.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (

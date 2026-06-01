@@ -12,7 +12,7 @@ export const healthService = {
   isAvailable(): boolean {
     if (!Capacitor.isNativePlatform()) return false;
     const win = window as any;
-    return !!(win.navigator && win.navigator.health);
+    return !!(win.navigator && (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health)));
   },
 
   async requestAuthorization(): Promise<boolean> {
@@ -20,8 +20,14 @@ export const healthService = {
 
     return new Promise((resolve) => {
       const win = window as any;
-      win.navigator.health.requestAuthorization(
-        ['steps', 'blood_glucose'],
+      const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
+      if (!healthObj) { resolve(false); return; }
+
+      healthObj.requestAuthorization(
+        [{
+          read: ['steps', 'blood_glucose'],
+          write: ['blood_glucose']
+        }],
         () => {
           console.log('[HealthConnect] Authorization granted');
           resolve(true);
@@ -43,7 +49,11 @@ export const healthService = {
       const now = new Date();
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-      win.navigator.health.query(
+      const win = window as any;
+      const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
+      if (!healthObj) { resolve(0); return; }
+
+      healthObj.query(
         {
           startDate: yesterday,
           endDate: now,
@@ -73,7 +83,11 @@ export const healthService = {
       const win = window as any;
       const date = new Date(timestamp);
 
-      win.navigator.health.store(
+      const win = window as any;
+      const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
+      if (!healthObj) { resolve(false); return; }
+
+      healthObj.store(
         {
           startDate: date,
           endDate: date,
