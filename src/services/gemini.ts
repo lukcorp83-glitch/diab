@@ -80,16 +80,16 @@ export const geminiService = {
 
     // Zaktualizowane modele zgodnie z nowymi wytycznymi
     let modelsToTry = imageData
-      ? ["gemini-2.0-flash", "gemini-1.5-flash"]
+      ? ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash"]
       : [
-          "gemini-2.0-flash",
-          "gemini-1.5-flash",
-          "gemini-1.5-pro",
+          "gemini-flash-latest",
+          "gemini-2.5-flash",
+          "gemini-pro-latest",
         ];
 
     // Proxy obsługuje tylko flash, nie doliczmy kosztów PRO do konta globalnego
     if (isProxyUrl) {
-      modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
+      modelsToTry = ["gemini-flash-latest", "gemini-2.0-flash"];
     }
 
     let contents;
@@ -166,9 +166,9 @@ export const geminiService = {
         }
       }
 
-      console.error("Wszystkie modele AI(Proxy) są obecnie zajęte.");
+      console.error("Wszystkie modele AI(Proxy) są obecnie zajęte lub zablokowane limitami Google dla naszego bezpłatnego serwera.");
       throw new Error(
-        `Wszystkie modele AI są obecnie zajęte. Ostatni błąd: ${(lastError as Error)?.message}`,
+        "Aby przywrócić działanie modułów Sztucznej Inteligencji (GlikoSense, Asystent), przejdź do: Mój Profil -> Opcje Zaawansowane -> Własny klucz API. Pobierz darmowy klucz Gemini ze strony aistudio.google.com i wprowadź go w aplikacji. Jest to konieczne, gdyż darmowy ogólnodostępny serwer osiągnął limity zapytań Google."
       );
     }
 
@@ -567,7 +567,7 @@ export const geminiService = {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-2.0-flash",
+            model: "gemini-flash-latest",
             payload: {
               contents: fullHistory,
               systemInstruction: {
@@ -589,12 +589,12 @@ export const geminiService = {
         throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
         console.error("Chat proxy error", e);
-        return "Przepraszam, chyba na chwilę zasnąłem... Możesz powtórzyć? ✨";
+        return "Serwer padnął lub jego darmowy limit się wyczerpał! ✨ Przejdź do Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny (darmowy) Klucz Gemini API! ✨";
       }
     }
 
     const client = getClient();
-    const model = "gemini-2.0-flash";
+    const model = "gemini-flash-latest";
 
     try {
       const response = await client.models.generateContent({
@@ -849,7 +849,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-2.0-flash",
+            model: "gemini-flash-latest",
             payload: {
               contents: fullContents,
               systemInstruction: {
@@ -871,15 +871,15 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
         throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
         console.error("Assistant proxy error", e);
-        return "Przepraszam, mam problem z połączeniem z moją bazą wiedzy. Spróbuj później.";
+        return "Serwer padnął lub jego limit się wyczerpał. Przejdź do: Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny Klucz Gemini API.";
       }
     }
 
     const client = getClient();
     const modelsToTry = [
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
+      "gemini-flash-latest",
+      "gemini-2.5-flash",
+      "gemini-pro-latest",
     ];
     let lastError = null;
 
