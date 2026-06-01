@@ -755,7 +755,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
         }),
       }));
 
-    const isChild = settings?.childMode ?? true;
+    const isChild = settings?.childMode ?? false;
 
     const insightsStr =
       insights && insights.length > 0

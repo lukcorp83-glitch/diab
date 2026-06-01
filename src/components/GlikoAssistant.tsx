@@ -40,7 +40,7 @@ export default function GlikoAssistant({
   isTyping: boolean;
   onSend: (text: string) => void;
 }) {
-  const isChild = settings?.childMode ?? true;
+  const isChild = settings?.childMode ?? false;
   const assistantName = isChild ? (petData?.name || "Asystent Gliko") : "Neural Expressive AI";
 
   useEffect(() => {
@@ -158,15 +158,7 @@ export default function GlikoAssistant({
 
   const renderAvatar = (size: 'sm' | 'md' | 'lg' = 'md') => {
     if (!isChild) {
-      return (
-        <div className={cn(
-          "flex items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-[#0a0a0a] shadow-inner border border-white/10 relative overflow-hidden",
-          size === 'sm' ? "w-10 h-10" : size === 'md' ? "w-14 h-14" : "w-16 h-16"
-        )}>
-           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 15, ease: "linear" }} className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(168,85,247,0.3)_360deg)]" />
-           <Cpu className="text-accent-400 relative z-10" size={size === 'sm' ? 18 : 24} />
-        </div>
-      );
+      return null;
     }
 
     // Children Mode: Render Pet
