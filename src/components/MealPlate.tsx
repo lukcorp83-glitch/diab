@@ -1008,13 +1008,18 @@ export default function MealPlate({
   const prepareToLogMeal = () => {
     if (!user || plate.length === 0) return;
 
-    // We check if there are recent logs without items and potentially without linkedMeal, up to 2 hours old
+    // Oparto tylko na wczytanych logach lokalnie (Local State), sprawdza historię 3 godziny wstecz.
     const entryTimestamp = new Date(entryTime).getTime();
     const timeLimit = 3 * 60 * 60 * 1000;
     const candidates = logs.filter(l => 
       (l.type === "bolus" || l.type === "meal") &&
       Math.abs(Number(l.timestamp) - entryTimestamp) < timeLimit &&
       (!l.items || l.items.length === 0) &&
+      (!l.description || l.description.trim() === "") &&
+      (!l.name || l.name.trim() === "") &&
+      (!l.linkedMeal?.name || l.linkedMeal.name.trim() === "") &&
+      (!l.notes || l.notes.trim() === "") &&
+      (!l.userModified) && // nie proponujemy bolusów/posiłków, które już edytowano
       ((l as any).carbs > 0 || l.value > 0 || l.linkedMeal?.carbs > 0)
     );
 

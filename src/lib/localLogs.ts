@@ -54,3 +54,15 @@ export async function loadLocalLogs(): Promise<LogEntry[]> {
     request.onerror = () => reject(request.error);
   });
 }
+
+export async function deleteLocalLog(id: string): Promise<void> {
+  const db = await openLocalLogsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.delete(id);
+    
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}

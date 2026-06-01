@@ -87,7 +87,7 @@ import Dashboard from "./components/Dashboard";
 import ChartFullView from "./components/ChartFullView";
 import { LocalErrorBoundary } from "./components/LocalErrorBoundary";
 
-import { saveLocalLogs, loadLocalLogs } from "./lib/localLogs";
+import { saveLocalLogs, loadLocalLogs, deleteLocalLog } from "./lib/localLogs";
 
 const lazyWithReload = (importFunc: () => Promise<any>) => {
   return React.lazy(async () => {
@@ -253,6 +253,7 @@ export default function App() {
       setFbLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
       setNsLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
       setDeletedNsIds((prev) => new Set(prev).add(id));
+      deleteLocalLog(id).catch(console.error);
     };
     const handleLogAdd = (e: any) => {
       const newLog = e.detail;
@@ -283,20 +284,33 @@ export default function App() {
   }, []);
 
   const logs = useMemo(() => {
-    const all = [...cachedLogs, ...fbLogs, ...nsLogs];
     const uniqueMap = new Map<string, LogEntry>();
-    
-    all.forEach((a) => {
-      // Create a unique key for grouping.
-      // Priority: id > nsId > type+timestamp(rounded)+value(rounded)
+
+    const getKey = (a: LogEntry) => {
       let key = "";
       if (a.id) key = a.id;
       else if (a.nsId) key = a.nsId;
-      else key = `${a.type}_${Math.floor(a.timestamp / 60000)}_${a.value.toFixed(1)}`;
-      
-      if (!uniqueMap.has(key)) {
+      else key = `${a.type}_${Math.floor(a.timestamp / 60000)}_${a.value?.toFixed(1)}`;
+      return key;
+    };
+
+    // 1. Podstawowe logi z NS
+    nsLogs.forEach((a) => {
+      uniqueMap.set(getKey(a), a);
+    });
+
+    // 2. Cache IDB (nadpisuje NS jeśli ma modyfikacje)
+    cachedLogs.forEach((a) => {
+      const key = getKey(a);
+      const existing = uniqueMap.get(key);
+      if (!existing || a.userModified || a.items?.length || (!existing.userModified && !existing.items?.length)) {
         uniqueMap.set(key, a);
       }
+    });
+
+    // 3. Live z FB (najwyższy priorytet, zawsze nadpisuje)
+    fbLogs.forEach((a) => {
+      uniqueMap.set(getKey(a), a);
     });
 
     const uniqueLogs = Array.from(uniqueMap.values());
