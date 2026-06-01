@@ -57,6 +57,7 @@ import DailyTirWidget from "./DailyTirWidget";
 import GlikoSenseIcon from "./GlikoSenseIcon";
 import DidYouKnowWidget from "./DidYouKnowWidget";
 import LowGlucoseMealAlert from "./LowGlucoseMealAlert";
+import UnlinkedCarbsWidget from "./UnlinkedCarbsWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
 import { SPORTS } from "./GlikoTraining";
@@ -2064,13 +2065,8 @@ export default function Dashboard({
     <div
       className="space-y-6 pb-20 will-change-transform relative"
     >
-      <LowGlucoseMealAlert 
-        logs={logs} 
-        lastGlucose={lastG ? Math.round(lastG.value) : null} 
-        onAddCarbs={() => setTab("meal")} 
-        shortcuts={shortcuts}
-        onQuickAdd={quickAdd}
-      />
+      <LowGlucoseMealAlert logs={logs} lastGlucose={lastG ? Math.round(lastG.value) : null} onAddCarbs={() => setTab("meal")} shortcuts={shortcuts} onQuickAdd={quickAdd} />
+      <UnlinkedCarbsWidget logs={logs} onAddCarbs={() => setTab("meal")} />
 
       <div className="flex items-center justify-between px-2">
         <div className="flex items-baseline gap-2">
