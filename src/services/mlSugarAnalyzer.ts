@@ -136,7 +136,7 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
         }
         
         // Węglowodany (szybkie vs wolne)
-        const carbs = log.type === 'meal' ? log.value : (log.carbs || 0);
+        const carbs = log.type === 'meal' ? log.value : (log.linkedMeal?.carbs || log.carbs || 0);
         if (carbs) {
             const { isFastCarb, isSlowCarb } = classifyMealGlycemia(log);
             let carbDuration = 3 * pizzaMult;
@@ -158,14 +158,14 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[]) {
         }
 
         // Białko (Wolniejsze - do 4-5h)
-        const protein = log.type === 'meal' ? (log.protein || 0) : 0;
+        const protein = log.type === 'meal' ? (log.protein || 0) : (log.linkedMeal?.protein || 0);
         const protDuration = 5 * pizzaMult;
         if (protein && diffHours < protDuration) {
             pob += protein * Math.max(0, (1 - (diffHours / protDuration)));
         }
 
         // Tłuszcz (Bardzo powolne działanie - do 6-8h)
-        const fat = log.type === 'meal' ? (log.fat || 0) : 0;
+        const fat = log.type === 'meal' ? (log.fat || 0) : (log.linkedMeal?.fat || 0);
         const fatDuration = 7 * pizzaMult;
         if (fat && diffHours < fatDuration) {
             fob += fat * Math.max(0, (1 - (diffHours / fatDuration)));
@@ -471,7 +471,7 @@ export const MLAnalyzer = {
         night: { label: 'Noc', starts: 23, ends: 6, sensitivity: 0, count: 0, drops: [] as number[] }
       };
 
-      const allMeals = logs.filter(l => l.type === 'meal');
+      const allMeals = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs));
       const allBoluses = logs.filter(l => l.type === 'bolus' || l.type === 'insulin');
       const allGlucose = logs.filter(l => l.type === 'glucose' || l.bg).sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
       

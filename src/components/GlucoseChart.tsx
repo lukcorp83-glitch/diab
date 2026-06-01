@@ -252,11 +252,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         
       const digestionMs = 2.5 * 60 * 60 * 1000;
       const cob = logs
-        .filter(l => l.type === 'meal' && nowMs - l.timestamp < digestionMs && nowMs - l.timestamp >= 0)
+        .filter(l => (l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs)) && nowMs - l.timestamp < digestionMs && nowMs - l.timestamp >= 0)
         .reduce((sum, m) => {
           const timeSince = nowMs - m.timestamp;
           const decay = Math.max(0, 1 - (timeSince / digestionMs));
-          return sum + (m.value * decay);
+          return sum + ((m.type === 'meal' ? (m.value || 0) : (m.linkedMeal?.carbs || 0)) * decay);
         }, 0);
 
       const isf = settings?.isf || 50; 

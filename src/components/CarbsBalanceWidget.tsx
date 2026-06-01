@@ -35,8 +35,8 @@ export default function CarbsBalanceWidget({ logs, settings, size, onAction, set
     const ms = todayMidnight.getTime();
     
     return logs
-      .filter(l => l.type === 'meal' && l.timestamp >= ms)
-      .reduce((sum, l) => sum + (l.value || 0), 0);
+      .filter(l => (l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs)) && l.timestamp >= ms)
+      .reduce((sum, l) => sum + (l.type === 'meal' ? (l.value || 0) : (l.linkedMeal?.carbs || 0)), 0);
   }, [logs]);
 
   const percent = Math.min((dailyCarbs / dailyGoal) * 100, 100);

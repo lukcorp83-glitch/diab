@@ -100,7 +100,7 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
     }
 
     // Meal regularity
-    const mealCount = todayLogs.filter(l => l.type === 'meal').length;
+    const mealCount = todayLogs.filter(l => l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs)).length;
     if (mealCount > 0 && mealCount < 3) {
       results.push({
         id: 'meal_regularity',

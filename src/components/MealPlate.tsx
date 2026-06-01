@@ -1009,12 +1009,13 @@ export default function MealPlate({
     if (!user || plate.length === 0) return;
 
     // We check if there are recent logs without items and potentially without linkedMeal, up to 2 hours old
-    const timeLimit = 2 * 60 * 60 * 1000;
+    const entryTimestamp = new Date(entryTime).getTime();
+    const timeLimit = 3 * 60 * 60 * 1000;
     const candidates = logs.filter(l => 
       (l.type === "bolus" || l.type === "meal") &&
-      Number(l.timestamp) > Date.now() - timeLimit &&
+      Math.abs(Number(l.timestamp) - entryTimestamp) < timeLimit &&
       (!l.items || l.items.length === 0) &&
-      (l.carbs > 0 || l.value > 0 || l.linkedMeal?.carbs > 0)
+      ((l as any).carbs > 0 || l.value > 0 || l.linkedMeal?.carbs > 0)
     );
 
     if (candidates.length > 0) {
@@ -1061,7 +1062,7 @@ export default function MealPlate({
       }
 
       const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", logId);
-      await updateDoc(logRef, updates);
+      await setDoc(logRef, { ...logToMerge, ...updates, userModified: true }, { merge: true });
       
       setPlate([]);
       setMergeCandidates(null);

@@ -14,7 +14,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
   
   // Calculate stats to determine unlocked achievements
   const stats = useMemo(() => {
-    const mealLogs = logs.filter(l => l.type === 'meal');
+    const mealLogs = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs));
     const glucoseLogs = logs.filter(l => l.type === 'glucose');
     const bolusLogs = logs.filter(l => l.type === 'bolus');
     

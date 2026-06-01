@@ -97,7 +97,7 @@ export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
   }
 
   // Post-prandial spike detection
-  const meals = logs.filter(l => l.type === 'meal').slice(0, 5);
+  const meals = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs)).slice(0, 5);
   meals.forEach(meal => {
     const mealTime = new Date(meal.timestamp || meal.createdAt).getTime();
     const afterMealLogs = logs.filter(l => {
