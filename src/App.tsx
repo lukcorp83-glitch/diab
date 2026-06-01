@@ -233,6 +233,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [cachedLogs, setCachedLogs] = useState<LogEntry[]>([]);
   const [cachedLogsLoaded, setCachedLogsLoaded] = useState(false);
+  const [deletedNsIds, setDeletedNsIds] = useState<Set<string>>(new Set());
   const [fbLogs, setFbLogs] = useState<LogEntry[]>([]);
   const [nsLogs, setNsLogs] = useState<LogEntry[]>([]);
 
@@ -248,8 +249,10 @@ export default function App() {
     };
     const handleLogDelete = (e: any) => {
       const { id } = e.detail;
-      setCachedLogs((prev) => prev.filter(l => l.id !== id));
-      setFbLogs((prev) => prev.filter(l => l.id !== id));
+      setCachedLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
+      setFbLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
+      setNsLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
+      setDeletedNsIds((prev) => new Set(prev).add(id));
     };
     const handleLogAdd = (e: any) => {
       const newLog = e.detail;
@@ -1545,10 +1548,15 @@ export default function App() {
   const syncTaskRef = useRef(false);
   const logsRef = useRef(logs);
   const userSettingsRef = useRef(userSettings);
+  const deletedNsIdsRef = useRef(deletedNsIds);
 
   useEffect(() => {
     logsRef.current = logs;
   }, [logs]);
+  
+  useEffect(() => {
+    deletedNsIdsRef.current = deletedNsIds;
+  }, [deletedNsIds]);
 
   useEffect(() => {
     userSettingsRef.current = userSettings;
@@ -1760,7 +1768,7 @@ export default function App() {
         });
 
         const newLogsToSync = uniqueNSLogs.filter(
-          (newLog) => !isDuplicate(newLog),
+          (newLog) => !isDuplicate(newLog) && (!newLog.id || !deletedNsIdsRef.current.has(newLog.id))
         );
 
         if (newLogsToSync.length > 0) {
@@ -2272,7 +2280,7 @@ export default function App() {
               (activeTab === "chat" || activeTab === "assistant") && "flex-1 flex flex-col h-full",
             )}
           >
-            {activeTab === "chat" && <GlikoChat petData={petData} settings={userSettings} />}
+            {activeTab === "chat" && <GlikoChat petData={petData} />}
             {activeTab === "assistant" && (
               <GlikoAssistant
                 user={user}
