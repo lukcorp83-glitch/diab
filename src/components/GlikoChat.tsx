@@ -29,7 +29,8 @@ interface Message {
   timestamp: number;
 }
 
-export default function GlikoChat({ petData }: { petData: any }) {
+export default function GlikoChat({ petData, settings }: { petData: any, settings?: any }) {
+  const isKidMode = settings?.childMode ?? true;
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
@@ -113,6 +114,17 @@ export default function GlikoChat({ petData }: { petData: any }) {
   };
 
   const renderPetAvatar = (size: 'sm' | 'md' | 'lg' = 'md') => {
+    if (!isKidMode) {
+      const containerClasses = cn(
+        "relative bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-inner overflow-hidden border-2 border-indigo-200/50",
+        size === 'sm' ? "w-10 h-10" : size === 'md' ? "w-14 h-14 md:w-16 md:h-16" : "w-20 h-20"
+      );
+      return (
+        <div className={containerClasses}>
+          <Bot size={size === 'sm' ? 20 : size === 'md' ? 28 : 36} className="text-white" />
+        </div>
+      );
+    }
     // Logic extracted from VirtualPet.tsx to be consistent
     const getPetVisual = () => {
       let src = '';
@@ -199,7 +211,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
       {
         id: 'initial',
         role: 'model',
-        text: `Cześć! Jestem ${petData?.name || 'Gliko'}! 🐾 Bardzo się cieszę, że ze mną rozmawiasz. O czym dzisiaj pogadamy? Mogę Ci opowiedzieć o cukrzycy, albo po prostu dotrzymać towarzystwa! ✨`,
+        text: !isKidMode ? 'Witaj, w czym mogę Ci pomóc w analizie Twojej glikemii?' : `Cześć! Jestem ${petData?.name || 'Gliko'}! 🐾 Bardzo się cieszę, że ze mną rozmawiasz. O czym dzisiaj pogadamy? Mogę Ci opowiedzieć o cukrzycy, albo po prostu dotrzymać towarzystwa! ✨`,
         timestamp: Date.now()
       }
     ];
@@ -290,7 +302,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
       const initialMessage: Message = {
         id: 'initial-' + Date.now(),
         role: 'model',
-        text: `Cześć znowu! ✨ O czym chcesz teraz pogadać?`,
+        text: !isKidMode ? 'Wyczyściłem rozmowę. W czym mogę pomóc?' : `Cześć znowu! ✨ O czym chcesz teraz pogadać?`,
         timestamp: Date.now()
       };
       setMessages([initialMessage]);
@@ -306,7 +318,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
   ];
 
   return (
-    <div className="flex flex-col h-[75vh] landscape:h-full landscape:flex-1 md:h-[75vh] w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-indigo-100 dark:border-indigo-900/30">
+    <div className="flex flex-col h-[calc(100vh-140px)] landscape:h-[calc(100vh-80px)] md:h-[75vh] w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-indigo-100 dark:border-indigo-900/30">
       {/* Header */}
       <div className="p-3 landscape:py-2 md:p-6 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white flex items-center justify-between shadow-lg relative overflow-hidden shrink-0">
         {/* Animated bubbles in the background */}
@@ -318,7 +330,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
           <div className="hidden landscape:block">{renderPetAvatar('sm')}</div>
           <div>
             <h2 className="text-xl landscape:text-lg md:text-2xl font-black flex items-center gap-2">
-              {petData?.name || 'Gliko'}
+              {(!isKidMode) ? 'Asystent Medyczny' : (petData?.name || 'Gliko')}
               <Sparkles size={16} className="text-yellow-300 animate-pulse" />
             </h2>
           </div>
@@ -409,7 +421,7 @@ export default function GlikoChat({ petData }: { petData: any }) {
                     <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 bg-current rounded-full" />
                     <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 bg-current rounded-full" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{petData?.name || 'Gliko'} myśli...</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{!isKidMode ? 'Analizuję...' : (petData?.name || 'Gliko') + ' myśli...'}</span>
                 </motion.div>
               </div>
             ) : <div className="h-6" />

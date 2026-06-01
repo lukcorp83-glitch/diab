@@ -2272,7 +2272,7 @@ export default function App() {
               (activeTab === "chat" || activeTab === "assistant") && "flex-1 flex flex-col h-full",
             )}
           >
-            {activeTab === "chat" && <GlikoChat petData={petData} />}
+            {activeTab === "chat" && <GlikoChat petData={petData} settings={userSettings} />}
             {activeTab === "assistant" && (
               <GlikoAssistant
                 user={user}

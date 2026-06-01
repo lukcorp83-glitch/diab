@@ -80,16 +80,16 @@ export const geminiService = {
 
     // Zaktualizowane modele zgodnie z nowymi wytycznymi
     let modelsToTry = imageData
-      ? ["gemini-1.5-flash", "gemini-2.0-flash"]
+      ? ["gemini-2.0-flash", "gemini-1.5-flash"]
       : [
-          "gemini-1.5-flash",
           "gemini-2.0-flash",
+          "gemini-1.5-flash",
           "gemini-1.5-pro",
         ];
 
     // Proxy obsługuje tylko flash, nie doliczmy kosztów PRO do konta globalnego
     if (isProxyUrl) {
-      modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash"];
+      modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
     }
 
     let contents;
@@ -567,7 +567,7 @@ export const geminiService = {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.0-flash",
             payload: {
               contents: fullHistory,
               systemInstruction: {
@@ -594,7 +594,7 @@ export const geminiService = {
     }
 
     const client = getClient();
-    const model = "gemini-1.5-flash";
+    const model = "gemini-2.0-flash";
 
     try {
       const response = await client.models.generateContent({
@@ -849,7 +849,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.0-flash",
             payload: {
               contents: fullContents,
               systemInstruction: {
@@ -877,8 +877,8 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
 
     const client = getClient();
     const modelsToTry = [
-      "gemini-1.5-flash",
       "gemini-2.0-flash",
+      "gemini-1.5-flash",
       "gemini-1.5-pro",
     ];
     let lastError = null;
