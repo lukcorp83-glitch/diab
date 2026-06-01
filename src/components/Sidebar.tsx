@@ -33,7 +33,8 @@ import {
   ShoppingBag,
   Sparkles,
   Cpu,
-  Facebook
+  Facebook,
+  Plane
 } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION, FACEBOOK_GROUP_URL } from '../constants';
@@ -70,7 +71,8 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
          { id: 'dash_chart', label: 'Wykres Główny', tab: 'chart', icon: <Activity size={14} /> },
          { id: 'bolus_calc', label: 'Kalkulator Bolusa', tab: 'bolus', icon: <Calculator size={14} /> },
          { id: 'add_glucose', label: 'Szybki Pomiar (Cukier)', tab: 'dashboard', action: 'add_glucose', icon: <Plus size={14} /> },
-         { id: 'profile_training', label: 'GlikoTrening', tab: 'profile', action: 'training', icon: <Activity size={14} /> }
+         { id: 'profile_training', label: 'GlikoTrening', tab: 'profile', action: 'training', icon: <Activity size={14} /> },
+         { id: 'dash_travel', label: 'Asystent Podróży', tab: 'travel', icon: <Plane size={14} /> }
        ]
     },
     { 

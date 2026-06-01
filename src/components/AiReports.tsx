@@ -11,9 +11,10 @@ import { GlikoSenseLearner } from '../services/mlSugarAnalyzer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from 'recharts';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import MLAnalysisWidget from './MLAnalysisWidget';
+import InsulinDetectiveAlert from './InsulinDetectiveAlert';
 import { toast } from 'react-hot-toast';
 
-export default function AiReports({ user, logs, settings }: { user: any, logs: LogEntry[], settings?: UserSettings }) {
+export default function AiReports({ user, logs, settings, setTab }: { user: any, logs: LogEntry[], settings?: UserSettings, setTab?: (tab: string) => void }) {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeReport, setActiveReport] = useState<string | null>(null);
@@ -131,6 +132,7 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <InsulinDetectiveAlert logs={logs} />
       <MLAnalysisWidget logs={logs} settings={settings} user={user} />
       
       {/* Glucose Trend Chart */}
@@ -233,7 +235,7 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
             )}
           </motion.button>
           
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
              <motion.button 
                disabled={loading}
                onClick={() => generateReport('day')}
@@ -242,7 +244,18 @@ export default function AiReports({ user, logs, settings }: { user: any, logs: L
                className="bg-accent-800 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-accent-700 disabled:opacity-50"
              >
                <Calendar size={16} />
-               Generuj Raport Dzienny
+               Raport Dzienny
+             </motion.button>
+
+             <motion.button 
+               disabled={loading}
+               onClick={() => setTab && setTab('insulin_detective')}
+               whileHover={{ scale: 1.02 }}
+               whileTap={{ scale: 0.95 }}
+               className="bg-rose-900/30 text-rose-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-rose-900 overflow-hidden"
+             >
+               <span>⚠️</span>
+               Insulina nie działa?
              </motion.button>
           </div>
           

@@ -1,19 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 
-import { auth } from '../lib/firebase';
+import { auth } from "../lib/firebase";
 
-let genAITuple: { key: string, baseUrl?: string, client: GoogleGenAI } | null = null;
+let genAITuple: { key: string; baseUrl?: string; client: GoogleGenAI } | null =
+  null;
 
-function getApiKey(): { key: string, baseUrl?: string } {
-  let key = '';
+function getApiKey(): { key: string; baseUrl?: string } {
+  let key = "";
   let baseUrl: string | undefined = undefined;
 
   // 1. FIRST check localStorage (user override)
-  if (typeof window !== 'undefined') {
-    let rawValue = localStorage.getItem('gemini_api_key');
+  if (typeof window !== "undefined") {
+    let rawValue = localStorage.getItem("gemini_api_key");
     if (rawValue) {
-      if (rawValue.includes('|')) {
-        const parts = rawValue.split('|');
+      if (rawValue.includes("|")) {
+        const parts = rawValue.split("|");
         key = parts[0].trim();
         baseUrl = parts[1]?.trim();
       } else {
@@ -31,7 +32,11 @@ function getApiKey(): { key: string, baseUrl?: string } {
   // 3. Fallback check process.env if available
   if (!key) {
     try {
-      if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
+      if (
+        typeof process !== "undefined" &&
+        process.env &&
+        process.env.GEMINI_API_KEY
+      ) {
         key = process.env.GEMINI_API_KEY;
       }
     } catch (e) {
@@ -43,7 +48,7 @@ function getApiKey(): { key: string, baseUrl?: string } {
   if (!key) {
     return {
       key: "proxy", // SDK requires a non-empty string
-      baseUrl: "https://diacontrol-ai.pixelozapolska.workers.dev"
+      baseUrl: "https://diacontrol-ai.pixelozapolska.workers.dev",
     };
   }
 
@@ -52,13 +57,17 @@ function getApiKey(): { key: string, baseUrl?: string } {
 
 function getClient(): GoogleGenAI {
   const credentials = getApiKey();
-  
-  if (!genAITuple || genAITuple.key !== credentials.key || genAITuple.baseUrl !== credentials.baseUrl) {
-     const client = new GoogleGenAI({ 
-       apiKey: credentials.key,
-       ...(credentials.baseUrl ? { baseUrl: credentials.baseUrl } : {})
-     });
-     genAITuple = { ...credentials, client };
+
+  if (
+    !genAITuple ||
+    genAITuple.key !== credentials.key ||
+    genAITuple.baseUrl !== credentials.baseUrl
+  ) {
+    const client = new GoogleGenAI({
+      apiKey: credentials.key,
+      ...(credentials.baseUrl ? { baseUrl: credentials.baseUrl } : {}),
+    });
+    genAITuple = { ...credentials, client };
   }
   return genAITuple.client;
 }
@@ -66,87 +75,101 @@ function getClient(): GoogleGenAI {
 export const geminiService = {
   async generateContent(prompt: string, imageData?: string) {
     const creds = getApiKey();
-    const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
-    
+    const isProxyUrl =
+      creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+
     // Zaktualizowane modele zgodnie z nowymi wytycznymi
-    let modelsToTry = imageData 
-      ? ['gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest']
-      : ['gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
+    let modelsToTry = imageData
+      ? ["gemini-1.5-flash", "gemini-2.0-flash"]
+      : [
+          "gemini-1.5-flash",
+          "gemini-2.0-flash",
+          "gemini-1.5-pro",
+        ];
 
     // Proxy obsługuje tylko flash, nie doliczmy kosztów PRO do konta globalnego
     if (isProxyUrl) {
-      modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'];
+      modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash"];
     }
 
     let contents;
     if (imageData) {
       let mimeType = "image/jpeg";
-      if (imageData.startsWith('data:')) {
-         const match = imageData.match(/data:([^;]+);/);
-         if (match) mimeType = match[1];
+      if (imageData.startsWith("data:")) {
+        const match = imageData.match(/data:([^;]+);/);
+        if (match) mimeType = match[1];
       }
       contents = [
         {
-          role: 'user',
+          role: "user",
           parts: [
             { text: prompt },
             {
               inlineData: {
-                data: imageData.split(',')[1] || imageData,
-                mimeType: mimeType
-              }
-            }
-          ]
-        }
+                data: imageData.split(",")[1] || imageData,
+                mimeType: mimeType,
+              },
+            },
+          ],
+        },
       ];
     } else {
-      contents = [{ role: 'user', parts: [{ text: prompt }] }];
+      contents = [{ role: "user", parts: [{ text: prompt }] }];
     }
 
-    if (isProxyUrl && !localStorage.getItem('gemini_api_key')) {
+    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
       const CLOUDFLARE_WORKER_URL = creds.baseUrl;
       let lastError = null;
-      
-      const payload = { 
-        contents
+
+      const payload = {
+        contents,
       };
 
       for (const model of modelsToTry) {
-          try {
-              console.log(`Próba użycia modelu (Proxy): ${model}...`);
-              const response = await fetch(CLOUDFLARE_WORKER_URL!, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ 
-                      model: model, 
-                      payload: payload
-                  })
-              });
-              
-              const data = await response.json();
+        try {
+          console.log(`Próba użycia modelu (Proxy): ${model}...`);
+          const response = await fetch(CLOUDFLARE_WORKER_URL!, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: model,
+              payload: payload,
+            }),
+          });
 
-              if (response.ok) {
-                  console.log(`Sukces z modelem (Proxy): ${model}`);
-                  if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-                      return data.candidates[0].content.parts.map((p: any) => p.text).join('') || "";
-                  } else if (data.text) {
-                      return data.text;
-                  }
-                  
-                  return typeof data === 'string' ? data : JSON.stringify(data);
-              }
-              
-              throw new Error(data.error?.message || `Błąd modelu ${model}`);
-              
-          } catch (error) {
-              lastError = error;
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              console.warn(`Model ${model} zawiódł, próbuję kolejnego...`);
+          const data = await response.json();
+
+          if (response.ok) {
+            console.log(`Sukces z modelem (Proxy): ${model}`);
+            if (
+              data.candidates &&
+              data.candidates.length > 0 &&
+              data.candidates[0].content
+            ) {
+              return (
+                data.candidates[0].content.parts
+                  .map((p: any) => p.text)
+                  .join("") || ""
+              );
+            } else if (data.text) {
+              return data.text;
+            }
+
+            return typeof data === "string" ? data : JSON.stringify(data);
           }
+
+          throw new Error(data.error?.message || `Błąd modelu ${model}`);
+        } catch (error) {
+          lastError = error;
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          console.warn(`Model ${model} zawiódł, próbuję kolejnego...`);
+        }
       }
-      
+
       console.error("Wszystkie modele AI(Proxy) są obecnie zajęte.");
-      throw new Error(`Wszystkie modele AI są obecnie zajęte. Ostatni błąd: ${(lastError as Error)?.message}`);
+      throw new Error(
+        `Wszystkie modele AI są obecnie zajęte. Ostatni błąd: ${(lastError as Error)?.message}`,
+      );
     }
 
     // Standardowa ścieżka z bezpośrednim kluczem API
@@ -155,36 +178,42 @@ export const geminiService = {
 
     // Use AbortSignal to timeout hanging generateContent calls
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(new Error("Request Timeout")), 120000);
+    const timeoutId = setTimeout(
+      () => abortController.abort(new Error("Request Timeout")),
+      120000,
+    );
 
     for (const model of modelsToTry) {
       try {
         console.log(`Próba użycia modelu: ${model}...`);
-        
+
         // Race the actual call against a Rejecting Promise wrapped in timeout
         const result = await Promise.race([
           client.models.generateContent({
-             model: model,
-             contents: contents
+            model: model,
+            contents: contents,
           }),
           new Promise<never>((_, reject) => {
-             const id = setTimeout(() => {
-                clearTimeout(id);
-                reject(new Error("Timeout_AI"));
-             }, 125000);
-          })
+            const id = setTimeout(() => {
+              clearTimeout(id);
+              reject(new Error("Timeout_AI"));
+            }, 125000);
+          }),
         ]);
-        
+
         clearTimeout(timeoutId);
         console.log(`Sukces z modelem: ${model}`);
         return result.text || "";
       } catch (error: any) {
         lastError = error;
         console.warn(`Błąd dla modelu ${model}:`, error);
-        
+
         const errMessage = error?.message || String(error) || "";
         // Zatrzymujemy od razu, jeśli klucz API jest nieważny
-        if (errMessage.includes("API key not valid") || errMessage.includes("API_KEY_INVALID")) {
+        if (
+          errMessage.includes("API key not valid") ||
+          errMessage.includes("API_KEY_INVALID")
+        ) {
           clearTimeout(timeoutId);
           console.warn("Podany klucz API Gemini jest nieprawidłowy.");
           throw error;
@@ -192,56 +221,104 @@ export const geminiService = {
         // W innym przypadku kontynuujemy pętle i próbujemy następny model
       }
     }
-    
+
     clearTimeout(timeoutId);
     console.error("Wszystkie dostepne modele zawiodly.", lastError);
     throw lastError || new Error("Wszystkie modele AI zawiodły.");
   },
-  
+
   async getLivePrediction(recentLogs: any[], settings?: any) {
-    const formattedLogs = recentLogs.map(l => ({
+    const formattedLogs = recentLogs.map((l) => ({
       typ: l.type,
-      wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
-      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
+      wartosc:
+        typeof l.value === "number"
+          ? l.type === "glucose"
+            ? Math.round(l.value)
+            : Number(l.value.toFixed(1))
+          : l.value,
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString("pl-PL", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     }));
-    const dietInfo = settings?.activeDiet ? `UWAGA: Użytkownik jest na diecie: ${settings.activeDiet}. Zwróć na to uwagę przy zaleceniach.` : '';
+    const dietInfo = settings?.activeDiet
+      ? `UWAGA: Użytkownik jest na diecie: ${settings.activeDiet}. Zwróć na to uwagę przy zaleceniach.`
+      : "";
     const prompt = `Jesteś asystentem diabetyka. Przeanalizuj poniższe logi z ostatnich 2 godzin (najnowsze u góry): ${JSON.stringify(formattedLogs)}. ${dietInfo} Zwróć odpowiedź w 3 krótkich punktach używając HTML (<b>, <ul>, <li>): 1. Sytuacja aktualna (oceń czy glikemia jest w normie, spada, rośnie, z czego to wynika). 2. Przewidywania (co może się stać przez najbliższe 2 godziny). 3. Zalecenie działania (np. podaj korektę, zjedz coś na podbicie, obserwuj). Zwięźle, naturalnie, po polsku. Bez znaków markdown typu gwiazdki.`;
     return this.generateContent(prompt);
   },
 
-  async getPeriodAnalysis(period: 'day' | 'week' | 'month', logs: any[], settings?: any) {
-    const days = period === 'day' ? 1 : period === 'week' ? 7 : 30;
-    const periodName = period === 'day' ? 'Dzienny' : period === 'week' ? 'Tygodniowy' : 'Miesięczny';
+  async getPeriodAnalysis(
+    period: "day" | "week" | "month",
+    logs: any[],
+    settings?: any,
+  ) {
+    const days = period === "day" ? 1 : period === "week" ? 7 : 30;
+    const periodName =
+      period === "day"
+        ? "Dzienny"
+        : period === "week"
+          ? "Tygodniowy"
+          : "Miesięczny";
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    
-    let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoff);
+
+    let logsToAnalyze = logs.filter(
+      (l) => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoff,
+    );
     const MAX_PERIOD_LOGS = 300;
     if (logsToAnalyze.length > MAX_PERIOD_LOGS) {
-       const important = logsToAnalyze.filter(l => l.type !== 'glucose' && !l.bg);
-       let bgLogs = logsToAnalyze.filter(l => l.type === 'glucose' || l.bg);
-       
-       bgLogs = bgLogs.sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
-       
-       const allowedBgCount = Math.max(50, MAX_PERIOD_LOGS - important.length);
-       const decimationFactor = Math.max(1, Math.ceil(bgLogs.length / allowedBgCount));
-       const sampledBg = bgLogs.filter((_, i) => i % decimationFactor === 0);
-       
-       logsToAnalyze = [...important, ...sampledBg];
-    }
-    
-    logsToAnalyze = logsToAnalyze.sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
-    
-    if (logsToAnalyze.length > MAX_PERIOD_LOGS) {
-        logsToAnalyze = logsToAnalyze.slice(-MAX_PERIOD_LOGS);
+      const important = logsToAnalyze.filter(
+        (l) => l.type !== "glucose" && !l.bg,
+      );
+      let bgLogs = logsToAnalyze.filter((l) => l.type === "glucose" || l.bg);
+
+      bgLogs = bgLogs.sort(
+        (a, b) =>
+          (a.timestamp || new Date(a.createdAt).getTime()) -
+          (b.timestamp || new Date(b.createdAt).getTime()),
+      );
+
+      const allowedBgCount = Math.max(50, MAX_PERIOD_LOGS - important.length);
+      const decimationFactor = Math.max(
+        1,
+        Math.ceil(bgLogs.length / allowedBgCount),
+      );
+      const sampledBg = bgLogs.filter((_, i) => i % decimationFactor === 0);
+
+      logsToAnalyze = [...important, ...sampledBg];
     }
 
-    const formattedLogs = logsToAnalyze.map(l => ({
+    logsToAnalyze = logsToAnalyze.sort(
+      (a, b) =>
+        (a.timestamp || new Date(a.createdAt).getTime()) -
+        (b.timestamp || new Date(b.createdAt).getTime()),
+    );
+
+    if (logsToAnalyze.length > MAX_PERIOD_LOGS) {
+      logsToAnalyze = logsToAnalyze.slice(-MAX_PERIOD_LOGS);
+    }
+
+    const formattedLogs = logsToAnalyze.map((l) => ({
       typ: l.type,
-      wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
-      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
+      wartosc:
+        typeof l.value === "number"
+          ? l.type === "glucose"
+            ? Math.round(l.value)
+            : Number(l.value.toFixed(1))
+          : l.value,
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString("pl-PL", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     }));
-    const dietInfo = settings?.activeDiet ? `DODATKOWY KONTEKST: Użytkownik jest na diecie: ${settings.activeDiet}. Skup się na ewaluacji tej diety.` : '';
-    const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj rozłożoną w czasie próbkę danych z ${days === 1 ? 'OSTATNIEJ DOBY' : `OSTATNICH ${days} DNI`} (${formattedLogs.length} wpisów): ${JSON.stringify(formattedLogs)}. ${dietInfo}
+    const dietInfo = settings?.activeDiet
+      ? `DODATKOWY KONTEKST: Użytkownik jest na diecie: ${settings.activeDiet}. Skup się na ewaluacji tej diety.`
+      : "";
+    const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj rozłożoną w czasie próbkę danych z ${days === 1 ? "OSTATNIEJ DOBY" : `OSTATNICH ${days} DNI`} (${formattedLogs.length} wpisów): ${JSON.stringify(formattedLogs)}. ${dietInfo}
     Stwórz ${periodName} Raport Postępów (obejmujący CAŁY TEN OKRES, od najstarszych do najnowszych powierzonych danych).
     Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):
     1. <b>Podsumowanie Okresu</b> (ogólny stan, średni cukier).
@@ -254,37 +331,64 @@ export const geminiService = {
 
   async getMasterAnalysis(logs: any[], settings?: any) {
     const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
-    let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoff);
+    let logsToAnalyze = logs.filter(
+      (l) => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoff,
+    );
     const MAX_MASTER_LOGS = 400;
 
     if (logsToAnalyze.length > MAX_MASTER_LOGS) {
-       const important = logsToAnalyze.filter(l => l.type !== 'glucose' && !l.bg);
-       let bgLogs = logsToAnalyze.filter(l => l.type === 'glucose' || l.bg);
-       
-       // Sort chronologically for decimation
-       bgLogs = bgLogs.sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
+      const important = logsToAnalyze.filter(
+        (l) => l.type !== "glucose" && !l.bg,
+      );
+      let bgLogs = logsToAnalyze.filter((l) => l.type === "glucose" || l.bg);
 
-       const allowedBgCount = Math.max(50, MAX_MASTER_LOGS - important.length);
-       const decimationFactor = Math.max(1, Math.ceil(bgLogs.length / allowedBgCount));
-       const sampledBg = bgLogs.filter((_, i) => i % decimationFactor === 0);
-       
-       logsToAnalyze = [...important, ...sampledBg];
+      // Sort chronologically for decimation
+      bgLogs = bgLogs.sort(
+        (a, b) =>
+          (a.timestamp || new Date(a.createdAt).getTime()) -
+          (b.timestamp || new Date(b.createdAt).getTime()),
+      );
+
+      const allowedBgCount = Math.max(50, MAX_MASTER_LOGS - important.length);
+      const decimationFactor = Math.max(
+        1,
+        Math.ceil(bgLogs.length / allowedBgCount),
+      );
+      const sampledBg = bgLogs.filter((_, i) => i % decimationFactor === 0);
+
+      logsToAnalyze = [...important, ...sampledBg];
     }
-    
+
     // Zawsze sortujemy od najstarszych do najnowszych (chronologicznie) dla lepszego widzenia trendów przez AI
-    logsToAnalyze = logsToAnalyze.sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
-    
+    logsToAnalyze = logsToAnalyze.sort(
+      (a, b) =>
+        (a.timestamp || new Date(a.createdAt).getTime()) -
+        (b.timestamp || new Date(b.createdAt).getTime()),
+    );
+
     if (logsToAnalyze.length > MAX_MASTER_LOGS) {
-        // Jeśli nadal jest za dużo (np. bardzo dużo wpisów important), obcinamy z przodu, zostawiając nowsze
-        logsToAnalyze = logsToAnalyze.slice(-MAX_MASTER_LOGS);
+      // Jeśli nadal jest za dużo (np. bardzo dużo wpisów important), obcinamy z przodu, zostawiając nowsze
+      logsToAnalyze = logsToAnalyze.slice(-MAX_MASTER_LOGS);
     }
-    
-    const formattedLogs = logsToAnalyze.map(l => ({
+
+    const formattedLogs = logsToAnalyze.map((l) => ({
       typ: l.type,
-      wartosc: typeof l.value === 'number' ? (l.type === 'glucose' ? Math.round(l.value) : Number(l.value.toFixed(1))) : l.value,
-      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
+      wartosc:
+        typeof l.value === "number"
+          ? l.type === "glucose"
+            ? Math.round(l.value)
+            : Number(l.value.toFixed(1))
+          : l.value,
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString("pl-PL", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     }));
-    const dietInfo = settings?.activeDiet ? `DODATKOWY KONTEKST: Użytkownik przebywa na diecie: ${settings.activeDiet}. Skup się na ewaluacji jak ta dieta na niego działa, uwzględnij rekomendacje żywieniowe dla niej.` : '';
+    const dietInfo = settings?.activeDiet
+      ? `DODATKOWY KONTEKST: Użytkownik przebywa na diecie: ${settings.activeDiet}. Skup się na ewaluacji jak ta dieta na niego działa, uwzględnij rekomendacje żywieniowe dla niej.`
+      : "";
     const prompt = `Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl (GlikoSense). Otrzymujesz rozłożoną w czasie próbkę danych z OSTATNICH 15 DNI (łącznie ${formattedLogs.length} rzadkich próbek obejmujących cały ten okres): ${JSON.stringify(formattedLogs)}. ${dietInfo}
     Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego bazującego na PEŁNYCH 15 Dniach (nie skupiaj się tylko na ostatnich wpisach!).
     Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):
@@ -299,7 +403,9 @@ export const geminiService = {
   },
 
   async analyzeMeal(imageData: string, settings?: any) {
-    const dietInfo = settings?.activeDiet ? `UWAGA: Użytkownik przestrzega diety: ${settings.activeDiet}. Zwróć szczególną uwagę jak ten posiłek wpisuje się w jej zasady.` : '';
+    const dietInfo = settings?.activeDiet
+      ? `UWAGA: Użytkownik przestrzega diety: ${settings.activeDiet}. Zwróć szczególną uwagę jak ten posiłek wpisuje się w jej zasady.`
+      : "";
     const prompt = `Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj CAŁKOWITĄ orientacyjną wagę posiłku (w gramach). Następnie oszacuj CAŁKOWITĄ ilość węglowodanów (g), białek (g) i tłuszczy (g) W CAŁYM WIDOCZNYM POSIŁKU (nie na 100g, lecz w całej szacowanej porcji). Podaj również indeks glikemiczny (IG - POWINIEN BYĆ KONKRETNĄ LICZBĄ). Dodaj szczegółową analizę dla diabetyka ("analysis") - co zawiera posiłek i jak może wpłynąć na glikemię. ${dietInfo}
     Zwróć odpowiedź absolutnie w formacie JSON (tylko czysty JSON, bez markdown):
     {
@@ -318,7 +424,10 @@ export const geminiService = {
       const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
       let cleanJson = jsonMatch ? jsonMatch[0] : text;
       // usuwamy ewentualne wiodące znaki przed klamrami jeśli regex uchwycił za dużo
-      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
+      cleanJson = cleanJson
+        .replace(/^```json/, "")
+        .replace(/```$/, "")
+        .trim();
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Gemini Vision Error in analyzeMeal:", error);
@@ -326,11 +435,22 @@ export const geminiService = {
     }
   },
 
-  async getBolusRecommendation(currentBg: number, currentCarbs: number, calculatedDose: number, trend: string, iob: number, cob: number, recentLogs: any[]) {
-    const formattedLogs = recentLogs.slice(0, 15).map(l => ({
+  async getBolusRecommendation(
+    currentBg: number,
+    currentCarbs: number,
+    calculatedDose: number,
+    trend: string,
+    iob: number,
+    cob: number,
+    recentLogs: any[],
+  ) {
+    const formattedLogs = recentLogs.slice(0, 15).map((l) => ({
       typ: l.type,
       wartosc: l.value,
-      czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { hour: '2-digit', minute:'2-digit' })
+      czas: new Date(l.timestamp || l.createdAt).toLocaleString("pl-PL", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     }));
     const prompt = `Jesteś ekspertem diabetologii systemu GlikoControl.
     Zadanie: Przeanalizuj obecną sytuację pacjenta i oceń, czy sugerowana przez kalkulator dawka insuliny (${calculatedDose.toFixed(2)} j.) jest optymalna.
@@ -359,7 +479,10 @@ export const geminiService = {
       const text = await this.generateContent(prompt);
       const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
       let cleanJson = jsonMatch ? jsonMatch[0] : text;
-      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
+      cleanJson = cleanJson
+        .replace(/^```json/, "")
+        .replace(/```$/, "")
+        .trim();
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Gemini Bolus Rec Error:", error);
@@ -369,18 +492,38 @@ export const geminiService = {
 
   getAiStatus() {
     const creds = getApiKey();
-    const hasLocalStorage = typeof window !== 'undefined' && !!localStorage.getItem('gemini_api_key');
-    const isProxy = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
-    
-    if (hasLocalStorage) return { type: 'custom', label: 'Własny Klucz (Local)', color: 'text-indigo-500' };
-    if (isProxy) return { type: 'proxy', label: 'Serwer Gliko (Domyślny)', color: 'text-amber-500' };
-    return { type: 'project', label: 'Klucz Projektu (Vite/Env)', color: 'text-emerald-500' };
+    const hasLocalStorage =
+      typeof window !== "undefined" && !!localStorage.getItem("gemini_api_key");
+    const isProxy =
+      creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+
+    if (hasLocalStorage)
+      return {
+        type: "custom",
+        label: "Własny Klucz (Local)",
+        color: "text-indigo-500",
+      };
+    if (isProxy)
+      return {
+        type: "proxy",
+        label: "Serwer Gliko (Domyślny)",
+        color: "text-amber-500",
+      };
+    return {
+      type: "project",
+      label: "Klucz Projektu (Vite/Env)",
+      color: "text-emerald-500",
+    };
   },
 
-  async getGlikoChatResponse(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], petData: any) {
-    const petName = petData?.name || 'Gliko';
-    const petType = petData?.type || 'standard';
-    
+  async getGlikoChatResponse(
+    message: string,
+    history: { role: "user" | "model"; parts: { text: string }[] }[],
+    petData: any,
+  ) {
+    const petName = petData?.name || "Gliko";
+    const petType = petData?.type || "standard";
+
     const systemInstruction = `Jesteś ${petName} - wesołym i mądrym stworkiem (typ: ${petType}), który opiekuje się dziećmi z cukrzycą. 
     Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). 
     Pamiętaj, że rozmawiasz z dzieckiem (lub rodzicem). Twoje odpowiedzi powinny być wesołe i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). 
@@ -410,28 +553,38 @@ export const geminiService = {
     Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!`;
 
     const creds = getApiKey();
-    const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
-    
+    const isProxyUrl =
+      creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+
     const fullHistory = [
       ...history,
-       { role: 'user', parts: [{ text: message }] }
+      { role: "user", parts: [{ text: message }] },
     ];
 
-    if (isProxyUrl && !localStorage.getItem('gemini_api_key')) {
+    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
       try {
         const response = await fetch(creds.baseUrl!, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                model: 'gemini-1.5-flash', 
-                payload: { contents: fullHistory, systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] } }
-            })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gemini-1.5-flash",
+            payload: {
+              contents: fullHistory,
+              systemInstruction: {
+                role: "system",
+                parts: [{ text: systemInstruction }],
+              },
+            },
+          }),
         });
         const data = await response.json();
         if (response.ok) {
-           if (data.candidates && data.candidates[0]?.content) return data.candidates[0].content.parts.map((p:any)=>p.text).join('');
-           if (data.text) return data.text;
-           return typeof data === 'string' ? data : JSON.stringify(data);
+          if (data.candidates && data.candidates[0]?.content)
+            return data.candidates[0].content.parts
+              .map((p: any) => p.text)
+              .join("");
+          if (data.text) return data.text;
+          return typeof data === "string" ? data : JSON.stringify(data);
         }
         throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
@@ -441,7 +594,7 @@ export const geminiService = {
     }
 
     const client = getClient();
-    const model = 'gemini-2.5-flash';
+    const model = "gemini-1.5-flash";
 
     try {
       const response = await client.models.generateContent({
@@ -450,9 +603,12 @@ export const geminiService = {
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.8,
-        }
+        },
       });
-      return response.text || "Ojej, coś mi się pomieszało w brzuszku! Spróbuj jeszcze raz! 🐾";
+      return (
+        response.text ||
+        "Ojej, coś mi się pomieszało w brzuszku! Spróbuj jeszcze raz! 🐾"
+      );
     } catch (error) {
       console.error("Gliko Chat Error:", error);
       // Fallback if SDK fails or rate limited
@@ -460,7 +616,12 @@ export const geminiService = {
     }
   },
 
-  generateMealPlan: async (dietName: string, tdee: number, days: number = 3, allergies?: string) => {
+  generateMealPlan: async (
+    dietName: string,
+    tdee: number,
+    days: number = 3,
+    allergies?: string,
+  ) => {
     let allergyContext = "";
     if (allergies) {
       allergyContext = `\nBEZWZGLĘDNIE WYKLUCZ Z DIETY ORAZ UWZGLĘDNIJ ALERGIE/PREFERENCJE UZTKOWNIKA: ${allergies}. To sprawa życia i śmierci, żaden ze składników posiłków nie może na to pozwalać.`;
@@ -494,12 +655,15 @@ Odpowiedz TYLKO I WYŁĄCZNIE poprawnym JSON-em (bez formatowania markdown \`\`\
     }
   ]
 }`;
-    
+
     try {
       const text = await geminiService.generateContent(prompt);
       const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
       let cleanJson = jsonMatch ? jsonMatch[0] : text;
-      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
+      cleanJson = cleanJson
+        .replace(/^```json/, "")
+        .replace(/```$/, "")
+        .trim();
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Meal Plan Error:", error);
@@ -507,7 +671,12 @@ Odpowiedz TYLKO I WYŁĄCZNIE poprawnym JSON-em (bez formatowania markdown \`\`\
     }
   },
 
-  generateReplacementMeal: async (dietName: string, tdeeTargetForMeal: number, type: string, allergies?: string) => {
+  generateReplacementMeal: async (
+    dietName: string,
+    tdeeTargetForMeal: number,
+    type: string,
+    allergies?: string,
+  ) => {
     let allergyContext = "";
     if (allergies) {
       allergyContext = `\nBEZWZGLĘDNIE WYKLUCZ Z DIETY ORAZ UWZGLĘDNIJ ALERGIE/PREFERENCJE UZTKOWNIKA: ${allergies}.`;
@@ -533,7 +702,10 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
       const text = await geminiService.generateContent(prompt);
       const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
       let cleanJson = jsonMatch ? jsonMatch[0] : text;
-      cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
+      cleanJson = cleanJson
+        .replace(/^```json/, "")
+        .replace(/```$/, "")
+        .trim();
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Meal Replace Error:", error);
@@ -541,44 +713,71 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
     }
   },
 
-  async getAssistantResponse(message: string, history: any[], logs: any[], settings: any, currentStatus?: { iob: number, cob: number, glucose: number }, insights?: string[]) {
+  async getAssistantResponse(
+    message: string,
+    history: any[],
+    logs: any[],
+    settings: any,
+    currentStatus?: { iob: number; cob: number; glucose: number },
+    insights?: string[],
+  ) {
     const now = new Date();
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).getTime();
-    
+    const twentyFourHoursAgo = new Date(
+      now.getTime() - 24 * 60 * 60 * 1000,
+    ).getTime();
+
     // Process logs: filter 24h, sort chronological, take last 100
     const lastLogs = logs
-      .filter(l => {
+      .filter((l) => {
         const ts = new Date(l.timestamp || l.createdAt).getTime();
         return ts >= twentyFourHoursAgo;
       })
-      .sort((a, b) => new Date(a.timestamp || a.createdAt).getTime() - new Date(b.timestamp || b.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(a.timestamp || a.createdAt).getTime() -
+          new Date(b.timestamp || b.createdAt).getTime(),
+      )
       .slice(-100)
-      .map(l => ({
+      .map((l) => ({
         typ: l.type,
         wartosc: l.value,
-        jednostka: l.type === 'glucose' ? 'mg/dL' : (l.type === 'meal' ? 'g węgli' : 'j. insuliny'),
-        czas: new Date(l.timestamp || l.createdAt).toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
+        jednostka:
+          l.type === "glucose"
+            ? "mg/dL"
+            : l.type === "meal"
+              ? "g węgli"
+              : "j. insuliny",
+        czas: new Date(l.timestamp || l.createdAt).toLocaleString("pl-PL", {
+          hour: "2-digit",
+          minute: "2-digit",
+          day: "numeric",
+          month: "short",
+        }),
       }));
 
     const isChild = settings?.childMode ?? true;
 
-    const insightsStr = insights && insights.length > 0 
-      ? `\nNAJNOWSZE WNIOSKI GLIKOSENSE (Dostępne analizy): \n- ${insights.join('\n- ')}\n` 
-      : '';
+    const insightsStr =
+      insights && insights.length > 0
+        ? `\nNAJNOWSZE WNIOSKI GLIKOSENSE (Dostępne analizy): \n- ${insights.join("\n- ")}\n`
+        : "";
 
-    const activeDietStr = settings?.activeDiet 
-      ? `\nUWAGA! Użytkownik ma aktywną dietę: ${settings.activeDiet}. WSZYSTKIE TWOJE ANALIZY I SUGESTIE POSIŁKOWE (i GlikoSense) MUSZĄ JĄ UWZGLĘDNIAĆ!` 
-      : '';
+    const activeDietStr = settings?.activeDiet
+      ? `\nUWAGA! Użytkownik ma aktywną dietę: ${settings.activeDiet}. WSZYSTKIE TWOJE ANALIZY I SUGESTIE POSIŁKOWE (i GlikoSense) MUSZĄ JĄ UWZGLĘDNIAĆ!`
+      : "";
 
-    const currentDataStr = currentStatus ? `
-    AKTUALNY STATUS URZĄDZEŃ (Stan na: ${now.toLocaleString('pl-PL')}):
+    const currentDataStr = currentStatus
+      ? `
+    AKTUALNY STATUS URZĄDZEŃ (Stan na: ${now.toLocaleString("pl-PL")}):
     - Bieżąca glikemia: ${currentStatus.glucose} mg/dL (To jest najnowszy odczyt!)
     - Aktywna insulina (IOB): ${currentStatus.iob.toFixed(2)} j.
     - Aktywne węglowodany (COB): ${currentStatus.cob.toFixed(0)} g
     ${insightsStr}${activeDietStr}
-    ` : `AKTUALNY CZAS: ${now.toLocaleString('pl-PL')}\n${insightsStr}${activeDietStr}`;
-    
-    const systemInstruction = isChild ? `Jesteś Smart Asystentem Gliko w aplikacji GlikoControl. 
+    `
+      : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}`;
+
+    const systemInstruction = isChild
+      ? `Jesteś Smart Asystentem Gliko w aplikacji GlikoControl. 
     Twoim zadaniem jest pomaganie dzieciom i ich rodzicom w codziennym zarządzaniu cukrzycą w sposób przyjazny, cierpliwy i zachęcający. Posiadasz pełną integrację aplikacyjną (wiedz o ustawieniach, dziennikach itd.).
     ${currentDataStr}
     MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA (z ostatnich 24 godzin):
@@ -595,7 +794,8 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
     3. INTERAKCJA Z TALERZEM: Jeśli użytkownik chce dodać jedzenie np. ("dodaj jabłko"): <plate_action>{"action": "add", "item": {"name": "Jabłko", "carbs": 15, "protein": 1, "fat": 0, "kcal": 60}}</plate_action>
     4. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown. Pamiętaj by poinformować użytkownika, że akcja została pomyślnie wykonana.
     5. Wspieraj dziecko: chwal za dobre wyniki, pocieszaj przy gorszych.
-    6. Język: Polski.` : `Jesteś Eksperckim Systemem Analizy Medycznej AI (GlikoControl z pełną integracją).
+    6. Język: Polski.`
+      : `Jesteś Eksperckim Systemem Analizy Medycznej AI (GlikoControl z pełną integracją).
     ${currentDataStr}
     DANE UŻYTKOWNIKA (24h):
     - Logi: ${JSON.stringify(lastLogs)}
@@ -612,54 +812,61 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
 
     let fullContents = [
       ...history,
-      { role: 'user', parts: [{ text: message }] }
+      { role: "user", parts: [{ text: message }] },
     ];
 
     // Safety checks for Gemini API:
     // 1. Must alternate 'user' and 'model'
     // 2. Must start with 'user'
     let validContents = [];
-    let expectedRole = 'user';
-    
+    let expectedRole = "user";
+
     // We traverse from end to start to keep the most recent messages, ensuring the last is 'user'
     for (let i = fullContents.length - 1; i >= 0; i--) {
       if (fullContents[i].role === expectedRole) {
         validContents.unshift(fullContents[i]);
-        expectedRole = expectedRole === 'user' ? 'model' : 'user';
-      } else if (fullContents[i].role === 'user' && expectedRole === 'user') {
-         // Consecutive user messages? Merge them or just keep the latest user message
-         // Here we just ignore older consecutive messages to maintain alternation
+        expectedRole = expectedRole === "user" ? "model" : "user";
+      } else if (fullContents[i].role === "user" && expectedRole === "user") {
+        // Consecutive user messages? Merge them or just keep the latest user message
+        // Here we just ignore older consecutive messages to maintain alternation
       }
     }
-    
+
     // If we wound up with a first message being 'model', remove it (shouldn't happen with the logic above unless we added something weird)
-    if (validContents.length > 0 && validContents[0].role !== 'user') {
+    if (validContents.length > 0 && validContents[0].role !== "user") {
       validContents.shift();
     }
-    
+
     fullContents = validContents;
 
     const creds = getApiKey();
-    const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+    const isProxyUrl =
+      creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
-    if (isProxyUrl && !localStorage.getItem('gemini_api_key')) {
+    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
       try {
         const response = await fetch(creds.baseUrl!, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            model: 'gemini-1.5-flash', 
-            payload: { 
-              contents: fullContents, 
-              systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] } 
-            }
-          })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gemini-1.5-flash",
+            payload: {
+              contents: fullContents,
+              systemInstruction: {
+                role: "system",
+                parts: [{ text: systemInstruction }],
+              },
+            },
+          }),
         });
         const data = await response.json();
         if (response.ok) {
-           if (data.candidates && data.candidates[0]?.content) return data.candidates[0].content.parts.map((p:any)=>p.text).join('');
-           if (data.text) return data.text;
-           return typeof data === 'string' ? data : JSON.stringify(data);
+          if (data.candidates && data.candidates[0]?.content)
+            return data.candidates[0].content.parts
+              .map((p: any) => p.text)
+              .join("");
+          if (data.text) return data.text;
+          return typeof data === "string" ? data : JSON.stringify(data);
         }
         throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
@@ -669,7 +876,11 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
     }
 
     const client = getClient();
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
+    const modelsToTry = [
+      "gemini-1.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-pro",
+    ];
     let lastError = null;
 
     for (const model of modelsToTry) {
@@ -680,7 +891,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
           config: {
             systemInstruction: systemInstruction,
             temperature: 0.4,
-          }
+          },
         });
         return response.text || "Nie udało mi się wygenerować odpowiedzi.";
       } catch (error) {
@@ -688,8 +899,8 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
         lastError = error;
       }
     }
-    
+
     console.error("Assistant API Error:", lastError);
     return "Wystąpił błąd podczas komunikacji z AI. Sprawdź swoje połączenie lub klucz API.";
-  }
+  },
 };

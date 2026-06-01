@@ -6,6 +6,7 @@ import {
   getMealAbsorptionTime,
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -143,6 +144,8 @@ import PrivacyPopup from "./components/PrivacyPopup";
 import ApkDownloadBanner from "./components/ApkDownloadBanner";
 import QuickStatusPopup from "./components/QuickStatusPopup";
 import { Diets } from "./components/Diets";
+import JetLagMode from "./components/JetLagMode";
+import InsulinDetective from "./components/InsulinDetective";
 import { CURRENT_VERSION } from "./constants/versions";
 
 import GlikoSenseIcon from "./components/GlikoSenseIcon";
@@ -439,7 +442,15 @@ export default function App() {
     const saved = localStorage.getItem("gliko_assistant_history");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Replace old long initial message
+        if (parsed && parsed.length > 0) {
+          const firstMsg = parsed[0];
+          if (firstMsg.id.startsWith('initial') && (firstMsg.text.includes('Przeanalizowałem') || firstMsg.text.includes('System Aktywny'))) {
+             return []; // Clear to generate new initial message
+          }
+        }
+        return parsed;
       } catch (e) {
         return [];
       }
@@ -2258,7 +2269,7 @@ export default function App() {
           <div
             className={cn(
               "block lg:hidden w-full",
-              activeTab === "chat" && "flex-1 flex flex-col h-full",
+              (activeTab === "chat" || activeTab === "assistant") && "flex-1 flex flex-col h-full",
             )}
           >
             {activeTab === "chat" && <GlikoChat petData={petData} />}
@@ -2267,6 +2278,7 @@ export default function App() {
                 user={user}
                 logs={logs}
                 settings={userSettings || undefined}
+                petData={petData}
                 onAddToPlate={(item) =>
                   setSharedPlate((prev) => [
                     ...prev,
@@ -2283,7 +2295,7 @@ export default function App() {
               />
             )}
             {activeTab === "ai" && (
-              <AiReports user={user} logs={logs} settings={userSettings} />
+              <AiReports user={user} logs={logs} settings={userSettings} setTab={changeTab} />
             )}
           </div>
           <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6 w-full items-start">
@@ -2292,6 +2304,7 @@ export default function App() {
                 user={user}
                 logs={logs}
                 settings={userSettings || undefined}
+                petData={petData}
                 onAddToPlate={(item) =>
                   setSharedPlate((prev) => [
                     ...prev,
@@ -2308,7 +2321,7 @@ export default function App() {
               />
             </div>
             <div>
-              <AiReports user={user} logs={logs} settings={userSettings} />
+              <AiReports user={user} logs={logs} settings={userSettings} setTab={changeTab} />
             </div>
           </div>
         </>
@@ -2373,6 +2386,12 @@ export default function App() {
               settings={userSettings || undefined}
             />
           )}
+          {activeTab === "travel" && (
+            <JetLagMode />
+          )}
+          {activeTab === "insulin_detective" && (
+            <InsulinDetective logs={logs} onClose={() => changeTab('dashboard')} />
+          )}
         </div>
       )}
     </React.Suspense>
@@ -2394,6 +2413,7 @@ export default function App() {
             : "bg-slate-50",
       )}
     >
+      <NotificationListenerSync user={user} />
       <MeshBackground
         lastGlucose={lastGlucoseValue}
         isGlassmorphic={userSettings?.glassmorphismEnabled || false}

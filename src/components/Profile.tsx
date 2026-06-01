@@ -94,6 +94,8 @@ import { VERSIONS } from "../constants/versions";
 import CgmImport from "./CgmImport";
 import SettingsSync from "./SettingsSync";
 import SettingsTransfer from "./SettingsTransfer";
+import LocalSync from "./LocalSync";
+import CloudPackageSync from "./CloudPackageSync";
 import ApiIntegration from "./ApiIntegration";
 import PumpSimulator from "./PumpSimulator";
 import { Diets } from "./Diets";
@@ -235,7 +237,7 @@ export default function Profile({
 
   const [newInventoryItem, setNewInventoryItem] =
     useState<InventoryItem | null>(null);
-  const [insertionSite, setInsertionSite] = useState<string>("Prawy brzuch");
+  const insertionSite = settings.infusionSetSite || "Prawy brzuch";
 
   const icons = [
     "🍎",
@@ -3405,7 +3407,7 @@ export default function Profile({
                   </label>
                   <select
                     value={insertionSite}
-                    onChange={(e) => setInsertionSite(e.target.value)}
+                    onChange={(e) => setSettings({...settings, infusionSetSite: e.target.value})}
                     className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all cursor-pointer"
                   >
                     <option value="Lewy brzuch">Lewy brzuch</option>
@@ -3424,7 +3426,7 @@ export default function Profile({
                   <button
                     onClick={async () => {
                       const now = Date.now();
-                      const updates = { infusionSetChangeDate: now };
+                      const updates = { infusionSetChangeDate: now, infusionSetSite: insertionSite };
                       setSettings((prev) => ({ ...prev, ...updates }));
                       if (user) {
                         await setDoc(
@@ -3480,7 +3482,8 @@ export default function Profile({
 
                       const updates = {
                         infusionSetChangeDate: settings.infusionSetChangeDate || Date.now(),
-                        infusionSetDurationDays: days
+                        infusionSetDurationDays: days,
+                        infusionSetSite: insertionSite
                       };
                       setSettings((prev) => ({ ...prev, ...updates }));
                       if (user) {
@@ -4183,6 +4186,11 @@ export default function Profile({
                           Mało!
                         </span>
                       )}
+                      {item.dailyDose && item.dailyDose > 0 && (
+                        <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1.5">
+                          ~{Math.floor(item.quantity / item.dailyDose)} dni
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -4401,6 +4409,26 @@ export default function Profile({
                       />
                     </div>
                   </div>
+
+                  {newInventoryItem.category === "insulin" && (
+                     <div className="space-y-1">
+                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                         Dzienne zapotrzebowanie (oczekiwane spożycie, np. j.)
+                       </label>
+                       <input
+                         type="number"
+                         placeholder="np. 45"
+                         value={newInventoryItem.dailyDose || ""}
+                         onChange={(e) =>
+                           setNewInventoryItem({
+                             ...newInventoryItem,
+                             dailyDose: e.target.value ? Number(e.target.value) : undefined,
+                           })
+                         }
+                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                       />
+                     </div>
+                  )}
 
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -5676,6 +5704,9 @@ export default function Profile({
                     toast.success("Synchronizacja zakończona!");
                   }}
                 />
+
+                <LocalSync settings={settings} user={user} />
+                <CloudPackageSync settings={settings} user={user} />
 
                 <a
                   href="mailto:GlikoControl@proton.me"

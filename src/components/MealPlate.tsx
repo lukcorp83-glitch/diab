@@ -1,7 +1,7 @@
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { toast } from "react-hot-toast";
-import { getEffectiveUid, getMealAbsorptionTime } from "../lib/utils";
+import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
@@ -35,6 +35,7 @@ import {
   Info,
   Heart,
   Share2,
+  Check,
 } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
 import { cn } from "../lib/utils";
@@ -49,6 +50,7 @@ import {
   doc,
   orderBy,
   serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
 import { LIB_BASE, CATEGORIES } from "../constants";
 import { geminiService } from "../services/gemini";
@@ -472,7 +474,7 @@ export default function MealPlate({
       toast(`Zapisano ${product.name} do bazy produktów.`);
     } catch (e) {
       console.error(e);
-      alert("Błąd zapisu.");
+      toast.error("Błąd zapisu.");
     }
   };
 
@@ -528,6 +530,7 @@ export default function MealPlate({
   const [cookingMethod, setCookingMethod] = useState<
     "raw" | "boiled" | "baked" | "fried" | "blended"
   >("raw");
+  const [mergeCandidates, setMergeCandidates] = useState<any[] | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -640,7 +643,7 @@ export default function MealPlate({
       setIsSaveModalOpen(false);
       setMealName("");
       Haptics.success();
-      alert("Zestaw zapisany!");
+      toast.success("Zestaw zapisany!");
     } catch (e) {
       console.error(e);
     }
@@ -652,7 +655,7 @@ export default function MealPlate({
     if (meal.cookingMethod) {
       setCookingMethod(meal.cookingMethod);
     }
-    alert(`Dodano zestaw: ${meal.name}`);
+    toast.success(`Dodano zestaw: ${meal.name}`);
   };
 
   const updateWeight = (idx: number, weight: number) => {
@@ -730,6 +733,13 @@ export default function MealPlate({
 
   const totalGL = (totalCarbs * avgGI) / 100;
 
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   const activeMeal = useMemo(() => {
     if (!logs) return null;
     const meals = logs.filter((l) => l.type === "meal" || l.linkedMeal);
@@ -750,7 +760,7 @@ export default function MealPlate({
 
       const absorptionTimeHr = getMealAbsorptionTime(mWW, mWBT);
       const endTimeMs = (m.timestamp || 0) + absorptionTimeHr * 60 * 60 * 1000;
-      const isCurrentlyAbsorbing = Date.now() < endTimeMs;
+      const isCurrentlyAbsorbing = currentTime < endTimeMs;
 
       return { m, endTimeMs, isCurrentlyAbsorbing };
     });
@@ -771,7 +781,7 @@ export default function MealPlate({
     }
 
     return null;
-  }, [logs, settings?.showMealWidget]);
+  }, [logs, settings?.showMealWidget, currentTime]);
 
   const activeBolus = useMemo(() => {
     if (!logs || !activeMeal) return null;
@@ -995,6 +1005,74 @@ export default function MealPlate({
     return data;
   }, [plate, totalWW, totalWBT, entryTime]);
 
+  const prepareToLogMeal = () => {
+    if (!user || plate.length === 0) return;
+
+    // We check if there are recent logs without items and potentially without linkedMeal, up to 2 hours old
+    const timeLimit = 2 * 60 * 60 * 1000;
+    const candidates = logs.filter(l => 
+      (l.type === "bolus" || l.type === "meal") &&
+      Number(l.timestamp) > Date.now() - timeLimit &&
+      (!l.items || l.items.length === 0) &&
+      (l.carbs > 0 || l.value > 0 || l.linkedMeal?.carbs > 0)
+    );
+
+    if (candidates.length > 0) {
+      setMergeCandidates(candidates);
+    } else {
+      handleLogMeal();
+    }
+  };
+
+  const handleMergeMeal = async (logId: string) => {
+    if (!user || plate.length === 0) return;
+    Haptics.medium();
+    
+    try {
+      const logToMerge = logs.find(l => l.id === logId);
+      if (!logToMerge) {
+         handleLogMeal();
+         return;
+      }
+
+      const isBolus = logToMerge.type === "bolus";
+      const updates: any = {
+        description: plate.map((i) => i.name).join(", "),
+        items: plate,
+      };
+      
+      if (isBolus) {
+         updates.linkedMeal = {
+            ...(logToMerge.linkedMeal || {}),
+            polyols: rawPolyols,
+            protein: totalProtein,
+            fat: totalFat,
+            name: plate.map((i) => i.name).join(", "),
+            items: plate,
+         };
+         // Override carbs with plate exact carbs
+         updates.linkedMeal.carbs = totalCarbs;
+      } else {
+         updates.value = totalCarbs;
+         updates.polyols = rawPolyols;
+         updates.protein = totalProtein;
+         updates.fat = totalFat;
+         updates.type = "meal"; // Safety
+      }
+
+      const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", logId);
+      await updateDoc(logRef, updates);
+      
+      setPlate([]);
+      setMergeCandidates(null);
+      Haptics.success();
+      toast.success("Połączono z wpisem z pompy!");
+    } catch (e) {
+      console.error(e);
+      Haptics.error();
+    }
+  };
+
   const handleLogMeal = async () => {
     if (!user || plate.length === 0) return;
     Haptics.medium();
@@ -1016,6 +1094,7 @@ export default function MealPlate({
           fat: totalFat,
           timestamp: new Date(entryTime).getTime(),
           description: plate.map((i) => i.name).join(", "),
+          items: plate,
         },
       );
       setPlate([]);
@@ -1032,7 +1111,7 @@ export default function MealPlate({
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Twoja przeglądarka nie obsługuje wyszukiwania głosowego.");
+      toast.error("Twoja przeglądarka nie obsługuje wyszukiwania głosowego.");
       return;
     }
     const recognition = new SpeechRecognition();
@@ -1457,12 +1536,71 @@ export default function MealPlate({
                       setCookingMethod(expandedMeal.meal.cookingMethod);
                     }
                     setExpandedMeal(null);
-                    alert(`Dodano zmodyfikowany zestaw: ${expandedMeal.meal.name}`);
+                    toast.success(`Dodano zmodyfikowany zestaw: ${expandedMeal.meal.name}`);
                   }}
                   className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
                 >
                   Do Talerza
                 </button>
+              </motion.div>
+            </motion.div>
+          )}
+          {mergeCandidates && (
+            <motion.div
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-4"
+            >
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-slate-50 dark:bg-slate-900 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative scrollbar-none"
+              >
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 leading-tight">
+                  Znaleziono wpis
+                </h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
+                  Wybierz niedawny bolus / wpis z pompy, aby uaktualnić go składnikami z talerza.
+                </p>
+
+                <div className="space-y-4 mb-6">
+                  {mergeCandidates.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => handleMergeMeal(c.id)}
+                      className="w-full bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4 text-left hover:scale-[0.98] transition-transform"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm dark:text-white truncate">
+                          {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {c.description || (c.type === 'bolus' ? 'Bolus' : 'Posiłek')}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-400 mt-1">
+                          {c.value || c.linkedMeal?.carbs || 0}g W | {c.value ? `${c.value}J` : ''}
+                        </div>
+                      </div>
+                      <Check size={20} className="text-emerald-500" />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3">
+                   <button
+                     onClick={() => handleLogMeal()}
+                     className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
+                   >
+                     Dodaj jako nowy (Osobny wpis)
+                   </button>
+                   <button
+                     onClick={() => setMergeCandidates(null)}
+                     className="w-full bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white py-4 rounded-[2rem] font-black text-[11px] uppercase transition-all active:scale-95 tracking-[0.2em]"
+                   >
+                     Anuluj
+                   </button>
+                </div>
               </motion.div>
             </motion.div>
           )}
@@ -1638,7 +1776,7 @@ export default function MealPlate({
                   }}
                   className="bg-slate-800 text-white p-3.5 sm:p-4 rounded-[2rem] px-4 sm:px-6 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 transition-all text-[9px] sm:text-xs font-bold uppercase tracking-widest"
                 >
-                  <Scan size={18} className="sm:w-5 sm:h-5" /> <span>Skaner</span>
+                  <Scan size={18} className="sm:w-5 sm:h-5" /> <span>Kodów</span>
                 </button>
               </div>
               <input
@@ -1765,7 +1903,7 @@ export default function MealPlate({
                   </h4>
                   {!isLoadingSavedMeals && (
                     <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                      {savedMeals.length} Zapisanych
+                      {savedMeals.length} {pluralize(savedMeals.length, 'Zapisany', 'Zapisane', 'Zapisanych')}
                     </span>
                   )}
                 </div>
@@ -1843,7 +1981,7 @@ export default function MealPlate({
                                         timestamp: Date.now()
                                       }
                                     );
-                                    alert("Szablon zaktualizowany!");
+                                    toast.success("Szablon zaktualizowany!");
                                   },
                                 );
                               } catch (err) {
@@ -1861,8 +1999,7 @@ export default function MealPlate({
                             {m.name}
                           </h5>
                           <p className="text-[10px] font-bold text-slate-400">
-                            {m.items.length}{" "}
-                            {m.items.length === 1 ? "składnik" : "składników"}
+                            {m.items.length} {pluralize(m.items.length, "składnik", "składniki", "składników")}
                           </p>
                         </div>
                         <div className="flex justify-between items-end">
@@ -2423,7 +2560,7 @@ export default function MealPlate({
                               0,
                               Math.min(
                                 1,
-                                (Date.now() - (activeMeal.timestamp || 0)) /
+                                (currentTime - (activeMeal.timestamp || 0)) /
                                   (getMealAbsorptionTime(
                                     activeChartData[0]?.WW || 0,
                                     activeChartData[0]?.WBT || 0,
@@ -2623,7 +2760,7 @@ export default function MealPlate({
               </span>
               to rzeczywista glikemia (prawa oś).{" "}
               {activeBolus
-                ? `Obliczono z ujęciem bolusa: ${activeBolus.value}U.`
+                ? `Obliczono z ujęciem bolusa: ${Number(activeBolus.value).toFixed(1)}U.`
                 : "Brak zarejestrowanego bolusa."}
             </p>
           </div>
@@ -3050,7 +3187,7 @@ export default function MealPlate({
 
           <div className="flex gap-2 mt-4">
             <button
-              onClick={handleLogMeal}
+              onClick={prepareToLogMeal}
               className="flex-3 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
             >
               Dodaj do Dziennika
@@ -3094,6 +3231,7 @@ export default function MealPlate({
                   protein: Math.round(totalProtein * 10) / 10,
                   fat: Math.round(totalFat * 10) / 10,
                   name: plate.map((i) => i.name).join(", ") || "Własny posiłek",
+                  items: plate,
                 }),
               );
               setTab("bolus");

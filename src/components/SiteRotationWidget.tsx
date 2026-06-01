@@ -26,9 +26,14 @@ export default function SiteRotationWidget({ logs, settings, size, onAction, set
     return sorted.find(l => l.type === 'site_change');
   }, [logs]);
 
-  const locationText = lastSiteChange?.notes || 'Brak danych';
+  const siteChangeTimestamp = settings.infusionSetChangeDate || lastSiteChange?.timestamp;
   
-  const elapsedDays = lastSiteChange ? Math.floor((Date.now() - lastSiteChange.timestamp) / (1000 * 60 * 60 * 24)) : 0;
+  const rawNote = lastSiteChange?.notes || '';
+  const parsedNoteLocation = rawNote.startsWith('Wymiana wkłucia - ') ? rawNote.replace('Wymiana wkłucia - ', '') : rawNote;
+
+  const locationText = settings.infusionSetSite || parsedNoteLocation || 'Brak danych';
+  
+  const elapsedDays = siteChangeTimestamp ? Math.floor((Date.now() - siteChangeTimestamp) / (1000 * 60 * 60 * 24)) : 0;
   const maxDays = settings?.infusionSetDurationDays || 3;
   
   const isOverdue = elapsedDays >= maxDays;

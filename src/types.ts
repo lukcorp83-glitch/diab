@@ -22,7 +22,8 @@ export interface LogEntry {
     | "site_change"
     | "sensor_change"
     | "activity"
-    | "water";
+    | "water"
+    | "medication";
   value: number;
   timestamp: number;
   createdAt?: any;
@@ -34,6 +35,11 @@ export interface LogEntry {
   userModified?: boolean;
   direction?: string;
   delta?: number;
+  medicationData?: {
+    name: string;
+    dose: string;
+    route?: string;
+  };
   protein?: number;
   polyols?: number;
   fat?: number;
@@ -43,6 +49,7 @@ export interface LogEntry {
     protein?: number;
     fat?: number;
     name?: string;
+    items?: any[];
   };
   weather?: {
     temp: number;
@@ -51,6 +58,7 @@ export interface LogEntry {
   };
   isExtended?: boolean;
   extendedTime?: number;
+  items?: any[];
 }
 
 export interface PlateItem extends Product {
@@ -81,6 +89,7 @@ export interface InventoryItem {
   lowStockThreshold: number;
   category: "sensors" | "insulin" | "infusion_sets" | "strips" | "other";
   expiryDate?: string;
+  dailyDose?: number; // Added daily dose for estimation
 }
 
 export interface UserSettings {
@@ -100,6 +109,7 @@ export interface UserSettings {
   cgmTimestamp?: number; // When was the last calibration
   sensorChangeDate?: number;
   infusionSetChangeDate?: number;
+  infusionSetSite?: string;
   sensorDurationDays?: number;
   infusionSetDurationDays?: number;
   notificationsEnabled?: boolean;

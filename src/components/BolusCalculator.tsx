@@ -97,6 +97,7 @@ export default function BolusCalculator({
     .toISOString()
     .slice(0, 16);
   const [entryTime, setEntryTime] = useState<string>(localISOTime);
+  const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -139,6 +140,9 @@ export default function BolusCalculator({
         if (parsed.name) setMealName(parsed.name);
         if (parseFloat(parsed.protein) > 0 || parseFloat(parsed.fat) > 0) {
           setIsPizzaMode(true);
+        }
+        if (parsed.items) {
+          setItems(parsed.items);
         }
         sessionStorage.removeItem("pending_meal");
       } catch (e) {
@@ -420,6 +424,7 @@ export default function BolusCalculator({
             protein: protNum,
             fat: fNum,
             name: mealName || null,
+            items: items.length > 0 ? items : undefined,
           };
         }
         if (isPizzaMode && extendedTime > 0) {

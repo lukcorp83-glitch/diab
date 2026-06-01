@@ -73,6 +73,7 @@ export default function MealEditModal({
   const [mealName, setMealName] = useState(initialName);
   const [insulin, setInsulin] = useState(initialInsulin);
   const [notes, setNotes] = useState(log.notes || log.description || "");
+  const [items, setItems] = useState<any[]>(log.items || (isBolus ? log.linkedMeal?.items : undefined) || []);
   const [loading, setLoading] = useState(false);
   const [removeMeal, setRemoveMeal] = useState(false);
 
@@ -194,6 +195,8 @@ export default function MealEditModal({
 
     const newNote = notes ? `${notes}, ${p.name}` : p.name;
     setNotes(newNote);
+    
+    setItems(prev => [...prev, p]);
 
     setSearchTerm("");
     setOnlineResults([]);
@@ -234,6 +237,8 @@ export default function MealEditModal({
       : `Zestaw: ${meal.name}`;
     setNotes(newNote);
 
+    setItems(prev => [...prev, ...(meal.items || [])]);
+
     toast.success(`Dodano zestaw: ${meal.name}`);
   };
 
@@ -259,6 +264,7 @@ export default function MealEditModal({
         notes: notes,
         description: notes,
         userModified: true,
+        items: items,
       };
 
       if (isBolus) {
@@ -272,6 +278,7 @@ export default function MealEditModal({
             protein: Math.round((parseFloat(protein) || 0) * 10) / 10 || null,
             fat: Math.round((parseFloat(fat) || 0) * 10) / 10 || null,
             name: mealName || null,
+            items: items,
           };
         } else {
           updates.linkedMeal = null;
@@ -515,6 +522,29 @@ export default function MealEditModal({
                   className="w-full bg-slate-50 dark:bg-slate-800/80 p-3 rounded-[1.5rem] font-bold outline-none border border-slate-200 dark:border-slate-700/50 focus:ring-2 focus:ring-accent-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all dark:text-white text-sm"
                   placeholder="NP. Zestaw śniadaniowy"
                 />
+                {items && items.length > 0 && (
+                  <div className="mt-3 flex gap-2 flex-wrap pb-2 border-slate-100 dark:border-slate-800 border-b">
+                    {items.map((it, idx) => (
+                      <span key={idx} className="bg-slate-100 dark:bg-slate-800 text-xs px-3 py-1 rounded-full font-bold dark:text-white flex items-center gap-2">
+                        {it.name}
+                        <button 
+                         onClick={() => {
+                           const newItems = [...items];
+                           const removed = newItems.splice(idx, 1)[0];
+                           setItems(newItems);
+                           setCarbs((Math.max(0, parseFloat(carbs || "0") - (removed.carbs || 0))).toFixed(1));
+                           setProtein((Math.max(0, parseFloat(protein || "0") - (removed.protein || 0))).toFixed(1));
+                           setFat((Math.max(0, parseFloat(fat || "0") - (removed.fat || 0))).toFixed(1));
+                           setPolyols((Math.max(0, parseFloat(polyols || "0") - (removed.polyols || 0))).toFixed(1));
+                         }}
+                         className="text-slate-400 hover:text-rose-500 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {isBolus && log.linkedMeal && (
@@ -726,7 +756,7 @@ export default function MealEditModal({
                   // Haptics.light();
                   addSavedMeal({ ...expandedMeal.meal, items: expandedMeal.items });
                   setExpandedMeal(null);
-                  alert(`Dodano zmodyfikowany zestaw: ${expandedMeal.meal.name}`);
+                  toast.success(`Dodano zmodyfikowany zestaw: ${expandedMeal.meal.name}`);
                 }}
                 className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
               >

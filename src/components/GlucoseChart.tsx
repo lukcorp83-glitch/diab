@@ -1,8 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 import { getTs } from '../lib/utils';
+import { Haptics } from '../lib/haptics';
 
 import { Plus, Minus, Maximize2, Move, Droplets, Signal } from 'lucide-react';
 
@@ -689,33 +691,65 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       ctx.font = '14px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      
+      const dropletsPathStrings = [
+        "M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z",
+        "M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"
+      ];
+      
+      const signalPathStrings = [
+        "M2 20h.01",
+        "M7 20v-4",
+        "M12 20v-8",
+        "M17 20V8",
+        "M22 4v16"
+      ];
+
       for (const d of chartData) {
-         const x = getX(d.timestamp);
+         const x = Math.round(getX(d.timestamp));
          if (d.bolusVal && d.originalB) {
-             const yObj = getY(chartMinY);
-             const bh = Math.min(40, (d.originalB.value || 0) * 5);
+             const yObj = Math.round(getY(chartMinY));
+             const bh = Math.round(Math.min(40, (d.originalB.value || 0) * 5));
              ctx.fillStyle = 'rgba(79, 70, 229, 0.4)';
              ctx.fillRect(x - 2, yObj - bh, 4, bh);
-             ctx.fillText('💉', x, yObj - bh - 8);
+             ctx.font = '16px serif';
+             ctx.fillText('💉', x, yObj - bh - 10);
              if (d.stackingWarning) {
                  ctx.font = '12px serif';
                  ctx.fillText('⚠️', x, yObj - bh - 24);
-                 ctx.font = '14px serif';
              }
+             ctx.font = '14px serif';
          }
          if (d.mealVal) {
-             let baseCy = getY(chartMinY) - 10;
-             if (d.bolusVal) baseCy -= Math.min(40, (d.originalB?.value||0)*5) + 10;
+             let baseCy = Math.round(getY(chartMinY)) - 10;
+             if (d.bolusVal) baseCy -= Math.round(Math.min(40, (d.originalB?.value||0)*5)) + 10;
              ctx.font = '16px serif';
              ctx.fillText('🍽️', x, baseCy);
+             ctx.font = '14px serif';
          }
          if (d.siteVal) {
-             ctx.font = '16px serif';
-             ctx.fillText('💧', x, getY(chartMaxY) + 15);
+             const cy = Math.round(getY(chartMaxY) + 15);
+             ctx.save();
+             ctx.translate(x - 8, cy - 8);
+             ctx.scale(0.65, 0.65);
+             ctx.strokeStyle = '#14b8a6'; // teal-500
+             ctx.lineWidth = 2 / 0.65;
+             ctx.lineCap = 'round';
+             ctx.lineJoin = 'round';
+             dropletsPathStrings.forEach(s => ctx.stroke(new Path2D(s)));
+             ctx.restore();
          }
          if (d.sensorVal) {
-             ctx.font = '16px serif';
-             ctx.fillText('📡', x, getY(chartMaxY) + 15);
+             const cy = Math.round(getY(chartMaxY) + 15);
+             ctx.save();
+             ctx.translate(x - 8, cy - 8);
+             ctx.scale(0.65, 0.65);
+             ctx.strokeStyle = '#6366f1'; // indigo-500
+             ctx.lineWidth = 2.5 / 0.65;
+             ctx.lineCap = 'round';
+             ctx.lineJoin = 'round';
+             signalPathStrings.forEach(s => ctx.stroke(new Path2D(s)));
+             ctx.restore();
          }
       }
     };
@@ -759,11 +793,29 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     }
     
     if (closestData) {
-       if (closestData.originalG) setSelectedPoint(closestData.originalG);
-       else if (closestData.originalB) setSelectedPoint(closestData.originalB);
-       else if (closestData.originalM) setSelectedPoint(closestData.originalM);
-       else if (closestData.originalSite) setSelectedPoint(closestData.originalSite);
-       else if (closestData.originalSensor) setSelectedPoint(closestData.originalSensor);
+       Haptics.selection();
+       let point = null;
+       if (closestData.originalG) point = closestData.originalG;
+       else if (closestData.originalB) point = closestData.originalB;
+       else if (closestData.originalM) point = closestData.originalM;
+       else if (closestData.originalSite) point = closestData.originalSite;
+       else if (closestData.originalSensor) point = closestData.originalSensor;
+
+       if (point) {
+         setSelectedPoint(point);
+         let msg = '';
+         if (point.type === 'glucose') {
+           msg = `Poziom cukru: ${Math.round(Number(point.value))} mg/dL`;
+         } else if (point.type === 'bolus') {
+           msg = `Insulina: ${Number(point.value).toFixed(2)} j`;
+         } else if (point.type === 'meal') {
+           msg = `Węglowodany: ${Number(point.value).toFixed(1)} g`;
+         } else if (point.type === 'site' || point.type === 'sensor') {
+            msg = point.type === 'site' ? 'Wymiana wkłucia/Podaż' : 'Wymiana sensora';
+         }
+         
+         if (msg) toast.success(msg, { icon: point.type === 'glucose' ? '🩸' : point.type === 'bolus' ? '💉' : point.type === 'meal' ? '🍽️' : '🔄' });
+       }
     } else {
        setSelectedPoint(null);
     }

@@ -159,3 +159,20 @@ export function isNativeApp(): boolean {
   const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
   return isWebView || isStandalone || !!(window as any).Capacitor || !!(window as any).cordova;
 }
+
+/**
+ * Zwraca poprawną formę w języku polskim w zależności od liczby.
+ * Przykłady:
+ * pluralize(1, 'składnik', 'składniki', 'składników') // 'składnik'
+ * pluralize(2, 'składnik', 'składniki', 'składników') // 'składniki'
+ * pluralize(5, 'składnik', 'składniki', 'składników') // 'składników'
+ */
+export function pluralize(count: number, singular: string, plural1: string, plural2: string): string {
+  if (count === 1) return singular;
+  const lastDigit = count % 10;
+  const lastTwo = count % 100;
+  if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 10 || lastTwo >= 20)) {
+    return plural1;
+  }
+  return plural2;
+}

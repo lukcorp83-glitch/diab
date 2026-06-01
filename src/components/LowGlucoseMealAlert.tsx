@@ -1,0 +1,81 @@
+import React, { useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { LogEntry } from '../types';
+import { AlertTriangle, Apple, Plus } from 'lucide-react';
+import { cn } from '../lib/utils';
+import { Haptics } from '../lib/haptics';
+
+interface LowGlucoseMealAlertProps {
+  logs: LogEntry[];
+  lastGlucose: number | null;
+  onAddCarbs: () => void;
+}
+
+export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs }: LowGlucoseMealAlertProps) {
+  const shouldAlert = useMemo(() => {
+    if (!lastGlucose || lastGlucose > 70) return false;
+    
+    const now = Date.now();
+    const twoHoursAgo = now - 2 * 60 * 60 * 1000;
+    
+    // Sort logs descending by timestamp
+    const sortedLogs = [...logs].sort((a, b) => {
+      const tsA = a.timestamp || new Date(a.createdAt).getTime();
+      const tsB = b.timestamp || new Date(b.createdAt).getTime();
+      return tsB - tsA;
+    });
+
+    // Check if user recently logged any meal or carbs
+    const recentCarbs = sortedLogs.filter(l => {
+      if (l.type !== 'meal') return false;
+      const ts = l.timestamp || new Date(l.createdAt).getTime();
+      return ts >= twoHoursAgo;
+    });
+
+    if (recentCarbs.length === 0) {
+      return true;
+    }
+
+    return false;
+  }, [logs, lastGlucose]);
+
+  if (!shouldAlert) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, height: 0 }}
+        className="mb-6 relative overflow-hidden bg-gradient-to-r from-red-600 to-rose-600 rounded-[2rem] p-5 shadow-xl shadow-red-500/20"
+      >
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+             <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0">
+               <AlertTriangle size={24} className="animate-pulse" />
+             </div>
+             <div className="text-white">
+               <h3 className="text-sm font-black uppercase tracking-widest mb-1 flex items-center gap-2">
+                 Hipoglikemia ({lastGlucose} <span className="text-[10px]">mg/dL</span>)
+               </h3>
+               <p className="text-xs text-white/90 font-medium">
+                 Twój cukier jest niski. Zjadłeś/aś coś i chcesz to szybko zapisać?
+               </p>
+             </div>
+          </div>
+          <button
+            onClick={() => {
+               Haptics.selection();
+               onAddCarbs();
+            }}
+            className="w-full md:w-auto px-6 py-3.5 bg-white text-red-600 hover:bg-slate-50 transition-all rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-black/10 shrink-0"
+          >
+            <Apple size={16} />
+            Dodaj posiłek
+          </button>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
