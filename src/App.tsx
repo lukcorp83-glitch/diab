@@ -360,46 +360,78 @@ export default function App() {
   }, [logs]);
 
   useEffect(() => {
-    if (userSettings?.dynamicColorsEnabled && logs.length > 0) {
-      const glucose = logs[0].glucose;
-      const min = userSettings.targetMin || 70;
-      const max = userSettings.targetMax || 140;
+    let active = true;
+    const applyColors = async () => {
+      const root = document.documentElement;
+      let appliedSystem = false;
       
-      const root = document.documentElement;
-      if (glucose < min) {
-        root.style.setProperty('--app-accent-400', '#f87171');
-        root.style.setProperty('--app-accent-500', '#ef4444');
-        root.style.setProperty('--app-accent-600', '#dc2626');
-        root.style.setProperty('--app-accent-900', '#7f1d1d');
-        root.style.setProperty('--app-accent-950', '#450a0a');
-      } else if (glucose > max + 40) {
-        root.style.setProperty('--app-accent-400', '#fb923c');
-        root.style.setProperty('--app-accent-500', '#f97316');
-        root.style.setProperty('--app-accent-600', '#ea580c');
-        root.style.setProperty('--app-accent-900', '#7c2d12');
-        root.style.setProperty('--app-accent-950', '#431407');
-      } else if (glucose > max) {
-        root.style.setProperty('--app-accent-400', '#facc15');
-        root.style.setProperty('--app-accent-500', '#eab308');
-        root.style.setProperty('--app-accent-600', '#ca8a04');
-        root.style.setProperty('--app-accent-900', '#713f12');
-        root.style.setProperty('--app-accent-950', '#422006');
-      } else {
-        root.style.setProperty('--app-accent-400', '#34d399');
-        root.style.setProperty('--app-accent-500', '#10b981');
-        root.style.setProperty('--app-accent-600', '#059669');
-        root.style.setProperty('--app-accent-900', '#064e3b');
-        root.style.setProperty('--app-accent-950', '#022c22');
+      if (userSettings?.material3Enabled && Capacitor.isNativePlatform()) {
+        try {
+          const WidgetUpdater = registerPlugin<any>('WidgetUpdater');
+          const res = await WidgetUpdater.getMaterialYouColors();
+          if (res && res.supported && active) {
+            root.style.setProperty('--app-accent-100', res.primary100);
+            root.style.setProperty('--app-accent-400', res.primary400);
+            root.style.setProperty('--app-accent-500', res.primary500);
+            root.style.setProperty('--app-accent-600', res.primary500);
+            root.style.setProperty('--app-accent-900', res.primary900);
+            root.style.setProperty('--app-accent-950', res.primary900);
+            appliedSystem = true;
+          }
+        } catch (e) {
+          console.error("Failed to get Material You colors", e);
+        }
       }
-    } else {
-      const root = document.documentElement;
-      root.style.removeProperty('--app-accent-400');
-      root.style.removeProperty('--app-accent-500');
-      root.style.removeProperty('--app-accent-600');
-      root.style.removeProperty('--app-accent-900');
-      root.style.removeProperty('--app-accent-950');
-    }
-  }, [logs, userSettings?.dynamicColorsEnabled, userSettings?.targetMin, userSettings?.targetMax]);
+
+      if (active && !appliedSystem) {
+        if (userSettings?.dynamicColorsEnabled && logs.length > 0) {
+          const glucose = logs[0].glucose;
+          const min = userSettings.targetMin || 70;
+          const max = userSettings.targetMax || 140;
+          
+          if (glucose < min) {
+            root.style.setProperty('--app-accent-100', '#fee2e2');
+            root.style.setProperty('--app-accent-400', '#f87171');
+            root.style.setProperty('--app-accent-500', '#ef4444');
+            root.style.setProperty('--app-accent-600', '#dc2626');
+            root.style.setProperty('--app-accent-900', '#7f1d1d');
+            root.style.setProperty('--app-accent-950', '#450a0a');
+          } else if (glucose > max + 40) {
+            root.style.setProperty('--app-accent-100', '#ffedd5');
+            root.style.setProperty('--app-accent-400', '#fb923c');
+            root.style.setProperty('--app-accent-500', '#f97316');
+            root.style.setProperty('--app-accent-600', '#ea580c');
+            root.style.setProperty('--app-accent-900', '#7c2d12');
+            root.style.setProperty('--app-accent-950', '#431407');
+          } else if (glucose > max) {
+            root.style.setProperty('--app-accent-100', '#fef9c3');
+            root.style.setProperty('--app-accent-400', '#facc15');
+            root.style.setProperty('--app-accent-500', '#eab308');
+            root.style.setProperty('--app-accent-600', '#ca8a04');
+            root.style.setProperty('--app-accent-900', '#713f12');
+            root.style.setProperty('--app-accent-950', '#422006');
+          } else {
+            root.style.setProperty('--app-accent-100', '#d1fae5');
+            root.style.setProperty('--app-accent-400', '#34d399');
+            root.style.setProperty('--app-accent-500', '#10b981');
+            root.style.setProperty('--app-accent-600', '#059669');
+            root.style.setProperty('--app-accent-900', '#064e3b');
+            root.style.setProperty('--app-accent-950', '#022c22');
+          }
+        } else {
+          root.style.removeProperty('--app-accent-100');
+          root.style.removeProperty('--app-accent-400');
+          root.style.removeProperty('--app-accent-500');
+          root.style.removeProperty('--app-accent-600');
+          root.style.removeProperty('--app-accent-900');
+          root.style.removeProperty('--app-accent-950');
+        }
+      }
+    };
+    
+    applyColors();
+    return () => { active = false; };
+  }, [logs, userSettings?.dynamicColorsEnabled, userSettings?.material3Enabled, userSettings?.targetMin, userSettings?.targetMax]);
 
   const [petData, setPetData] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<{

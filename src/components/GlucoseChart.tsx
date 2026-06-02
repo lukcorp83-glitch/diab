@@ -51,7 +51,7 @@ interface GlucoseChartProps {
 }
 
 export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction }: GlucoseChartProps) {
-  const [selectedPoint, setSelectedPoint] = useState<LogEntry | null>(null);
+  const [crosshair, setCrosshair] = useState<{ x: number, data: any, tClick: number } | null>(null);
   const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number}[]>([]);
   const [isMlProcessing, setIsMlProcessing] = useState(false);
 
@@ -139,6 +139,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     if (e.touches.length === 1) {
       setIsDragging(true);
       setLastX(e.touches[0].clientX);
+      setCrosshair(null); // Dismiss crosshair on pan
     }
   };
 
@@ -460,7 +461,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end, hasData };
   }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction, mlPredictionDataState, zoomLevel, panOffsetMs]);
 
-    const isDark = theme === 'dark';
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     const container = containerRef.current;
@@ -752,6 +753,25 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
              ctx.restore();
          }
       }
+      
+      // Draw Crosshair Line
+      if (crosshair) {
+         const cx = getX(crosshair.data.timestamp);
+         ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+         ctx.lineWidth = 1;
+         ctx.beginPath();
+         ctx.moveTo(cx, pT);
+         ctx.lineTo(cx, h - pB);
+         ctx.stroke();
+         
+         if (crosshair.data.glucose !== undefined) {
+             const cy = getY(crosshair.data.glucose);
+             ctx.beginPath();
+             ctx.arc(cx, cy, 6, 0, 2*Math.PI);
+             ctx.fillStyle = isDark ? '#ffffff' : '#000000';
+             ctx.fill();
+         }
+      }
     };
     
     let frameId;
@@ -786,7 +806,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     
     for (const d of chartData) {
        const diff = Math.abs(d.timestamp - tClick);
-       if (diff < closestTimeDiff && diff < 20 * 60000) { 
+       if (diff < closestTimeDiff && diff < 30 * 60000) { 
           closestTimeDiff = diff;
           closestData = d;
        }
@@ -794,30 +814,9 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     
     if (closestData) {
        Haptics.selection();
-       let point = null;
-       if (closestData.originalG) point = closestData.originalG;
-       else if (closestData.originalB) point = closestData.originalB;
-       else if (closestData.originalM) point = closestData.originalM;
-       else if (closestData.originalSite) point = closestData.originalSite;
-       else if (closestData.originalSensor) point = closestData.originalSensor;
-
-       if (point) {
-         setSelectedPoint(point);
-         let msg = '';
-         if (point.type === 'glucose') {
-           msg = `Poziom cukru: ${Math.round(Number(point.value))} mg/dL`;
-         } else if (point.type === 'bolus') {
-           msg = `Insulina: ${Number(point.value).toFixed(2)} j`;
-         } else if (point.type === 'meal') {
-           msg = `Węglowodany: ${Number(point.value).toFixed(1)} g`;
-         } else if (point.type === 'site' || point.type === 'sensor') {
-            msg = point.type === 'site' ? 'Wymiana wkłucia/Podaż' : 'Wymiana sensora';
-         }
-         
-         if (msg) toast.success(msg, { icon: point.type === 'glucose' ? '🩸' : point.type === 'bolus' ? '💉' : point.type === 'meal' ? '🍽️' : '🔄' });
-       }
+       setCrosshair({ x: clickX, data: closestData, tClick });
     } else {
-       setSelectedPoint(null);
+       setCrosshair(null);
     }
   };
 
@@ -832,7 +831,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         userSelect: 'none',
         touchAction: 'none' 
       }} 
-      onClick={() => setSelectedPoint(null)} 
+      onClick={() => setCrosshair(null)} 
       onWheel={handleWheel}
       onMouseDown={handleMouseDownNative}
       onMouseMove={handleMouseMoveNative}
@@ -888,6 +887,44 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           onPointerMove={(e) => e.stopPropagation()}
           style={{ cursor: "pointer", touchAction: "none" }} 
         />
+        
+        <AnimatePresence>
+          {crosshair && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="absolute top-2 pointer-events-none z-10 flex flex-col items-center"
+              style={{
+                left: `clamp(10px, ${20 + ((crosshair.data.timestamp - start) / (end - start)) * (containerRef.current?.clientWidth ? containerRef.current.clientWidth - 30 : 300)}px, calc(100% - 150px))`
+              }}
+            >
+              <div className="bg-slate-800/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-xl border border-slate-700/50 min-w-[140px] -translate-x-1/2">
+                <div className="text-[10px] font-bold text-slate-400 mb-1 text-center">
+                  {new Date(crosshair.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+                {crosshair.data.glucose !== undefined && !isNaN(crosshair.data.glucose) && (
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Droplets size={14} className={crosshair.data.glucose < targetMin ? 'text-rose-400' : crosshair.data.glucose > targetMax ? 'text-amber-400' : 'text-emerald-400'} />
+                    <span className="text-xl font-black">{Math.round(crosshair.data.glucose)}</span>
+                  </div>
+                )}
+                {crosshair.data.originalB && (
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <span className="text-indigo-400 font-bold text-xs">💉 Bolus:</span>
+                    <span className="text-sm font-black">{crosshair.data.originalB.value} j.</span>
+                  </div>
+                )}
+                {crosshair.data.originalM && (
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <span className="text-amber-400 font-bold text-xs">🍽️ Węgle:</span>
+                    <span className="text-sm font-black">{crosshair.data.originalM.value} g</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence>
@@ -900,49 +937,6 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
           >
             <div className="w-2 h-2 rounded-full border-2 border-accent-500 border-t-transparent animate-spin" />
             <span className="text-[8px] font-black uppercase tracking-widest text-accent-400">GlikoSense myśli...</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {selectedPoint && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 10 }}
-            onClick={(e) => e.stopPropagation()}
-            className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white p-4 rounded-3xl border border-slate-200/50 dark:border-white/10 shadow-2xl backdrop-blur-xl z-30 min-w-[180px] glass-target"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-accent-400 uppercase tracking-widest">
-                  {selectedPoint.type === 'meal' ? 'Posiłek' : selectedPoint.type === 'bolus' ? 'Insulina' : 'Glukoza'}
-                </span>
-                {selectedPoint.source && (
-                  <span className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter">Źródło: {selectedPoint.source}</span>
-                )}
-              </div>
-              <button 
-                onClick={(e) => { e.stopPropagation(); setSelectedPoint(null); }} 
-                className="text-slate-500 hover:text-white p-1 ml-2"
-              >✕</button>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tighter">
-                {selectedPoint.type === 'glucose' 
-                  ? Math.round(Number(selectedPoint.value)) 
-                  : +Number(selectedPoint.value).toFixed(2)}
-              </span>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                {selectedPoint.type === 'glucose' ? 'mg/dL' : selectedPoint.type === 'bolus' ? 'j' : 'g WW'}
-              </span>
-            </div>
-            {selectedPoint.notes && (
-              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-2 font-medium line-clamp-2 italic">"{selectedPoint.notes}"</p>
-            )}
-            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-3 uppercase tracking-widest border-t border-slate-200/50 dark:border-slate-800 pt-2">
-              {new Date(selectedPoint.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(selectedPoint.timestamp).toLocaleDateString()}
-            </p>
           </motion.div>
         )}
       </AnimatePresence>
