@@ -337,6 +337,70 @@ export default function App() {
   const [initialAction, setInitialAction] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+
+  useEffect(() => {
+    if (userSettings) {
+      notificationService.updateDeviceReminders(userSettings);
+    }
+  }, [userSettings?.sensorChangeDate, userSettings?.infusionSetChangeDate, userSettings?.sensorDurationDays, userSettings?.infusionSetDurationDays]);
+
+  useEffect(() => {
+    if (logs.length > 0 && Capacitor.isNativePlatform()) {
+      const latest = logs[0];
+      const WidgetUpdater = registerPlugin<any>('WidgetUpdater');
+      const timeStr = new Date(latest.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const deltaStr = latest.delta ? (latest.delta > 0 ? "+" + latest.delta : String(latest.delta)) : "0";
+      WidgetUpdater.pushData({
+        glucose: String(latest.glucose),
+        arrow: latest.trend || "",
+        delta: deltaStr,
+        time: timeStr
+      }).catch(console.error);
+    }
+  }, [logs]);
+
+  useEffect(() => {
+    if (userSettings?.dynamicColorsEnabled && logs.length > 0) {
+      const glucose = logs[0].glucose;
+      const min = userSettings.targetMin || 70;
+      const max = userSettings.targetMax || 140;
+      
+      const root = document.documentElement;
+      if (glucose < min) {
+        root.style.setProperty('--app-accent-400', '#f87171');
+        root.style.setProperty('--app-accent-500', '#ef4444');
+        root.style.setProperty('--app-accent-600', '#dc2626');
+        root.style.setProperty('--app-accent-900', '#7f1d1d');
+        root.style.setProperty('--app-accent-950', '#450a0a');
+      } else if (glucose > max + 40) {
+        root.style.setProperty('--app-accent-400', '#fb923c');
+        root.style.setProperty('--app-accent-500', '#f97316');
+        root.style.setProperty('--app-accent-600', '#ea580c');
+        root.style.setProperty('--app-accent-900', '#7c2d12');
+        root.style.setProperty('--app-accent-950', '#431407');
+      } else if (glucose > max) {
+        root.style.setProperty('--app-accent-400', '#facc15');
+        root.style.setProperty('--app-accent-500', '#eab308');
+        root.style.setProperty('--app-accent-600', '#ca8a04');
+        root.style.setProperty('--app-accent-900', '#713f12');
+        root.style.setProperty('--app-accent-950', '#422006');
+      } else {
+        root.style.setProperty('--app-accent-400', '#34d399');
+        root.style.setProperty('--app-accent-500', '#10b981');
+        root.style.setProperty('--app-accent-600', '#059669');
+        root.style.setProperty('--app-accent-900', '#064e3b');
+        root.style.setProperty('--app-accent-950', '#022c22');
+      }
+    } else {
+      const root = document.documentElement;
+      root.style.removeProperty('--app-accent-400');
+      root.style.removeProperty('--app-accent-500');
+      root.style.removeProperty('--app-accent-600');
+      root.style.removeProperty('--app-accent-900');
+      root.style.removeProperty('--app-accent-950');
+    }
+  }, [logs, userSettings?.dynamicColorsEnabled, userSettings?.targetMin, userSettings?.targetMax]);
+
   const [petData, setPetData] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<{
     status: "idle" | "syncing" | "success" | "error";

@@ -25,10 +25,10 @@ export const healthService = {
       if (!healthObj) { resolve(false); return; }
 
       healthObj.requestAuthorization(
-        [{
+        {
           read: ['steps', 'blood_glucose'],
           write: ['blood_glucose']
-        }],
+        },
         () => {
           console.log('[HealthConnect] Authorization granted');
           resolve(true);

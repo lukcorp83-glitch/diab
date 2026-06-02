@@ -5632,6 +5632,38 @@ export default function Profile({
                     </button>
                   ))}
                 </div>
+
+                {/* Dynamic Colors Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mt-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-500">
+                      <Sparkles size={20} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-black dark:text-white leading-tight">Dynamiczne Kolory</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Zmieniaj kolor motywu na podstawie glikemii</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const newVal = !settings.dynamicColorsEnabled;
+                      setSettings((prev) => ({ ...prev, dynamicColorsEnabled: newVal }));
+                      if (user) {
+                        await setDoc(
+                          doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+                          { dynamicColorsEnabled: newVal },
+                          { merge: true }
+                        );
+                      }
+                    }}
+                    className={cn(
+                      "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
+                      settings.dynamicColorsEnabled && "bg-accent-500 pl-5"
+                    )}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                  </button>
+                </div>
               </div>
 
               <div

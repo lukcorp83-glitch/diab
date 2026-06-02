@@ -110,6 +110,60 @@ export const notificationService = {
     }
   },
 
+  async updateDeviceReminders(settings: any) {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      const perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') return;
+
+      const notificationsToSchedule = [];
+
+      if (settings.sensorChangeDate && settings.sensorDurationDays) {
+        const expiryDate = settings.sensorChangeDate + (settings.sensorDurationDays * 24 * 60 * 60 * 1000);
+        const reminderDate = new Date(expiryDate - (12 * 60 * 60 * 1000));
+        
+        if (reminderDate.getTime() > Date.now()) {
+          notificationsToSchedule.push({
+            id: 998,
+            title: 'Wymiana sensora',
+            body: 'Twój sensor wygasa za 12 godzin!',
+            schedule: { at: reminderDate },
+            sound: null,
+            attachments: null,
+            actionTypeId: '',
+            extra: null
+          });
+        }
+      }
+
+      if (settings.infusionSetChangeDate && settings.infusionSetDurationDays) {
+        const expiryDate = settings.infusionSetChangeDate + (settings.infusionSetDurationDays * 24 * 60 * 60 * 1000);
+        const reminderDate = new Date(expiryDate - (12 * 60 * 60 * 1000));
+        
+        if (reminderDate.getTime() > Date.now()) {
+          notificationsToSchedule.push({
+            id: 999,
+            title: 'Wymiana wkłucia',
+            body: 'Twoje wkłucie wygasa za 12 godzin!',
+            schedule: { at: reminderDate },
+            sound: null,
+            attachments: null,
+            actionTypeId: '',
+            extra: null
+          });
+        }
+      }
+
+      await LocalNotifications.cancel({ notifications: [{ id: 998 }, { id: 999 }] }).catch(() => {});
+      
+      if (notificationsToSchedule.length > 0) {
+        await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+      }
+    } catch (e) {
+      console.error('Failed to schedule device reminders', e);
+    }
+  },
+
   async scheduleLocalNotification(title: string, body: string, delayMinutes: number) {
     const delayMs = delayMinutes * 60 * 1000;
     toast.success(`Przypomnienie ustawione na za ${delayMinutes} minut! ⏰`);

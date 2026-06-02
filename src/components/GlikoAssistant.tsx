@@ -235,7 +235,7 @@ export default function GlikoAssistant({
 
   return (
     <div className={cn(
-      "flex flex-col h-[100dvh] lg:h-[80vh] w-full relative",
+      "flex flex-col h-full w-full relative",
       "bg-transparent"
     )}>
       {/* Remove the dark forced backgrounds */}

@@ -128,6 +128,7 @@ export interface UserSettings {
   bgOption?: "default" | "true-black";
   glassmorphismEnabled?: boolean;
   material3Enabled?: boolean;
+  dynamicColorsEnabled?: boolean;
   ecoMode?: boolean;
   showPumpWidget?: boolean;
   showPrediction?: boolean;

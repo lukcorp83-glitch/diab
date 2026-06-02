@@ -49,6 +49,8 @@ import { APP_VERSION } from "../constants";
 import GlucoseModal from "./GlucoseModal";
 import SwipeableItem from "./SwipeableItem";
 import MealEditModal from "./MealEditModal";
+import TimeWidget from './TimeWidget';
+import HealthWidget from './HealthWidget';
 import GlikoWidget from "./GlikoWidget";
 import GlikoSenseTips from "./GlikoSenseTips";
 import GlikoSenseNeural from "./GlikoSenseNeural";
@@ -129,6 +131,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "weather", name: "Wpływ pogody na insulinę", visible: true, size: "2x1", canResize: true, canChangeShape: true },
   { id: "sensor_reminder", name: "Wymiana sensora (Urządzenie)", visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
   { id: "infusion_reminder", name: "Wymiana wkłucia (Urządzenie)", visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
+  { id: "health_connect", name: "Aktywność (Health Connect)", visible: false, size: "1x1", canResize: false, canChangeShape: false },
   { id: "assistant", name: "Skrót do Asystenta AI", visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "tips", name: "Porady i ciekawostki (DidYouKnow)", visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "glikosense_suggestions", name: "Sugestie i analizy GlikoSense", visible: true, size: "2x1", canResize: true, canChangeShape: false },
@@ -1429,6 +1432,9 @@ export default function Dashboard({
 
       case "hydration":
         return <HydrationWidget size={size} />;
+      
+      case "health_connect":
+        return <HealthWidget />;
 
       case "site_rotation":
         return <SiteRotationWidget logs={logs} settings={settings} size={size} setTab={setTab} onAction={onAction} />;
@@ -1915,7 +1921,7 @@ export default function Dashboard({
             <div className="space-y-2">
               {glucoseLogs.slice(0, isHistMeasCompactHeight ? 2 : 3).map((log, idx) => (
                 <div key={`${log.id}-${idx}`}>
-                  <SwipeableItem id={log.id} onDelete={() => {}}>
+                  <SwipeableItem id={log.id} onDelete={async () => { if(settings?.followerMode) return; try { await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id)); } catch(e) { console.error(e); } }}>
                     <div className="glass-card !p-4 flex items-center gap-4 w-full">
                       <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
                         <Droplet size={18} strokeWidth={2.5} />
@@ -2017,7 +2023,7 @@ export default function Dashboard({
             <div className="space-y-2">
               {treatmentLogs.slice(0, isHistTreatCompactHeight ? 2 : 3).map((log, idx) => (
                 <div key={`${log.id}-${idx}`}>
-                  <SwipeableItem id={log.id} onDelete={() => {}}>
+                  <SwipeableItem id={log.id} onDelete={async () => { if(settings?.followerMode) return; try { await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id)); } catch(e) { console.error(e); } }}>
                     <div onClick={() => { if (!isEditingLayout && !settings.followerMode) setEditingLog(log); }} className="glass-card !p-4 flex items-center gap-4 cursor-pointer w-full">
                       <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0", log.type === "meal" ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500")}>
                         {log.type === "meal" ? <Utensils size={18} /> : <Syringe size={18} />}
@@ -2654,7 +2660,7 @@ export default function Dashboard({
             <div className="space-y-2">
                {logs.filter(log => log.type === 'glucose').slice(0, 3).map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
-                    <SwipeableItem id={log.id} onDelete={() => {}}>
+                    <SwipeableItem id={log.id} onDelete={async () => { if(settings?.followerMode) return; try { await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id)); } catch(e) { console.error(e); } }}>
                       <div className="glass-card !p-4 flex items-center gap-4">
                         <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
                           <Droplet size={18} strokeWidth={2.5} />
@@ -2687,7 +2693,7 @@ export default function Dashboard({
             <div className="space-y-2">
                {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').slice(0, 3).map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
-                    <SwipeableItem id={log.id} onDelete={() => {}}>
+                    <SwipeableItem id={log.id} onDelete={async () => { if(settings?.followerMode) return; try { await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id)); } catch(e) { console.error(e); } }}>
                       <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">
                         <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", log.type === "meal" ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500")}>
                           {log.type === "meal" ? <Utensils size={18} /> : <Syringe size={18} />}

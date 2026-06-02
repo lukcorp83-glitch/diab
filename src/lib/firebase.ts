@@ -12,6 +12,7 @@ export const googleProvider = new GoogleAuthProvider();
 // Using initializeFirestore with long polling for better reliability in some environments
 export const db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
+    ignoreUndefinedProperties: true,
     host: 'firestore.googleapis.com',
     ssl: true,
 });

@@ -1073,10 +1073,7 @@ export default function MealPlate({
       setMergeCandidates(null);
       Haptics.success();
       toast.success("Połączono z wpisem z pompy!");
-    } catch (e) {
-      console.error(e);
-      Haptics.error();
-    }
+    } catch (e: any) { console.error(e); toast.error('Błąd scalania: ' + e.message); Haptics.error(); }
   };
 
   const handleLogMeal = async () => {
@@ -1105,10 +1102,7 @@ export default function MealPlate({
       );
       setPlate([]);
       Haptics.success();
-    } catch (e) {
-      console.error(e);
-      Haptics.error();
-    }
+    } catch (e: any) { console.error(e); toast.error('Błąd scalania: ' + e.message); Haptics.error(); }
   };
 
   const startVoiceSearch = () => {
