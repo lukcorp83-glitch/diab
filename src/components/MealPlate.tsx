@@ -143,6 +143,8 @@ export default function MealPlate({
   openHistory,
   settings,
   logs = [],
+  initialAction,
+  onClearInitialAction,
 }: {
   user: any;
   setTab: (t: string) => void;
@@ -152,6 +154,8 @@ export default function MealPlate({
   openHistory?: () => void;
   settings?: any;
   logs?: any[];
+  initialAction?: string | null;
+  onClearInitialAction?: () => void;
 }) {
   const plate = sharedPlate;
   const setPlate = setSharedPlate || (() => {});
@@ -1311,7 +1315,7 @@ export default function MealPlate({
                                 glV <= 10
                                   ? "text-emerald-600 dark:text-emerald-400"
                                   : glV < 20
-                                    ? "text-amber-600 dark:text-amber-400"
+                                    ? "text-amber-600 dark:bg-amber-400"
                                     : "text-rose-600 dark:text-rose-400",
                               )}
                             >
@@ -1677,80 +1681,10 @@ export default function MealPlate({
                   )}
                 </button>
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     Haptics.light();
                     if (Capacitor.isNativePlatform()) {
-                      try {
-                        const photo = await CapCamera.getPhoto({
-                          quality: 80,
-                          allowEditing: false,
-                          resultType: CameraResultType.DataUrl,
-                          source: CameraSource.Camera,
-                          width: 1000
-                        });
-                        if (photo.dataUrl) {
-                          setIsAnalyzing(true);
-                          setSearchError("");
-                          try {
-                            const result = await geminiService.analyzeMeal(
-                              photo.dataUrl,
-                              settings
-                            );
-                            const estimatedWeight =
-                              result.weight && result.weight > 0 ? result.weight : 100;
-
-                            const p: Product = {
-                              id: `ai_${Date.now()}`,
-                              name: result.mealName || "Posiłek AI",
-                              carbs: Number(
-                                (((result.carbs || 0) / estimatedWeight) * 100).toFixed(
-                                  1,
-                                )
-                              ),
-                              protein: Number(
-                                (
-                                  ((result.protein || 0) / estimatedWeight) *
-                                  100
-                                ).toFixed(1)
-                              ),
-                              fat: Number(
-                                (((result.fat || 0) / estimatedWeight) * 100).toFixed(
-                                  1,
-                                )
-                              ),
-                              gi: result.ig || result.gi || 50,
-                              category: "AI Wizja",
-                            };
-                            const weight = estimatedWeight;
-                            setPlate((prev) => [
-                              ...prev,
-                              {
-                                ...p,
-                                weight,
-                                carbs: p.carbs,
-                                protein: p.protein,
-                                fat: p.fat,
-                              },
-                            ]);
-                            setTimeout(() => {
-                              document
-                                .querySelector("main")
-                                ?.scrollTo({ top: 0, behavior: "smooth" });
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }, 50);
-                            toast.success("Składniki dodane do talerza", { icon: "📸" });
-                          } catch (err) {
-                            console.error("Camera vision analysis:", err);
-                            setSearchError(
-                              "Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie."
-                            );
-                          } finally {
-                            setIsAnalyzing(false);
-                          }
-                        }
-                      } catch (e) {
-                        console.error("Camera error or cancelled:", e);
-                      }
+                      startCameraAnalysis();
                     } else {
                       const elem = document.getElementById("meal-photo-input");
                       if (elem) elem.click();

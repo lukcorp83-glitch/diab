@@ -6,6 +6,7 @@ import {
   getMealAbsorptionTime,
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -1481,6 +1482,34 @@ export default function App() {
       setActiveTab("meal");
       window.history.replaceState({}, "", "/");
     }
+
+    // Handle Capacitor Deep Links (Android Widgets)
+    const listener = CapacitorApp.addListener('appUrlOpen', (data) => {
+      try {
+        const url = new URL(data.url);
+        if (url.protocol === 'glikocontrol:') {
+          const actionParam = url.searchParams.get('action');
+          if (actionParam === 'add_glucose') {
+            setInitialAction("add_glucose");
+            setActiveTab("dashboard");
+          } else if (actionParam === 'add_bolus') {
+            setActiveTab("bolus");
+          } else if (actionParam === 'open_scanner') {
+            setInitialAction("open_scanner");
+            setActiveTab("meal");
+          } else if (actionParam === 'open_camera_vision') {
+            setInitialAction("open_camera_vision");
+            setActiveTab("meal");
+          }
+        }
+      } catch (err) {
+        console.error("Error parsing deep link", err);
+      }
+    });
+
+    return () => {
+      listener.then(l => l.remove());
+    };
   }, []);
 
   useEffect(() => {
