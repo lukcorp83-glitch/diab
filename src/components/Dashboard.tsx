@@ -1,6 +1,7 @@
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { App as CapacitorApp } from '@capacitor/app';
 import { LogEntry, UserSettings } from "../types";
 import GlucoseChart from "./GlucoseChart";
 import VirtualPet from "./VirtualPet";
@@ -164,6 +165,7 @@ interface DashboardProps {
   petData?: any;
   syncStatus?: { status: 'idle' | 'syncing' | 'success' | 'error', lastSync?: number };
   settings: UserSettings;
+  isShortcutMode?: boolean;
 }
 
 export default function Dashboard({
@@ -179,9 +181,11 @@ export default function Dashboard({
   nsSecret,
   petData,
   syncStatus,
-  settings
+  settings,
+  isShortcutMode
 }: DashboardProps) {
   const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
+  const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(!!initialAction);
 
   const handleEndTraining = async () => {
     if (!user) return;
@@ -191,6 +195,25 @@ export default function Dashboard({
       activeTraining: null
     }, { merge: true });
   };
+
+  if (isShortcutMode) {
+    return (
+      <AnimatePresence>
+        {isGlucoseModalOpen && (
+          <GlucoseModal
+            isOpen={isGlucoseModalOpen}
+            onClose={() => {
+              setIsGlucoseModalOpen(false);
+              onClearInitialAction?.();
+              CapacitorApp.exitApp();
+            }}
+            logs={logs}
+            user={user}
+          />
+        )}
+      </AnimatePresence>
+    );
+  }
 
   const [range, setRange] = useState(3);
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
@@ -403,7 +426,7 @@ export default function Dashboard({
     localStorage.setItem('glikocontrol_dashboard_widgets_v6', JSON.stringify(widgets));
   }, [widgets]);
 
-  const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(false);
+
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [listFilter, setListFilter] = useState<'all' | 'glucose' | 'treatment'>('treatment');
   const [shortcuts, setShortcuts] = useState<any[]>([]);

@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.glikocontrol.app',
   appName: 'GlikoControl',
   webDir: 'dist',
+  backgroundColor: '#00000000',
   plugins: {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"]

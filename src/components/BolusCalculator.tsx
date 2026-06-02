@@ -26,6 +26,7 @@ import {
   getDoc,
   writeBatch,
 } from "firebase/firestore";
+import { App as CapacitorApp } from '@capacitor/app';
 import { geminiService } from "../services/gemini";
 import { toast } from "react-hot-toast";
 import { notificationService } from "../services/notificationService";
@@ -49,12 +50,14 @@ export default function BolusCalculator({
   setTab,
   setSharedPlate,
   pumpStatus,
+  isShortcutMode,
 }: {
   logs: LogEntry[];
   user: any;
   setTab?: (t: string) => void;
   setSharedPlate?: React.Dispatch<React.SetStateAction<any[]>>;
   pumpStatus?: any;
+  isShortcutMode?: boolean;
 }) {
   const [bg, setBg] = useState<string>("");
   const [carbs, setCarbs] = useState<string>("");
@@ -491,7 +494,11 @@ export default function BolusCalculator({
       // OPTIMISTIC UPDATE: Close first, save in background
       Haptics.success();
       if (tId) toast.success("Zapisano (Synchronizacja w tle...)", { id: tId });
-      if (setTab) setTab("dashboard");
+      if (isShortcutMode) {
+        CapacitorApp.exitApp();
+      } else if (setTab) {
+        setTab("dashboard");
+      }
 
       // Background save - if it fails (e.g. Guest), we don't block the UI
       batch.commit().catch((err) => {
@@ -665,7 +672,10 @@ export default function BolusCalculator({
               className="bg-slate-50 dark:bg-slate-800 text-slate-500 text-[10px] font-black p-2 rounded-xl outline-none border border-slate-100 dark:border-slate-700"
             />
             <button
-              onClick={() => setTab?.("dashboard")}
+              onClick={() => {
+                if (isShortcutMode) CapacitorApp.exitApp();
+                else setTab?.("dashboard");
+              }}
               className="text-slate-300 hover:text-slate-500 p-2 text-xl font-bold transition-colors"
             >
               <X size={24} />

@@ -110,21 +110,21 @@
 }
 
 body {
-  background-color: var(--app-bg-light, #f8fafc);
-  -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: contain;
-  font-family: var(--font-plus);
-  transition: background-color 0.3s, color 0.3s;
-  
-  /* PWA Safe Area Overrides */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+    background-color: transparent;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
+    font-family: var(--font-plus);
+    transition: background-color 0.3s, color 0.3s;
+    
+    /* PWA Safe Area Overrides */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
 }
 
 .dark body {
-  background-color: var(--app-bg-dark, #020617);
+  background-color: transparent;
 }
 
 .glass {

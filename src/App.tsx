@@ -232,6 +232,9 @@ const DEFAULT_SETTINGS: UserSettings = {
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [pumpStatus, setPumpStatus] = useState<any>(null);
+  const [isShortcutMode, setIsShortcutMode] = useState(() => {
+    return window.location.search.includes("action=");
+  });
   const [activeTab, setActiveTab] = useState("dashboard");
   const [cachedLogs, setCachedLogs] = useState<LogEntry[]>([]);
   const [cachedLogsLoaded, setCachedLogsLoaded] = useState(false);
@@ -1484,12 +1487,35 @@ export default function App() {
       window.history.replaceState({}, "", "/");
     }
 
+    const handleNativeShortcut = (e: any) => {
+      const action = e.detail;
+      if (action === 'add_glucose' || action === 'add_bolus') {
+        setIsShortcutMode(true);
+      }
+      if (action === 'add_glucose') {
+        setInitialAction("add_glucose");
+        setActiveTab("dashboard");
+      } else if (action === 'add_bolus') {
+        setActiveTab("bolus");
+      } else if (action === 'open_scanner') {
+        setInitialAction("open_scanner");
+        setActiveTab("meal");
+      } else if (action === 'open_camera_vision') {
+        setInitialAction("open_camera_vision");
+        setActiveTab("meal");
+      }
+    };
+    window.addEventListener("native_shortcut_action", handleNativeShortcut);
+
     // Handle Capacitor Deep Links (Android Widgets)
     const listener = CapacitorApp.addListener('appUrlOpen', (data) => {
       try {
         const url = new URL(data.url);
         if (url.protocol === 'glikocontrol:') {
           const actionParam = url.searchParams.get('action');
+          if (actionParam === 'add_glucose' || actionParam === 'add_bolus') {
+            setIsShortcutMode(true);
+          }
           if (actionParam === 'add_glucose') {
             setInitialAction("add_glucose");
             setActiveTab("dashboard");
@@ -1510,6 +1536,7 @@ export default function App() {
 
     return () => {
       listener.then(l => l.remove());
+      window.removeEventListener("native_shortcut_action", handleNativeShortcut);
     };
   }, []);
 
@@ -2304,6 +2331,7 @@ export default function App() {
                 petData={petData}
                 syncStatus={syncStatus}
                 settings={userSettings || DEFAULT_SETTINGS}
+                isShortcutMode={isShortcutMode}
               />
             )}
             {activeTab === "chart" && (
@@ -2339,6 +2367,7 @@ export default function App() {
                 petData={petData}
                 syncStatus={syncStatus}
                 settings={userSettings || DEFAULT_SETTINGS}
+                isShortcutMode={isShortcutMode}
               />
             </div>
           </div>
@@ -2493,6 +2522,7 @@ export default function App() {
               setTab={changeTab}
               setSharedPlate={setSharedPlate}
               pumpStatus={pumpStatus}
+              isShortcutMode={isShortcutMode}
             />
           )}
           {activeTab === "history" && (
@@ -2554,19 +2584,23 @@ export default function App() {
     <div
       className={cn(
         "min-h-[100dvh] flex flex-col transition-colors duration-500 overflow-x-hidden relative z-10",
-        userSettings?.glassmorphismEnabled
+        isShortcutMode 
           ? "bg-transparent dark:bg-transparent"
-          : theme === "dark"
-            ? "dark bg-[#020617]"
-            : "bg-slate-50",
+          : (userSettings?.glassmorphismEnabled
+              ? "bg-transparent dark:bg-transparent"
+              : theme === "dark"
+                ? "dark bg-[#020617]"
+                : "bg-slate-50"),
       )}
     >
       <NotificationListenerSync user={user} />
-      <MeshBackground
-        lastGlucose={lastGlucoseValue}
-        isGlassmorphic={userSettings?.glassmorphismEnabled || false}
-      />
-      {isOffline && (
+      {!isShortcutMode && (
+        <MeshBackground
+          lastGlucose={lastGlucoseValue}
+          isGlassmorphic={userSettings?.glassmorphismEnabled || false}
+        />
+      )}
+      {!isShortcutMode && isOffline && (
         <motion.div
           initial={{ y: -50 }}
           animate={{ y: 0 }}
@@ -2589,45 +2623,46 @@ export default function App() {
         </motion.div>
       )}
       {/* Header */}
-      <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
-        <div className="flex justify-between items-center max-w-md md:max-w-5xl lg:max-w-7xl mx-auto">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => {
-                Haptics.medium();
-                setIsSidebarOpen(true);
-              }}
-              className="p-2.5 -ml-2 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent dark:border-slate-800 shadow-sm active:scale-90"
-            >
-              <Menu size={20} strokeWidth={2.5} />
-            </button>
-            <div
-              className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform"
-              onClick={() => {
-                Haptics.selection();
-                setShowStatusPopup(true);
-              }}
-            >
-              <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
-              <div>
-                <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">
-                  GlikoControl
-                </h1>
-                <p
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    Haptics.medium();
-                    setShowChangelog(true);
-                  }}
-                  title="Kliknij, aby zobaczyć co nowego"
-                  className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
-                  v{APP_VERSION}
-                </p>
+      {!isShortcutMode && (
+        <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
+          <div className="flex justify-between items-center max-w-md md:max-w-5xl lg:max-w-7xl mx-auto">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  Haptics.medium();
+                  setIsSidebarOpen(true);
+                }}
+                className="p-2.5 -ml-2 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent dark:border-slate-800 shadow-sm active:scale-90"
+              >
+                <Menu size={20} strokeWidth={2.5} />
+              </button>
+              <div
+                className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform"
+                onClick={() => {
+                  Haptics.selection();
+                  setShowStatusPopup(true);
+                }}
+              >
+                <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
+                <div>
+                  <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">
+                    GlikoControl
+                  </h1>
+                  <p
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      Haptics.medium();
+                      setShowChangelog(true);
+                    }}
+                    title="Kliknij, aby zobaczyć co nowego"
+                    className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
+                    v{APP_VERSION}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
           <div className="flex items-center gap-2">
             <NotebookManager user={user} />
             <NotificationCenter userSettings={userSettings} theme={theme} />
@@ -2652,6 +2687,7 @@ export default function App() {
           </div>
         </div>
       </header>
+      )}
       <ApkDownloadBanner />
 
       <Sidebar
@@ -2699,10 +2735,11 @@ export default function App() {
       </main>
 
       {/* Navigation */}
-      <nav className={cn(
-        "fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl transition-all duration-300",
-        isKeyboardOpen ? "opacity-0 pointer-events-none translate-y-24" : "opacity-100 translate-y-0"
-      )}>
+      {!isShortcutMode && (
+        <nav className={cn(
+          "fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl transition-all duration-300",
+          isKeyboardOpen ? "opacity-0 pointer-events-none translate-y-24" : "opacity-100 translate-y-0"
+        )}>
         <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
           <NavButton
             active={activeTab === "chart"}
@@ -2818,7 +2855,9 @@ export default function App() {
           />
         </div>
       </nav>
+      )}
 
+      {/* Modals & Popups */}
       <Toaster
         position="top-center"
         toastOptions={{
