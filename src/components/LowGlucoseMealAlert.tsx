@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry } from '../types';
-import { AlertTriangle, Apple, Plus } from 'lucide-react';
+import { AlertTriangle, Apple, Plus, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 
@@ -14,7 +14,10 @@ interface LowGlucoseMealAlertProps {
 }
 
 export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, shortcuts, onQuickAdd }: LowGlucoseMealAlertProps) {
+  const [dismissed, setDismissed] = React.useState(false);
+
   const shouldAlert = useMemo(() => {
+    if (dismissed) return false;
     if (!lastGlucose || lastGlucose > 70) return false;
     
     const now = Date.now();
@@ -49,8 +52,14 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
         initial={{ opacity: 0, scale: 0.95, y: -10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, height: 0 }}
-        className="mb-6 relative overflow-hidden bg-gradient-to-r from-red-600 to-rose-600 rounded-[2rem] p-5 shadow-xl shadow-red-500/20"
+        className="mb-6 relative overflow-hidden bg-gradient-to-r from-red-600 to-rose-600 rounded-[2rem] p-5 shadow-xl shadow-red-500/20 pr-10"
       >
+        <button 
+          onClick={() => setDismissed(true)}
+          className="absolute top-3 right-3 z-20 text-white/50 hover:text-white transition-colors p-1"
+        >
+          <X size={16} />
+        </button>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 w-full md:w-auto">
@@ -93,7 +102,7 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
                 >
                   <span className="text-2xl">{s.icon || '🍽️'}</span>
                   <span className="text-[10px] font-bold text-white text-center line-clamp-1 w-full">{s.name}</span>
-                  <span className="text-[9px] font-black text-white/80 bg-white/10 px-2 py-0.5 rounded-full">{s.carbs}g W</span>
+                  <span className="text-[9px] font-black text-white/80 bg-white/10 px-2 py-0.5 rounded-full">{Number(s.carbs).toFixed(1)}g W</span>
                 </button>
               ))}
             </div>

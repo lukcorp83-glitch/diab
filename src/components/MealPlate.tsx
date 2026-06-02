@@ -51,6 +51,8 @@ import {
   orderBy,
   serverTimestamp,
   updateDoc,
+  setDoc,
+  getDoc,
 } from "firebase/firestore";
 import { LIB_BASE, CATEGORIES } from "../constants";
 import { geminiService } from "../services/gemini";
@@ -1583,7 +1585,7 @@ export default function MealPlate({
                           {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {c.description || (c.type === 'bolus' ? 'Bolus' : 'Posiłek')}
                         </div>
                         <div className="text-[10px] font-bold text-slate-400 mt-1">
-                          {c.value || c.linkedMeal?.carbs || 0}g W | {c.value ? `${c.value}J` : ''}
+                          {Number(c.value || c.linkedMeal?.carbs || 0).toFixed(1)}g W | {c.value ? `${c.value}J` : ''}
                         </div>
                       </div>
                       <Check size={20} className="text-emerald-500" />

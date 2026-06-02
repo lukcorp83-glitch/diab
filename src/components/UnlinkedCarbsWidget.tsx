@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { LogEntry } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Merge, AlertCircle, Plus } from 'lucide-react';
+import { Merge, AlertCircle, Plus, X } from 'lucide-react';
 
 interface Props {
   logs: LogEntry[];
@@ -9,6 +9,8 @@ interface Props {
 }
 
 export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
+  const [dismissedId, setDismissedId] = React.useState<string | null>(null);
+
   const latestUnlinked = useMemo(() => {
     const timeLimit = 3 * 60 * 60 * 1000; // 3 hours
     const now = Date.now();
@@ -24,7 +26,7 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
     return unlinkedLogs.length > 0 ? unlinkedLogs[0] : null;
   }, [logs]);
 
-  if (!latestUnlinked) return null;
+  if (!latestUnlinked || latestUnlinked.id === dismissedId) return null;
 
   const rawCarbs = (latestUnlinked as any).carbs || latestUnlinked.linkedMeal?.carbs || (latestUnlinked.type === "meal" ? latestUnlinked.value : 0);
   const carbs = Math.round(rawCarbs * 10) / 10;
@@ -39,7 +41,13 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
         exit={{ opacity: 0, y: -10, scale: 0.95 }}
         className="mx-4 mt-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] p-5 shadow-lg relative overflow-hidden"
       >
-        <div className="absolute -top-4 -right-4 p-4 opacity-10 rotate-12">
+        <button 
+          onClick={() => setDismissedId(latestUnlinked.id)}
+          className="absolute top-3 right-3 z-20 text-white/50 hover:text-white transition-colors p-1"
+        >
+          <X size={16} />
+        </button>
+        <div className="absolute -top-4 -right-4 p-4 opacity-10 rotate-12 pointer-events-none">
           <Merge size={120} />
         </div>
         

@@ -890,16 +890,16 @@ export default function Dashboard({
             }}
             className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 active:scale-95 cursor-pointer pointer-events-auto shrink-0"
           >
-            Podaj {roundedSuggestedDose} j.
+            Podaj {roundedSuggestedDose.toFixed(1)} j.
           </button>
         </div>
 
         <div className="p-4 bg-white/70 dark:bg-slate-900/60 rounded-3xl text-[11px] text-indigo-950 dark:text-indigo-200 font-bold border border-indigo-100 dark:border-indigo-900/20 leading-normal space-y-2">
           <div>
-            ⚠️ Glikemia w wysokim zakresie ({Math.round(bgNum)} mg/dL)! Sugerujemy podanie <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm">{roundedSuggestedDose} j.</span> insuliny.
+            ⚠️ Glikemia w wysokim zakresie ({Math.round(bgNum)} mg/dL)! Sugerujemy podanie <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm">{roundedSuggestedDose.toFixed(1)} j.</span> insuliny.
           </div>
           <div className="text-[9px] text-slate-500 dark:text-indigo-400/65 font-mono leading-relaxed border-t border-indigo-100 dark:border-indigo-950/50 pt-2 flex flex-wrap gap-x-3 gap-y-1">
-            <span>Sugerowany bolus: {roundedSuggestedDose}j</span>
+            <span>Sugerowany bolus: {roundedSuggestedDose.toFixed(1)}j</span>
             <span>Cel: {targetBg} mg/dL</span>
             <span>ISF: {currentIsfValue} mg/dL</span>
             <span>IOB: {iob.toFixed(1)}j</span>
@@ -985,7 +985,7 @@ export default function Dashboard({
               </div>
 
               <div className="my-2 text-center">
-                <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{roundedSuggestedDose} <span className="text-xs font-bold text-slate-400">j.</span></p>
+                <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{roundedSuggestedDose.toFixed(1)} <span className="text-xs font-bold text-slate-400">j.</span></p>
                 <p className="text-[8px] text-slate-400 dark:text-slate-500 font-black">Glikemia: {Math.round(bgNum)} mg/dL</p>
               </div>
 
@@ -1001,7 +1001,7 @@ export default function Dashboard({
                 }}
                 className="w-full py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
               >
-                Dodaj {roundedSuggestedDose}j
+                Dodaj {roundedSuggestedDose.toFixed(1)}j
               </button>
             </div>
           );
@@ -1412,7 +1412,7 @@ export default function Dashboard({
                   <span className="text-2xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
                   <div className="flex flex-col items-start text-left">
                     <span className="leading-tight text-slate-800 dark:text-slate-200">{s.name}</span>
-                    <span className="text-[9px] opacity-50 lowercase font-bold">{s.carbs}g węgli</span>
+                    <span className="text-[9px] opacity-50 lowercase font-bold">{Number(s.carbs).toFixed(1)}g węgli</span>
                   </div>
                 </button>
               ))}
@@ -2606,7 +2606,7 @@ export default function Dashboard({
                   <span className="text-2xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
                   <div className="flex flex-col items-start">
                     <span className="leading-tight text-slate-800 dark:text-slate-200">{s.name}</span>
-                    <span className="text-[9px] opacity-50 lowercase font-bold">{s.carbs}g węgli</span>
+                    <span className="text-[9px] opacity-50 lowercase font-bold">{Number(s.carbs).toFixed(1)}g węgli</span>
                   </div>
                 </button>
               ))}

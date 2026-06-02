@@ -5641,7 +5641,7 @@ export default function Profile({
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-black dark:text-white leading-tight">Dynamiczne Kolory</p>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Zmieniaj kolor motywu na podstawie glikemii</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Dopasowuje kolory aplikacji do Twojej tapety</p>
                     </div>
                   </div>
                   <button

@@ -286,6 +286,7 @@ export default function MealEditModal({
       } else {
         if (removeMeal) {
           updates.value = 0;
+          updates.carbs = 0;
           updates.polyols = null;
           updates.protein = null;
           updates.fat = null;

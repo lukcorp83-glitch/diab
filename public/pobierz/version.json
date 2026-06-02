@@ -1,6 +1,6 @@
 {
-  "version": "1.1",
-  "url": "https://github.com/lukcorp83-glitch/diab/releases/tag/v1.1.0",
-  "releaseDate": "2026-05-29",
-  "whatsNew": "Wersja 1.1 z działającymi widżetami, informacją w akcji powiadomień, kafelkiem w skrótach oraz synchronizacją z Health Connect."
+  "version": "1.2",
+  "url": "https://github.com/lukcorp83-glitch/diab/releases/tag/v1.2.0",
+  "releaseDate": "2026-06-02",
+  "whatsNew": "Wersja 1.2 zawierająca poprawione widżety, nasłuchiwanie powiadomień, naprawę błędów i wiele innych ulepszeń."
 }

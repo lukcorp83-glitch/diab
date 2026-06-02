@@ -8,6 +8,7 @@ import {
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
+import UpdateModal from "./components/UpdateModal";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -2880,6 +2881,7 @@ export default function App() {
         lastGlucose={lastGlucoseValue}
         iob={getEffectiveIOB(logs, pumpStatus, userSettings?.dia || 4)}
       />
+      {!isOffline && <UpdateModal />}
     </div>
     </MotionConfig>
   );
