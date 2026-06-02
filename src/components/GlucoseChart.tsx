@@ -796,20 +796,41 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
     
     const pL = 20, pR = 10;
     const cw = rect.width - pL - pR;
     const tClick = start + ((clickX - pL) / cw) * (end - start);
     
+    // Sprawdzamy czy kliknięto w dolną sekcję wykresu (gdzie są ikony bolusa i posiłku)
+    const isBottomTap = clickY > rect.height - 60;
+    
     let closestTimeDiff = Infinity;
     let closestData: any = null;
     
-    for (const d of chartData) {
-       const diff = Math.abs(d.timestamp - tClick);
-       if (diff < closestTimeDiff && diff < 30 * 60000) { 
-          closestTimeDiff = diff;
-          closestData = d;
-       }
+    // Najpierw szukamy zdarzeń (bolus/posiłek), jeśli kliknięto na dole, 
+    // dając znacznie szerszy promień poszukiwań (do 90 minut, by łatwo trafić palcem)
+    if (isBottomTap) {
+      for (const d of chartData) {
+         if (!d.bolusVal && !d.mealVal) continue;
+         const diff = Math.abs(d.timestamp - tClick);
+         if (diff < closestTimeDiff && diff < 90 * 60000) { 
+            closestTimeDiff = diff;
+            closestData = d;
+         }
+      }
+    }
+    
+    // Jeśli nie znaleziono zdarzenia lub nie kliknięto na dole, szukamy czegokolwiek (np. glukozy)
+    if (!closestData) {
+      closestTimeDiff = Infinity;
+      for (const d of chartData) {
+         const diff = Math.abs(d.timestamp - tClick);
+         if (diff < closestTimeDiff && diff < 45 * 60000) { 
+            closestTimeDiff = diff;
+            closestData = d;
+         }
+      }
     }
     
     if (closestData) {
@@ -881,10 +902,6 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         <canvas 
           className="w-full h-full outline-none select-none touch-none" 
           onClick={handleCanvasClick}
-          onTouchStart={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          onPointerMove={(e) => e.stopPropagation()}
           style={{ cursor: "pointer", touchAction: "none" }} 
         />
         
