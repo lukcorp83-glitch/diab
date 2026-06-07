@@ -5002,12 +5002,12 @@ export default function Profile({
             </p>
             
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4 border border-blue-100 dark:border-blue-800/30 border-l-4 border-l-blue-500">
-              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">Co nowego w wersji 1.1 Beta?</h4>
+              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">Co nowego w wersji 1.4?</h4>
               <ul className="text-[10px] text-blue-700 dark:text-blue-300 list-disc pl-4 space-y-0.5">
-                 <li>Działające widżety systemowe</li>
-                 <li>Informacje i akcje na belce powiadomień</li>
-                 <li>Kafelek systemowy w Szybkich Skrótach</li>
-                 <li>Synchronizacja danych z Health Connect</li>
+                 <li>Naprawiono lawinę powiadomień/alarmów po restarcie telefonu</li>
+                 <li>Widżety od teraz w pełni działają w tle bazując bezpośrednio na notyfikacjach (xDrip/Libre)</li>
+                 <li>Ulepszony, zaokrąglony wygląd widżetu "Kwiatek"</li>
+                 <li>Wsparcie dla ACTION_REQUEST_ACTIVE z deduplikacją powiadomień systemowych</li>
               </ul>
             </div>
 
