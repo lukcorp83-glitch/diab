@@ -53,11 +53,59 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
           }
         });
         
-        // --- NATYCHMIASTOWE POBRANIE ---
-        // Android domyślnie wysyła tylko NOWE powiadomienia do Listenera.
-        // Ta metoda mówi naszemu Serwisowi, żeby natychmiastowo sparsował WSZYSTKIE aktualnie wiszące na pasku.
+        // --- NATYCHMIASTOWE POBRANIE BIEŻĄCYCH I HISTORII ---
         try {
-           setTimeout(() => {
+           setTimeout(async () => {
+              try {
+                  // Pobierz historię zczytaną w tle
+                  const histRet = await NotificationBridge.getGlucoseHistory();
+                  if (histRet && histRet.history) {
+                      const parts = histRet.history.split('|');
+                      const localLogs = await loadLocalLogs();
+                      
+                      for (const part of parts) {
+                          if (!part.trim()) continue;
+                          const [valStr, timeStr, pkg] = part.split(':');
+                          if (!valStr || !timeStr) continue;
+                          
+                          const val = parseInt(valStr, 10);
+                          const timestamp = parseInt(timeStr, 10);
+                          if (isNaN(val) || isNaN(timestamp)) continue;
+                          
+                          // Deduplikacja
+                          let skip = false;
+                          for (const doc of localLogs) {
+                              if (doc.type === 'glucose' && doc.timestamp >= timestamp - 3 * 60 * 1000 && doc.timestamp <= timestamp + 3 * 60 * 1000) {
+                                  if (doc.value === val) {
+                                      skip = true;
+                                      break;
+                                  }
+                              }
+                          }
+                          if (!skip) {
+                              const logData = {
+                                  id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+                                  value: val,
+                                  unit: 'mg/dL',
+                                  date: new Date(timestamp).toISOString(),
+                                  timestamp: timestamp,
+                                  type: 'glucose',
+                                  tags: ['Z powiadomień'],
+                                  notes: `Zczytane w tle z aplikacji (${pkg || 'unknown'})`,
+                                  source: 'NotificationListener',
+                                  createdAt: new Date(timestamp).toISOString()
+                              };
+                              window.dispatchEvent(new CustomEvent('localLogAdd', { detail: logData }));
+                              // Dodajemy do localLogs w pamięci by deduplikować kolejne wpisy z historii
+                              localLogs.push(logData);
+                          }
+                      }
+                  }
+              } catch(e) {
+                  console.error("Failed to load glucose history", e);
+              }
+              
+              // Poproś o aktualne powiadomienie
               NotificationBridge.requestActiveNotifications().catch(e => console.warn(e));
            }, 1000); // 1 sekunda opóźnienia, by listener JS zdążył się dobrze zamontować
         } catch(e) {}

@@ -1,6 +1,6 @@
 {
-  "version": "1.4",
-  "url": "https://github.com/lukcorp83-glitch/diab/releases/tag/v1.4.0",
+  "version": "1.4.3",
+  "url": "https://glikocontrol.pl/pobierz/GlikoControl_v1.4.3.apk",
   "releaseDate": "2026-06-07",
-  "whatsNew": "Wersja 1.4 naprawia problem z masowym wysyłaniem powiadomień po restarcie telefonu, dodaje samodzielne działanie widżetów w tle bez Nightscout (zczytywanie z paska) oraz poprawia wygląd widżetu Kwiatek."
+  "whatsNew": "- Pełne wsparcie dla dziesiętnych jednostek mmol/L (np. 5.5).\n- Naprawiono błąd gubienia cukrów z Medtronika w tle: cukry przeczytane z powiadomień, gdy aplikacja jest wyłączona, od teraz poprawnie wgrywają się na wykres po uruchomieniu aplikacji.\n- Poprawiono wykrywanie cukrów z aplikacji xDrip (skaner nie pomyli ich z czasem, ani dziwnymi danymi z powiadomienia)."
 }
