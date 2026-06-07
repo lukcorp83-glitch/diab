@@ -63,6 +63,12 @@ export default function ApiIntegration({ user }: { user: any }) {
             return [newLog, ...prev].slice(0, 5); // Keep last 5
           });
         });
+        
+        try {
+           setTimeout(() => {
+              NotificationBridge.requestActiveNotifications().catch(e => console.warn(e));
+           }, 1000);
+        } catch(e) {}
       } catch (e) {}
     };
     setupListener();

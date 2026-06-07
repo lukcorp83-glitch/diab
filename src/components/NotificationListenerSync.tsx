@@ -52,6 +52,15 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
             console.error('Blad zapisu z powiadomienia:', e);
           }
         });
+        
+        // --- NATYCHMIASTOWE POBRANIE ---
+        // Android domyślnie wysyła tylko NOWE powiadomienia do Listenera.
+        // Ta metoda mówi naszemu Serwisowi, żeby natychmiastowo sparsował WSZYSTKIE aktualnie wiszące na pasku.
+        try {
+           setTimeout(() => {
+              NotificationBridge.requestActiveNotifications().catch(e => console.warn(e));
+           }, 1000); // 1 sekunda opóźnienia, by listener JS zdążył się dobrze zamontować
+        } catch(e) {}
       } catch (e) {
         console.error("NotificationListener setup error:", e);
       }
