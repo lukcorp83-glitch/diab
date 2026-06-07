@@ -9,7 +9,14 @@ interface Props {
 }
 
 export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
-  const [dismissedId, setDismissedId] = React.useState<string | null>(null);
+  const [dismissedId, setDismissedId] = React.useState<string | null>(() => {
+    return sessionStorage.getItem('dismissed_unlinked_id');
+  });
+
+  const handleDismiss = (id: string) => {
+    setDismissedId(id);
+    sessionStorage.setItem('dismissed_unlinked_id', id);
+  };
 
   const latestUnlinked = useMemo(() => {
     const timeLimit = 3 * 60 * 60 * 1000; // 3 hours
@@ -42,7 +49,7 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
         className="mx-4 mt-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] p-5 shadow-lg relative overflow-hidden"
       >
         <button 
-          onClick={() => setDismissedId(latestUnlinked.id)}
+          onClick={() => handleDismiss(latestUnlinked.id)}
           className="absolute top-3 right-3 z-20 text-white/50 hover:text-white transition-colors p-1"
         >
           <X size={16} />

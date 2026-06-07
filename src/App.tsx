@@ -55,6 +55,7 @@ import {
   signInWithPopup,
   sendPasswordResetEmail,
   signInWithCustomToken,
+  signInWithCredential,
 } from "firebase/auth";
 import {
   collection,

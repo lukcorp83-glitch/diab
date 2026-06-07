@@ -14,7 +14,16 @@ interface LowGlucoseMealAlertProps {
 }
 
 export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, shortcuts, onQuickAdd }: LowGlucoseMealAlertProps) {
-  const [dismissed, setDismissed] = React.useState(false);
+  const [dismissed, setDismissed] = React.useState(() => {
+    const val = sessionStorage.getItem('hypo_dismissed_time');
+    if (val && Date.now() - Number(val) < 60 * 60 * 1000) return true;
+    return false;
+  });
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    sessionStorage.setItem('hypo_dismissed_time', Date.now().toString());
+  };
 
   const shouldAlert = useMemo(() => {
     if (dismissed) return false;
@@ -42,7 +51,7 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
     }
 
     return false;
-  }, [logs, lastGlucose]);
+  }, [logs, lastGlucose, dismissed]);
 
   if (!shouldAlert) return null;
 
@@ -55,7 +64,7 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
         className="mb-6 relative overflow-hidden bg-gradient-to-r from-red-600 to-rose-600 rounded-[2rem] p-5 shadow-xl shadow-red-500/20 pr-10"
       >
         <button 
-          onClick={() => setDismissed(true)}
+          onClick={handleDismiss}
           className="absolute top-3 right-3 z-20 text-white/50 hover:text-white transition-colors p-1"
         >
           <X size={16} />

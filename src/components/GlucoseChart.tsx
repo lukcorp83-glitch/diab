@@ -637,7 +637,31 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
          }
       }
       
-      // Glucose Line
+      // Glucose Line Gradient
+      const lineGrad = ctx.createLinearGradient(0, pT, 0, pT + ch);
+      const clamp = (val: number) => Math.max(0, Math.min(1, val));
+      const p230 = clamp((getY(230) - pT) / ch);
+      const pMax = clamp((getY(targetMax || 140) - pT) / ch);
+      const pMin = clamp((getY(targetMin || 70) - pT) / ch);
+
+      const colorHighV = '#f97316'; // orange
+      const colorHigh = '#eab308'; // yellow
+      const colorNormal = isDark ? '#818cf8' : '#4f46e5';
+      const colorLow = '#ef4444'; // red
+
+      try {
+          lineGrad.addColorStop(0, colorHighV);
+          lineGrad.addColorStop(p230, colorHighV);
+          lineGrad.addColorStop(p230 + 0.001, colorHigh); // +0.001 to avoid overlap issues in some browsers
+          lineGrad.addColorStop(pMax, colorHigh);
+          lineGrad.addColorStop(pMax + 0.001, colorNormal);
+          lineGrad.addColorStop(pMin, colorNormal);
+          lineGrad.addColorStop(pMin + 0.001, colorLow);
+          lineGrad.addColorStop(1, colorLow);
+      } catch (e) {
+          // fallback
+      }
+
       ctx.beginPath();
       let firstG = true;
       for (const d of chartData) {
@@ -648,7 +672,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             else ctx.lineTo(x, y);
          }
       }
-      ctx.strokeStyle = isDark ? '#818cf8' : '#4f46e5';
+      ctx.strokeStyle = lineGrad;
       ctx.lineWidth = 3;
       ctx.stroke();
       
@@ -659,8 +683,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
          if (d.glucose !== undefined && !isNaN(d.glucose)) {
             const x = getX(d.timestamp);
             const y = getY(d.glucose);
-            let fill = isDark ? '#818cf8' : '#4f46e5';
-            if (d.value < (targetMin||70) || d.value > (targetMax||140)) fill = '#f59e0b';
+            
+            let fill = colorNormal;
+            if (d.glucose < (targetMin || 70)) {
+                fill = colorLow;
+            } else if (d.glucose > 230) {
+                fill = colorHighV;
+            } else if (d.glucose > (targetMax || 140)) {
+                fill = colorHigh;
+            }
             
             ctx.beginPath();
             ctx.arc(x, y, d.isLatest ? 5 : 2.5, 0, 2*Math.PI);
@@ -929,13 +960,13 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
                 {crosshair.data.originalB && (
                   <div className="flex items-center justify-center gap-2 mt-1">
                     <span className="text-indigo-400 font-bold text-xs">💉 Bolus:</span>
-                    <span className="text-sm font-black">{crosshair.data.originalB.value} j.</span>
+                    <span className="text-sm font-black">{Number(crosshair.data.originalB.value).toFixed(2).replace(/\.?0+$/, '') || '0'} j.</span>
                   </div>
                 )}
                 {crosshair.data.originalM && (
                   <div className="flex items-center justify-center gap-2 mt-1">
                     <span className="text-amber-400 font-bold text-xs">🍽️ Węgle:</span>
-                    <span className="text-sm font-black">{crosshair.data.originalM.value} g</span>
+                    <span className="text-sm font-black">{Number(crosshair.data.originalM.value).toFixed(1).replace(/\.0$/, '')} g</span>
                   </div>
                 )}
               </div>
