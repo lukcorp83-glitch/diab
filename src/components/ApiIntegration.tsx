@@ -29,6 +29,7 @@ export default function ApiIntegration({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
   const [lastHash, setLastHash] = useState<string>('');
   const [notificationEnabled, setNotificationEnabled] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<Array<{time: string, pkg: string, title: string, text: string}>>([]);
 
   useEffect(() => {
     const checkPerm = async () => {
@@ -48,9 +49,30 @@ export default function ApiIntegration({ user }: { user: any }) {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', checkPerm);
     
+    let listener: any = null;
+    const setupListener = async () => {
+      try {
+        listener = await NotificationBridge.addListener('notificationDebug', (data: any) => {
+          setDebugLogs(prev => {
+            const newLog = {
+              time: new Date().toLocaleTimeString(),
+              pkg: data.package || 'unknown',
+              title: data.title || '',
+              text: data.text || ''
+            };
+            return [newLog, ...prev].slice(0, 5); // Keep last 5
+          });
+        });
+      } catch (e) {}
+    };
+    setupListener();
+    
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', checkPerm);
+      if (listener && typeof listener.remove === 'function') {
+        listener.remove();
+      }
     };
   }, [user]);
 
@@ -231,6 +253,35 @@ export default function ApiIntegration({ user }: { user: any }) {
             {notificationEnabled ? 'Konfiguruj' : 'Włącz'}
           </button>
         </div>
+
+        {notificationEnabled && (
+          <div className="mt-2 bg-white/40 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+            <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center justify-between">
+              <span>Dziennik Powiadomień (Na Żywo)</span>
+              {debugLogs.length > 0 && (
+                <span className="text-[8px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full animate-pulse">Aktywny</span>
+              )}
+            </h4>
+            <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
+              {debugLogs.length === 0 ? (
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-4">
+                  Czekam na powiadomienia z systemu... (Zmieni się to automatycznie gdy nadejdzie nowy cukier).
+                </div>
+              ) : (
+                debugLogs.map((log, i) => (
+                  <div key={i} className="bg-white dark:bg-slate-800 p-2.5 rounded-xl text-[9px] font-mono shadow-sm">
+                    <div className="text-slate-400 mb-1 flex justify-between">
+                      <span className="font-bold text-accent-500">{log.time}</span>
+                      <span className="truncate ml-2 text-[8px]">{log.pkg}</span>
+                    </div>
+                    <div className="font-bold text-slate-700 dark:text-slate-200 mb-0.5">Tytuł: {log.title}</div>
+                    <div className="text-slate-500 dark:text-slate-400">Tekst: {log.text}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
