@@ -5,8 +5,9 @@ import {
   getEffectiveIOB,
   getMealAbsorptionTime,
 } from "./lib/utils";
-import { Capacitor, registerPlugin } from '@capacitor/core';
-import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor, registerPlugin } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import UpdateModal from "./components/UpdateModal";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
@@ -2052,10 +2053,19 @@ export default function App() {
 
   const handleGoogle = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      if (Capacitor.isNativePlatform()) {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        if (result.credential?.idToken) {
+           const credential = GoogleAuthProvider.credential(result.credential.idToken);
+           await signInWithCredential(auth, credential);
+        }
+      } else {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      }
     } catch (e: any) {
-      setAuthError(e.message);
+      console.error("Google Auth Error:", e);
+      setAuthError(e.message || "Błąd logowania Google");
     }
   };
 
@@ -2860,6 +2870,7 @@ export default function App() {
       {/* Modals & Popups */}
       <Toaster
         position="top-center"
+        containerStyle={{ top: 'max(env(safe-area-inset-top), 50px)' }}
         toastOptions={{
           className:
             "glass-card !text-slate-900 dark:!text-white !border-black/5 dark:!border-white/10 !shadow-2xl !rounded-[1.5rem] !text-[10px] !font-black !uppercase !tracking-widest !font-display !pl-6 !pr-2 !py-2 flex items-center justify-between min-w-[300px]",
