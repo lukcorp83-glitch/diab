@@ -1,5 +1,5 @@
 {
-    "version": "1.4.5",
-    "url": "https://glikocontrol.pl/pobierz/GlikoControl_v1.4.5.apk",
-    "releaseNotes": "- KRYTYCZNA POPRAWKA DLA ANDROID 14+: Naprawiono błąd systemu Android polegający na blokowaniu przesyłu cukrów między działającym w tle widgetem a otwartą aplikacją (ukryte restrykcje bezpieczeństwa Google).\n- KRYTYCZNA POPRAWKA GOŚCIA: Naprawiono błąd polegający na tym, że aplikacja nie pokazywała cukrów na wykresie, jeśli użytkownik nie był zalogowany do Firebase (korzystał z Trybu Gościa/Offline).\n- Pełne wsparcie dla dziesiętnych jednostek mmol/L (np. 5.5).\n- Naprawiono błąd gubienia cukrów z Medtronika w tle po uruchomieniu aplikacji.\n- Poprawiono wykrywanie cukrów z aplikacji xDrip."
+    "version": "1.4.6",
+    "url": "https://glikocontrol.pl/pobierz/GlikoControl_v1.4.6.apk",
+    "releaseNotes": "- HOTFIX: Naprawiono błąd 'isGuest is not defined' (Biały ekran), który wystąpił w poprzedniej wersji przez pomyłkę w kodzie.\n- KRYTYCZNA POPRAWKA DLA ANDROID 14+: Naprawiono błąd systemu Android polegający na blokowaniu przesyłu cukrów między działającym w tle widgetem a otwartą aplikacją.\n- Pełne wsparcie dla dziesiętnych jednostek mmol/L."
 }

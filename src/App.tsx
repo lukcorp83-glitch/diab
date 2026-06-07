@@ -2604,7 +2604,7 @@ export default function App() {
                 : "bg-slate-50"),
       )}
     >
-      <NotificationListenerSync user={user} isGuest={isGuest} />
+      <NotificationListenerSync user={user} />
       {!isShortcutMode && (
         <MeshBackground
           lastGlucose={lastGlucoseValue}

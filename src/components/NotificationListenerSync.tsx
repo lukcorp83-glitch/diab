@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import { NotificationBridge } from '../lib/notificationBridge';
 import { loadLocalLogs } from '../lib/localLogs';
 
-export const NotificationListenerSync: React.FC<{ user: any, isGuest?: boolean }> = ({ user, isGuest }) => {
+export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
   useEffect(() => {
-    if (!user && !isGuest) return;
+    if (!user) return;
     let listener: any = null;
     const init = async () => {
       try {
