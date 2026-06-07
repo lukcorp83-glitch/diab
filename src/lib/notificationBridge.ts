@@ -4,6 +4,7 @@ export interface NotificationBridgePlugin {
   checkPermission(): Promise<{ granted: boolean }>;
   requestPermission(): Promise<void>;
   requestActiveNotifications(): Promise<void>;
+  getGlucoseHistory(): Promise<{ history: string }>;
   addListener(
     eventName: 'glucoseNotificationReceived',
     listenerFunc: (data: { glucose: number; iob: number; package: string }) => void,

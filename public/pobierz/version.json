@@ -1,6 +1,5 @@
 {
-  "version": "1.4.3",
-  "url": "https://glikocontrol.pl/pobierz/GlikoControl_v1.4.3.apk",
-  "releaseDate": "2026-06-07",
-  "whatsNew": "- Pełne wsparcie dla dziesiętnych jednostek mmol/L (np. 5.5).\n- Naprawiono błąd gubienia cukrów z Medtronika w tle: cukry przeczytane z powiadomień, gdy aplikacja jest wyłączona, od teraz poprawnie wgrywają się na wykres po uruchomieniu aplikacji.\n- Poprawiono wykrywanie cukrów z aplikacji xDrip (skaner nie pomyli ich z czasem, ani dziwnymi danymi z powiadomienia)."
+    "version": "1.4.5",
+    "url": "https://glikocontrol.pl/pobierz/GlikoControl_v1.4.5.apk",
+    "releaseNotes": "- KRYTYCZNA POPRAWKA DLA ANDROID 14+: Naprawiono błąd systemu Android polegający na blokowaniu przesyłu cukrów między działającym w tle widgetem a otwartą aplikacją (ukryte restrykcje bezpieczeństwa Google).\n- KRYTYCZNA POPRAWKA GOŚCIA: Naprawiono błąd polegający na tym, że aplikacja nie pokazywała cukrów na wykresie, jeśli użytkownik nie był zalogowany do Firebase (korzystał z Trybu Gościa/Offline).\n- Pełne wsparcie dla dziesiętnych jednostek mmol/L (np. 5.5).\n- Naprawiono błąd gubienia cukrów z Medtronika w tle po uruchomieniu aplikacji.\n- Poprawiono wykrywanie cukrów z aplikacji xDrip."
 }
