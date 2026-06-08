@@ -17,6 +17,7 @@ import SwipeableItem from "./SwipeableItem";
 import { db } from "../lib/firebase";
 import { doc, deleteDoc } from "firebase/firestore";
 import MealEditModal from "./MealEditModal";
+import { nightscoutService } from "../services/nightscout";
 
 interface HistoryProps {
   logs: LogEntry[];
@@ -129,6 +130,16 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                   if (settings?.followerMode) return;
                   try {
                     window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id } }));
+                    
+                    // Delete from Nightscout if applicable
+                    if (log.nsId && settings?.apiIntegration?.nightscoutUrl && settings?.apiIntegration?.nightscoutSecret) {
+                       nightscoutService.deleteTreatment(
+                          log.nsId,
+                          settings.apiIntegration.nightscoutUrl,
+                          settings.apiIntegration.nightscoutSecret
+                       ).catch(err => console.warn("Failed to delete from NS", err));
+                    }
+
                     deleteDoc(
                       doc(
                         db,

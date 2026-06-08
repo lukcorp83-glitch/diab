@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import {
   doc,
-  updateDoc,
+  setDoc,
   deleteDoc,
   collection,
   query,
@@ -315,7 +315,7 @@ export default function MealEditModal({
       onClose();
 
       // Fire-and-forget remote update (if they hit Quota, it just fails silently or logs warning)
-      updateDoc(logRef, updates).catch((err) => {
+      setDoc(logRef, { ...log, ...updates }, { merge: true }).catch((err) => {
         console.warn("Could not sync to Firebase (offline or quota exceeded):", err);
       });
     } catch (err) {

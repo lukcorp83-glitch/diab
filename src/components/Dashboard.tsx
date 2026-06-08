@@ -2,7 +2,9 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
-import { LogEntry, UserSettings } from "../types";
+import { notificationService } from "../services/notificationService";
+import { nightscoutService } from "../services/nightscout";
+import { LogEntry, UserSettings, Product } from "../types";
 import GlucoseChart from "./GlucoseChart";
 import VirtualPet from "./VirtualPet";
 import MedicationsWidget from "./MedicationsWidget";
@@ -430,6 +432,35 @@ export default function Dashboard({
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [listFilter, setListFilter] = useState<'all' | 'glucose' | 'treatment'>('treatment');
   const [shortcuts, setShortcuts] = useState<any[]>([]);
+  const [wbtCalculated, setWbtCalculated] = useState<number>(0);
+  const [showWbtDetails, setShowWbtDetails] = useState<boolean>(false);
+
+  const handleDeleteLog = async (log: LogEntry) => {
+    if (settings?.followerMode) return;
+    try {
+      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id } }));
+      
+      if (log.nsId && nsUrl && nsSecret) {
+        nightscoutService.deleteTreatment(log.nsId, nsUrl, nsSecret).catch(err => console.warn("Failed NS delete", err));
+      }
+
+      await deleteDoc(
+        doc(
+          db,
+          "artifacts",
+          "diacontrolapp",
+          "users",
+          getEffectiveUid(user),
+          "logs",
+          log.id!
+        )
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const currentTheme = settings?.theme || theme || "light";
 
   // Inline forms state
   const [inlineBgValue, setInlineBgValue] = useState("");
@@ -1944,7 +1975,7 @@ export default function Dashboard({
             <div className="space-y-2">
               {glucoseLogs.slice(0, isHistMeasCompactHeight ? 2 : 3).map((log, idx) => (
                 <div key={`${log.id}-${idx}`}>
-                  <SwipeableItem id={log.id} onDelete={async () => { if(settings?.followerMode) return; try { await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id)); } catch(e) { console.error(e); } }}>
+                  <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                     <div className="glass-card !p-4 flex items-center gap-4 w-full">
                       <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
                         <Droplet size={18} strokeWidth={2.5} />
@@ -2046,7 +2077,7 @@ export default function Dashboard({
             <div className="space-y-2">
               {treatmentLogs.slice(0, isHistTreatCompactHeight ? 2 : 3).map((log, idx) => (
                 <div key={`${log.id}-${idx}`}>
-                  <SwipeableItem id={log.id} onDelete={async () => { if(settings?.followerMode) return; try { await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id)); } catch(e) { console.error(e); } }}>
+                  <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                     <div onClick={() => { if (!isEditingLayout && !settings.followerMode) setEditingLog(log); }} className="glass-card !p-4 flex items-center gap-4 cursor-pointer w-full">
                       <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0", log.type === "meal" ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500")}>
                         {log.type === "meal" ? <Utensils size={18} /> : <Syringe size={18} />}
@@ -2683,7 +2714,7 @@ export default function Dashboard({
             <div className="space-y-2">
                {logs.filter(log => log.type === 'glucose').slice(0, 3).map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
-                    <SwipeableItem id={log.id} onDelete={async () => { if(settings?.followerMode) return; try { await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id)); } catch(e) { console.error(e); } }}>
+                    <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                       <div className="glass-card !p-4 flex items-center gap-4">
                         <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
                           <Droplet size={18} strokeWidth={2.5} />
@@ -2716,7 +2747,7 @@ export default function Dashboard({
             <div className="space-y-2">
                {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').slice(0, 3).map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
-                    <SwipeableItem id={log.id} onDelete={async () => { if(settings?.followerMode) return; try { await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', log.id)); } catch(e) { console.error(e); } }}>
+                    <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                       <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">
                         <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", log.type === "meal" ? "bg-amber-500/10 text-amber-500" : "bg-accent-500/10 text-accent-500")}>
                           {log.type === "meal" ? <Utensils size={18} /> : <Syringe size={18} />}

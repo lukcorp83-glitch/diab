@@ -46,6 +46,8 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
             };
             // Wyślij zdarzenie do App.tsx, by zapisało lokalnie w cachedLogs i IDB
             window.dispatchEvent(new CustomEvent('localLogAdd', { detail: logData }));
+            // Wyślij przez WebSocket do powiązanych urządzeń
+            window.dispatchEvent(new CustomEvent('wsSendLog', { detail: logData }));
             console.log("Dodano cukier z powiadomienia (lokalnie)", data.glucose);
             
           } catch (e) {
@@ -96,6 +98,7 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
                                   createdAt: new Date(timestamp).toISOString()
                               };
                               window.dispatchEvent(new CustomEvent('localLogAdd', { detail: logData }));
+                              window.dispatchEvent(new CustomEvent('wsSendLog', { detail: logData }));
                               // Dodajemy do localLogs w pamięci by deduplikować kolejne wpisy z historii
                               localLogs.push(logData);
                           }

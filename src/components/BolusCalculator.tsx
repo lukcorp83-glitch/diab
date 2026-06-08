@@ -258,7 +258,7 @@ export default function BolusCalculator({
     const cob = calculateCOB(logs);
     const cobDose = cob / currentWwRatio;
 
-    const baseVal = mealDose + wbtDose + corrDose + cobDose - iob;
+    const baseVal = mealDose + wbtDose + corrDose - iob;
 
     let chartData = [];
     if (mealDose > 0)
@@ -272,12 +272,6 @@ export default function BolusCalculator({
         name: "WBT",
         value: parseFloat(wbtDose.toFixed(2)),
         color: "#f59e0b",
-      });
-    if (cobDose > 0)
-      chartData.push({
-        name: "COB",
-        value: parseFloat(cobDose.toFixed(2)),
-        color: "#a855f7",
       });
     if (corrDose > 0)
       chartData.push({

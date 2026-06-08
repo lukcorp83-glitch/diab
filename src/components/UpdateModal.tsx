@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, X, Star } from 'lucide-react';
+import { Download, X, Star, Loader2 } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
+import { CURRENT_VERSION } from '../constants/versions';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { Capacitor } from '@capacitor/core';
 
 export default function UpdateModal() {
   const [show, setShow] = useState(false);
   const [versionData, setVersionData] = useState<any>(null);
 
+  const [isUpdating, setIsUpdating] = useState(false);
+
   useEffect(() => {
     const checkUpdate = async () => {
       try {
-        const res = await fetch('./pobierz/version.json?t=' + Date.now());
+        const res = await fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now());
         const data = await res.json();
-        const currentApkVersion = "1.2.0"; // Zmieniamy to za każdym buildem
         
-        // Sprawdźmy, czy już odrzucono lub jest to nowa wersja (1.2)
         const dismissed = localStorage.getItem("dismissedApkVersion");
-        if (data && data.version === "1.2" && dismissed !== "1.2") {
+        if (data && data.version !== CURRENT_VERSION && dismissed !== data.version) {
           setVersionData(data);
           setShow(true);
         }
@@ -36,13 +39,19 @@ export default function UpdateModal() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top, 24px) + 16px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 16px)',
+          paddingLeft: 'calc(env(safe-area-inset-left) + 16px)',
+          paddingRight: 'calc(env(safe-area-inset-right) + 16px)'
+        }}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full relative overflow-hidden"
+          className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full relative overflow-y-auto max-h-full"
         >
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
           
@@ -77,20 +86,44 @@ export default function UpdateModal() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <a
-              href={versionData.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                Haptics.success();
-                localStorage.setItem("dismissedApkVersion", versionData.version);
-                setShow(false);
-              }}
-              className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white py-3.5 rounded-2xl font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
-            >
-              <Download size={18} />
-              Pobierz teraz
-            </a>
+            {Capacitor.isNativePlatform() ? (
+              <button
+                disabled={isUpdating}
+                onClick={async () => {
+                  Haptics.light();
+                  try {
+                    setIsUpdating(true);
+                    const version = await CapacitorUpdater.download({
+                      url: versionData.url,
+                      version: versionData.version
+                    });
+                    await CapacitorUpdater.set(version);
+                  } catch (e) {
+                    console.error("Failed to update", e);
+                    setIsUpdating(false);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUpdating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                {isUpdating ? "Pobieranie i instalacja..." : "Zaktualizuj teraz"}
+              </button>
+            ) : (
+              <a
+                href={versionData.apkUrl || versionData.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  Haptics.light();
+                  localStorage.setItem("dismissedApkVersion", versionData.version);
+                  setShow(false);
+                }}
+                className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all"
+              >
+                <Download size={18} />
+                Pobierz aplikację Android (APK)
+              </a>
+            )}
             <button
               onClick={() => {
                 Haptics.light();

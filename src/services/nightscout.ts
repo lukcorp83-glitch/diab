@@ -301,6 +301,40 @@ export const nightscoutService = {
       console.error("Nightscout devicestatus error:", error instanceof Error ? error.message : error);
       return null;
     }
+  },
+
+  async deleteTreatment(nsId: string, url: string, apiSecret: string): Promise<boolean> {
+    if (!url || !nsId) return false;
+
+    let cleanUrl = url.trim();
+    if (!cleanUrl.startsWith("http")) cleanUrl = "https://" + cleanUrl;
+    cleanUrl = cleanUrl.replace(/\/$/, "");
+
+    try {
+      const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(apiSecret.trim()));
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const apiUrl = `${cleanUrl}/api/v1/treatments/${nsId}`;
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "api-secret": hash,
+        },
+      });
+
+      if (response && response.ok) {
+        console.log(`Pomyślnie usunięto treatment z NS: ${nsId}`);
+        return true;
+      } else {
+        console.error(`Błąd przy usuwaniu z NS: ${response?.status}`);
+        return false;
+      }
+    } catch (error) {
+      console.error("Nightscout deleteTreatment error:", error instanceof Error ? error.message : error);
+      return false;
+    }
   }
 };
 

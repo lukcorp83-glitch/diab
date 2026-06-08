@@ -62,6 +62,8 @@ import {
   Edit3,
   Download,
   Save,
+  ArrowLeft,
+  Share2,
 } from "lucide-react";
 import { db, auth, onConnectionChange } from "../lib/firebase";
 import { deleteUser } from "firebase/auth";
@@ -92,7 +94,7 @@ import {
 import { VERSIONS } from "../constants/versions";
 
 import CgmImport from "./CgmImport";
-import SettingsSync from "./SettingsSync";
+import DevicePairing from "./DevicePairing";
 import SettingsTransfer from "./SettingsTransfer";
 import LocalSync from "./LocalSync";
 import CloudPackageSync from "./CloudPackageSync";
@@ -102,6 +104,8 @@ import { Diets } from "./Diets";
 import StatisticsView from "./StatisticsView";
 import TutorialView from "./TutorialView";
 import GlikoTraining from "./GlikoTraining";
+
+import { ConnectedDevice } from "../hooks/useGlikoServer";
 
 interface ProfileProps {
   user: any;
@@ -113,6 +117,8 @@ interface ProfileProps {
   initialAction?: string | null;
   onClearInitialAction?: () => void;
   settings: UserSettings;
+  wsDevices?: ConnectedDevice[];
+  kickDevice?: (id: string) => void;
 }
 
 export default function Profile({
@@ -125,6 +131,8 @@ export default function Profile({
   initialAction,
   onClearInitialAction,
   settings: initialSettings,
+  wsDevices = [],
+  kickDevice = () => {},
 }: ProfileProps) {
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
   const [widgetDebug, setWidgetDebug] = useState<any>(null);
@@ -265,6 +273,51 @@ export default function Profile({
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditResult, setAuditResult] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const topMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const slider = topMenuRef.current;
+    if (!slider) return;
+
+    let isDown = false;
+    let startX: number;
+    let scrollLeft: number;
+
+    const mouseDown = (e: MouseEvent) => {
+      isDown = true;
+      slider.classList.add('cursor-grabbing');
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    };
+    const mouseLeave = () => {
+      isDown = false;
+      slider.classList.remove('cursor-grabbing');
+    };
+    const mouseUp = () => {
+      isDown = false;
+      slider.classList.remove('cursor-grabbing');
+    };
+    const mouseMove = (e: MouseEvent) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - slider.offsetLeft;
+      const walk = (x - startX) * 2; // scroll-fast
+      slider.scrollLeft = scrollLeft - walk;
+    };
+
+    slider.addEventListener('mousedown', mouseDown);
+    slider.addEventListener('mouseleave', mouseLeave);
+    slider.addEventListener('mouseup', mouseUp);
+    slider.addEventListener('mousemove', mouseMove);
+
+    return () => {
+      slider.removeEventListener('mousedown', mouseDown);
+      slider.removeEventListener('mouseleave', mouseLeave);
+      slider.removeEventListener('mouseup', mouseUp);
+      slider.removeEventListener('mousemove', mouseMove);
+    };
+  }, [activeCategory]);
   const [isEditingTiles, setIsEditingTiles] = useState(false);
   const [categoryOrder, setCategoryOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem("glikosense_category_order");
@@ -392,6 +445,13 @@ export default function Profile({
         color: "bg-sky-500",
       },
       {
+        id: "pairing",
+        label: "Parowanie",
+        sub: "Zarządzaj urządzeniami",
+        icon: <Share2 size={24} />,
+        color: "bg-blue-500",
+      },
+      {
         id: "android",
         label: "Aplikacja",
         sub: "Android APK",
@@ -461,6 +521,7 @@ export default function Profile({
       if (initialAction === "devices") setActiveCategory("devices");
       if (initialAction === "shop") setActiveCategory("shop");
       if (initialAction === "training") setActiveCategory("training");
+      if (initialAction === "pairing") setActiveCategory("pairing");
       // clear action
       setTimeout(() => {
         onClearInitialAction && onClearInitialAction();
@@ -1617,7 +1678,15 @@ export default function Profile({
           </Reorder.Group>
         </div>
       ) : (
-        <div className="mb-6 -mx-2 px-2 overflow-x-auto scrollbar-none">
+        <div 
+          ref={topMenuRef}
+          onWheel={(e) => {
+            if (topMenuRef.current) {
+              topMenuRef.current.scrollLeft += e.deltaY;
+            }
+          }}
+          className="mb-6 -mx-2 px-2 overflow-x-auto scrollbar-none select-none"
+        >
           <div className="flex gap-2">
             <button
               onClick={() => {
@@ -1689,6 +1758,7 @@ export default function Profile({
                 { id: "food", label: "Skróty", icon: <Utensils size={14} />, color: "text-amber-500 bg-amber-500/10" },
                 { id: "meds", label: "Leki", icon: <Pill size={14} />, color: "text-teal-500 bg-teal-500/10" },
                 { id: "api", label: "API", icon: <Globe size={14} />, color: "text-sky-500 bg-sky-500/10" },
+                { id: "pairing", label: "Parowanie", icon: <Share2 size={14} />, color: "text-blue-500 bg-blue-500/10" },
                 {
                   id: "android",
                   label: "Aplikacja",
@@ -1714,7 +1784,7 @@ export default function Profile({
                         : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300",
                   )}
                 >
-                  <span className={cn("p-1.5 flex items-center justify-center rounded-xl shrink-0 opacity-100", cat.color)}>{cat.icon}</span>
+                <span className={cn("p-1.5 flex items-center justify-center rounded-xl shrink-0 opacity-100", cat.color)}>{cat.icon}</span>
                   <span className="uppercase tracking-widest leading-none flex items-center gap-1.5">
                     {cat.label}
                     {cat.id === "android" && (
@@ -1834,6 +1904,54 @@ export default function Profile({
               Usuń Konto i Dane
             </button>
           </div>
+        </motion.div>
+      )}
+
+      {activeCategory === "pairing" && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pb-20 space-y-4"
+        >
+          <DevicePairing 
+            user={user} 
+            settings={settings}
+            wsDevices={wsDevices}
+            kickDevice={kickDevice}
+            onImport={(s) => {
+              setSettings((prev) => ({ ...prev, ...s }));
+              setDoc(
+                doc(
+                  db,
+                  "artifacts",
+                  "diacontrolapp",
+                  "users",
+                  getEffectiveUid(user),
+                  "settings",
+                  "settings",
+                ),
+                { ...settings, ...s, updatedAt: serverTimestamp() },
+                { merge: true },
+              );
+            }}
+            onUpdateSettings={(partial) => {
+              const newSettings = { ...settings, ...partial };
+              setSettings(newSettings);
+              setDoc(
+                doc(
+                  db,
+                  "artifacts",
+                  "diacontrolapp",
+                  "users",
+                  getEffectiveUid(user),
+                  "settings",
+                  "settings",
+                ),
+                { ...newSettings, updatedAt: serverTimestamp() },
+                { merge: true },
+              );
+            }}
+          />
         </motion.div>
       )}
 
@@ -4490,7 +4608,7 @@ export default function Profile({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-4 pb-20"
+          className="pb-20 space-y-4"
         >
           <ApiIntegration user={user} />
 
@@ -5704,7 +5822,23 @@ export default function Profile({
 
               {/* Data Management Section */}
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-6">
-                <SettingsSync
+                <button
+                  onClick={() => setActiveCategory("pairing")}
+                  className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] active:scale-95 transition-all shadow-sm group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl group-hover:bg-indigo-500/20 transition-colors">
+                      <Network size={20} />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-[13px] font-black dark:text-white">Parowanie / Urządzenia</h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">Połącz telefony rodziny (WebSocket)</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 transition-colors" />
+                </button>
+
+                <CloudPackageSync
                   user={user}
                   settings={settings}
                   onImport={(s) => {

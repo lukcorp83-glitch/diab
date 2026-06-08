@@ -77,6 +77,7 @@ function processTreatments(data: any[]): any[] {
     if (insulin > 0) {
       const payload: any = {
         id: `ns-insulin-${t._id || timestamp}`,
+        nsId: t._id,
         type: 'bolus',
         value: insulin,
         timestamp,
@@ -90,6 +91,7 @@ function processTreatments(data: any[]): any[] {
     } else if (carbs > 0) {
       logs.push({
         id: `ns-meal-${t._id || timestamp}`,
+        nsId: t._id,
         type: 'meal',
         value: carbs,
         timestamp,
@@ -102,6 +104,7 @@ function processTreatments(data: any[]): any[] {
     if (lowerEventType === 'site change' || lowerEventType === 'cartridge change' || lowerEventType === 'pump battery change') {
       logs.push({
         id: `ns-site-${t._id || timestamp}`,
+        nsId: t._id,
         type: 'site_change',
         value: 1,
         timestamp,
@@ -112,6 +115,7 @@ function processTreatments(data: any[]): any[] {
     if (lowerEventType === 'sensor change' || lowerEventType === 'sensor start') {
       logs.push({
         id: `ns-sensor-${t._id || timestamp}`,
+        nsId: t._id,
         type: 'sensor_change',
         value: 1,
         timestamp,

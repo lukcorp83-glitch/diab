@@ -93,6 +93,8 @@ export interface InventoryItem {
 }
 
 export interface UserSettings {
+  deviceId?: string;
+  deviceName?: string;
   isf: number;
   wwRatio: number;
   wbtRatio: number;
@@ -139,6 +141,8 @@ export interface UserSettings {
   allergies?: string;
   weatherWidgetEnabled?: boolean;
   weatherNeuralEnabled?: boolean;
+  websocketUrl?: string;
+  websocketRoomId?: string;
   mediaWidgetEnabled?: boolean;
   showMealWidget?: boolean;
   activeTraining?: {

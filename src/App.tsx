@@ -7,6 +7,7 @@ import {
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
+import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import UpdateModal from "./components/UpdateModal";
@@ -137,6 +138,7 @@ import { cn } from "./lib/utils";
 import { nightscoutService } from "./services/nightscout";
 import { maintenanceService } from "./services/maintenanceService";
 import { healthService } from "./services/healthService";
+import { useGlikoServer } from "./hooks/useGlikoServer";
 
 import Logo from "./components/Logo";
 
@@ -234,13 +236,25 @@ const DEFAULT_SETTINGS: UserSettings = {
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [pumpStatus, setPumpStatus] = useState<any>(null);
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      CapacitorUpdater.notifyAppReady();
+    }
+  }, []);
   const [isShortcutMode, setIsShortcutMode] = useState(() => {
     return window.location.search.includes("action=");
   });
   const [activeTab, setActiveTab] = useState("dashboard");
   const [cachedLogs, setCachedLogs] = useState<LogEntry[]>([]);
   const [cachedLogsLoaded, setCachedLogsLoaded] = useState(false);
-  const [deletedNsIds, setDeletedNsIds] = useState<Set<string>>(new Set());
+  const [deletedNsIds, setDeletedNsIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem("diacontrol_deleted_ns_ids");
+      if (saved) return new Set(JSON.parse(saved));
+    } catch (e) {}
+    return new Set();
+  });
   const [fbLogs, setFbLogs] = useState<LogEntry[]>([]);
   const [nsLogs, setNsLogs] = useState<LogEntry[]>([]);
 
@@ -344,6 +358,48 @@ export default function App() {
   const [initialAction, setInitialAction] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+
+  const linkedUid = localStorage.getItem("diacontrol_linked_uid");
+  const isMasterToken = localStorage.getItem("diacontrol_is_master") === "true";
+  const isAdminToken = localStorage.getItem("diacontrol_is_admin") === "true";
+  
+  const role = isMasterToken ? 'master' : (isAdminToken ? 'admin' : 'follower');
+  const isAdmin = role === 'master' || role === 'admin';
+  
+  let localDeviceId = localStorage.getItem("glikocontrol_device_id");
+  if (!localDeviceId) {
+     localDeviceId = `device-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+     localStorage.setItem("glikocontrol_device_id", localDeviceId);
+  }
+
+  const { isConnected: wsConnected, sendData: wsSendData, devices: wsDevices, kickDevice } = useGlikoServer({
+    url: userSettings?.websocketUrl,
+    roomId: userSettings?.websocketRoomId || (user ? getEffectiveUid(user) : undefined),
+    deviceId: localDeviceId,
+    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : "Przeglądarka WWW"),
+    role,
+    isAdmin,
+    onDataReceived: (payload) => {
+      // Przychodzi dane z innego telefonu po WebSocket - emulujemy że to nowy log z powiadomień
+      if (payload && payload.id) {
+         window.dispatchEvent(new CustomEvent("localLogAdd", { detail: payload }));
+      }
+    },
+    onKicked: () => {
+       localStorage.removeItem("diacontrol_linked_uid");
+       localStorage.removeItem("diacontrol_is_admin");
+       window.location.reload();
+    }
+  });
+
+  // Umożliwiamy wysyłanie eventów przez websocket z innych plików (Dashboard.tsx)
+  useEffect(() => {
+     const handleWsSend = (e: any) => {
+        wsSendData(e.detail);
+     };
+     window.addEventListener("wsSendLog", handleWsSend);
+     return () => window.removeEventListener("wsSendLog", handleWsSend);
+  }, [wsSendData]);
 
   useEffect(() => {
     if (userSettings) {
@@ -1725,6 +1781,7 @@ export default function App() {
   
   useEffect(() => {
     deletedNsIdsRef.current = deletedNsIds;
+    localStorage.setItem("diacontrol_deleted_ns_ids", JSON.stringify(Array.from(deletedNsIds)));
   }, [deletedNsIds]);
 
   useEffect(() => {
@@ -2555,6 +2612,8 @@ export default function App() {
               initialAction={initialAction}
               onClearInitialAction={() => setInitialAction(null)}
               settings={userSettings || DEFAULT_SETTINGS}
+              wsDevices={wsDevices}
+              kickDevice={kickDevice}
             />
           )}
           {activeTab === "achievements" && (
@@ -2990,3 +3049,5 @@ function NavButton({
     </button>
   );
 }
+
+
