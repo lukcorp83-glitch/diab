@@ -5,9 +5,17 @@ export interface VersionEntry {
   changes: string[];
 }
 
-export const CURRENT_VERSION = '1.5.1';
+export const CURRENT_VERSION = '1.5.2';
 
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: "1.5.2",
+    date: "2026-06-08",
+    title: "Patch 1.5.2",
+    changes: [
+      "Hotfix: Naprawiono błąd wyświetlania zakładki System (brakujący import ikonki)"
+    ]
+  },
   {
     version: "1.5.1",
     date: "2026-06-08",

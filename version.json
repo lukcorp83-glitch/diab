@@ -1,5 +1,5 @@
-﻿{
-  "version": "1.5.1",
+{
+  "version": "1.5.2",
   "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/dist.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.1_OTA_READY.apk",
   "whatsNew": "Naprawiono logikę kalkulatora bolusa i dodano aktualizacje w tle!"
