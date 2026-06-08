@@ -92,7 +92,7 @@ import {
   PetAccessory,
   PetBackground,
 } from "../constants";
-import { VERSION_HISTORY, CURRENT_VERSION } from "../constants/versions";
+import { VERSIONS, CURRENT_VERSION } from "../constants/versions";
 
 import CgmImport from "./CgmImport";
 import DevicePairing from "./DevicePairing";
@@ -532,8 +532,8 @@ export default function Profile({
 
   const [nukeLoading, setNukeLoading] = useState(false);
   const [showRodo, setShowRodo] = useState(false);
-  const [apkVersion, setApkVersion] = useState<string>("1.5.0");
-  const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.0_OTA_READY.apk");
+  const [apkVersion, setApkVersion] = useState<string>("1.5.4");
+  const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.4_OTA_FINISH.apk");
 
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now())
