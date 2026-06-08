@@ -5,7 +5,20 @@ export interface VersionEntry {
   changes: string[];
 }
 
+export const CURRENT_VERSION = '1.5.1';
+
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: "1.5.1",
+    date: "2026-06-08",
+    title: "Aktualizacja 1.5.1",
+    changes: [
+      "Test aktualizacji OTA (Over-The-Air)",
+      "Poprawka migającej listy urządzeń WebSocket",
+      "Dodano przycisk do ręcznego wymuszania aktualizacji",
+      "Oznaczenie własnego urządzenia '(Ty)' na liście pokoju"
+    ]
+  },
   {
     version: "4.1.1",
     date: "2026-05-28",
@@ -251,5 +264,3 @@ export const VERSIONS: VersionEntry[] = [
     ]
   }
 ];
-
-export const CURRENT_VERSION = "1.5.0";

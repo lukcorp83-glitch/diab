@@ -91,7 +91,7 @@ import {
   PetAccessory,
   PetBackground,
 } from "../constants";
-import { VERSIONS } from "../constants/versions";
+import { VERSION_HISTORY, CURRENT_VERSION } from "../constants/versions";
 
 import CgmImport from "./CgmImport";
 import DevicePairing from "./DevicePairing";
@@ -5120,12 +5120,11 @@ export default function Profile({
             </p>
             
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4 border border-blue-100 dark:border-blue-800/30 border-l-4 border-l-blue-500">
-              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">Co nowego w wersji 1.4?</h4>
+              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">Co nowego w wersji 1.5.0?</h4>
               <ul className="text-[10px] text-blue-700 dark:text-blue-300 list-disc pl-4 space-y-0.5">
-                 <li>Naprawiono lawinę powiadomień/alarmów po restarcie telefonu</li>
-                 <li>Widżety od teraz w pełni działają w tle bazując bezpośrednio na notyfikacjach (xDrip/Libre)</li>
-                 <li>Ulepszony, zaokrąglony wygląd widżetu "Kwiatek"</li>
-                 <li>Wsparcie dla ACTION_REQUEST_ACTIVE z deduplikacją powiadomień systemowych</li>
+                 <li>System bezobsługowych aktualizacji w tle (OTA) dla aplikacji Android</li>
+                 <li>Naprawa działania Health Connect (krokomierz) na najnowszych urządzeniach</li>
+                 <li>Inteligentne rozpoznawanie środowiska (PWA/Android) z przyciskiem do instalacji</li>
               </ul>
             </div>
 
@@ -5144,9 +5143,31 @@ export default function Profile({
                   Pobierz APK (v{apkVersion})
                 </a>
               ) : (
-                <div className="w-full text-center p-4 rounded-2xl bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 font-bold border border-green-200 dark:border-green-900/30 flex items-center justify-center gap-2">
-                  <Smartphone size={20} />
-                  Używasz Natywnej Aplikacji
+                <div className="w-full flex flex-col gap-2">
+                  <div className="w-full text-center p-4 rounded-2xl bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 font-bold border border-green-200 dark:border-green-900/30 flex items-center justify-center gap-2">
+                    <Smartphone size={20} />
+                    Używasz Natywnej Aplikacji
+                  </div>
+                  <button
+                    onClick={async () => {
+                      Haptics.impact();
+                      try {
+                        const res = await fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now());
+                        const data = await res.json();
+                        if (data && data.version !== CURRENT_VERSION) {
+                          localStorage.removeItem("dismissedApkVersion");
+                          window.location.reload();
+                        } else {
+                          alert("Twoja aplikacja jest w pełni aktualna! (Wersja " + CURRENT_VERSION + ")");
+                        }
+                      } catch(e) {
+                        alert("Błąd połączenia podczas sprawdzania aktualizacji.");
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-3 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Sprawdź dostępność aktualizacji
+                  </button>
                 </div>
               )}
 
