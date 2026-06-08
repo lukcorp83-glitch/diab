@@ -98,8 +98,9 @@ export default function UpdateModal() {
                       version: versionData.version
                     });
                     await CapacitorUpdater.set(version);
-                  } catch (e) {
+                  } catch (e: any) {
                     console.error("Failed to update", e);
+                    alert("Błąd aktualizacji (sprawdź czy podano poprawny link do pliku ZIP w polu 'url'): " + e?.message);
                     setIsUpdating(false);
                   }
                 }}
