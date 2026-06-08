@@ -98,6 +98,8 @@ export default function UpdateModal() {
                       version: versionData.version
                     });
                     await CapacitorUpdater.set(version);
+                    alert("Aktualizacja zakończona sukcesem! Aplikacja zostanie teraz zrestartowana.");
+                    window.location.reload();
                   } catch (e: any) {
                     console.error("Failed to update", e);
                     alert("Błąd aktualizacji (sprawdź czy podano poprawny link do pliku ZIP w polu 'url'): " + e?.message);

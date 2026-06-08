@@ -5109,7 +5109,7 @@ export default function Profile({
                   </span>
                 </div>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                  Aplikacja Native
+                  Aplikacja Native • Wersja {CURRENT_VERSION}
                 </p>
               </div>
             </div>
@@ -6270,3 +6270,4 @@ function SettingInput({
     </div>
   );
 }
+
