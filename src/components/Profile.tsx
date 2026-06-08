@@ -64,6 +64,7 @@ import {
   Save,
   ArrowLeft,
   Share2,
+  Network,
 } from "lucide-react";
 import { db, auth, onConnectionChange } from "../lib/firebase";
 import { deleteUser } from "firebase/auth";
