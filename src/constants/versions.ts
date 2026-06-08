@@ -5,9 +5,29 @@ export interface VersionEntry {
   changes: string[];
 }
 
-export const CURRENT_VERSION = '1.5.5';
+export const CURRENT_VERSION = '1.5.7';
 
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: "1.5.7",
+    date: "2026-06-08",
+    title: "Gliko Family: Zdalne Komunikaty",
+    changes: [
+      "Nowość: Pełnoekranowe powiadomienia (Gliko Family) wysyłane ze sparowanych urządzeń",
+      "Nowość: Potwierdzanie zrozumienia ważnych komunikatów na drugim ekranie",
+      "Poprawka: Nowa, bardzo elegancka i subtelna animacja po instalacji aktualizacji"
+    ]
+  },
+  {
+    version: "1.5.6",
+    date: "2026-06-08",
+    title: "Aktualizacja 1.5.6",
+    changes: [
+      "Poprawka pobierania paczek OTA: Przejście na nowy format kompresji",
+      "Dodano systemowe uprawnienie stanu sieci dla pobierania w tle",
+      "Naprawiono błędny adres pobierania pliku APK w wersji PWA"
+    ]
+  },
   {
     version: "1.5.2",
     date: "2026-06-08",

@@ -21,15 +21,20 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 backdrop-blur-[12px]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 24px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 16px)' }}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-lg bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl rounded-[2rem] shadow-2xl overflow-hidden border border-white/20 dark:border-white/5 flex flex-col"
+        initial={{ opacity: 0, scale: 0.95, y: 15, boxShadow: '0 0 0 rgba(16, 185, 129, 0)' }}
+        animate={{ opacity: 1, scale: 1, y: 0, boxShadow: '0 20px 60px -10px rgba(16, 185, 129, 0.15)' }}
+        exit={{ opacity: 0, scale: 0.95, y: 15, boxShadow: '0 0 0 rgba(16, 185, 129, 0)' }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-lg bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl rounded-[2rem] overflow-hidden border border-white/20 dark:border-white/5 flex flex-col"
         id="changelog-popup-container"
       >
-        {/* Subtle decorative top border accent */}
-        <div className="absolute top-0 left-0 right-0 h-[6px] bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
+        {/* Subtle decorative top border accent with sweep animation */}
+        <motion.div 
+          initial={{ width: "0%", opacity: 0 }}
+          animate={{ width: "100%", opacity: 1 }}
+          transition={{ duration: 1, ease: "easeOut", delay: 0.1 }}
+          className="absolute top-0 left-0 h-[6px] bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" 
+        />
 
         {/* Close Button */}
         <button

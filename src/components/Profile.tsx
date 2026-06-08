@@ -96,6 +96,7 @@ import { VERSIONS, CURRENT_VERSION } from "../constants/versions";
 
 import CgmImport from "./CgmImport";
 import DevicePairing from "./DevicePairing";
+import RemoteAlertSender from "./RemoteAlertSender";
 import SettingsTransfer from "./SettingsTransfer";
 import LocalSync from "./LocalSync";
 import CloudPackageSync from "./CloudPackageSync";
@@ -1953,6 +1954,7 @@ export default function Profile({
               );
             }}
           />
+          <RemoteAlertSender user={user} />
         </motion.div>
       )}
 

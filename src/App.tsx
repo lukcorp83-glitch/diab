@@ -10,6 +10,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
+import RemoteAlertsListener from "./components/RemoteAlertsListener";
 import UpdateModal from "./components/UpdateModal";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -2663,6 +2664,7 @@ export default function App() {
       )}
     >
       <NotificationListenerSync user={user} />
+      <RemoteAlertsListener user={user} />
       {!isShortcutMode && (
         <MeshBackground
           lastGlucose={lastGlucoseValue}

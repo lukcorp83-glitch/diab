@@ -1,6 +1,6 @@
-﻿{
-  "version": "1.5.6",
+{
+  "version": "1.5.7",
   "url": "https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/dist.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.6_OTA_FINISH.apk",
-  "whatsNew": "Naprawiono logikę kalkulatora bolusa i dodano aktualizacje w tle!"
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.7_OTA_FINISH.apk",
+  "whatsNew": "Dodano Gliko Family: Powiadomienia pełnoekranowe na połączone telefony i subtelne animacje."
 }
