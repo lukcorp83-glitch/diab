@@ -29,7 +29,8 @@ export default function DevicePairing({
   onImport,
   onUpdateSettings,
   wsDevices = [],
-  kickDevice = () => {}
+  kickDevice = () => {},
+  localDeviceId
 }: {
   user: any;
   settings: UserSettings;
@@ -37,6 +38,7 @@ export default function DevicePairing({
   onUpdateSettings: (s: Partial<UserSettings>) => void;
   wsDevices?: ConnectedDevice[];
   kickDevice?: (id: string) => void;
+  localDeviceId?: string;
 }) {
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -350,6 +352,7 @@ export default function DevicePairing({
                   <div className="flex flex-col text-left">
                     <span className="text-xs font-bold dark:text-white flex items-center gap-1.5">
                       {d.deviceName}
+                      {d.deviceId === localDeviceId && <span className="text-[10px] text-slate-400 font-normal">(Ty)</span>}
                       {d.isAdmin && <span className="text-[9px] bg-rose-500/20 text-rose-500 px-1.5 py-0.5 rounded-md uppercase">Admin</span>}
                       {d.role === 'master' && <span className="text-[9px] bg-sky-500/20 text-sky-500 px-1.5 py-0.5 rounded-md uppercase">Master</span>}
                     </span>

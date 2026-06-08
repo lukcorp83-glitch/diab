@@ -33,6 +33,11 @@ export function useGlikoServer({
   const [devices, setDevices] = useState<ConnectedDevice[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<any>(null);
+  const callbacksRef = useRef({ onDataReceived, onKicked });
+
+  useEffect(() => {
+    callbacksRef.current = { onDataReceived, onKicked };
+  }, [onDataReceived, onKicked]);
 
   // Zgodnie z decyzją, aplikacja GlikoControl używa głównej, udostępnionej 
   // instancji GlikoServer, unless user explicitly defines a custom one.
@@ -75,13 +80,13 @@ export function useGlikoServer({
         try {
           const data = JSON.parse(event.data);
           
-          if (data.type === 'glucose_data' && onDataReceived) {
-            onDataReceived(data.payload);
+          if (data.type === 'glucose_data' && callbacksRef.current.onDataReceived) {
+            callbacksRef.current.onDataReceived(data.payload);
           } else if (data.type === 'device_list') {
             setDevices(data.payload || []);
           } else if (data.type === 'kicked') {
             console.warn("Zostałeś rozłączony przez administratora!");
-            if (onKicked) onKicked();
+            if (callbacksRef.current.onKicked) callbacksRef.current.onKicked();
             ws.close();
           }
         } catch (e) {
@@ -107,7 +112,7 @@ export function useGlikoServer({
     } catch (e: any) {
       setError(e.message || "Błąd inicjalizacji WebSocket");
     }
-  }, [actualUrl, roomId, deviceId, deviceName, role, isAdmin, onDataReceived, onKicked]);
+  }, [actualUrl, roomId, deviceId, deviceName, role, isAdmin]);
 
   useEffect(() => {
     connect();
