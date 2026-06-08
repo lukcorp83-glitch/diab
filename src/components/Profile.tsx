@@ -531,15 +531,15 @@ export default function Profile({
 
   const [nukeLoading, setNukeLoading] = useState(false);
   const [showRodo, setShowRodo] = useState(false);
-  const [apkVersion, setApkVersion] = useState<string>("1.0.0");
-  const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/tag/1.0.0");
+  const [apkVersion, setApkVersion] = useState<string>("1.5.0");
+  const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.0_OTA_READY.apk");
 
   useEffect(() => {
-    fetch('./pobierz/version.json?t=' + Date.now())
+    fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now())
       .then(res => res.json())
       .then(data => {
         if (data.version) setApkVersion(data.version);
-        if (data.url) setApkUrl(data.url);
+        if (data.apkUrl) setApkUrl(data.apkUrl);
       })
       .catch(() => {});
   }, []);
@@ -5129,19 +5129,26 @@ export default function Profile({
               </ul>
             </div>
 
-              <a
-                href={apkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors"
-                onClick={() => {
-                  Haptics.success();
-                  localStorage.setItem("dismissedApkVersion", apkVersion); // automatically dismiss banner if downloaded manually
-                }}
-              >
-                <Download size={20} />
-                Pobierz APK
-              </a>
+              {!Capacitor.isNativePlatform() ? (
+                <a
+                  href={apkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors"
+                  onClick={() => {
+                    Haptics.success();
+                    localStorage.setItem("dismissedApkVersion", apkVersion);
+                  }}
+                >
+                  <Download size={20} />
+                  Pobierz APK (v{apkVersion})
+                </a>
+              ) : (
+                <div className="w-full text-center p-4 rounded-2xl bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 font-bold border border-green-200 dark:border-green-900/30 flex items-center justify-center gap-2">
+                  <Smartphone size={20} />
+                  Używasz Natywnej Aplikacji
+                </div>
+              )}
 
             <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
               <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">

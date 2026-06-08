@@ -52,13 +52,20 @@ export default function HealthWidget() {
           {loading ? (
             <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-8 w-24 rounded mt-1"></div>
           ) : steps !== null ? (
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-3xl font-black text-slate-800 dark:text-white leading-none">
-                {steps.toLocaleString()}
-              </span>
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                kroków
-              </span>
+            <div className="flex flex-col">
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-3xl font-black text-slate-800 dark:text-white leading-none">
+                  {steps.toLocaleString()}
+                </span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  kroków
+                </span>
+              </div>
+              {steps === 0 && (
+                <div className="mt-2 text-[9px] text-slate-400 dark:text-slate-500 italic leading-tight">
+                  Wskazówka: Upewnij się, że Twój zegarek lub aplikacja (np. Google Fit, Samsung Health) zapisuje dane do Health Connect.
+                </div>
+              )}
             </div>
           ) : (
             <div className="mt-1 text-xs text-slate-500 italic">

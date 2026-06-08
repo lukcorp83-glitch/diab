@@ -55,19 +55,20 @@ export const healthService = {
       const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
       if (!healthObj) { resolve(0); return; }
 
-      healthObj.query(
+      healthObj.queryAggregated(
         {
           startDate: yesterday,
           endDate: now,
           dataType: 'steps',
         },
-        (data: HealthDataResult[]) => {
-          if (!data || data.length === 0) {
+        (data: any) => {
+          console.log('[HealthConnect] Aggregated steps data:', data);
+          if (!data) {
             resolve(0);
             return;
           }
-          // Zsumowanie wszystkich wpisów kroków z ostatnich 24 godzin
-          const totalSteps = data.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
+          // queryAggregated zwraca obiekt z polem value, czasami w data.value, czasami po prostu value
+          const totalSteps = Number(data.value) || 0;
           resolve(Math.round(totalSteps));
         },
         (err: any) => {

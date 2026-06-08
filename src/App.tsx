@@ -147,7 +147,6 @@ import NotificationCenter from "./components/NotificationCenter";
 import NotebookManager from "./components/NotebookManager";
 import ChangelogPopup from "./components/ChangelogPopup";
 import PrivacyPopup from "./components/PrivacyPopup";
-import ApkDownloadBanner from "./components/ApkDownloadBanner";
 import QuickStatusPopup from "./components/QuickStatusPopup";
 import { Diets } from "./components/Diets";
 import JetLagMode from "./components/JetLagMode";
@@ -2758,7 +2757,6 @@ export default function App() {
         </div>
       </header>
       )}
-      <ApkDownloadBanner />
 
       <Sidebar
         isOpen={isSidebarOpen}

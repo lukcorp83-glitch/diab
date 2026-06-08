@@ -252,4 +252,4 @@ export const VERSIONS: VersionEntry[] = [
   }
 ];
 
-export const CURRENT_VERSION = "4.1.1";
+export const CURRENT_VERSION = "1.5.0";
