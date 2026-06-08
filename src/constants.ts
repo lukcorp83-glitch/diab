@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const APP_VERSION = '4.1';
+export const APP_VERSION = '5.2.0';
 export const FACEBOOK_GROUP_URL = 'https://www.facebook.com/groups/4442689766059238/';
 
 export const CATEGORIES = [

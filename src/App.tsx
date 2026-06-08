@@ -2166,7 +2166,7 @@ export default function App() {
                 theme === "dark" ? "text-white" : "text-slate-900",
               )}
             >
-              GlikoControl
+              GlikoControl v{CURRENT_VERSION}
             </h2>
           </div>
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">
@@ -2717,7 +2717,7 @@ export default function App() {
                 <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
                 <div>
                   <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">
-                    GlikoControl
+                    GlikoControl v{CURRENT_VERSION}
                   </h1>
                   <p
                     onClick={(e) => {

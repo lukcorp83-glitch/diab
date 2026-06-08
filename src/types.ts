@@ -90,6 +90,7 @@ export interface InventoryItem {
   category: "sensors" | "insulin" | "infusion_sets" | "strips" | "other";
   expiryDate?: string;
   dailyDose?: number; // Added daily dose for estimation
+  barcode?: string;
 }
 
 export interface UserSettings {

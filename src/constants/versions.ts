@@ -5,46 +5,18 @@ export interface VersionEntry {
   changes: string[];
 }
 
-export const CURRENT_VERSION = '1.5.7';
+export const CURRENT_VERSION = '5.2.0';
 
-export const VERSIONS: VersionEntry[] = [
+export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "1.5.7",
+    version: "5.2.0",
     date: "2026-06-08",
-    title: "Gliko Family: Zdalne Komunikaty",
+    title: "Gliko Apteczka & Smart Skaner",
     changes: [
-      "Nowość: Pełnoekranowe powiadomienia (Gliko Family) wysyłane ze sparowanych urządzeń",
-      "Nowość: Potwierdzanie zrozumienia ważnych komunikatów na drugim ekranie",
-      "Poprawka: Nowa, bardzo elegancka i subtelna animacja po instalacji aktualizacji"
-    ]
-  },
-  {
-    version: "1.5.6",
-    date: "2026-06-08",
-    title: "Aktualizacja 1.5.6",
-    changes: [
-      "Poprawka pobierania paczek OTA: Przejście na nowy format kompresji",
-      "Dodano systemowe uprawnienie stanu sieci dla pobierania w tle",
-      "Naprawiono błędny adres pobierania pliku APK w wersji PWA"
-    ]
-  },
-  {
-    version: "1.5.2",
-    date: "2026-06-08",
-    title: "Patch 1.5.2",
-    changes: [
-      "Hotfix: Naprawiono błąd wyświetlania zakładki System (brakujący import ikonki)"
-    ]
-  },
-  {
-    version: "1.5.1",
-    date: "2026-06-08",
-    title: "Aktualizacja 1.5.1",
-    changes: [
-      "Test aktualizacji OTA (Over-The-Air)",
-      "Poprawka migającej listy urządzeń WebSocket",
-      "Dodano przycisk do ręcznego wymuszania aktualizacji",
-      "Oznaczenie własnego urządzenia '(Ty)' na liście pokoju"
+      "Nowość: Nowa, ogromna aktualizacja systemów PWA.",
+      "Nowość: Dodano nowoczesny skaner kodów kreskowych za pomocą kamery aparatu.",
+      "Automatyzacja: Zeskanowane wkłucia i sensory automatycznie aktualizują Twoje stany w Apteczce.",
+      "Poprawka: Przeprojektowano i uszeregowano listy aktualizacji dla wersji PWA oraz natywnej APK."
     ]
   },
   {
@@ -279,6 +251,48 @@ export const VERSIONS: VersionEntry[] = [
       "System misji dziennych i poziomów doświadczenia XP",
       "Dodano mini-grę 'Celuj w Cukier'",
       "Możliwość zmiany tła pokoju Gliko"
+    ]
+  },
+];
+
+export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "1.5.7",
+    date: "2026-06-08",
+    title: "Gliko Family: Zdalne Komunikaty",
+    changes: [
+      "Nowość: Pełnoekranowe powiadomienia (Gliko Family) wysyłane ze sparowanych urządzeń",
+      "Nowość: Potwierdzanie zrozumienia ważnych komunikatów na drugim ekranie",
+      "Poprawka: Nowa, bardzo elegancka i subtelna animacja po instalacji aktualizacji"
+    ]
+  },
+  {
+    version: "1.5.6",
+    date: "2026-06-08",
+    title: "Aktualizacja 1.5.6",
+    changes: [
+      "Poprawka pobierania paczek OTA: Przejście na nowy format kompresji",
+      "Dodano systemowe uprawnienie stanu sieci dla pobierania w tle",
+      "Naprawiono błędny adres pobierania pliku APK w wersji PWA"
+    ]
+  },
+  {
+    version: "1.5.2",
+    date: "2026-06-08",
+    title: "Patch 1.5.2",
+    changes: [
+      "Hotfix: Naprawiono błąd wyświetlania zakładki System (brakujący import ikonki)"
+    ]
+  },
+  {
+    version: "1.5.1",
+    date: "2026-06-08",
+    title: "Aktualizacja 1.5.1",
+    changes: [
+      "Test aktualizacji OTA (Over-The-Air)",
+      "Poprawka migającej listy urządzeń WebSocket",
+      "Dodano przycisk do ręcznego wymuszania aktualizacji",
+      "Oznaczenie własnego urządzenia '(Ty)' na liście pokoju"
     ]
   },
   {

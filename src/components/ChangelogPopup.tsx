@@ -12,11 +12,11 @@ import {
   Bell,
   CloudCog
 } from 'lucide-react';
-import { VERSIONS } from '../constants/versions';
+import { PWA_VERSIONS } from '../constants/versions';
 import { cn } from '../lib/utils';
 
 export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
-  const current = VERSIONS[0]; // Active top release (ver 4.1)
+  const current = PWA_VERSIONS[0]; // Active top release (ver 4.1)
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 backdrop-blur-[12px]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 24px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 16px)' }}>

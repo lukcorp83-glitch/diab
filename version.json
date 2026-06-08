@@ -1,6 +1,6 @@
 {
-  "version": "1.5.7",
+  "version": "5.2.0",
   "url": "https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/dist.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.7_OTA_FINISH.apk",
-  "whatsNew": "Dodano Gliko Family: Powiadomienia pełnoekranowe na połączone telefony i subtelne animacje."
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.2.0_OTA_FINISH.apk",
+  "whatsNew": "Gliko Apteczka & Smart Skaner! PWA i wsparcie dla natywnej kamery do odczytu kodów."
 }

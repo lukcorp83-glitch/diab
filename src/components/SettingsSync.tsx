@@ -111,7 +111,6 @@ export default function SettingsSync({
             uid: getEffectiveUid(user),
             syncSecret: secret,
             ts: Date.now(),
-            settings: settings,
           }),
         );
       });

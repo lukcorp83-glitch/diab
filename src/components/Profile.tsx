@@ -65,6 +65,9 @@ import {
   ArrowLeft,
   Share2,
   Network,
+  Bot,
+  MessageCircle,
+  Camera,
 } from "lucide-react";
 import { db, auth, onConnectionChange } from "../lib/firebase";
 import { deleteUser } from "firebase/auth";
@@ -92,11 +95,12 @@ import {
   PetAccessory,
   PetBackground,
 } from "../constants";
-import { VERSIONS, CURRENT_VERSION } from "../constants/versions";
+import { PWA_VERSIONS, APK_VERSIONS, CURRENT_VERSION } from "../constants/versions";
 
 import CgmImport from "./CgmImport";
 import DevicePairing from "./DevicePairing";
 import RemoteAlertSender from "./RemoteAlertSender";
+import BarcodeScannerModal from "./BarcodeScannerModal";
 import SettingsTransfer from "./SettingsTransfer";
 import LocalSync from "./LocalSync";
 import CloudPackageSync from "./CloudPackageSync";
@@ -247,6 +251,9 @@ export default function Profile({
 
   const [newInventoryItem, setNewInventoryItem] =
     useState<InventoryItem | null>(null);
+
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+
   const insertionSite = settings.infusionSetSite || "Prawy brzuch";
 
   const icons = [
@@ -347,6 +354,50 @@ export default function Profile({
       JSON.stringify(categoryOrder),
     );
   }, [categoryOrder]);
+
+  const handleBarcodeScan = async (scannedBarcode: string) => {
+    setShowBarcodeScanner(false);
+    if (!user) return;
+    
+    const currentInv = settings.inventory || [];
+    const existingItemIndex = currentInv.findIndex((i) => i.barcode === scannedBarcode);
+    
+    if (existingItemIndex !== -1) {
+       const updated = [...currentInv];
+       updated[existingItemIndex].quantity += 1;
+       setSettings((prev) => ({ ...prev, inventory: updated }));
+       
+       try {
+         await setDoc(
+           doc(
+             db,
+             "artifacts",
+             "diacontrolapp",
+             "users",
+             getEffectiveUid(user),
+             "settings",
+             "profile"
+           ),
+           { inventory: updated },
+           { merge: true }
+         );
+         alert(`✅ Rozpoznano: ${updated[existingItemIndex].name}\nAutomatycznie dodano +1 do zapasów!`);
+       } catch (e) {
+         console.error(e);
+       }
+    } else {
+       setNewInventoryItem({
+          id: "",
+          name: "",
+          quantity: 1,
+          unit: "szt.",
+          lowStockThreshold: 1,
+          category: "other",
+          barcode: scannedBarcode
+       });
+       alert("🆕 Nieznany kod kreskowy!\nOtwarto okno dodawania. Wpisz nazwę sprzętu, a aplikacja zapamięta go na przyszłość.");
+    }
+  };
 
   useEffect(() => {
     if (activeCategory !== null) {
@@ -3320,7 +3371,14 @@ export default function Profile({
                   <button
                     onClick={async () => {
                       const now = Date.now();
-                      const updates = { sensorChangeDate: now };
+                      const currentInv = settings.inventory || [];
+                      const setIndex = currentInv.findIndex(i => i.category === "sensors" && i.quantity > 0);
+                      let updatedInv = currentInv;
+                      if (setIndex !== -1) {
+                        updatedInv = [...currentInv];
+                        updatedInv[setIndex].quantity -= 1;
+                      }
+                      const updates = { sensorChangeDate: now, inventory: updatedInv };
                       setSettings((prev) => ({ ...prev, ...updates }));
                       if (user) {
                         await setDoc(
@@ -3547,7 +3605,14 @@ export default function Profile({
                   <button
                     onClick={async () => {
                       const now = Date.now();
-                      const updates = { infusionSetChangeDate: now, infusionSetSite: insertionSite };
+                      const currentInv = settings.inventory || [];
+                      const setIndex = currentInv.findIndex(i => i.category === "infusion_sets" && i.quantity > 0);
+                      let updatedInv = currentInv;
+                      if (setIndex !== -1) {
+                        updatedInv = [...currentInv];
+                        updatedInv[setIndex].quantity -= 1;
+                      }
+                      const updates = { infusionSetChangeDate: now, infusionSetSite: insertionSite, inventory: updatedInv };
                       setSettings((prev) => ({ ...prev, ...updates }));
                       if (user) {
                         await setDoc(
@@ -4397,21 +4462,29 @@ export default function Profile({
               ))}
 
               {!newInventoryItem && (
-                <button
-                  onClick={() =>
-                    setNewInventoryItem({
-                      id: "",
-                      name: "",
-                      quantity: 1,
-                      unit: "szt.",
-                      lowStockThreshold: 1,
-                      category: "other",
-                    })
-                  }
-                  className="w-full py-4 bg-rose-50 dark:bg-slate-800/50 text-rose-600 dark:text-rose-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-rose-200 dark:border-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-all flex items-center justify-center gap-2"
-                >
-                  <Plus size={16} /> Dodaj zapas do apteczki
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      setNewInventoryItem({
+                        id: "",
+                        name: "",
+                        quantity: 1,
+                        unit: "szt.",
+                        lowStockThreshold: 1,
+                        category: "other",
+                      })
+                    }
+                    className="flex-1 py-4 bg-rose-50 dark:bg-slate-800/50 text-rose-600 dark:text-rose-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-rose-200 dark:border-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus size={16} /> Dodaj ręcznie
+                  </button>
+                  <button
+                    onClick={() => setShowBarcodeScanner(true)}
+                    className="flex-1 py-4 bg-indigo-50 dark:bg-slate-800/50 text-indigo-600 dark:indigo-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Camera size={16} /> Skanuj Kod
+                  </button>
+                </div>
               )}
             </div>
 
@@ -4529,6 +4602,24 @@ export default function Profile({
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      Kod kreskowy (EAN/UPC)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Skorzystaj ze skanera..."
+                      value={newInventoryItem.barcode || ""}
+                      onChange={(e) =>
+                        setNewInventoryItem({
+                          ...newInventoryItem,
+                          barcode: e.target.value,
+                        })
+                      }
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                    />
                   </div>
 
                   {newInventoryItem.category === "insulin" && (
@@ -5209,6 +5300,64 @@ export default function Profile({
                 </li>
               </ol>
             </div>
+            
+            {/* APK Version History */}
+            <div
+              className={cn(
+                "rounded-[2.5rem] p-8 border shadow-sm opacity-60 hover:opacity-100 transition-opacity",
+                settings.glassmorphismEnabled
+                  ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                  : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800",
+              )}
+            >
+              <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
+                <History size={14} /> Aktualizacje APK
+              </h4>
+              <div className="space-y-6">
+                {APK_VERSIONS.slice(0, 3).map((v, i) => (
+                  <div
+                    key={v.version}
+                    className={cn(
+                      "relative pl-6 border-l-2",
+                      i === 0
+                        ? "border-accent-500"
+                        : "border-slate-200 dark:border-slate-800",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 bg-white dark:bg-slate-900",
+                        i === 0
+                          ? "border-accent-500"
+                          : "border-slate-200 dark:border-slate-800",
+                      )}
+                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-black dark:text-white">
+                        v{v.version}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">
+                        {v.date}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-bold text-accent-500 mb-2 truncate">
+                      {v.title}
+                    </p>
+                    <ul className="space-y-2">
+                      {v.changes.map((change, idx) => (
+                        <li
+                          key={idx}
+                          className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed"
+                        >
+                          • {change}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </motion.div>
       )}
@@ -6145,7 +6294,7 @@ export default function Profile({
                 <History size={14} /> Dziennik Aktualizacji
               </h4>
               <div className="space-y-6">
-                {VERSIONS.slice(0, 3).map((v, i) => (
+                {PWA_VERSIONS.slice(0, 3).map((v, i) => (
                   <div
                     key={v.version}
                     className={cn(
@@ -6191,6 +6340,13 @@ export default function Profile({
             </div>
           </div>
         </motion.div>
+      )}
+
+      {showBarcodeScanner && (
+        <BarcodeScannerModal
+          onClose={() => setShowBarcodeScanner(false)}
+          onScan={handleBarcodeScan}
+        />
       )}
     </motion.div>
   );

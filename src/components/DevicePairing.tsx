@@ -132,8 +132,7 @@ export default function DevicePairing({
             action: "pair",
             uid: getEffectiveUid(user),
             syncSecret: secret,
-            ts: Date.now(),
-            settings: settings
+            ts: Date.now()
           }),
         );
       });
