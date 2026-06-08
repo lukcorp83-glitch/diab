@@ -5,7 +5,7 @@ export interface VersionEntry {
   changes: string[];
 }
 
-export const CURRENT_VERSION = '1.5.4';
+export const CURRENT_VERSION = '1.5.5';
 
 export const VERSIONS: VersionEntry[] = [
   {
