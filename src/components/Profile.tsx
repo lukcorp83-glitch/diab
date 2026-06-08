@@ -94,6 +94,8 @@ import {
   BACKGROUNDS,
   PetAccessory,
   PetBackground,
+  MEDICAL_DICTIONARY,
+  extractGTIN,
 } from "../constants";
 import { PWA_VERSIONS, APK_VERSIONS, CURRENT_VERSION } from "../constants/versions";
 
@@ -355,12 +357,13 @@ export default function Profile({
     );
   }, [categoryOrder]);
 
-  const handleBarcodeScan = async (scannedBarcode: string) => {
+  const handleBarcodeScan = async (scannedBarcodeRaw: string) => {
     setShowBarcodeScanner(false);
     if (!user) return;
     
+    const scannedBarcode = extractGTIN(scannedBarcodeRaw);
     const currentInv = settings.inventory || [];
-    const existingItemIndex = currentInv.findIndex((i) => i.barcode === scannedBarcode);
+    const existingItemIndex = currentInv.findIndex((i) => extractGTIN(i.barcode) === scannedBarcode);
     
     if (existingItemIndex !== -1) {
        const updated = [...currentInv];
@@ -386,16 +389,30 @@ export default function Profile({
          console.error(e);
        }
     } else {
-       setNewInventoryItem({
-          id: "",
-          name: "",
-          quantity: 1,
-          unit: "szt.",
-          lowStockThreshold: 1,
-          category: "other",
-          barcode: scannedBarcode
-       });
-       alert("🆕 Nieznany kod kreskowy!\nOtwarto okno dodawania. Wpisz nazwę sprzętu, a aplikacja zapamięta go na przyszłość.");
+       const knownProduct = MEDICAL_DICTIONARY[scannedBarcode];
+       if (knownProduct) {
+         setNewInventoryItem({
+            id: "",
+            name: knownProduct.name,
+            quantity: 1,
+            unit: "szt.",
+            lowStockThreshold: 1,
+            category: knownProduct.category as any,
+            barcode: scannedBarcode
+         });
+         toast.success("✅ Znaleziono znany produkt medyczny!");
+       } else {
+         setNewInventoryItem({
+            id: "",
+            name: "",
+            quantity: 1,
+            unit: "szt.",
+            lowStockThreshold: 1,
+            category: "other",
+            barcode: scannedBarcode
+         });
+         alert("🆕 Nieznany kod kreskowy!\nOtwarto okno dodawania. Wpisz nazwę sprzętu, a aplikacja zapamięta go na przyszłość.");
+       }
     }
   };
 

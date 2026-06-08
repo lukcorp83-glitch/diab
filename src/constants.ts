@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const APP_VERSION = '5.2.0';
+export const APP_VERSION = '5.2.1';
 export const FACEBOOK_GROUP_URL = 'https://www.facebook.com/groups/4442689766059238/';
 
 export const CATEGORIES = [
@@ -403,3 +403,49 @@ export const ITEMS: PetItem[] = [
   { id: 'ball', name: 'Piłeczka', type: 'toy', price: 20, icon: '🎾', effect: { happiness: 30, xp: 15 } },
   { id: 'cake', name: 'Pyszne Ciastko', type: 'food', price: 25, icon: '🍰', effect: { hunger: 50, happiness: 20, xp: 20 } },
 ];
+export const MEDICAL_DICTIONARY: Record<string, { name: string; category: "insulin" | "sensors" | "infusion_sets" | "strips" | "other" }> = {
+  // Insuliny
+  "5909990451814": { name: "NovoRapid Penfill", category: "insulin" },
+  "5712249127619": { name: "NovoRapid FlexPen", category: "insulin" },
+  "5909991306298": { name: "Fiasp Penfill", category: "insulin" },
+  "5712249127527": { name: "Fiasp FlexTouch", category: "insulin" },
+  "5909990692422": { name: "Humalog Penfill", category: "insulin" },
+  "0300028799598": { name: "Humalog KwikPen", category: "insulin" },
+  "5909990962778": { name: "Lantus SoloStar", category: "insulin" },
+  "5909990962761": { name: "Lantus Wkład", category: "insulin" },
+  "5909991206109": { name: "Toujeo SoloStar", category: "insulin" },
+  "5909991136451": { name: "Tresiba FlexTouch", category: "insulin" },
+  "5909991136420": { name: "Tresiba Penfill", category: "insulin" },
+  "5909990715978": { name: "Levemir FlexPen", category: "insulin" },
+  "5909990715992": { name: "Levemir Penfill", category: "insulin" },
+  "5909990970636": { name: "Apidra SoloStar", category: "insulin" },
+  "5909990861118": { name: "Abasaglar KwikPen", category: "insulin" },
+
+  // Sensory
+  "5021791002504": { name: "FreeStyle Libre 2 (Sensor)", category: "sensors" },
+  "5021791000876": { name: "FreeStyle Libre 2 (Sensor)", category: "sensors" },
+  "5021791001033": { name: "FreeStyle Libre 2 (Sensor)", category: "sensors" },
+  "5021791001316": { name: "FreeStyle Libre 2 (Sensor)", category: "sensors" },
+  "00386270000866": { name: "Dexcom G6 Sensor (3-pack)", category: "sensors" },
+  "00386270001047": { name: "Dexcom G6 Sensor", category: "sensors" },
+  "00386270004062": { name: "Dexcom G7 Sensor", category: "sensors" },
+  "00763000519698": { name: "Guardian 4 Sensor", category: "sensors" },
+  "20763000519692": { name: "Guardian 4 Sensor (5-pack)", category: "sensors" },
+  "00763000046552": { name: "Guardian 3 Sensor", category: "sensors" },
+
+  // Paski i Wkłucia
+  "4015630066804": { name: "Accu-Chek Performa (50)", category: "strips" },
+  "4015630066828": { name: "Accu-Chek Instant (50)", category: "strips" },
+  "5016003728308": { name: "Contour Plus (50)", category: "strips" },
+  "00381370046049": { name: "OneTouch Select Plus (50)", category: "strips" },
+  "00763000046545": { name: "Medtronic Mio Advance (Wkłucia)", category: "infusion_sets" },
+  "00763000046569": { name: "Medtronic Quick-Set (Wkłucia)", category: "infusion_sets" },
+  "00763000046576": { name: "Medtronic Silhouette (Wkłucia)", category: "infusion_sets" }
+};
+
+export function extractGTIN(barcode: string): string {
+  if (barcode.startsWith("01") && barcode.length >= 16) {
+    return barcode.substring(2, 16);
+  }
+  return barcode;
+}

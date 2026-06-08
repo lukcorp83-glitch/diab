@@ -67,8 +67,17 @@ export default function BarcodeScannerModal({
       .start(
         selectedCameraId,
         {
-          fps: 10,
-          qrbox: { width: 250, height: 150 }
+          fps: 20,
+          videoConstraints: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            focusMode: "continuous"
+          },
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const width = Math.floor(viewfinderWidth * 0.95);
+            const height = Math.floor(viewfinderHeight * 0.6);
+            return { width, height };
+          }
         },
         (decodedText) => {
           if (scanner.isScanning) {
@@ -103,10 +112,19 @@ export default function BarcodeScannerModal({
             <Camera size={20} />
             <span className="font-bold">Skaner Opakowań</span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 bg-white/10 rounded-full hover:bg-white/20 active:scale-95 transition-all"
-          >
+            <button
+              onClick={async () => {
+                if (scanner && scanner.isScanning) {
+                  try {
+                    await scanner.stop();
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }
+                onClose();
+              }}
+              className="p-2 bg-white/10 rounded-full hover:bg-white/20 active:scale-95 transition-all"
+            >
             <X size={20} />
           </button>
         </div>

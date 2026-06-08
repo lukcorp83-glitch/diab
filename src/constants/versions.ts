@@ -5,11 +5,11 @@ export interface VersionEntry {
   changes: string[];
 }
 
-export const CURRENT_VERSION = '5.2.0';
+export const CURRENT_VERSION = '5.2.1';
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "5.2.0",
+    version: "5.2.1",
     date: "2026-06-08",
     title: "Gliko Apteczka & Smart Skaner",
     changes: [

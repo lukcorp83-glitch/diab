@@ -2,7 +2,7 @@ import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/
 import { Capacitor } from '@capacitor/core';
 import { toast } from "react-hot-toast";
 import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, PlateItem } from "../types";
@@ -168,6 +168,14 @@ export default function MealPlate({
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const scannerRef = useRef<any>(null);
+
+  const handleCloseScanner = async () => {
+    if (scannerRef.current && scannerRef.current.stopScanner) {
+      await scannerRef.current.stopScanner();
+    }
+    setIsScannerOpen(false);
+  };
   const [activeCategory, setActiveCategory] = useState("Wszystko");
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
@@ -1189,7 +1197,7 @@ export default function MealPlate({
                 className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 border border-slate-800 shadow-2xl relative overflow-hidden will-change-transform"
               >
                 <button
-                  onClick={() => setIsScannerOpen(false)}
+                  onClick={handleCloseScanner}
                   className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors z-10"
                 >
                   <X size={20} />
@@ -1199,8 +1207,9 @@ export default function MealPlate({
                 </h2>
                 <div className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2 relative shadow-inner">
                   <MealScanner
+                    ref={scannerRef}
                     onResult={async (decodedText) => {
-                      setIsScannerOpen(false);
+                      handleCloseScanner();
                       setIsSearching(true);
                       try {
                         const response = await fetch(
@@ -3263,11 +3272,23 @@ export default function MealPlate({
   );
 }
 
-function MealScanner({ onResult }: { onResult: (res: string) => void }) {
+const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void }, ref) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameras, setCameras] = useState<any[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>("");
   const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    stopScanner: async () => {
+      if (scanner && scanner.isScanning) {
+        try {
+          await scanner.stop();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }));
 
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("reader-meal");
@@ -3306,11 +3327,15 @@ function MealScanner({ onResult }: { onResult: (res: string) => void }) {
         .start(
           selectedCameraId,
           {
-            fps: 10,
+            fps: 20,
+            videoConstraints: {
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              focusMode: "continuous"
+            },
             qrbox: (viewfinderWidth, viewfinderHeight) => {
-              // For barcodes, a wider box is often better, but dynamic 70% works well for general
-              const width = Math.floor(viewfinderWidth * 0.8);
-              const height = Math.floor(viewfinderHeight * 0.5);
+              const width = Math.floor(viewfinderWidth * 0.95);
+              const height = Math.floor(viewfinderHeight * 0.6);
               return { width, height };
             },
           },
@@ -3396,4 +3421,4 @@ function MealScanner({ onResult }: { onResult: (res: string) => void }) {
       )}
     </div>
   );
-}
+});
