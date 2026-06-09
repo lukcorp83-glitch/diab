@@ -849,16 +849,30 @@ export default function MealPlate({
       4.0: 0.0,
     };
 
+    const rules = (() => {
+      try { return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}'); } catch { return {}; }
+    })();
+    const pkFast = rules.pkParams?.fastCarbDuration || 1.5;
+    const pkNormal = rules.pkParams?.normalCarbDuration || 3.0;
+    const pkSlow = rules.pkParams?.slowCarbDuration || 5.0;
+
     const getCarbAbsorption = (t: number, gi: number) => {
-      let peakT = gi > 70 ? 0.75 : gi < 50 ? 1.5 : 1.0;
-      let val = Math.max(0, 1 - Math.pow((t - peakT) / 1.5, 2));
-      return val;
+      let multiplier = 1.0;
+      if (gi > 70) multiplier = pkFast / 1.5;
+      else if (gi < 50) multiplier = pkSlow / 5.0;
+      else multiplier = pkNormal / 3.0;
+
+      let peakT = (gi > 70 ? 0.75 : gi < 50 ? 1.5 : 1.0) * multiplier;
+      let duration = 1.5 * multiplier;
+      return Math.max(0, 1 - Math.pow((t - peakT) / duration, 2));
     };
 
     const getWbtAbsorption = (t: number) => {
-      if (t < 1) return 0;
-      if (t < 3) return (t - 1) * 0.5;
-      return 1 - (t - 3) * 0.5;
+      let multiplier = pkSlow / 5.0;
+      let adjT = t / multiplier;
+      if (adjT < 1) return 0;
+      if (adjT < 3) return (adjT - 1) * 0.5;
+      return 1 - (adjT - 3) * 0.5;
     };
 
     // Find all meals and boluses within 6h window before activeMeal
@@ -976,16 +990,30 @@ export default function MealPlate({
     const averageGi = totalWeightsWithGi > 0 ? weightedGiSum / totalWeightsWithGi : 50;
 
     const data = [];
+    const rules = (() => {
+      try { return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}'); } catch { return {}; }
+    })();
+    const pkFast = rules.pkParams?.fastCarbDuration || 1.5;
+    const pkNormal = rules.pkParams?.normalCarbDuration || 3.0;
+    const pkSlow = rules.pkParams?.slowCarbDuration || 5.0;
+
     const getCarbAbsorption = (t: number, gi: number) => {
-      let peakT = gi > 70 ? 0.75 : gi < 50 ? 1.5 : 1.0;
-      let val = Math.max(0, 1 - Math.pow((t - peakT) / 1.5, 2));
-      return val;
+      let multiplier = 1.0;
+      if (gi > 70) multiplier = pkFast / 1.5;
+      else if (gi < 50) multiplier = pkSlow / 5.0;
+      else multiplier = pkNormal / 3.0;
+
+      let peakT = (gi > 70 ? 0.75 : gi < 50 ? 1.5 : 1.0) * multiplier;
+      let duration = 1.5 * multiplier;
+      return Math.max(0, 1 - Math.pow((t - peakT) / duration, 2));
     };
 
     const getWbtAbsorption = (t: number) => {
-      if (t < 1) return 0;
-      if (t < 3) return (t - 1) * 0.5;
-      return 1 - (t - 3) * 0.5;
+      let multiplier = pkSlow / 5.0;
+      let adjT = t / multiplier;
+      if (adjT < 1) return 0;
+      if (adjT < 3) return (adjT - 1) * 0.5;
+      return 1 - (adjT - 3) * 0.5;
     };
 
     const startTime = new Date(entryTime).getTime();
@@ -3274,8 +3302,7 @@ export default function MealPlate({
 
 const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void }, ref) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [cameras, setCameras] = useState<any[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
 
   useImperativeHandle(ref, () => ({
@@ -3293,26 +3320,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("reader-meal");
     setScanner(html5QrCode);
-
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        if (devices && devices.length > 0) {
-          setCameras(devices);
-          const backCamera = devices.find(
-            (d) =>
-              d.label.toLowerCase().includes("back") ||
-              d.label.toLowerCase().includes("tył"),
-          );
-          setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
-          setHasPermission(true);
-        } else {
-          setHasPermission(false);
-        }
-      })
-      .catch((err) => {
-        console.error("Camera permission error", err);
-        setHasPermission(false);
-      });
+    setHasPermission(true);
 
     return () => {
       if (html5QrCode.isScanning) {
@@ -3322,10 +3330,10 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
   }, []);
 
   useEffect(() => {
-    if (scanner && selectedCameraId && !scanner.isScanning) {
+    if (scanner && !scanner.isScanning) {
       scanner
         .start(
-          selectedCameraId,
+          { facingMode },
           {
             fps: 20,
             videoConstraints: {
@@ -3345,28 +3353,26 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
               .then(() => onResult(decodedText))
               .catch((e) => console.error(e));
           },
-          () => {}, // scan error
+          () => {},
         )
         .catch((err) => {
           console.error("Scanner start error", err);
         });
     }
-  }, [scanner, selectedCameraId]);
+  }, [scanner, facingMode]);
 
   const switchCamera = () => {
     if (!scanner) return;
-    const currentIndex = cameras.findIndex((c) => c.id === selectedCameraId);
-    const nextIndex = (currentIndex + 1) % cameras.length;
 
     if (scanner.isScanning) {
       scanner
         .stop()
         .then(() => {
-          setSelectedCameraId(cameras[nextIndex].id);
+          setFacingMode(prev => prev === "environment" ? "user" : "environment");
         })
         .catch((e) => console.error(e));
     } else {
-      setSelectedCameraId(cameras[nextIndex].id);
+      setFacingMode(prev => prev === "environment" ? "user" : "environment");
     }
   };
 
@@ -3403,14 +3409,12 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
       </div>
 
       {/* Camera Switch Button */}
-      {cameras.length > 1 && (
-        <button
-          onClick={switchCamera}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white/30 transition-all pointer-events-auto shadow-lg"
-        >
-          <Camera size={20} />
-        </button>
-      )}
+      <button
+        onClick={switchCamera}
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white/30 transition-all pointer-events-auto shadow-lg"
+      >
+        <Camera size={20} />
+      </button>
 
       {hasPermission === null && (
         <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">

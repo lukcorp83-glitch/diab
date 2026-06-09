@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { clampSafeBolus } from "../lib/physiologicalSafety";
 
 import { auth } from "../lib/firebase";
 
@@ -443,6 +444,7 @@ export const geminiService = {
     iob: number,
     cob: number,
     recentLogs: any[],
+    settings?: any,
   ) {
     const formattedLogs = recentLogs.slice(0, 15).map((l) => ({
       typ: l.type,
@@ -483,7 +485,31 @@ export const geminiService = {
         .replace(/^```json/, "")
         .replace(/```$/, "")
         .trim();
-      return JSON.parse(cleanJson);
+      const parsedResult = JSON.parse(cleanJson);
+
+      if (settings && parsedResult && parsedResult.recommendedDose !== undefined) {
+        const isf = settings.isf || 50;
+        const wwRatio = settings.wwRatio || 10;
+        const targetMin = settings.targetMin || 70;
+
+        const safetyCheck = clampSafeBolus(
+          parsedResult.recommendedDose,
+          currentBg,
+          currentCarbs,
+          iob,
+          cob,
+          isf,
+          wwRatio,
+          targetMin
+        );
+
+        if (safetyCheck.capped) {
+          parsedResult.recommendedDose = safetyCheck.safeDose;
+          parsedResult.reasoning = `${safetyCheck.reason} Oryginalny powód AI: ${parsedResult.reasoning}`;
+        }
+      }
+
+      return parsedResult;
     } catch (error) {
       console.error("Gemini Bolus Rec Error:", error);
       return null;
@@ -776,13 +802,23 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
     `
       : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}`;
 
+    let medicalRulesStr = "";
+    if (typeof window !== "undefined") {
+      try {
+        const rules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+        if (rules.pkParams) {
+          medicalRulesStr = `\nOsobnicze tempo wchłaniania pacjenta: metabolizm "${rules.pkParams.label}" (czas wchłaniania standardowych węglowodanów: ${rules.pkParams.normalCarbDuration}h). Wykorzystaj to w swoich poradach dotyczących wchłaniania powołując się na system GlikoSense!`;
+        }
+      } catch(e) {}
+    }
+
     const systemInstruction = isChild
       ? `Jesteś Smart Asystentem Gliko w aplikacji GlikoControl. 
     Twoim zadaniem jest pomaganie dzieciom i ich rodzicom w codziennym zarządzaniu cukrzycą w sposób przyjazny, cierpliwy i zachęcający. Posiadasz pełną integrację aplikacyjną (wiedz o ustawieniach, dziennikach itd.).
     ${currentDataStr}
     MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA (z ostatnich 24 godzin):
     - Ostatnie logi: ${JSON.stringify(lastLogs)}
-    - Ustawienia (ISF, WW): ${JSON.stringify(settings)}
+    - Ustawienia (ISF, WW): ${JSON.stringify(settings)}${medicalRulesStr}
     
     ZASADY ODPOWIADANIA:
     1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. Nie generuj długich raportów (tym zajmuje się system GlikoSense). Odpowiadaj maksymalnie zwięźle.
@@ -799,7 +835,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
     ${currentDataStr}
     DANE UŻYTKOWNIKA (24h):
     - Logi: ${JSON.stringify(lastLogs)}
-    - Parametry: ${JSON.stringify(settings)}
+    - Parametry: ${JSON.stringify(settings)}${medicalRulesStr}
  
     ZASADY:
     1. AKCJE I DOSTĘP: Użytkownik może poprosić o zapisanie pomiaru, bolusa, bądź zmianę ustawień aplikacji lub ułatwienie nawigacji w samej aplikacji. Robi to za sprawą niewidzialnych tagów w Twoich wiadomościach:

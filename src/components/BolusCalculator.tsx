@@ -573,6 +573,7 @@ export default function BolusCalculator({
         iob,
         cob,
         logs,
+        userSettings
       );
       if (result) {
         setAiRec(result);
