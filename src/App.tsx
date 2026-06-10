@@ -12,6 +12,7 @@ import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import RemoteAlertsListener from "./components/RemoteAlertsListener";
 import UpdateModal from "./components/UpdateModal";
+import GlikoControlLogo from "./components/LogoAnimation";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -237,6 +238,14 @@ const DEFAULT_SETTINGS: UserSettings = {
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [pumpStatus, setPumpStatus] = useState<any>(null);
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -2133,15 +2142,8 @@ export default function App() {
 
   const handleLogout = () => signOut(auth);
 
-  if (loading) {
-    return (
-      <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
-        <Logo className="w-20 h-20 animate-pulse drop-shadow-2xl opacity-70 mb-4" />
-        <p className="text-slate-400 dark:text-slate-500 font-medium tracking-widest text-sm uppercase">
-          powered by GlikoSense
-        </p>
-      </div>
-    );
+  if (loading || showSplash) {
+    return <GlikoControlLogo />;
   }
 
   if (!user) {
