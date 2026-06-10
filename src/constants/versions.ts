@@ -5,11 +5,11 @@ export interface VersionEntry {
   changes: string[];
 }
 
-export const CURRENT_VERSION = '5.3.0';
+export const CURRENT_VERSION = '5.3.1';
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "5.3.0",
+    version: "5.3.1",
     date: "2026-06-10",
     title: "Android Auto & Standard AGP",
     changes: [
@@ -267,7 +267,7 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-    version: "5.3.0",
+    version: "5.3.1",
     date: "2026-06-10",
     title: "Wsparcie dla Android Auto",
     changes: [
