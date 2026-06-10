@@ -1259,9 +1259,6 @@ export default function App() {
     if (!userSettings?.notificationsEnabled) return;
 
     const sendAppNotification = (title: string, body: string) => {
-      const apkNotificationsEnabled = userSettings?.apkSystemNotificationsEnabled ?? true;
-      if (!apkNotificationsEnabled) return;
-
       toast(body, {
         icon: '⏰',
         duration: 15000,
@@ -1274,6 +1271,10 @@ export default function App() {
           background: '#fff'
         }
       });
+
+      const apkPref = localStorage.getItem("apkSystemNotificationsEnabled");
+      const apkNotificationsEnabled = apkPref !== "false";
+      if (!apkNotificationsEnabled) return;
 
       if (Capacitor.isNativePlatform()) {
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
@@ -1397,6 +1398,35 @@ export default function App() {
 
     if (glucoseLogs.length === 0) return;
     const latest = glucoseLogs[0];
+    const previous = glucoseLogs.length > 1 ? glucoseLogs[1] : null;
+
+    // Aktualizacja przyklejonego powiadomienia na ekranie blokady
+    let delta = 0;
+    let trendArrow = "";
+    if (previous) {
+      const timeDiffMs = latest.timestamp - previous.timestamp;
+      const timeDiffMinutes = timeDiffMs / (60 * 1000);
+      if (timeDiffMinutes > 0 && timeDiffMinutes <= 15) {
+        delta = Math.round(((latest.value - previous.value) / timeDiffMinutes) * 5);
+        if (delta > 15) trendArrow = "↑↑";
+        else if (delta > 5) trendArrow = "↑";
+        else if (delta < -15) trendArrow = "↓↓";
+        else if (delta < -5) trendArrow = "↓";
+        else trendArrow = "→";
+      }
+    }
+    
+    // Używamy getEffectiveIOB dla uwzględnienia pompy, jeśli jest dostępna
+    const iob = getEffectiveIOB(logs, pumpStatus, userSettings?.dia || 4);
+    const cob = calculateCOB(logs);
+    
+    notificationService.updateStickyNotification(
+      Math.round(latest.value).toString(), 
+      trendArrow, 
+      iob, 
+      Math.round(cob), 
+      delta
+    );
 
     // Check if the reading is recent (e.g., within the last 30 minutes) to avoid back-notifying historical syncs
     const isRecent = Date.now() - latest.timestamp < 30 * 60 * 1000;
@@ -1498,7 +1528,8 @@ export default function App() {
         navigator.vibrate([400, 200, 400, 200, 400]);
       }
 
-      const apkNotificationsEnabled = userSettings.apkSystemNotificationsEnabled ?? true;
+      const apkPref = localStorage.getItem("apkSystemNotificationsEnabled");
+      const apkNotificationsEnabled = apkPref !== "false";
       if (apkNotificationsEnabled) {
         if (Capacitor.isNativePlatform()) {
           import("@capacitor/local-notifications").then(({ LocalNotifications }) => {
@@ -1538,6 +1569,38 @@ export default function App() {
           });
         }
       }
+
+      // --- GlikoSense Insight Prompter (Odpytywanie użytkownika) ---
+      const lastInsightCheck = parseInt(localStorage.getItem('glikosense_last_insight_check') || '0', 10);
+      if (Date.now() - lastInsightCheck > 24 * 60 * 60 * 1000) {
+         localStorage.setItem('glikosense_last_insight_check', Date.now().toString());
+         import('./lib/insightGenerator').then(({ getGlikoSenseInsights }) => {
+             const insights = getGlikoSenseInsights(logs);
+             const nightLowsMsg = insights.find((i: string) => i.includes('nocne hipoglikemie'));
+             if (nightLowsMsg && !localStorage.getItem('glikosense_asked_night_lows')) {
+                 localStorage.setItem('glikosense_asked_night_lows', 'true');
+                 setTimeout(() => {
+                   toast((t) => (
+                     <div>
+                       <b className="text-accent-600">GlikoSense AI:</b> <br/> Zauważyłem u Ciebie powtarzające się spadki cukru w nocy. Czy chcesz, abym zaczął ostrzegać Cię wieczorem, jeśli ryzyko nocnego niedocukrzenia będzie wysokie?
+                       <div className="flex gap-2 mt-3">
+                         <button onClick={() => { 
+                           const prefs = userSettings.notificationPrefs || { hypo: true, hyper: true, reminders: true, predictions: true };
+                           setDoc(doc(db, "artifacts", "diacontrolapp", "users", userSettings.userId || "temp", "settings", "profile"), {
+                              notificationPrefs: { ...prefs, nightSnackReminder: true }
+                           }, { merge: true });
+                           toast.success("Inteligentna reguła włączona!");
+                           toast.dismiss(t.id);
+                         }} className="bg-accent-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">Tak, włącz regułę</button>
+                         <button onClick={() => toast.dismiss(t.id)} className="bg-slate-200 dark:bg-slate-700 dark:text-white text-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold">Nie teraz</button>
+                       </div>
+                     </div>
+                   ), { duration: 30000, position: 'top-center', style: { padding: '16px', border: '2px solid #6366f1' } });
+                 }, 5000);
+             }
+         });
+      }
+
     }
   }, [logs, userSettings]);
 

@@ -240,6 +240,54 @@ export const notificationService = {
     }, delayMs);
   },
 
+  async updateStickyNotification(glucoseText: string, trendArrow: string, iob: number, cob: number, delta: number) {
+    if (!Capacitor.isNativePlatform()) return;
+    
+    const stickyEnabled = localStorage.getItem('stickyNotificationEnabled') === 'true';
+    if (!stickyEnabled) {
+      // Usun istniejace powiadomienie
+      await LocalNotifications.cancel({ notifications: [{ id: 1000 }] }).catch(() => {});
+      return;
+    }
+
+    try {
+      const perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') return;
+
+      // Ensure channel exists (Importance 2 = LOW, no sound, no vibration)
+      await LocalNotifications.createChannel({
+        id: 'glikocontrol-sticky',
+        name: 'Ekran blokady (Ciągłe)',
+        description: 'Stałe powiadomienie pokazujące aktualną glikemię',
+        importance: 2,
+        visibility: 1, // Public visibility (shows on lockscreen)
+        vibration: false
+      });
+
+      const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
+      const title = `🩸 ${glucoseText} ${trendArrow} (${deltaStr})`;
+      const body = `Aktywna Insulina: ${iob.toFixed(2)} J | Węglowodany: ${cob} g`;
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: title,
+            body: body,
+            id: 1000,
+            channelId: 'glikocontrol-sticky',
+            ongoing: true, // Zablokowane powiadomienie (sticky)
+            autoCancel: false,
+            sound: null,
+            schedule: { at: new Date() },
+            smallIcon: 'ic_stat_name' // Użyjemy nowej ikony o tej nazwie
+          }
+        ]
+      });
+    } catch (e) {
+      console.error('Failed to update sticky notification:', e);
+    }
+  },
+
   async saveTokenToFirestore(token: string) {
     const user = auth.currentUser;
     if (!user) return;

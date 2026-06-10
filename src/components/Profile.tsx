@@ -3176,6 +3176,60 @@ export default function Profile({
               </div>
             )}
 
+            {isNativeApp() && (
+              <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700 mt-3 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <Bell className="text-accent-500" size={18} />
+                  <div>
+                    <p className="text-xs font-black dark:text-white leading-tight">
+                      Przyklejone powiadomienie
+                    </p>
+                    <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+                      Zawsze widoczny cukier na ekranie blokady
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    const currentState = localStorage.getItem("stickyNotificationEnabled") === "true";
+                    const targetState = !currentState;
+
+                    if (targetState) {
+                      if (Capacitor.isNativePlatform()) {
+                        const { LocalNotifications } = await import('@capacitor/local-notifications');
+                        const perms = await LocalNotifications.requestPermissions();
+                        if (perms.display !== 'granted') {
+                          alert("Zezwól na powiadomienia lokalne, aby używać tego widżetu.");
+                          return;
+                        }
+                      }
+                    }
+
+                    localStorage.setItem("stickyNotificationEnabled", targetState ? "true" : "false");
+                    
+                    // Aktualizuj React state, żeby wymusić re-render przycisku
+                    setSettings({
+                      ...settings,
+                      // @ts-ignore
+                      stickyNotificationEnabled: targetState,
+                    });
+
+                    if (!targetState && Capacitor.isNativePlatform()) {
+                        const { LocalNotifications } = await import('@capacitor/local-notifications');
+                        LocalNotifications.cancel({ notifications: [{ id: 1000 }] }).catch(() => {});
+                    }
+                  }}
+                  className={cn(
+                    "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
+                    (localStorage.getItem("stickyNotificationEnabled") === "true") &&
+                      "bg-accent-500 pl-5",
+                  )}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                </button>
+              </div>
+            )}
+
             <div
               className={cn(
                 "space-y-4 transition-all",
