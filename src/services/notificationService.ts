@@ -1,5 +1,5 @@
 import { toast } from "react-hot-toast";
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { getToken, onMessage } from 'firebase/messaging';
@@ -244,44 +244,15 @@ export const notificationService = {
     if (!Capacitor.isNativePlatform()) return;
     
     const stickyEnabled = localStorage.getItem('stickyNotificationEnabled') === 'true';
-    if (!stickyEnabled) {
-      // Usun istniejace powiadomienie
-      await LocalNotifications.cancel({ notifications: [{ id: 1000 }] }).catch(() => {});
-      return;
-    }
+    const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
+    const title = stickyEnabled ? `🩸 ${glucoseText} ${trendArrow} (${deltaStr})` : "GlikoControl";
+    const body = stickyEnabled ? `Aktywna Insulina: ${iob.toFixed(2)} J | Węglowodany: ${cob} g` : "Pętla zamknięta i alarmy działają w tle";
 
     try {
-      const perms = await LocalNotifications.checkPermissions();
-      if (perms.display !== 'granted') return;
-
-      // Ensure channel exists (Importance 3 = DEFAULT, needed for lockscreen)
-      await LocalNotifications.createChannel({
-        id: 'glikocontrol-sticky-v2',
-        name: 'Ekran blokady (Ciągłe)',
-        description: 'Stałe powiadomienie pokazujące aktualną glikemię',
-        importance: 3,
-        visibility: 1, // Public visibility (shows on lockscreen)
-        vibration: false
-      });
-
-      const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
-      const title = `🩸 ${glucoseText} ${trendArrow} (${deltaStr})`;
-      const body = `Aktywna Insulina: ${iob.toFixed(2)} J | Węglowodany: ${cob} g`;
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            title: title,
-            body: body,
-            id: 1000,
-            channelId: 'glikocontrol-sticky-v2',
-            ongoing: true, // Zablokowane powiadomienie (sticky)
-            autoCancel: false,
-            sound: null,
-            schedule: { at: new Date() },
-            smallIcon: 'ic_stat_name' // Użyjemy nowej ikony o tej nazwie
-          }
-        ]
+      const NotificationBridge = registerPlugin<any>('NotificationBridge');
+      await NotificationBridge.updateForegroundNotification({
+        title: title,
+        text: body
       });
     } catch (e) {
       console.error('Failed to update sticky notification:', e);
