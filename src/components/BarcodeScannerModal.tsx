@@ -27,7 +27,11 @@ export default function BarcodeScannerModal({
         }
 
         // Install Google Barcode Scanner Module if not present
-        await BarcodeScanner.installGoogleBarcodeScannerModule();
+        try {
+          await BarcodeScanner.installGoogleBarcodeScannerModule();
+        } catch (installErr) {
+          // ignore error if it's already installed
+        }
 
         // Uruchomienie pełnoekranowego skanera systemowego Google ML Kit (działa w natywnej warstwie nad WebView)
         const { barcodes } = await BarcodeScanner.scan();

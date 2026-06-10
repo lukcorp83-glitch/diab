@@ -241,22 +241,7 @@ export const notificationService = {
   },
 
   async updateStickyNotification(glucoseText: string, trendArrow: string, iob: number, cob: number, delta: number) {
-    if (!Capacitor.isNativePlatform()) return;
-    
-    const stickyEnabled = localStorage.getItem('stickyNotificationEnabled') === 'true';
-    const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
-    const title = stickyEnabled ? `🩸 ${glucoseText} ${trendArrow} (${deltaStr})` : "GlikoControl";
-    const body = stickyEnabled ? `Aktywna Insulina: ${iob.toFixed(2)} J | Węglowodany: ${cob} g` : "Pętla zamknięta i alarmy działają w tle";
-
-    try {
-      const NotificationBridge = registerPlugin<any>('NotificationBridge');
-      await NotificationBridge.updateForegroundNotification({
-        title: title,
-        text: body
-      });
-    } catch (e) {
-      console.error('Failed to update sticky notification:', e);
-    }
+    // Usunięto na życzenie użytkownika (skasowano powiadomienie glikemii na belce)
   },
 
   async saveTokenToFirestore(token: string) {
