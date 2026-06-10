@@ -3217,6 +3217,17 @@ export default function Profile({
                     if (!targetState && Capacitor.isNativePlatform()) {
                         const { LocalNotifications } = await import('@capacitor/local-notifications');
                         LocalNotifications.cancel({ notifications: [{ id: 1000 }] }).catch(() => {});
+                    } else if (targetState && Capacitor.isNativePlatform()) {
+                        const bgLogs = logs.filter(l => l.type === 'glucose');
+                        if (bgLogs.length > 0) {
+                            const latest = bgLogs[bgLogs.length - 1];
+                            notificationService.updateStickyNotification(
+                                Math.round(latest.value).toString(), 
+                                "→", 0, 0, 0
+                            );
+                        } else {
+                            notificationService.updateStickyNotification("---", "→", 0, 0, 0);
+                        }
                     }
                   }}
                   className={cn(
@@ -3322,6 +3333,71 @@ export default function Profile({
                   );
                 })}
               </div>
+
+              {settings.notificationsEnabled && (
+                <div className="pl-12 mt-6">
+                  <p className="text-[10px] font-black text-accent-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <Sparkles size={12} className="animate-pulse" /> Inteligentne reguły GlikoSense
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      {
+                        id: "nightSnackReminder",
+                        label: "Nocne Przekąski (Ostrzeżenia)",
+                        icon: <Moon size={14} className="text-indigo-400" />,
+                      }
+                    ].map((pref) => {
+                      const prefs = settings.notificationPrefs || {
+                        hypo: true, hyper: true, reminders: true, predictions: true
+                      };
+                      const isActive = prefs[pref.id as keyof typeof prefs];
+                      return (
+                        <button
+                          key={pref.id}
+                          onClick={async () => {
+                            const newPrefs = { ...prefs, [pref.id]: !isActive };
+                            setSettings({
+                              ...settings,
+                              notificationPrefs: newPrefs,
+                            });
+                            if (user) {
+                              await setDoc(
+                                doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+                                { notificationPrefs: newPrefs },
+                                { merge: true }
+                              );
+                            }
+                          }}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
+                            isActive
+                              ? "bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 shadow-sm"
+                              : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                            isActive ? "bg-white dark:bg-indigo-500/20 shadow-sm" : "bg-slate-200 dark:bg-slate-800"
+                          )}>
+                            {pref.icon}
+                          </div>
+                          <div>
+                            <span className={cn(
+                                "text-[10px] font-black uppercase tracking-tight block",
+                                isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-400"
+                              )}>
+                              {pref.label}
+                            </span>
+                            <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
+                              {isActive ? "GlikoSense czuwa" : "Reguła wyłączona"}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

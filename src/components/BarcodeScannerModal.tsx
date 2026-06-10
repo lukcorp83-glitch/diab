@@ -24,9 +24,12 @@ export default function BarcodeScannerModal({
           setCameras(devices);
           // Szukamy tylnego aparatu (back/environment)
           const backCamera = devices.find(
-            (c) => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment")
+            (c) => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment") || c.label.toLowerCase().includes("tył")
           );
-          setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
+          // Jeśli etykiety są puste (np. w WebView Capacitora), często indeks 1 lub ostatni to aparat główny (tylny).
+          const fallbackCamera = devices.length > 1 ? devices[devices.length - 1] : devices[0];
+          
+          setSelectedCameraId(backCamera ? backCamera.id : fallbackCamera.id);
         } else {
           setError("Nie znaleziono żadnego aparatu.");
         }
