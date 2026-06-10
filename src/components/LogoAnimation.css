@@ -21,11 +21,12 @@
 }
 
 /* Efekt "rysowania" łuku za pomocą stroke-dash */
+/* Długość ścieżki (path) wynosi ok 175 jednostek. */
 .animated-arc {
-  stroke-dasharray: 220;
-  stroke-dashoffset: 220;
-  transform: rotate(-90deg);
+  stroke-dasharray: 180;
+  stroke-dashoffset: 180;
   transform-origin: center;
+  /* Usunięto transform: rotate(-90deg) ponieważ path ma już właściwe koordynaty wycięcia! */
   animation: drawArc 1.2s 0.4s ease-in-out forwards;
 }
 
@@ -55,8 +56,8 @@
 }
 
 @keyframes drawArc {
-  0% { stroke-dashoffset: 220; }
-  100% { stroke-dashoffset: 50; } /* Zostawiamy przerwę w okręgu jak w logo */
+  0% { stroke-dashoffset: 180; }
+  100% { stroke-dashoffset: 0; } /* Rysujemy idealnie całą ścieżkę path (wycięcie jest już w niej wbudowane) */
 }
 
 @keyframes arrowEntrance {

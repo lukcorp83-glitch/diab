@@ -15,11 +15,9 @@ const GlikoControlLogo = () => {
             </linearGradient>
           </defs>
 
-          {/* 2. Rysujący się pierścień (Circular Arc) */}
-          <circle 
-            cx="50" 
-            cy="50" 
-            r="35" 
+          {/* 2. Rysujący się pierścień (Circular Arc) - zmieniony na dokładny kształt z pwa-icon.svg */}
+          <path 
+            d="M 60,15 A 35,35 0 1 0 85,50" 
             stroke="url(#gliko-grad)" 
             strokeWidth="10" 
             fill="none"
