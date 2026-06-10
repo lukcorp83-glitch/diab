@@ -10,11 +10,34 @@ export default function BarcodeScannerModal({
   onClose: () => void;
   onScan: (barcode: string) => void;
 }) {
-  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [cameras, setCameras] = useState<any[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
   const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
   const [error, setError] = useState("");
   const isScanningRef = useRef(false);
 
+  // Pobieranie kamer
+  useEffect(() => {
+    Html5Qrcode.getCameras()
+      .then((devices) => {
+        if (devices && devices.length) {
+          setCameras(devices);
+          // Szukamy tylnego aparatu (back/environment)
+          const backCamera = devices.find(
+            (c) => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment")
+          );
+          setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
+        } else {
+          setError("Nie znaleziono żadnego aparatu.");
+        }
+      })
+      .catch((err) => {
+        console.error("Camera permission error", err);
+        setError("Brak dostępu do aparatu. Sprawdź uprawnienia.");
+      });
+  }, []);
+
+  // Inicjalizacja obiektu skanera
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("barcode-reader", {
       formatsToSupport: [
@@ -37,13 +60,14 @@ export default function BarcodeScannerModal({
     };
   }, []);
 
+  // Uruchamianie skanera po wybraniu kamery
   useEffect(() => {
-    if (!scanner || isScanningRef.current) return;
+    if (!scanner || !selectedCameraId || isScanningRef.current) return;
 
     isScanningRef.current = true;
     scanner
       .start(
-        { facingMode },
+        selectedCameraId,
         {
           fps: 20,
           videoConstraints: {
@@ -80,7 +104,25 @@ export default function BarcodeScannerModal({
         scanner.stop().catch((e) => console.error(e));
       }
     };
-  }, [scanner, facingMode]);
+  }, [scanner, selectedCameraId]);
+
+  const switchCamera = () => {
+    if (cameras.length <= 1) return;
+    const currentIndex = cameras.findIndex((c) => c.id === selectedCameraId);
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    
+    if (scanner && scanner.isScanning) {
+      scanner.stop().then(() => {
+        isScanningRef.current = false;
+        setSelectedCameraId(cameras[nextIndex].id);
+      }).catch(err => {
+        console.error("Błąd zatrzymywania skanera:", err);
+        setSelectedCameraId(cameras[nextIndex].id);
+      });
+    } else {
+      setSelectedCameraId(cameras[nextIndex].id);
+    }
+  };
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-4">
@@ -117,21 +159,14 @@ export default function BarcodeScannerModal({
               <div id="barcode-reader" className="w-full" style={{ border: 'none' }}></div>
             </div>
 
-            <button
-              onClick={() => {
-                if (scanner && scanner.isScanning) {
-                  scanner.stop().then(() => {
-                    isScanningRef.current = false;
-                    setFacingMode(prev => prev === "environment" ? "user" : "environment");
-                  });
-                } else {
-                  setFacingMode(prev => prev === "environment" ? "user" : "environment");
-                }
-              }}
-              className="bg-white/10 text-white py-3 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-95 transition-all w-full"
-            >
-              <RefreshCw size={16} /> Zmień aparat
-            </button>
+            {cameras.length > 1 && (
+              <button
+                onClick={switchCamera}
+                className="bg-white/10 text-white py-3 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-95 transition-all w-full"
+              >
+                <RefreshCw size={16} /> Zmień aparat
+              </button>
+            )}
 
             <p className="text-white/50 text-xs text-center px-4 leading-relaxed">
               Nakieruj aparat na kod kreskowy lub kod QR na opakowaniu leku/sprzętu. Skanowanie nastąpi automatycznie.
