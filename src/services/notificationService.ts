@@ -254,12 +254,12 @@ export const notificationService = {
       const perms = await LocalNotifications.checkPermissions();
       if (perms.display !== 'granted') return;
 
-      // Ensure channel exists (Importance 2 = LOW, no sound, no vibration)
+      // Ensure channel exists (Importance 3 = DEFAULT, needed for lockscreen)
       await LocalNotifications.createChannel({
-        id: 'glikocontrol-sticky',
+        id: 'glikocontrol-sticky-v2',
         name: 'Ekran blokady (Ciągłe)',
         description: 'Stałe powiadomienie pokazujące aktualną glikemię',
-        importance: 2,
+        importance: 3,
         visibility: 1, // Public visibility (shows on lockscreen)
         vibration: false
       });
@@ -274,7 +274,7 @@ export const notificationService = {
             title: title,
             body: body,
             id: 1000,
-            channelId: 'glikocontrol-sticky',
+            channelId: 'glikocontrol-sticky-v2',
             ongoing: true, // Zablokowane powiadomienie (sticky)
             autoCancel: false,
             sound: null,

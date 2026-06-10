@@ -10,35 +10,14 @@ export default function BarcodeScannerModal({
   onClose: () => void;
   onScan: (barcode: string) => void;
 }) {
-  const [cameras, setCameras] = useState<any[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
   const [error, setError] = useState("");
-  const isScanningRef = useRef(false);
+  const onScanRef = useRef(onScan);
 
-  // Pobieranie kamer
   useEffect(() => {
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        if (devices && devices.length) {
-          setCameras(devices);
-          // Szukamy tylnego aparatu (back/environment)
-          const backCamera = devices.find(
-            (c) => c.label.toLowerCase().includes("back") || c.label.toLowerCase().includes("environment") || c.label.toLowerCase().includes("tył")
-          );
-          // Jeśli etykiety są puste (np. w WebView Capacitora), często indeks 1 lub ostatni to aparat główny (tylny).
-          const fallbackCamera = devices.length > 1 ? devices[devices.length - 1] : devices[0];
-          
-          setSelectedCameraId(backCamera ? backCamera.id : fallbackCamera.id);
-        } else {
-          setError("Nie znaleziono żadnego aparatu.");
-        }
-      })
-      .catch((err) => {
-        console.error("Camera permission error", err);
-        setError("Brak dostępu do aparatu. Sprawdź uprawnienia.");
-      });
-  }, []);
+    onScanRef.current = onScan;
+  }, [onScan]);
 
   // Inicjalizacja obiektu skanera
   useEffect(() => {
@@ -63,20 +42,30 @@ export default function BarcodeScannerModal({
     };
   }, []);
 
-  // Uruchamianie skanera po wybraniu kamery
+  // Uruchamianie skanera
   useEffect(() => {
-    if (!scanner || !selectedCameraId || isScanningRef.current) return;
+    if (!scanner) return;
 
-    isScanningRef.current = true;
-    scanner
-      .start(
-        selectedCameraId,
+    let isMounted = true;
+    
+    const startScanner = async () => {
+      if (scanner.isScanning) {
+        try {
+          await scanner.stop();
+        } catch (e) {
+          console.error("Zatrzymanie starego skanera nie powiodło się", e);
+        }
+      }
+      
+      if (!isMounted) return;
+
+      scanner.start(
+        { facingMode },
         {
           fps: 20,
           videoConstraints: {
             width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            focusMode: "continuous"
+            height: { ideal: 1080 }
           },
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const width = Math.floor(viewfinderWidth * 0.95);
@@ -87,44 +76,28 @@ export default function BarcodeScannerModal({
         (decodedText) => {
           if (scanner.isScanning) {
             scanner.stop().catch((e) => console.error(e)).finally(() => {
-               onScan(decodedText);
+               if (onScanRef.current) onScanRef.current(decodedText);
             });
           }
         },
         () => {
-          // Ignorujemy błędy odczytu pojedynczej klatki
+          // Ignoruj bledy z pojedynczych klatek
         }
-      )
-      .catch((err) => {
+      ).catch((err) => {
         console.error("Start failed:", err);
-        setError("Błąd podczas uruchamiania kamery.");
-        isScanningRef.current = false;
+        if (isMounted) setError("Błąd aparatu. Prawdopodobnie zablokowany przez inną aplikację lub brak uprawnień.");
       });
+    };
+
+    startScanner();
 
     return () => {
-      if (scanner.isScanning) {
-        isScanningRef.current = false;
-        scanner.stop().catch((e) => console.error(e));
-      }
+      isMounted = false;
     };
-  }, [scanner, selectedCameraId]);
+  }, [scanner, facingMode]);
 
   const switchCamera = () => {
-    if (cameras.length <= 1) return;
-    const currentIndex = cameras.findIndex((c) => c.id === selectedCameraId);
-    const nextIndex = (currentIndex + 1) % cameras.length;
-    
-    if (scanner && scanner.isScanning) {
-      scanner.stop().then(() => {
-        isScanningRef.current = false;
-        setSelectedCameraId(cameras[nextIndex].id);
-      }).catch(err => {
-        console.error("Błąd zatrzymywania skanera:", err);
-        setSelectedCameraId(cameras[nextIndex].id);
-      });
-    } else {
-      setSelectedCameraId(cameras[nextIndex].id);
-    }
+    setFacingMode(prev => prev === "environment" ? "user" : "environment");
   };
 
   return createPortal(
@@ -162,14 +135,12 @@ export default function BarcodeScannerModal({
               <div id="barcode-reader" className="w-full" style={{ border: 'none' }}></div>
             </div>
 
-            {cameras.length > 1 && (
-              <button
-                onClick={switchCamera}
-                className="bg-white/10 text-white py-3 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-95 transition-all w-full"
-              >
-                <RefreshCw size={16} /> Zmień aparat
-              </button>
-            )}
+            <button
+              onClick={switchCamera}
+              className="bg-white/10 text-white py-3 rounded-2xl flex items-center justify-center gap-2 font-bold active:scale-95 transition-all w-full"
+            >
+              <RefreshCw size={16} /> Zmień na aparat {facingMode === "environment" ? "przedni" : "tylny"}
+            </button>
 
             <p className="text-white/50 text-xs text-center px-4 leading-relaxed">
               Nakieruj aparat na kod kreskowy lub kod QR na opakowaniu leku/sprzętu. Skanowanie nastąpi automatycznie.
