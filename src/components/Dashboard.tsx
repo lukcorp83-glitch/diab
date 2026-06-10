@@ -134,7 +134,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "weather", name: "Wpływ pogody na insulinę", visible: true, size: "2x1", canResize: true, canChangeShape: true },
   { id: "sensor_reminder", name: "Wymiana sensora (Urządzenie)", visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
   { id: "infusion_reminder", name: "Wymiana wkłucia (Urządzenie)", visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
-  { id: "health_connect", name: "Aktywność (Health Connect)", visible: false, size: "1x1", canResize: false, canChangeShape: false },
+  { id: "health_connect", name: "Aktywność (Health Connect)", visible: false, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
   { id: "assistant", name: "Skrót do Asystenta AI", visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "tips", name: "Porady i ciekawostki (DidYouKnow)", visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "glikosense_suggestions", name: "Sugestie i analizy GlikoSense", visible: true, size: "2x1", canResize: true, canChangeShape: false },
@@ -289,7 +289,8 @@ export default function Dashboard({
             if (!allowed.includes(mappedSize as any)) {
               mappedSize = allowed[0];
             }
-            return match ? { ...dw, visible: match.visible !== false, size: dw.canResize ? (mappedSize as any) : dw.size } : dw;
+            const restoredShape = match?.shape ? match.shape : dw.shape;
+            return match ? { ...dw, visible: match.visible !== false, size: dw.canResize ? (mappedSize as any) : dw.size, shape: restoredShape } : dw;
           });
           
           // Sorter according to parsed order

@@ -19,7 +19,7 @@ export default function UpdateModal() {
         const data = await res.json();
         
         const dismissed = localStorage.getItem("dismissedApkVersion");
-        if (data && data.version !== CURRENT_VERSION && dismissed !== data.version) {
+        if (data && data.version > CURRENT_VERSION && dismissed !== data.version) {
           setVersionData(data);
           setShow(true);
         }

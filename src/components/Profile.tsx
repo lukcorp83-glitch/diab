@@ -5231,11 +5231,11 @@ export default function Profile({
             </p>
             
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4 border border-blue-100 dark:border-blue-800/30 border-l-4 border-l-blue-500">
-              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">Co nowego w wersji 1.5.0?</h4>
+              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">Co nowego w wersji 5.3.0?</h4>
               <ul className="text-[10px] text-blue-700 dark:text-blue-300 list-disc pl-4 space-y-0.5">
-                 <li>System bezobsługowych aktualizacji w tle (OTA) dla aplikacji Android</li>
-                 <li>Naprawa działania Health Connect (krokomierz) na najnowszych urządzeniach</li>
-                 <li>Inteligentne rozpoznawanie środowiska (PWA/Android) z przyciskiem do instalacji</li>
+                 <li>Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto</li>
+                 <li>Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu</li>
+                 <li>Optymalizacja animacji we wszystkich widokach</li>
               </ul>
             </div>
 
@@ -5251,7 +5251,7 @@ export default function Profile({
                   }}
                 >
                   <Download size={20} />
-                  Pobierz APK (v{apkVersion})
+                  Pobierz APK
                 </a>
               ) : (
                 <div className="w-full flex flex-col gap-2">
@@ -5315,6 +5315,18 @@ export default function Profile({
                   Jeśli system zapyta, zezwól na &quot;Instalację z nieznanych
                   źródeł&quot;.
                 </li>
+              </ol>
+
+              <h4 className="text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 mt-4">
+                🚗 Instrukcja: Podgląd Glikemii w Android Auto
+              </h4>
+              <ol className="list-decimal pl-4 text-[10px] space-y-1 text-indigo-700 dark:text-indigo-300/80 mb-3">
+                <li>Otwórz <span className="font-bold">Ustawienia Android Auto</span> na telefonie.</li>
+                <li>Zjedź na sam dół do sekcji <span className="font-bold">Wersja</span>.</li>
+                <li>Kliknij w pole &quot;Wersja&quot; <b>szybko 10 razy z rzędu</b>, by odblokować Tryb Dewelopera.</li>
+                <li>Kliknij w trzy kropki (prawy górny róg) i otwórz <b>Ustawienia programisty</b>.</li>
+                <li>Zaznacz ptaszek przy <b>Nieznane źródła</b> (Zezwalaj na używanie aplikacji).</li>
+                <li>Po podłączeniu do samochodu, <b>GlikoControl</b> pojawi się w menu Android Auto, a na wyświetlaczu zobaczysz aktualny poziom cukru odświeżany co 30 sekund!</li>
               </ol>
             </div>
             

@@ -12,12 +12,14 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import GlikoSenseIcon from './GlikoSenseIcon';
 import MLAnalysisWidget from './MLAnalysisWidget';
 import InsulinDetectiveAlert from './InsulinDetectiveAlert';
+import AGPReport from './AGPReport';
 import { toast } from 'react-hot-toast';
 
 export default function AiReports({ user, logs, settings, setTab }: { user: any, logs: LogEntry[], settings?: UserSettings, setTab?: (tab: string) => void }) {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeReport, setActiveReport] = useState<string | null>(null);
+  const [showAGP, setShowAGP] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -131,6 +133,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
   }, [logs]);
 
   return (
+    <>
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <InsulinDetectiveAlert logs={logs} />
       <MLAnalysisWidget logs={logs} settings={settings} user={user} />
@@ -248,6 +251,16 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
              </motion.button>
 
              <motion.button 
+               onClick={() => setShowAGP(true)}
+               whileHover={{ scale: 1.02 }}
+               whileTap={{ scale: 0.95 }}
+               className="bg-indigo-900/30 text-indigo-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-indigo-900 overflow-hidden"
+             >
+               <Activity size={16} />
+               Wykres AGP (Kliniczny)
+             </motion.button>
+
+             <motion.button 
                disabled={loading}
                onClick={() => setTab && setTab('insulin_detective')}
                whileHover={{ scale: 1.02 }}
@@ -325,5 +338,17 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
         </div>
       </div>
     </motion.div>
+    
+    <AnimatePresence>
+      {showAGP && (
+        <AGPReport 
+          logs={logs} 
+          settings={settings as UserSettings} 
+          onClose={() => setShowAGP(false)} 
+          theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'} 
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }

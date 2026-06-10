@@ -63,13 +63,13 @@ export default function HealthWidget() {
               </div>
               {steps === 0 && (
                 <div className="mt-2 text-[9px] text-slate-400 dark:text-slate-500 italic leading-tight">
-                  Wskazówka: Upewnij się, że Twój zegarek lub aplikacja (np. Google Fit, Samsung Health) zapisuje dane do Health Connect.
+                  Połącz Gliko z Google Fit (Health Connect), aby widzieć tu swoją aktywność i kalorie.
                 </div>
               )}
             </div>
           ) : (
-            <div className="mt-1 text-xs text-slate-500 italic">
-              Brak uprawnień lub danych z Health Connect.
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 italic">
+              Brak uprawnień. Kliknij ikonkę ⚙️ w ustawieniach, by połączyć z Health Connect.
             </div>
           )}
         </div>

@@ -94,6 +94,7 @@ import ChartFullView from "./components/ChartFullView";
 import { LocalErrorBoundary } from "./components/LocalErrorBoundary";
 
 import { saveLocalLogs, loadLocalLogs, deleteLocalLog } from "./lib/localLogs";
+import { dbService } from "./services/databaseService";
 
 const lazyWithReload = (importFunc: () => Promise<any>) => {
   return React.lazy(async () => {
@@ -241,6 +242,21 @@ export default function App() {
     if (Capacitor.isNativePlatform()) {
       CapacitorUpdater.notifyAppReady();
     }
+    
+    // Inicjalizacja hybrydowej bazy SQLite (APK & PWA)
+    dbService.init().then(async () => {
+      console.log('Baza danych zainicjowana prawidłowo!');
+      try {
+        const localData = await dbService.getLogs(15000);
+        setCachedLogs(localData);
+      } catch (err) {
+        console.error('Błąd pobierania danych startowych', err);
+      }
+      setCachedLogsLoaded(true);
+    }).catch(err => {
+      console.error('Błąd inicjalizacji bazy danych', err);
+      setCachedLogsLoaded(true);
+    });
   }, []);
   const [isShortcutMode, setIsShortcutMode] = useState(() => {
     return window.location.search.includes("action=");
@@ -274,7 +290,7 @@ export default function App() {
       setFbLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
       setNsLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
       setDeletedNsIds((prev) => new Set(prev).add(id));
-      deleteLocalLog(id).catch(console.error);
+      dbService.deleteLog(id).catch(console.error);
     };
     const handleLogAdd = (e: any) => {
       const newLog = e.detail;
@@ -291,18 +307,7 @@ export default function App() {
     };
   }, []);
 
-  // Wczytywanie z lokalnej bazy na start
-  useEffect(() => {
-    loadLocalLogs()
-      .then((logs) => {
-        setCachedLogs(logs);
-        setCachedLogsLoaded(true);
-      })
-      .catch((e) => {
-        console.error(e);
-        setCachedLogsLoaded(true);
-      });
-  }, []);
+  // (Wczytywanie przeniesiono do bloku init bazy danych poniżej)
 
   const logs = useMemo(() => {
     const uniqueMap = new Map<string, LogEntry>();
@@ -340,13 +345,12 @@ export default function App() {
     return uniqueLogs;
   }, [cachedLogs, fbLogs, nsLogs]);
 
-  // Zapisy do IDB za każdym razem gdy zmieni się docelowy useMemo logs
-  // Żeby nie dusić wątku głównego:
+  // Zapisy do DB za każdym razem gdy zmieni się docelowy useMemo logs
   useEffect(() => {
-    if (logs.length > 0) {
-      saveLocalLogs(logs.slice(0, 15000)).catch(console.error);
+    if (logs.length > 0 && cachedLogsLoaded) {
+      dbService.saveMultipleLogs(logs.slice(0, 15000)).catch(console.error);
     }
-  }, [logs]);
+  }, [logs, cachedLogsLoaded]);
 
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");

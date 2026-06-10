@@ -5,9 +5,19 @@ export interface VersionEntry {
   changes: string[];
 }
 
-export const CURRENT_VERSION = '5.2.1';
+export const CURRENT_VERSION = '5.3.0';
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.0",
+    date: "2026-06-10",
+    title: "Android Auto & Standard AGP",
+    changes: [
+      "Nowość: Pełna integracja z Android Auto! W trybie dewelopera GlikoControl wyświetla bieżący poziom glikemii bezpośrednio na ekranie samochodu.",
+      "Nowość: Dodano profesjonalne raporty AGP w zakładce 'Raporty AI', wyposażone w matematykę percentyli i wspaniały, szklisty interfejs (Glassmorphism).",
+      "Poprawka: Stabilizacja renderowania na słabszych urządzeniach i drobne szlify animacji."
+    ]
+  },
   {
     version: "5.2.1",
     date: "2026-06-08",
@@ -256,6 +266,15 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.0",
+    date: "2026-06-10",
+    title: "Wsparcie dla Android Auto",
+    changes: [
+      "Usługa w tle: Komunikacja natywna z pulpitem deski rozdzielczej Android Auto (wymaga Trybu Programisty).",
+      "Usprawnienie: Nowa nazwa wyjściowa kompilatora (GlikoControl.apk)."
+    ]
+  },
   {
     version: "1.5.7",
     date: "2026-06-08",
