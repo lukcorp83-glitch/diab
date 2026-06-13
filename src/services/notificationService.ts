@@ -249,9 +249,9 @@ export const notificationService = {
     const user = auth.currentUser;
     if (!user) return;
 
-    try {
-      await setDoc(doc(db, 'fcm_tokens', user.uid), {
-        token,
+      try {
+        await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'fcm_token'), {
+          token,
         updatedAt: serverTimestamp(),
         userId: user.uid,
         email: user.email,
