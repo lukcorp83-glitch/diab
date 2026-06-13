@@ -16,8 +16,15 @@ export class DatabaseService {
       if (this.isWeb) {
         // Inicjalizacja dla przeglądarki (PWA) z jeep-sqlite
         const jeepEl = document.createElement('jeep-sqlite');
-        const wasmPath = `${import.meta.env.BASE_URL}assets/sql-wasm.wasm?v=1.11.0`;
-        jeepEl.setAttribute('wasm-path', wasmPath);
+        
+        // Build absolute path to ensure jeep-sqlite can resolve it regardless of base URL
+        let basePath = import.meta.env.BASE_URL;
+        if (basePath === './') {
+            basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
+        }
+        const wasmUrl = new URL(`${basePath}assets/sql-wasm.wasm?v=1.11.0`, window.location.origin).href;
+        
+        jeepEl.setAttribute('wasm-path', wasmUrl);
         document.body.appendChild(jeepEl);
         await customElements.whenDefined('jeep-sqlite');
         await this.sqlite.initWebStore();
