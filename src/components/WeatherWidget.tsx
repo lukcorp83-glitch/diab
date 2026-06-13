@@ -1,10 +1,13 @@
+import i18n from '../i18n';
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { CloudRain, Sun, Cloud, Thermometer, Wind, Droplets, AlertTriangle, CloudDrizzle, Snowflake, CloudLightning, CloudFog, CloudSnow, MapPin, RefreshCw } from 'lucide-react';
 import { fetchCurrentWeather } from '../services/weatherService';
 import { Haptics } from '../lib/haptics';
+import { useTranslation } from "react-i18next";
 
 export default function WeatherWidget({ compact = false }: { compact?: boolean }) {
+    const { t } = useTranslation();
   const [weather, setWeather] = useState<any>(null);
   const [loadingLoc, setLoadingLoc] = useState(false);
 
@@ -78,7 +81,7 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
       alertText = `Dziś prognozowany jest mróz (maks. ${todayMax}°C). Kurczenie naczyń krwionośnych w zimnie może opóźnić wchłanianie insuliny, a nagłe wejście do ciepłego pokoju wywoła spadek. Chroń glukometr i insulinę!`;
       alertIcon = <AlertTriangle size={14} className="text-sky-500 shrink-0" />;
     } else {
-      alertText = "Temperatura umiarkowana, stabilne warunki zewnętrzne dla Twojej insuliny na resztę dnia.";
+      alertText = i18n.t('auto.temperatura_umiarkowana_stabil', { defaultValue: "Temperatura umiarkowana, stabilne warunki zewnętrzne dla Twojej insuliny na resztę dnia." });
       alertIcon = <Sun size={14} className="text-indigo-400 shrink-0" />;
     }
   } else if (isEvening) {
@@ -127,15 +130,15 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
   const renderWeatherIcon = () => {
     const condition = (weather.condition || "").toLowerCase();
     
-    if (condition.includes('sleet') || condition.includes('śnieg z deszczem')) return <CloudDrizzle size={24} className="text-sky-300" />;
-    if (condition.includes('drizzle') || condition.includes('mżawka')) return <CloudDrizzle size={24} className="text-sky-400" />;
+    if (condition.includes('sleet') || condition.includes(i18n.t('auto.snieg_z_deszczem', { defaultValue: "śnieg z deszczem" }))) return <CloudDrizzle size={24} className="text-sky-300" />;
+    if (condition.includes('drizzle') || condition.includes(i18n.t('auto.mzawka', { defaultValue: "mżawka" }))) return <CloudDrizzle size={24} className="text-sky-400" />;
     if (condition.includes('thunder') || condition.includes('burza')) return <CloudLightning size={24} className="text-amber-500" />;
-    if (condition.includes('snow') || condition.includes('śnieg')) return <CloudSnow size={24} className="text-sky-300" />;
-    if (condition.includes('fog') || condition.includes('mgła') || condition.includes('mist')) return <CloudFog size={24} className="text-slate-400" />;
+    if (condition.includes('snow') || condition.includes(i18n.t('auto.snieg', { defaultValue: "śnieg" }))) return <CloudSnow size={24} className="text-sky-300" />;
+    if (condition.includes('fog') || condition.includes(i18n.t('auto.mgla', { defaultValue: "mgła" })) || condition.includes('mist')) return <CloudFog size={24} className="text-slate-400" />;
     if (condition.includes('rain') || condition.includes('deszcz')) return <CloudRain size={24} className="text-blue-500" />;
     if (condition.includes('cloud') || condition.includes('chmur') || condition.includes('pochmurnie') || condition.includes('overcast')) return <Cloud size={24} className="text-slate-400" />;
     
-    if (condition.includes('clear') || condition.includes('słońce') || condition.includes('jasno') || condition.includes('bezchmurnie') || condition.includes('słonecznie')) return <Sun size={24} className="text-amber-400" />;
+    if (condition.includes('clear') || condition.includes(i18n.t('auto.slonce', { defaultValue: "słońce" })) || condition.includes('jasno') || condition.includes('bezchmurnie') || condition.includes(i18n.t('auto.slonecznie', { defaultValue: "słonecznie" }))) return <Sun size={24} className="text-amber-400" />;
     
     // Default to sun if it's hot, cloud if cold, etc or just Sun
     if (weather.temp < 5) return <Snowflake size={24} className="text-sky-300" />;
@@ -156,8 +159,8 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
               </div>
               <div className="min-w-0">
                 <p className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">
-                  {weather.temp}°C
-                </p>
+                  {weather.temp}{t('auto.c', { defaultValue: '°C' })}
+                                              </p>
                 <div className="flex items-center gap-1.5 mt-1">
                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[100px]">
                      {weather.city ? `${weather.city}` : weather.condition}
@@ -166,7 +169,7 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
                      onClick={handleRefreshLoc}
                      disabled={loadingLoc}
                      className="text-slate-400 hover:text-indigo-500 transition-colors disabled:opacity-50"
-                     title="Odśwież lokalizację GPS"
+                     title={t('auto.odśwież_lokalizację_gps', { defaultValue: 'Odśwież lokalizację GPS' })}
                    >
                      {loadingLoc ? <RefreshCw size={10} className="animate-spin" /> : <MapPin size={10} />}
                    </button>
@@ -178,7 +181,7 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
               <div className="flex flex-col items-end gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
                  <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 py-1 px-2.5 rounded-full border border-slate-100 dark:border-white/5">
                    <Wind size={10} />
-                   <span>{weather.pressure} hPa</span>
+                   <span>{weather.pressure}  {t('auto.hpa', { defaultValue: 'hPa' })}</span>
                  </div>
               </div>
             )}
@@ -188,15 +191,15 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
             <div className="flex items-center gap-1.5 border-b border-black/[0.04] dark:border-white/[0.04] pb-1">
                {alertIcon}
                <span className={`text-[9px] font-black uppercase tracking-widest leading-none ${alertColor}`}>
-                 {compact ? "Wskazówka" : alertTitle}
+                 {compact ? i18n.t('auto.wskazowka', { defaultValue: "Wskazówka" }) : alertTitle}
                </span>
             </div>
             <p className={`text-[10px] font-bold leading-relaxed line-clamp-3 ${alertColor}`}>
                {compact 
                  ? (weather.temp >= 30 
-                     ? "Upał: Insulina szybciej się wchłania. Nawodnij się!" 
+                     ? i18n.t('auto.upal_insulina_szybciej_sie_wch', { defaultValue: "Upał: Insulina szybciej się wchłania. Nawodnij się!" }) 
                      : weather.temp <= 0 
-                     ? "Mróz: opóźnienie wchłaniania insuliny. Chroń sprzęt!" 
+                     ? i18n.t('auto.mroz_opoznienie_wchlaniania_in', { defaultValue: "Mróz: opóźnienie wchłaniania insuliny. Chroń sprzęt!" }) 
                      : "Stabilne temperatury, bezpieczne warunki dla insuliny.") 
                  : alertText}
             </p>

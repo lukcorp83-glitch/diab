@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { LogEntry } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Merge, AlertCircle, Plus, X } from 'lucide-react';
+import { useTranslation } from "react-i18next";
 
 interface Props {
   logs: LogEntry[];
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
+    const { t } = useTranslation();
   const [dismissedId, setDismissedId] = React.useState<string | null>(() => {
     return sessionStorage.getItem('dismissed_unlinked_id');
   });
@@ -63,17 +65,20 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
              <div className="flex items-center gap-2">
                 <AlertCircle size={14} className="text-white/80" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/80">
-                Oczekujący Posiłek
-                </span>
+                
+                                              {t('auto.oczekujący_posiłek', { defaultValue: 'Oczekujący Posiłek' })}
+                                              </span>
              </div>
              
              <h3 className="text-lg font-black text-white leading-tight">
-                Podano {carbs}g węglowodanów o {timeStr}
+                
+                                          {t('auto.podano', { defaultValue: 'Podano' })} {carbs}{t('auto.g_węglowodanów_o', { defaultValue: 'g węglowodanów o' })} {timeStr}
              </h3>
              
              <p className="text-[11px] font-bold text-indigo-100 pr-4 leading-relaxed mt-1">
-                Ten wpis z pompy nie zawiera informacji o jedzeniu. Dodaj składniki, aby GlikoSense mogło analizować wchłanianie.
-             </p>
+                
+                                          {t('auto.ten_wpis_z_pompy_nie_zawiera_inform', { defaultValue: 'Ten wpis z pompy nie zawiera informacji o jedzeniu. Dodaj składniki, aby GlikoSense mogło analizować wchłanianie.' })}
+                                       </p>
           </div>
           
           <button
@@ -81,8 +86,9 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
             className="w-full bg-white text-indigo-600 hover:bg-slate-50 font-black text-[11px] uppercase tracking-widest py-3.5 px-5 rounded-2xl flex justify-center items-center gap-2 transition-all active:scale-95 shadow-md"
           >
             <Plus size={16} />
-            Ułóż Posiłek na Talerzu
-          </button>
+            
+                                  {t('auto.ułóż_posiłek_na_talerzu', { defaultValue: 'Ułóż Posiłek na Talerzu' })}
+                                </button>
         </div>
       </motion.div>
     </AnimatePresence>

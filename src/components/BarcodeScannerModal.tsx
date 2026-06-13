@@ -1,7 +1,9 @@
+import i18n from '../i18n';
 import React, { useEffect, useState } from "react";
 import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 import { X, Camera } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 
 export default function BarcodeScannerModal({
   onClose,
@@ -10,6 +12,7 @@ export default function BarcodeScannerModal({
   onClose: () => void;
   onScan: (barcode: string) => void;
 }) {
+    const { t } = useTranslation();
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -21,17 +24,12 @@ export default function BarcodeScannerModal({
         if (status.camera !== 'granted') {
           const request = await BarcodeScanner.requestPermissions();
           if (request.camera !== 'granted') {
-            if (isActive) setError("Brak uprawnień do aparatu. Przyznaj je w ustawieniach systemowych.");
+            if (isActive) setError(i18n.t('auto.brak_uprawnien_do_aparatu_przy', { defaultValue: "Brak uprawnień do aparatu. Przyznaj je w ustawieniach systemowych." }));
             return;
           }
         }
 
-        // Install Google Barcode Scanner Module if not present
-        try {
-          await BarcodeScanner.installGoogleBarcodeScannerModule();
-        } catch (installErr) {
-          // ignore error if it's already installed
-        }
+        
 
         // Uruchomienie pełnoekranowego skanera systemowego Google ML Kit (działa w natywnej warstwie nad WebView)
         const { barcodes } = await BarcodeScanner.scan();
@@ -45,7 +43,7 @@ export default function BarcodeScannerModal({
       } catch (err: any) {
         console.error("ML Kit Barcode Error:", err);
         if (isActive) {
-          setError(err.message || "Błąd podczas uruchamiania skanera systemowego.");
+          setError(err.message || i18n.t('auto.blad_podczas_uruchamiania_skan', { defaultValue: "Błąd podczas uruchamiania skanera systemowego." }));
         }
       }
     };
@@ -64,7 +62,7 @@ export default function BarcodeScannerModal({
           <div className="flex items-center justify-between text-white">
             <div className="flex items-center gap-2">
               <Camera size={20} />
-              <span className="font-bold">Skaner Opakowań</span>
+              <span className="font-bold">{t('auto.skaner_opakowań', { defaultValue: 'Skaner Opakowań' })}</span>
             </div>
             <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all">
               <X size={20} />

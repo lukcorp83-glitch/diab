@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import { getEffectiveUid } from "../lib/utils";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -18,6 +19,7 @@ import { db } from "../lib/firebase";
 import { doc, deleteDoc } from "firebase/firestore";
 import MealEditModal from "./MealEditModal";
 import { nightscoutService } from "../services/nightscout";
+import { useTranslation } from "react-i18next";
 
 interface HistoryProps {
   logs: LogEntry[];
@@ -27,6 +29,7 @@ interface HistoryProps {
 }
 
 export default function HistoryView({ logs, user, onBack, settings }: HistoryProps) {
+    const { t } = useTranslation();
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [listFilter, setListFilter] = useState<"all" | "glucose" | "treatment">(
     "treatment",
@@ -58,11 +61,13 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
         </button>
         <div>
           <h2 className="text-xl font-black dark:text-white leading-none">
-            Historia
-          </h2>
+            
+                                  {t('auto.historia', { defaultValue: 'Historia' })}
+                                </h2>
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">
-            Wszystkie wpisy
-          </p>
+            
+                                  {t('auto.wszystkie_wpisy', { defaultValue: 'Wszystkie wpisy' })}
+                                </p>
         </div>
       </div>
 
@@ -76,8 +81,9 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
               : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500",
           )}
         >
-          Wszystkie
-        </button>
+          
+                            {t('auto.wszystkie', { defaultValue: 'Wszystkie' })}
+                          </button>
         <button
           onClick={() => setListFilter("glucose")}
           className={cn(
@@ -87,8 +93,9 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
               : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500",
           )}
         >
-          Tylko Glukoza
-        </button>
+          
+                            {t('auto.tylko_glukoza', { defaultValue: 'Tylko Glukoza' })}
+                          </button>
         <button
           onClick={() => setListFilter("treatment")}
           className={cn(
@@ -98,8 +105,9 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
               : "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500",
           )}
         >
-          Posiłki i Leki
-        </button>
+          
+                            {t('auto.posiłki_i_leki', { defaultValue: 'Posiłki i Leki' })}
+                          </button>
       </div>
 
       <div className="space-y-1 will-change-transform">
@@ -252,7 +260,7 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                               {log.polyols
                                 ? `${log.polyols.toFixed(0)}P / `
                                 : ""}
-                              {log.protein?.toFixed(0)}B / {log.fat?.toFixed(0)}
+                              {log.protein?.toFixed(0)}{t('auto.b', { defaultValue: 'B /' })} {log.fat?.toFixed(0)}
                               T
                             </span>
                           )}
@@ -260,8 +268,8 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                           (log.type as any) === "insulin") &&
                           log.linkedMeal && (
                             <span className="text-[10px] font-bold text-amber-500 ml-2">
-                              (+{(log.linkedMeal.carbs || 0).toFixed(1)}g W
-                              {log.linkedMeal.polyols
+                              (+{(log.linkedMeal.carbs || 0).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W' })}
+                                                                            {log.linkedMeal.polyols
                                 ? `, ${(log.linkedMeal.polyols || 0).toFixed(1)}P`
                                 : ""}
                               )
@@ -318,7 +326,7 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                             n.toLowerCase() === "meal" ||
                             n.toLowerCase() === "carbs"
                           )
-                            return "Posiłek";
+                            return i18n.t('auto.posilek', { defaultValue: "Posiłek" });
                           if (
                             n.toLowerCase() === "bolus" ||
                             n.toLowerCase() === "insulin"
@@ -329,9 +337,9 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                             (log.type === "glucose"
                               ? "Glukoza"
                               : log.type === "meal"
-                                ? "Posiłek"
+                                ? i18n.t('auto.posilek', { defaultValue: "Posiłek" })
                                 : log.type === "site_change"
-                                  ? "Wymiana Wkłucia"
+                                  ? i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana Wkłucia" })
                                   : log.type === "sensor_change"
                                     ? "Wymiana Sensora"
                                     : "Bolus");
@@ -344,25 +352,28 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                       <div className="flex items-center gap-1 ml-auto">
                         {log.source === "nightscout" ? (
                           <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
-                            NS
-                          </span>
+                            
+                                                                          {t('auto.ns', { defaultValue: 'NS' })}
+                                                                        </span>
                         ) : log.source === "csv" ||
                           (log.notes && log.notes.includes("Import")) ? (
                           <span className="text-[8px] bg-accent-500/10 text-accent-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
-                            CSV
-                          </span>
+                            
+                                                                                  {t('auto.csv', { defaultValue: 'CSV' })}
+                                                                                </span>
                         ) : (
                           <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
-                            Ręcz.
-                          </span>
+                            
+                                                                                  {t('auto.ręcz', { defaultValue: 'Ręcz.' })}
+                                                                                </span>
                         )}
 
                         {log.weather && (
                           <div className="flex items-center gap-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 px-2 py-0.5 rounded-full">
                             <CloudRain size={10} strokeWidth={3} />
                             <span className="text-[8px] font-black uppercase tracking-tighter">
-                              {log.weather.temp}°C
-                            </span>
+                              {log.weather.temp}{t('auto.c', { defaultValue: '°C' })}
+                                                                              </span>
                           </div>
                         )}
                       </div>
@@ -378,11 +389,13 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
               <span className="text-2xl">📝</span>
             </div>
             <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">
-              Dziennik jest pusty
-            </p>
+              
+                                        {t('auto.dziennik_jest_pusty', { defaultValue: 'Dziennik jest pusty' })}
+                                      </p>
             <p className="text-[9px] font-bold text-slate-400/70 dark:text-slate-500/70 mt-2 text-center max-w-[200px]">
-              Dodaj swój pierwszy wpis, aby rozpocząć monitorowanie terapii.
-            </p>
+              
+                                        {t('auto.dodaj_swój_pierwszy_wpis_aby_rozpoc', { defaultValue: 'Dodaj swój pierwszy wpis, aby rozpocząć monitorowanie terapii.' })}
+                                      </p>
           </div>
         )}
       </div>

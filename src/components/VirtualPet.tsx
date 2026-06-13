@@ -12,9 +12,11 @@ import GlikoDiary from './GlikoDiary';
 import GlikoQuiz from './GlikoQuiz';
 import GlikoGarden from './GlikoGarden';
 import { toast } from 'react-hot-toast';
-
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function VirtualPet({ user, logs, glucose, setTab, embedded = false, pumpStatus }: { user: any, logs: LogEntry[], glucose: number | null, setTab?: (t: string) => void, embedded?: boolean, pumpStatus?: any }) {
+    const { t } = useTranslation();
   const [petData, setPetData] = useState<{ 
     type: string, 
     name: string, 
@@ -116,8 +118,8 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
 
   const dailyQuests = useMemo(() => [
     { id: 'pet_3_times', title: `Przyjaciel ${petData?.name || 'Gliko'}`, desc: `Pogłaszcz ${petData?.name || 'Gliko'} 3 razy dzisiaj`, goal: 3, rewardXp: 50, rewardCoins: 10 },
-    { id: 'log_3_times', title: 'Dziennikarz', desc: 'Zapisz 3 dowolne wpisy (posiłek, cukier itp.)', goal: 3, rewardXp: 100, rewardCoins: 25 },
-    { id: 'check_sugar', title: 'Cukrowy Mistrz', desc: 'Sprawdź cukier rano (5:00 - 10:00)', goal: 1, rewardXp: 150, rewardCoins: 50 },
+    { id: 'log_3_times', title: 'Dziennikarz', desc: i18n.t('auto.zapisz_3_dowolne_wpisy_posilek', { defaultValue: "Zapisz 3 dowolne wpisy (posiłek, cukier itp.)" }), goal: 3, rewardXp: 100, rewardCoins: 25 },
+    { id: 'check_sugar', title: 'Cukrowy Mistrz', desc: i18n.t('auto.sprawdz_cukier_rano_5_00_10_00', { defaultValue: "Sprawdź cukier rano (5:00 - 10:00)" }), goal: 1, rewardXp: 150, rewardCoins: 50 },
   ], [petData?.name]);
 
   const getQuestProgress = (questId: string) => {
@@ -412,7 +414,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     const foodCost = 15;
     if ((petData.coins || 0) < foodCost) {
       Haptics.error();
-      toast.error('Nie masz wystarczająco monet na jedzenie! (Potrzeba 15)', { duration: 4000 });
+      toast.error(i18n.t('auto.nie_masz_wystarczajaco_monet_n', { defaultValue: "Nie masz wystarczająco monet na jedzenie! (Potrzeba 15)" }), { duration: 4000 });
       return;
     }
 
@@ -568,46 +570,46 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     if (glucose !== null) {
       if (glucose < 70) {
         const texts = [
-          'Brrr, zamarzam! Potrzebuję węgla ratunkowego! 🥶',
-          'Słuchaj, cukier nam spada! Czas na małą przekąskę? 🍎',
-          'Oj, coś słabo się czuję. Ratujmy sytuację węglami! 📉',
+          i18n.t('auto.brrr_zamarzam_potrzebuje_wegla', { defaultValue: "Brrr, zamarzam! Potrzebuję węgla ratunkowego! 🥶" }),
+          i18n.t('auto.sluchaj_cukier_nam_spada_czas', { defaultValue: "Słuchaj, cukier nam spada! Czas na małą przekąskę? 🍎" }),
+          i18n.t('auto.oj_cos_slabo_sie_czuje_ratujmy', { defaultValue: "Oj, coś słabo się czuję. Ratujmy sytuację węglami! 📉" }),
           'Hipo alarm! Gdzie jest soczek?! 🧃',
         ];
         return texts[Math.floor(Math.random() * texts.length)];
       }
       if (glucose > 180) {
         const texts = [
-          'Uff, ale gorąco! Ten cukier mnie obciąża... 🥵',
-          'Wysoko latamy! Czas na korektę, bo zaraz pęknę! 🚀',
-          'Czuję się jak balon wypełniony syropem. Zbijmy to! 🎈',
-          'Piękny cukier, szkoda że nie w normie! Czas na bolus? 💉',
+          i18n.t('auto.uff_ale_goraco_ten_cukier_mnie', { defaultValue: "Uff, ale gorąco! Ten cukier mnie obciąża... 🥵" }),
+          i18n.t('auto.wysoko_latamy_czas_na_korekte', { defaultValue: "Wysoko latamy! Czas na korektę, bo zaraz pęknę! 🚀" }),
+          i18n.t('auto.czuje_sie_jak_balon_wypelniony', { defaultValue: "Czuję się jak balon wypełniony syropem. Zbijmy to! 🎈" }),
+          i18n.t('auto.piekny_cukier_szkoda_ze_nie_w', { defaultValue: "Piękny cukier, szkoda że nie w normie! Czas na bolus? 💉" }),
         ];
         return texts[Math.floor(Math.random() * texts.length)];
       }
     }
     if (petData.happiness < 30) {
       const texts = [
-        'Smutno mi bez Ciebie... Pogłaszcz mnie! 🥺',
-        'Zostałem sam... Pamiętasz o moich głaskach? ❤️',
-        'Czuję się zaniedbany. Pobawisz się ze mną? 🏠',
+        i18n.t('auto.smutno_mi_bez_ciebie_poglaszcz', { defaultValue: "Smutno mi bez Ciebie... Pogłaszcz mnie! 🥺" }),
+        i18n.t('auto.zostalem_sam_pamietasz_o_moich', { defaultValue: "Zostałem sam... Pamiętasz o moich głaskach? ❤️" }),
+        i18n.t('auto.czuje_sie_zaniedbany_pobawisz', { defaultValue: "Czuję się zaniedbany. Pobawisz się ze mną? 🏠" }),
       ];
       return texts[Math.floor(Math.random() * texts.length)];
     }
     if (petData.happiness < 60) {
       const texts = [
-        'Pobawimy się? Brakuje mi trochę atencji! 🎾',
-        'Jest okej, ale mogłoby być weselej! 🙂',
-        'Co tam u Ciebie? Mnie trochę nudno. 💤',
+        i18n.t('auto.pobawimy_sie_brakuje_mi_troche', { defaultValue: "Pobawimy się? Brakuje mi trochę atencji! 🎾" }),
+        i18n.t('auto.jest_okej_ale_mogloby_byc_wese', { defaultValue: "Jest okej, ale mogłoby być weselej! 🙂" }),
+        i18n.t('auto.co_tam_u_ciebie_mnie_troche_nu', { defaultValue: "Co tam u Ciebie? Mnie trochę nudno. 💤" }),
       ];
       return texts[Math.floor(Math.random() * texts.length)];
     }
     
     const texts = [
-      'Czuję się dzisiaj absolutnie fantastycznie! ✨',
-      'Mamy świetny dzień! Tak trzymać! 😊',
-      'Jestem pełen energii! Razem damy radę! 💪',
-      'Wyglądasz dzisiaj super! Ja też się tak czuję! 😎',
-      'TIR w normie? Ja mam nastrój na 100%! 📈',
+      i18n.t('auto.czuje_sie_dzisiaj_absolutnie_f', { defaultValue: "Czuję się dzisiaj absolutnie fantastycznie! ✨" }),
+      i18n.t('auto.mamy_swietny_dzien_tak_trzymac', { defaultValue: "Mamy świetny dzień! Tak trzymać! 😊" }),
+      i18n.t('auto.jestem_pelen_energii_razem_dam', { defaultValue: "Jestem pełen energii! Razem damy radę! 💪" }),
+      i18n.t('auto.wygladasz_dzisiaj_super_ja_tez', { defaultValue: "Wyglądasz dzisiaj super! Ja też się tak czuję! 😎" }),
+      i18n.t('auto.tir_w_normie_ja_mam_nastroj_na', { defaultValue: "TIR w normie? Ja mam nastrój na 100%! 📈" }),
     ];
     return texts[Math.floor(Math.random() * texts.length)];
   };
@@ -674,7 +676,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
      if (!user || (petData.unlockedSkins || []).includes(skin.id)) return;
      if (skin.unlockedBy) {
         Haptics.error();
-        toast.error("Ta skórka jest specjalna! Odblokuj ją zdobywając osiągnięcia w zakładce Profil.", { duration: 6000 });
+        toast.error(i18n.t('auto.ta_skorka_jest_specjalna_odblo', { defaultValue: "Ta skórka jest specjalna! Odblokuj ją zdobywając osiągnięcia w zakładce Profil." }), { duration: 6000 });
         return;
      }
      if ((petData.coins || 0) < skin.price) {
@@ -842,16 +844,16 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     setGameState('result');
     const finalPower = gamePowerRef.current;
     let earnedCoins = 1;
-    let msg = 'Pudło! +1 moneta';
+    let msg = i18n.t('auto.pudlo_1_moneta', { defaultValue: "Pudło! +1 moneta" });
     
     if (finalPower >= 75 && finalPower <= 85) {
       earnedCoins = 10;
-      msg = 'W dziesiątkę! +10 monet';
+      msg = i18n.t('auto.w_dziesiatke_10_monet', { defaultValue: "W dziesiątkę! +10 monet" });
       setReaction('happy');
       triggerParticles();
     } else if (finalPower >= 60 && finalPower <= 100) {
       earnedCoins = 5;
-      msg = 'Świetny rzut! +5 monet';
+      msg = i18n.t('auto.swietny_rzut_5_monet', { defaultValue: "Świetny rzut! +5 monet" });
       setReaction('happy');
     }
     
@@ -884,7 +886,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
             {showGame ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                   <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Gamepad2 size={16} className="text-indigo-500" /> Rzut Plecakiem</h4>
+                   <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Gamepad2 size={16} className="text-indigo-500" />  {t('auto.rzut_plecakiem', { defaultValue: 'Rzut Plecakiem' })}</h4>
                    <div className="flex items-center gap-3">
                      <span className="text-xs font-bold text-amber-500 flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full"><Coins size={12} /> {petData.coins || 0}</span>
                      <button onClick={() => setShowGame(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
@@ -895,8 +897,8 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                    {gameState === 'idle' && (
                      <div className="text-center">
                        <Gamepad2 size={32} className="mx-auto text-indigo-400 mb-2 opacity-50" />
-                       <p className="text-xs text-slate-500 mb-3 font-medium">Rzuć piłką w odpowiednim momencie by zdobyć monety!</p>
-                       <button onClick={startMiniGame} className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md shadow-indigo-500/20">ZAGRAJ</button>
+                       <p className="text-xs text-slate-500 mb-3 font-medium">{t('auto.rzuć_piłką_w_odpowiednim_momencie_b', { defaultValue: 'Rzuć piłką w odpowiednim momencie by zdobyć monety!' })}</p>
+                       <button onClick={startMiniGame} className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md shadow-indigo-500/20">{t('auto.zagraj', { defaultValue: 'ZAGRAJ' })}</button>
                      </div>
                    )}
                    
@@ -917,14 +919,14 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                        </div>
                        
                        {gameState === 'aiming' ? (
-                          <button onClick={throwBall} className="w-full bg-indigo-500 focus:bg-indigo-600 text-white font-bold text-sm px-4 py-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 outline-none"><Target size={16} /> RZUĆ!</button>
+                          <button onClick={throwBall} className="w-full bg-indigo-500 focus:bg-indigo-600 text-white font-bold text-sm px-4 py-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 outline-none"><Target size={16} />  {t('auto.rzuć', { defaultValue: 'RZUĆ!' })}</button>
                        ) : (
                           <div className="w-full text-center py-2 animate-in fade-in slide-in-from-bottom-2">
                              <div className="flex justify-center mb-1">
                                 {gameResult.coins === 10 ? <Trophy size={24} className="text-amber-500" /> : <Coins size={24} className="text-amber-500" />}
                              </div>
                              <p className="font-black text-sm dark:text-white">{gameResult.text}</p>
-                             <button onClick={() => setGameState('idle')} className="mt-3 text-[10px] text-slate-500 font-bold hover:text-slate-800 dark:hover:text-white uppercase tracking-wider">Zagraj ponownie</button>
+                             <button onClick={() => setGameState('idle')} className="mt-3 text-[10px] text-slate-500 font-bold hover:text-slate-800 dark:hover:text-white uppercase tracking-wider">{t('auto.zagraj_ponownie', { defaultValue: 'Zagraj ponownie' })}</button>
                           </div>
                        )}
                      </div>
@@ -934,7 +936,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
             ) : showQuests ? (
                <div className="p-4">
                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Trophy size={16} className="text-emerald-500" /> Misje Dnia</h4>
+                    <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Trophy size={16} className="text-emerald-500" />  {t('auto.misje_dnia', { defaultValue: 'Misje Dnia' })}</h4>
                     <button onClick={() => setShowQuests(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
                  </div>
                  
@@ -959,7 +961,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                            
                            <div className="space-y-1">
                              <div className="flex justify-between text-[8px] font-bold text-slate-400 lowercase">
-                               <span>Postęp</span>
+                               <span>{t('auto.postęp', { defaultValue: 'Postęp' })}</span>
                                <span>{progress} / {quest.goal}</span>
                              </div>
                              <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -976,8 +978,9 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                                onClick={() => handleClaimQuest(quest.id)}
                                className="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] py-1.5 rounded-xl shadow-lg shadow-emerald-500/20 uppercase tracking-widest active:scale-95 transition-all"
                              >
-                               Odbierz
-                             </button>
+                               
+                                                                     {t('auto.odbierz', { defaultValue: 'Odbierz' })}
+                                                                   </button>
                            )}
                            
                            {isCompleted && <div className="text-emerald-500 text-center mt-2 flex justify-center"><CheckCircle2 size={16} /></div>}
@@ -989,7 +992,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
             ) : showGarden ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Flower2 size={16} className="text-emerald-500" /> Twój Ogród</h4>
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Flower2 size={16} className="text-emerald-500" />  {t('auto.twój_ogród', { defaultValue: 'Twój Ogród' })}</h4>
                   <button onClick={() => setShowGarden(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
                 </div>
                 <div className="max-h-[400px] overflow-y-auto no-scrollbar">
@@ -999,7 +1002,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
             ) : showDiary ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Book size={16} className="text-indigo-500" /> Dziennik {petData.name}</h4>
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Book size={16} className="text-indigo-500" />  {t('auto.dziennik', { defaultValue: 'Dziennik' })} {petData.name}</h4>
                   <button onClick={() => setShowDiary(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
                 </div>
                 <div className="max-h-[350px] overflow-y-auto pr-1 no-scrollbar">
@@ -1009,7 +1012,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
             ) : showQuiz ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><HelpCircle size={16} className="text-amber-500" /> Quiz Edu</h4>
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><HelpCircle size={16} className="text-amber-500" />  {t('auto.quiz_edu', { defaultValue: 'Quiz Edu' })}</h4>
                   <button onClick={() => setShowQuiz(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
                 </div>
                 <div className="max-h-[400px] overflow-y-auto no-scrollbar">
@@ -1019,7 +1022,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
             ) : showShop ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-                   <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Store size={16} className="text-accent-500" /> Sklepik</h4>
+                   <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Store size={16} className="text-accent-500" />  {t('auto.sklepik', { defaultValue: 'Sklepik' })}</h4>
                    <div className="flex items-center gap-3">
                      <span className="text-xs font-bold text-amber-500 flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full"><Coins size={12} /> {petData.coins || 0}</span>
                      <button onClick={() => setShowShop(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
@@ -1031,26 +1034,30 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                     onClick={() => setShopTab('skins')}
                     className={`flex-1 text-[8px] font-black py-1.5 rounded-md transition-all ${shopTab === 'skins' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
                   >
-                    SKÓRKI
-                  </button>
+                    
+                                                                              {t('auto.skórki', { defaultValue: 'SKÓRKI' })}
+                                                                            </button>
                   <button 
                     onClick={() => setShopTab('accessories')}
                     className={`flex-1 text-[8px] font-black py-1.5 rounded-md transition-all ${shopTab === 'accessories' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
                   >
-                    DODATKI
-                  </button>
+                    
+                                                                              {t('auto.dodatki', { defaultValue: 'DODATKI' })}
+                                                                            </button>
                   <button 
                     onClick={() => setShopTab('backgrounds')}
                     className={`flex-1 text-[8px] font-black py-1.5 rounded-md transition-all ${shopTab === 'backgrounds' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
                   >
-                    TŁA
-                  </button>
+                    
+                                                                              {t('auto.tła', { defaultValue: 'TŁA' })}
+                                                                            </button>
                   <button 
                     onClick={() => setShopTab('items')}
                     className={`flex-1 text-[8px] font-black py-1.5 rounded-md transition-all ${shopTab === 'items' ? 'bg-white dark:bg-slate-700 text-accent-500 shadow-sm' : 'text-slate-500'}`}
                   >
-                    JEDZENIE
-                  </button>
+                    
+                                                                              {t('auto.jedzenie', { defaultValue: 'JEDZENIE' })}
+                                                                            </button>
                 </div>
                 
                 <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 pb-2 custom-scrollbar">
@@ -1077,8 +1084,9 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                                   : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
                               }`}
                             >
-                              KUP
-                            </button>
+                              
+                                                                    {t('auto.kup', { defaultValue: 'KUP' })}
+                                                                  </button>
                           </div>
                         </div>
                       );
@@ -1118,16 +1126,16 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                                 <p className="text-[10px] font-black dark:text-white capitalize">{skin.name}</p>
                                 {!isUnlocked && (
                                   isAchievementSkin 
-                                    ? <span className="text-[9px] font-bold text-accent-500 flex items-center gap-1"><Trophy size={10} /> Specjalna</span>
+                                    ? <span className="text-[9px] font-bold text-accent-500 flex items-center gap-1"><Trophy size={10} />  {t('auto.specjalna', { defaultValue: 'Specjalna' })}</span>
                                     : <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-1"><Coins size={10} /> {skin.price}</span>
                                 )}
                              </div>
                           </div>
                           <div>
                              {isEquipped ? (
-                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">UZYWASZ</span>
+                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">{t('auto.uzywasz', { defaultValue: 'UZYWASZ' })}</span>
                              ) : isUnlocked ? (
-                                <button onClick={() => handleEquipSkin(skin.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">WYBIERZ</button>
+                                <button onClick={() => handleEquipSkin(skin.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">{t('auto.wybierz', { defaultValue: 'WYBIERZ' })}</button>
                              ) : (
                                 <button 
                                   disabled={!canAfford || isAchievementSkin} 
@@ -1138,8 +1146,9 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                                       : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
                                   }`}
                                 >
-                                  KUP
-                                </button>
+                                  
+                                                                                    {t('auto.kup', { defaultValue: 'KUP' })}
+                                                                                  </button>
                              )}
                           </div>
                         </div>
@@ -1182,9 +1191,9 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                           </div>
                           <div>
                              {isEquipped ? (
-                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">NOSISZ</span>
+                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">{t('auto.nosisz', { defaultValue: 'NOSISZ' })}</span>
                              ) : isUnlocked ? (
-                                <button onClick={() => handleEquipAccessory(acc.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">ZAŁÓŻ</button>
+                                <button onClick={() => handleEquipAccessory(acc.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">{t('auto.załóż', { defaultValue: 'ZAŁÓŻ' })}</button>
                              ) : (
                                 <button 
                                   disabled={!canAfford} 
@@ -1195,8 +1204,9 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                                       : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
                                   }`}
                                 >
-                                  KUP
-                                </button>
+                                  
+                                                                                    {t('auto.kup', { defaultValue: 'KUP' })}
+                                                                                  </button>
                              )}
                           </div>
                         </div>
@@ -1219,16 +1229,16 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                                 <p className="text-[10px] font-black dark:text-white capitalize">{bg.name}</p>
                                 {!isUnlocked && (
                                   isReward 
-                                    ? <span className="text-[9px] font-bold text-accent-500 flex items-center gap-1"><Trophy size={10} /> TBR {bg.rewardTir}%</span>
+                                    ? <span className="text-[9px] font-bold text-accent-500 flex items-center gap-1"><Trophy size={10} />  {t('auto.tbr', { defaultValue: 'TBR' })} {bg.rewardTir}%</span>
                                     : <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-1"><Coins size={10} /> {bg.price}</span>
                                 )}
                              </div>
                           </div>
                           <div>
                              {isEquipped ? (
-                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">USTAWIONE</span>
+                                <span className="text-[8px] font-black text-white bg-accent-500 px-2 py-1 rounded-full">{t('auto.ustawione', { defaultValue: 'USTAWIONE' })}</span>
                              ) : isUnlocked ? (
-                                <button onClick={() => handleEquipBackground(bg.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">USTAW</button>
+                                <button onClick={() => handleEquipBackground(bg.id)} className="text-[8px] font-black text-slate-100 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-2 py-1 rounded-full shadow-sm hover:scale-105 active:scale-95 transition-all">{t('auto.ustaw', { defaultValue: 'USTAW' })}</button>
                              ) : (
                                 <button 
                                   disabled={!canAfford || isReward} 
@@ -1251,15 +1261,15 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
             ) : showInventory ? (
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Book size={16} className="text-emerald-500" /> Twój Ekwipunek</h4>
+                  <h4 className="font-black text-sm flex items-center gap-2 dark:text-white"><Book size={16} className="text-emerald-500" />  {t('auto.twój_ekwipunek', { defaultValue: 'Twój Ekwipunek' })}</h4>
                   <button onClick={() => setShowInventory(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
                 </div>
                 
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 pb-2 custom-scrollbar">
                   {(!petData.inventory || petData.inventory.length === 0) ? (
                     <div className="text-center py-6 text-slate-400">
-                      <p className="text-xs font-bold mb-1">Pusty ekwipunek</p>
-                      <p className="text-[10px]">Kup nowe przemioty w sklepiku!</p>
+                      <p className="text-xs font-bold mb-1">{t('auto.pusty_ekwipunek', { defaultValue: 'Pusty ekwipunek' })}</p>
+                      <p className="text-[10px]">{t('auto.kup_nowe_przemioty_w_sklepiku', { defaultValue: 'Kup nowe przemioty w sklepiku!' })}</p>
                     </div>
                   ) : (
                     petData.inventory.map(invItem => {
@@ -1285,8 +1295,9 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                               onClick={() => handleUseItem(item)} 
                               className="text-[8px] font-black px-2 py-1 rounded-full shadow-sm transition-all bg-emerald-400 text-emerald-950 hover:scale-105"
                             >
-                              UŻYJ
-                            </button>
+                              
+                                                                    {t('auto.użyj', { defaultValue: 'UŻYJ' })}
+                                                                  </button>
                           </div>
                         </div>
                       );
@@ -1315,18 +1326,18 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                           className="font-black text-sm dark:text-white flex items-center gap-1 cursor-pointer hover:text-accent-500 transition-colors" 
                           onClick={() => { setTempName(petData.name); setIsEditingName(true); }}
                         >
-                          {petData.name} <span className="text-[10px] opacity-30 group-hover:opacity-100">✎</span> <span className="text-xs font-bold text-accent-500 bg-accent-50 dark:bg-accent-500/10 px-1.5 py-0.5 rounded-md">Lvl {petData.level}</span>
+                          {petData.name} <span className="text-[10px] opacity-30 group-hover:opacity-100">✎</span> <span className="text-xs font-bold text-accent-500 bg-accent-50 dark:bg-accent-500/10 px-1.5 py-0.5 rounded-md">{t('auto.lvl', { defaultValue: 'Lvl' })} {petData.level}</span>
                         </h4>
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest font-black">Twój przyjaciel</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest font-black">{t('auto.twój_przyjaciel', { defaultValue: 'Twój przyjaciel' })}</p>
                   </div>
                 </div>
 
                 {/* Energy Bar (IOB) */}
                 <div className="mt-1 mb-4 space-y-1">
                   <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-400">
-                    <span className="flex items-center gap-1"><Activity size={8} className="text-amber-500" /> Energia {petData.name} (IOB)</span>
+                    <span className="flex items-center gap-1"><Activity size={8} className="text-amber-500" />  {t('auto.energia', { defaultValue: 'Energia' })} {petData.name}  {t('auto.iob', { defaultValue: '(IOB)' })}</span>
                     <span>{energyLevel.toFixed(0)}%</span>
                   </div>
                   <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -1408,8 +1419,8 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider">
-                      <span>Doświadczenie</span>
-                      <span>{petData.xp} / {xpRequired} XP</span>
+                      <span>{t('auto.doświadczenie', { defaultValue: 'Doświadczenie' })}</span>
+                      <span>{petData.xp} / {xpRequired}  {t('auto.xp', { defaultValue: 'XP' })}</span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
@@ -1418,7 +1429,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                   
                   <div>
                     <div className="flex justify-between text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider">
-                      <span>Humor</span>
+                      <span>{t('auto.humor', { defaultValue: 'Humor' })}</span>
                       <span className="flex items-center gap-0.5"><Heart size={8} className={petData.happiness > 30 ? "text-rose-500" : "text-slate-400"} fill="currentColor" /> {petData.happiness}%</span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -1428,7 +1439,7 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
 
                   <div>
                     <div className="flex justify-between text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider">
-                      <span>Nasycenie</span>
+                      <span>{t('auto.nasycenie', { defaultValue: 'Nasycenie' })}</span>
                       <span className="flex items-center gap-0.5"><Utensils size={8} className="text-amber-600" /> {petData.hunger || 0}%</span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -1442,16 +1453,16 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                     onClick={handleFeed}
                     className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all whitespace-nowrap"
                   >
-                    <Utensils size={12} /> Jedzenie (15)
-                  </button>
+                    <Utensils size={12} />  {t('auto.jedzenie_15', { defaultValue: 'Jedzenie (15)' })}
+                                                                                    </button>
                   <button 
                     onClick={handlePet}
                     disabled={isMaxPetted}
                     className={`flex-1 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 transition-all whitespace-nowrap ${isMaxPetted ? 'bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500 cursor-not-allowed opacity-60' : 'bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 active:scale-95 hover:bg-accent-100 dark:hover:bg-accent-500/20'}`}
-                    title={isMaxPetted ? "Limit głaskania osiągnięty" : "Pogłaszcz zwierzaka"}
+                    title={isMaxPetted ? i18n.t('auto.limit_glaskania_osiagniety', { defaultValue: "Limit głaskania osiągnięty" }) : i18n.t('auto.poglaszcz_zwierzaka', { defaultValue: "Pogłaszcz zwierzaka" })}
                   >
                     <Sparkles size={12} className={isMaxPetted ? "" : "animate-pulse"} /> 
-                    {isMaxPetted ? 'Limit głaskania' : `Głaskanie (${petCount}/${maxPets})`}
+                    {isMaxPetted ? i18n.t('auto.limit_glaskania', { defaultValue: "Limit głaskania" }) : `Głaskanie (${petCount}/${maxPets})`}
                   </button>
                    <button 
                     onClick={() => { 
@@ -1467,20 +1478,20 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                     }}
                     className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all whitespace-nowrap"
                   >
-                    <Gamepad2 size={12} /> Gry
-                  </button>
+                    <Gamepad2 size={12} />  {t('auto.gry', { defaultValue: 'Gry' })}
+                                                                                    </button>
                   <button 
                     onClick={() => { setShowShop(true); setShowInventory(false); setShowQuests(false); setShowGame(false); }}
                     className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
-                    <ShoppingBag size={12} /> Sklep
-                  </button>
+                    <ShoppingBag size={12} />  {t('auto.sklep', { defaultValue: 'Sklep' })}
+                                                                                    </button>
                   <button 
                     onClick={() => { setShowQuests(true); setShowShop(false); setShowInventory(false); setShowGame(false); setShowDiary(false); setShowQuiz(false); }}
                     className="flex-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
-                    <Trophy size={12} /> Misje
-                  </button>
+                    <Trophy size={12} />  {t('auto.misje', { defaultValue: 'Misje' })}
+                                                                                    </button>
                 </div>
                 
                 <div className="flex gap-2 mb-2">
@@ -1488,26 +1499,26 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
                     onClick={() => { setShowInventory(true); setShowDiary(false); setShowShop(false); setShowQuests(false); setShowGame(false); setShowQuiz(false); setShowGarden(false); }}
                     className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
-                    <Book size={12} /> Ekwipunek
-                  </button>
+                    <Book size={12} />  {t('auto.ekwipunek', { defaultValue: 'Ekwipunek' })}
+                                                                                    </button>
                   <button 
                     onClick={() => { setShowDiary(true); setShowInventory(false); setShowShop(false); setShowQuests(false); setShowGame(false); setShowQuiz(false); setShowGarden(false); }}
                     className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
-                    <Book size={12} /> Dziennik
-                  </button>
+                    <Book size={12} />  {t('auto.dziennik', { defaultValue: 'Dziennik' })}
+                                                                                    </button>
                   <button 
                     onClick={() => { setShowQuiz(true); setShowInventory(false); setShowShop(false); setShowQuests(false); setShowGame(false); setShowDiary(false); setShowGarden(false); }}
                     className="flex-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
-                    <HelpCircle size={12} /> Quiz
-                  </button>
+                    <HelpCircle size={12} />  {t('auto.quiz', { defaultValue: 'Quiz' })}
+                                                                                    </button>
                   <button 
                     onClick={() => { setShowGarden(true); setShowInventory(false); setShowShop(false); setShowQuests(false); setShowGame(false); setShowDiary(false); setShowQuiz(false); }}
                     className="flex-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
                   >
-                    <Flower2 size={12} /> Ogród
-                  </button>
+                    <Flower2 size={12} />  {t('auto.ogród', { defaultValue: 'Ogród' })}
+                                                                                    </button>
                 </div>
               </div>
             )}

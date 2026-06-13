@@ -1,3 +1,4 @@
+import { dbService } from '../services/databaseService';
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
 import { Haptics } from "../lib/haptics";
@@ -114,6 +115,8 @@ import TutorialView from "./TutorialView";
 import GlikoTraining from "./GlikoTraining";
 
 import { ConnectedDevice } from "../hooks/useGlikoServer";
+import { useTranslation } from "react-i18next";
+import i18n from '../i18n';
 
 interface ProfileProps {
   user: any;
@@ -142,6 +145,7 @@ export default function Profile({
   wsDevices = [],
   kickDevice = () => {},
 }: ProfileProps) {
+    const { t } = useTranslation();
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
   const [widgetDebug, setWidgetDebug] = useState<any>(null);
 
@@ -180,7 +184,7 @@ export default function Profile({
     coins: 0,
     skin: "default",
     unlockedSkins: ["default"],
-    name: "Gliko",
+    name: i18n.t('auto.gliko', { defaultValue: 'Gliko' }),
     unlockedAccessories: ["none"],
     currentAccessory: "none",
     unlockedBackgrounds: ["room"],
@@ -216,15 +220,15 @@ export default function Profile({
   const testKey = async () => {
     setIsTestingKey(true);
     try {
-      await geminiService.generateContent("Test. Odpowiedz tylko słowem OK.");
-      toast.success("Klucz API działa poprawnie!");
+      await geminiService.generateContent(i18n.t('auto.test_odpowiedz_tylko_slowem_ok', { defaultValue: "Test. Odpowiedz tylko słowem OK." }));
+      toast.success(i18n.t('auto.klucz_api_dziala_poprawnie', { defaultValue: "Klucz API działa poprawnie!" }));
     } catch (e: any) {
       console.error("API Key Test Failed:", e);
       const msg = e?.message || String(e);
       if (msg.includes("API key not valid")) {
-        toast.error("Klucz API jest nieprawidłowy.");
+        toast.error(i18n.t('auto.klucz_api_jest_nieprawidlowy', { defaultValue: "Klucz API jest nieprawidłowy." }));
       } else {
-        toast.error("Błąd połączenia z AI: " + msg);
+        toast.error(i18n.t('auto.blad_polaczenia_z_ai', { defaultValue: "Błąd połączenia z AI:" }) + msg);
       }
     } finally {
       setIsTestingKey(false);
@@ -411,7 +415,7 @@ export default function Profile({
             category: "other",
             barcode: scannedBarcode
          });
-         alert("🆕 Nieznany kod kreskowy!\nOtwarto okno dodawania. Wpisz nazwę sprzętu, a aplikacja zapamięta go na przyszłość.");
+         alert(i18n.t('auto.nieznany_kod_kreskowy_otwarto', { defaultValue: "🆕 Nieznany kod kreskowy!\nOtwarto okno dodawania. Wpisz nazwę sprzętu, a aplikacja zapamięta go na przyszłość." }));
        }
     }
   };
@@ -428,36 +432,36 @@ export default function Profile({
     const ALL_CATEGORIES = [
       {
         id: "tutorial",
-        label: "Samouczek",
+        label: i18n.t('auto.samouczek', { defaultValue: 'Samouczek' }),
         sub: "FAQ & Pomoc",
         icon: <HelpCircle size={24} />,
         color: "bg-indigo-500",
       },
       {
         id: "simulator",
-        label: "Symulator",
+        label: i18n.t('auto.symulator', { defaultValue: 'Symulator' }),
         sub: "Bolusa",
         icon: <Calculator size={24} />,
         color: "bg-orange-500",
       },
       {
         id: "account",
-        label: "Profil",
-        sub: "Zarządzanie kontem",
+        label: i18n.t('auto.profil', { defaultValue: 'Profil' }),
+        sub: i18n.t('auto.zarzadzanie_kontem', { defaultValue: "Zarządzanie kontem" }),
         icon: <User size={24} />,
         color: "bg-blue-500",
       },
       {
         id: "therapy",
-        label: "Terapia",
+        label: i18n.t('auto.terapia', { defaultValue: 'Terapia' }),
         sub: "Cele & ISF",
         icon: <Activity size={24} />,
         color: "bg-emerald-500",
       },
       {
         id: "training",
-        label: "Trening",
-        sub: "Wpływ sportu",
+        label: i18n.t('auto.trening', { defaultValue: 'Trening' }),
+        sub: i18n.t('auto.wplyw_sportu', { defaultValue: "Wpływ sportu" }),
         icon: <Dumbbell size={24} />,
         color: "bg-emerald-500",
       },
@@ -465,7 +469,7 @@ export default function Profile({
         ? [
             {
               id: "shop",
-              label: "Sklepik",
+              label: i18n.t('auto.sklepik', { defaultValue: 'Sklepik' }),
               sub: petData.name,
               icon: <ShoppingBag size={24} />,
               color: "bg-amber-500",
@@ -474,64 +478,64 @@ export default function Profile({
         : []),
       {
         id: "devices",
-        label: "Osprzęt",
-        sub: "CGM & Wkłucia",
+        label: i18n.t('auto.osprzęt', { defaultValue: 'Osprzęt' }),
+        sub: i18n.t('auto.cgm_wklucia', { defaultValue: "CGM & Wkłucia" }),
         icon: <Signal size={24} />,
         color: "bg-indigo-500",
       },
       {
         id: "diets",
-        label: "Diety",
+        label: i18n.t('auto.diety', { defaultValue: 'Diety' }),
         sub: "Nawyki",
         icon: <BookOpen size={24} />,
         color: "bg-rose-500",
       },
       {
         id: "stats",
-        label: "Statystyki",
-        sub: "Miesięczne",
+        label: i18n.t('auto.statystyki', { defaultValue: 'Statystyki' }),
+        sub: i18n.t('auto.miesieczne', { defaultValue: "Miesięczne" }),
         icon: <BarChart2 size={24} />,
         color: "bg-indigo-600",
       },
       {
         id: "food",
-        label: "Skróty",
+        label: i18n.t('auto.skróty', { defaultValue: 'Skróty' }),
         sub: "Szybkie wpisy",
         icon: <Utensils size={24} />,
         color: "bg-amber-500",
       },
       {
         id: "meds",
-        label: "Leki",
+        label: i18n.t('auto.leki', { defaultValue: 'Leki' }),
         sub: "Przypomnienia",
         icon: <Pill size={24} />,
         color: "bg-teal-500",
       },
       {
         id: "api",
-        label: "Integracje",
+        label: i18n.t('auto.integracje', { defaultValue: 'Integracje' }),
         sub: "API & Chmura",
         icon: <Globe size={24} />,
         color: "bg-sky-500",
       },
       {
         id: "pairing",
-        label: "Parowanie",
-        sub: "Zarządzaj urządzeniami",
+        label: i18n.t('auto.parowanie', { defaultValue: 'Parowanie' }),
+        sub: i18n.t('auto.zarzadzaj_urzadzeniami', { defaultValue: "Zarządzaj urządzeniami" }),
         icon: <Share2 size={24} />,
         color: "bg-blue-500",
       },
       {
         id: "android",
-        label: "Aplikacja",
+        label: i18n.t('auto.aplikacja', { defaultValue: 'Aplikacja' }),
         sub: "Android APK",
         icon: <Smartphone size={24} />,
         color: "bg-green-500",
       },
       {
         id: "system",
-        label: "System",
-        sub: "Wygląd & Inne",
+        label: i18n.t('auto.system', { defaultValue: 'System' }),
+        sub: i18n.t('auto.wyglad_inne', { defaultValue: "Wygląd & Inne" }),
         icon: <Settings size={24} />,
         color: "bg-slate-600",
       },
@@ -564,7 +568,7 @@ export default function Profile({
       Haptics.success();
     } catch (err) {
       console.error("Therapy Audit Failed:", err);
-      toast.error("Nie udało się wygenerować audytu.");
+      toast.error(i18n.t('auto.nie_udalo_sie_wygenerowac_audy', { defaultValue: "Nie udało się wygenerować audytu." }));
     } finally {
       setAuditLoading(false);
     }
@@ -617,7 +621,7 @@ export default function Profile({
   const nukeAllData = async () => {
     if (
       !window.confirm(
-        "Czy na pewno chcesz usunąć konto i wszystkie swoje dane? Ta operacja jest nieodwracalna.",
+        i18n.t('auto.czy_na_pewno_chcesz_usunac_kon', { defaultValue: "Czy na pewno chcesz usunąć konto i wszystkie swoje dane? Ta operacja jest nieodwracalna." }),
       )
     ) {
       return;
@@ -625,7 +629,7 @@ export default function Profile({
 
     if (
       !window.confirm(
-        "Czy jesteś w 100% pewny? To spowoduje bezpowrotne usunięcie konta i wylogowanie z aplikacji.",
+        i18n.t('auto.czy_jestes_w_100_pewny_to_spow', { defaultValue: "Czy jesteś w 100% pewny? To spowoduje bezpowrotne usunięcie konta i wylogowanie z aplikacji." }),
       )
     ) {
       return;
@@ -674,14 +678,14 @@ export default function Profile({
         }
       }
 
-      toast.success("Wszystkie dane i konto zostały usunięte.");
+      toast.success(i18n.t('auto.wszystkie_dane_i_konto_zostaly', { defaultValue: "Wszystkie dane i konto zostały usunięte." }));
       setTimeout(() => {
         handleLogout();
         window.location.reload();
       }, 1500);
     } catch (err) {
       console.error("Nuke failed:", err);
-      toast.error("Błąd podczas usuwania danych.");
+      toast.error(i18n.t('auto.blad_podczas_usuwania_danych', { defaultValue: "Błąd podczas usuwania danych." }));
     } finally {
       setNukeLoading(false);
     }
@@ -700,7 +704,7 @@ export default function Profile({
     if (cleaning) return;
     setCleaning(true);
     Haptics.medium();
-    setCleaningResult("Skanowanie i audyt bazy produktów (AI)...");
+    setCleaningResult(i18n.t('auto.skanowanie_i_audyt_bazy_produk', { defaultValue: "Skanowanie i audyt bazy produktów (AI)..." }));
 
     try {
       const uid = getEffectiveUid(user);
@@ -895,7 +899,7 @@ export default function Profile({
       setTimeout(() => setCleaningResult(null), 5000);
     } catch (err) {
       console.error(err);
-      setCleaningResult("Błąd podczas inteligentnej naprawy.");
+      setCleaningResult(i18n.t('auto.blad_podczas_inteligentnej_nap', { defaultValue: "Błąd podczas inteligentnej naprawy." }));
     } finally {
       setCleaning(false);
     }
@@ -1294,7 +1298,7 @@ export default function Profile({
         // Edit
         const index = updatedMeds.findIndex((m) => m.id === newMedication.id);
         if (index >= 0) updatedMeds[index] = { ...newMedication };
-        toast.success("Lek został zaktualizowany!");
+        toast.success(i18n.t('auto.lek_zostal_zaktualizowany', { defaultValue: "Lek został zaktualizowany!" }));
       } else {
         // Add
         updatedMeds.push({ ...newMedication, id: Date.now().toString() });
@@ -1319,7 +1323,7 @@ export default function Profile({
       setNewMedication(null);
     } catch (e) {
       console.error(e);
-      toast.error("Błąd zapisu leku");
+      toast.error(i18n.t('auto.blad_zapisu_leku', { defaultValue: "Błąd zapisu leku" }));
     } finally {
       setMedLoading(false);
     }
@@ -1361,13 +1365,13 @@ export default function Profile({
           (m) => m.id === newInventoryItem.id,
         );
         if (index >= 0) updatedInventory[index] = { ...newInventoryItem };
-        toast.success("Sprzęt zaktualizowany!");
+        toast.success(i18n.t('auto.sprzet_zaktualizowany', { defaultValue: "Sprzęt zaktualizowany!" }));
       } else {
         updatedInventory.push({
           ...newInventoryItem,
           id: Date.now().toString(),
         });
-        toast.success("Sprzęt dodany do zapasów!");
+        toast.success(i18n.t('auto.sprzet_dodany_do_zapasow', { defaultValue: "Sprzęt dodany do zapasów!" }));
       }
 
       const newSettings = { ...settings, inventory: updatedInventory };
@@ -1388,7 +1392,7 @@ export default function Profile({
       setNewInventoryItem(null);
     } catch (e) {
       console.error(e);
-      toast.error("Błąd zapisu zapasów");
+      toast.error(i18n.t('auto.blad_zapisu_zapasow', { defaultValue: "Błąd zapisu zapasów" }));
     }
   };
 
@@ -1467,11 +1471,11 @@ export default function Profile({
         targetSettings,
         { merge: true },
       );
-      toast("Ustawienia zapisane pomyślnie!");
+      toast(i18n.t('auto.ustawienia_zapisane_pomyslnie', { defaultValue: "Ustawienia zapisane pomyślnie!" }));
     } catch (e) {
       console.error("Save settings error:", e);
       alert(
-        "Błąd podczas zapisywania ustawień: " +
+        i18n.t('auto.blad_podczas_zapisywania_ustaw', { defaultValue: "Błąd podczas zapisywania ustawień:" }) +
           (e instanceof Error ? e.message : String(e)),
       );
     } finally {
@@ -1520,17 +1524,17 @@ export default function Profile({
             targetMin: String(minVal),
             targetMax: String(maxVal)
           });
-          console.log("Natywna synchronizacja ustawień zakończona sukcesem");
+          console.log(i18n.t('auto.natywna_synchronizacja_ustawie', { defaultValue: "Natywna synchronizacja ustawień zakończona sukcesem" }));
         } catch (err) {
-          console.error("Błąd synchronizacji z wtyczką widgetów:", err);
+          console.error(i18n.t('auto.blad_synchronizacji_z_wtyczka', { defaultValue: "Błąd synchronizacji z wtyczką widgetów:" }), err);
         }
       }
 
-      setSaveStatus("Zapisano pomyślnie!");
+      setSaveStatus(i18n.t('auto.zapisano_pomyslnie', { defaultValue: "Zapisano pomyślnie!" }));
       setTimeout(() => setSaveStatus(""), 3000);
     } catch (e) {
       console.error(e);
-      setSaveStatus("Błąd zapisu");
+      setSaveStatus(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }));
       setTimeout(() => setSaveStatus(""), 3000);
     }
   };
@@ -1588,7 +1592,8 @@ export default function Profile({
                   </div>
                 )}
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Poziom {petData.level}
+                  
+                                                    {t('auto.poziom', { defaultValue: 'Poziom' })} {petData.level}
                 </p>
               </div>
             </div>
@@ -1613,11 +1618,13 @@ export default function Profile({
               </div>
               <div>
                 <h3 className="font-black text-lg leading-tight">
-                  System Osiągnięć
-                </h3>
+                  
+                                                    {t('auto.system_osiągnięć', { defaultValue: 'System Osiągnięć' })}
+                                                  </h3>
                 <p className="text-white/80 text-xs font-medium">
-                  Sprawdź swoje postępy i zdobyte odznaki
-                </p>
+                  
+                                                    {t('auto.sprawdź_swoje_postępy_i_zdobyte_odz', { defaultValue: 'Sprawdź swoje postępy i zdobyte odznaki' })}
+                                                  </p>
               </div>
             </div>
           </button>
@@ -1633,8 +1640,8 @@ export default function Profile({
                   <Activity size={24} />
                 </div>
                 <div className="text-left">
-                  <h3 className="font-black text-cyan-600 dark:text-cyan-400 leading-none">Tryb Śledzący</h3>
-                  <p className="text-[10px] text-cyan-700/70 dark:text-cyan-300/70 font-bold uppercase tracking-widest mt-1">Tylko Odczyt</p>
+                  <h3 className="font-black text-cyan-600 dark:text-cyan-400 leading-none">{t('auto.tryb_śledzący', { defaultValue: 'Tryb Śledzący' })}</h3>
+                  <p className="text-[10px] text-cyan-700/70 dark:text-cyan-300/70 font-bold uppercase tracking-widest mt-1">{t('auto.tylko_odczyt', { defaultValue: 'Tylko Odczyt' })}</p>
                 </div>
               </div>
               <button 
@@ -1646,18 +1653,20 @@ export default function Profile({
                     { followerMode: false },
                     { merge: true }
                   );
-                  toast.success("Wyłączono Tryb Śledzący. Wrócono do pełnej wersji.");
+                  toast.success(i18n.t('auto.wylaczono_tryb_sledzacy_wrocon', { defaultValue: "Wyłączono Tryb Śledzący. Wrócono do pełnej wersji." }));
                 }} 
                 className="bg-cyan-500 hover:bg-cyan-600 text-white text-[10px] font-black uppercase px-4 py-3 rounded-xl transition-all shadow-md active:scale-95"
               >
-                Wyłącz
-              </button>
+                
+                                              {t('auto.wyłącz', { defaultValue: 'Wyłącz' })}
+                                            </button>
             </div>
           )}
           <div className="flex items-center justify-between mb-4 px-2">
             <h2 className="text-xl font-black text-slate-800 dark:text-white">
-              Więcej opcji
-            </h2>
+              
+                                        {t('auto.więcej_opcji', { defaultValue: 'Więcej opcji' })}
+                                      </h2>
             <button
               onClick={() => {
                 Haptics.selection();
@@ -1666,11 +1675,11 @@ export default function Profile({
               className="text-xs font-bold text-accent-500 bg-accent-500/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 active:scale-95 transition-transform"
             >
               {isEditingTiles ? (
-                <>Zakończ</>
+                <>{t('auto.zakończ', { defaultValue: 'Zakończ' })}</>
               ) : (
                 <>
-                  <Edit2 size={12} /> Edytuj
-                </>
+                  <Edit2 size={12} />  {t('auto.edytuj', { defaultValue: 'Edytuj' })}
+                                                      </>
               )}
             </button>
           </div>
@@ -1729,8 +1738,9 @@ export default function Profile({
                       </p>
                       {cat.id === "android" && (
                         <span className="bg-indigo-500 text-white px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0 shadow-sm leading-none">
-                          BETA
-                        </span>
+                          
+                                                                  {t('auto.beta', { defaultValue: 'BETA' })}
+                                                                </span>
                       )}
                     </div>
                     <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-600 transition-colors mt-0.5 line-clamp-2 leading-tight">
@@ -1771,7 +1781,7 @@ export default function Profile({
               )}
             >
               <ChevronLeft size={16} />
-              <span>Wróć do Menu</span>
+              <span>{t('auto.wróć_do_menu', { defaultValue: 'Wróć do Menu' })}</span>
             </button>
             <div
               className={cn(
@@ -1784,26 +1794,26 @@ export default function Profile({
               {[
                 {
                   id: "tutorial",
-                  label: "Samouczek",
+                  label: i18n.t('auto.samouczek', { defaultValue: 'Samouczek' }),
                   icon: <HelpCircle size={14} />,
                   color: "text-indigo-500 bg-indigo-500/10",
                 },
                 {
                   id: "simulator",
-                  label: "Symulator",
+                  label: i18n.t('auto.symulator', { defaultValue: 'Symulator' }),
                   icon: <Calculator size={14} />,
                   color: "text-orange-500 bg-orange-500/10",
                 },
-                { id: "account", label: "Profil", icon: <User size={14} />, color: "text-blue-500 bg-blue-500/10" },
+                { id: "account", label: i18n.t('auto.profil', { defaultValue: 'Profil' }), icon: <User size={14} />, color: "text-blue-500 bg-blue-500/10" },
                 {
                   id: "therapy",
-                  label: "Terapia",
+                  label: i18n.t('auto.terapia', { defaultValue: 'Terapia' }),
                   icon: <Activity size={14} />,
                   color: "text-emerald-500 bg-emerald-500/10",
                 },
                 {
                   id: "training",
-                  label: "Trening",
+                  label: i18n.t('auto.trening', { defaultValue: 'Trening' }),
                   icon: <Dumbbell size={14} />,
                   color: "text-emerald-500 bg-emerald-500/10",
                 },
@@ -1811,31 +1821,31 @@ export default function Profile({
                   ? [
                       {
                         id: "shop",
-                        label: "Sklepik",
+                        label: i18n.t('auto.sklepik', { defaultValue: 'Sklepik' }),
                         icon: <ShoppingBag size={14} />,
                         color: "text-amber-500 bg-amber-500/10",
                       },
                     ]
                   : []),
-                { id: "devices", label: "Osprzęt", icon: <Signal size={14} />, color: "text-indigo-500 bg-indigo-500/10" },
-                { id: "diets", label: "Diety", icon: <BookOpen size={14} />, color: "text-rose-500 bg-rose-500/10" },
+                { id: "devices", label: i18n.t('auto.osprzęt', { defaultValue: 'Osprzęt' }), icon: <Signal size={14} />, color: "text-indigo-500 bg-indigo-500/10" },
+                { id: "diets", label: i18n.t('auto.diety', { defaultValue: 'Diety' }), icon: <BookOpen size={14} />, color: "text-rose-500 bg-rose-500/10" },
                 {
                   id: "stats",
-                  label: "Statystyki",
+                  label: i18n.t('auto.statystyki', { defaultValue: 'Statystyki' }),
                   icon: <BarChart2 size={14} />,
                   color: "text-indigo-600 bg-indigo-600/10",
                 },
-                { id: "food", label: "Skróty", icon: <Utensils size={14} />, color: "text-amber-500 bg-amber-500/10" },
-                { id: "meds", label: "Leki", icon: <Pill size={14} />, color: "text-teal-500 bg-teal-500/10" },
-                { id: "api", label: "API", icon: <Globe size={14} />, color: "text-sky-500 bg-sky-500/10" },
-                { id: "pairing", label: "Parowanie", icon: <Share2 size={14} />, color: "text-blue-500 bg-blue-500/10" },
+                { id: "food", label: i18n.t('auto.skróty', { defaultValue: 'Skróty' }), icon: <Utensils size={14} />, color: "text-amber-500 bg-amber-500/10" },
+                { id: "meds", label: i18n.t('auto.leki', { defaultValue: 'Leki' }), icon: <Pill size={14} />, color: "text-teal-500 bg-teal-500/10" },
+                { id: "api", label: i18n.t('auto.api', { defaultValue: 'API' }), icon: <Globe size={14} />, color: "text-sky-500 bg-sky-500/10" },
+                { id: "pairing", label: i18n.t('auto.parowanie', { defaultValue: 'Parowanie' }), icon: <Share2 size={14} />, color: "text-blue-500 bg-blue-500/10" },
                 {
                   id: "android",
-                  label: "Aplikacja",
+                  label: i18n.t('auto.aplikacja', { defaultValue: 'Aplikacja' }),
                   icon: <Smartphone size={14} />,
                   color: "text-green-500 bg-green-500/10",
                 },
-                { id: "system", label: "System", icon: <Settings size={14} />, color: "text-slate-500 bg-slate-500/10" },
+                { id: "system", label: i18n.t('auto.system', { defaultValue: 'System' }), icon: <Settings size={14} />, color: "text-slate-500 bg-slate-500/10" },
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -1859,8 +1869,9 @@ export default function Profile({
                     {cat.label}
                     {cat.id === "android" && (
                       <span className="bg-indigo-500/20 text-indigo-600 dark:bg-indigo-500/30 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[8px] font-black">
-                        BETA
-                      </span>
+                        
+                                                          {t('auto.beta', { defaultValue: 'BETA' })}
+                                                        </span>
                     )}
                   </span>
                 </button>
@@ -1891,10 +1902,11 @@ export default function Profile({
                 )}
               </div>
               <h2 className="text-base font-black dark:text-white mb-0.5">
-                Twój Profil
-              </h2>
+                
+                                              {t('auto.twój_profil', { defaultValue: 'Twój Profil' })}
+                                            </h2>
               <p className="text-slate-400 text-[9px] font-bold mb-3 truncate max-w-[180px] mx-auto opacity-70">
-                {user.email || "Użytkownik Anonimowy"}
+                {user.email || i18n.t('auto.uzytkownik_anonimowy', { defaultValue: "Użytkownik Anonimowy" })}
               </p>
 
               <div className="flex gap-2 justify-center">
@@ -1906,8 +1918,8 @@ export default function Profile({
                   className="group relative bg-white dark:bg-slate-800 text-rose-500 font-black text-[8px] px-5 py-2.5 rounded-lg uppercase tracking-[0.2em] shadow-md hover:bg-rose-500 hover:text-white transition-all active:scale-95 border border-rose-500/20 overflow-hidden"
                 >
                   <span className="relative z-10 flex items-center gap-1">
-                    <LogOut size={10} /> Wyloguj
-                  </span>
+                    <LogOut size={10} />  {t('auto.wyloguj', { defaultValue: 'Wyloguj' })}
+                                                        </span>
                 </button>
               </div>
 
@@ -1920,8 +1932,9 @@ export default function Profile({
                     <div className="p-1.5 bg-purple-500/10 rounded-lg">
                       <Brain size={12} />
                     </div>
-                    Program Badawczy GlikoSense
-                  </h4>
+                    
+                                                          {t('auto.program_badawczy_glikosense', { defaultValue: 'Program Badawczy GlikoSense' })}
+                                                        </h4>
                   <button
                     onClick={() => {
                       const val = !telemetryEnabled;
@@ -1940,9 +1953,9 @@ export default function Profile({
                   </button>
                 </div>
                 <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-snug font-bold">
-                  Pomóż społeczności. Włącz anonimowe udostępnianie wiedzy
-                  wyuczonej przez Twój model AI (GlikoSense).
-                </p>
+                  
+                                                    {t('auto.pomóż_społeczności_włącz_anonimowe_', { defaultValue: 'Pomóż społeczności. Włącz anonimowe udostępnianie wiedzy wyuczonej przez Twój model AI (GlikoSense).' })}
+                                                  </p>
               </motion.div>
             </div>
           </div>
@@ -1954,11 +1967,13 @@ export default function Profile({
               </div>
               <div>
                 <h4 className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-[0.1em]">
-                  Strefa Niebezpieczeństwa
-                </h4>
+                  
+                                                    {t('auto.strefa_niebezpieczeństwa', { defaultValue: 'Strefa Niebezpieczeństwa' })}
+                                                  </h4>
                 <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">
-                  Nieodwracalne usunięcie konta i wszystkich pomiarów
-                </p>
+                  
+                                                    {t('auto.nieodwracalne_usunięcie_konta_i_wsz', { defaultValue: 'Nieodwracalne usunięcie konta i wszystkich pomiarów' })}
+                                                  </p>
               </div>
             </div>
             <button
@@ -1971,8 +1986,9 @@ export default function Profile({
               ) : (
                 <LogOut size={16} />
               )}
-              Usuń Konto i Dane
-            </button>
+              
+                                        {t('auto.usuń_konto_i_dane', { defaultValue: 'Usuń Konto i Dane' })}
+                                      </button>
           </div>
         </motion.div>
       )}
@@ -2075,18 +2091,20 @@ export default function Profile({
                   </div>
                 )}
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-80">
-                  Twój portfel
-                </p>
+                  
+                                                    {t('auto.twój_portfel', { defaultValue: 'Twój portfel' })}
+                                                  </p>
               </div>
               <div className="flex items-end gap-2">
                 <h3 className="text-4xl font-black">{petData.coins}</h3>
-                <span className="text-xl font-bold mb-1 opacity-90">monet</span>
+                <span className="text-xl font-bold mb-1 opacity-90">{t('auto.monet', { defaultValue: 'monet' })}</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3 flex items-center gap-2">
                   <Trophy size={16} className="text-amber-200" />
                   <span className="text-xs font-bold">
-                    Lvl: {petData.level}
+                    
+                                                          {t('auto.lvl', { defaultValue: 'Lvl:' })} {petData.level}
                   </span>
                 </div>
               </div>
@@ -2118,10 +2136,10 @@ export default function Profile({
                   )}
                 >
                   {t === "skins"
-                    ? "Skórki"
+                    ? i18n.t('auto.skorki', { defaultValue: "Skórki" })
                     : t === "accessories"
                       ? "Dodatki"
-                      : "Tła"}
+                      : i18n.t('auto.tla', { defaultValue: "Tła" })}
                 </button>
               ))}
             </div>
@@ -2181,7 +2199,7 @@ export default function Profile({
                               : "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950",
                           )}
                         >
-                          {isEquipped ? "Używasz" : "Wybierz"}
+                          {isEquipped ? i18n.t('auto.uzywasz', { defaultValue: "Używasz" }) : "Wybierz"}
                         </button>
                       ) : (
                         <button
@@ -2264,7 +2282,7 @@ export default function Profile({
                               : "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950",
                           )}
                         >
-                          {isEquipped ? "Nosisz" : "Załóż"}
+                          {isEquipped ? "Nosisz" : i18n.t('auto.zaloz', { defaultValue: "Załóż" })}
                         </button>
                       ) : (
                         <button
@@ -2370,19 +2388,21 @@ export default function Profile({
               </div>
               <div className="text-left">
                 <h4 className="text-sm font-black dark:text-white">
-                  Jak zdobywać monety?
-                </h4>
+                  
+                                                    {t('auto.jak_zdobywać_monety', { defaultValue: 'Jak zdobywać monety?' })}
+                                                  </h4>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                  Każdy wpis w dzienniku zasila Twój portfel!
-                </p>
+                  
+                                                    {t('auto.każdy_wpis_w_dzienniku_zasila_twój_', { defaultValue: 'Każdy wpis w dzienniku zasila Twój portfel!' })}
+                                                  </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-left">
               {[
-                { label: "Glikemia", val: "+5" },
-                { label: "Posiłek", val: "+10" },
-                { label: "Bolus", val: "+8" },
-                { label: "Aktywność", val: "+15" },
+                { label: i18n.t('auto.glikemia', { defaultValue: 'Glikemia' }), val: "+5" },
+                { label: i18n.t('auto.posiłek', { defaultValue: 'Posiłek' }), val: "+10" },
+                { label: i18n.t('auto.bolus', { defaultValue: 'Bolus' }), val: "+8" },
+                { label: i18n.t('auto.aktywność', { defaultValue: 'Aktywność' }), val: "+15" },
               ].map((item) => (
                 <div
                   key={item.label}
@@ -2422,23 +2442,26 @@ export default function Profile({
               </div>
               <div className="text-left">
                 <h3 className="text-base font-black dark:text-white leading-tight">
-                  Cele i Przeliczniki
-                </h3>
+                  
+                                                    {t('auto.cele_i_przeliczniki', { defaultValue: 'Cele i Przeliczniki' })}
+                                                  </h3>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                  Kluczowe parametry terapii
-                </p>
+                  
+                                                    {t('auto.kluczowe_parametry_terapii', { defaultValue: 'Kluczowe parametry terapii' })}
+                                                  </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-4">
                 <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                  Czułość & Dieta
-                </h4>
+                  
+                                                    {t('auto.czułość_dieta', { defaultValue: 'Czułość & Dieta' })}
+                                                  </h4>
                 <div className="space-y-3">
                   <SettingInput
                     disabled={therapyLocked}
-                    label="Wrażliwość (ISF)"
+                    label={t('auto.wrażliwość_isf', { defaultValue: 'Wrażliwość (ISF)' })}
                     value={settings.isf}
                     onChange={(v) => setSettings({ ...settings, isf: v })}
                     min={10}
@@ -2446,7 +2469,7 @@ export default function Profile({
                   />
                   <SettingInput
                     disabled={therapyLocked}
-                    label="Ratio WW"
+                    label={t('auto.ratio_ww', { defaultValue: 'Ratio WW' })}
                     value={settings.wwRatio}
                     onChange={(v) => setSettings({ ...settings, wwRatio: v })}
                     min={1}
@@ -2454,7 +2477,7 @@ export default function Profile({
                   />
                   <SettingInput
                     disabled={therapyLocked}
-                    label="Ratio WBT"
+                    label={t('auto.ratio_wbt', { defaultValue: 'Ratio WBT' })}
                     value={settings.wbtRatio}
                     onChange={(v) => setSettings({ ...settings, wbtRatio: v })}
                     min={1}
@@ -2464,12 +2487,13 @@ export default function Profile({
               </div>
               <div className="space-y-4">
                 <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                  Zakresy Docelowe
-                </h4>
+                  
+                                                    {t('auto.zakresy_docelowe', { defaultValue: 'Zakresy Docelowe' })}
+                                                  </h4>
                 <div className="space-y-3">
                   <SettingInput
                     disabled={therapyLocked}
-                    label="Cel Dolny (Min)"
+                    label={t('auto.cel_dolny_min', { defaultValue: 'Cel Dolny (Min)' })}
                     value={settings.targetMin}
                     onChange={(v) => setSettings({ ...settings, targetMin: v })}
                     min={50}
@@ -2477,7 +2501,7 @@ export default function Profile({
                   />
                   <SettingInput
                     disabled={therapyLocked}
-                    label="Cel Górny (Max)"
+                    label={t('auto.cel_górny_max', { defaultValue: 'Cel Górny (Max)' })}
                     value={settings.targetMax}
                     onChange={(v) => setSettings({ ...settings, targetMax: v })}
                     min={100}
@@ -2494,8 +2518,9 @@ export default function Profile({
                     )}
                   >
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                      Czas Insuliny (DIA)
-                    </span>
+                      
+                                                                {t('auto.czas_insuliny_dia', { defaultValue: 'Czas Insuliny (DIA)' })}
+                                                              </span>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() =>
@@ -2532,9 +2557,8 @@ export default function Profile({
 
             {therapyLocked && (
               <div className="bg-rose-500/10 text-rose-500 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-3 text-xs font-bold ring-1 ring-rose-500/20">
-                <LucideLock size={20} /> Urządzenie główne zablokowało możliwość
-                edycji tych ustawień.
-              </div>
+                <LucideLock size={20} />  {t('auto.urządzenie_główne_zablokowało_możli', { defaultValue: 'Urządzenie główne zablokowało możliwość edycji tych ustawień.' })}
+                                            </div>
             )}
 
             <button
@@ -2550,8 +2574,9 @@ export default function Profile({
               ) : (
                 <CheckCircle2 size={18} />
               )}
-              Zapisz parametry terapii
-            </button>
+              
+                                        {t('auto.zapisz_parametry_terapii', { defaultValue: 'Zapisz parametry terapii' })}
+                                      </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2569,20 +2594,23 @@ export default function Profile({
                   <Zap size={18} />
                 </div>
                 <h3 className="text-[11px] font-black dark:text-white uppercase tracking-tight">
-                  Kalkulator TDI
-                </h3>
+                  
+                                                    {t('auto.kalkulator_tdi', { defaultValue: 'Kalkulator TDI' })}
+                                                  </h3>
               </div>
               <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-bold">
-                Dobowa dawka insuliny (TDI).
-              </p>
+                
+                                              {t('auto.dobowa_dawka_insuliny_tdi', { defaultValue: 'Dobowa dawka insuliny (TDI).' })}
+                                            </p>
 
               <div className="relative mt-4">
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase">
-                  jednostek
-                </div>
+                  
+                                                    {t('auto.jednostek', { defaultValue: 'jednostek' })}
+                                                  </div>
                 <input
                   type="number"
-                  placeholder="np. 45"
+                  placeholder={t('auto.np_45', { defaultValue: 'np. 45' })}
                   className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50 p-4 pr-20 rounded-[1.5rem] font-black text-sm outline-none dark:text-white focus:ring-2 focus:ring-amber-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-800"
                   onChange={(e) => {
                     const tdi = parseFloat(e.target.value);
@@ -2601,8 +2629,9 @@ export default function Profile({
                 />
               </div>
               <p className="text-[8px] text-slate-400 font-bold text-center">
-                Zmiana TDI automatycznie aktualizuje ISF i Ratio WW.
-              </p>
+                
+                                              {t('auto.zmiana_tdi_automatycznie_aktualizuj', { defaultValue: 'Zmiana TDI automatycznie aktualizuje ISF i Ratio WW.' })}
+                                            </p>
             </div>
 
             {/* Advanced Profiles Preview Card */}
@@ -2618,12 +2647,14 @@ export default function Profile({
                     <History size={18} />
                   </div>
                   <h3 className="text-[11px] font-black uppercase tracking-tight">
-                    Profile dobowe
-                  </h3>
+                    
+                                                          {t('auto.profile_dobowe', { defaultValue: 'Profile dobowe' })}
+                                                        </h3>
                 </div>
                 <p className="text-[9px] text-white/80 leading-snug font-bold">
-                  Ustaw parametry dla pór dnia.
-                </p>
+                  
+                                                    {t('auto.ustaw_parametry_dla_pór_dnia', { defaultValue: 'Ustaw parametry dla pór dnia.' })}
+                                                  </p>
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex -space-x-2">
@@ -2635,8 +2666,9 @@ export default function Profile({
                   ))}
                 </div>
                 <span className="text-[8px] font-black bg-white/20 px-2 py-1 rounded-full uppercase tracking-widest">
-                  Konfiguruj poniżej
-                </span>
+                  
+                                                    {t('auto.konfiguruj_poniżej', { defaultValue: 'Konfiguruj poniżej' })}
+                                                  </span>
               </div>
             </div>
           </div>
@@ -2666,12 +2698,13 @@ export default function Profile({
                   </div>
                   <div className="text-left">
                     <h3 className="text-base font-black uppercase tracking-tight">
-                      Ekspercki Audyt Terapii
-                    </h3>
+                      
+                                                                {t('auto.ekspercki_audyt_terapii', { defaultValue: 'Ekspercki Audyt Terapii' })}
+                                                              </h3>
                     <p className="text-[10px] font-bold text-white/80">
-                      Analiza trendów i optymalizacja parametrów (w tym
-                      sugerowane profile godzinowe)
-                    </p>
+                      
+                                                                {t('auto.analiza_trendów_i_optymalizacja_par', { defaultValue: 'Analiza trendów i optymalizacja parametrów (w tym sugerowane profile godzinowe)' })}
+                                                              </p>
                   </div>
                 </div>
                 <ChevronRight
@@ -2700,8 +2733,9 @@ export default function Profile({
                   <div className="flex items-center gap-2 mb-4">
                     <Sparkles className="text-amber-500" size={16} />
                     <h4 className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">
-                      Raport GlikoSense AI
-                    </h4>
+                      
+                                                                {t('auto.raport_glikosense_ai', { defaultValue: 'Raport GlikoSense AI' })}
+                                                              </h4>
                   </div>
                   <div
                     className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed space-y-3 prose-strong:font-black prose-strong:text-slate-900 dark:prose-strong:text-white"
@@ -2712,8 +2746,9 @@ export default function Profile({
             </div>
 
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-              Zaawansowane Profile Godzinowe
-            </h3>
+              
+                                        {t('auto.zaawansowane_profile_godzinowe', { defaultValue: 'Zaawansowane Profile Godzinowe' })}
+                                      </h3>
 
             <div className="space-y-3">
               {(settings.hourlyProfiles || []).map((hp, idx) => (
@@ -2748,8 +2783,9 @@ export default function Profile({
                   <div className="flex-1 grid grid-cols-2 gap-2">
                     <div className="relative">
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">
-                        ISF
-                      </span>
+                        
+                                                          {t('auto.isf', { defaultValue: 'ISF' })}
+                                                        </span>
                       <input
                         type="number"
                         step="0.1"
@@ -2785,8 +2821,9 @@ export default function Profile({
                     </div>
                     <div className="relative">
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">
-                        WW
-                      </span>
+                        
+                                                          {t('auto.ww', { defaultValue: 'WW' })}
+                                                        </span>
                       <input
                         type="number"
                         step="0.1"
@@ -2850,8 +2887,8 @@ export default function Profile({
                 }}
                 className="w-full py-4 bg-accent-50 dark:bg-slate-800/50 text-accent-600 dark:text-accent-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-accent-200 dark:border-slate-700 hover:bg-accent-100 transition-all flex items-center justify-center gap-2"
               >
-                <Plus size={16} /> Dodaj przedział czasowy
-              </button>
+                <Plus size={16} />  {t('auto.dodaj_przedział_czasowy', { defaultValue: 'Dodaj przedział czasowy' })}
+                                            </button>
             </div>
 
             <button
@@ -2862,8 +2899,9 @@ export default function Profile({
               disabled={settingsLoading}
               className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl"
             >
-              Zatwierdź profile czasowe
-            </button>
+              
+                                        {t('auto.zatwierdź_profile_czasowe', { defaultValue: 'Zatwierdź profile czasowe' })}
+                                      </button>
           </div>
         </motion.div>
       )}
@@ -2872,23 +2910,25 @@ export default function Profile({
         <div className="space-y-4">
           <div className="glass p-6 rounded-[2.5rem] space-y-4">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-              Kalibracja CGM
-            </h3>
+              
+                                        {t('auto.kalibracja_cgm', { defaultValue: 'Kalibracja CGM' })}
+                                      </h3>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-              Jeżeli odczyty z CGM różnią się od glukometru, podaj wartość z
-              krwi, a system skoryguje kolejne odczyty (offset kalibracji).
-            </p>
+              
+                                        {t('auto.jeżeli_odczyty_z_cgm_różnią_się_od_', { defaultValue: 'Jeżeli odczyty z CGM różnią się od glukometru, podaj wartość z krwi, a system skoryguje kolejne odczyty (offset kalibracji).' })}
+                                      </p>
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
-                  Wartość z Glukometru (mg/dL)
-                </label>
+                  
+                                                    {t('auto.wartość_z_glukometru_mg_dl', { defaultValue: 'Wartość z Glukometru (mg/dL)' })}
+                                                  </label>
                 <input
                   type="number"
                   min="0"
                   max="600"
                   id="cgmCalibrationInput"
-                  placeholder="np. 110"
+                  placeholder={t('auto.np_110', { defaultValue: 'np. 110' })}
                   onBlur={(e) => {
                     let val = parseFloat(e.target.value);
                     if (!isNaN(val)) {
@@ -2912,7 +2952,7 @@ export default function Profile({
                     // but let's assume user just sets an explicit offset or we calculate it vs last known.
                     // Without last known, we might just prompt. Let's do a simple prompt for now.
                     const currentCgm = prompt(
-                      "Jaka jest obecnie widoczna wartość na CGM?",
+                      i18n.t('auto.jaka_jest_obecnie_widoczna_war', { defaultValue: "Jaka jest obecnie widoczna wartość na CGM?" }),
                     );
                     if (currentCgm) {
                       const offset = glukoValue - parseFloat(currentCgm);
@@ -2947,15 +2987,17 @@ export default function Profile({
                 }}
                 className="bg-emerald-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest mt-4"
               >
-                Kalibruj
-              </button>
+                
+                                              {t('auto.kalibruj', { defaultValue: 'Kalibruj' })}
+                                            </button>
             </div>
             {settings.cgmCalibration ? (
               <div className="text-center">
                 <span className="text-[10px] font-bold text-emerald-500">
-                  Aktywny offset: {settings.cgmCalibration > 0 ? "+" : ""}
-                  {settings.cgmCalibration} mg/dL
-                </span>
+                  
+                                                    {t('auto.aktywny_offset', { defaultValue: 'Aktywny offset:' })} {settings.cgmCalibration > 0 ? "+" : ""}
+                  {settings.cgmCalibration}  {t('auto.mg_dl', { defaultValue: 'mg/dL' })}
+                                                  </span>
                 <button
                   onClick={async () => {
                     const updateObj = { cgmCalibration: 0, cgmTimestamp: 0 };
@@ -2977,30 +3019,35 @@ export default function Profile({
                   }}
                   className="ml-4 text-[10px] text-rose-500 font-bold uppercase underline"
                 >
-                  Anuluj Kalibrację
-                </button>
+                  
+                                                    {t('auto.anuluj_kalibrację', { defaultValue: 'Anuluj Kalibrację' })}
+                                                  </button>
               </div>
             ) : null}
           </div>
 
           <div className="glass p-6 rounded-[2.5rem] space-y-4">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-              Powiadomienia i Osprzęt
-            </h3>
+              
+                                        {t('auto.powiadomienia_i_osprzęt', { defaultValue: 'Powiadomienia i Osprzęt' })}
+                                      </h3>
             <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium text-center">
-              Ustaw czasy życia dla Twojego osprzętu.
-            </p>
+              
+                                        {t('auto.ustaw_czasy_życia_dla_twojego_osprz', { defaultValue: 'Ustaw czasy życia dla Twojego osprzętu.' })}
+                                      </p>
 
             <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700">
               <div className="flex items-center gap-2.5">
                 <Bell className="text-accent-500" size={18} />
                 <div>
                   <p className="text-xs font-black dark:text-white leading-tight">
-                    Powiadomienia Push
-                  </p>
+                    
+                                                          {t('auto.powiadomienia_push', { defaultValue: 'Powiadomienia Push' })}
+                                                        </p>
                   <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
-                    Ostrzeżenia o wymianie
-                  </p>
+                    
+                                                          {t('auto.ostrzeżenia_o_wymianie', { defaultValue: 'Ostrzeżenia o wymianie' })}
+                                                        </p>
                 </div>
               </div>
               <button
@@ -3008,7 +3055,7 @@ export default function Profile({
                   if (!settings.notificationsEnabled) {
                     if (window.self !== window.top && !Capacitor.isNativePlatform()) {
                       alert(
-                        '📢 WAŻNE: Przeglądarki blokują powiadomienia PUSH wewnątrz podglądu (iframe).\n\nAby włączyć powiadomienia, kliknij przycisk "Otwórz w nowej karcie" (prawy górny róg) i spróbuj tam jesze raz.',
+                        i18n.t('auto.wazne_przegladarki_blokuja_pow', { defaultValue: "📢 WAŻNE: Przeglądarki blokują powiadomienia PUSH wewnątrz podglądu (iframe).\n\nAby włączyć powiadomienia, kliknij przycisk \"Otwórz w nowej karcie\" (prawy górny róg) i spróbuj tam jesze raz." }),
                       );
                       return;
                     }
@@ -3102,17 +3149,19 @@ export default function Profile({
                   <Bell className="text-accent-500" size={18} />
                   <div>
                     <p className="text-xs font-black dark:text-white leading-tight">
-                      Informacje na pasku powiadomień
-                    </p>
+                      
+                                                                {t('auto.informacje_na_pasku_powiadomień', { defaultValue: 'Informacje na pasku powiadomień' })}
+                                                              </p>
                     <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
-                      Powiadomienia na systemowym pasku (APK)
-                    </p>
+                      
+                                                                {t('auto.powiadomienia_na_systemowym_pasku_a', { defaultValue: 'Powiadomienia na systemowym pasku (APK)' })}
+                                                              </p>
                   </div>
                 </div>
                 <button
                   onClick={async () => {
                     if (window.self !== window.top && !Capacitor.isNativePlatform()) {
-                      alert('📢 WAŻNE: Przeglądarki blokują powiadomienia wewnątrz podglądu (iframe).\n\nAby włączyć ten widżet, otwórz aplikację w nowej karcie (przycisk w prawym górnym rogu tego okna).');
+                      alert(i18n.t('auto.wazne_przegladarki_blokuja_pow', { defaultValue: "📢 WAŻNE: Przeglądarki blokują powiadomienia wewnątrz podglądu (iframe).\n\nAby włączyć ten widżet, otwórz aplikację w nowej karcie (przycisk w prawym górnym rogu tego okna)." }));
                       return;
                     }
 
@@ -3124,17 +3173,17 @@ export default function Profile({
                         const { PushNotifications } = await import('@capacitor/push-notifications');
                         const result = await PushNotifications.requestPermissions();
                         if (result.receive !== 'granted') {
-                          alert("Zezwól na powiadomienia w systemie, aby używać tego widżetu.");
+                          alert(i18n.t('auto.zezwol_na_powiadomienia_w_syst', { defaultValue: "Zezwól na powiadomienia w systemie, aby używać tego widżetu." }));
                           return;
                         }
                       } else if (window.Notification) {
                         const perm = await window.Notification.requestPermission();
                         if (perm !== 'granted') {
-                          alert("Zezwól na powiadomienia w przeglądarce, aby używać tego widżetu.");
+                          alert(i18n.t('auto.zezwol_na_powiadomienia_w_prze', { defaultValue: "Zezwól na powiadomienia w przeglądarce, aby używać tego widżetu." }));
                           return;
                         }
                       } else {
-                        alert("Twoja przeglądarka nie obsługuje powiadomień.");
+                        alert(i18n.t('auto.twoja_przegladarka_nie_obslugu', { defaultValue: "Twoja przeglądarka nie obsługuje powiadomień." }));
                         return;
                       }
                     }
@@ -3185,30 +3234,30 @@ export default function Profile({
             >
               {!settings.notificationsEnabled && (
                 <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 pl-12">
-                  Włącz powiadomienia powyżej, aby skonfigurować rodzaje
-                  alertów.
-                </p>
+                  
+                                                    {t('auto.włącz_powiadomienia_powyżej_aby_sko', { defaultValue: 'Włącz powiadomienia powyżej, aby skonfigurować rodzaje alertów.' })}
+                                                  </p>
               )}
               <div className="grid grid-cols-2 gap-3 pl-12">
                 {[
                   {
                     id: "hypo",
-                    label: "Niedocukrzenia",
+                    label: i18n.t('auto.niedocukrzenia', { defaultValue: 'Niedocukrzenia' }),
                     icon: <Activity size={14} className="text-rose-500" />,
                   },
                   {
                     id: "hyper",
-                    label: "Przecukrzenia",
+                    label: i18n.t('auto.przecukrzenia', { defaultValue: 'Przecukrzenia' }),
                     icon: <Activity size={14} className="text-amber-500" />,
                   },
                   {
                     id: "reminders",
-                    label: "Przypomnienia",
+                    label: i18n.t('auto.przypomnienia', { defaultValue: 'Przypomnienia' }),
                     icon: <Bell size={14} className="text-blue-500" />,
                   },
                   {
                     id: "predictions",
-                    label: "Przewidywania AI",
+                    label: i18n.t('auto.przewidywania_ai', { defaultValue: 'Przewidywania AI' }),
                     icon: <Zap size={14} className="text-emerald-500" />,
                   },
                 ].map((pref) => {
@@ -3273,13 +3322,13 @@ export default function Profile({
               {settings.notificationsEnabled && (
                 <div className="pl-12 mt-6">
                   <p className="text-[10px] font-black text-accent-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                    <Sparkles size={12} className="animate-pulse" /> Inteligentne reguły GlikoSense
-                  </p>
+                    <Sparkles size={12} className="animate-pulse" />  {t('auto.inteligentne_reguły_glikosense', { defaultValue: 'Inteligentne reguły GlikoSense' })}
+                                                        </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {[
                       {
                         id: "nightSnackReminder",
-                        label: "Nocne Przekąski (Ostrzeżenia)",
+                        label: i18n.t('auto.nocne_przekąski_ostrzeżenia', { defaultValue: 'Nocne Przekąski (Ostrzeżenia)' }),
                         icon: <Moon size={14} className="text-indigo-400" />,
                       }
                     ].map((pref) => {
@@ -3325,7 +3374,7 @@ export default function Profile({
                               {pref.label}
                             </span>
                             <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-                              {isActive ? "GlikoSense czuwa" : "Reguła wyłączona"}
+                              {isActive ? "GlikoSense czuwa" : i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" })}
                             </span>
                           </div>
                         </button>
@@ -3354,11 +3403,13 @@ export default function Profile({
                 </div>
                 <div>
                   <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">
-                    Sensor CGM
-                  </h4>
+                    
+                                                          {t('auto.sensor_cgm', { defaultValue: 'Sensor CGM' })}
+                                                        </h4>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Monitorowanie glikemii
-                  </p>
+                    
+                                                          {t('auto.monitorowanie_glikemii', { defaultValue: 'Monitorowanie glikemii' })}
+                                                        </p>
                 </div>
               </div>
 
@@ -3372,8 +3423,9 @@ export default function Profile({
                   )}
                 >
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">
-                    Żywotność Sensora (dni)
-                  </label>
+                    
+                                                          {t('auto.żywotność_sensora_dni', { defaultValue: 'Żywotność Sensora (dni)' })}
+                                                        </label>
                   <div className="flex items-center gap-3">
                     <input
                       type="number"
@@ -3407,8 +3459,9 @@ export default function Profile({
                       className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-black text-sm outline-none dark:text-white focus:ring-2 ring-indigo-500/20 transition-all"
                     />
                     <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 text-[10px] font-black text-slate-400">
-                      DNI
-                    </div>
+                      
+                                                                {t('auto.dni', { defaultValue: 'DNI' })}
+                                                              </div>
                   </div>
                 </div>
 
@@ -3421,8 +3474,9 @@ export default function Profile({
                   )}
                 >
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">
-                    Data i godzina założenia
-                  </label>
+                    
+                                                          {t('auto.data_i_godzina_założenia', { defaultValue: 'Data i godzina założenia' })}
+                                                        </label>
                   <div className="relative">
                     <Calendar
                       size={14}
@@ -3496,13 +3550,14 @@ export default function Profile({
                           },
                         );
                       }
-                      toast.success("Zapisano wymianę sensora na teraz!");
+                      toast.success(i18n.t('auto.zapisano_wymiane_sensora_na_te', { defaultValue: "Zapisano wymianę sensora na teraz!" }));
                     }}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 group/btn"
                   >
                     <Sparkles size={12} className="group-hover:animate-pulse" />
-                    Wymiana teraz
-                  </button>
+                    
+                                                          {t('auto.wymiana_teraz', { defaultValue: 'Wymiana teraz' })}
+                                                        </button>
 
                   <button
                     onClick={async () => {
@@ -3529,14 +3584,37 @@ export default function Profile({
                           updates,
                           { merge: true },
                         );
+
+                        if (updates.sensorChangeDate) {
+                          const latestSensorLog = logs
+                            .filter((l) => l.type === "sensor_change")
+                            .sort((a, b) => b.timestamp - a.timestamp)[0];
+                          if (latestSensorLog && latestSensorLog.id) {
+                            await updateDoc(
+                              doc(
+                                db,
+                                "artifacts",
+                                "diacontrolapp",
+                                "users",
+                                getEffectiveUid(user),
+                                "logs",
+                                latestSensorLog.id
+                              ),
+                              { timestamp: updates.sensorChangeDate }
+                            );
+                              await dbService.saveLog({ ...latestSensorLog, timestamp: updates.sensorChangeDate });
+                              window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSensorLog.id, updates: { timestamp: updates.sensorChangeDate } } }));
+                          }
+                        }
                       }
-                      toast.success("Zaktualizowano datę/dni sensora!");
+                      toast.success(i18n.t('auto.zaktualizowano_date_dni_sensor', { defaultValue: "Zaktualizowano datę/dni sensora!" }));
                     }}
                     className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all border border-slate-300/50 dark:border-slate-700/50 flex items-center justify-center gap-1.5"
                   >
                     <Save size={12} />
-                    Aktualizuj dane
-                  </button>
+                    
+                                                          {t('auto.aktualizuj_dane', { defaultValue: 'Aktualizuj dane' })}
+                                                        </button>
                 </div>
               </div>
             </div>
@@ -3557,11 +3635,13 @@ export default function Profile({
                 </div>
                 <div>
                   <h4 className="text-base font-black dark:text-white uppercase tracking-tight">
-                    Zestaw Infuzyjny
-                  </h4>
+                    
+                                                          {t('auto.zestaw_infuzyjny', { defaultValue: 'Zestaw Infuzyjny' })}
+                                                        </h4>
                   <p className="text-[10px] font-bold text-teal-600/60 dark:text-teal-400/60 uppercase tracking-[0.2em] mt-1">
-                    Wkłucie i dreny
-                  </p>
+                    
+                                                          {t('auto.wkłucie_i_dreny', { defaultValue: 'Wkłucie i dreny' })}
+                                                        </p>
                 </div>
               </div>
 
@@ -3575,8 +3655,9 @@ export default function Profile({
                   )}
                 >
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">
-                    Żywotność Wkłucia (dni)
-                  </label>
+                    
+                                                          {t('auto.żywotność_wkłucia_dni', { defaultValue: 'Żywotność Wkłucia (dni)' })}
+                                                        </label>
                   <div className="flex items-center gap-3">
                     <input
                       type="number"
@@ -3610,8 +3691,9 @@ export default function Profile({
                       className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-black text-sm outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
                     />
                     <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 text-[10px] font-black text-slate-400">
-                      DNI
-                    </div>
+                      
+                                                                {t('auto.dni', { defaultValue: 'DNI' })}
+                                                              </div>
                   </div>
                 </div>
 
@@ -3624,8 +3706,9 @@ export default function Profile({
                   )}
                 >
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">
-                    Data i godzina założenia
-                  </label>
+                    
+                                                          {t('auto.data_i_godzina_założenia', { defaultValue: 'Data i godzina założenia' })}
+                                                        </label>
                   <div className="relative">
                     <Calendar
                       size={14}
@@ -3665,22 +3748,23 @@ export default function Profile({
                   )}
                 >
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-1.5 block">
-                    Miejsce wkłucia
-                  </label>
+                    
+                                                          {t('auto.miejsce_wkłucia', { defaultValue: 'Miejsce wkłucia' })}
+                                                        </label>
                   <select
                     value={insertionSite}
                     onChange={(e) => setSettings({...settings, infusionSetSite: e.target.value})}
                     className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all cursor-pointer"
                   >
-                    <option value="Lewy brzuch">Lewy brzuch</option>
-                    <option value="Prawy brzuch">Prawy brzuch</option>
-                    <option value="Lewe udo">Lewe udo</option>
-                    <option value="Prawe udo">Prawe udo</option>
-                    <option value="Lewy pośladek">Lewy pośladek</option>
-                    <option value="Prawy pośladek">Prawy pośladek</option>
-                    <option value="Lewe ramię">Lewe ramię</option>
-                    <option value="Prawe ramię">Prawe ramię</option>
-                    <option value="Inne">Inne</option>
+                    <option value="Lewy brzuch">{t('auto.lewy_brzuch', { defaultValue: 'Lewy brzuch' })}</option>
+                    <option value="Prawy brzuch">{t('auto.prawy_brzuch', { defaultValue: 'Prawy brzuch' })}</option>
+                    <option value="Lewe udo">{t('auto.lewe_udo', { defaultValue: 'Lewe udo' })}</option>
+                    <option value="Prawe udo">{t('auto.prawe_udo', { defaultValue: 'Prawe udo' })}</option>
+                    <option value={i18n.t('auto.lewy_posladek', { defaultValue: "Lewy pośladek" })}>{t('auto.lewy_pośladek', { defaultValue: 'Lewy pośladek' })}</option>
+                    <option value={i18n.t('auto.prawy_posladek', { defaultValue: "Prawy pośladek" })}>{t('auto.prawy_pośladek', { defaultValue: 'Prawy pośladek' })}</option>
+                    <option value={i18n.t('auto.lewe_ramie', { defaultValue: "Lewe ramię" })}>{t('auto.lewe_ramię', { defaultValue: 'Lewe ramię' })}</option>
+                    <option value={i18n.t('auto.prawe_ramie', { defaultValue: "Prawe ramię" })}>{t('auto.prawe_ramię', { defaultValue: 'Prawe ramię' })}</option>
+                    <option value="Inne">{t('auto.inne', { defaultValue: 'Inne' })}</option>
                   </select>
                 </div>
 
@@ -3740,8 +3824,9 @@ export default function Profile({
                       size={12}
                       className="group-hover:animate-spin transition-all"
                     />
-                    Wymiana teraz
-                  </button>
+                    
+                                                          {t('auto.wymiana_teraz', { defaultValue: 'Wymiana teraz' })}
+                                                        </button>
 
                   <button
                     onClick={async () => {
@@ -3769,14 +3854,37 @@ export default function Profile({
                           updates,
                           { merge: true },
                         );
+
+                        if (updates.infusionSetChangeDate) {
+                          const latestSiteLog = logs
+                            .filter((l) => l.type === "site_change")
+                            .sort((a, b) => b.timestamp - a.timestamp)[0];
+                          if (latestSiteLog && latestSiteLog.id) {
+                            await updateDoc(
+                              doc(
+                                db,
+                                "artifacts",
+                                "diacontrolapp",
+                                "users",
+                                getEffectiveUid(user),
+                                "logs",
+                                latestSiteLog.id
+                              ),
+                              { timestamp: updates.infusionSetChangeDate }
+                            );
+                              await dbService.saveLog({ ...latestSiteLog, timestamp: updates.infusionSetChangeDate });
+                              window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSiteLog.id, updates: { timestamp: updates.infusionSetChangeDate } } }));
+                          }
+                        }
                       }
-                      toast.success("Zaktualizowano datę/dni wkłucia!");
+                      toast.success(i18n.t('auto.zaktualizowano_date_dni_wkluci', { defaultValue: "Zaktualizowano datę/dni wkłucia!" }));
                     }}
                     className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all border border-slate-300/50 dark:border-slate-700/50 flex items-center justify-center gap-1.5"
                   >
                     <Save size={12} />
-                    Aktualizuj dane
-                  </button>
+                    
+                                                          {t('auto.aktualizuj_dane', { defaultValue: 'Aktualizuj dane' })}
+                                                        </button>
                 </div>
               </div>
             </div>
@@ -3786,8 +3894,9 @@ export default function Profile({
             disabled={settingsLoading}
             className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent-600/20 active:scale-95 transition-all mt-4"
           >
-            Zapisz Wszystkie Ustawienia Osprzętu
-          </button>
+            
+                                  {t('auto.zapisz_wszystkie_ustawienia_osprzęt', { defaultValue: 'Zapisz Wszystkie Ustawienia Osprzętu' })}
+                                </button>
         </div>
       )}
 
@@ -3806,12 +3915,13 @@ export default function Profile({
                 </div>
                 <div className="text-left">
                   <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">
-                    Auto-Magia: IG, ŁG, Makro & Duplikaty
-                  </h3>
+                    
+                                                          {t('auto.auto_magia_ig_łg_makro_duplikaty', { defaultValue: 'Auto-Magia: IG, ŁG, Makro & Duplikaty' })}
+                                                        </h3>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
-                    Automatycznie sprawdzaj, poprawiaj wartości oraz usuwaj
-                    duplikaty produktów.
-                  </p>
+                    
+                                                          {t('auto.automatycznie_sprawdzaj_poprawiaj_w', { defaultValue: 'Automatycznie sprawdzaj, poprawiaj wartości oraz usuwaj duplikaty produktów.' })}
+                                                        </p>
                 </div>
               </div>
               <button
@@ -3820,7 +3930,7 @@ export default function Profile({
                   setSettings({ ...settings, autoGIEnabled: val });
                   Haptics.medium();
                   if (val)
-                    toast.success("Automatyczne pobieranie IG/ŁG włączone!");
+                    toast.success(i18n.t('auto.automatyczne_pobieranie_ig_lg', { defaultValue: "Automatyczne pobieranie IG/ŁG włączone!" }));
                 }}
                 className={cn(
                   "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
@@ -3842,13 +3952,13 @@ export default function Profile({
                 ) : (
                   <Play size={12} fill="currentColor" />
                 )}
-                START AUDYTU: IG, ŁG i DUPLIKATY
-              </button>
+                
+                                              {t('auto.start_audytu_ig_łg_i_duplikaty', { defaultValue: 'START AUDYTU: IG, ŁG i DUPLIKATY' })}
+                                            </button>
               <p className="text-[8px] text-amber-700/60 dark:text-amber-400/40 font-bold px-2 text-center leading-tight">
-                AI przeanalizuje Twoje produkty, aby zweryfikować Indeks
-                Glikemiczny, Ładunek, makroskładniki oraz usunąć powtarzające
-                się nazwy.
-              </p>
+                
+                                              {t('auto.ai_przeanalizuje_twoje_produkty_aby', { defaultValue: 'AI przeanalizuje Twoje produkty, aby zweryfikować Indeks Glikemiczny, Ładunek, makroskładniki oraz usunąć powtarzające się nazwy.' })}
+                                            </p>
             </div>
             {cleaningResult && (
               <p className="mt-2 text-[8px] font-black text-amber-600 dark:text-amber-400 animate-pulse text-center">
@@ -3871,11 +3981,13 @@ export default function Profile({
               </div>
               <div className="text-left">
                 <h3 className="text-base font-black dark:text-white leading-tight">
-                  Szybkie Posiłki
-                </h3>
+                  
+                                                    {t('auto.szybkie_posiłki', { defaultValue: 'Szybkie Posiłki' })}
+                                                  </h3>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                  Twoje ulubione skróty
-                </p>
+                  
+                                                    {t('auto.twoje_ulubione_skróty', { defaultValue: 'Twoje ulubione skróty' })}
+                                                  </p>
               </div>
             </div>
 
@@ -3900,8 +4012,8 @@ export default function Profile({
                         {s.name}
                       </p>
                       <p className="text-[9px] font-bold text-amber-500 uppercase tracking-wider">
-                        {s.carbs || 0}g węgli • {(s.carbs / 10).toFixed(1)} WW
-                      </p>
+                        {s.carbs || 0}{t('auto.g_węgli', { defaultValue: 'g węgli •' })} {(s.carbs / 10).toFixed(1)}  {t('auto.ww', { defaultValue: 'WW' })}
+                                                        </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -3941,8 +4053,8 @@ export default function Profile({
                 }
                 className="flex items-center justify-center gap-3 p-4 rounded-[1.8rem] border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-accent-500 hover:bg-accent-500/5 text-slate-400 hover:text-accent-500 transition-all font-black text-[10px] uppercase tracking-widest"
               >
-                <Plus size={18} /> Dodaj nowy skrót
-              </button>
+                <Plus size={18} />  {t('auto.dodaj_nowy_skrót', { defaultValue: 'Dodaj nowy skrót' })}
+                                            </button>
             </div>
 
             {newShortcut && (
@@ -3958,7 +4070,7 @@ export default function Profile({
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest px-2">
-                    {newShortcut.id ? "Edycja skrótu" : "Nowy skrót"}
+                    {newShortcut.id ? i18n.t('auto.edycja_skrotu', { defaultValue: "Edycja skrótu" }) : i18n.t('auto.nowy_skrot', { defaultValue: "Nowy skrót" })}
                   </h4>
                   {newShortcut.id && (
                     <button
@@ -3998,11 +4110,12 @@ export default function Profile({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                      Nazwa posiłku
-                    </label>
+                      
+                                                                {t('auto.nazwa_posiłku', { defaultValue: 'Nazwa posiłku' })}
+                                                              </label>
                     <input
                       type="text"
-                      placeholder="np. Szybkie Śniadanie"
+                      placeholder={t('auto.np_szybkie_śniadanie', { defaultValue: 'np. Szybkie Śniadanie' })}
                       value={newShortcut.name}
                       onChange={(e) =>
                         setNewShortcut({ ...newShortcut, name: e.target.value })
@@ -4012,8 +4125,9 @@ export default function Profile({
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                      Węglowodany (g)
-                    </label>
+                      
+                                                                {t('auto.węglowodany_g', { defaultValue: 'Węglowodany (g)' })}
+                                                              </label>
                     <div className="relative">
                       <input
                         type="number"
@@ -4038,7 +4152,7 @@ export default function Profile({
                   onClick={saveShortcut}
                   className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl"
                 >
-                  {newShortcut.id ? "Zapisz zmiany" : "Zatwierdź i dodaj"}
+                  {newShortcut.id ? "Zapisz zmiany" : i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: "Zatwierdź i dodaj" })}
                 </button>
               </motion.div>
             )}
@@ -4066,11 +4180,13 @@ export default function Profile({
               </div>
               <div className="text-left">
                 <h3 className="text-base font-black dark:text-white leading-tight">
-                  Twoje Leki
-                </h3>
+                  
+                                                    {t('auto.twoje_leki', { defaultValue: 'Twoje Leki' })}
+                                                  </h3>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                  Harmonogram
-                </p>
+                  
+                                                    {t('auto.harmonogram', { defaultValue: 'Harmonogram' })}
+                                                  </p>
               </div>
             </div>
 
@@ -4170,7 +4286,8 @@ export default function Profile({
                         )}
                       >
                         <Calendar size={12} />
-                        Data ważności:{" "}
+                        
+                                                          {t('auto.data_ważności', { defaultValue: 'Data ważności:' })}{" "}
                         <span className="uppercase">{med.expiryDate}</span>
                       </p>
 
@@ -4211,8 +4328,8 @@ export default function Profile({
                 }
                 className="w-full py-5 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 hover:border-teal-500 hover:bg-teal-500/5 hover:text-teal-600 transition-all flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-[0.2em]"
               >
-                <Plus size={20} /> Dodaj nowy lek
-              </button>
+                <Plus size={20} />  {t('auto.dodaj_nowy_lek', { defaultValue: 'Dodaj nowy lek' })}
+                                            </button>
             </div>
 
             {newMedication && (
@@ -4228,8 +4345,9 @@ export default function Profile({
               >
                 <div className="flex items-center justify-between">
                   <h4 className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest px-1">
-                    Konfiguracja
-                  </h4>
+                    
+                                                          {t('auto.konfiguracja', { defaultValue: 'Konfiguracja' })}
+                                                        </h4>
                   <button
                     onClick={() => setNewMedication(null)}
                     className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-full transition-all"
@@ -4241,11 +4359,12 @@ export default function Profile({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Nazwa
-                    </label>
+                      
+                                                                {t('auto.nazwa', { defaultValue: 'Nazwa' })}
+                                                              </label>
                     <input
                       type="text"
-                      placeholder="np. Metformina"
+                      placeholder={t('auto.np_metformina', { defaultValue: 'np. Metformina' })}
                       value={newMedication.name}
                       onChange={(e) =>
                         setNewMedication({
@@ -4258,11 +4377,12 @@ export default function Profile({
                   </div>
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Dawka
-                    </label>
+                      
+                                                                {t('auto.dawka', { defaultValue: 'Dawka' })}
+                                                              </label>
                     <input
                       type="text"
-                      placeholder="np. 500mg"
+                      placeholder={t('auto.np_500mg', { defaultValue: 'np. 500mg' })}
                       value={newMedication.dosage}
                       onChange={(e) =>
                         setNewMedication({
@@ -4278,8 +4398,9 @@ export default function Profile({
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Przypomnienia
-                    </label>
+                      
+                                                                {t('auto.przypomnienia', { defaultValue: 'Przypomnienia' })}
+                                                              </label>
                     <div className="flex flex-wrap gap-1.5 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl">
                       {newMedication.reminders.map((rem, idx) => (
                         <div
@@ -4332,8 +4453,9 @@ export default function Profile({
 
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Wygasa
-                    </label>
+                      
+                                                                {t('auto.wygasa', { defaultValue: 'Wygasa' })}
+                                                              </label>
                     <div className="relative">
                       <Calendar
                         size={12}
@@ -4385,14 +4507,17 @@ export default function Profile({
                 </div>
                 <div className="text-left">
                   <h3 className="text-base font-black dark:text-white leading-tight">
-                    Apteczka{" "}
+                    
+                                                          {t('auto.apteczka', { defaultValue: 'Apteczka' })}{" "}
                     <span className="text-[10px] bg-rose-500/10 text-rose-600 px-2 py-0.5 rounded-full ml-1 relative -top-0.5">
-                      Zapasy
-                    </span>
+                      
+                                                                {t('auto.zapasy', { defaultValue: 'Zapasy' })}
+                                                              </span>
                   </h3>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Sprzęt & Insulina
-                  </p>
+                    
+                                                          {t('auto.sprzęt_insulina', { defaultValue: 'Sprzęt & Insulina' })}
+                                                        </p>
                 </div>
               </div>
             </div>
@@ -4426,11 +4551,12 @@ export default function Profile({
                           {item.name}
                         </h4>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                          Kategoria: {item.category}
+                          
+                                                                {t('auto.kategoria', { defaultValue: 'Kategoria:' })} {item.category}
                         </p>
                         {item.expiryDate && (
                           <p className="text-[9px] font-bold mt-1 uppercase tracking-widest flex items-center gap-1 text-amber-600 dark:text-amber-500">
-                            <Calendar size={10} /> Data ważn: {item.expiryDate}
+                            <Calendar size={10} />  {t('auto.data_ważn', { defaultValue: 'Data ważn:' })} {item.expiryDate}
                           </p>
                         )}
                       </div>
@@ -4452,13 +4578,14 @@ export default function Profile({
                       </h3>
                       {item.quantity <= item.lowStockThreshold && (
                         <span className="text-[7px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded-full uppercase tracking-widest animate-pulse mt-1">
-                          Mało!
-                        </span>
+                          
+                                                                {t('auto.mało', { defaultValue: 'Mało!' })}
+                                                              </span>
                       )}
                       {item.dailyDose && item.dailyDose > 0 && (
                         <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1.5">
-                          ~{Math.floor(item.quantity / item.dailyDose)} dni
-                        </span>
+                          ~{Math.floor(item.quantity / item.dailyDose)}  {t('auto.dni', { defaultValue: 'dni' })}
+                                                              </span>
                       )}
                     </div>
                   </div>
@@ -4559,14 +4686,14 @@ export default function Profile({
                     }
                     className="flex-1 py-4 bg-rose-50 dark:bg-slate-800/50 text-rose-600 dark:text-rose-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-rose-200 dark:border-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-all flex items-center justify-center gap-2"
                   >
-                    <Plus size={16} /> Dodaj ręcznie
-                  </button>
+                    <Plus size={16} />  {t('auto.dodaj_ręcznie', { defaultValue: 'Dodaj ręcznie' })}
+                                                        </button>
                   <button
                     onClick={() => setShowBarcodeScanner(true)}
                     className="flex-1 py-4 bg-indigo-50 dark:bg-slate-800/50 text-indigo-600 dark:indigo-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2"
                   >
-                    <Camera size={16} /> Skanuj Kod
-                  </button>
+                    <Camera size={16} />  {t('auto.skanuj_kod', { defaultValue: 'Skanuj Kod' })}
+                                                        </button>
                 </div>
               )}
             </div>
@@ -4582,7 +4709,7 @@ export default function Profile({
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
                     <Box size={14} className="text-rose-500" />
-                    {newInventoryItem.id ? "Edytuj Sprzęt" : "Nowy Sprzęt"}
+                    {newInventoryItem.id ? i18n.t('auto.edytuj_sprzet', { defaultValue: "Edytuj Sprzęt" }) : i18n.t('auto.nowy_sprzet', { defaultValue: "Nowy Sprzęt" })}
                   </h4>
                   <button
                     onClick={() => setNewInventoryItem(null)}
@@ -4595,11 +4722,12 @@ export default function Profile({
                 <div className="space-y-4">
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Nazwa
-                    </label>
+                      
+                                                                {t('auto.nazwa', { defaultValue: 'Nazwa' })}
+                                                              </label>
                     <input
                       type="text"
-                      placeholder="np. Sensor Dexcom G6"
+                      placeholder={t('auto.np_sensor_dexcom_g6', { defaultValue: 'np. Sensor Dexcom G6' })}
                       value={newInventoryItem.name}
                       onChange={(e) =>
                         setNewInventoryItem({
@@ -4614,8 +4742,9 @@ export default function Profile({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Ilość
-                      </label>
+                        
+                                                                      {t('auto.ilość', { defaultValue: 'Ilość' })}
+                                                                    </label>
                       <input
                         type="number"
                         value={newInventoryItem.quantity}
@@ -4630,11 +4759,12 @@ export default function Profile({
                     </div>
                     <div className="space-y-1">
                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Jednostka
-                      </label>
+                        
+                                                                      {t('auto.jednostka', { defaultValue: 'Jednostka' })}
+                                                                    </label>
                       <input
                         type="text"
-                        placeholder="np. szt., fiolki"
+                        placeholder={t('auto.np_szt_fiolki', { defaultValue: 'np. szt., fiolki' })}
                         value={newInventoryItem.unit}
                         onChange={(e) =>
                           setNewInventoryItem({
@@ -4650,8 +4780,9 @@ export default function Profile({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Kategoria
-                      </label>
+                        
+                                                                      {t('auto.kategoria', { defaultValue: 'Kategoria' })}
+                                                                    </label>
                       <select
                         value={newInventoryItem.category}
                         onChange={(e) =>
@@ -4662,17 +4793,18 @@ export default function Profile({
                         }
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all appearance-none"
                       >
-                        <option value="sensors">Sensory</option>
-                        <option value="insulin">Insulina</option>
-                        <option value="infusion_sets">Wkłucia</option>
-                        <option value="strips">Paski</option>
-                        <option value="other">Inne</option>
+                        <option value="sensors">{t('auto.sensory', { defaultValue: 'Sensory' })}</option>
+                        <option value="insulin">{t('auto.insulina', { defaultValue: 'Insulina' })}</option>
+                        <option value="infusion_sets">{t('auto.wkłucia', { defaultValue: 'Wkłucia' })}</option>
+                        <option value="strips">{t('auto.paski', { defaultValue: 'Paski' })}</option>
+                        <option value="other">{t('auto.inne', { defaultValue: 'Inne' })}</option>
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Ostrzeżenie (poniżej ilosc)
-                      </label>
+                        
+                                                                      {t('auto.ostrzeżenie_poniżej_ilosc', { defaultValue: 'Ostrzeżenie (poniżej ilosc)' })}
+                                                                    </label>
                       <input
                         type="number"
                         value={newInventoryItem.lowStockThreshold}
@@ -4689,11 +4821,12 @@ export default function Profile({
 
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Kod kreskowy (EAN/UPC)
-                    </label>
+                      
+                                                                {t('auto.kod_kreskowy_ean_upc', { defaultValue: 'Kod kreskowy (EAN/UPC)' })}
+                                                              </label>
                     <input
                       type="text"
-                      placeholder="Skorzystaj ze skanera..."
+                      placeholder={t('auto.skorzystaj_ze_skanera', { defaultValue: 'Skorzystaj ze skanera...' })}
                       value={newInventoryItem.barcode || ""}
                       onChange={(e) =>
                         setNewInventoryItem({
@@ -4708,11 +4841,12 @@ export default function Profile({
                   {newInventoryItem.category === "insulin" && (
                      <div className="space-y-1">
                        <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                         Dzienne zapotrzebowanie (oczekiwane spożycie, np. j.)
-                       </label>
+                         
+                                                                       {t('auto.dzienne_zapotrzebowanie_oczekiwane_', { defaultValue: 'Dzienne zapotrzebowanie (oczekiwane spożycie, np. j.)' })}
+                                                                     </label>
                        <input
                          type="number"
-                         placeholder="np. 45"
+                         placeholder={t('auto.np_45', { defaultValue: 'np. 45' })}
                          value={newInventoryItem.dailyDose || ""}
                          onChange={(e) =>
                            setNewInventoryItem({
@@ -4727,8 +4861,9 @@ export default function Profile({
 
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Krótka data ważności (Opcjonalnie)
-                    </label>
+                      
+                                                                {t('auto.krótka_data_ważności_opcjonalnie', { defaultValue: 'Krótka data ważności (Opcjonalnie)' })}
+                                                              </label>
                     <div className="relative">
                       <Calendar
                         size={12}
@@ -4804,11 +4939,13 @@ export default function Profile({
                 </div>
                 <div className="text-left">
                   <h3 className="text-base font-black dark:text-white leading-tight">
-                    Pobieranie Danych
-                  </h3>
+                    
+                                                          {t('auto.pobieranie_danych', { defaultValue: 'Pobieranie Danych' })}
+                                                        </h3>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Źródła glikemii
-                  </p>
+                    
+                                                          {t('auto.źródła_glikemii', { defaultValue: 'Źródła glikemii' })}
+                                                        </p>
                 </div>
               </div>
               <div
@@ -4825,7 +4962,8 @@ export default function Profile({
                     isFirebaseConnected ? "bg-emerald-500" : "bg-rose-500",
                   )}
                 />
-                Cloud: {isFirebaseConnected ? "Połączony" : "Brak połączenia"}
+                
+                                              {t('auto.cloud', { defaultValue: 'Cloud:' })} {isFirebaseConnected ? i18n.t('auto.polaczony', { defaultValue: "Połączony" }) : i18n.t('auto.brak_polaczenia', { defaultValue: "Brak połączenia" })}
               </div>
             </div>
 
@@ -4833,22 +4971,23 @@ export default function Profile({
               <div className="flex items-center gap-3">
                 <Smartphone className="text-sky-500" size={20} />
                 <span className="text-xs font-black dark:text-white uppercase tracking-tight">
-                  Dexcom i Libre Link
-                </span>
+                  
+                                                    {t('auto.dexcom_i_libre_link', { defaultValue: 'Dexcom i Libre Link' })}
+                                                  </span>
               </div>
               <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                GlikoControl obsługuje te sensory poprzez darmowy mostek{" "}
-                <b>Nightscout</b> (np. NightscoutPro / T1Pal). Podłącz swoje
-                konto CGM do Nightscouta, a my pobierzemy dane automatycznie co
-                5 minut.
-              </p>
+                
+                                              {t('auto.glikocontrol_obsługuje_te_sensory_p', { defaultValue: 'GlikoControl obsługuje te sensory poprzez darmowy mostek' })}{" "}
+                <b>{t('auto.nightscout', { defaultValue: 'Nightscout' })}</b>  {t('auto.np_nightscoutpro_t1pal_podłącz_swoj', { defaultValue: '(np. NightscoutPro / T1Pal). Podłącz swoje konto CGM do Nightscouta, a my pobierzemy dane automatycznie co 5 minut.' })}
+                                            </p>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">
-                  Adres serwera (np. Nightscout / xDrip)
-                </label>
+                  
+                                                    {t('auto.adres_serwera_np_nightscout_xdrip', { defaultValue: 'Adres serwera (np. Nightscout / xDrip)' })}
+                                                  </label>
                 <div className="relative group">
                   <Globe
                     size={18}
@@ -4856,7 +4995,7 @@ export default function Profile({
                   />
                   <input
                     type="text"
-                    placeholder="https://tvoja-strona.herokuapp.com"
+                    placeholder={t('auto.https_tvoja_strona_herokuapp_com', { defaultValue: 'https://tvoja-strona.herokuapp.com' })}
                     value={nsUrl}
                     onChange={(e) => setNsUrl(e.target.value)}
                     onBlur={saveNsUrl}
@@ -4867,8 +5006,9 @@ export default function Profile({
 
               <div className="space-y-2">
                 <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">
-                  API Secret (opcjonalnie)
-                </label>
+                  
+                                                    {t('auto.api_secret_opcjonalnie', { defaultValue: 'API Secret (opcjonalnie)' })}
+                                                  </label>
                 <div className="relative group">
                   <LucideLock
                     size={18}
@@ -4876,7 +5016,7 @@ export default function Profile({
                   />
                   <input
                     type="password"
-                    placeholder="Wpisz klucz zabezpieczający"
+                    placeholder={t('auto.wpisz_klucz_zabezpieczający', { defaultValue: 'Wpisz klucz zabezpieczający' })}
                     value={nsSecret}
                     onChange={(e) => setNsSecret(e.target.value)}
                     onBlur={saveNsUrl}
@@ -4894,8 +5034,8 @@ export default function Profile({
                 )}
               >
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                  <Activity size={12} /> Status synchronizacji
-                </p>
+                  <Activity size={12} />  {t('auto.status_synchronizacji', { defaultValue: 'Status synchronizacji' })}
+                                                  </p>
                 <div className="flex items-center justify-between">
                   {saveStatus ? (
                     <span className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-2">
@@ -4904,8 +5044,9 @@ export default function Profile({
                     </span>
                   ) : (
                     <span className="text-[10px] font-black text-slate-400 uppercase">
-                      Czekam na zmiany...
-                    </span>
+                      
+                                                                    {t('auto.czekam_na_zmiany', { defaultValue: 'Czekam na zmiany...' })}
+                                                                  </span>
                   )}
                   <button
                     onClick={async () => {
@@ -4922,8 +5063,9 @@ export default function Profile({
                       size={12}
                       className={cn(nsSyncLoading && "animate-spin")}
                     />
-                    Wymuś teraz
-                  </button>
+                    
+                                                          {t('auto.wymuś_teraz', { defaultValue: 'Wymuś teraz' })}
+                                                        </button>
                 </div>
               </div>
               
@@ -4938,45 +5080,47 @@ export default function Profile({
                   )}
                 >
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Signal size={12} /> Diagnostyka Widżetów
-                  </p>
+                    <Signal size={12} />  {t('auto.diagnostyka_widżetów', { defaultValue: 'Diagnostyka Widżetów' })}
+                                                        </p>
                   
                   {widgetDebug ? (
                     <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
                       <div className="flex justify-between">
-                        <span>Status widgetu:</span>
+                        <span>{t('auto.status_widgetu', { defaultValue: 'Status widgetu:' })}</span>
                         <span className={cn(
                           "font-black uppercase",
                           widgetDebug.lastSyncStatus === "SUCCESS" ? "text-emerald-500" :
                           widgetDebug.lastSyncStatus === "NO_URL" ? "text-amber-500" : "text-rose-500"
                         )}>
-                          {widgetDebug.lastSyncStatus === "SUCCESS" ? "Połączono" :
-                           widgetDebug.lastSyncStatus === "NO_URL" ? "Brak adresu" : "Błąd połączenia"}
+                          {widgetDebug.lastSyncStatus === "SUCCESS" ? i18n.t('auto.polaczono', { defaultValue: "Połączono" }) :
+                           widgetDebug.lastSyncStatus === "NO_URL" ? "Brak adresu" : i18n.t('auto.blad_polaczenia', { defaultValue: "Błąd połączenia" })}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Ostatnia próba:</span>
+                        <span>{t('auto.ostatnia_próba', { defaultValue: 'Ostatnia próba:' })}</span>
                         <span className="font-bold">{widgetDebug.lastSyncTime}</span>
                       </div>
                       {widgetDebug.lastUrlUsed && (
                         <div className="text-[10px] text-slate-400 break-all select-all text-left">
-                          URL: {widgetDebug.lastUrlUsed}
+                          
+                                                                            {t('auto.url', { defaultValue: 'URL:' })} {widgetDebug.lastUrlUsed}
                         </div>
                       )}
                       {widgetDebug.lastSyncCode !== 0 && (
                         <div className="flex justify-between">
-                          <span>Kod HTTP:</span>
+                          <span>{t('auto.kod_http', { defaultValue: 'Kod HTTP:' })}</span>
                           <span className="font-bold">{widgetDebug.lastSyncCode}</span>
                         </div>
                       )}
                       {widgetDebug.lastSyncError && (
                         <div className="p-2 mt-1 rounded bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] leading-relaxed break-all text-left">
-                          Błąd: {widgetDebug.lastSyncError}
+                          
+                                                                            {t('auto.błąd', { defaultValue: 'Błąd:' })} {widgetDebug.lastSyncError}
                         </div>
                       )}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400 text-left">Brak danych diagnostycznych. Wykonaj test połączenia.</p>
+                    <p className="text-[10px] text-slate-400 text-left">{t('auto.brak_danych_diagnostycznych_wykonaj', { defaultValue: 'Brak danych diagnostycznych. Wykonaj test połączenia.' })}</p>
                   )}
 
                   <div className="flex justify-end pt-1">
@@ -4987,7 +5131,7 @@ export default function Profile({
                         setTimeout(async () => {
                           await fetchWidgetDebug();
                           setNsSyncLoading(false);
-                          toast.success("Zakończono test widgetów", { icon: "⚙️" });
+                          toast.success(i18n.t('auto.zakonczono_test_widgetow', { defaultValue: "Zakończono test widgetów" }), { icon: "⚙️" });
                         }, 2500);
                       }}
                       disabled={nsSyncLoading}
@@ -4997,8 +5141,9 @@ export default function Profile({
                         size={12}
                         className={cn(nsSyncLoading && "animate-spin")}
                       />
-                      Testuj połączenie
-                    </button>
+                      
+                                                                {t('auto.testuj_połączenie', { defaultValue: 'Testuj połączenie' })}
+                                                              </button>
                   </div>
                 </div>
               )}
@@ -5020,24 +5165,27 @@ export default function Profile({
                 </div>
                 <div>
                   <h3 className="font-black text-sm uppercase tracking-wider dark:text-white leading-none">
-                    Google Health Connect
-                  </h3>
+                    
+                                                              {t('auto.google_health_connect', { defaultValue: 'Google Health Connect' })}
+                                                            </h3>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                    Systemowa Baza Zdrowia
-                  </p>
+                    
+                                                              {t('auto.systemowa_baza_zdrowia', { defaultValue: 'Systemowa Baza Zdrowia' })}
+                                                            </p>
                 </div>
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed text-left">
-                Synchronizuj dane o aktywności (kroki) oraz wpisy glikemii bezpośrednio z systemową bazą danych Health Connect na swoim telefonie.
-              </p>
+                
+                                                  {t('auto.synchronizuj_dane_o_aktywności_krok', { defaultValue: 'Synchronizuj dane o aktywności (kroki) oraz wpisy glikemii bezpośrednio z systemową bazą danych Health Connect na swoim telefonie.' })}
+                                                </p>
 
               <div className="space-y-4 pt-2">
                 {/* Toggle Kroki */}
                 <div className="flex items-center justify-between">
                   <div className="text-left">
-                    <p className="text-[10px] font-black uppercase dark:text-white">Odczyt kroków (Aktywność)</p>
-                    <p className="text-[9px] text-slate-400">Pobiera liczbę kroków z ostatnich 24h</p>
+                    <p className="text-[10px] font-black uppercase dark:text-white">{t('auto.odczyt_kroków_aktywność', { defaultValue: 'Odczyt kroków (Aktywność)' })}</p>
+                    <p className="text-[9px] text-slate-400">{t('auto.pobiera_liczbę_kroków_z_ostatnich_2', { defaultValue: 'Pobiera liczbę kroków z ostatnich 24h' })}</p>
                   </div>
                   <button
                     onClick={async () => {
@@ -5067,8 +5215,8 @@ export default function Profile({
                 {/* Toggle Glikemia */}
                 <div className="flex items-center justify-between">
                   <div className="text-left">
-                    <p className="text-[10px] font-black uppercase dark:text-white">Zapis glikemii</p>
-                    <p className="text-[9px] text-slate-400">Zapisuje nowe odczyty cukru w Health Connect</p>
+                    <p className="text-[10px] font-black uppercase dark:text-white">{t('auto.zapis_glikemii', { defaultValue: 'Zapis glikemii' })}</p>
+                    <p className="text-[9px] text-slate-400">{t('auto.zapisuje_nowe_odczyty_cukru_w_healt', { defaultValue: 'Zapisuje nowe odczyty cukru w Health Connect' })}</p>
                   </div>
                   <button
                     onClick={async () => {
@@ -5099,24 +5247,25 @@ export default function Profile({
               <button
                 onClick={async () => {
                   if (!healthService.isAvailable()) {
-                    toast.error("Usługa Health Connect nie jest obsługiwana na tym urządzeniu lub wtyczka nie została załadowana.");
+                    toast.error(i18n.t('auto.usluga_health_connect_nie_jest', { defaultValue: "Usługa Health Connect nie jest obsługiwana na tym urządzeniu lub wtyczka nie została załadowana." }));
                     return;
                   }
                   try {
                     const granted = await healthService.requestAuthorization();
                     if (granted) {
-                      toast.success("Połączono pomyślnie z Health Connect!");
+                      toast.success(i18n.t('auto.polaczono_pomyslnie_z_health_c', { defaultValue: "Połączono pomyślnie z Health Connect!" }));
                     } else {
-                      toast.error("Brak uprawnień. Upewnij się, że zezwoliłeś na dostęp do danych.");
+                      toast.error(i18n.t('auto.brak_uprawnien_upewnij_sie_ze', { defaultValue: "Brak uprawnień. Upewnij się, że zezwoliłeś na dostęp do danych." }));
                     }
                   } catch (e: any) {
-                    toast.error("Błąd połączenia: " + e.message);
+                    toast.error(i18n.t('auto.blad_polaczenia', { defaultValue: "Błąd połączenia:" }) + e.message);
                   }
                 }}
                 className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-md transition-colors"
               >
-                Połącz i nadaj uprawnienia
-              </button>
+                
+                                                  {t('auto.połącz_i_nadaj_uprawnienia', { defaultValue: 'Połącz i nadaj uprawnienia' })}
+                                                </button>
             </div>
           )}
 
@@ -5134,12 +5283,14 @@ export default function Profile({
                 </div>
                 <div className="text-left">
                   <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">
-                    Własny Klucz Gemini AI
-                  </h4>
+                    
+                                                          {t('auto.własny_klucz_gemini_ai', { defaultValue: 'Własny Klucz Gemini AI' })}
+                                                        </h4>
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                      Prywatny mózg analityczny
-                    </p>
+                      
+                                                                {t('auto.prywatny_mózg_analityczny', { defaultValue: 'Prywatny mózg analityczny' })}
+                                                              </p>
                     <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
                     <p
                       className={cn(
@@ -5147,7 +5298,8 @@ export default function Profile({
                         geminiService.getAiStatus().color,
                       )}
                     >
-                      Status: {geminiService.getAiStatus().label}
+                      
+                                                                {t('auto.status', { defaultValue: 'Status:' })} {geminiService.getAiStatus().label}
                     </p>
                   </div>
                 </div>
@@ -5162,28 +5314,32 @@ export default function Profile({
                 )}
               >
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed font-medium">
-                  Aby uniknąć limitów serwerowych, możesz dodać swój darmowy
-                  klucz z{" "}
+                  
+                                                    {t('auto.aby_uniknąć_limitów_serwerowych_moż', { defaultValue: 'Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z' })}{" "}
                   <a
                     href="https://aistudio.google.com/app/apikey"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-accent-500 font-black hover:underline underline-offset-2 transition-all"
                   >
-                    Google AI Studio
-                  </a>
-                  . Klucz zostanie zapisany <b>wyłącznie lokalnie</b> w Twojej
-                  przeglądarce.
-                </p>
+                    
+                                                          {t('auto.google_ai_studio', { defaultValue: 'Google AI Studio' })}
+                                                        </a>
+                  
+                                                    {t('auto.klucz_zostanie_zapisany', { defaultValue: '. Klucz zostanie zapisany' })} <b>{t('auto.wyłącznie_lokalnie', { defaultValue: 'wyłącznie lokalnie' })}</b>  {t('auto.w_twojej_przeglądarce', { defaultValue: 'w Twojej przeglądarce.' })}
+                                                  </p>
                 <div className="flex items-start gap-2 mb-4 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
                   <AlertTriangle size={14} className="mt-0.5 shrink-0" />
                   <p className="text-[10px] font-bold leading-relaxed">
-                    Ze względów bezpieczeństwa dodawaj swój klucz API{" "}
+                    
+                                                          {t('auto.ze_względów_bezpieczeństwa_dodawaj_', { defaultValue: 'Ze względów bezpieczeństwa dodawaj swój klucz API' })}{" "}
                     <b className="font-black">
-                      tylko na własnych, zaufanych urządzeniach
-                    </b>
-                    . Nie wprowadzaj go na urządzeniach publicznych.
-                  </p>
+                      
+                                                                {t('auto.tylko_na_własnych_zaufanych_urządze', { defaultValue: 'tylko na własnych, zaufanych urządzeniach' })}
+                                                              </b>
+                    
+                                                          {t('auto.nie_wprowadzaj_go_na_urządzeniach_p', { defaultValue: '. Nie wprowadzaj go na urządzeniach publicznych.' })}
+                                                        </p>
                 </div>
 
                 <div className="relative group">
@@ -5193,7 +5349,7 @@ export default function Profile({
                   />
                   <input
                     type="password"
-                    placeholder="AIzaSy..."
+                    placeholder={t('auto.aizasy', { defaultValue: 'AIzaSy...' })}
                     value={geminiApiKey}
                     onChange={(e) => setGeminiApiKey(e.target.value)}
                     onBlur={() => {
@@ -5201,10 +5357,10 @@ export default function Profile({
                       setGeminiApiKey(val);
                       if (val) {
                         localStorage.setItem("gemini_api_key", val);
-                        setGeminiSaveStatus("Zapisano pomyślnie ✓");
+                        setGeminiSaveStatus(i18n.t('auto.zapisano_pomyslnie', { defaultValue: "Zapisano pomyślnie ✓" }));
                       } else {
                         localStorage.removeItem("gemini_api_key");
-                        setGeminiSaveStatus("Usunięto klucz ✓");
+                        setGeminiSaveStatus(i18n.t('auto.usunieto_klucz', { defaultValue: "Usunięto klucz ✓" }));
                       }
                       setTimeout(() => setGeminiSaveStatus(""), 2000);
                     }}
@@ -5228,8 +5384,9 @@ export default function Profile({
                     ) : (
                       <Zap size={12} className="text-amber-500" />
                     )}
-                    Testuj Połączenie
-                  </button>
+                    
+                                                          {t('auto.testuj_połączenie', { defaultValue: 'Testuj Połączenie' })}
+                                                        </button>
                 </div>
               </div>
             </div>
@@ -5278,30 +5435,32 @@ export default function Profile({
               <div className="text-left flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-black dark:text-white leading-tight">
-                    Instalacja Android
-                  </h3>
+                    
+                                                          {t('auto.instalacja_android', { defaultValue: 'Instalacja Android' })}
+                                                        </h3>
                   <span className="bg-indigo-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm">
-                    BETA
-                  </span>
+                    
+                                                          {t('auto.beta', { defaultValue: 'BETA' })}
+                                                        </span>
                 </div>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                  Aplikacja Native • Wersja {CURRENT_VERSION}
+                  
+                                                    {t('auto.aplikacja_native_wersja', { defaultValue: 'Aplikacja Native • Wersja' })} {CURRENT_VERSION}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-              Pobierz najnowszą wersję oficjalnej aplikacji na system Android
-              (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia
-              i mniejsze zużycie baterii.
-            </p>
+              
+                                        {t('auto.pobierz_najnowszą_wersję_oficjalnej', { defaultValue: 'Pobierz najnowszą wersję oficjalnej aplikacji na system Android (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia i mniejsze zużycie baterii.' })}
+                                      </p>
             
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4 border border-blue-100 dark:border-blue-800/30 border-l-4 border-l-blue-500">
-              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">Co nowego w wersji 5.3.0?</h4>
+              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">{t('auto.co_nowego_w_wersji_5_3_0', { defaultValue: 'Co nowego w wersji 5.3.0?' })}</h4>
               <ul className="text-[10px] text-blue-700 dark:text-blue-300 list-disc pl-4 space-y-0.5">
-                 <li>Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto</li>
-                 <li>Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu</li>
-                 <li>Optymalizacja animacji we wszystkich widokach</li>
+                 <li>{t('auto.całkiem_nowa_integracja_z_natywnym_', { defaultValue: 'Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto' })}</li>
+                 <li>{t('auto.nowe_szczegółowe_raporty_agp_z_wyko', { defaultValue: 'Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu' })}</li>
+                 <li>{t('auto.optymalizacja_animacji_we_wszystkic', { defaultValue: 'Optymalizacja animacji we wszystkich widokach' })}</li>
               </ul>
             </div>
 
@@ -5317,14 +5476,16 @@ export default function Profile({
                   }}
                 >
                   <Download size={20} />
-                  Pobierz APK
-                </a>
+                  
+                                                {t('auto.pobierz_apk', { defaultValue: 'Pobierz APK' })}
+                                              </a>
               ) : (
                 <div className="w-full flex flex-col gap-2">
                   <div className="w-full text-center p-4 rounded-2xl bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 font-bold border border-green-200 dark:border-green-900/30 flex items-center justify-center gap-2">
                     <Smartphone size={20} />
-                    Używasz Natywnej Aplikacji
-                  </div>
+                    
+                                                          {t('auto.używasz_natywnej_aplikacji', { defaultValue: 'Używasz Natywnej Aplikacji' })}
+                                                        </div>
                   <button
                     onClick={async () => {
                       Haptics.impact();
@@ -5335,64 +5496,70 @@ export default function Profile({
                           localStorage.removeItem("dismissedApkVersion");
                           window.location.reload();
                         } else {
-                          alert("Twoja aplikacja jest w pełni aktualna! (Wersja " + CURRENT_VERSION + ")");
+                          alert(i18n.t('auto.twoja_aplikacja_jest_w_pelni_a', { defaultValue: "Twoja aplikacja jest w pełni aktualna! (Wersja" }) + CURRENT_VERSION + ")");
                         }
                       } catch(e) {
-                        alert("Błąd połączenia podczas sprawdzania aktualizacji.");
+                        alert(i18n.t('auto.blad_polaczenia_podczas_sprawd', { defaultValue: "Błąd połączenia podczas sprawdzania aktualizacji." }));
                       }
                     }}
                     className="w-full flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-3 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                   >
-                    Sprawdź dostępność aktualizacji
-                  </button>
+                    
+                                                          {t('auto.sprawdź_dostępność_aktualizacji', { defaultValue: 'Sprawdź dostępność aktualizacji' })}
+                                                        </button>
                 </div>
               )}
 
             <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
               <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
-                Instrukcja instalacji (Android PWA):
-              </h4>
+                
+                                              {t('auto.instrukcja_instalacji_android_pwa', { defaultValue: 'Instrukcja instalacji (Android PWA):' })}
+                                            </h4>
               <ol className="list-decimal pl-4 text-[10px] space-y-1 text-amber-700 dark:text-amber-400/80 mb-3">
-                <li>Otwórz tę stronę w przeglądarce <b>Chrome</b>.</li>
-                <li>Rozwiń menu przeglądarki (trzy kropki prawy górny róg).</li>
-                <li>Wybierz opcję <b>Dodaj do ekranu głównego</b> (lub Zainstaluj aplikację).</li>
-                <li>Potwierdź instalację. Aplikacja PWA ma pełne wsparcie offline.</li>
+                <li>{t('auto.otwórz_tę_stronę_w_przeglądarce', { defaultValue: 'Otwórz tę stronę w przeglądarce' })} <b>{t('auto.chrome', { defaultValue: 'Chrome' })}</b>.</li>
+                <li>{t('auto.rozwiń_menu_przeglądarki_trzy_kropk', { defaultValue: 'Rozwiń menu przeglądarki (trzy kropki prawy górny róg).' })}</li>
+                <li>{t('auto.wybierz_opcję', { defaultValue: 'Wybierz opcję' })} <b>{t('auto.dodaj_do_ekranu_głównego', { defaultValue: 'Dodaj do ekranu głównego' })}</b>  {t('auto.lub_zainstaluj_aplikację', { defaultValue: '(lub Zainstaluj aplikację).' })}</li>
+                <li>{t('auto.potwierdź_instalację_aplikacja_pwa_', { defaultValue: 'Potwierdź instalację. Aplikacja PWA ma pełne wsparcie offline.' })}</li>
               </ol>
 
               <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
-                Instrukcja instalacji (iOS PWA):
-              </h4>
+                
+                                              {t('auto.instrukcja_instalacji_ios_pwa', { defaultValue: 'Instrukcja instalacji (iOS PWA):' })}
+                                            </h4>
               <ol className="list-decimal pl-4 text-[10px] space-y-1 text-amber-700 dark:text-amber-400/80 mb-3">
-                <li>Otwórz tę stronę w przeglądarce <b>Safari</b>.</li>
-                <li>Wybierz przycisk udostępniania (kwadrat ze strzałką) na dolnym pasku.</li>
-                <li>Przewiń w dół i wybierz opcję <b>Do ekranu początkowego</b>.</li>
-                <li>Potwierdź dodanie.</li>
+                <li>{t('auto.otwórz_tę_stronę_w_przeglądarce', { defaultValue: 'Otwórz tę stronę w przeglądarce' })} <b>{t('auto.safari', { defaultValue: 'Safari' })}</b>.</li>
+                <li>{t('auto.wybierz_przycisk_udostępniania_kwad', { defaultValue: 'Wybierz przycisk udostępniania (kwadrat ze strzałką) na dolnym pasku.' })}</li>
+                <li>{t('auto.przewiń_w_dół_i_wybierz_opcję', { defaultValue: 'Przewiń w dół i wybierz opcję' })} <b>{t('auto.do_ekranu_początkowego', { defaultValue: 'Do ekranu początkowego' })}</b>.</li>
+                <li>{t('auto.potwierdź_dodanie', { defaultValue: 'Potwierdź dodanie.' })}</li>
               </ol>
 
               <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
-                Instrukcja instalacji (Plik .apk):
-              </h4>
+                
+                                              {t('auto.instrukcja_instalacji_plik_apk', { defaultValue: 'Instrukcja instalacji (Plik .apk):' })}
+                                            </h4>
               <ol className="list-decimal pl-4 text-[10px] space-y-1 text-amber-700 dark:text-amber-400/80">
-                <li>Pobierz plik klikając przycisk powyżej.</li>
+                <li>{t('auto.pobierz_plik_klikając_przycisk_powy', { defaultValue: 'Pobierz plik klikając przycisk powyżej.' })}</li>
                 <li>
-                  Otwórz pobrany plik .apk z powiadomienia lub menedżera plików
-                </li>
+                  
+                                                    {t('auto.otwórz_pobrany_plik_apk_z_powiadomi', { defaultValue: 'Otwórz pobrany plik .apk z powiadomienia lub menedżera plików' })}
+                                                  </li>
                 <li>
-                  Jeśli system zapyta, zezwól na &quot;Instalację z nieznanych
-                  źródeł&quot;.
-                </li>
+                  
+                                                    {t('auto.jeśli_system_zapyta_zezwól_na_quot_', { defaultValue: 'Jeśli system zapyta, zezwól na &quot;Instalację z nieznanych źródeł&quot;.' })}
+                                                  </li>
               </ol>
 
               <h4 className="text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 mt-4">
-                🚗 Instrukcja: Podgląd Glikemii w Android Auto
-              </h4>
+                
+                                              {t('auto.instrukcja_podgląd_glikemii_w_andro', { defaultValue: '🚗 Instrukcja: Podgląd Glikemii w Android Auto' })}
+                                            </h4>
               <ol className="list-decimal pl-4 text-[10px] space-y-1 text-indigo-700 dark:text-indigo-300/80 mb-3">
-                <li>Otwórz <span className="font-bold">Ustawienia Android Auto</span> na telefonie.</li>
-                <li>Zjedź na sam dół do sekcji <span className="font-bold">Wersja</span>.</li>
-                <li>Kliknij w pole &quot;Wersja&quot; <b>szybko 10 razy z rzędu</b>, by odblokować Tryb Dewelopera.</li>
-                <li>Kliknij w trzy kropki (prawy górny róg) i otwórz <b>Ustawienia programisty</b>.</li>
-                <li>Zaznacz ptaszek przy <b>Nieznane źródła</b> (Zezwalaj na używanie aplikacji).</li>
-                <li>Po podłączeniu do samochodu, <b>GlikoControl</b> pojawi się w menu Android Auto, a na wyświetlaczu zobaczysz aktualny poziom cukru odświeżany co 30 sekund!</li>
+                <li>{t('auto.otwórz', { defaultValue: 'Otwórz' })} <span className="font-bold">{t('auto.ustawienia_android_auto', { defaultValue: 'Ustawienia Android Auto' })}</span>  {t('auto.na_telefonie', { defaultValue: 'na telefonie.' })}</li>
+                <li>{t('auto.zjedź_na_sam_dół_do_sekcji', { defaultValue: 'Zjedź na sam dół do sekcji' })} <span className="font-bold">{t('auto.wersja', { defaultValue: 'Wersja' })}</span>.</li>
+                <li>{t('auto.kliknij_w_pole_quot_wersja_quot', { defaultValue: 'Kliknij w pole &quot;Wersja&quot;' })} <b>{t('auto.szybko_10_razy_z_rzędu', { defaultValue: 'szybko 10 razy z rzędu' })}</b>{t('auto.by_odblokować_tryb_dewelopera', { defaultValue: ', by odblokować Tryb Dewelopera.' })}</li>
+                <li>{t('auto.kliknij_w_trzy_kropki_prawy_górny_r', { defaultValue: 'Kliknij w trzy kropki (prawy górny róg) i otwórz' })} <b>{t('auto.ustawienia_programisty', { defaultValue: 'Ustawienia programisty' })}</b>.</li>
+                <li>{t('auto.zaznacz_ptaszek_przy', { defaultValue: 'Zaznacz ptaszek przy' })} <b>{t('auto.nieznane_źródła', { defaultValue: 'Nieznane źródła' })}</b>  {t('auto.zezwalaj_na_używanie_aplikacji', { defaultValue: '(Zezwalaj na używanie aplikacji).' })}</li>
+                <li>{t('auto.po_podłączeniu_do_samochodu', { defaultValue: 'Po podłączeniu do samochodu,' })} <b>{t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}</b>  {t('auto.pojawi_się_w_menu_android_auto_a_na', { defaultValue: 'pojawi się w menu Android Auto, a na wyświetlaczu zobaczysz aktualny poziom cukru odświeżany co 30 sekund!' })}</li>
               </ol>
             </div>
             
@@ -5406,8 +5573,8 @@ export default function Profile({
               )}
             >
               <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
-                <History size={14} /> Aktualizacje APK
-              </h4>
+                <History size={14} />  {t('auto.aktualizacje_apk', { defaultValue: 'Aktualizacje APK' })}
+                                            </h4>
               <div className="space-y-6">
                 {APK_VERSIONS.slice(0, 3).map((v, i) => (
                   <div
@@ -5478,21 +5645,24 @@ export default function Profile({
               </div>
               <div>
                 <h3 className="font-black text-sm uppercase tracking-wider dark:text-white leading-none">
-                  Tryb Śledzący (Tylko Odczyt)
-                </h3>
+                  
+                                                    {t('auto.tryb_śledzący_tylko_odczyt', { defaultValue: 'Tryb Śledzący (Tylko Odczyt)' })}
+                                                  </h3>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                  Dla obserwatorów (followers)
-                </p>
+                  
+                                                    {t('auto.dla_obserwatorów_followers', { defaultValue: 'Dla obserwatorów (followers)' })}
+                                                  </p>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed text-left">
-              Wyłącz funkcje zapisywania (bolusy, posiłki, modyfikacje) oraz ukryj zaawansowane analizy. Aplikacja stanie się czystym podglądem wyników i wykresów – idealne rozwiązanie dla członków rodziny i śledzących.
-            </p>
+              
+                                        {t('auto.wyłącz_funkcje_zapisywania_bolusy_p', { defaultValue: 'Wyłącz funkcje zapisywania (bolusy, posiłki, modyfikacje) oraz ukryj zaawansowane analizy. Aplikacja stanie się czystym podglądem wyników i wykresów – idealne rozwiązanie dla członków rodziny i śledzących.' })}
+                                      </p>
 
             <div className="flex items-center justify-between pt-2">
               <div className="text-left">
-                <p className="text-[11px] font-black uppercase dark:text-white">Aktywuj tryb</p>
+                <p className="text-[11px] font-black uppercase dark:text-white">{t('auto.aktywuj_tryb', { defaultValue: 'Aktywuj tryb' })}</p>
               </div>
               <button
                 onClick={async () => {
@@ -5507,9 +5677,9 @@ export default function Profile({
                   );
                   
                   if (isFollower) {
-                    toast.success("Włączono Tryb Śledzący");
+                    toast.success(i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: "Włączono Tryb Śledzący" }));
                   } else {
-                    toast.success("Wyłączono Tryb Śledzący");
+                    toast.success(i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: "Wyłączono Tryb Śledzący" }));
                   }
                 }}
                 className={cn(
@@ -5542,15 +5712,53 @@ export default function Profile({
               </div>
               <div className="text-left">
                 <h3 className="text-base font-black dark:text-white leading-tight">
-                  System i Wygląd
-                </h3>
+                  
+                                                    {t('auto.system_i_wygląd', { defaultValue: 'System i Wygląd' })}
+                                                  </h3>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                  Personalizacja
-                </p>
+                  
+                                                    {t('auto.personalizacja', { defaultValue: 'Personalizacja' })}
+                                                  </p>
               </div>
             </div>
 
             <div className="space-y-4">
+              {/* Language Selector */}
+              <div className="group flex items-center justify-between p-5 bg-blue-50 dark:bg-blue-500/5 rounded-[2rem] border border-blue-100 dark:border-blue-900/20 transition-all hover:shadow-md">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-blue-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                    <Globe size={22} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-black dark:text-blue-500 leading-tight">
+                      {t('auto.jezyk_aplikacji', { defaultValue: 'Język aplikacji' })}
+                    </p>
+                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
+                      {t('auto.wybierz_jezyk_interfejsu', { defaultValue: 'Wybierz język interfejsu (Polski / English)' })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex bg-slate-200 dark:bg-slate-700 rounded-full p-1">
+                  <button
+                    onClick={() => i18n.changeLanguage('pl')}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-bold transition-all",
+                      i18n.language === 'pl' ? "bg-white dark:bg-slate-800 text-blue-500 shadow-sm" : "text-slate-500"
+                    )}
+                  >
+                    PL
+                  </button>
+                  <button
+                    onClick={() => i18n.changeLanguage('en')}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-bold transition-all",
+                      i18n.language === 'en' ? "bg-white dark:bg-slate-800 text-blue-500 shadow-sm" : "text-slate-500"
+                    )}
+                  >
+                    EN
+                  </button>
+                </div>
+              </div>
               {/* Toggles */}
               <div className="grid grid-cols-1 gap-3">
                 <div className="group flex items-center justify-between p-5 bg-amber-50 dark:bg-amber-500/5 rounded-[2rem] border border-amber-100 dark:border-amber-900/20 transition-all hover:shadow-md">
@@ -5560,11 +5768,13 @@ export default function Profile({
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-black dark:text-amber-500 leading-tight">
-                        Tryb Dziecka
-                      </p>
+                        
+                                                                      {t('auto.tryb_dziecka', { defaultValue: 'Tryb Dziecka' })}
+                                                                    </p>
                       <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
-                        Aktywuje wirtualnego zwierzaka Gliko
-                      </p>
+                        
+                                                                      {t('auto.aktywuje_wirtualnego_zwierzaka_glik', { defaultValue: 'Aktywuje wirtualnego zwierzaka Gliko' })}
+                                                                    </p>
                     </div>
                   </div>
                   <button
@@ -5609,11 +5819,13 @@ export default function Profile({
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-black dark:text-white leading-tight">
-                        Widgety Statusu
-                      </p>
+                        
+                                                                      {t('auto.widgety_statusu', { defaultValue: 'Widgety Statusu' })}
+                                                                    </p>
                       <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
-                        Monitoruj baterię telefonu i osprzętu
-                      </p>
+                        
+                                                                      {t('auto.monitoruj_baterię_telefonu_i_osprzę', { defaultValue: 'Monitoruj baterię telefonu i osprzętu' })}
+                                                                    </p>
                     </div>
                   </div>
                   <button
@@ -5662,11 +5874,13 @@ export default function Profile({
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-black dark:text-white leading-tight">
-                        Widżet Posiłku
-                      </p>
+                        
+                                                                      {t('auto.widżet_posiłku', { defaultValue: 'Widżet Posiłku' })}
+                                                                    </p>
                       <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
-                        Wymuś pokazywanie aktywnego posiłku po wchłonięciu
-                      </p>
+                        
+                                                                      {t('auto.wymuś_pokazywanie_aktywnego_posiłku', { defaultValue: 'Wymuś pokazywanie aktywnego posiłku po wchłonięciu' })}
+                                                                    </p>
                     </div>
                   </div>
                   <button
@@ -5714,11 +5928,13 @@ export default function Profile({
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-black dark:text-white leading-tight">
-                        Haptyka
-                      </p>
+                        
+                                                                      {t('auto.haptyka', { defaultValue: 'Haptyka' })}
+                                                                    </p>
                       <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
-                        Wibracje przy klikaniu przycisków
-                      </p>
+                        
+                                                                      {t('auto.wibracje_przy_klikaniu_przycisków', { defaultValue: 'Wibracje przy klikaniu przycisków' })}
+                                                                    </p>
                     </div>
                   </div>
                   <button
@@ -5763,12 +5979,13 @@ export default function Profile({
                     </div>
                     <div className="text-left max-w-[150px] sm:max-w-none">
                       <p className="text-sm font-black dark:text-white leading-tight">
-                        GlikoSense & Pogoda
-                      </p>
+                        
+                                                                      {t('auto.glikosense_pogoda', { defaultValue: 'GlikoSense & Pogoda' })}
+                                                                    </p>
                       <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight flex-wrap">
-                        Zaawansowane analizowanie i przewidywanie rzepływu
-                        glikemii w oparciu o warunki pogodowe i biomet.
-                      </p>
+                        
+                                                                      {t('auto.zaawansowane_analizowanie_i_przewid', { defaultValue: 'Zaawansowane analizowanie i przewidywanie rzepływu glikemii w oparciu o warunki pogodowe i biomet.' })}
+                                                                    </p>
                     </div>
                   </div>
                   <button
@@ -5814,9 +6031,8 @@ export default function Profile({
               >
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-                    <Palette size={14} className="text-accent-500" /> Akcent
-                    Kolorystyczny
-                  </div>
+                    <Palette size={14} className="text-accent-500" />  {t('auto.akcent_kolorystyczny', { defaultValue: 'Akcent Kolorystyczny' })}
+                                                        </div>
                   <div className="flex items-center gap-4 px-2 overflow-x-auto scrollbar-none py-2">
                     {["indigo", "emerald", "rose", "amber", "violet"].map(
                       (color) => (
@@ -5873,16 +6089,15 @@ export default function Profile({
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-                    <Moon size={14} className="text-violet-500" /> Tryb Jasny /
-                    Ciemny
-                  </div>
+                    <Moon size={14} className="text-violet-500" />  {t('auto.tryb_jasny_ciemny', { defaultValue: 'Tryb Jasny / Ciemny' })}
+                                                        </div>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { id: "light", label: "Jasny", icon: <Sun size={18} /> },
-                      { id: "dark", label: "Ciemny", icon: <Moon size={18} /> },
+                      { id: "light", label: i18n.t('auto.jasny', { defaultValue: 'Jasny' }), icon: <Sun size={18} /> },
+                      { id: "dark", label: i18n.t('auto.ciemny', { defaultValue: 'Ciemny' }), icon: <Moon size={18} /> },
                       {
                         id: "system",
-                        label: "Auto",
+                        label: i18n.t('auto.auto', { defaultValue: 'Auto' }),
                         icon: <RefreshCw size={18} />,
                       },
                     ].map((t) => (
@@ -5926,13 +6141,12 @@ export default function Profile({
                 {(settings.theme === "dark" || settings.theme === "system") && (
                   <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-                      <LucideLock size={18} className="text-slate-400" /> Styl
-                      Tła Ciemnego
-                    </div>
+                      <LucideLock size={18} className="text-slate-400" />  {t('auto.styl_tła_ciemnego', { defaultValue: 'Styl Tła Ciemnego' })}
+                                                              </div>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { id: "default", label: "Głęboki Grafit" },
-                        { id: "true-black", label: "Prawdziwa Czerń" },
+                        { id: "default", label: i18n.t('auto.głęboki_grafit', { defaultValue: 'Głęboki Grafit' }) },
+                        { id: "true-black", label: i18n.t('auto.prawdziwa_czerń', { defaultValue: 'Prawdziwa Czerń' }) },
                       ].map((option) => (
                         <button
                           key={option.id}
@@ -5966,7 +6180,8 @@ export default function Profile({
                             {option.label}
                           </p>
                           <p className="text-[8px] font-medium opacity-60">
-                            Tryb{" "}
+                            
+                                                              {t('auto.tryb', { defaultValue: 'Tryb' })}{" "}
                             {option.id === "true-black" ? "OLED" : "Neutral"}
                           </p>
                         </button>
@@ -5979,13 +6194,13 @@ export default function Profile({
               {/* UI Theme Selection Section */}
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
                 <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
-                  <Sparkles size={18} className="text-pink-500" /> Styl Interfejsu
-                </div>
+                  <Sparkles size={18} className="text-pink-500" />  {t('auto.styl_interfejsu', { defaultValue: 'Styl Interfejsu' })}
+                                                  </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {[
-                    { id: 'default', label: 'Standard', desc: 'Klasyczny minimalizm' },
-                    { id: 'glass', label: 'Efekt Szkła', desc: 'Rozmycie i przezroczystości' },
-                    { id: 'material3', label: 'Material 3', desc: 'Styl systemu Android' }
+                    { id: 'default', label: i18n.t('auto.standard', { defaultValue: 'Standard' }), desc: i18n.t('auto.klasyczny_minimalizm', { defaultValue: 'Klasyczny minimalizm' }) },
+                    { id: 'glass', label: i18n.t('auto.efekt_szkła', { defaultValue: 'Efekt Szkła' }), desc: i18n.t('auto.rozmycie_i_przezroczystości', { defaultValue: 'Rozmycie i przezroczystości' }) },
+                    { id: 'material3', label: i18n.t('auto.material_3', { defaultValue: 'Material 3' }), desc: i18n.t('auto.styl_systemu_android', { defaultValue: 'Styl systemu Android' }) }
                   ].map((style) => (
                     <button
                       key={style.id}
@@ -6033,8 +6248,8 @@ export default function Profile({
                       <Sparkles size={20} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-black dark:text-white leading-tight">Dynamiczne Kolory</p>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Dopasowuje kolory aplikacji do Twojej tapety</p>
+                      <p className="text-sm font-black dark:text-white leading-tight">{t('auto.dynamiczne_kolory', { defaultValue: 'Dynamiczne Kolory' })}</p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t('auto.dopasowuje_kolory_aplikacji_do_twoj', { defaultValue: 'Dopasowuje kolory aplikacji do Twojej tapety' })}</p>
                     </div>
                   </div>
                   <button
@@ -6069,8 +6284,8 @@ export default function Profile({
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-black dark:text-white">Tryb Eko (Maksymalna wydajność)</h3>
-                    <p className="text-[10px] text-slate-500">Wyłącza animacje, cienie oraz rozmycia szklane by przyspieszyć działanie.</p>
+                    <h3 className="text-sm font-black dark:text-white">{t('auto.tryb_eko_maksymalna_wydajność', { defaultValue: 'Tryb Eko (Maksymalna wydajność)' })}</h3>
+                    <p className="text-[10px] text-slate-500">{t('auto.wyłącza_animacje_cienie_oraz_rozmyc', { defaultValue: 'Wyłącza animacje, cienie oraz rozmycia szklane by przyspieszyć działanie.' })}</p>
                   </div>
                   <button
                     onClick={async () => {
@@ -6106,8 +6321,8 @@ export default function Profile({
                       <Network size={20} />
                     </div>
                     <div className="text-left">
-                      <h3 className="text-[13px] font-black dark:text-white">Parowanie / Urządzenia</h3>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">Połącz telefony rodziny (WebSocket)</p>
+                      <h3 className="text-[13px] font-black dark:text-white">{t('auto.parowanie_urządzenia', { defaultValue: 'Parowanie / Urządzenia' })}</h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{t('auto.połącz_telefony_rodziny_websocket', { defaultValue: 'Połącz telefony rodziny (WebSocket)' })}</p>
                     </div>
                   </div>
                   <ChevronRight size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 transition-colors" />
@@ -6131,7 +6346,7 @@ export default function Profile({
                       s,
                       { merge: true },
                     );
-                    toast.success("Ustawienia zaimportowane pomyślnie!");
+                    toast.success(i18n.t('auto.ustawienia_zaimportowane_pomys', { defaultValue: "Ustawienia zaimportowane pomyślnie!" }));
                   }}
                 />
 
@@ -6152,7 +6367,7 @@ export default function Profile({
                       s,
                       { merge: true },
                     );
-                    toast.success("Synchronizacja zakończona!");
+                    toast.success(i18n.t('auto.synchronizacja_zakonczona', { defaultValue: "Synchronizacja zakończona!" }));
                   }}
                 />
 
@@ -6172,11 +6387,13 @@ export default function Profile({
                     <Info className="text-accent-500" size={20} />
                     <div className="flex flex-col">
                       <span className="text-xs font-black dark:text-white uppercase tracking-tight">
-                        Wsparcie Techniczne
-                      </span>
+                        
+                                                                      {t('auto.wsparcie_techniczne', { defaultValue: 'Wsparcie Techniczne' })}
+                                                                    </span>
                       <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest flex items-center gap-2">
-                        GlikoControl@proton.me
-                      </span>
+                        
+                                                                      {t('auto.glikocontrol_proton_me', { defaultValue: 'GlikoControl@proton.me' })}
+                                                                    </span>
                     </div>
                   </div>
                 </a>
@@ -6185,8 +6402,9 @@ export default function Profile({
               {/* Maintenance Tools */}
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-2">
-                  Administracja
-                </h3>
+                  
+                                                    {t('auto.administracja', { defaultValue: 'Administracja' })}
+                                                  </h3>
 
                 <div
                   className={cn(
@@ -6209,12 +6427,13 @@ export default function Profile({
                     </div>
                     <div className="text-left">
                       <p className="text-[10px] font-black dark:text-white uppercase tracking-tight">
-                        Status Firebase Cloud
-                      </p>
+                        
+                                                                      {t('auto.status_firebase_cloud', { defaultValue: 'Status Firebase Cloud' })}
+                                                                    </p>
                       <p className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                         {isFirebaseConnected
-                          ? "Połączenie stabilne"
-                          : "Błąd połączenia / Offline"}
+                          ? i18n.t('auto.polaczenie_stabilne', { defaultValue: "Połączenie stabilne" })
+                          : i18n.t('auto.blad_polaczenia_offline', { defaultValue: "Błąd połączenia / Offline" })}
                       </p>
                     </div>
                   </div>
@@ -6242,20 +6461,20 @@ export default function Profile({
                       ) : (
                         <Play size={18} fill="currentColor" />
                       )}
-                      START AUDYTU: IG, ŁG i DUPLIKATY
-                    </button>
+                      
+                                                                {t('auto.start_audytu_ig_łg_i_duplikaty', { defaultValue: 'START AUDYTU: IG, ŁG i DUPLIKATY' })}
+                                                              </button>
                     <p className="text-[9px] text-slate-400 dark:text-slate-500 dark:text-slate-400 font-bold px-4 text-center leading-relaxed">
-                      Inteligentny system AI przeskanuje Twoją bazę produktów,
-                      naprawi błędne wartości Indeksu i Ładunku Glikemicznego
-                      oraz usunie powtarzające się pozycje.
-                    </p>
+                      
+                                                                {t('auto.inteligentny_system_ai_przeskanuje_', { defaultValue: 'Inteligentny system AI przeskanuje Twoją bazę produktów, naprawi błędne wartości Indeksu i Ładunku Glikemicznego oraz usunie powtarzające się pozycje.' })}
+                                                              </p>
                   </div>
 
                   <button
                     onClick={async () => {
                       if (navigator.vibrate) navigator.vibrate(50);
                       setUpdateLoading(true);
-                      setCleaningResult("Czyszczenie pamięci podręcznej i sprawdzanie aktualizacji...");
+                      setCleaningResult(i18n.t('auto.czyszczenie_pamieci_podrecznej', { defaultValue: "Czyszczenie pamięci podręcznej i sprawdzanie aktualizacji..." }));
                       
                       try {
                         // 1. Clear all Cache Storage
@@ -6274,15 +6493,15 @@ export default function Profile({
                           );
                         }
 
-                        toast.success("Pamięć podręczna wyczyszczona. Trwa pobieranie nowej wersji...");
-                        setCleaningResult("Ładowanie nowej wersji...");
+                        toast.success(i18n.t('auto.pamiec_podreczna_wyczyszczona', { defaultValue: "Pamięć podręczna wyczyszczona. Trwa pobieranie nowej wersji..." }));
+                        setCleaningResult(i18n.t('auto.ladowanie_nowej_wersji', { defaultValue: "Ładowanie nowej wersji..." }));
                         
                         setTimeout(() => {
                           window.location.reload();
                         }, 1000);
                       } catch (err) {
-                        console.error("Błąd podczas aktualizacji PWA:", err);
-                        toast.error("Wystąpił błąd podczas czyszczenia pamięci podręcznej.");
+                        console.error(i18n.t('auto.blad_podczas_aktualizacji_pwa', { defaultValue: "Błąd podczas aktualizacji PWA:" }), err);
+                        toast.error(i18n.t('auto.wystapil_blad_podczas_czyszcze', { defaultValue: "Wystąpił błąd podczas czyszczenia pamięci podręcznej." }));
                         setTimeout(() => {
                           window.location.reload();
                         }, 1000);
@@ -6295,7 +6514,8 @@ export default function Profile({
                       size={14}
                       className={cn(updateLoading && "animate-spin")}
                     />
-                    Aktualizuj v{APP_VERSION}
+                    
+                                                          {t('auto.aktualizuj_v', { defaultValue: 'Aktualizuj v' })}{APP_VERSION}
                   </button>
                 </div>
 
@@ -6313,8 +6533,8 @@ export default function Profile({
                   className="w-full flex items-center justify-between p-2 text-[10px] font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-[0.2em]"
                 >
                   <div className="flex items-center gap-2">
-                    <ShieldCheck size={14} /> Prywatność i RODO
-                  </div>
+                    <ShieldCheck size={14} />  {t('auto.prywatność_i_rodo', { defaultValue: 'Prywatność i RODO' })}
+                                                        </div>
                   <ChevronRight
                     size={14}
                     className={cn(
@@ -6332,21 +6552,21 @@ export default function Profile({
                     <div className="p-4 bg-slate-100/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
                       <p>
                         <span className="font-black text-slate-700 dark:text-slate-200 uppercase text-[9px]">
-                          Prywatność przede wszystkim:
-                        </span>{" "}
-                        Po co podpisywać kałuże imieniem i nazwiskiem? Twoja
-                        prywatność jest dla nas priorytetem. Twoje dane są
-                        używane wyłącznie do tworzenia Twojej{" "}
-                        <b>indywidualnej analizy glikemii</b>.
+                          
+                                                                            {t('auto.prywatność_przede_wszystkim', { defaultValue: 'Prywatność przede wszystkim:' })}
+                                                                          </span>{" "}
+                        
+                                                                      {t('auto.po_co_podpisywać_kałuże_imieniem_i_', { defaultValue: 'Po co podpisywać kałuże imieniem i nazwiskiem? Twoja prywatność jest dla nas priorytetem. Twoje dane są używane wyłącznie do tworzenia Twojej' })}{" "}
+                        <b>{t('auto.indywidualnej_analizy_glikemii', { defaultValue: 'indywidualnej analizy glikemii' })}</b>.
                       </p>
                       <p>
                         <span className="font-black text-slate-700 dark:text-slate-200 uppercase text-[9px]">
-                          Bezpieczeństwo:
-                        </span>{" "}
-                        Dane są szyfrowane i przechowywane w infrastrukturze
-                        Firebase (Google Cloud) na terenie UE. Nigdy nie
-                        sprzedajemy Twoich danych medycznych.
-                      </p>
+                          
+                                                                            {t('auto.bezpieczeństwo', { defaultValue: 'Bezpieczeństwo:' })}
+                                                                          </span>{" "}
+                        
+                                                                      {t('auto.dane_są_szyfrowane_i_przechowywane_', { defaultValue: 'Dane są szyfrowane i przechowywane w infrastrukturze Firebase (Google Cloud) na terenie UE. Nigdy nie sprzedajemy Twoich danych medycznych.' })}
+                                                                    </p>
                     </div>
                   </motion.div>
                 )}
@@ -6360,20 +6580,21 @@ export default function Profile({
               </div>
               <div>
                 <h4 className="text-lg font-black dark:text-rose-500 leading-tight">
-                  Zakończ Sesję
-                </h4>
+                  
+                                                    {t('auto.zakończ_sesję', { defaultValue: 'Zakończ Sesję' })}
+                                                  </h4>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium px-4 mt-1">
-                  Twoje dane są używane wyłącznie do tworzenia indywidualnej
-                  analizy. Dokumentacja nie wymaga podawania imienia i nazwiska
-                  - Twoja prywatność jest dla nas priorytetem.
-                </p>
+                  
+                                                    {t('auto.twoje_dane_są_używane_wyłącznie_do_', { defaultValue: 'Twoje dane są używane wyłącznie do tworzenia indywidualnej analizy. Dokumentacja nie wymaga podawania imienia i nazwiska - Twoja prywatność jest dla nas priorytetem.' })}
+                                                  </p>
               </div>
               <button
                 onClick={() => auth.signOut()}
                 className="bg-rose-500 text-white w-full py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl shadow-rose-500/20"
               >
-                Wyloguj się z GlikoControl
-              </button>
+                
+                                              {t('auto.wyloguj_się_z_glikocontrol', { defaultValue: 'Wyloguj się z GlikoControl' })}
+                                            </button>
             </div>
 
             {/* Version History */}
@@ -6386,8 +6607,8 @@ export default function Profile({
               )}
             >
               <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
-                <History size={14} /> Dziennik Aktualizacji
-              </h4>
+                <History size={14} />  {t('auto.dziennik_aktualizacji', { defaultValue: 'Dziennik Aktualizacji' })}
+                                            </h4>
               <div className="space-y-6">
                 {PWA_VERSIONS.slice(0, 3).map((v, i) => (
                   <div
@@ -6523,4 +6744,5 @@ function SettingInput({
     </div>
   );
 }
+
 

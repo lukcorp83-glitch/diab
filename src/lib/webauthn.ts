@@ -2,6 +2,7 @@ import {
   startRegistration, 
   startAuthentication 
 } from '@simplewebauthn/browser';
+import i18n from "../i18n";
 
 export async function registerPasskey(getAccessToken: () => Promise<string>) {
   try {
@@ -16,7 +17,7 @@ export async function registerPasskey(getAccessToken: () => Promise<string>) {
     
     if (!resp.ok) {
       const errData = await resp.json().catch(() => ({}));
-      throw new Error(errData.error || 'Nie udało się pobrać opcji rejestracji');
+      throw new Error(errData.error || i18n.t('auto.nie_udalo_sie_pobrac_opcji_rej', { defaultValue: "Nie udało się pobrać opcji rejestracji" }));
     }
     
     const options = await resp.json();
@@ -53,7 +54,7 @@ export async function loginWithPasskey(email: string) {
     
     if (!resp.ok) {
       const err = await resp.json();
-      throw new Error(err.error || 'Nie udało się pobrać opcji logowania');
+      throw new Error(err.error || i18n.t('auto.nie_udalo_sie_pobrac_opcji_log', { defaultValue: "Nie udało się pobrać opcji logowania" }));
     }
     
     const options = await resp.json();
@@ -74,7 +75,7 @@ export async function loginWithPasskey(email: string) {
     if (verification.verified && verification.customToken) {
       return { success: true, customToken: verification.customToken };
     } else {
-      throw new Error(verification.error || 'Błąd weryfikacji biometrii');
+      throw new Error(verification.error || i18n.t('auto.blad_weryfikacji_biometrii', { defaultValue: "Błąd weryfikacji biometrii" }));
     }
   } catch (e: any) {
     console.error(e);

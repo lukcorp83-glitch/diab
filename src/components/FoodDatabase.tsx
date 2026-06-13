@@ -16,8 +16,11 @@ import {
   doc,
 } from "firebase/firestore";
 import { LIB_BASE, CATEGORIES } from "../constants";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddToPlate?: (p: Product) => void }) {
+    const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
@@ -167,7 +170,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
           />
           <input
             type="text"
-            placeholder="Szukaj produktu..."
+            placeholder={t('auto.szukaj_produktu', { defaultValue: 'Szukaj produktu...' })}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-white dark:bg-slate-900 p-5 pl-14 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:ring-2 ring-accent-500/20 shadow-sm"
@@ -205,13 +208,15 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                   <X size={20} />
                 </button>
                 <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
-                  Dodaj własny produkt
-                </h2>
+                  
+                                                {t('auto.dodaj_własny_produkt', { defaultValue: 'Dodaj własny produkt' })}
+                                              </h2>
               <div className="space-y-4">
                 <div>
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
-                    Nazwa produktu
-                  </label>
+                    
+                                                          {t('auto.nazwa_produktu', { defaultValue: 'Nazwa produktu' })}
+                                                        </label>
                   <input
                     type="text"
                     value={newProduct.name}
@@ -224,8 +229,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
-                      Węglowodany (g)
-                    </label>
+                      
+                                                                {t('auto.węglowodany_g', { defaultValue: 'Węglowodany (g)' })}
+                                                              </label>
                     <input
                       type="number"
                       value={newProduct.carbs}
@@ -240,8 +246,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                   </div>
                   <div>
                     <label className="text-[8px] font-black uppercase text-accent-500 tracking-widest ml-2 mb-1 block">
-                      Poliole (g)
-                    </label>
+                      
+                                                                {t('auto.poliole_g', { defaultValue: 'Poliole (g)' })}
+                                                              </label>
                     <input
                       type="number"
                       value={newProduct.polyols}
@@ -258,8 +265,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
-                      IG (Indeks)
-                    </label>
+                      
+                                                                {t('auto.ig_indeks', { defaultValue: 'IG (Indeks)' })}
+                                                              </label>
                     <input
                       type="number"
                       value={newProduct.gi}
@@ -276,8 +284,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
-                      Białko (g)
-                    </label>
+                      
+                                                                {t('auto.białko_g', { defaultValue: 'Białko (g)' })}
+                                                              </label>
                     <input
                       type="number"
                       value={newProduct.protein}
@@ -292,8 +301,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                   </div>
                   <div>
                     <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
-                      Tłuszcz (g)
-                    </label>
+                      
+                                                                {t('auto.tłuszcz_g', { defaultValue: 'Tłuszcz (g)' })}
+                                                              </label>
                     <input
                       type="number"
                       value={newProduct.fat}
@@ -309,8 +319,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                 </div>
                 <div>
                   <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
-                    Kategoria
-                  </label>
+                    
+                                                          {t('auto.kategoria', { defaultValue: 'Kategoria' })}
+                                                        </label>
                   <select
                     value={newProduct.category}
                     onChange={(e) =>
@@ -338,8 +349,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                     htmlFor="shareCommunity"
                     className="text-xs font-bold text-slate-600 dark:text-slate-300"
                   >
-                    Udostępnij w bazie społeczności
-                  </label>
+                    
+                                                          {t('auto.udostępnij_w_bazie_społeczności', { defaultValue: 'Udostępnij w bazie społeczności' })}
+                                                        </label>
                 </div>
               </div>
               <div className="flex gap-3 mt-8">
@@ -347,8 +359,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                   onClick={handleAddProduct}
                   className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95"
                 >
-                  Dodaj Produkt
-                </button>
+                  
+                                                    {t('auto.dodaj_produkt', { defaultValue: 'Dodaj Produkt' })}
+                                                  </button>
               </div>
             </motion.div>
           </motion.div>
@@ -359,9 +372,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
         <div className="flex gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-full w-full mx-auto max-w-sm">
           {[
             { id: 'all', label: 'Wszystkie' },
-            { id: 'system', label: 'Baza Główna' },
-            { id: 'own', label: 'Własne' },
-            { id: 'community', label: 'Społeczność' }
+            { id: 'system', label: i18n.t('auto.baza_glowna', { defaultValue: "Baza Główna" }) },
+            { id: 'own', label: i18n.t('auto.wlasne', { defaultValue: "Własne" }) },
+            { id: 'community', label: i18n.t('auto.spolecznosc', { defaultValue: "Społeczność" }) }
           ].map((src) => (
             <button
               key={src.id}
@@ -377,8 +390,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
             onClick={() => setActiveCategory("Wszystko")}
             className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === "Wszystko" ? "bg-accent-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400"}`}
           >
-            Wszystko
-          </button>
+            
+                                  {t('auto.wszystko', { defaultValue: 'Wszystko' })}
+                                </button>
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
@@ -414,13 +428,15 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                     </h4>
                     {p.isCommunity && (
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-accent-50 dark:bg-accent-950 text-accent-500">
-                        Społeczność
-                      </span>
+                        
+                                                            {t('auto.społeczność', { defaultValue: 'Społeczność' })}
+                                                          </span>
                     )}
                     {(isCustom || isOwnCommunity) && (
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950 text-emerald-500">
-                        Własne
-                      </span>
+                        
+                                                            {t('auto.własne', { defaultValue: 'Własne' })}
+                                                          </span>
                     )}
                     <span
                       className={cn(
@@ -432,7 +448,8 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                             : "bg-rose-50 dark:bg-rose-950 text-rose-500",
                       )}
                     >
-                      IG: {typeof p.gi === 'number' ? p.gi : "??"}
+                      
+                                                      {t('auto.ig', { defaultValue: 'IG:' })} {typeof p.gi === 'number' ? p.gi : "??"}
                     </span>
                     {(() => {
                       if (typeof p.gi !== 'number') return null;
@@ -448,15 +465,16 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                                 : "bg-rose-50 dark:bg-rose-950 text-rose-500",
                           )}
                         >
-                          ŁG: {glValue.toFixed(1)}
+                          
+                                                        {t('auto.łg', { defaultValue: 'ŁG:' })} {glValue.toFixed(1)}
                         </span>
                       );
                     })()}
                   </div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    W: {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g {p.polyols ? `(w tym ${p.polyols}g pol.) ` : ''}| B: {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}g | T: {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}g (w
-                    100g)
-                  </p>
+                    
+                                                {t('auto.w', { defaultValue: 'W:' })} {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g {p.polyols ? `(w tym ${p.polyols}g pol.) ` : ''}{t('auto.b', { defaultValue: '| B:' })} {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}{t('auto.g_t', { defaultValue: 'g | T:' })} {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}{t('auto.g_w_100g', { defaultValue: 'g (w 100g)' })}
+                                              </p>
                 </div>
               </motion.div>
             );

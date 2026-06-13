@@ -5,6 +5,8 @@ import { LogEntry } from '../types';
 import { cn } from '../lib/utils';
 import { CURRENT_VERSION } from '../constants/versions';
 import Logo from './Logo';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface QuickStatusPopupProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ interface QuickStatusPopupProps {
 }
 
 export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, iob }: QuickStatusPopupProps) {
+    const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
@@ -32,8 +35,8 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
               <div className="flex items-center gap-3">
                 <Logo className="w-10 h-10" />
                 <div>
-                   <h3 className="text-sm font-black uppercase tracking-widest dark:text-white">Stan Systemu</h3>
-                   <p className="text-[10px] font-bold text-accent-500">GlikoControl AI v{CURRENT_VERSION}</p>
+                   <h3 className="text-sm font-black uppercase tracking-widest dark:text-white">{t('auto.stan_systemu', { defaultValue: 'Stan Systemu' })}</h3>
+                   <p className="text-[10px] font-bold text-accent-500">{t('auto.glikocontrol_ai_v', { defaultValue: 'GlikoControl AI v' })}{CURRENT_VERSION}</p>
                 </div>
               </div>
               <button 
@@ -48,17 +51,17 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
               <div className="p-4 rounded-[1.8rem] bg-accent-500/10 border border-accent-500/20">
                 <div className="flex items-center gap-2 mb-1 text-accent-500">
                   <Activity size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-wider">Glikemia</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.glikemia', { defaultValue: 'Glikemia' })}</span>
                 </div>
                 <p className="text-2xl font-black tracking-tighter dark:text-white">
-                  {lastGlucose || '--'} <span className="text-xs text-slate-500">mg/dL</span>
+                  {lastGlucose || '--'} <span className="text-xs text-slate-500">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
                 </p>
               </div>
 
               <div className="p-4 rounded-[1.8rem] bg-indigo-500/10 border border-indigo-500/20">
                 <div className="flex items-center gap-2 mb-1 text-indigo-500">
                   <Droplets size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-wider">Aktywna (IOB)</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.aktywna_iob', { defaultValue: 'Aktywna (IOB)' })}</span>
                 </div>
                 <p className="text-2xl font-black tracking-tighter dark:text-white">
                   {iob.toFixed(1)} <span className="text-xs text-slate-500">j</span>
@@ -69,19 +72,19 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
             <div className="space-y-2">
                <StatusItem 
                   icon={<ShieldCheck size={14} className="text-emerald-500" />} 
-                  label="Baza danych" 
-                  value="Połączono" 
+                  label={t('auto.baza_danych', { defaultValue: 'Baza danych' })} 
+                  value={i18n.t('auto.polaczono', { defaultValue: "Połączono" })} 
                   status="ok" 
                />
                <StatusItem 
                   icon={<Zap size={14} className="text-amber-500" />} 
-                  label="sieć neuronowa" 
+                  label={t('auto.sieć_neuronowa', { defaultValue: 'sieć neuronowa' })} 
                   value="GlikoSense 3.0" 
                   status="ok" 
                />
                <StatusItem 
                   icon={<Battery size={14} className="text-blue-500" />} 
-                  label="Synchronizacja" 
+                  label={t('auto.synchronizacja', { defaultValue: 'Synchronizacja' })} 
                   value="Aktywna" 
                   status="ok" 
                />
@@ -91,8 +94,9 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
               <div className="flex items-center gap-2 text-slate-400">
                 <Info size={12} />
                 <p className="text-[9px] font-bold leading-tight italic">
-                  Aplikacja jest w ciągłym rozwoju. Twoje dane są bezpieczne i szyfrowane (AES-256).
-                </p>
+                  
+                                                    {t('auto.aplikacja_jest_w_ciągłym_rozwoju_tw', { defaultValue: 'Aplikacja jest w ciągłym rozwoju. Twoje dane są bezpieczne i szyfrowane (AES-256).' })}
+                                                  </p>
               </div>
             </div>
           </div>

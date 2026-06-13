@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Cloud, Plane, Trophy, RotateCcw, AlertTriangle, Zap, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 export default function GlikoSkyHigher() {
+    const { t } = useTranslation();
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameOver'>('idle');
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => Number(localStorage.getItem('glikosky_highscore') || 0));
@@ -97,16 +99,18 @@ export default function GlikoSkyHigher() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-black text-sm dark:text-white flex items-center gap-2">
-            <Zap size={16} className="text-sky-500" /> Sky Higher
-          </h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Leć wysoko nad chmurami cukru</p>
+            <Zap size={16} className="text-sky-500" />  {t('auto.sky_higher', { defaultValue: 'Sky Higher' })}
+                                </h3>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.leć_wysoko_nad_chmurami_cukru', { defaultValue: 'Leć wysoko nad chmurami cukru' })}</p>
         </div>
         <div className="flex items-center gap-3">
            <div className="text-[10px] font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm text-sky-600">
-             PKT: {score}
+             
+                                   {t('auto.pkt', { defaultValue: 'PKT:' })} {score}
            </div>
            <div className="text-[10px] font-black bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full shadow-sm">
-             BEST: {highScore}
+             
+                                   {t('auto.best', { defaultValue: 'BEST:' })} {highScore}
            </div>
         </div>
       </div>
@@ -154,8 +158,9 @@ export default function GlikoSkyHigher() {
             >
               <Plane size={48} className="text-white mb-4 animate-bounce" />
               <p className="text-white font-black text-xs uppercase tracking-widest bg-sky-600 px-6 py-2 rounded-full">
-                Kliknij aby wystartować
-              </p>
+                
+                                              {t('auto.kliknij_aby_wystartować', { defaultValue: 'Kliknij aby wystartować' })}
+                                            </p>
             </motion.div>
           )}
 
@@ -164,14 +169,14 @@ export default function GlikoSkyHigher() {
                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="absolute inset-0 flex flex-col items-center justify-center bg-rose-600/40 backdrop-blur-md"
             >
               <AlertTriangle size={48} className="text-white mb-4" />
-              <h2 className="text-white font-black text-2xl italic mb-1 uppercase tracking-tighter">Ups! Zjazd</h2>
-              <p className="text-white/80 font-bold text-xs mb-6 uppercase">Punkty: {score}</p>
+              <h2 className="text-white font-black text-2xl italic mb-1 uppercase tracking-tighter">{t('auto.ups_zjazd', { defaultValue: 'Ups! Zjazd' })}</h2>
+              <p className="text-white/80 font-bold text-xs mb-6 uppercase">{t('auto.punkty', { defaultValue: 'Punkty:' })} {score}</p>
               <button 
                 onClick={(e) => { e.stopPropagation(); startGame(); }}
                 className="bg-white text-rose-600 px-8 py-3 rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform"
               >
-                <RotateCcw size={16} /> Ponów próbę
-              </button>
+                <RotateCcw size={16} />  {t('auto.ponów_próbę', { defaultValue: 'Ponów próbę' })}
+                                            </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -179,7 +184,7 @@ export default function GlikoSkyHigher() {
 
       <div className="mt-4 flex items-center gap-3 text-slate-400">
          <Info size={14} className="shrink-0" />
-         <p className="text-[9px] font-medium leading-tight">Omijaj chmury wysokich i niskich cukrów (czerwone przeszkody). Każdy skok to walka o stabilną glikemię!</p>
+         <p className="text-[9px] font-medium leading-tight">{t('auto.omijaj_chmury_wysokich_i_niskich_cu', { defaultValue: 'Omijaj chmury wysokich i niskich cukrów (czerwone przeszkody). Każdy skok to walka o stabilną glikemię!' })}</p>
       </div>
     </div>
   );

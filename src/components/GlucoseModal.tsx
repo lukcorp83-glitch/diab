@@ -1,11 +1,15 @@
 import { getEffectiveUid } from '../lib/utils';
+import { dbService } from '../services/databaseService';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { X, ChevronRight } from 'lucide-react';
 import { fetchCurrentWeather } from '../services/weatherService';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
+import { toast } from 'react-hot-toast';
 
 interface GlucoseModalProps {
   isOpen: boolean;
@@ -14,6 +18,7 @@ interface GlucoseModalProps {
 }
 
 export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProps) {
+    const { t } = useTranslation();
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [entryTime, setEntryTime] = useState('');
@@ -62,16 +67,21 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
         type: 'glucose',
         value: glucoseValue,
         timestamp: logTime,
-        description: 'Pomiar ręczny'
+        createdAt: serverTimestamp(),
+        source: 'manual',
+        description: i18n.t('auto.pomiar_reczny', { defaultValue: "Pomiar ręczny" })
       };
       
       if (weather) {
         logData.weather = weather;
       }
       
-      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), logData);
+      const docRef = await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), logData);
+      await dbService.saveLog({ ...logData, id: docRef.id });
+      window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { ...logData, id: docRef.id } }));
     } catch (e) {
       console.error(e);
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }));
     }
   };
 
@@ -91,8 +101,8 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
       >
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight font-display uppercase tracking-tighter italic">Zapisz Cukier</h2>
-            <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mt-1">Pomiar ręczny glukozy</p>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight font-display uppercase tracking-tighter italic">{t('auto.zapisz_cukier', { defaultValue: 'Zapisz Cukier' })}</h2>
+            <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mt-1">{t('auto.pomiar_ręczny_glukozy', { defaultValue: 'Pomiar ręczny glukozy' })}</p>
           </div>
           <button 
             type="button"
@@ -126,7 +136,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
                 className="w-32 bg-transparent text-6xl font-black text-center outline-none dark:text-white caret-accent-500 placeholder:opacity-20"
                 autoFocus
               />
-              <span className="text-slate-400 font-black text-xl uppercase tracking-tighter opacity-40">mg/dL</span>
+              <span className="text-slate-400 font-black text-xl uppercase tracking-tighter opacity-40">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
             </div>
           </div>
 
@@ -138,8 +148,9 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
           >
             {loading ? 'Przetwarzanie...' : (
               <>
-                Zatwierdź pomiar
-                <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                
+                                              {t('auto.zatwierdź_pomiar', { defaultValue: 'Zatwierdź pomiar' })}
+                                              <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </>
             )}
           </button>

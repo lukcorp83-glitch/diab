@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { LogEntry } from '../types';
+import { useTranslation } from "react-i18next";
 
 interface DailyTirWidgetProps {
   logs: LogEntry[];
@@ -8,6 +9,7 @@ interface DailyTirWidgetProps {
 }
 
 export default function DailyTirWidget({ logs, settings }: DailyTirWidgetProps) {
+    const { t } = useTranslation();
   const { tir, metrics } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -49,7 +51,7 @@ export default function DailyTirWidget({ logs, settings }: DailyTirWidgetProps) 
     return (
       <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center opacity-50">
         <div className="w-16 h-16 rounded-full border-4 border-dashed border-slate-300 dark:border-slate-700 mb-2"></div>
-        <p className="text-[10px] font-black uppercase text-slate-500">Brak pomiarów dzisiaj</p>
+        <p className="text-[10px] font-black uppercase text-slate-500">{t('auto.brak_pomiarów_dzisiaj', { defaultValue: 'Brak pomiarów dzisiaj' })}</p>
       </div>
     );
   }
@@ -63,8 +65,9 @@ export default function DailyTirWidget({ logs, settings }: DailyTirWidgetProps) 
   return (
     <div className="w-full h-full flex flex-col p-4 relative group">
       <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest text-center mb-1">
-        Dzienny TIR
-      </h3>
+        
+                      {t('auto.dzienny_tir', { defaultValue: 'Dzienny TIR' })}
+                    </h3>
       <div className="flex-1 relative flex items-center justify-center min-h-[100px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>

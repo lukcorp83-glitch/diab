@@ -6,6 +6,7 @@ import { Haptics } from "../lib/haptics";
 import GlikoSenseIcon from "./GlikoSenseIcon";
 import { Activity, Clock, Droplet, Apple, Droplets, RefreshCw, Zap, Signal } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface ChartFullViewProps {
   logs: LogEntry[];
@@ -20,6 +21,7 @@ export default function ChartFullView({
   theme,
   setTab,
 }: ChartFullViewProps) {
+    const { t } = useTranslation();
   const [range, setRange] = useState<number>(6);
   
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
@@ -44,9 +46,10 @@ export default function ChartFullView({
     <div className="flex flex-col h-full w-full min-h-[600px] gap-6">
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-black text-slate-800 dark:text-white px-2 italic tracking-tighter">
-          Szczegóły Glikemii
-        </h2>
-        <p className="text-[10px] font-black text-slate-400 px-2 uppercase tracking-widest">Pełny podgląd danych z ostatnich godzin</p>
+          
+                            {t('auto.szczegóły_glikemii', { defaultValue: 'Szczegóły Glikemii' })}
+                          </h2>
+        <p className="text-[10px] font-black text-slate-400 px-2 uppercase tracking-widest">{t('auto.pełny_podgląd_danych_z_ostatnich_go', { defaultValue: 'Pełny podgląd danych z ostatnich godzin' })}</p>
       </div>
 
       <div className="flex flex-col gap-3 px-2">
@@ -84,7 +87,8 @@ export default function ChartFullView({
               )}
             >
               <Activity size={14} />
-              Pętla {showLoopSimulation ? "ON" : "OFF"}
+              
+                                    {t('auto.pętla', { defaultValue: 'Pętla' })} {showLoopSimulation ? "ON" : "OFF"}
             </button>
 
             <button
@@ -100,7 +104,8 @@ export default function ChartFullView({
               )}
             >
               <GlikoSenseIcon size={14} isAnalyzing={showMLPrediction} />
-              GlikoSense {showMLPrediction ? "ON" : "OFF"}
+              
+                                    {t('auto.glikosense', { defaultValue: 'GlikoSense' })} {showMLPrediction ? "ON" : "OFF"}
             </button>
           </div>
         </div>
@@ -123,37 +128,37 @@ export default function ChartFullView({
       <div className="w-full flex items-center gap-4 overflow-x-auto scrollbar-hide py-3 px-1 snap-x">
         <div className="flex items-center gap-1.5 snap-start shrink-0">
            <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 border border-white dark:border-slate-800 shadow-sm" />
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Glukoza</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.glukoza', { defaultValue: 'Glukoza' })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-pink-500">
            <div className="p-1 max-w-fit rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
              <span className="text-[10px] leading-none mb-0.5">💉</span>
            </div>
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Bolus / IOB</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.bolus_iob', { defaultValue: 'Bolus / IOB' })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-amber-500">
            <div className="p-1 max-w-fit rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
              <span className="text-[10px] leading-none mb-0.5">🍽️</span>
            </div>
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Węgle (WW)</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.węgle_ww', { defaultValue: 'Węgle (WW)' })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-rose-500">
            <div className="p-1 max-w-fit rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
              <span className="text-[10px] leading-none mb-0.5">⚠️</span>
            </div>
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center">Nakładanie dawek</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center">{t('auto.nakładanie_dawek', { defaultValue: 'Nakładanie dawek' })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-teal-500">
            <div className="p-1 max-w-fit rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
              <Droplets size={10} strokeWidth={2.5} />
            </div>
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Wkłucie</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.wkłucie', { defaultValue: 'Wkłucie' })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-indigo-500">
            <div className="p-1 max-w-fit rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
              <Signal size={10} strokeWidth={2.5} />
            </div>
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Sensor</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.sensor', { defaultValue: 'Sensor' })}</span>
         </div>
         <div 
           onClick={() => {
@@ -166,7 +171,7 @@ export default function ChartFullView({
           )}
         >
            <div className="w-3 h-[2px] border-b-2 border-emerald-500 border-dashed" />
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Prognoza Pętli</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.prognoza_pętli', { defaultValue: 'Prognoza Pętli' })}</span>
         </div>
         <div 
           onClick={() => {
@@ -179,7 +184,7 @@ export default function ChartFullView({
           )}
         >
            <div className="w-3 h-[2px] border-b-2 border-amber-400 border-dashed" />
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">GlikoSense</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.glikosense', { defaultValue: 'GlikoSense' })}</span>
         </div>
       </div>
     </div>

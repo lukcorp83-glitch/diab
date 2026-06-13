@@ -18,6 +18,8 @@ import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
 import { LogEntry, UserSettings, AssistantMessage } from '../types';
 import { SKINS, ACCESSORIES } from '../constants';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function GlikoAssistant({ 
   user, 
@@ -40,6 +42,7 @@ export default function GlikoAssistant({
   isTyping: boolean;
   onSend: (text: string) => void;
 }) {
+    const { t } = useTranslation();
   const isChild = settings?.childMode ?? false;
   const assistantName = isChild ? (petData?.name || "Asystent Gliko") : "Neural Expressive AI";
 
@@ -132,7 +135,7 @@ export default function GlikoAssistant({
   };
 
   const clearChat = () => {
-    if (window.confirm('Wyczyścić historię rozmowy z asystentem?')) {
+    if (window.confirm(i18n.t('auto.wyczyscic_historie_rozmowy_z_a', { defaultValue: "Wyczyścić historię rozmowy z asystentem?" }))) {
       setMessages([{
         id: 'initial-' + Date.now(),
         role: 'model',
@@ -145,12 +148,12 @@ export default function GlikoAssistant({
   const suggestions = isChild ? [
     "Jak rano?",
     "Oblicz jedzenie",
-    "Coś do zabawy",
-    "Czuję się źle",
-    "Głodny!"
+    i18n.t('auto.cos_do_zabawy', { defaultValue: "Coś do zabawy" }),
+    i18n.t('auto.czuje_sie_zle', { defaultValue: "Czuję się źle" }),
+    i18n.t('auto.glodny', { defaultValue: "Głodny!" })
   ] : [
     "Analiza TIR",
-    "Korelacja posiłków",
+    i18n.t('auto.korelacja_posilkow', { defaultValue: "Korelacja posiłków" }),
     "Trendy Glikemii",
     "Odczyty Nocne",
     "Model Bazalny"
@@ -257,7 +260,7 @@ export default function GlikoAssistant({
                 ? "bg-accent-500 text-white" 
                 : "bg-slate-400/10 dark:bg-slate-800/50 text-slate-500 hover:bg-slate-400/20"
             )}
-            title={voiceEnabled ? "Wycisz głos" : "Włącz głos"}
+            title={voiceEnabled ? i18n.t('auto.wycisz_glos', { defaultValue: "Wycisz głos" }) : i18n.t('auto.wlacz_glos', { defaultValue: "Włącz głos" })}
           >
             {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
@@ -266,7 +269,7 @@ export default function GlikoAssistant({
             className={cn(
                "p-3 rounded-full transition-all bg-slate-400/10 dark:bg-slate-800/50 hover:bg-rose-500/10 text-slate-500 hover:text-rose-500"
             )}
-            title="Wyczyść historię"
+            title={t('auto.wyczyść_historię', { defaultValue: 'Wyczyść historię' })}
           >
             <Trash2 size={18} />
           </button>
@@ -383,7 +386,7 @@ export default function GlikoAssistant({
                 ? "bg-rose-50 text-rose-500 animate-pulse border-rose-200" 
                 : "bg-white/80 backdrop-blur-md dark:bg-slate-800/80 text-slate-500 active:scale-95 border-slate-100 dark:border-slate-800"
             )}
-            title="Wybieranie głosowe"
+            title={t('auto.wybieranie_głosowe', { defaultValue: 'Wybieranie głosowe' })}
           >
             <Mic size={24} />
           </button>
@@ -393,7 +396,7 @@ export default function GlikoAssistant({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={isListening ? "Słucham Cię..." : (isChild ? "Napisz coś..." : "Wprowadź polecenie...")}
+              placeholder={isListening ? i18n.t('auto.slucham_cie', { defaultValue: "Słucham Cię..." }) : (isChild ? i18n.t('auto.napisz_cos', { defaultValue: "Napisz coś..." }) : i18n.t('auto.wprowadz_polecenie', { defaultValue: "Wprowadź polecenie..." }))}
               className={cn(
                 "w-full rounded-full py-4 px-6 text-base md:text-lg transition-all outline-none border",
                 "bg-white/80 dark:bg-slate-800/80 backdrop-blur-md focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 focus:border-accent-500/50",

@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { Cpu, Zap, Shield, TrendingUp, AlertCircle, Heart, Sparkles } from 'lucide-react';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface NeuralNode {
   id: number;
@@ -23,6 +25,7 @@ interface GlikoSenseNeuralProps {
 }
 
 export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, children, compact }: GlikoSenseNeuralProps) {
+    const { t } = useTranslation();
   // Generate stable random nodes for the background animation
   const nodes = useMemo(() => {
     return Array.from({ length: 15 }).map((_, i) => ({
@@ -100,7 +103,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               <div className={`p-1 rounded-lg ${statusColor} bg-opacity-20`}>
                 <GlikoSenseIcon size={14} isAnalyzing={true} />
               </div>
-              <span className="text-[10px] font-black dark:text-white leading-none">GlikoSense</span>
+              <span className="text-[10px] font-black dark:text-white leading-none">{t('auto.glikosense', { defaultValue: 'GlikoSense' })}</span>
             </div>
             
             <div className="flex items-center gap-1 scale-75 origin-right">
@@ -125,13 +128,13 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               <div className="space-y-2">
                 <div className="p-2 rounded-2xl bg-white/40 dark:bg-slate-900/30 border border-white/60 dark:border-slate-800/40 backdrop-blur-sm space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Predykcja:</span>
+                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.predykcja', { defaultValue: 'Predykcja:' })}</span>
                     <span className="text-xs font-black dark:text-white">
                       {glucose ? Math.round(glucose + (trend?.includes('UP') ? 18 : trend?.includes('DOWN') ? -12 : 0)) : '--'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Pewność:</span>
+                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.pewność', { defaultValue: 'Pewność:' })}</span>
                     <span className="text-xs font-black dark:text-white">{accuracy}%</span>
                   </div>
                 </div>
@@ -231,7 +234,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               <GlikoSenseIcon size={20} isAnalyzing={true} />
             </div>
             <div>
-              <h3 className="text-sm font-black dark:text-white leading-tight">GlikoSense</h3>
+              <h3 className="text-sm font-black dark:text-white leading-tight">{t('auto.glikosense', { defaultValue: 'GlikoSense' })}</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 {isChildMode ? `Opiekun ${petName}` : 'Analiza Systemowa AI'}
               </p>
@@ -246,8 +249,9 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             >
               <Sparkles size={10} className="text-indigo-500 animate-pulse" />
               <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-300 uppercase tracking-wider">
-                System analizuje trendy...
-              </span>
+                
+                                              {t('auto.system_analizuje_trendy', { defaultValue: 'System analizuje trendy...' })}
+                                            </span>
             </motion.div>
           )}
           <div className="flex items-center gap-2">
@@ -262,7 +266,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                ))}
             </div>
             <div className="flex flex-col items-end gap-0.5">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Live</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{t('auto.live', { defaultValue: 'Live' })}</span>
               {datasetSize !== undefined && datasetSize < 300 && (
                 <div className="flex items-center gap-1">
                   <motion.div 
@@ -270,7 +274,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     transition={{ duration: 1, repeat: Infinity }}
                     className="w-1 h-1 rounded-full bg-indigo-500"
                   />
-                  <span className="text-[7px] font-black text-indigo-500 uppercase tracking-widest">Training...</span>
+                  <span className="text-[7px] font-black text-indigo-500 uppercase tracking-widest">{t('auto.training', { defaultValue: 'Training...' })}</span>
                 </div>
               )}
             </div>
@@ -299,7 +303,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <Zap className="text-indigo-500" size={12} />
-                  <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase">Więź</span>
+                  <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase">{t('auto.więź', { defaultValue: 'Więź' })}</span>
                 </div>
                 <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <motion.div animate={{ width: '92%' }} className="h-full bg-indigo-500" />
@@ -308,7 +312,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <Shield className="text-emerald-500" size={12} />
-                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">Tarcza</span>
+                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">{t('auto.tarcza', { defaultValue: 'Tarcza' })}</span>
                 </div>
                 <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <motion.div animate={{ width: '100%' }} className="h-full bg-emerald-500" />
@@ -323,7 +327,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               {[
                 { label: 'Analiza Trendu', active: trend !== 'STABLE' && trend !== null },
                 { label: 'Detekcja Anomalii', active: (glucose !== null && (glucose < 70 || glucose > 200)) || (trend?.includes('FAST')) },
-                { label: 'Weryfikacja Posiłku', active: false }, // Will be linked to recent logs in next step if needed
+                { label: i18n.t('auto.weryfikacja_posilku', { defaultValue: "Weryfikacja Posiłku" }), active: false }, // Will be linked to recent logs in next step if needed
                 { label: 'Ochrona Hypo', active: glucose !== null && (glucose < 90 || (glucose < 110 && trend?.includes('DOWN'))) }
               ].map(fn => (
                 <div 
@@ -341,7 +345,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
 
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Stabilność Systemu</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('auto.stabilność_systemu', { defaultValue: 'Stabilność Systemu' })}</div>
                 <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
@@ -351,7 +355,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pewność</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('auto.pewność', { defaultValue: 'Pewność' })}</div>
                 <div className="text-sm font-black dark:text-white">{accuracy !== undefined ? `${accuracy}%` : '---'}</div>
               </div>
             </div>
@@ -367,9 +371,9 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     >
                       <Sparkles size={10} />
                     </motion.div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Postęp Nauki:</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.postęp_nauki', { defaultValue: 'Postęp Nauki:' })}</span>
                   </div>
-                  <span className="text-[9px] font-black text-indigo-500">{datasetSize} pkt / {nextTarget} pkt</span>
+                  <span className="text-[9px] font-black text-indigo-500">{datasetSize}  {t('auto.pkt', { defaultValue: 'pkt /' })} {nextTarget}  {t('auto.pkt', { defaultValue: 'pkt' })}</span>
                 </div>
                 <div className="relative h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
@@ -385,9 +389,9 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                   />
                 </div>
                 <p className="text-[8px] font-bold text-slate-400 leading-tight">
-                  {datasetSize < 300 ? "Model w fazie bazowej. Gromadzę dane..." : 
-                   datasetSize < 1000 ? "Model uczy się Twoich nawyków. Coraz wyższa precyzja." :
-                   datasetSize < 3000 ? "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne." :
+                  {datasetSize < 300 ? i18n.t('auto.model_w_fazie_bazowej_gromadze', { defaultValue: "Model w fazie bazowej. Gromadzę dane..." }) : 
+                   datasetSize < 1000 ? i18n.t('auto.model_uczy_sie_twoich_nawykow', { defaultValue: "Model uczy się Twoich nawyków. Coraz wyższa precyzja." }) :
+                   datasetSize < 3000 ? i18n.t('auto.model_wysoko_wyuczony_rozpozna', { defaultValue: "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne." }) :
                    "Model klasy mistrzowskiej. Ekstremalna precyzja analityczna."}
                 </p>
               </div>
@@ -397,17 +401,17 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <TrendingUp size={12} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Predykcja 30m</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{t('auto.predykcja_30m', { defaultValue: 'Predykcja 30m' })}</span>
                 </div>
                 <div className="text-lg font-black dark:text-white">
                   {glucose ? Math.round(glucose + (trend?.includes('UP') ? 18 : trend?.includes('DOWN') ? -12 : 0)) : '--'} 
-                  <span className="text-[10px] text-slate-400 ml-1">mg/dL</span>
+                  <span className="text-[10px] text-slate-400 ml-1">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
                 </div>
               </div>
               <div className="space-y-1 border-l border-slate-200 dark:border-slate-700 pl-4">
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <AlertCircle size={12} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Status Rdzenia</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{t('auto.status_rdzenia', { defaultValue: 'Status Rdzenia' })}</span>
                 </div>
                 <div className="text-lg font-black dark:text-white">
                   {glucose && (glucose > 250 || glucose < 60) ? 'RYZYKO' : 'NOMINALNY'}

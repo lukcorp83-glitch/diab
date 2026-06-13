@@ -7,6 +7,7 @@ import { getTs } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 
 import { Plus, Minus, Maximize2, Move, Droplets, Signal } from 'lucide-react';
+import { useTranslation } from "react-i18next";
 
 // Insulin on Board calculation using a more realistic decay model
 const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => {
@@ -51,6 +52,7 @@ interface GlucoseChartProps {
 }
 
 export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction }: GlucoseChartProps) {
+    const { t } = useTranslation();
   const [crosshair, setCrosshair] = useState<{ x: number, data: any, tClick: number } | null>(null);
   const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number}[]>([]);
   const [isMlProcessing, setIsMlProcessing] = useState(false);
@@ -899,21 +901,21 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         <button 
           onClick={handleZoomIn}
           className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all glass-target"
-          title="Powiększ"
+          title={t('auto.powiększ', { defaultValue: 'Powiększ' })}
         >
           <Plus size={20} className="font-black" />
         </button>
         <button 
           onClick={handleZoomOut}
           className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all glass-target"
-          title="Pomniejsz"
+          title={t('auto.pomniejsz', { defaultValue: 'Pomniejsz' })}
         >
           <Minus size={20} className="font-black" />
         </button>
         <button 
           onClick={handleReset}
           className="w-10 h-10 rounded-2xl bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 text-slate-600 dark:text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all glass-target"
-          title="Reset"
+          title={t('auto.reset', { defaultValue: 'Reset' })}
         >
           <Maximize2 size={18} className="font-black" />
         </button>
@@ -926,8 +928,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             <div className="w-12 h-12 rounded-full bg-accent-500/10 flex items-center justify-center mb-4 animate-pulse">
               <Move className="text-accent-500" size={24} />
             </div>
-            <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter italic mb-1">Brak danych do wyświetlenia</h3>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 max-w-[200px] leading-relaxed">System właśnie synchronizuje Twoje ostatnie wyniki z Nightscout. Zaraz się pojawią!</p>
+            <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter italic mb-1">{t('auto.brak_danych_do_wyświetlenia', { defaultValue: 'Brak danych do wyświetlenia' })}</h3>
+            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 max-w-[200px] leading-relaxed">{t('auto.system_właśnie_synchronizuje_twoje_', { defaultValue: 'System właśnie synchronizuje Twoje ostatnie wyniki z Nightscout. Zaraz się pojawią!' })}</p>
           </div>
         )}
         <canvas 
@@ -959,13 +961,13 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
                 )}
                 {crosshair.data.originalB && (
                   <div className="flex items-center justify-center gap-2 mt-1">
-                    <span className="text-indigo-400 font-bold text-xs">💉 Bolus:</span>
-                    <span className="text-sm font-black">{Number(crosshair.data.originalB.value).toFixed(2).replace(/\.?0+$/, '') || '0'} j.</span>
+                    <span className="text-indigo-400 font-bold text-xs">{t('auto.bolus', { defaultValue: '💉 Bolus:' })}</span>
+                    <span className="text-sm font-black">{Number(crosshair.data.originalB.value).toFixed(2).replace(/\.?0+$/, '') || '0'}  {t('auto.j', { defaultValue: 'j.' })}</span>
                   </div>
                 )}
                 {crosshair.data.originalM && (
                   <div className="flex items-center justify-center gap-2 mt-1">
-                    <span className="text-amber-400 font-bold text-xs">🍽️ Węgle:</span>
+                    <span className="text-amber-400 font-bold text-xs">{t('auto.węgle', { defaultValue: '🍽️ Węgle:' })}</span>
                     <span className="text-sm font-black">{Number(crosshair.data.originalM.value).toFixed(1).replace(/\.0$/, '')} g</span>
                   </div>
                 )}
@@ -984,7 +986,7 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
             className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full border border-slate-700/50 flex items-center gap-2"
           >
             <div className="w-2 h-2 rounded-full border-2 border-accent-500 border-t-transparent animate-spin" />
-            <span className="text-[8px] font-black uppercase tracking-widest text-accent-400">GlikoSense myśli...</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-accent-400">{t('auto.glikosense_myśli', { defaultValue: 'GlikoSense myśli...' })}</span>
           </motion.div>
         )}
       </AnimatePresence>

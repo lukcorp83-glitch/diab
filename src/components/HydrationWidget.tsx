@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Droplet, Plus, Minus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
+import { useTranslation } from "react-i18next";
 
 interface HydrationWidgetProps {
   size?: string;
@@ -11,6 +12,7 @@ interface HydrationWidgetProps {
 }
 
 export default function HydrationWidget({ size }: HydrationWidgetProps) {
+    const { t } = useTranslation();
   const isCompact = size === '1x1' || size === '1x2';
   
   // Store today's glasses count in localStorage
@@ -80,7 +82,7 @@ export default function HydrationWidget({ size }: HydrationWidgetProps) {
             <Droplet size={16} className={glasses > 0 ? "fill-blue-500/80 drop-shadow-md" : ""} />
           </div>
           {!isCompact && (
-            <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none drop-shadow-sm">Nawodnienie<br/>(Woda)</span>
+            <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none drop-shadow-sm">{t('auto.nawodnienie', { defaultValue: 'Nawodnienie' })}<br/>{t('auto.woda', { defaultValue: '(Woda)' })}</span>
           )}
         </div>
       </div>
@@ -92,7 +94,7 @@ export default function HydrationWidget({ size }: HydrationWidgetProps) {
           </span>
           <span className="text-sm font-bold text-slate-500 mix-blend-multiply dark:mix-blend-lighten">/ {dailyGoal}</span>
         </div>
-        {!isCompact && <span className="text-[10px] font-bold text-slate-500 mix-blend-multiply dark:mix-blend-lighten">szklanek po ~250ml</span>}
+        {!isCompact && <span className="text-[10px] font-bold text-slate-500 mix-blend-multiply dark:mix-blend-lighten">{t('auto.szklanek_po_250ml', { defaultValue: 'szklanek po ~250ml' })}</span>}
       </div>
 
       <div className="flex items-center gap-2 mt-4 z-10 justify-center">
@@ -112,7 +114,7 @@ export default function HydrationWidget({ size }: HydrationWidgetProps) {
       </div>
 
       {isCompact && (
-        <span className="text-[9px] font-bold text-slate-500 mix-blend-multiply dark:mix-blend-screen mt-3 text-center uppercase tracking-wider relative z-10 w-full">{Math.round(percent)}% Celu</span>
+        <span className="text-[9px] font-bold text-slate-500 mix-blend-multiply dark:mix-blend-screen mt-3 text-center uppercase tracking-wider relative z-10 w-full">{Math.round(percent)}{t('auto.celu', { defaultValue: '% Celu' })}</span>
       )}
     </div>
   );

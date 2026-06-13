@@ -53,7 +53,10 @@ interface SidebarProps {
   isChildMode?: boolean;
 }
 
+import { useTranslation } from 'react-i18next';
+
 export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onAction, theme, isChildMode }: SidebarProps) {
+  const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({});
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -64,79 +67,79 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
   const menuItems = [
     { 
        id: 'dashboard', 
-       label: 'Pulpit & Narzędzia', 
+       label: t('sidebar.sections.dashboard'), 
        icon: <LayoutDashboard size={20} />,
        subItems: [
-         { id: 'dash_home', label: 'Strona Główna', tab: 'dashboard', icon: <LayoutGrid size={14} /> },
-         { id: 'dash_chart', label: 'Wykres Główny', tab: 'chart', icon: <Activity size={14} /> },
-         { id: 'bolus_calc', label: 'Kalkulator Bolusa', tab: 'bolus', icon: <Calculator size={14} /> },
-         { id: 'add_glucose', label: 'Szybki Pomiar (Cukier)', tab: 'dashboard', action: 'add_glucose', icon: <Plus size={14} /> },
-         { id: 'profile_training', label: 'GlikoTrening', tab: 'profile', action: 'training', icon: <Activity size={14} /> },
-         { id: 'dash_travel', label: 'Asystent Podróży', tab: 'travel', icon: <Plane size={14} /> }
+         { id: 'dash_home', label: t('sidebar.items.dash_home'), tab: 'dashboard', icon: <LayoutGrid size={14} /> },
+         { id: 'dash_chart', label: t('sidebar.items.dash_chart'), tab: 'chart', icon: <Activity size={14} /> },
+         { id: 'bolus_calc', label: t('sidebar.items.bolus_calc'), tab: 'bolus', icon: <Calculator size={14} /> },
+         { id: 'add_glucose', label: t('sidebar.items.add_glucose'), tab: 'dashboard', action: 'add_glucose', icon: <Plus size={14} /> },
+         { id: 'profile_training', label: t('sidebar.items.profile_training'), tab: 'profile', action: 'training', icon: <Activity size={14} /> },
+         { id: 'dash_travel', label: t('sidebar.items.dash_travel'), tab: 'travel', icon: <Plane size={14} /> }
        ]
     },
     { 
        id: 'database', 
-       label: 'Baza Produktów', 
+       label: t('sidebar.sections.database'), 
        icon: <Database size={20} />,
        subItems: [
-         { id: 'db_search', label: 'Katalog Produktów', tab: 'database', icon: <Search size={14} /> },
-         { id: 'db_diets', label: 'Diety & Nawyki', tab: 'diets', icon: <BookOpen size={14} /> },
-         { id: 'db_favorites', label: 'Ulubione Produkty', tab: 'database', icon: <Star size={14} /> },
-         { id: 'profile_food', label: 'Menedżer Produktów', tab: 'profile', action: 'food', icon: <Settings size={14} /> }
+         { id: 'db_search', label: t('sidebar.items.db_search'), tab: 'database', icon: <Search size={14} /> },
+         { id: 'db_diets', label: t('sidebar.items.db_diets'), tab: 'diets', icon: <BookOpen size={14} /> },
+         { id: 'db_favorites', label: t('sidebar.items.db_favorites'), tab: 'database', icon: <Star size={14} /> },
+         { id: 'profile_food', label: t('sidebar.items.profile_food'), tab: 'profile', action: 'food', icon: <Settings size={14} /> }
        ]
     },
     { 
        id: 'meal', 
-       label: 'Posiłki & Talerz', 
+       label: t('sidebar.sections.meals'), 
        icon: <Utensils size={20} />,
        subItems: [
-         { id: 'meal_plate', label: 'Mój Talerz (Kreator)', tab: 'meal', icon: <Utensils size={14} /> },
-         { id: 'meal_today', label: 'Dzisiejsze Posiłki', tab: 'meal', icon: <History size={14} /> },
-         { id: 'meal_custom', label: 'Szybkie Wybory', tab: 'meal', icon: <Plus size={14} /> }
+         { id: 'meal_plate', label: t('sidebar.items.meal_plate'), tab: 'meal', icon: <Utensils size={14} /> },
+         { id: 'meal_today', label: t('sidebar.items.meal_today'), tab: 'meal', icon: <History size={14} /> },
+         { id: 'meal_custom', label: t('sidebar.items.meal_custom'), tab: 'meal', icon: <Plus size={14} /> }
        ]
     },
     { 
        id: 'history', 
-       label: 'Analiza & Dane', 
+       label: t('sidebar.sections.analysis'), 
        icon: <FileText size={20} />,
        subItems: [
-          { id: 'profile_stats', label: 'Statystyki', tab: 'profile', action: 'stats', icon: <Activity size={14} /> },
-          { id: 'history_list', label: 'Dziennik Zdarzeń', tab: 'history', icon: <History size={14} /> },
-          { id: 'ai_sense', label: 'GlikoSense AI', tab: 'ai', icon: <GlikoSenseIcon size={14} isAnalyzing={activeTab === 'ai'} /> },
-          { id: 'assistant_ai', label: 'Czat Gliko', tab: 'assistant', icon: isChildMode ? <Sparkles size={14} /> : <Cpu size={14} /> }
+          { id: 'profile_stats', label: t('sidebar.items.profile_stats'), tab: 'profile', action: 'stats', icon: <Activity size={14} /> },
+          { id: 'history_list', label: t('sidebar.items.history_list'), tab: 'history', icon: <History size={14} /> },
+          { id: 'ai_sense', label: t('sidebar.items.ai_sense'), tab: 'ai', icon: <GlikoSenseIcon size={14} isAnalyzing={activeTab === 'ai'} /> },
+          { id: 'assistant_ai', label: t('sidebar.items.assistant_ai'), tab: 'assistant', icon: isChildMode ? <Sparkles size={14} /> : <Cpu size={14} /> }
        ]
     },
     ...(isChildMode ? [{ 
        id: 'gliko', 
-       label: 'Świat Gliko', 
+       label: t('sidebar.sections.gliko'), 
        icon: <PawPrint size={20} className="text-indigo-500" />,
        subItems: [
-          { id: 'gliko_chat', label: 'Rozmowa z Gliko (AI)', tab: 'chat', icon: <MessageSquare size={14} /> },
-          { id: 'gliko_shop', label: 'Sklep Gliko', tab: 'profile', action: 'shop', icon: <ShoppingBag size={14} /> },
-          { id: 'gliko_arcade', label: 'Salon Gier Gliko', tab: 'games', icon: <Gamepad2 size={14} /> },
-          { id: 'achievements', label: 'Nagrody & Grywalizacja', tab: 'achievements', icon: <Trophy size={14} /> }
+          { id: 'gliko_chat', label: t('sidebar.items.gliko_chat'), tab: 'chat', icon: <MessageSquare size={14} /> },
+          { id: 'gliko_shop', label: t('sidebar.items.gliko_shop'), tab: 'profile', action: 'shop', icon: <ShoppingBag size={14} /> },
+          { id: 'gliko_arcade', label: t('sidebar.items.gliko_arcade'), tab: 'games', icon: <Gamepad2 size={14} /> },
+          { id: 'achievements', label: t('sidebar.items.achievements'), tab: 'achievements', icon: <Trophy size={14} /> }
        ]
     }] : []),
     { 
        id: 'profile', 
-       label: 'System & Urządzenia', 
+       label: t('sidebar.sections.system'), 
        icon: <Settings size={20} />,
        subItems: [
-         { id: 'profile_settings', label: 'Ustawienia Profilu', tab: 'profile', icon: <Sliders size={14} /> },
-         { id: 'profile_devices', label: 'Osprzęt & CGM', tab: 'profile', action: 'devices', icon: <Signal size={14} /> },
-         { id: 'profile_meds', label: 'Leki & Przypomnienia', tab: 'profile', action: 'meds', icon: <Pill size={14} /> },
-         { id: 'profile_tutorial', label: 'Samouczek & Baza Wiedzy', tab: 'profile', action: 'tutorial', icon: <BookOpen size={14} /> },
-         { id: 'profile_api', label: 'Integracje (Nightscout)', tab: 'profile', action: 'api', icon: <Globe size={14} /> }, 
-         { id: 'profile_simulator', label: 'Symulator Bolusa', tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
+         { id: 'profile_settings', label: t('sidebar.items.profile_settings'), tab: 'profile', icon: <Sliders size={14} /> },
+         { id: 'profile_devices', label: t('sidebar.items.profile_devices'), tab: 'profile', action: 'devices', icon: <Signal size={14} /> },
+         { id: 'profile_meds', label: t('sidebar.items.profile_meds'), tab: 'profile', action: 'meds', icon: <Pill size={14} /> },
+         { id: 'profile_tutorial', label: t('sidebar.items.profile_tutorial'), tab: 'profile', action: 'tutorial', icon: <BookOpen size={14} /> },
+         { id: 'profile_api', label: t('sidebar.items.profile_api'), tab: 'profile', action: 'api', icon: <Globe size={14} /> }, 
+         { id: 'profile_simulator', label: t('sidebar.items.profile_simulator'), tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
        ]
     },
     { 
        id: 'community', 
-       label: 'Społeczność', 
+       label: t('sidebar.sections.community'), 
        icon: <Facebook size={20} className="text-blue-500" />,
        subItems: [
-         { id: 'fb_group', label: 'Grupa na Facebooku', action: 'fb_group', icon: <Facebook size={14} /> }
+         { id: 'fb_group', label: t('sidebar.items.fb_group'), action: 'fb_group', icon: <Facebook size={14} /> }
        ]
     },
   ];
@@ -174,8 +177,9 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                  <Logo className="w-10 h-10 rounded-2xl shadow-lg shadow-accent-600/20" />
                  <div>
                    <h2 className={cn("text-xl font-black tracking-tighter leading-none uppercase font-display", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                     GlikoControl
-                   </h2>
+                     
+                                                           {t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}
+                                                         </h2>
                  </div>
               </div>
               <button 
@@ -267,16 +271,16 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
               <div className="px-4 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-4">
                  <div className="flex items-center gap-2 mb-1">
                     <Facebook size={14} className="text-blue-500" />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">Dołącz do nas!</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">{t('sidebar.join_us')}</span>
                  </div>
                  <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Na naszej grupie Facebook pojawiają się wszystkie najważniejsze informacje i nowości o aplikacji.
+                    {t('sidebar.fb_desc')}
                  </p>
                  <button 
                    onClick={() => window.open(FACEBOOK_GROUP_URL, '_blank')}
                    className="mt-2 text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 hover:underline"
                  >
-                   Otwórz grupę →
+                   {t('sidebar.open_group')}
                  </button>
               </div>
               <button 
@@ -288,7 +292,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                 className="w-full flex items-center justify-center gap-3 py-5 rounded-3xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black text-[10px] uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-slate-900/10 dark:shadow-white/5"
               >
                 <HelpCircle size={16} />
-                Poznaj GlikoControl
+                {t('sidebar.tutorial_btn')}
               </button>
             </div>
           </motion.div>

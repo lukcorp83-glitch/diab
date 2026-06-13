@@ -4,6 +4,7 @@ import { LogEntry } from '../types';
 import { AlertTriangle, Apple, Plus, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
+import { useTranslation } from "react-i18next";
 
 interface LowGlucoseMealAlertProps {
   logs: LogEntry[];
@@ -14,6 +15,7 @@ interface LowGlucoseMealAlertProps {
 }
 
 export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, shortcuts, onQuickAdd }: LowGlucoseMealAlertProps) {
+    const { t } = useTranslation();
   const [dismissed, setDismissed] = React.useState(() => {
     const val = sessionStorage.getItem('hypo_dismissed_time');
     if (val && Date.now() - Number(val) < 60 * 60 * 1000) return true;
@@ -77,11 +79,13 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
              </div>
              <div className="text-white">
                <h3 className="text-sm font-black uppercase tracking-widest mb-1 flex items-center gap-2">
-                 Hipoglikemia ({lastGlucose} <span className="text-[10px]">mg/dL</span>)
+                 
+                                               {t('auto.hipoglikemia', { defaultValue: 'Hipoglikemia (' })}{lastGlucose} <span className="text-[10px]">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>)
                </h3>
                <p className="text-xs text-white/90 font-medium">
-                 Twój cukier jest niski. Zjadłeś/aś coś i chcesz to szybko zapisać?
-               </p>
+                 
+                                               {t('auto.twój_cukier_jest_niski_zjadłeś_aś_c', { defaultValue: 'Twój cukier jest niski. Zjadłeś/aś coś i chcesz to szybko zapisać?' })}
+                                             </p>
              </div>
           </div>
           <button
@@ -92,13 +96,14 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
             className="w-full md:w-auto px-6 py-3.5 bg-white text-red-600 hover:bg-slate-50 transition-all rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-black/10 shrink-0"
           >
             <Apple size={16} />
-            Dodaj posiłek
-          </button>
+            
+                                  {t('auto.dodaj_posiłek', { defaultValue: 'Dodaj posiłek' })}
+                                </button>
         </div>
 
         {shortcuts && shortcuts.length > 0 && onQuickAdd && (
           <div className="relative z-10 mt-5 pt-5 border-t border-white/20">
-            <p className="text-[9px] text-white/90 font-black uppercase tracking-widest mb-3">Szybkie skróty:</p>
+            <p className="text-[9px] text-white/90 font-black uppercase tracking-widest mb-3">{t('auto.szybkie_skróty', { defaultValue: 'Szybkie skróty:' })}</p>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 snap-x scrollbar-hide">
               {shortcuts.map(s => (
                 <button
@@ -111,7 +116,7 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
                 >
                   <span className="text-2xl">{s.icon || '🍽️'}</span>
                   <span className="text-[10px] font-bold text-white text-center line-clamp-1 w-full">{s.name}</span>
-                  <span className="text-[9px] font-black text-white/80 bg-white/10 px-2 py-0.5 rounded-full">{Number(s.carbs).toFixed(1)}g W</span>
+                  <span className="text-[9px] font-black text-white/80 bg-white/10 px-2 py-0.5 rounded-full">{Number(s.carbs).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W' })}</span>
                 </button>
               ))}
             </div>

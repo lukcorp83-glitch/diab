@@ -11,6 +11,8 @@ import { toast } from 'react-hot-toast';
 import DietManager from './DietManager';
 import HydrationWidget from './HydrationWidget';
 import DietScoreWidget from './DietScoreWidget';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface DietsProps {
   user: User;
@@ -24,79 +26,80 @@ const DIET_TYPES = [
     name: 'Talerz Diabetologiczny',
     icon: <Utensils size={24} className="text-blue-500" />,
     color: 'bg-blue-500',
-    description: 'Najbardziej uniwersalna metoda zbilansowanych posiłków na oko. Dzieli talerz na połowę, ćwierć i ćwierć.',
+    description: i18n.t('auto.najbardziej_uniwersalna_metoda', { defaultValue: "Najbardziej uniwersalna metoda zbilansowanych posiłków na oko. Dzieli talerz na połowę, ćwierć i ćwierć." }),
     principles: [
       '1/2 talerza: Warzywa (najlepiej surowe lub gotowane na parze)',
-      '1/4 talerza: Źródło białka (chude mięso, ryby, jaja, tofu, naczyniowe)',
-      '1/4 talerza: Węglowodany złożone (kasze, brązowy ryż, ciemny makaron)',
-      'Dodatek: Zdrowe tłuszcze (oliwa, awokado, orzechy)'
+      i18n.t('auto.1_4_talerza_zrodlo_bialka_chud', { defaultValue: "1/4 talerza: Źródło białka (chude mięso, ryby, jaja, tofu, naczyniowe)" }),
+      i18n.t('auto.1_4_talerza_weglowodany_zlozon', { defaultValue: "1/4 talerza: Węglowodany złożone (kasze, brązowy ryż, ciemny makaron)" }),
+      i18n.t('auto.dodatek_zdrowe_tluszcze_oliwa', { defaultValue: "Dodatek: Zdrowe tłuszcze (oliwa, awokado, orzechy)" })
     ],
-    pros: ['Łatwa do wdrożenia', 'Nie wymaga liczenia kalorii', 'Przystępna na mieście'],
-    cons: ['Mniej precyzyjna przy dużych wahaniach cukru'],
-    tips: 'Idealna metoda dla dzieci i dorosłych na początek przygody z pompą i liczeniem.'
+    pros: [i18n.t('auto.latwa_do_wdrozenia', { defaultValue: "Łatwa do wdrożenia" }), 'Nie wymaga liczenia kalorii', i18n.t('auto.przystepna_na_miescie', { defaultValue: "Przystępna na mieście" })],
+    cons: [i18n.t('auto.mniej_precyzyjna_przy_duzych_w', { defaultValue: "Mniej precyzyjna przy dużych wahaniach cukru" })],
+    tips: i18n.t('auto.idealna_metoda_dla_dzieci_i_do', { defaultValue: "Idealna metoda dla dzieci i dorosłych na początek przygody z pompą i liczeniem." })
   },
   {
     id: 'keto',
-    name: 'Dieta Niskowęglowodanowa / Keto',
+    name: i18n.t('auto.dieta_niskoweglowodanowa_keto', { defaultValue: "Dieta Niskowęglowodanowa / Keto" }),
     icon: <Heart size={24} className="text-red-500" />,
     color: 'bg-red-500',
-    description: 'Minimalizuje spożycie węglowodanów, zmuszając organizm do czerpania energii z tłuszczu i ułatwiając płaskie wykresy.',
+    description: i18n.t('auto.minimalizuje_spozycie_weglowod', { defaultValue: "Minimalizuje spożycie węglowodanów, zmuszając organizm do czerpania energii z tłuszczu i ułatwiając płaskie wykresy." }),
     principles: [
-      'Węglowodany poniżej 50-100g (Low-Carb) lub 20-30g (Keto) na dobę',
-      'Wysokie spożycie zdrowych tłuszczów (orzechy, oliwa, masło, awokado)',
-      'Umiarkowane spożycie białka'
+      i18n.t('auto.weglowodany_ponizej_50_100g_lo', { defaultValue: "Węglowodany poniżej 50-100g (Low-Carb) lub 20-30g (Keto) na dobę" }),
+      i18n.t('auto.wysokie_spozycie_zdrowych_tlus', { defaultValue: "Wysokie spożycie zdrowych tłuszczów (orzechy, oliwa, masło, awokado)" }),
+      i18n.t('auto.umiarkowane_spozycie_bialka', { defaultValue: "Umiarkowane spożycie białka" })
     ],
-    pros: ['Mniej skoków glikemii po posiłkach', 'Mniejsze dawki insuliny (mniej błędów pomiarowych)'],
-    cons: ['Może wymagać dłuższego ustawiania bazy (tzw. Wymienniki Białkowo-Tłuszczowe)', 'Ryzyko ketozy i kwasicy (wymaga kontroli ciał ketonowych)', 'Trudna dla dzieci w okresie wzrostu'],
-    tips: 'Używając pompy, WBT (Wymienniki Białkowo-Tłuszczowe) powinieneś podawać jako Bolus Przedłużony, np. na 2-4 godziny.'
+    pros: [i18n.t('auto.mniej_skokow_glikemii_po_posil', { defaultValue: "Mniej skoków glikemii po posiłkach" }), i18n.t('auto.mniejsze_dawki_insuliny_mniej', { defaultValue: "Mniejsze dawki insuliny (mniej błędów pomiarowych)" })],
+    cons: [i18n.t('auto.moze_wymagac_dluzszego_ustawia', { defaultValue: "Może wymagać dłuższego ustawiania bazy (tzw. Wymienniki Białkowo-Tłuszczowe)" }), i18n.t('auto.ryzyko_ketozy_i_kwasicy_wymaga', { defaultValue: "Ryzyko ketozy i kwasicy (wymaga kontroli ciał ketonowych)" }), 'Trudna dla dzieci w okresie wzrostu'],
+    tips: i18n.t('auto.uzywajac_pompy_wbt_wymienniki', { defaultValue: "Używając pompy, WBT (Wymienniki Białkowo-Tłuszczowe) powinieneś podawać jako Bolus Przedłużony, np. na 2-4 godziny." })
   },
   {
     id: 'dash',
-    name: 'DASH / Śródziemnomorska',
+    name: i18n.t('auto.dash_srodziemnomorska', { defaultValue: "DASH / Śródziemnomorska" }),
     icon: <BookOpen size={24} className="text-green-500" />,
     color: 'bg-green-500',
-    description: 'Diety ukierunkowane na zdrowie sercowo-naczyniowe, często polecane w cukrzycy jako ogólny złoty standard.',
+    description: i18n.t('auto.diety_ukierunkowane_na_zdrowie', { defaultValue: "Diety ukierunkowane na zdrowie sercowo-naczyniowe, często polecane w cukrzycy jako ogólny złoty standard." }),
     principles: [
-      'Dużo warzyw, owoców (szczególnie jagodowych ze względu na niski reżim GI)',
-      'Oliwa z oliwek jako główne źródło tłuszczu',
-      'Ryby, drób, ograniczone czerwone mięso',
-      'Ograniczona podaż soli (DASH)'
+      i18n.t('auto.duzo_warzyw_owocow_szczegolnie', { defaultValue: "Dużo warzyw, owoców (szczególnie jagodowych ze względu na niski reżim GI)" }),
+      i18n.t('auto.oliwa_z_oliwek_jako_glowne_zro', { defaultValue: "Oliwa z oliwek jako główne źródło tłuszczu" }),
+      i18n.t('auto.ryby_drob_ograniczone_czerwone', { defaultValue: "Ryby, drób, ograniczone czerwone mięso" }),
+      i18n.t('auto.ograniczona_podaz_soli_dash', { defaultValue: "Ograniczona podaż soli (DASH)" })
     ],
-    pros: ['Najzdrowszy profil lipidowy na przyszłość', 'Zalecana przez większość towarzystw diabetologicznych'],
-    cons: ['Więcej węglowodanów wymaga precyzyjnego liczenia (WW i WBT)'],
-    tips: 'Aby nie podbijać wagi i uniknąć skoków, owoc zjadaj zaraz po posiłku białkowym, a nie osobno (opóźni to skok cukru).'
+    pros: [i18n.t('auto.najzdrowszy_profil_lipidowy_na', { defaultValue: "Najzdrowszy profil lipidowy na przyszłość" }), i18n.t('auto.zalecana_przez_wiekszosc_towar', { defaultValue: "Zalecana przez większość towarzystw diabetologicznych" })],
+    cons: [i18n.t('auto.wiecej_weglowodanow_wymaga_pre', { defaultValue: "Więcej węglowodanów wymaga precyzyjnego liczenia (WW i WBT)" })],
+    tips: i18n.t('auto.aby_nie_podbijac_wagi_i_unikna', { defaultValue: "Aby nie podbijać wagi i uniknąć skoków, owoc zjadaj zaraz po posiłku białkowym, a nie osobno (opóźni to skok cukru)." })
   },
   {
     id: 'if',
     name: 'Intermittent Fasting (Post Przerywany)',
     icon: <Clock size={24} className="text-purple-500" />,
     color: 'bg-purple-500',
-    description: 'Niespożywanie posiłków przez konkretne okno czasowe (np. 16 godzin postu, 8 godzin jedzenia).',
+    description: i18n.t('auto.niespozywanie_posilkow_przez_k', { defaultValue: "Niespożywanie posiłków przez konkretne okno czasowe (np. 16 godzin postu, 8 godzin jedzenia)." }),
     principles: [
       'Najpopularniejszy wariant: 16/8. Jesz np. od 10:00 do 18:00.',
       'W czasie postu: woda, czarna kawa polecane.'
     ],
-    pros: ['Pomaga w redukcji insulinooporności', 'Baza nocna często stabilizuje się lepiej bez późnego posiłku'],
-    cons: ['Ryzyko hipoglikemii - u diabetyków z pompą należy BARDZO OSTRZEŻNIE dobierać bazę', 'Możliwe zjawisko "brzasku" - skok cukru rano mimo braku jedzenia'],
-    tips: 'Jeżeli rano mocno skacze cukier (tzw. brzask), przedłużony bolus nocny i dobrze ustawiona baza to podstawa. Nie polecane dla dzieci.'
+    pros: [i18n.t('auto.pomaga_w_redukcji_insulinoopor', { defaultValue: "Pomaga w redukcji insulinooporności" }), i18n.t('auto.baza_nocna_czesto_stabilizuje', { defaultValue: "Baza nocna często stabilizuje się lepiej bez późnego posiłku" })],
+    cons: [i18n.t('auto.ryzyko_hipoglikemii_u_diabetyk', { defaultValue: "Ryzyko hipoglikemii - u diabetyków z pompą należy BARDZO OSTRZEŻNIE dobierać bazę" }), i18n.t('auto.mozliwe_zjawisko_brzasku_skok', { defaultValue: "Możliwe zjawisko \"brzasku\" - skok cukru rano mimo braku jedzenia" })],
+    tips: i18n.t('auto.jezeli_rano_mocno_skacze_cukie', { defaultValue: "Jeżeli rano mocno skacze cukier (tzw. brzask), przedłużony bolus nocny i dobrze ustawiona baza to podstawa. Nie polecane dla dzieci." })
   },
   {
     id: 'gluten',
     name: 'Bezglutenowa / Przy Celiakii',
     icon: <AlertTriangle size={24} className="text-orange-500" />,
     color: 'bg-orange-500',
-    description: 'Celiakia występuje statystycznie częściej u osób z CT1. Wymaga całkowitego wykluczenia glutenu.',
+    description: i18n.t('auto.celiakia_wystepuje_statystyczn', { defaultValue: "Celiakia występuje statystycznie częściej u osób z CT1. Wymaga całkowitego wykluczenia glutenu." }),
     principles: [
-      'Brak: pszenicy, żyta, jęczmienia, owsa (niecertyfikowanego)',
-      'Zastępniki: mąki kukurydziane, ryżowe, gryczane'
+      i18n.t('auto.brak_pszenicy_zyta_jeczmienia', { defaultValue: "Brak: pszenicy, żyta, jęczmienia, owsa (niecertyfikowanego)" }),
+      i18n.t('auto.zastepniki_maki_kukurydziane_r', { defaultValue: "Zastępniki: mąki kukurydziane, ryżowe, gryczane" })
     ],
-    pros: ['Kluczowa u zdiagnozowanych pacjentów z celiakią i rygorystycznie poprawia trawienie oraz glikemie, jeśli były wchłonięcia'],
-    cons: ['Zastępniki chleba (np. ryżowe/kukurydziane) często mają o wiele wyższy Indeks Glikemiczny, powodując większe skoki glikemii!'],
-    tips: 'Produkty "Gluten Free" bywają pełne cukru dodanego i mąki o ułatwionym wchłanianiu. Zawsze czytaj makro, przeliczaj i obserwuj czas działania insuliny!'
+    pros: [i18n.t('auto.kluczowa_u_zdiagnozowanych_pac', { defaultValue: "Kluczowa u zdiagnozowanych pacjentów z celiakią i rygorystycznie poprawia trawienie oraz glikemie, jeśli były wchłonięcia" })],
+    cons: [i18n.t('auto.zastepniki_chleba_np_ryzowe_ku', { defaultValue: "Zastępniki chleba (np. ryżowe/kukurydziane) często mają o wiele wyższy Indeks Glikemiczny, powodując większe skoki glikemii!" })],
+    tips: i18n.t('auto.produkty_gluten_free_bywaja_pe', { defaultValue: "Produkty \"Gluten Free\" bywają pełne cukru dodanego i mąki o ułatwionym wchłanianiu. Zawsze czytaj makro, przeliczaj i obserwuj czas działania insuliny!" })
   }
 ];
 
 export function Diets({ user, setTab, settings }: DietsProps) {
+    const { t } = useTranslation();
   const [selectedDiet, setSelectedDiet] = useState<typeof DIET_TYPES[0] | null>(null);
 
   const toggleDiet = async (dietId: string) => {
@@ -114,11 +117,11 @@ export function Diets({ user, setTab, settings }: DietsProps) {
         toast.success(`Aktywowano dietę: ${DIET_TYPES.find(d => d.id === dietId)?.name}`);
         setSelectedDiet(null); // Return to dashboard view
       } else {
-        toast.success(`Zakończono dietę.`);
+        toast.success(i18n.t('auto.zakonczono_diete', { defaultValue: "Zakończono dietę." }));
       }
     } catch (e) {
       console.error(e);
-      toast.error('Błąd podczas zmiany diety');
+      toast.error(i18n.t('auto.blad_podczas_zmiany_diety', { defaultValue: "Błąd podczas zmiany diety" }));
     }
   };
 
@@ -135,7 +138,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
               {activeDietData.icon}
             </div>
             <div className="flex flex-col">
-              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Zarządzanie Dietą</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">{t('auto.zarządzanie_dietą', { defaultValue: 'Zarządzanie Dietą' })}</h2>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{activeDietData.name}</p>
             </div>
           </div>
@@ -148,7 +151,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                <div className="grid grid-cols-2 gap-4">
                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center glass-target">
                    <span className="text-3xl font-black text-slate-900 dark:text-white mb-1">{daysActive}</span>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Dni na diecie</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('auto.dni_na_diecie', { defaultValue: 'Dni na diecie' })}</span>
                  </div>
                  <button 
                   onClick={() => {
@@ -158,12 +161,12 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                   className="bg-sky-50 dark:bg-sky-900/20 hover:bg-sky-100 dark:hover:bg-sky-900/40 transition-colors rounded-2xl p-4 border border-sky-100 dark:border-sky-800/30 flex flex-col items-center justify-center text-center group cursor-pointer"
                  >
                    <Utensils size={24} className="text-sky-500 mb-2 group-hover:scale-110 transition-transform" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-sky-600 dark:text-sky-400">Talerz i Baza</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-sky-600 dark:text-sky-400">{t('auto.talerz_i_baza', { defaultValue: 'Talerz i Baza' })}</span>
                  </button>
                </div>
 
                <div>
-                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-2">Twój cel na dziś</h3>
+                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-2">{t('auto.twój_cel_na_dziś', { defaultValue: 'Twój cel na dziś' })}</h3>
                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                    {activeDietData.description}
                  </p>
@@ -172,8 +175,9 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 glass-target">
                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                    Główne Zasady
-                 </h4>
+                    
+                                                  {t('auto.główne_zasady', { defaultValue: 'Główne Zasady' })}
+                                               </h4>
                  <ul className="space-y-2">
                    {activeDietData.principles.map((p, i) => (
                       <li key={i} className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-start gap-2">
@@ -191,11 +195,12 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                  className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 border border-indigo-100 dark:border-indigo-800/30 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
                >
                    <h4 className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2 flex items-center gap-1.5">
-                     <Info size={12} /> Wsparcie Gliko AI
-                   </h4>
+                     <Info size={12} />  {t('auto.wsparcie_gliko_ai', { defaultValue: 'Wsparcie Gliko AI' })}
+                                                 </h4>
                    <p className="text-xs font-medium text-indigo-900 dark:text-indigo-200 leading-relaxed">
-                     Asystent AI uwzględnia dietę {activeDietData.name} podczas swoich analiz i rekomendacji posiłków. Otwórz czat aby zapytać o poradę!
-                   </p>
+                     
+                                                   {t('auto.asystent_ai_uwzględnia_dietę', { defaultValue: 'Asystent AI uwzględnia dietę' })} {activeDietData.name}  {t('auto.podczas_swoich_analiz_i_rekomendacj', { defaultValue: 'podczas swoich analiz i rekomendacji posiłków. Otwórz czat aby zapytać o poradę!' })}
+                                                 </p>
                </div>
                
                <HydrationWidget user={user} tdee={settings.tdee} />
@@ -210,8 +215,9 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                     className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/30 hover:bg-rose-100 dark:hover:bg-rose-900/40"
                   >
                    <X size={18} />
-                   Zrezygnuj z diety
-                 </button>
+                   
+                                                 {t('auto.zrezygnuj_z_diety', { defaultValue: 'Zrezygnuj z diety' })}
+                                               </button>
                </div>
             </div>
           </div>
@@ -235,7 +241,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
           </button>
           <div className="flex flex-col">
             <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">{selectedDiet.name}</h2>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Katalog Diet</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.katalog_diet', { defaultValue: 'Katalog Diet' })}</p>
           </div>
         </div>
 
@@ -255,8 +261,9 @@ export function Diets({ user, setTab, settings }: DietsProps) {
             <div>
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                Zasady
-              </h3>
+                
+                                            {t('auto.zasady', { defaultValue: 'Zasady' })}
+                                          </h3>
               <ul className="space-y-2">
                 {selectedDiet.principles.map((p, i) => (
                   <li key={i} className="text-sm font-medium text-slate-700 flex items-start gap-2">
@@ -268,7 +275,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
 
             <div className="grid grid-cols-1 gap-4">
               <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">Zalety dla Diabetyka</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">{t('auto.zalety_dla_diabetyka', { defaultValue: 'Zalety dla Diabetyka' })}</h3>
                 <ul className="space-y-1">
                   {selectedDiet.pros.map((p, i) => (
                     <li key={i} className="text-xs font-semibold text-emerald-800 flex items-start gap-2">
@@ -279,7 +286,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
               </div>
 
               <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-2">Wady / Pułapki</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-2">{t('auto.wady_pułapki', { defaultValue: 'Wady / Pułapki' })}</h3>
                 <ul className="space-y-1">
                   {selectedDiet.cons.map((p, i) => (
                     <li key={i} className="text-xs font-semibold text-rose-800 flex items-start gap-2">
@@ -293,8 +300,9 @@ export function Diets({ user, setTab, settings }: DietsProps) {
             <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-2 flex items-center gap-1.5">
                 <Info size={12} />
-                Porada GlikoControl
-              </h3>
+                
+                                            {t('auto.porada_glikocontrol', { defaultValue: 'Porada GlikoControl' })}
+                                          </h3>
               <p className="text-xs font-medium text-indigo-900 leading-relaxed">
                 {selectedDiet.tips}
               </p>
@@ -307,8 +315,9 @@ export function Diets({ user, setTab, settings }: DietsProps) {
               >
                   <>
                     <Check size={18} />
-                    Przejdź na tę dietę
-                  </>
+                    
+                                                    {t('auto.przejdź_na_tę_dietę', { defaultValue: 'Przejdź na tę dietę' })}
+                                                  </>
               </button>
             </div>
           </div>
@@ -320,16 +329,16 @@ export function Diets({ user, setTab, settings }: DietsProps) {
   return (
     <div className="w-full max-w-md mx-auto space-y-4 p-4 pb-32">
       <div className="mb-6 space-y-1">
-        <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-display">Diety & Nawyki</h2>
-        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Pomysły na zbilansowane żywienie</p>
+        <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-display">{t('auto.diety_nawyki', { defaultValue: 'Diety & Nawyki' })}</h2>
+        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('auto.pomysły_na_zbilansowane_żywienie', { defaultValue: 'Pomysły na zbilansowane żywienie' })}</p>
       </div>
 
       <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] p-6 mb-6 border border-indigo-100 dark:border-indigo-800/30">
-        <h3 className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2">Pamiętaj!</h3>
+        <h3 className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2">{t('auto.pamiętaj', { defaultValue: 'Pamiętaj!' })}</h3>
         <p className="text-xs font-medium text-indigo-900 dark:text-indigo-200 leading-relaxed">
-          Nie ma jednej idealnej diety dla każdego diabetyka. Reakcja na węglowodany, tłuszcze i białko jest indywidualna. 
-          Zawsze modyfikuj dawki insuliny z głową i w porozumieniu z lekarzem prowadzącym.
-        </p>
+          
+                            {t('auto.nie_ma_jednej_idealnej_diety_dla_ka', { defaultValue: 'Nie ma jednej idealnej diety dla każdego diabetyka. Reakcja na węglowodany, tłuszcze i białko jest indywidualna. Zawsze modyfikuj dawki insuliny z głową i w porozumieniu z lekarzem prowadzącym.' })}
+                          </p>
       </div>
 
       <div className="grid gap-3">

@@ -1,7 +1,9 @@
+import i18n from '../i18n';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShieldCheck, FileText, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 interface ConsentClauseProps {
   onAccept: () => void;
@@ -9,13 +11,14 @@ interface ConsentClauseProps {
 }
 
 export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
+    const { t } = useTranslation();
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleAccept = async () => {
     if (!agreed) {
-      setError('Musisz zaakceptować warunki klauzuli.');
+      setError(i18n.t('auto.musisz_zaakceptowac_warunki_kl', { defaultValue: "Musisz zaakceptować warunki klauzuli." }));
       return;
     }
     
@@ -23,7 +26,7 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
     try {
       await onAccept();
     } catch (err) {
-      setError('Wystąpił błąd podczas zapisywania zgody.');
+      setError(i18n.t('auto.wystapil_blad_podczas_zapisywa', { defaultValue: "Wystąpił błąd podczas zapisywania zgody." }));
     } finally {
       setLoading(false);
     }
@@ -42,35 +45,37 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
               <ShieldCheck size={36} className="group-hover:scale-110 transition-transform" />
             </div>
             <div>
-              <h2 className="text-2xl font-black dark:text-white leading-tight font-display uppercase tracking-tighter italic">Klauzula Zgody</h2>
-              <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] mt-1">Zgodność z RODO / GDPR (UE)</p>
+              <h2 className="text-2xl font-black dark:text-white leading-tight font-display uppercase tracking-tighter italic">{t('auto.klauzula_zgody', { defaultValue: 'Klauzula Zgody' })}</h2>
+              <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] mt-1">{t('auto.zgodność_z_rodo_gdpr_ue', { defaultValue: 'Zgodność z RODO / GDPR (UE)' })}</p>
             </div>
           </div>
 
           <div className="bg-white/5 dark:bg-white/5 rounded-[2rem] p-7 border border-black/5 dark:border-white/5 max-h-[40vh] overflow-y-auto no-scrollbar">
             <div className="prose prose-sm dark:prose-invert">
-              <h4 className="text-[11px] font-black uppercase tracking-widest mb-5 text-indigo-500 font-display">Zgoda na przetwarzanie danych zdrowotnych</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-widest mb-5 text-indigo-500 font-display">{t('auto.zgoda_na_przetwarzanie_danych_zdrow', { defaultValue: 'Zgoda na przetwarzanie danych zdrowotnych' })}</h4>
               <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-bold opacity-80">
-                Niniejszym wyrażam dobrowolną i świadomą zgodę na przetwarzanie moich danych osobowych dotyczących stanu zdrowia (wyniki glikemii, insulinoterapia, dieta) w aplikacji GlikoControl.
-              </p>
+                
+                                              {t('auto.niniejszym_wyrażam_dobrowolną_i_świ', { defaultValue: 'Niniejszym wyrażam dobrowolną i świadomą zgodę na przetwarzanie moich danych osobowych dotyczących stanu zdrowia (wyniki glikemii, insulinoterapia, dieta) w aplikacji GlikoControl.' })}
+                                            </p>
               <ul className="text-[11px] text-slate-600 dark:text-slate-300 space-y-4 mt-6 list-none pl-0 font-bold opacity-70">
                 <li className="flex gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                  <span>Dane są używane wyłącznie do Twojej analizy przez moduł GlikoSense AI.</span>
+                  <span>{t('auto.dane_są_używane_wyłącznie_do_twojej', { defaultValue: 'Dane są używane wyłącznie do Twojej analizy przez moduł GlikoSense AI.' })}</span>
                 </li>
                 <li className="flex gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                  <span>Prawo do wycofania zgody w dowolnym momencie (usunięcie konta).</span>
+                  <span>{t('auto.prawo_do_wycofania_zgody_w_dowolnym', { defaultValue: 'Prawo do wycofania zgody w dowolnym momencie (usunięcie konta).' })}</span>
                 </li>
                 <li className="flex gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                  <span>Najwyższy standard szyfrowania TLS 1.3 i przechowywania danych w UE.</span>
+                  <span>{t('auto.najwyższy_standard_szyfrowania_tls_', { defaultValue: 'Najwyższy standard szyfrowania TLS 1.3 i przechowywania danych w UE.' })}</span>
                 </li>
               </ul>
               <div className="mt-8 p-5 bg-amber-500/5 rounded-2xl border border-amber-500/20">
                 <p className="text-[9px] font-black text-amber-600 dark:text-amber-400 leading-tight uppercase tracking-widest text-center">
-                  Aplikacja nie zastępuje profesjonalnej porady lekarskiej.
-                </p>
+                  
+                                                    {t('auto.aplikacja_nie_zastępuje_profesjonal', { defaultValue: 'Aplikacja nie zastępuje profesjonalnej porady lekarskiej.' })}
+                                                  </p>
               </div>
             </div>
           </div>
@@ -87,8 +92,9 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
                 {agreed && <Check size={16} strokeWidth={4} />}
               </div>
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-relaxed">
-                Oświadczam, że zapoznałem się z treścią klauzuli i dobrowolnie wyrażam zgodę na przetwarzanie moich danych.
-              </span>
+                
+                                              {t('auto.oświadczam_że_zapoznałem_się_z_treś', { defaultValue: 'Oświadczam, że zapoznałem się z treścią klauzuli i dobrowolnie wyrażam zgodę na przetwarzanie moich danych.' })}
+                                            </span>
             </label>
 
             {error && (
@@ -108,11 +114,13 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
               className="w-full bg-indigo-600 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/30 flex items-center justify-center gap-2 group transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-50 font-display"
             >
               {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={18} className="group-hover:rotate-6 transition-transform" />}
-              Zatwierdź i Kontynuuj
-            </button>
+              
+                                        {t('auto.zatwierdź_i_kontynuuj', { defaultValue: 'Zatwierdź i Kontynuuj' })}
+                                      </button>
             <p className="text-[9px] text-center text-slate-400 font-black uppercase tracking-widest opacity-50">
-              GlikoControl &bull; Privacy First App
-            </p>
+              
+                                        {t('auto.glikocontrol_bull_privacy_first_app', { defaultValue: 'GlikoControl &bull; Privacy First App' })}
+                                      </p>
           </div>
         </div>
       </motion.div>

@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { clampSafeBolus } from "../lib/physiologicalSafety";
+import i18n from "../i18n";
 
 import { auth } from "../lib/firebase";
 
@@ -78,6 +79,13 @@ export const geminiService = {
     const creds = getApiKey();
     const isProxyUrl =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+
+    const lang = localStorage.getItem('i18nextLng') || 'pl';
+    const langInstruction = lang.startsWith('en') 
+      ? "\n\n[SYSTEM INSTRUCTION: You must respond entirely in English.]\n"
+      : "\n\n[SYSTEM INSTRUCTION: You must respond entirely in Polish.]\n";
+    
+    prompt = prompt + langInstruction;
 
     // Zaktualizowane modele zgodnie z nowymi wytycznymi
     let modelsToTry = imageData
@@ -167,9 +175,9 @@ export const geminiService = {
         }
       }
 
-      console.error("Wszystkie modele AI(Proxy) są obecnie zajęte lub zablokowane limitami Google dla naszego bezpłatnego serwera.");
+      console.error(i18n.t('auto.wszystkie_modele_ai_proxy_sa_o', { defaultValue: "Wszystkie modele AI(Proxy) są obecnie zajęte lub zablokowane limitami Google dla naszego bezpłatnego serwera." }));
       throw new Error(
-        "Aby przywrócić działanie modułów Sztucznej Inteligencji (GlikoSense, Asystent), przejdź do: Mój Profil -> Opcje Zaawansowane -> Własny klucz API. Pobierz darmowy klucz Gemini ze strony aistudio.google.com i wprowadź go w aplikacji. Jest to konieczne, gdyż darmowy ogólnodostępny serwer osiągnął limity zapytań Google."
+        i18n.t('gemini.proxy_limit_error_global', { defaultValue: 'Aby przywrócić działanie modułów Sztucznej Inteligencji (GlikoSense, Asystent), przejdź do: Mój Profil -> Opcje Zaawansowane -> Własny klucz API. Pobierz darmowy klucz Gemini ze strony aistudio.google.com i wprowadź go w aplikacji. Jest to konieczne, gdyż darmowy ogólnodostępny serwer osiągnął limity zapytań Google.' })
       );
     }
 
@@ -216,7 +224,7 @@ export const geminiService = {
           errMessage.includes("API_KEY_INVALID")
         ) {
           clearTimeout(timeoutId);
-          console.warn("Podany klucz API Gemini jest nieprawidłowy.");
+          console.warn(i18n.t('auto.podany_klucz_api_gemini_jest_n', { defaultValue: "Podany klucz API Gemini jest nieprawidłowy." }));
           throw error;
         }
         // W innym przypadku kontynuujemy pętle i próbujemy następny model
@@ -225,7 +233,7 @@ export const geminiService = {
 
     clearTimeout(timeoutId);
     console.error("Wszystkie dostepne modele zawiodly.", lastError);
-    throw lastError || new Error("Wszystkie modele AI zawiodły.");
+    throw lastError || new Error(i18n.t('auto.wszystkie_modele_ai_zawiodly', { defaultValue: "Wszystkie modele AI zawiodły." }));
   },
 
   async getLivePrediction(recentLogs: any[], settings?: any) {
@@ -262,7 +270,7 @@ export const geminiService = {
         ? "Dzienny"
         : period === "week"
           ? "Tygodniowy"
-          : "Miesięczny";
+          : i18n.t('auto.miesieczny', { defaultValue: "Miesięczny" });
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 
     let logsToAnalyze = logs.filter(
@@ -526,13 +534,13 @@ export const geminiService = {
     if (hasLocalStorage)
       return {
         type: "custom",
-        label: "Własny Klucz (Local)",
+        label: i18n.t('auto.wlasny_klucz_local', { defaultValue: "Własny Klucz (Local)" }),
         color: "text-indigo-500",
       };
     if (isProxy)
       return {
         type: "proxy",
-        label: "Serwer Gliko (Domyślny)",
+        label: i18n.t('auto.serwer_gliko_domyslny', { defaultValue: "Serwer Gliko (Domyślny)" }),
         color: "text-amber-500",
       };
     return {
@@ -549,6 +557,11 @@ export const geminiService = {
   ) {
     const petName = petData?.name || "Gliko";
     const petType = petData?.type || "standard";
+
+    const lang = localStorage.getItem('i18nextLng') || 'pl';
+    const langNote = lang.startsWith('en')
+      ? "IMPORTANT: You MUST respond in English! Your tone and wording should be entirely English."
+      : "IMPORTANT: You MUST respond in Polish!";
 
     const systemInstruction = `Jesteś ${petName} - wesołym i mądrym stworkiem (typ: ${petType}), który opiekuje się dziećmi z cukrzycą. 
     Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). 
@@ -576,7 +589,9 @@ export const geminiService = {
     4. Aby nawigować użykownika do odpowiedniej sekcji ("Gdzie są ustawienia?", "Pokaż mój profil", "Idźmy do talerza"):
     <app_action>{"action": "navigate", "value": "profile"}</app_action> (dostepne: dashboard, profile, database, meal, history)
     
-    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!`;
+    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!
+    
+    ${langNote}`;
 
     const creds = getApiKey();
     const isProxyUrl =
@@ -615,7 +630,7 @@ export const geminiService = {
         throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
         console.error("Chat proxy error", e);
-        return "Serwer padnął lub jego darmowy limit się wyczerpał! ✨ Przejdź do Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny (darmowy) Klucz Gemini API! ✨";
+        return i18n.t('gemini.proxy_limit_error_chat', { defaultValue: 'Serwer padnął lub jego darmowy limit się wyczerpał! ✨ Przejdź do Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny (darmowy) Klucz Gemini API! ✨' });
       }
     }
 
@@ -633,12 +648,12 @@ export const geminiService = {
       });
       return (
         response.text ||
-        "Ojej, coś mi się pomieszało w brzuszku! Spróbuj jeszcze raz! 🐾"
+        i18n.t('gemini.belly_confused', { defaultValue: 'Ojej, coś mi się pomieszało w brzuszku! Spróbuj jeszcze raz! 🐾' })
       );
     } catch (error) {
       console.error("Gliko Chat Error:", error);
       // Fallback if SDK fails or rate limited
-      return "Przepraszam, chyba na chwilę zasnąłem... Możesz powtórzyć? ✨";
+      return i18n.t('gemini.fell_asleep', { defaultValue: 'Przepraszam, chyba na chwilę zasnąłem... Możesz powtórzyć? ✨' });
     }
   },
 
@@ -771,7 +786,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
           l.type === "glucose"
             ? "mg/dL"
             : l.type === "meal"
-              ? "g węgli"
+              ? i18n.t('auto.g_wegli', { defaultValue: "g węgli" })
               : "j. insuliny",
         czas: new Date(l.timestamp || l.createdAt).toLocaleString("pl-PL", {
           hour: "2-digit",
@@ -907,7 +922,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
         throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
         console.error("Assistant proxy error", e);
-        return "Serwer padnął lub jego limit się wyczerpał. Przejdź do: Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny Klucz Gemini API.";
+        return i18n.t('gemini.proxy_limit_error_assistant', { defaultValue: 'Serwer padnął lub jego limit się wyczerpał. Przejdź do: Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny Klucz Gemini API.' });
       }
     }
 
@@ -929,7 +944,7 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
             temperature: 0.4,
           },
         });
-        return response.text || "Nie udało mi się wygenerować odpowiedzi.";
+        return response.text || i18n.t('gemini.response_generation_failed', { defaultValue: 'Nie udało mi się wygenerować odpowiedzi.' });
       } catch (error) {
         console.warn(`Assistant - błąd dla modelu ${model}:`, error);
         lastError = error;
@@ -937,6 +952,6 @@ Odpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).
     }
 
     console.error("Assistant API Error:", lastError);
-    return "Wystąpił błąd podczas komunikacji z AI. Sprawdź swoje połączenie lub klucz API.";
+    return i18n.t('gemini.ai_communication_error', { defaultValue: 'Wystąpił błąd podczas komunikacji z AI. Sprawdź swoje połączenie lub klucz API.' });
   },
 };

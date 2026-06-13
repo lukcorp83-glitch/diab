@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Flower2, Sun, CloudRain, Trophy, Ruler } from 'lucide-react';
 
 export default function GlikoGarden({ logs }: { logs: any[] }) {
+    const { t } = useTranslation();
   const tir = useMemo(() => {
     const today = new Date().setHours(0,0,0,0);
     const todayLogs = logs.filter(l => l.timestamp >= today && l.type === 'glucose');
@@ -12,21 +13,21 @@ export default function GlikoGarden({ logs }: { logs: any[] }) {
   }, [logs]);
 
   const plants = [
-    { id: 1, name: 'Słonecznik Sukcesu', threshold: 50, icon: '🌻' },
-    { id: 2, name: 'Róża Regularności', threshold: 75, icon: '🌹' },
+    { id: 1, name: i18n.t('auto.slonecznik_sukcesu', { defaultValue: "Słonecznik Sukcesu" }), threshold: 50, icon: '🌻' },
+    { id: 2, name: i18n.t('auto.roza_regularnosci', { defaultValue: "Róża Regularności" }), threshold: 75, icon: '🌹' },
     { id: 3, name: 'Drzewo Dyscypliny', threshold: 90, icon: '🌳' },
-    { id: 4, name: 'Złoty Kwiatek TIR', threshold: 100, icon: '🌼' },
+    { id: 4, name: i18n.t('auto.zloty_kwiatek_tir', { defaultValue: "Złoty Kwiatek TIR" }), threshold: 100, icon: '🌼' },
   ];
 
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h4 className="font-black text-sm dark:text-white flex items-center gap-2"><Flower2 size={16} className="text-emerald-500" /> Ogród TIR</h4>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Twoje rośliny rosną dzięki dobrym cukrom</p>
+          <h4 className="font-black text-sm dark:text-white flex items-center gap-2"><Flower2 size={16} className="text-emerald-500" />  {t('auto.ogród_tir', { defaultValue: 'Ogród TIR' })}</h4>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.twoje_rośliny_rosną_dzięki_dobrym_c', { defaultValue: 'Twoje rośliny rosną dzięki dobrym cukrom' })}</p>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-500/20">
-          <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{tir.toFixed(0)}% TIR</span>
+          <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{tir.toFixed(0)}{t('auto.tir', { defaultValue: '% TIR' })}</span>
         </div>
       </div>
 
@@ -53,7 +54,7 @@ export default function GlikoGarden({ logs }: { logs: any[] }) {
                     className={`h-full ${isGrown ? 'bg-emerald-500' : 'bg-amber-400'}`}
                   />
                 </div>
-                <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-tighter">Cel: {plant.threshold}% TIR</p>
+                <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-tighter">{t('auto.cel', { defaultValue: 'Cel:' })} {plant.threshold}{t('auto.tir', { defaultValue: '% TIR' })}</p>
               </div>
             </div>
           );
@@ -64,8 +65,9 @@ export default function GlikoGarden({ logs }: { logs: any[] }) {
          <div className="mt-6 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 flex items-start gap-3">
             <Sun className="text-amber-500 shrink-0" size={16} />
             <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">
-              Podlewaj swój ogród dobrą glikemią! Rośliny potrzebują słońca (70-180 mg/dL), żeby rozkwitnąć.
-            </p>
+              
+                                    {t('auto.podlewaj_swój_ogród_dobrą_glikemią_', { defaultValue: 'Podlewaj swój ogród dobrą glikemią! Rośliny potrzebują słońca (70-180 mg/dL), żeby rozkwitnąć.' })}
+                                  </p>
          </div>
       )}
     </div>
@@ -73,3 +75,5 @@ export default function GlikoGarden({ logs }: { logs: any[] }) {
 }
 
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";

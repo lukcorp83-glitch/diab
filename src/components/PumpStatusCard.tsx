@@ -1,7 +1,9 @@
+import i18n from '../i18n';
 import React from 'react';
 import { motion } from 'motion/react';
 import { Battery, Database, Activity, Zap, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 interface PumpStatusProps {
   data: {
@@ -23,6 +25,7 @@ interface PumpStatusProps {
 }
 
 export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compact = false }) => {
+    const { t } = useTranslation();
   if (!data) return null;
 
   const getBatteryColor = (level: number) => {
@@ -57,7 +60,7 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
       <div className={cn("flex justify-between items-start", compact ? "mb-4" : "mb-6")}>
         <div>
           <h3 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] mb-1">
-            {isPump ? 'Status Pompy' : 'Status Urządzenia'}
+            {isPump ? 'Status Pompy' : i18n.t('auto.status_urzadzenia', { defaultValue: "Status Urządzenia" })}
           </h3>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={cn("font-black dark:text-white", compact ? "text-base" : "text-xl")}>{deviceName}</span>
@@ -78,8 +81,8 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
         {isPump ? (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-              <Database size={10} /> Zbiornik
-            </div>
+              <Database size={10} />  {t('auto.zbiornik', { defaultValue: 'Zbiornik' })}
+                                      </div>
             <div className={cn("text-lg font-black", getReservoirColor(data.reservoir))}>
               {data.reservoir != null ? Number(data.reservoir).toFixed(0) : '--'} <span className="text-[10px] opacity-70">U</span>
             </div>
@@ -94,12 +97,13 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
         ) : (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-              <Activity size={10} /> Rodzaj
-            </div>
+              <Activity size={10} />  {t('auto.rodzaj', { defaultValue: 'Rodzaj' })}
+                                          </div>
             <div className="text-sm font-black text-slate-600 dark:text-slate-300">
-              CGM Only
-            </div>
-            <div className="text-[8px] font-bold text-slate-400 uppercase">Brak pompy</div>
+              
+                                            {t('auto.cgm_only', { defaultValue: 'CGM Only' })}
+                                          </div>
+            <div className="text-[8px] font-bold text-slate-400 uppercase">{t('auto.brak_pompy', { defaultValue: 'Brak pompy' })}</div>
           </div>
         )}
 
@@ -132,8 +136,8 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
         {data.uploader?.battery != null && (!isPump || data.battery !== data.uploader.battery) ? (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-              <Battery size={10} /> Telefon
-            </div>
+              <Battery size={10} />  {t('auto.telefon', { defaultValue: 'Telefon' })}
+                                      </div>
             <div className={cn("text-lg font-black", getBatteryColor(Math.min(data.uploader.battery, 100)))}>
               {Math.min(Math.round(data.uploader.battery), 100)}<span className="text-[10px] opacity-70">%</span>
             </div>
@@ -148,10 +152,10 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
         ) : (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-              <Zap size={10} /> Baza
-            </div>
+              <Zap size={10} />  {t('auto.baza', { defaultValue: 'Baza' })}
+                                          </div>
             <div className="text-lg font-black text-purple-500">
-              {data.basal?.rate != null ? Number(data.basal.rate).toFixed(2) : '--'} <span className="text-[10px] opacity-70">U/h</span>
+              {data.basal?.rate != null ? Number(data.basal.rate).toFixed(2) : '--'} <span className="text-[10px] opacity-70">{t('auto.u_h', { defaultValue: 'U/h' })}</span>
             </div>
             <div className="text-[8px] font-bold text-slate-400 uppercase">
               {data.basal?.isTemp ? 'Tymczasowa' : 'Standardowa'}
@@ -162,14 +166,14 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
 
       <div className={cn("pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center", compact ? "mt-4" : "mt-6")}>
         <div>
-          <span className="text-[8px] font-black text-slate-400 uppercase block">Profil Działania Insuliny (IOB)</span>
+          <span className="text-[8px] font-black text-slate-400 uppercase block">{t('auto.profil_działania_insuliny_iob', { defaultValue: 'Profil Działania Insuliny (IOB)' })}</span>
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">{data.activeInsulin != null ? Number(data.activeInsulin).toFixed(2) : '--'} U</span>
           {data.activeInsulin > 0 && (
-            <span className="text-[7px] font-bold text-pink-500/80 block mt-0.5">Start: ~20m • Szczyt: ~75m</span>
+            <span className="text-[7px] font-bold text-pink-500/80 block mt-0.5">{t('auto.start_20m_szczyt_75m', { defaultValue: 'Start: ~20m • Szczyt: ~75m' })}</span>
           )}
         </div>
         <div className="text-right">
-          <span className="text-[8px] font-black text-slate-400 uppercase block">Auto-Tryb</span>
+          <span className="text-[8px] font-black text-slate-400 uppercase block">{t('auto.auto_tryb', { defaultValue: 'Auto-Tryb' })}</span>
           <span className={cn("text-[10px] font-black", isPump ? "text-emerald-500" : "text-slate-400")}>
             {isPump ? 'AKTYWNY' : 'N/A'}
           </span>

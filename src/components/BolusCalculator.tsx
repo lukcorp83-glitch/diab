@@ -1,5 +1,7 @@
+import i18n from '../i18n';
 import { getEffectiveUid } from "../lib/utils";
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslation } from 'react-i18next';
 import { motion } from "motion/react";
 import { LogEntry, UserSettings } from "../types";
 import {
@@ -59,6 +61,7 @@ export default function BolusCalculator({
   pumpStatus?: any;
   isShortcutMode?: boolean;
 }) {
+  const { t } = useTranslation();
   const [bg, setBg] = useState<string>("");
   const [carbs, setCarbs] = useState<string>("");
   const [polyols, setPolyols] = useState<string>("");
@@ -263,7 +266,7 @@ export default function BolusCalculator({
     let chartData = [];
     if (mealDose > 0)
       chartData.push({
-        name: "Węgle",
+        name: t('bolus.chart_carbs'),
         value: parseFloat(mealDose.toFixed(2)),
         color: "#3b82f6",
       });
@@ -275,13 +278,13 @@ export default function BolusCalculator({
       });
     if (corrDose > 0)
       chartData.push({
-        name: "Korekta +",
+        name: t('bolus.chart_corr_pos'),
         value: parseFloat(corrDose.toFixed(2)),
         color: "#ef4444",
       });
     if (corrDose < 0)
       chartData.push({
-        name: "Korekta -",
+        name: t('bolus.chart_corr_neg'),
         value: parseFloat(Math.abs(corrDose).toFixed(2)),
         color: "#10b981",
       }); // we show absolute in chart but it reduces total
@@ -339,7 +342,7 @@ export default function BolusCalculator({
               setProtein((result.protein || 0).toString());
               setFat((result.fat || 0).toString());
             }
-            setScanResultMsg(`Rozpoznano: ${result.mealName}`);
+            setScanResultMsg(t('bolus.scan_recognized', { name: result.mealName }));
             setTimeout(() => setScanResultMsg(null), 5000);
           }
         } catch (err) {
@@ -349,14 +352,14 @@ export default function BolusCalculator({
             errStr.includes("API key not valid") ||
             errStr.includes("API_KEY_INVALID")
           ) {
-            setScanResultMsg("Nieprawidłowy klucz API.");
+            setScanResultMsg(t('bolus.scan_invalid_api'));
           } else if (
-            errStr.includes("Wszystkie modele AI są obecnie zajęte") ||
-            errStr.includes("zajęte")
+            errStr.includes(i18n.t('auto.wszystkie_modele_ai_sa_obecnie', { defaultValue: "Wszystkie modele AI są obecnie zajęte" })) ||
+            errStr.includes(i18n.t('auto.zajete', { defaultValue: "zajęte" }))
           ) {
-            setScanResultMsg("Serwery AI są przeciążone. Spróbuj ponownie.");
+            setScanResultMsg(t('bolus.scan_overloaded'));
           } else {
-            setScanResultMsg("Błąd skanowania posiłku.");
+            setScanResultMsg(t('bolus.scan_error'));
           }
           setTimeout(() => setScanResultMsg(null), 5000);
         } finally {
@@ -366,7 +369,7 @@ export default function BolusCalculator({
       reader.readAsDataURL(file);
     } catch (e) {
       console.error("Meal scan error:", e);
-      setScanResultMsg("Błąd skanowania posiłku.");
+      setScanResultMsg(t('bolus.scan_error'));
       setTimeout(() => setScanResultMsg(null), 5000);
       setScanning(false);
     }
@@ -382,7 +385,7 @@ export default function BolusCalculator({
     const fNum = parseFloat(fat) || 0;
 
     if (finalDose <= 0 && bgNum <= 0 && carbsNum <= 0) {
-      toast.error("Wpisz dawkę, węglowodany lub cukier");
+      toast.error(t('bolus.err_empty'));
       return;
     }
 
@@ -391,7 +394,7 @@ export default function BolusCalculator({
     let tId: string | undefined;
 
     try {
-      tId = toast.loading("Przetwarzanie...");
+      tId = toast.loading(t('bolus.processing'));
       const effectiveUid = getEffectiveUid(user);
 
       const timestamp = new Date(entryTime).getTime();
@@ -412,7 +415,7 @@ export default function BolusCalculator({
           type: "bolus",
           value: Math.round(finalDose * 10) / 10,
           timestamp,
-          description: mealName === "Szybka korekta" ? "Szybka korekta" : (isPizzaMode ? "Łączony" : "Kalkulator bolusa"),
+          description: mealName === "Szybka korekta" ? "Szybka korekta" : (isPizzaMode ? i18n.t('auto.laczony', { defaultValue: "Łączony" }) : "Kalkulator bolusa"),
         };
         if (carbsNum > 0) {
           payload.linkedMeal = {
@@ -483,11 +486,11 @@ export default function BolusCalculator({
         ops++;
       }
 
-      if (ops === 0) throw new Error("Brak operacji");
+      if (ops === 0) throw new Error(t('bolus.err_no_ops'));
 
       // OPTIMISTIC UPDATE: Close first, save in background
       Haptics.success();
-      if (tId) toast.success("Zapisano (Synchronizacja w tle...)", { id: tId });
+      if (tId) toast.success(t('bolus.saved_syncing'), { id: tId });
       if (isShortcutMode) {
         CapacitorApp.exitApp();
       } else if (setTab) {
@@ -518,7 +521,7 @@ export default function BolusCalculator({
     } catch (err: any) {
       Haptics.error();
       console.error("[BolusCalculator] Error:", err);
-      if (tId) toast.error(err.message || "Błąd zapisu", { id: tId });
+      if (tId) toast.error(err.message || t('bolus.err_save'), { id: tId });
     } finally {
       setSaving(false);
     }
@@ -529,26 +532,26 @@ export default function BolusCalculator({
     if (bgNum === 0) return null;
     if (bgNum < 70)
       return {
-        text: "🔴 HIPO! Zjedz węgle. Nie podawaj bolusa!",
+        text: t('bolus.timing_hypo'),
         color: "text-red-500",
       };
     if (bgNum <= 130)
       return {
-        text: "🟢 NORMA. Bolus i posiłek za 5-10 min.",
+        text: t('bolus.timing_normal'),
         color: "text-green-500",
       };
     if (bgNum <= 180)
       return {
-        text: "🟡 WYSOKI. Odczekaj ok. 15 min.",
+        text: t('bolus.timing_high'),
         color: "text-amber-500",
       };
     if (bgNum <= 200)
       return {
-        text: "🟠 BARDZO WYSOKI! Odczekaj min. 30 min.",
+        text: t('bolus.timing_very_high'),
         color: "text-orange-500",
       };
     return {
-      text: "🔴 KRYTYCZNY! Podaj tylko korektę i poczekaj z posiłkiem.",
+      text: t('bolus.timing_critical'),
       color: "text-red-600",
     };
   };
@@ -573,7 +576,7 @@ export default function BolusCalculator({
         iob,
         cob,
         logs,
-        userSettings
+        settings
       );
       if (result) {
         setAiRec(result);
@@ -607,30 +610,26 @@ export default function BolusCalculator({
     const isHighProtein = pPct > 30;
     const isFastCarb = cPct > 65 && fPct < 15 && pPct < 15;
 
-    let igEstimate = "ŚREDNI";
+    let igEstimate = t('bolus.ig_medium');
     let igNumerical = 55;
-    let behavior = "Posiłek zbalansowany. Umiarkowane tempo wchłaniania.";
+    let behavior = t('bolus.behavior_balanced');
 
     if (isFastCarb) {
-      igEstimate = "WYSOKI";
+      igEstimate = t('bolus.ig_high');
       igNumerical = 80;
-      behavior =
-        "Posiłek węglowodanowy, szybko wchłanialny. Może powodować nagły skok glikemii. Zalecane podanie insuliny na kilkanaście minut przed jedzeniem.";
+      behavior = t('bolus.behavior_fast_carb');
     } else if (isHighFat && isHighProtein) {
-      igEstimate = "NISKI";
+      igEstimate = t('bolus.ig_low');
       igNumerical = 30;
-      behavior =
-        "Wysoka zawartość białka i tłuszczu (typu Pizza). Wchłanianie mocno opóźnione. Polecany bolus przedłużony lub złożony na wiele godzin.";
+      behavior = t('bolus.behavior_pizza');
     } else if (isHighFat) {
-      igEstimate = "NISKI/ŚREDNI";
+      igEstimate = t('bolus.ig_low_medium');
       igNumerical = 40;
-      behavior =
-        "Proporcja tłuszczu opóźni szczyt glikemii węglowodanowej. Obserwuj cukier po 2-4 godzinach.";
+      behavior = t('bolus.behavior_high_fat');
     } else if (isHighProtein) {
-      igEstimate = "NISKI/ŚREDNI";
+      igEstimate = t('bolus.ig_low_medium');
       igNumerical = 45;
-      behavior =
-        "Podniesiona ilość białka. Może skutkować późnym - wolnym wzrostem poziomu glikemii w skutek glukoneogenezy.";
+      behavior = t('bolus.behavior_high_protein');
     }
 
     const glEstimate = (cNum * igNumerical) / 100;
@@ -657,7 +656,7 @@ export default function BolusCalculator({
       <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
         <div className="flex justify-between items-center">
           <h3 className="text-[12px] font-black text-slate-400 uppercase tracking-widest">
-            Kalkulator Dawki
+            {t('bolus.title')}
           </h3>
           <div className="flex items-center gap-2">
             <input
@@ -681,7 +680,7 @@ export default function BolusCalculator({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase block text-center">
-              Cukier
+              {t('bolus.sugar')}
             </label>
             <input
               type="number"
@@ -696,13 +695,13 @@ export default function BolusCalculator({
                 if (v > 600) v = 600;
                 setBg(v.toString());
               }}
-              placeholder="mg/dL"
+              placeholder={t('auto.mg_dl', { defaultValue: 'mg/dL' })}
               className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-xl outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white"
             />
           </div>
           <div className="space-y-2 relative">
             <label className="text-[10px] font-black text-slate-400 uppercase block text-center">
-              Węgle (g)
+              {t('bolus.carbs_g')}
             </label>
             <div className="relative">
               <input
@@ -753,7 +752,7 @@ export default function BolusCalculator({
         <div className="flex gap-4">
           <div className="flex-1 space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase block text-center">
-              Puste węgle / Poliole (g)
+              {t('bolus.polyols')}
             </label>
             <input
               type="number"
@@ -775,7 +774,7 @@ export default function BolusCalculator({
           {parseFloat(polyols) > 0 && (
             <div className="flex-1 flex items-center justify-center pt-8">
               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest text-center">
-                Netto:{" "}
+                {t('bolus.net_carbs')}:{" "}
                 {Math.max(0, parseFloat(carbs) - parseFloat(polyols)).toFixed(
                   1,
                 )}
@@ -792,13 +791,13 @@ export default function BolusCalculator({
             className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 rounded-2xl"
           >
             <h4 className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-              📊 Ocena Posiłku (Algorytm)
+              {t('bolus.meal_analysis_title')}
             </h4>
 
             <div className="flex flex-wrap gap-2 mb-3">
               <div className="flex-1 bg-white dark:bg-slate-900 p-2 rounded-xl text-center border border-slate-100 dark:border-slate-800">
                 <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">
-                  Kcal
+                  {t('bolus.meal_kcal')}
                 </p>
                 <p className="text-xs font-black dark:text-white">
                   {algoMeal.kcal}
@@ -806,7 +805,7 @@ export default function BolusCalculator({
               </div>
               <div className="flex-1 bg-white dark:bg-slate-900 p-2 rounded-xl text-center border border-slate-100 dark:border-slate-800">
                 <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">
-                  % Węgle
+                  {t('bolus.meal_carbs_pct')}
                 </p>
                 <p className="text-xs font-black text-blue-500">
                   {algoMeal.carbsPct}%
@@ -814,7 +813,7 @@ export default function BolusCalculator({
               </div>
               <div className="flex-1 bg-white dark:bg-slate-900 p-2 rounded-xl text-center border border-slate-100 dark:border-slate-800">
                 <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">
-                  % Białko
+                  {t('bolus.meal_protein_pct')}
                 </p>
                 <p className="text-xs font-black text-rose-500">
                   {algoMeal.proteinPct}%
@@ -822,7 +821,7 @@ export default function BolusCalculator({
               </div>
               <div className="flex-1 bg-white dark:bg-slate-900 p-2 rounded-xl text-center border border-slate-100 dark:border-slate-800">
                 <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">
-                  % Tłuszcz
+                  {t('bolus.meal_fat_pct')}
                 </p>
                 <p className="text-xs font-black text-amber-500">
                   {algoMeal.fatPct}%
@@ -832,7 +831,7 @@ export default function BolusCalculator({
 
             <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 border-t border-emerald-100 dark:border-emerald-800/30 pt-3">
               <span className="opacity-70">
-                Szacowany Indeks Glikemiczny (IG):
+                {t('bolus.meal_ig_label')}
               </span>{" "}
               <span className="bg-emerald-200 dark:bg-emerald-800 px-2 py-0.5 rounded text-[10px]">
                 {algoMeal.ig}
@@ -840,7 +839,7 @@ export default function BolusCalculator({
             </p>
             <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
               <span className="opacity-70">
-                Przybliżony Ładunek Glikemiczny (ŁG):
+                {t('bolus.meal_gl_label')}
               </span>{" "}
               <span
                 className={cn(
@@ -873,7 +872,7 @@ export default function BolusCalculator({
             htmlFor="pizzaMode"
             className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer"
           >
-            Pizza Bolus (Białko i Tłuszcz)
+            {t('bolus.pizza_bolus')}
           </label>
         </div>
 
@@ -885,7 +884,7 @@ export default function BolusCalculator({
           >
             <div className="space-y-2">
               <label className="text-[10px] font-black text-rose-400 uppercase block text-center">
-                Białko (g)
+                {t('bolus.protein_g')}
               </label>
               <input
                 type="number"
@@ -906,7 +905,7 @@ export default function BolusCalculator({
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-amber-400 uppercase block text-center">
-                Tłuszcz (g)
+                {t('bolus.fat_g')}
               </label>
               <input
                 type="number"
@@ -948,7 +947,7 @@ export default function BolusCalculator({
               htmlFor="alcoholMode"
               className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer flex items-center gap-1"
             >
-              Kalkulator Alkoholu 🍹
+              {t('bolus.alcohol_mode')}
             </label>
           </div>
         )}
@@ -966,7 +965,7 @@ export default function BolusCalculator({
                   setCarbs("15");
                   setAlcoholReduction(0.7); // 30% reduction
                   setAlcoholWarning(
-                    "Piwo początkowo podbija cukier (ok. 15g węgli/500ml), ale alkohol po czasie spowoduje spadek. Dawka zredukowana zapobiegawczo o 30%. Uważaj na noc!",
+                    t('bolus.alc_warn_beer'),
                   );
                 }}
                 className={cn(
@@ -976,7 +975,7 @@ export default function BolusCalculator({
                     : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700",
                 )}
               >
-                🍺 Piwo
+                🍺 {t('bolus.alc_beer')}
               </button>
 
               <button
@@ -985,7 +984,7 @@ export default function BolusCalculator({
                   setCarbs("2");
                   setAlcoholReduction(0.5); // 50% reduction
                   setAlcoholWarning(
-                    "Wino wytrawne prawie nie ma węglowodanów (ok. 2g), ale alkohol będzie powoli blokował wątrobę. Dawka znacznie zredukowana.",
+                    t('bolus.alc_warn_wine'),
                   );
                 }}
                 className={cn(
@@ -995,7 +994,7 @@ export default function BolusCalculator({
                     : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700",
                 )}
               >
-                🍷 Wino (Wytrawne)
+                🍷 {t('bolus.alc_wine')}
               </button>
 
               <button
@@ -1004,7 +1003,7 @@ export default function BolusCalculator({
                   setCarbs("0");
                   setAlcoholReduction(0.0); // 100% reduction for purely vodka
                   setAlcoholWarning(
-                    "Czysty alkohol silnie blokuje wyrzut glukozy z wątroby. BARDZO DUŻE RYZYKO ciężkiego niedocukrzenia w nocy! Najlepiej zjedz coś bez obstawy insuliny.",
+                    t('bolus.alc_warn_vodka'),
                   );
                 }}
                 className={cn(
@@ -1014,7 +1013,7 @@ export default function BolusCalculator({
                     : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700",
                 )}
               >
-                🥃 Czysta
+                🥃 {t('bolus.alc_vodka')}
               </button>
 
               <button
@@ -1023,7 +1022,7 @@ export default function BolusCalculator({
                   setCarbs("25");
                   setAlcoholReduction(0.7);
                   setAlcoholWarning(
-                    "Soki i syropy w drinku szybko podbiją cukier, a alkohol później go obniży. Zredukowano dawkę o 30%. Uważaj na nocne spadki.",
+                    t('bolus.alc_warn_drink'),
                   );
                 }}
                 className={cn(
@@ -1033,7 +1032,7 @@ export default function BolusCalculator({
                     : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700",
                 )}
               >
-                🍹 Słodki Drink
+                🍹 {t('bolus.alc_drink')}
               </button>
             </div>
 
@@ -1050,7 +1049,7 @@ export default function BolusCalculator({
 
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase block text-center">
-            Trend
+            {t('bolus.trend')}
           </label>
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-3xl gap-1">
             <button
@@ -1081,7 +1080,7 @@ export default function BolusCalculator({
             className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-700"
           >
             <h3 className="text-[10px] font-black uppercase text-slate-500 mb-4 text-center tracking-widest flex items-center justify-center gap-2">
-              <BarChart2 size={14} className="text-accent-500" /> Analiza Dawki
+              <BarChart2 size={14} className="text-accent-500" /> {t('bolus.dose_analysis')}
             </h3>
             <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -1114,7 +1113,7 @@ export default function BolusCalculator({
                     }}
                     formatter={(value: number) => [
                       `${value.toFixed(1)} j.`,
-                      "Dawka",
+                      t('bolus.chart_dose'),
                     ]}
                   />
                   <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={20}>
@@ -1145,8 +1144,8 @@ export default function BolusCalculator({
                   onClick={() => {
                     const minutes = advice.text.includes("30 min") ? 30 : 15;
                     notificationService.scheduleLocalNotification(
-                      "Czas na posiłek! 🍽️",
-                      `Minęło ${minutes} minut od bolusa. Twoja glikemia powinna już zacząć spadać.`,
+                      t('bolus.reminder_title'),
+                      t('bolus.reminder_body', { minutes }),
                       minutes,
                     );
                     setReminderActive(true);
@@ -1165,16 +1164,15 @@ export default function BolusCalculator({
                     className={reminderActive ? "" : "animate-bounce"}
                   />
                   {reminderActive
-                    ? "Przypomnienie ustawione!"
-                    : `Przypomnij mi za ${advice.text.includes("30 min") ? "30" : "15"} min`}
+                    ? t('bolus.reminder_set')
+                    : t('bolus.remind_me', { minutes: advice.text.includes("30 min") ? "30" : "15" })}
                 </button>
               )}
             </div>
           )}
           <div>
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center justify-center gap-2">
-              <Edit3 size={10} className="text-accent-400" /> Wprowadź Lub
-              Skoryguj Dawkę
+              <Edit3 size={10} className="text-accent-400" /> {t('bolus.dose_label')}
             </span>
             <div className="flex items-center justify-center gap-2 mt-2 mb-2">
               <input
@@ -1194,7 +1192,7 @@ export default function BolusCalculator({
                 }}
                 className="w-32 bg-accent-500/20 text-center text-5xl font-black text-accent-400 outline-none rounded-2xl py-2 focus:bg-accent-500/30 transition-all border border-accent-500/30"
               />
-              <span className="text-xl font-bold opacity-30">j.</span>
+              <span className="text-xl font-bold opacity-30">{t('auto.j', { defaultValue: 'j.' })}</span>
             </div>
 
             {/* Stacking Warning (IOB & COB) */}
@@ -1215,25 +1213,25 @@ export default function BolusCalculator({
                     )}
                   />
                   <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center">
-                    Status Aktywnych Składników
+                    {t('bolus.active_ingredients')}
                   </span>
                 </div>
                 <div className="flex gap-4">
                   {getEffectiveIOB(logs, pumpStatus, settings.dia || 4) >
                     0.1 && (
                     <span className="text-[9px] font-bold text-rose-400">
-                      Insulina (IOB):{" "}
+                      {t('bolus.insulin_iob')}:{" "}
                       {getEffectiveIOB(
                         logs,
                         pumpStatus,
                         settings.dia || 4,
                       ).toFixed(2)}
-                      j
+                      {t('bolus.unit')}
                     </span>
                   )}
                   {calculateCOB(logs) > 0 && (
                     <span className="text-[9px] font-bold text-blue-400">
-                      Węgle (COB): {calculateCOB(logs).toFixed(0)}g
+                      {t('bolus.carbs_cob')}: {calculateCOB(logs).toFixed(0)}g
                     </span>
                   )}
                 </div>
@@ -1242,11 +1240,11 @@ export default function BolusCalculator({
 
             {isPizzaMode && extendedTime > 0 && (
               <div className="mt-2 text-[10px] font-bold text-slate-400">
-                W tym przedłużone:{" "}
+                {t('bolus.extended_note')}{" "}
                 <span className="text-accent-400">
-                  rozłóż na {extendedTime}h
+                  {t('bolus.extended_spread', { hours: extendedTime })}
                 </span>{" "}
-                (dawka WBT)
+                {t('bolus.wbt_dose')}
               </div>
             )}
           </div>
@@ -1260,7 +1258,7 @@ export default function BolusCalculator({
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 rounded-full bg-accent-500 animate-pulse" />
                 <span className="text-[9px] font-black uppercase tracking-widest text-accent-400">
-                  Korekta AI
+                  {t('bolus.ai_correction')}
                 </span>
               </div>
               <p className="text-[11px] text-accent-100/80 leading-relaxed">
@@ -1277,7 +1275,7 @@ export default function BolusCalculator({
             {loadingAi ? (
               <Loader2 size={14} className="animate-spin" />
             ) : (
-              "🤖 Poproś AI o korektę dawki na bazie historii"
+              t('bolus.ask_ai')
             )}
           </button>
         </div>
@@ -1288,7 +1286,7 @@ export default function BolusCalculator({
           className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {saving && <Loader2 size={18} className="animate-spin" />}
-          {saving ? "Zapisywanie..." : "Podaj Insulinę"}
+          {saving ? t('bolus.saving') : t('bolus.save_btn')}
         </button>
       </div>
 
@@ -1301,13 +1299,12 @@ export default function BolusCalculator({
         </div>
         <div className="space-y-1">
           <p className="text-[10px] font-bold text-accent-900 dark:text-accent-200 leading-relaxed">
-            Kalkulacja uwzględnia <b>Profil Działania Insuliny (IOB)</b>,{" "}
-            <b>Aktywne Węglowodany (COB)</b>, współczynniki personalne oraz
-            trend. Możesz użyć kamery do skanowania posiłków.
+            {t('bolus.info_prefix')} <b>{t('bolus.info_iob')}</b>,{" "}
+            <b>{t('bolus.info_cob')}</b>{t('bolus.info_suffix')}
           </p>
           {activeProfileTime && (
             <p className="text-[9px] font-black text-accent-500 uppercase tracking-widest mt-2 block">
-              Aktywny profil godzinowy: od {activeProfileTime}
+              {t('bolus.active_hourly_profile', { time: activeProfileTime })}
             </p>
           )}
         </div>

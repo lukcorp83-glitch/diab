@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Radio, Droplet, Clock, ChevronRight, Utensils } from 'lucide-react';
 import { LogEntry } from '../types';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 interface GlikoWidgetProps {
   logs: LogEntry[];
@@ -17,6 +18,7 @@ interface GlikoWidgetProps {
 }
 
 export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir, hba1c, glassmorphismEnabled, compact }: GlikoWidgetProps) {
+    const { t } = useTranslation();
   const lastGlucose = logs.find(l => l.type === 'glucose');
   const lastBolus = logs.find(l => l.type === 'bolus');
   const lastMeal = logs.find(l => l.type === 'meal');
@@ -61,7 +63,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
         />
 
         <div className="flex justify-between items-center relative z-10 mb-1">
-          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Glikemia</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">{t('auto.glikemia', { defaultValue: 'Glikemia' })}</span>
           <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
             {lastGlucose ? getTimeAgo(lastGlucose.timestamp) : '--'}
           </span>
@@ -78,7 +80,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
               {lastGlucose?.value || '--'}
             </motion.span>
             <div className="flex flex-col items-start">
-              <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">mg/dL</span>
+              <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
               {trend && (
                 <div className={cn("scale-90 origin-left mt-0.5", trend.color)}>
                   {trend.icon}
@@ -99,8 +101,8 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
         </div>
 
         <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 relative z-10 flex items-center justify-between text-[9px] font-bold text-slate-500 dark:text-slate-400">
-          <span>IOB: <span className="font-black text-accent-500">{iob.toFixed(1)}j</span></span>
-          <span>HbA1c: <span className="font-black text-accent-500">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span></span>
+          <span>{t('auto.iob', { defaultValue: 'IOB:' })} <span className="font-black text-accent-500">{iob.toFixed(1)}j</span></span>
+          <span>{t('auto.hba1c', { defaultValue: 'HbA1c:' })} <span className="font-black text-accent-500">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span></span>
         </div>
       </motion.div>
     );
@@ -146,11 +148,11 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
           >
             <Radio size={16} className="text-emerald-500" />
           </motion.div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Stan Glikemii</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">{t('auto.stan_glikemii', { defaultValue: 'Stan Glikemii' })}</span>
         </div>
         
         <div className="bg-slate-100/50 dark:bg-white/5 px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-md border border-slate-200/50 dark:border-white/5">
-          <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">EST. HbA1c</span>
+          <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('auto.est_hba1c', { defaultValue: 'EST. HbA1c' })}</span>
           <span className="text-[10px] font-black text-accent-600 dark:text-accent-400">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span>
         </div>
       </div>
@@ -158,7 +160,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
       <div className="grid grid-cols-1 gap-8 relative z-10">
         <div className="flex items-end justify-between border-b border-slate-200/50 dark:border-white/5 pb-6">
           <div>
-            <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block mb-1">Ostatni Pomiar</span>
+            <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block mb-1">{t('auto.ostatni_pomiar', { defaultValue: 'Ostatni Pomiar' })}</span>
             <div className="flex items-baseline gap-2">
               <motion.span 
                 key={`val-${lastGlucose?.timestamp || 'none'}`}
@@ -170,7 +172,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
                 {lastGlucose?.value || '--'}
               </motion.span>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">mg/dL</span>
+                <span className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
                 {trend && (
                   <motion.div 
                     initial={{ y: 5, opacity: 0 }}
@@ -192,7 +194,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
           </div>
           <div className="text-right">
             <div className="flex items-baseline justify-end gap-1.5 mb-2">
-               <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block">Insulina Aktywna</span>
+               <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block">{t('auto.insulina_aktywna', { defaultValue: 'Insulina Aktywna' })}</span>
                <span className="text-xl font-black text-accent-600 dark:text-accent-400 tracking-tight">{iob.toFixed(2)}<span className="text-[10px] ml-0.5 opacity-50">j</span></span>
             </div>
             
@@ -218,15 +220,15 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Droplet size={12} className="text-accent-500" />
-                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Dziś Jednostek</span>
+                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_jednostek', { defaultValue: 'Dziś Jednostek' })}</span>
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-slate-800 dark:text-white">{todayStats.insulin.toFixed(1)}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">j.</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{t('auto.j', { defaultValue: 'j.' })}</span>
               </div>
             </div>
             <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-white/5">
-               <span className="text-[8px] font-bold text-slate-400 block">Ostatnia: {lastBolus ? getTimeAgo(lastBolus.timestamp) : '--'}</span>
+               <span className="text-[8px] font-bold text-slate-400 block">{t('auto.ostatnia', { defaultValue: 'Ostatnia:' })} {lastBolus ? getTimeAgo(lastBolus.timestamp) : '--'}</span>
             </div>
           </motion.div>
 
@@ -234,7 +236,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Utensils size={12} className="text-amber-500" />
-                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Dziś Węglowodany</span>
+                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_węglowodany', { defaultValue: 'Dziś Węglowodany' })}</span>
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-slate-800 dark:text-white">{todayStats.carbs}</span>
@@ -242,7 +244,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
               </div>
             </div>
             <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-white/5">
-               <span className="text-[8px] font-bold text-slate-400 block">Ostatni: {lastMeal ? getTimeAgo(lastMeal.timestamp) : '--'}</span>
+               <span className="text-[8px] font-bold text-slate-400 block">{t('auto.ostatni', { defaultValue: 'Ostatni:' })} {lastMeal ? getTimeAgo(lastMeal.timestamp) : '--'}</span>
             </div>
           </motion.div>
         </div>
@@ -250,7 +252,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
         {/* TIR Bar Integrated */}
         <div className="pt-4 border-t border-slate-200/50 dark:border-white/5">
           <div className="flex justify-between items-center mb-2">
-            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">W Zakresie (TIR)</p>
+            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('auto.w_zakresie_tir', { defaultValue: 'W Zakresie (TIR)' })}</p>
             <motion.span 
               key={tir.inRange}
               initial={{ scale: 1.5, opacity: 0 }}

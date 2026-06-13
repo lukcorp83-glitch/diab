@@ -26,6 +26,8 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function SettingsSync({
   user,
@@ -36,6 +38,7 @@ export default function SettingsSync({
   settings: UserSettings;
   onImport: (s: UserSettings) => void;
 }) {
+    const { t } = useTranslation();
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -126,7 +129,7 @@ export default function SettingsSync({
   const handleUnlink = () => {
     if (
       confirm(
-        "Czy na pewno chcesz odłączyć swoje urządzenie i powrócić do swojego pustego profilu?",
+        i18n.t('auto.czy_na_pewno_chcesz_odlaczyc_s', { defaultValue: "Czy na pewno chcesz odłączyć swoje urządzenie i powrócić do swojego pustego profilu?" }),
       )
     ) {
       localStorage.removeItem("diacontrol_linked_uid");
@@ -139,7 +142,7 @@ export default function SettingsSync({
     const blockUntil = Number(localStorage.getItem("pairing_block_until") || 0);
 
     if (now < blockUntil) {
-      toast(`Przekroczono limit prób. Spróbuj ponownie za chwilę.`);
+      toast(i18n.t('auto.przekroczono_limit_prob_sprobu', { defaultValue: "Przekroczono limit prób. Spróbuj ponownie za chwilę." }));
       return;
     }
 
@@ -152,7 +155,7 @@ export default function SettingsSync({
         if (age > 5 * 60 * 1000) {
           // 5 minutes
           alert(
-            "Ten kod parowania wygasł. Wygeneruj nowy kod na drugim urządzeniu.",
+            i18n.t('auto.ten_kod_parowania_wygasl_wygen', { defaultValue: "Ten kod parowania wygasł. Wygeneruj nowy kod na drugim urządzeniu." }),
           );
           return;
         }
@@ -160,7 +163,7 @@ export default function SettingsSync({
 
       if (parsed.action === "pair" && parsed.uid) {
         if (parsed.uid === getEffectiveUid(user)) {
-          alert("Nie możesz sparować konta ze sobą samym.");
+          alert(i18n.t('auto.nie_mozesz_sparowac_konta_ze_s', { defaultValue: "Nie możesz sparować konta ze sobą samym." }));
           return;
         }
 
@@ -191,14 +194,14 @@ export default function SettingsSync({
         localStorage.removeItem("pairing_failed_attempts");
         localStorage.removeItem("pairing_block_until");
         localStorage.setItem("diacontrol_linked_uid", parsed.uid);
-        alert("Połączono pomyślnie! Aplikacja zostanie przeładowana.");
+        alert(i18n.t('auto.polaczono_pomyslnie_aplikacja', { defaultValue: "Połączono pomyślnie! Aplikacja zostanie przeładowana." }));
         window.location.reload();
       } else if (parsed && typeof parsed === "object") {
         // legacy settings import
         onImport(parsed);
         setShowImport(false);
         setImportText("");
-        alert("Zaimportowano ustawienia pomyślnie!");
+        alert(i18n.t('auto.zaimportowano_ustawienia_pomys', { defaultValue: "Zaimportowano ustawienia pomyślnie!" }));
       } else {
         throw new Error("Invalid format");
       }
@@ -216,7 +219,7 @@ export default function SettingsSync({
         setIsBlocked(true);
         setTimeout(() => setIsBlocked(false), lockoutTime);
         alert(
-          "Zbyt wiele nieudanych prób. Możliwość parowania zablokowana na 5 minut.",
+          i18n.t('auto.zbyt_wiele_nieudanych_prob_moz', { defaultValue: "Zbyt wiele nieudanych prób. Możliwość parowania zablokowana na 5 minut." }),
         );
       } else {
         alert(`Nieprawidłowy kod. Pozostało prób: ${5 - newCount}`);
@@ -230,48 +233,49 @@ export default function SettingsSync({
         <div className="flex items-center gap-3">
           <Users className="text-accent-500" size={20} />
           <span className="text-xs font-bold dark:text-white">
-            Rodzina / Parowanie
-          </span>
+            
+                                  {t('auto.rodzina_parowanie', { defaultValue: 'Rodzina / Parowanie' })}
+                                </span>
         </div>
         <div className="flex items-center gap-2">
           {groupCount > 1 && (
             <span className="text-[10px] bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold px-2 py-1 rounded-full flex items-center gap-1">
-              👥 {groupCount} osoby
-            </span>
+              👥 {groupCount}  {t('auto.osoby', { defaultValue: 'osoby' })}
+                                      </span>
           )}
           {linkedUid && (
             <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-1 rounded-full flex items-center gap-1">
-              <LinkIcon size={10} /> Sparowano
-            </span>
+              <LinkIcon size={10} />  {t('auto.sparowano', { defaultValue: 'Sparowano' })}
+                                      </span>
           )}
         </div>
       </div>
       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-2">
-        Spraw, aby drugi rodzic lub bliska osoba widziała i dodawała dokładnie
-        te same dane (Posiłki, Insulina, Cukry dziecka).
-      </p>
+        
+                      {t('auto.spraw_aby_drugi_rodzic_lub_bliska_o', { defaultValue: 'Spraw, aby drugi rodzic lub bliska osoba widziała i dodawała dokładnie te same dane (Posiłki, Insulina, Cukry dziecka).' })}
+                    </p>
 
       {linkedUid ? (
         <button
           onClick={handleUnlink}
           className="w-full bg-rose-50 dark:bg-rose-500/10 text-rose-500 border border-rose-100 dark:border-rose-900 rounded-2xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all mt-2"
         >
-          <Unlink size={14} /> Odłącz Konto
-        </button>
+          <Unlink size={14} />  {t('auto.odłącz_konto', { defaultValue: 'Odłącz Konto' })}
+                          </button>
       ) : (
         <div className="flex gap-2">
           <button
             onClick={() => setShowExport(true)}
             className="flex-1 bg-accent-500 text-white rounded-2xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
           >
-            <Share2 size={14} /> Pokaż QR
-          </button>
+            <Share2 size={14} />  {t('auto.pokaż_qr', { defaultValue: 'Pokaż QR' })}
+                                    </button>
           <button
             onClick={() => setShowImport(true)}
             className="flex-1 bg-white dark:bg-slate-900 text-accent-500 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
           >
-            <Download size={14} /> Zeskanuj QR
-          </button>
+            <Download size={14} />  {t('auto.zeskanuj_qr', { defaultValue: 'Zeskanuj QR' })}
+                                    </button>
         </div>
       )}
 
@@ -284,11 +288,13 @@ export default function SettingsSync({
               </div>
               <div className="text-left">
                 <h4 className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">
-                  Blokada terapii (Dziecko)
-                </h4>
+                  
+                                                    {t('auto.blokada_terapii_dziecko', { defaultValue: 'Blokada terapii (Dziecko)' })}
+                                                  </h4>
                 <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold leading-tight">
-                  Połączone urządzenia nie będą mogły edytować ustawień terapii.
-                </p>
+                  
+                                                    {t('auto.połączone_urządzenia_nie_będą_mogły', { defaultValue: 'Połączone urządzenia nie będą mogły edytować ustawień terapii.' })}
+                                                  </p>
               </div>
             </div>
             <button
@@ -333,12 +339,13 @@ export default function SettingsSync({
                   <X size={20} />
                 </button>
                 <h3 className="text-xl font-black dark:text-white mb-2 self-start">
-                  Sparuj Konto
-                </h3>
+                  
+                                                {t('auto.sparuj_konto', { defaultValue: 'Sparuj Konto' })}
+                                              </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 self-start">
-                  Zeskanuj ten kod na drugim telefonie używając opcji "Zeskanuj
-                  QR".
-                </p>
+                  
+                                                {t('auto.zeskanuj_ten_kod_na_drugim_telefoni', { defaultValue: 'Zeskanuj ten kod na drugim telefonie używając opcji \"Zeskanuj QR\".' })}
+                                              </p>
                 <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 mb-6 w-full flex justify-center items-center aspect-square">
                   <QRCode
                     value={qrPayload}
@@ -346,8 +353,9 @@ export default function SettingsSync({
                   />
                 </div>
                 <p className="text-[10px] text-rose-500 font-bold mb-4 animate-pulse">
-                  Kod wygaśnie za 5 minut
-                </p>
+                  
+                                                {t('auto.kod_wygaśnie_za_5_minut', { defaultValue: 'Kod wygaśnie za 5 minut' })}
+                                              </p>
                 <button
                   onClick={handleCopy}
                   className="w-full flex items-center justify-center gap-2 py-4 bg-accent-600 text-white rounded-[2rem] font-black text-[12px] uppercase active:scale-95 transition-all shadow-xl"
@@ -390,11 +398,13 @@ export default function SettingsSync({
                   <X size={20} />
                 </button>
                 <h3 className="text-xl font-black dark:text-white mb-2 self-start">
-                  Skaner Parowania
-                </h3>
+                  
+                                                {t('auto.skaner_parowania', { defaultValue: 'Skaner Parowania' })}
+                                              </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 self-start">
-                  Nakieruj obiektyw na kod QR na pierwszym telefonie.
-                </p>
+                  
+                                                {t('auto.nakieruj_obiektyw_na_kod_qr_na_pier', { defaultValue: 'Nakieruj obiektyw na kod QR na pierwszym telefonie.' })}
+                                              </p>
 
                 <div className="w-full rounded-[2rem] overflow-hidden border-2 border-accent-500/30 mb-6 bg-black relative aspect-square shadow-inner">
                   <QrScanner
@@ -407,11 +417,12 @@ export default function SettingsSync({
 
                 <div className="w-full">
                   <p className="text-[10px] font-black uppercase text-slate-400 mb-3 pl-2">
-                    Albo wklej skopiowany kod tekstowy:
-                  </p>
+                    
+                                                      {t('auto.albo_wklej_skopiowany_kod_tekstowy', { defaultValue: 'Albo wklej skopiowany kod tekstowy:' })}
+                                                    </p>
                   <textarea
                     className="w-full h-24 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 flex text-xs outline-none rounded-[2rem] dark:text-white focus:border-accent-500 transition-colors"
-                    placeholder="Wklej kod parowania..."
+                    placeholder={t('auto.wklej_kod_parowania', { defaultValue: 'Wklej kod parowania...' })}
                     value={importText}
                     onChange={(e) => setImportText(e.target.value)}
                   />
@@ -420,7 +431,7 @@ export default function SettingsSync({
                     disabled={isBlocked}
                     className={`w-full mt-4 flex items-center justify-center gap-2 rounded-[2rem] py-4 font-black text-[12px] uppercase tracking-widest transition-all shadow-xl ${isBlocked ? "bg-slate-300 text-slate-500 dark:text-slate-400 cursor-not-allowed" : "bg-accent-600 text-white hover:bg-accent-700 active:scale-95"}`}
                   >
-                    {isBlocked ? "Blokada czasowa..." : "Połącz Konta"}
+                    {isBlocked ? "Blokada czasowa..." : i18n.t('auto.polacz_konta', { defaultValue: "Połącz Konta" })}
                   </button>
                 </div>
               </motion.div>
@@ -434,6 +445,7 @@ export default function SettingsSync({
 }
 
 function QrScanner({ onResult }: { onResult: (res: string) => void }) {
+    const { t } = useTranslation();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameras, setCameras] = useState<any[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>("");
@@ -451,7 +463,7 @@ function QrScanner({ onResult }: { onResult: (res: string) => void }) {
           const backCamera = devices.find(
             (d) =>
               d.label.toLowerCase().includes("back") ||
-              d.label.toLowerCase().includes("tył"),
+              d.label.toLowerCase().includes(i18n.t('auto.tyl', { defaultValue: "tył" })),
           );
           setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
           setHasPermission(true);
@@ -521,11 +533,13 @@ function QrScanner({ onResult }: { onResult: (res: string) => void }) {
       <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
         <X className="text-rose-500 mb-2" size={32} />
         <p className="text-[10px] font-bold text-white uppercase tracking-widest">
-          Brak dostępu do aparatu
-        </p>
+          
+                          {t('auto.brak_dostępu_do_aparatu', { defaultValue: 'Brak dostępu do aparatu' })}
+                        </p>
         <p className="text-[10px] text-slate-400 mt-2">
-          Sprawdź uprawnienia w ustawieniach przeglądarki.
-        </p>
+          
+                          {t('auto.sprawdź_uprawnienia_w_ustawieniach_', { defaultValue: 'Sprawdź uprawnienia w ustawieniach przeglądarki.' })}
+                        </p>
       </div>
     );
   }
@@ -564,8 +578,9 @@ function QrScanner({ onResult }: { onResult: (res: string) => void }) {
       {hasPermission === null && (
         <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
           <p className="text-[10px] font-black text-white uppercase tracking-widest animate-pulse">
-            Inicjalizacja aparatu...
-          </p>
+            
+                                  {t('auto.inicjalizacja_aparatu', { defaultValue: 'Inicjalizacja aparatu...' })}
+                                </p>
         </div>
       )}
     </div>

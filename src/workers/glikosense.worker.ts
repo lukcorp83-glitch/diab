@@ -22,8 +22,8 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[], rules: any) 
     const classifyMealGlycemia = (meal: any) => {
         const text = ((meal.description || meal.notes || meal.note || meal.nameValue || "") + " " + (meal.linkedMeal?.name || "")).toLowerCase();
         let isFastCarb = 0, isSlowCarb = 0;
-        const fastKeywords = ["sok", "cukier", "glukoza", "glucose", "żel", "dextro", "miód", "honey", "cola", "słodkie", "słodki", "żelki", "banan", "dżem", "sprite", "fanta", "oranżada", "herbata z cukrem", "cukierki", "czekolada", "owoce", "juice"];
-        const slowKeywords = ["pizza", "kebab", "burger", "ser", "cheese", "orzechy", "mięso", "meat", "pasta", "spaghetti", "makaron", "boczek", "frytki", "masło", "tłuszcz", "białko", "karkówka", "kiełbasa", "nuts", "chocolate"];
+        const fastKeywords = ["sok", "cukier", "glukoza", "glucose", `żel`, "dextro", `miód`, "honey", "cola", `słodkie`, `słodki`, `żelki`, "banan", `dżem`, "sprite", "fanta", `oranżada`, "herbata z cukrem", "cukierki", "czekolada", "owoce", "juice"];
+        const slowKeywords = ["pizza", "kebab", "burger", "ser", "cheese", "orzechy", `mięso`, "meat", "pasta", "spaghetti", "makaron", "boczek", "frytki", `masło`, `tłuszcz`, `białko`, `karkówka`, `kiełbasa`, "nuts", "chocolate"];
         if (fastKeywords.some(kw => text.includes(kw))) isFastCarb = 1;
         if (slowKeywords.some(kw => text.includes(kw))) isSlowCarb = 1;
         const protein = meal.protein || meal.linkedMeal?.protein || 0;
@@ -160,7 +160,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
   try {
     if (!logs || logs.length < 3) {
-      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: ["Zbyt mało danych dla GlikoSense."], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
+      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [`Zbyt mało danych dla GlikoSense.`], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
       return;
     }
 
@@ -174,6 +174,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const cutoffTime = now - lookbackMs;
     
     let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
+    if (logsToAnalyze.filter(l => l.type === 'glucose').length < 5) {
+      logsToAnalyze = logs.filter(l => l.type === 'glucose').slice(-20);
+    }
     if (mode === 'full' && logsToAnalyze.length > 1500) logsToAnalyze = logsToAnalyze.slice(0, 1500);
     if (logsToAnalyze.length < 5) logsToAnalyze = logs.slice(0, 20);
 
@@ -185,8 +188,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
     const timeBlocks = {
       morning: { label: 'Poranek', starts: 6, ends: 11, sensitivity: 0, count: 0, drops: [] as number[] },
-      afternoon: { label: 'Popołudnie', starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
-      evening: { label: 'Wieczór', starts: 17, ends: 23, sensitivity: 0, count: 0, drops: [] as number[] },
+      afternoon: { label: `Popołudnie`, starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
+      evening: { label: `Wieczór`, starts: 17, ends: 23, sensitivity: 0, count: 0, drops: [] as number[] },
       night: { label: 'Noc', starts: 23, ends: 6, sensitivity: 0, count: 0, drops: [] as number[] }
     };
 
@@ -235,8 +238,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     allMeals.slice(0, 100).forEach(m => {
       const mealTime = m.timestamp || new Date(m.createdAt).getTime();
-      const mealName = m.note || m.name || m.description || "Posiłek";
-      if (!mealName || mealName.length < 3 || mealName === "Posiłek") return;
+      const mealName = m.note || m.name || m.description || `Posiłek`;
+      if (!mealName || mealName.length < 3 || mealName === `Posiłek`) return;
       const postMealBg = allGlucose.filter(g => {
         const gt = g.timestamp || new Date(g.createdAt).getTime();
         return gt > mealTime + 45*60*1000 && gt < mealTime + 180*60*1000;
@@ -254,7 +257,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     if (mode === 'full') {
       const daysStats: { [day: string]: { sum: number, count: number } } = { "Niedziela": { sum: 0, count: 0 }, "Poniedziałek": { sum: 0, count: 0 }, "Wtorek": { sum: 0, count: 0 }, "Środa": { sum: 0, count: 0 }, "Czwartek": { sum: 0, count: 0 }, "Piątek": { sum: 0, count: 0 }, "Sobota": { sum: 0, count: 0 } };
-      const dayNames = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
+      const dayNames = ["Niedziela", `Poniedziałek`, "Wtorek", `Środa`, "Czwartek", `Piątek`, "Sobota"];
       allGlucose.forEach(g => {
         const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
         const dayName = dayNames[d.getDay()];
@@ -273,7 +276,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     if (glucoseLogsOrig.length < 5) {
-      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [...insights, "Czekam na więcej odczytów glikemii..."], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
+      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [...insights, `Czekam na więcej odczytów glikemii...`], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
       return;
     }
     
@@ -302,7 +305,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
     
     if (resampledGlucose.length === 0) {
-      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: ["Zbyt mało poprawnych danych glikemii po przetworzeniu."], accuracy: 0 } });
+      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [`Zbyt mało poprawnych danych glikemii po przetworzeniu.`], accuracy: 0 } });
       return;
     }
 
@@ -419,9 +422,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
     } catch(e) {
         model = tf.sequential();
-        model.add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
-        model.add(tf.layers.dense({ units: 24, activation: 'relu' })); 
-        model.add(tf.layers.dense({ units: 8, activation: 'linear' }));
+        (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
+        (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
+        (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
         model.compile({ optimizer: tf.train.adam(0.005), loss: 'meanSquaredError' });
         _cachedModel = model;
 
@@ -438,7 +441,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const trainingDataset = dataset.slice(-250);
     let shouldTrain = force || !isModelLoaded || (mode === 'full' && (Date.now() - lastTrainTime > 2 * 60 * 60 * 1000));
 
-    if (shouldTrain) {
+    if (shouldTrain && trainingDataset.length > 0) {
         const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, 6, 15]);
         const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
         await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 2 : 5) : (isModelLoaded ? 5 : 15), shuffle: true, verbose: 0 });
@@ -449,6 +452,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     let avgErrorInMgDl = 50;
     tf.tidy(() => {
+      if (trainingDataset.length === 0) return;
       const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, 6, 15]);
       const preds = model.predict(evalInputs) as tf.Tensor;
       const predsArray = preds.dataSync();
@@ -696,13 +700,13 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     if (riskOfHypo) {
-        const hypoPhrases = ["⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały.", "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku.", "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!"];
+        const hypoPhrases = [`⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały.`, `⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku.`, `⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!`];
         insights.push(hypoPhrases[Math.floor(Math.random() * hypoPhrases.length)]);
     } else if (predictedNextHour > 180) {
-        const hyperPhrases = ["📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem.", "📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę.", "📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Spodziewaj się lotu powyżej linii."]
+        const hyperPhrases = [`📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem.`, `📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę.`, `📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Spodziewaj się lotu powyżej linii.`]
         insights.push(hyperPhrases[Math.floor(Math.random() * hyperPhrases.length)]);
     } else {
-        const normalPhrases = ["✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!", "✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!", "✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!"];
+        const normalPhrases = [`✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!`, `✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!`, `✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!`];
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
 

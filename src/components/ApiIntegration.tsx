@@ -5,6 +5,8 @@ import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { Network, Copy, RefreshCw, CheckCircle2, BellRing } from 'lucide-react';
 import { getEffectiveUid } from '../lib/utils';
 import { NotificationBridge } from '../lib/notificationBridge';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 async function sha1(str: string): Promise<string> {
   const buffer = new TextEncoder().encode(str);
@@ -23,6 +25,7 @@ function generateRandomSecret() {
 }
 
 export default function ApiIntegration({ user }: { user: any }) {
+    const { t } = useTranslation();
   const [localSecret, setLocalSecret] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -52,6 +55,7 @@ export default function ApiIntegration({ user }: { user: any }) {
     let listener: any = null;
     const setupListener = async () => {
       try {
+        // @ts-ignore
         listener = await NotificationBridge.addListener('notificationDebug', (data: any) => {
           setDebugLogs(prev => {
             const newLog = {
@@ -85,9 +89,9 @@ export default function ApiIntegration({ user }: { user: any }) {
   const requestNotificationPermission = async () => {
     try {
       await NotificationBridge.requestPermission();
-      toast.success("Otwarto ustawienia. Zezwól aplikacji GlikoControl na odczyt powiadomień.");
+      toast.success(i18n.t('auto.otwarto_ustawienia_zezwol_apli', { defaultValue: "Otwarto ustawienia. Zezwól aplikacji GlikoControl na odczyt powiadomień." }));
     } catch (e) {
-      toast.error("Nie udało się otworzyć ustawień. Funkcja działa tylko w aplikacji Android.");
+      toast.error(i18n.t('auto.nie_udalo_sie_otworzyc_ustawie', { defaultValue: "Nie udało się otworzyć ustawień. Funkcja działa tylko w aplikacji Android." }));
     }
   };
 
@@ -172,20 +176,20 @@ export default function ApiIntegration({ user }: { user: any }) {
         <div className="flex items-center gap-3 mb-2">
           <Network className="text-indigo-500" size={24} />
           <div>
-            <h3 className="text-xs font-black dark:text-white uppercase tracking-widest">Wbudowany Serwer GlikoControl</h3>
-            <p className="text-[10px] text-slate-500 font-medium">Połącz z xDrip+ / modowanym Carelink / Juggluco</p>
+            <h3 className="text-xs font-black dark:text-white uppercase tracking-widest">{t('auto.wbudowany_serwer_glikocontrol', { defaultValue: 'Wbudowany Serwer GlikoControl' })}</h3>
+            <p className="text-[10px] text-slate-500 font-medium">{t('auto.połącz_z_xdrip_modowanym_carelink_j', { defaultValue: 'Połącz z xDrip+ / modowanym Carelink / Juggluco' })}</p>
           </div>
         </div>
 
         <div className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl">
-          Aplikacja GlikoControl służy teraz jako Twój własny Nightscout serwer API! 
-          Skopiuj poniższe dane do źródła odczytów (np. <b>xDrip+ &rarr; Ustawienia &rarr; Cloud Upload &rarr; Nightscout Sync</b>):
+          
+                            {t('auto.aplikacja_glikocontrol_służy_teraz_', { defaultValue: 'Aplikacja GlikoControl służy teraz jako Twój własny Nightscout serwer API! Skopiuj poniższe dane do źródła odczytów (np.' })} <b>{t('auto.xdrip_rarr_ustawienia_rarr_cloud_up', { defaultValue: 'xDrip+ &rarr; Ustawienia &rarr; Cloud Upload &rarr; Nightscout Sync' })}</b>):
         </div>
 
         {localSecret ? (
           <div className="space-y-4">
             <div>
-              <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Baza URL (Base URL)</label>
+              <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">{t('auto.baza_url_base_url', { defaultValue: 'Baza URL (Base URL)' })}</label>
               <div className="flex bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden items-center">
                 <div className="flex-1 p-3 text-[11px] font-mono select-all dark:text-accent-300">
                   {serverUrl}
@@ -201,7 +205,7 @@ export default function ApiIntegration({ user }: { user: any }) {
             </div>
             
             <div>
-              <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">API Secret / Hasło API</label>
+              <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">{t('auto.api_secret_hasło_api', { defaultValue: 'API Secret / Hasło API' })}</label>
               <div className="flex bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden items-center">
                 <input 
                   readOnly 
@@ -216,7 +220,7 @@ export default function ApiIntegration({ user }: { user: any }) {
                   {copied ? "Skopiowano" : "Kopiuj"}
                 </button>
               </div>
-              <p className="text-[9px] text-amber-500 font-bold mt-2 leading-tight">Uwaga: Zapisz go lub skopiuj do xDrip+. Hasło jest zaszyfrowane w bazie, po wylogowaniu możliwe że konieczne będzie wygenerowanie nowego.</p>
+              <p className="text-[9px] text-amber-500 font-bold mt-2 leading-tight">{t('auto.uwaga_zapisz_go_lub_skopiuj_do_xdri', { defaultValue: 'Uwaga: Zapisz go lub skopiuj do xDrip+. Hasło jest zaszyfrowane w bazie, po wylogowaniu możliwe że konieczne będzie wygenerowanie nowego.' })}</p>
             </div>
 
             <button 
@@ -225,8 +229,9 @@ export default function ApiIntegration({ user }: { user: any }) {
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-accent-200 dark:border-accent-800 text-accent-600 dark:text-accent-400 text-[10px] font-black uppercase hover:bg-accent-50 dark:hover:bg-accent-900/30 transition-all"
             >
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              Wygeneruj nowy klucz
-            </button>
+              
+                                        {t('auto.wygeneruj_nowy_klucz', { defaultValue: 'Wygeneruj nowy klucz' })}
+                                      </button>
           </div>
         ) : (
           <button 
@@ -234,7 +239,7 @@ export default function ApiIntegration({ user }: { user: any }) {
             disabled={loading}
             className="w-full bg-indigo-500 text-white py-4 rounded-xl font-black text-[11px] hover:bg-indigo-600 active:scale-95 transition-all shadow-xl shadow-indigo-500/20 uppercase tracking-widest mt-2"
           >
-            {loading ? "Generowanie..." : "Wygeneruj Dostęp Dla xDrip+"}
+            {loading ? "Generowanie..." : i18n.t('auto.wygeneruj_dostep_dla_xdrip', { defaultValue: "Wygeneruj Dostęp Dla xDrip+" })}
           </button>
         )}
       </div>
@@ -243,36 +248,38 @@ export default function ApiIntegration({ user }: { user: any }) {
         <div className="flex items-center gap-3 mb-2">
           <BellRing className="text-emerald-500" size={24} />
           <div>
-            <h3 className="text-xs font-black dark:text-white uppercase tracking-widest">Nasłuchiwanie Powiadomień</h3>
-            <p className="text-[10px] text-slate-500 font-medium">Lokalny odczyt z Minimed Mobile / xDrip</p>
+            <h3 className="text-xs font-black dark:text-white uppercase tracking-widest">{t('auto.nasłuchiwanie_powiadomień', { defaultValue: 'Nasłuchiwanie Powiadomień' })}</h3>
+            <p className="text-[10px] text-slate-500 font-medium">{t('auto.lokalny_odczyt_z_minimed_mobile_xdr', { defaultValue: 'Lokalny odczyt z Minimed Mobile / xDrip' })}</p>
           </div>
         </div>
         <div className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl">
-          GlikoControl może odczytywać Twój poziom cukru i insulinę aktywną bezpośrednio z powiadomień systemowych innych aplikacji w tle (bez użycia internetu).
-        </div>
+          
+                            {t('auto.glikocontrol_może_odczytywać_twój_p', { defaultValue: 'GlikoControl może odczytywać Twój poziom cukru i insulinę aktywną bezpośrednio z powiadomień systemowych innych aplikacji w tle (bez użycia internetu).' })}
+                          </div>
         <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
           <div>
-            <h4 className="text-[11px] font-bold dark:text-white mb-1">Dostęp do powiadomień</h4>
-            <p className="text-[9px] text-slate-500 font-medium">Status: {notificationEnabled ? <span className="text-emerald-500 font-bold">WŁĄCZONY</span> : <span className="text-rose-500 font-bold">WYŁĄCZONY</span>}</p>
+            <h4 className="text-[11px] font-bold dark:text-white mb-1">{t('auto.dostęp_do_powiadomień', { defaultValue: 'Dostęp do powiadomień' })}</h4>
+            <p className="text-[9px] text-slate-500 font-medium">{t('auto.status', { defaultValue: 'Status:' })} {notificationEnabled ? <span className="text-emerald-500 font-bold">{t('auto.włączony', { defaultValue: 'WŁĄCZONY' })}</span> : <span className="text-rose-500 font-bold">{t('auto.wyłączony', { defaultValue: 'WYŁĄCZONY' })}</span>}</p>
           </div>
           <button onClick={requestNotificationPermission} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${notificationEnabled ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 hover:-translate-y-0.5'}`}>
-            {notificationEnabled ? 'Konfiguruj' : 'Włącz'}
+            {notificationEnabled ? 'Konfiguruj' : i18n.t('auto.wlacz', { defaultValue: "Włącz" })}
           </button>
         </div>
 
         {notificationEnabled && (
           <div className="mt-2 bg-white/40 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
             <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center justify-between">
-              <span>Dziennik Powiadomień (Na Żywo)</span>
+              <span>{t('auto.dziennik_powiadomień_na_żywo', { defaultValue: 'Dziennik Powiadomień (Na Żywo)' })}</span>
               {debugLogs.length > 0 && (
-                <span className="text-[8px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full animate-pulse">Aktywny</span>
+                <span className="text-[8px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full animate-pulse">{t('auto.aktywny', { defaultValue: 'Aktywny' })}</span>
               )}
             </h4>
             <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
               {debugLogs.length === 0 ? (
                 <div className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-4">
-                  Czekam na powiadomienia z systemu... (Zmieni się to automatycznie gdy nadejdzie nowy cukier).
-                </div>
+                  
+                                                    {t('auto.czekam_na_powiadomienia_z_systemu_z', { defaultValue: 'Czekam na powiadomienia z systemu... (Zmieni się to automatycznie gdy nadejdzie nowy cukier).' })}
+                                                  </div>
               ) : (
                 debugLogs.map((log, i) => (
                   <div key={i} className="bg-white dark:bg-slate-800 p-2.5 rounded-xl text-[9px] font-mono shadow-sm">
@@ -280,8 +287,8 @@ export default function ApiIntegration({ user }: { user: any }) {
                       <span className="font-bold text-accent-500">{log.time}</span>
                       <span className="truncate ml-2 text-[8px]">{log.pkg}</span>
                     </div>
-                    <div className="font-bold text-slate-700 dark:text-slate-200 mb-0.5">Tytuł: {log.title}</div>
-                    <div className="text-slate-500 dark:text-slate-400">Tekst: {log.text}</div>
+                    <div className="font-bold text-slate-700 dark:text-slate-200 mb-0.5">{t('auto.tytuł', { defaultValue: 'Tytuł:' })} {log.title}</div>
+                    <div className="text-slate-500 dark:text-slate-400">{t('auto.tekst', { defaultValue: 'Tekst:' })} {log.text}</div>
                   </div>
                 ))
               )}

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Medication } from '../types';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
+import { useTranslation } from "react-i18next";
 
 interface MedicationsWidgetProps {
   medications: Medication[];
@@ -11,6 +12,7 @@ interface MedicationsWidgetProps {
 }
 
 export default function MedicationsWidget({ medications, size }: MedicationsWidgetProps) {
+    const { t } = useTranslation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [takenMeds, setTakenMeds] = useState<Record<string, string>>({}); // id -> iso date
 
@@ -44,7 +46,7 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
     return (
       <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
         <Pill className="text-slate-300 dark:text-slate-700 mb-2" size={24} />
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Brak aktywnych leków</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('auto.brak_aktywnych_leków', { defaultValue: 'Brak aktywnych leków' })}</p>
       </div>
     );
   }
@@ -66,7 +68,7 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
         <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500">
           <Pill size={12} />
         </div>
-        {!isCompact && <span className="font-black text-[11px] uppercase tracking-widest text-slate-500">Twoje Leki</span>}
+        {!isCompact && <span className="font-black text-[11px] uppercase tracking-widest text-slate-500">{t('auto.twoje_leki', { defaultValue: 'Twoje Leki' })}</span>}
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-none space-y-2">
@@ -121,8 +123,9 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
                   onClick={(e) => markTaken(med.id, e)}
                   className="shrink-0 bg-indigo-500 hover:bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl transition-colors active:scale-95"
                 >
-                  Przyjąłem
-                </button>
+                  
+                                            {t('auto.przyjąłem', { defaultValue: 'Przyjąłem' })}
+                                          </button>
               ) : isTakenToday ? (
                 <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
               ) : null}

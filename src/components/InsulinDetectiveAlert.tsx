@@ -4,12 +4,14 @@ import { LogEntry } from '../types';
 import { AlertCircle, FileQuestion, Bug, X } from 'lucide-react';
 import InsulinDetective from './InsulinDetective';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 interface InsulinDetectiveAlertProps {
   logs: LogEntry[];
 }
 
 export default function InsulinDetectiveAlert({ logs }: InsulinDetectiveAlertProps) {
+    const { t } = useTranslation();
   const [showSurvey, setShowSurvey] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -80,12 +82,13 @@ export default function InsulinDetectiveAlert({ logs }: InsulinDetectiveAlertPro
                </div>
                <div>
                  <h3 className="text-sm font-black dark:text-white uppercase tracking-wider mb-1 flex items-center gap-2">
-                   GlikoSense Anomaly Warning
-                 </h3>
+                   
+                                                     {t('auto.glikosense_anomaly_warning', { defaultValue: 'GlikoSense Anomaly Warning' })}
+                                                   </h3>
                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed max-w-lg">
-                   System wykrył wysoki poziom cukru mimo podanej insuliny w ostatnich godzinach.
-                   Czy chcesz przeprowadzić diagnostykę jakości leku lub poprawności wkłucia?
-                 </p>
+                   
+                                                     {t('auto.system_wykrył_wysoki_poziom_cukru_m', { defaultValue: 'System wykrył wysoki poziom cukru mimo podanej insuliny w ostatnich godzinach. Czy chcesz przeprowadzić diagnostykę jakości leku lub poprawności wkłucia?' })}
+                                                   </p>
                </div>
             </div>
             
@@ -94,15 +97,17 @@ export default function InsulinDetectiveAlert({ logs }: InsulinDetectiveAlertPro
                 onClick={() => setDismissed(true)}
                 className="px-4 py-3 bg-white/5 hover:bg-white/10 dark:text-slate-300 rounded-2xl font-bold text-xs transition-all w-full md:w-auto"
               >
-                Ignoruj
-              </button>
+                
+                                              {t('auto.ignoruj', { defaultValue: 'Ignoruj' })}
+                                            </button>
               <button
                 onClick={() => setShowSurvey(true)}
                 className="px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-rose-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 w-full md:w-auto"
               >
                 <Bug size={16} />
-                Insulina nie działa?
-              </button>
+                
+                                              {t('auto.insulina_nie_działa', { defaultValue: 'Insulina nie działa?' })}
+                                            </button>
             </div>
           </div>
         </motion.div>

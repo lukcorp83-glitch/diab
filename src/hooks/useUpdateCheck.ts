@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import i18n from "../i18n";
 
 export interface AppUpdateInfo {
   isAvailable: boolean;
@@ -46,7 +47,7 @@ export const useUpdateCheck = () => {
         });
       }
     } catch (err) {
-      console.error('Błąd sprawdzania aktualizacji:', err);
+      console.error(i18n.t('auto.blad_sprawdzania_aktualizacji', { defaultValue: "Błąd sprawdzania aktualizacji:" }), err);
     } finally {
       setChecking(false);
     }

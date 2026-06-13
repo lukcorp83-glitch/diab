@@ -14,8 +14,11 @@ import MLAnalysisWidget from './MLAnalysisWidget';
 import InsulinDetectiveAlert from './InsulinDetectiveAlert';
 import AGPReport from './AGPReport';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function AiReports({ user, logs, settings, setTab }: { user: any, logs: LogEntry[], settings?: UserSettings, setTab?: (tab: string) => void }) {
+    const { t } = useTranslation();
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeReport, setActiveReport] = useState<string | null>(null);
@@ -42,8 +45,8 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
     
     const progressTexts = [
       "Analiza danych na serwerze...",
-      "Wykrywanie trendów i wzorców...",
-      "Przygotowywanie wniosków AI...",
+      i18n.t('auto.wykrywanie_trendow_i_wzorcow', { defaultValue: "Wykrywanie trendów i wzorców..." }),
+      i18n.t('auto.przygotowywanie_wnioskow_ai', { defaultValue: "Przygotowywanie wniosków AI..." }),
       "Prawie gotowe..."
     ];
     let ptIdx = 0;
@@ -68,7 +71,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
         });
         content = await geminiService.getPeriodAnalysis(type, filteredLogs, settings);
         if (type === 'day') reportType = "Raport Dzienny";
-        else reportType = "Raport Miesięczny";
+        else reportType = i18n.t('auto.raport_miesieczny', { defaultValue: "Raport Miesięczny" });
       }
       
       // Feed local ML model with learnings from Gemini AI
@@ -82,19 +85,19 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
         timestamp: Date.now()
       });
       clearInterval(progressInterval);
-      toast.success("Raport wygenerowany pomyślnie!", { id: loadingToastId });
+      toast.success(i18n.t('auto.raport_wygenerowany_pomyslnie', { defaultValue: "Raport wygenerowany pomyślnie!" }), { id: loadingToastId });
     } catch (e) {
       clearInterval(progressInterval);
       console.error(e);
       const errStr = String(e);
       if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
-         toast.error("Nieprawidłowy klucz API.", { id: loadingToastId });
-      } else if (errStr.includes("zajęte")) {
-         toast.error("Serwery AI zapchane. Spróbuj później.", { id: loadingToastId });
+         toast.error(i18n.t('auto.nieprawidlowy_klucz_api', { defaultValue: "Nieprawidłowy klucz API." }), { id: loadingToastId });
+      } else if (errStr.includes(i18n.t('auto.zajete', { defaultValue: "zajęte" }))) {
+         toast.error(i18n.t('auto.serwery_ai_zapchane_sprobuj_po', { defaultValue: "Serwery AI zapchane. Spróbuj później." }), { id: loadingToastId });
       } else if (errStr.includes("Timeout_AI") || errStr.includes("Request Timeout")) {
          toast.error("Przekroczono czas (Timeout). Zbyt wiele danych do przetworzenia.", { id: loadingToastId });
       } else {
-         toast.error("Błąd generowania raportu AI.", { id: loadingToastId });
+         toast.error(i18n.t('auto.blad_generowania_raportu_ai', { defaultValue: "Błąd generowania raportu AI." }), { id: loadingToastId });
       }
     } finally {
       clearInterval(progressInterval);
@@ -146,8 +149,8 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
               <TrendingUp size={18} className="text-accent-600 dark:text-accent-400" />
             </div>
             <div>
-              <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Trend Miesięczny</h3>
-              <p className="text-[9px] font-bold text-slate-400 opacity-60">Średni dobowy poziom cukru (mg/dL)</p>
+              <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('auto.trend_miesięczny', { defaultValue: 'Trend Miesięczny' })}</h3>
+              <p className="text-[9px] font-bold text-slate-400 opacity-60">{t('auto.średni_dobowy_poziom_cukru_mg_dl', { defaultValue: 'Średni dobowy poziom cukru (mg/dL)' })}</p>
             </div>
           </div>
           
@@ -181,7 +184,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                       return (
                         <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl shadow-2xl">
                           <p className="text-[8px] font-black text-slate-500 uppercase mb-1">{payload[0].payload.date}</p>
-                          <p className="text-sm font-black text-white">{payload[0].value} <span className="text-[10px] text-slate-400">mg/dL</span></p>
+                          <p className="text-sm font-black text-white">{payload[0].value} <span className="text-[10px] text-slate-400">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span></p>
                         </div>
                       );
                     }
@@ -210,8 +213,8 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
       <div className="bg-accent-900 rounded-[2.5rem] p-8 text-white shadow-2xl text-center space-y-6 relative overflow-hidden">
         <GlikoSenseIcon className="absolute top-4 right-6 opacity-20" size={60} isAnalyzing={true} />
         <div className="relative z-10">
-          <h2 className="text-2xl font-black mb-1 text-accent-300">Raport</h2>
-          <p className="text-white text-sm font-bold tracking-widest">Inteligentna analiza glikemii</p>
+          <h2 className="text-2xl font-black mb-1 text-accent-300">{t('auto.raport', { defaultValue: 'Raport' })}</h2>
+          <p className="text-white text-sm font-bold tracking-widest">{t('auto.inteligentna_analiza_glikemii', { defaultValue: 'Inteligentna analiza glikemii' })}</p>
         </div>
 
         <div className="grid gap-4 relative z-10">
@@ -227,9 +230,10 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
             className="w-full bg-white text-accent-900 py-6 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 relative overflow-hidden"
           >
             {loading ? <Loader2 className="animate-spin" /> : <GlikoSenseIcon size={24} isAnalyzing={true} />}
-            Wygeneruj Raport Kompletny
             
-            {!loading && (
+                                      {t('auto.wygeneruj_raport_kompletny', { defaultValue: 'Wygeneruj Raport Kompletny' })}
+                                      
+                                      {!loading && (
               <motion.div 
                 animate={{ x: ['-100%', '200%'] }}
                 transition={{ repeat: Infinity, duration: 1.5, ease: 'linear', repeatDelay: 3 }}
@@ -247,8 +251,9 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                className="bg-accent-800 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-accent-700 disabled:opacity-50"
              >
                <Calendar size={16} />
-               Raport Dzienny
-             </motion.button>
+               
+                                             {t('auto.raport_dzienny', { defaultValue: 'Raport Dzienny' })}
+                                           </motion.button>
 
              <motion.button 
                onClick={() => setShowAGP(true)}
@@ -257,8 +262,9 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                className="bg-indigo-900/30 text-indigo-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-indigo-900 overflow-hidden"
              >
                <Activity size={16} />
-               Wykres AGP (Kliniczny)
-             </motion.button>
+               
+                                             {t('auto.wykres_agp_kliniczny', { defaultValue: 'Wykres AGP (Kliniczny)' })}
+                                           </motion.button>
 
              <motion.button 
                disabled={loading}
@@ -268,16 +274,17 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                className="bg-rose-900/30 text-rose-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-rose-900 overflow-hidden"
              >
                <span>⚠️</span>
-               Insulina nie działa?
-             </motion.button>
+               
+                                             {t('auto.insulina_nie_działa', { defaultValue: 'Insulina nie działa?' })}
+                                           </motion.button>
           </div>
           
-          <p className="text-[9px] text-accent-300 font-bold uppercase tracking-tighter opacity-60">Analiza obejmuje: trendy, posiłki, wzorce i hba1c</p>
+          <p className="text-[9px] text-accent-300 font-bold uppercase tracking-tighter opacity-60">{t('auto.analiza_obejmuje_trendy_posiłki_wzo', { defaultValue: 'Analiza obejmuje: trendy, posiłki, wzorce i hba1c' })}</p>
         </div>
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Historia Raportów</h3>
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">{t('auto.historia_raportów', { defaultValue: 'Historia Raportów' })}</h3>
         <div className="space-y-1">
           {reports.map((report) => (
             <SwipeableItem
@@ -298,7 +305,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                     <span className="text-[8px] font-bold text-slate-400">{new Date(report.timestamp).toLocaleString()}</span>
                   </div>
                   <div className="bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 p-2 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                    {activeReport === report.id ? 'Ukryj' : 'Podgląd'}
+                    {activeReport === report.id ? 'Ukryj' : i18n.t('auto.podglad', { defaultValue: "Podgląd" })}
                   </div>
                 </div>
                 <AnimatePresence>
@@ -328,11 +335,13 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                   <span className="text-2xl opacity-80">🤖</span>
                 </div>
                 <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
-                  Brak raportów
-                </p>
+                  
+                                                    {t('auto.brak_raportów', { defaultValue: 'Brak raportów' })}
+                                                  </p>
                 <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
-                  Twój inteligentny analityk czeka na więcej danych, by móc wyciągnąć wnioski.
-                </p>
+                  
+                                                    {t('auto.twój_inteligentny_analityk_czeka_na', { defaultValue: 'Twój inteligentny analityk czeka na więcej danych, by móc wyciągnąć wnioski.' })}
+                                                  </p>
              </div>
           )}
         </div>

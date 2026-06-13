@@ -1,9 +1,12 @@
+import i18n from '../i18n';
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Book, Calendar, Sparkles, TrendingUp, TrendingDown, CheckCircle2 } from 'lucide-react';
 import { LogEntry } from '../types';
+import { useTranslation } from "react-i18next";
 
 export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petName: string }) {
+    const { t } = useTranslation();
   const diaryEntries = useMemo(() => {
     const today = new Date().setHours(0,0,0,0);
     const todayLogs = logs.filter(l => l.timestamp >= today).sort((a,b) => a.timestamp - b.timestamp);
@@ -17,7 +20,7 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
       const time = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
       if (log.type === 'meal') {
-        const value = log.notes || 'pyszny posiłek';
+        const value = log.notes || i18n.t('auto.pyszny_posilek', { defaultValue: "pyszny posiłek" });
         const carbs = (log as any).carbs;
         entries.push({
           time,
@@ -65,11 +68,13 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
                 <Book size={24} className="text-indigo-400 dark:text-indigo-400/80" />
             </div>
             <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
-                Pusty pamiętnik
-            </p>
+                
+                                      {t('auto.pusty_pamiętnik', { defaultValue: 'Pusty pamiętnik' })}
+                                  </p>
             <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
-                Brak dzisiejszych wpisów. Zapisz coś, żeby było co wspominać!
-            </p>
+                
+                                      {t('auto.brak_dzisiejszych_wpisów_zapisz_coś', { defaultValue: 'Brak dzisiejszych wpisów. Zapisz coś, żeby było co wspominać!' })}
+                                  </p>
         </div>
       ) : (
         <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
@@ -98,8 +103,8 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
           
           <div className="pt-4 text-center">
             <p className="text-[10px] font-black text-accent-500 uppercase tracking-widest flex items-center justify-center gap-2">
-              <Sparkles size={10} /> Koniec dzisiejszej przygody
-            </p>
+              <Sparkles size={10} />  {t('auto.koniec_dzisiejszej_przygody', { defaultValue: 'Koniec dzisiejszej przygody' })}
+                                          </p>
           </div>
         </div>
       )}

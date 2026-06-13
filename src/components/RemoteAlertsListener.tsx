@@ -5,6 +5,7 @@ import { getEffectiveUid, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, CheckCircle2, MessageCircle, AlertTriangle, Pill } from 'lucide-react';
 import { playHighGlucoseSound } from '../lib/audioUtils';
+import { useTranslation } from "react-i18next";
 
 export interface RemoteAlert {
   id: string;
@@ -17,6 +18,7 @@ export interface RemoteAlert {
 }
 
 export default function RemoteAlertsListener({ user }: { user: any }) {
+    const { t } = useTranslation();
   const [activeAlert, setActiveAlert] = useState<RemoteAlert | null>(null);
 
   useEffect(() => {
@@ -102,7 +104,8 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
               </div>
               
               <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">
-                Wiadomość z: {activeAlert.senderDevice}
+                
+                                              {t('auto.wiadomość_z', { defaultValue: 'Wiadomość z:' })} {activeAlert.senderDevice}
               </span>
 
               <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-snug mb-8">
@@ -114,8 +117,9 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
                 className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-black text-lg py-5 rounded-2xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <CheckCircle2 size={24} />
-                ZROZUMIAŁEM
-              </button>
+                
+                                              {t('auto.zrozumiałem', { defaultValue: 'ZROZUMIAŁEM' })}
+                                            </button>
             </div>
           </motion.div>
         </div>

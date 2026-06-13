@@ -7,6 +7,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { getEffectiveUid } from '../lib/utils';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 interface Note {
   id: string;
@@ -16,6 +17,7 @@ interface Note {
 }
 
 export default function NotebookManager({ user }: { user: any }) {
+    const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [newContent, setNewContent] = useState('');
@@ -154,8 +156,8 @@ export default function NotebookManager({ user }: { user: any }) {
           >
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
               <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2 text-lg">
-                <Book className="text-blue-500" size={20} /> Mój Notatnik
-              </h3>
+                <Book className="text-blue-500" size={20} />  {t('auto.mój_notatnik', { defaultValue: 'Mój Notatnik' })}
+                                        </h3>
               <button onClick={() => setIsOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-white dark:bg-slate-800 shadow-sm rounded-full transition-colors active:scale-90">
                 <X size={20} />
               </button>
@@ -164,7 +166,7 @@ export default function NotebookManager({ user }: { user: any }) {
             <div className="p-4 space-y-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
                   <div>
                     <textarea 
-                      placeholder="Nowa notatka lub wpis..."
+                      placeholder={t('auto.nowa_notatka_lub_wpis', { defaultValue: 'Nowa notatka lub wpis...' })}
                       value={newContent}
                       onChange={e => setNewContent(e.target.value)}
                       className="w-full p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm font-medium dark:text-white resize-none min-h-[100px] shadow-sm transition-all"
@@ -172,8 +174,9 @@ export default function NotebookManager({ user }: { user: any }) {
                   </div>
                   <div className="text-[10px] uppercase font-black text-slate-400 tracking-widest ml-1 mb-1.5 flex items-center gap-1.5">
                     <Clock size={12} />
-                    Ustaw przypomnienie
-                  </div>
+                    
+                                              {t('auto.ustaw_przypomnienie', { defaultValue: 'Ustaw przypomnienie' })}
+                                            </div>
                   <div className="flex gap-2">
                     <div className="flex-1 relative">
                         <Clock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -201,11 +204,13 @@ export default function NotebookManager({ user }: { user: any }) {
                           <Book size={24} className="text-indigo-400 dark:text-indigo-400/80" />
                         </div>
                         <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
-                          Brak notatek
-                        </p>
+                          
+                                                            {t('auto.brak_notatek', { defaultValue: 'Brak notatek' })}
+                                                          </p>
                         <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
-                          Zapisz tutaj ważne informacje dla lekarza lub na przyszłość.
-                        </p>
+                          
+                                                            {t('auto.zapisz_tutaj_ważne_informacje_dla_l', { defaultValue: 'Zapisz tutaj ważne informacje dla lekarza lub na przyszłość.' })}
+                                                          </p>
                     </div>
                   ) : (
                     notes.map(note => (
@@ -215,7 +220,8 @@ export default function NotebookManager({ user }: { user: any }) {
                         {note.reminderDate && (
                           <div className="flex items-center gap-1.5 mt-3 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 w-fit px-2.5 py-1.5 rounded-lg border border-blue-100 dark:border-blue-800/50">
                             <Bell size={12} />
-                            Przypomnienie: {new Date(note.reminderDate).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                            
+                                                                {t('auto.przypomnienie', { defaultValue: 'Przypomnienie:' })} {new Date(note.reminderDate).toLocaleString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
                           </div>
                         )}
                         
@@ -228,7 +234,8 @@ export default function NotebookManager({ user }: { user: any }) {
                         
                         {note.createdAt && (
                           <div className="text-[10px] text-slate-400 font-bold uppercase mt-4 tracking-wider">
-                            Utworzono: {new Date(note.createdAt).toLocaleDateString()}
+                            
+                                                                {t('auto.utworzono', { defaultValue: 'Utworzono:' })} {new Date(note.createdAt).toLocaleDateString()}
                           </div>
                         )}
                       </motion.div>

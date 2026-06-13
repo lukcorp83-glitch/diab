@@ -15,6 +15,7 @@ import {
   Timer
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 const CARDS = [
   { id: 1, icon: <Apple className="text-emerald-500" />, type: 'apple', color: 'emerald' },
@@ -26,6 +27,7 @@ const CARDS = [
 ];
 
 export default function GlikoMemory() {
+    const { t } = useTranslation();
   const [cards, setCards] = useState<any[]>([]);
   const [flipped, setFlipped] = useState<number[]>([]);
   const [matched, setMatched] = useState<number[]>([]);
@@ -73,13 +75,14 @@ export default function GlikoMemory() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-black text-sm dark:text-white flex items-center gap-2">
-            <Brain size={16} className="text-violet-500" /> Gliko Memory
-          </h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Ćwicz pamięć i rozpoznawaj symbole</p>
+            <Brain size={16} className="text-violet-500" />  {t('auto.gliko_memory', { defaultValue: 'Gliko Memory' })}
+                                </h3>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.ćwicz_pamięć_i_rozpoznawaj_symbole', { defaultValue: 'Ćwicz pamięć i rozpoznawaj symbole' })}</p>
         </div>
         <div className="flex items-center gap-3">
            <div className="text-[10px] font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm">
-             RUCHY: {moves}
+             
+                                   {t('auto.ruchy', { defaultValue: 'RUCHY:' })} {moves}
            </div>
            <button 
              onClick={shuffle}
@@ -143,14 +146,15 @@ export default function GlikoMemory() {
             className="mt-6 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl text-center"
           >
             <Trophy className="text-emerald-500 mx-auto mb-2" size={24} />
-            <h4 className="font-black text-emerald-600 dark:text-emerald-400 text-sm italic">Pięknie!</h4>
-            <p className="text-[10px] font-bold text-emerald-600/70 dark:text-emerald-400/70 uppercase">Ukończono w {moves} ruchach</p>
+            <h4 className="font-black text-emerald-600 dark:text-emerald-400 text-sm italic">{t('auto.pięknie', { defaultValue: 'Pięknie!' })}</h4>
+            <p className="text-[10px] font-bold text-emerald-600/70 dark:text-emerald-400/70 uppercase">{t('auto.ukończono_w', { defaultValue: 'Ukończono w' })} {moves}  {t('auto.ruchach', { defaultValue: 'ruchach' })}</p>
             <button 
               onClick={shuffle}
               className="mt-3 px-6 py-2 bg-emerald-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-colors"
             >
-              Zagraj Ponownie
-            </button>
+              
+                                        {t('auto.zagraj_ponownie', { defaultValue: 'Zagraj Ponownie' })}
+                                      </button>
           </motion.div>
         )}
       </AnimatePresence>

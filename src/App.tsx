@@ -235,7 +235,11 @@ const DEFAULT_SETTINGS: UserSettings = {
   material3Enabled: false,
 };
 
+import { useTranslation } from "react-i18next";
+import i18n from "./i18n";
+
 export default function App() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<any>(null);
   const [pumpStatus, setPumpStatus] = useState<any>(null);
   const [showSplash, setShowSplash] = useState(true);
@@ -254,16 +258,16 @@ export default function App() {
     
     // Inicjalizacja hybrydowej bazy SQLite (APK & PWA)
     dbService.init().then(async () => {
-      console.log('Baza danych zainicjowana prawidłowo!');
+      console.log(i18n.t('auto.baza_danych_zainicjowana_prawi', { defaultValue: "Baza danych zainicjowana prawidłowo!" }));
       try {
         const localData = await dbService.getLogs(15000);
         setCachedLogs(localData);
       } catch (err) {
-        console.error('Błąd pobierania danych startowych', err);
+        console.error(i18n.t('auto.blad_pobierania_danych_startow', { defaultValue: "Błąd pobierania danych startowych" }), err);
       }
       setCachedLogsLoaded(true);
     }).catch(err => {
-      console.error('Błąd inicjalizacji bazy danych', err);
+      console.error(i18n.t('auto.blad_inicjalizacji_bazy_danych', { defaultValue: "Błąd inicjalizacji bazy danych" }), err);
       setCachedLogsLoaded(true);
     });
   }, []);
@@ -389,7 +393,7 @@ export default function App() {
     url: userSettings?.websocketUrl,
     roomId: userSettings?.websocketRoomId || (user ? getEffectiveUid(user) : undefined),
     deviceId: localDeviceId,
-    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : "Przeglądarka WWW"),
+    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : i18n.t('auto.przegladarka_www', { defaultValue: "Przeglądarka WWW" })),
     role,
     isAdmin,
     onDataReceived: (payload) => {
@@ -427,8 +431,8 @@ export default function App() {
       const timeStr = new Date(latest.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       const deltaStr = latest.delta ? (latest.delta > 0 ? "+" + latest.delta : String(latest.delta)) : "0";
       WidgetUpdater.pushData({
-        glucose: String(latest.glucose),
-        arrow: latest.trend || "",
+        glucose: String((latest as any).glucose),
+        arrow: (latest as any).trend || "",
         delta: deltaStr,
         time: timeStr
       }).catch(console.error);
@@ -461,7 +465,7 @@ export default function App() {
 
       if (active && !appliedSystem) {
         if (userSettings?.dynamicColorsEnabled && logs.length > 0) {
-          const glucose = logs[0].glucose;
+          const glucose = (logs[0] as any).glucose;
           const min = userSettings.targetMin || 70;
           const max = userSettings.targetMax || 140;
           
@@ -635,7 +639,7 @@ export default function App() {
         // Replace old long initial message
         if (parsed && parsed.length > 0) {
           const firstMsg = parsed[0];
-          if (firstMsg.id.startsWith('initial') && (firstMsg.text.includes('Przeanalizowałem') || firstMsg.text.includes('System Aktywny'))) {
+          if (firstMsg.id.startsWith('initial') && (firstMsg.text.includes(i18n.t('auto.przeanalizowalem', { defaultValue: "Przeanalizowałem" })) || firstMsg.text.includes('System Aktywny'))) {
              return []; // Clear to generate new initial message
           }
         }
@@ -788,13 +792,14 @@ export default function App() {
       const isAssistantTabActive = activeTab === "assistant";
       if (!isAssistantTabActive) {
         toast(
-          (t) => (
+          (toastItem) => (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-amber-500" />
                 <span className="font-black text-[10px]">
-                  ASZYSTENT AI ODPOWIEDZIAŁ!
-                </span>
+                  
+                                              {t('auto.aszystent_ai_odpowiedział', { defaultValue: 'ASZYSTENT AI ODPOWIEDZIAŁ!' })}
+                                            </span>
               </div>
               <p className="text-[9px] lowercase opacity-70 line-clamp-2">
                 {cleanResponse.replace(/<[^>]*>/g, "").substring(0, 60) + "..."}
@@ -802,20 +807,21 @@ export default function App() {
               <button
                 onClick={() => {
                   setActiveTab("assistant");
-                  toast.dismiss(t.id);
+                  toast.dismiss(toastItem.id);
                 }}
                 className="mt-1 px-3 py-1.5 bg-accent-600 text-white text-[8px] font-black uppercase rounded-lg w-fit"
               >
-                Pokaż odpowiedź
-              </button>
+                
+                                        {t('auto.pokaż_odpowiedź', { defaultValue: 'Pokaż odpowiedź' })}
+                                      </button>
             </div>
           ),
           { duration: 6000, position: "top-right" },
         );
 
         if (window.Notification && window.Notification.permission === "granted") {
-          new window.Notification("Nowa odpowiedź od Asystenta AI", {
-            body: "Twój asystent przygotował analizę. Kliknij aby zobaczyć.",
+          new window.Notification(i18n.t('auto.nowa_odpowiedz_od_asystenta_ai', { defaultValue: "Nowa odpowiedź od Asystenta AI" }), {
+            body: i18n.t('auto.twoj_asystent_przygotowal_anal', { defaultValue: "Twój asystent przygotował analizę. Kliknij aby zobaczyć." }),
             icon: "/apple-touch-icon.png",
           });
         }
@@ -831,12 +837,12 @@ export default function App() {
         id: (Date.now() + 1).toString(),
         role: "model",
         text: isInvalidKey
-          ? "⚠️ <b>Błąd klucza API Gemini!</b> Twój klucz wydaje się być nieprawidłowy. Sprawdź go w ustawieniach profilu."
+          ? i18n.t('auto.b_blad_klucza_api_gemini_b_two', { defaultValue: "⚠️ <b>Błąd klucza API Gemini!</b> Twój klucz wydaje się być nieprawidłowy. Sprawdź go w ustawieniach profilu." })
           : `⚠️ <b>Błąd komunikacji z AI:</b> ${errMsg}`,
         timestamp: Date.now(),
       };
       setAssistantMessages((prev) => [...prev, errorMessage]);
-      toast.error("Wystąpił błąd AI.");
+      toast.error(i18n.t('auto.wystapil_blad_ai', { defaultValue: "Wystąpił błąd AI." }));
     } finally {
       setIsAssistantTyping(false);
     }
@@ -921,8 +927,8 @@ export default function App() {
           );
           toast.success(
             isEnabled
-              ? "Wibracje zostały włączone przez AI"
-              : "Wibracje zostały wyłączone przez AI",
+              ? i18n.t('auto.wibracje_zostaly_wlaczone_prze', { defaultValue: "Wibracje zostały włączone przez AI" })
+              : i18n.t('auto.wibracje_zostaly_wylaczone_prz', { defaultValue: "Wibracje zostały wyłączone przez AI" }),
           );
         }
       } else if (action === "add_log" && user) {
@@ -978,7 +984,7 @@ export default function App() {
         if (tab === "baza") targetTab = "database";
         if (tab === "talerz") targetTab = "meal";
         setActiveTab(targetTab);
-        toast(`Przejście do zakładki...`, { icon: "🚀" });
+        toast(i18n.t('auto.przejscie_do_zakladki', { defaultValue: "Przejście do zakładki..." }), { icon: "🚀" });
       }
     };
 
@@ -1004,7 +1010,7 @@ export default function App() {
         ) {
           console.error("[Firestore] Connection issue:", error);
           toast.error(
-            "Brak połączenia z bazą Firestore - sprawdź internet lub konfigurację.",
+            i18n.t('auto.brak_polaczenia_z_baza_firesto', { defaultValue: "Brak połączenia z bazą Firestore - sprawdź internet lub konfigurację." }),
           );
         }
       }
@@ -1115,7 +1121,7 @@ export default function App() {
           },
           { merge: true },
         );
-        toast.success("Zgoda zatwierdzona pomyślnie");
+        toast.success(i18n.t('auto.zgoda_zatwierdzona_pomyslnie', { defaultValue: "Zgoda zatwierdzona pomyślnie" }));
       } catch (err) {
         console.error("Error saving privacy to Firestore:", err);
       }
@@ -1330,8 +1336,8 @@ export default function App() {
           const notifiedKey = `notified_sensor_${userSettings.sensorChangeDate}`;
           if (!localStorage.getItem(notifiedKey)) {
             sendAppNotification(
-              "Zbliża się wymiana sensora!",
-              "Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!"
+              i18n.t('auto.zbliza_sie_wymiana_sensora', { defaultValue: "Zbliża się wymiana sensora!" }),
+              i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!" })
             );
             localStorage.setItem(notifiedKey, "true");
           }
@@ -1351,8 +1357,8 @@ export default function App() {
           const notifiedKey = `notified_infusion_${userSettings.infusionSetChangeDate}`;
           if (!localStorage.getItem(notifiedKey)) {
             sendAppNotification(
-              "Zbliża się wymiana wkłucia!",
-              "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!"
+              i18n.t('auto.zbliza_sie_wymiana_wklucia', { defaultValue: "Zbliża się wymiana wkłucia!" }),
+              i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!" })
             );
             localStorage.setItem(notifiedKey, "true");
           }
@@ -1580,19 +1586,19 @@ export default function App() {
              if (nightLowsMsg && !localStorage.getItem('glikosense_asked_night_lows')) {
                  localStorage.setItem('glikosense_asked_night_lows', 'true');
                  setTimeout(() => {
-                   toast((t) => (
+                   toast((toastItem) => (
                      <div>
-                       <b className="text-accent-600">GlikoSense AI:</b> <br/> Zauważyłem u Ciebie powtarzające się spadki cukru w nocy. Czy chcesz, abym zaczął ostrzegać Cię wieczorem, jeśli ryzyko nocnego niedocukrzenia będzie wysokie?
-                       <div className="flex gap-2 mt-3">
+                       <b className="text-accent-600">{t('auto.glikosense_ai', { defaultValue: 'GlikoSense AI:' })}</b> <br/>  {t('auto.zauważyłem_u_ciebie_powtarzające_si', { defaultValue: 'Zauważyłem u Ciebie powtarzające się spadki cukru w nocy. Czy chcesz, abym zaczął ostrzegać Cię wieczorem, jeśli ryzyko nocnego niedocukrzenia będzie wysokie?' })}
+                                                  <div className="flex gap-2 mt-3">
                          <button onClick={() => { 
                            const prefs = userSettings.notificationPrefs || { hypo: true, hyper: true, reminders: true, predictions: true };
-                           setDoc(doc(db, "artifacts", "diacontrolapp", "users", userSettings.userId || "temp", "settings", "profile"), {
+                           setDoc(doc(db, "artifacts", "diacontrolapp", "users", (userSettings as any).userId || "temp", "settings", "profile"), {
                               notificationPrefs: { ...prefs, nightSnackReminder: true }
                            }, { merge: true });
-                           toast.success("Inteligentna reguła włączona!");
-                           toast.dismiss(t.id);
-                         }} className="bg-accent-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">Tak, włącz regułę</button>
-                         <button onClick={() => toast.dismiss(t.id)} className="bg-slate-200 dark:bg-slate-700 dark:text-white text-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold">Nie teraz</button>
+                           toast.success(i18n.t('auto.inteligentna_regula_wlaczona', { defaultValue: "Inteligentna reguła włączona!" }));
+                           toast.dismiss(toastItem.id);
+                         }} className="bg-accent-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">{t('auto.tak_włącz_regułę', { defaultValue: 'Tak, włącz regułę' })}</button>
+                         <button onClick={() => toast.dismiss(toastItem.id)} className="bg-slate-200 dark:bg-slate-700 dark:text-white text-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold">{t('auto.nie_teraz', { defaultValue: 'Nie teraz' })}</button>
                        </div>
                      </div>
                    ), { duration: 30000, position: 'top-center', style: { padding: '16px', border: '2px solid #6366f1' } });
@@ -1800,17 +1806,17 @@ export default function App() {
         console.error("Firestore subscription error:", error);
         if (error.message.includes("permission-denied")) {
           setAuthError(
-            "Błąd uprawnień - sprawdź czy jesteś zalogowany poprawnie.",
+            i18n.t('auto.blad_uprawnien_sprawdz_czy_jes', { defaultValue: "Błąd uprawnień - sprawdź czy jesteś zalogowany poprawnie." }),
           );
         } else if (
           error.message.includes("quota") ||
           error.message.includes("Quota")
         ) {
           setAuthError(
-            "Przekroczono limit bazy danych (Quota exceeded). Spróbuj ponownie jutro.",
+            i18n.t('auto.przekroczono_limit_bazy_danych', { defaultValue: "Przekroczono limit bazy danych (Quota exceeded). Spróbuj ponownie jutro." }),
           );
         } else {
-          setAuthError("Błąd bazy danych: " + error.message);
+          setAuthError(i18n.t('auto.blad_bazy_danych', { defaultValue: "Błąd bazy danych:" }) + error.message);
         }
       },
     );
@@ -2147,18 +2153,18 @@ export default function App() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setAuthError("Podaj adres email aby zresetować hasło.");
+      setAuthError(i18n.t('auto.podaj_adres_email_aby_zresetow', { defaultValue: "Podaj adres email aby zresetować hasło." }));
       return;
     }
     try {
       await sendPasswordResetEmail(auth, email);
-      toast.success("Link do resetowania hasła został wysłany na Twój email.");
+      toast.success(i18n.t('auto.link_do_resetowania_hasla_zost', { defaultValue: "Link do resetowania hasła został wysłany na Twój email." }));
       setAuthError("");
     } catch (e: any) {
       let msg = e.message;
       if (e.code === "auth/user-not-found")
-        msg = "Nie znaleziono użytkownika o tym adresie email.";
-      if (e.code === "auth/invalid-email") msg = "Błędny format adresu email.";
+        msg = i18n.t('auto.nie_znaleziono_uzytkownika_o_t', { defaultValue: "Nie znaleziono użytkownika o tym adresie email." });
+      if (e.code === "auth/invalid-email") msg = i18n.t('auto.bledny_format_adresu_email', { defaultValue: "Błędny format adresu email." });
       setAuthError(msg);
     }
   };
@@ -2177,7 +2183,7 @@ export default function App() {
     } catch (e: any) {
       if (e.code === "auth/operation-not-allowed") {
         toast.error(
-          "Logowanie jako gość (Anonymous Auth) jest wyłączone w Twoim projekcie Firebase. Włącz je w konsoli Firebase lub użyj konta Google.",
+          i18n.t('auto.logowanie_jako_gosc_anonymous', { defaultValue: "Logowanie jako gość (Anonymous Auth) jest wyłączone w Twoim projekcie Firebase. Włącz je w konsoli Firebase lub użyj konta Google." }),
           { duration: 6000 },
         );
       }
@@ -2199,7 +2205,7 @@ export default function App() {
       }
     } catch (e: any) {
       console.error("Google Auth Error:", e);
-      setAuthError(e.message || "Błąd logowania Google");
+      setAuthError(e.message || i18n.t('auto.blad_logowania_google', { defaultValue: "Błąd logowania Google" }));
     }
   };
 
@@ -2235,20 +2241,23 @@ export default function App() {
                 theme === "dark" ? "text-white" : "text-slate-900",
               )}
             >
-              GlikoControl v{CURRENT_VERSION}
+              
+                                      {t('auto.glikocontrol_v', { defaultValue: 'GlikoControl v' })}{CURRENT_VERSION}
             </h2>
           </div>
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">
-            Zintegrowany System Glikemii
-          </p>
+            
+                                {t('auto.zintegrowany_system_glikemii', { defaultValue: 'Zintegrowany System Glikemii' })}
+                              </p>
           <p className="text-accent-400 text-xs font-bold mb-8 italic">
-            GlikoControl AI
-          </p>
+            
+                                {t('auto.glikocontrol_ai', { defaultValue: 'GlikoControl AI' })}
+                              </p>
 
           <div className="space-y-4 mb-6">
             <input
               type="email"
-              placeholder="Email"
+              placeholder={t('auto.email', { defaultValue: 'Email' })}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={cn(
@@ -2260,7 +2269,7 @@ export default function App() {
             />
             <input
               type="password"
-              placeholder="Hasło"
+              placeholder={t('auto.hasło', { defaultValue: 'Hasło' })}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
@@ -2278,8 +2287,9 @@ export default function App() {
                 }}
                 className="text-[10px] font-bold text-accent-500 hover:text-accent-400 transition-colors uppercase tracking-widest"
               >
-                Zapomniałeś hasła?
-              </button>
+                
+                                            {t('auto.zapomniałeś_hasła', { defaultValue: 'Zapomniałeś hasła?' })}
+                                          </button>
             </div>
           </div>
 
@@ -2291,8 +2301,9 @@ export default function App() {
                   onClick={() => window.open(window.location.href, "_blank")}
                   className="bg-rose-500/20 text-rose-600 text-[8px] font-black uppercase tracking-widest px-2 py-1.5 rounded-lg w-fit hover:bg-rose-500/30 transition-colors"
                 >
-                  Otwórz w nowej karcie
-                </button>
+                  
+                                                  {t('auto.otwórz_w_nowej_karcie', { defaultValue: 'Otwórz w nowej karcie' })}
+                                                </button>
               )}
             </div>
           )}
@@ -2306,8 +2317,9 @@ export default function App() {
               className="flex items-center justify-center gap-2 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all"
             >
               <LogIn size={14} />
-              Wejdź
-            </button>
+              
+                                      {t('auto.wejdź', { defaultValue: 'Wejdź' })}
+                                    </button>
             <button
               onClick={() => {
                 Haptics.medium();
@@ -2320,8 +2332,9 @@ export default function App() {
                   : "bg-slate-100 text-slate-600",
               )}
             >
-              Rejestracja
-            </button>
+              
+                                      {t('auto.rejestracja', { defaultValue: 'Rejestracja' })}
+                                    </button>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -2339,8 +2352,9 @@ export default function App() {
             >
               <img src="/google.svg" alt="Google" className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-wider">
-                Kontynuuj przez Google
-              </span>
+                
+                                            {t('auto.kontynuuj_przez_google', { defaultValue: 'Kontynuuj przez Google' })}
+                                          </span>
             </button>
 
             <button
@@ -2357,8 +2371,9 @@ export default function App() {
             >
               <Zap className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-wider">
-                Logowanie bez konta (Gość)
-              </span>
+                
+                                            {t('auto.logowanie_bez_konta_gość', { defaultValue: 'Logowanie bez konta (Gość)' })}
+                                          </span>
             </button>
 
             <p
@@ -2367,10 +2382,9 @@ export default function App() {
                 theme === "dark" ? "text-slate-500" : "text-slate-400",
               )}
             >
-              Uwaga: W trybie Gościa, po odświeżeniu aplikacji (szczególnie w
-              oknie testowym), dane i adres Nightscout mogą zostać zresetowane.
-              Użyj konta Google by zapisać je trwale.
-            </p>
+              
+                                      {t('auto.uwaga_w_trybie_gościa_po_odświeżeni', { defaultValue: 'Uwaga: W trybie Gościa, po odświeżeniu aplikacji (szczególnie w               oknie testowym), dane i adres Nightscout mogą zostać zresetowane.               Użyj konta Google by zapisać je trwale.' })}
+                                    </p>
           </div>
 
           <button
@@ -2748,8 +2762,9 @@ export default function App() {
         >
           <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
           <span className="tracking-widest">
-            Tryb Offline - Funkcje mogą być ograniczone
-          </span>
+            
+                                      {t('auto.tryb_offline_funkcje_mogą_być_ogran', { defaultValue: 'Tryb Offline - Funkcje mogą być ograniczone' })}
+                                    </span>
         </motion.div>
       )}
       {authError && user && (
@@ -2786,7 +2801,8 @@ export default function App() {
                 <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
                 <div>
                   <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">
-                    GlikoControl v{CURRENT_VERSION}
+                    
+                                                              {t('auto.glikocontrol_v', { defaultValue: 'GlikoControl v' })}{CURRENT_VERSION}
                   </h1>
                   <p
                     onClick={(e) => {
@@ -2794,7 +2810,7 @@ export default function App() {
                       Haptics.medium();
                       setShowChangelog(true);
                     }}
-                    title="Kliknij, aby zobaczyć co nowego"
+                    title={t('auto.kliknij_aby_zobaczyć_co_nowego', { defaultValue: 'Kliknij, aby zobaczyć co nowego' })}
                     className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
@@ -2872,7 +2888,6 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
-
       {/* Navigation */}
       {!isShortcutMode && (
         <nav className={cn(
@@ -2884,14 +2899,14 @@ export default function App() {
             active={activeTab === "chart"}
             onClick={() => changeTab("chart")}
             icon={<Activity />}
-            label="Wykres"
+            label={t("nav.chart")}
             ecoMode={userSettings?.ecoMode}
           />
           <NavButton
             active={activeTab === "dashboard"}
             onClick={() => changeTab("dashboard")}
             icon={<LayoutDashboard />}
-            label="Pulpit"
+            label={t("nav.dashboard")}
             ecoMode={userSettings?.ecoMode}
           />
           {!userSettings?.followerMode && (
@@ -2899,7 +2914,7 @@ export default function App() {
               active={activeTab === "database"}
               onClick={() => changeTab("database")}
               icon={<Database />}
-              label="Baza"
+              label={t("nav.database")}
               ecoMode={userSettings?.ecoMode}
             />
           )}
@@ -2962,7 +2977,7 @@ export default function App() {
                 }}
                 className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
               >
-                Talerz
+                {t("nav.plate")}
               </motion.div>
             </div>
           )}
@@ -2972,7 +2987,7 @@ export default function App() {
               active={activeTab === "assistant"}
               onClick={() => changeTab("assistant")}
               icon={<MessageSquare />}
-              label="Czat"
+              label={t("nav.chat")}
               ecoMode={userSettings?.ecoMode}
             />
           )}
@@ -2981,7 +2996,7 @@ export default function App() {
               active={activeTab === "ai"}
               onClick={() => changeTab("ai")}
               icon={<GlikoSenseIcon size={20} isAnalyzing={activeTab === "ai"} />}
-              label="GlikoSense"
+              label={t("nav.glikosense")}
               ecoMode={userSettings?.ecoMode}
             />
           )}
@@ -2989,7 +3004,7 @@ export default function App() {
             active={activeTab === "profile"}
             onClick={() => changeTab("profile")}
             icon={<Menu />}
-            label="Więcej"
+            label={t("nav.more")}
             ecoMode={userSettings?.ecoMode}
           />
         </div>
@@ -3018,19 +3033,19 @@ export default function App() {
           },
         }}
       >
-        {(t) => (
-          <ToastBar toast={t} style={{ padding: 0, background: 'transparent', boxShadow: 'none' }}>
+        {(toastItem) => (
+          <ToastBar toast={toastItem} style={{ padding: 0, background: 'transparent', boxShadow: 'none' }}>
             {({ icon, message }) => (
               <div className="flex items-center gap-3 w-full">
                 {icon}
                 <div className="flex-1 min-w-0 pr-2">
                   {message}
                 </div>
-                {t.type !== 'loading' && (
+                {toastItem.type !== 'loading' && (
                   <button
-                    onClick={() => toast.dismiss(t.id)}
+                    onClick={() => toast.dismiss(toastItem.id)}
                     className="p-2 ml-auto rounded-xl hover:bg-rose-500/10 text-rose-500 transition-colors shrink-0 group flex items-center justify-center hover:scale-110 active:scale-95"
-                    aria-label="Zamknij powiadomienie"
+                    aria-label={t('auto.zamknij_powiadomienie', { defaultValue: 'Zamknij powiadomienie' })}
                   >
                     <X size={18} className="drop-shadow-sm group-hover:drop-shadow-md" strokeWidth={2.5} />
                   </button>

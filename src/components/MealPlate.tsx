@@ -1,6 +1,8 @@
+import i18n from '../i18n';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
@@ -77,7 +79,7 @@ const getDietBadge = (product: Product, activeDiet: string | null) => {
     if ((product.carbs || 0) > 10)
       return {
         type: "warning",
-        text: "Wysokie Węgle",
+        text: i18n.t('auto.wysokie_wegle', { defaultValue: "Wysokie Węgle" }),
         icon: <AlertTriangle size={10} className="text-rose-500" />,
         color: "bg-rose-500/10 text-rose-600 border-rose-500/20",
       };
@@ -93,15 +95,15 @@ const getDietBadge = (product: Product, activeDiet: string | null) => {
   if (activeDiet === "gluten") {
     const glutenWords = [
       "chleb",
-      "bułka",
+      i18n.t('auto.bulka', { defaultValue: "bułka" }),
       "makaron",
       "pszenic",
-      "mąka",
+      i18n.t('auto.maka', { defaultValue: "mąka" }),
       "ciasto",
       "ciastk",
       "krakers",
       "paluszk",
-      "płatki",
+      i18n.t('auto.platki', { defaultValue: "płatki" }),
     ];
     if (glutenWords.some((w) => pName.includes(w)))
       return {
@@ -116,7 +118,7 @@ const getDietBadge = (product: Product, activeDiet: string | null) => {
     if ((product.carbs || 0) > 40 && (product.protein || 0) < 5)
       return {
         type: "warning",
-        text: "Same węgle",
+        text: i18n.t('auto.same_wegle', { defaultValue: "Same węgle" }),
         icon: <AlertTriangle size={10} className="text-rose-500" />,
         color: "bg-rose-500/10 text-rose-600 border-rose-500/20",
       };
@@ -161,6 +163,7 @@ export default function MealPlate({
 }) {
   const plate = sharedPlate;
   const setPlate = setSharedPlate || (() => {});
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [onlineResults, setOnlineResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -265,7 +268,7 @@ export default function MealPlate({
       let matchesCategory = false;
       if (activeCategory === "Wszystko") {
         matchesCategory = true;
-      } else if (activeCategory === "Społeczność") {
+      } else if (activeCategory === i18n.t('auto.spolecznosc', { defaultValue: "Społeczność" })) {
         matchesCategory = !!p.isCommunity;
       } else if (activeCategory === "Moje Produkty") {
         matchesCategory = !!p.isCustom;
@@ -305,29 +308,29 @@ export default function MealPlate({
 
             // Heurystyka lokalna (Algorytm GlikoSense Offline)
             if (isNaN(carbs)) {
-              if (name.includes("chleb") || name.includes("bułka")) carbs = 50;
-              else if (name.includes("ryż") || name.includes("kasza"))
+              if (name.includes("chleb") || name.includes(i18n.t('auto.bulka', { defaultValue: "bułka" }))) carbs = 50;
+              else if (name.includes(i18n.t('auto.ryz', { defaultValue: "ryż" })) || name.includes("kasza"))
                 carbs = 25;
               else if (name.includes("ziemniak")) carbs = 17;
               else if (name.includes("jogurt") || name.includes("mleko"))
                 carbs = 5;
               else if (
-                name.includes("mięso") ||
+                name.includes(i18n.t('auto.mieso', { defaultValue: "mięso" })) ||
                 name.includes("kurczak") ||
                 name.includes("ryba")
               )
                 carbs = 0;
-              else if (name.includes("jabłko") || name.includes("owoc"))
+              else if (name.includes(i18n.t('auto.jablko', { defaultValue: "jabłko" })) || name.includes("owoc"))
                 carbs = 12;
               else carbs = 0;
             }
 
-            if (name.includes("pełnoziarnist") || name.includes("razow"))
+            if (name.includes(i18n.t('auto.pelnoziarnist', { defaultValue: "pełnoziarnist" })) || name.includes("razow"))
               gi = 40;
             if (
               name.includes("cukier") ||
-              name.includes("biał") ||
-              name.includes("miód")
+              name.includes(i18n.t('auto.bial', { defaultValue: "biał" })) ||
+              name.includes(i18n.t('auto.miod', { defaultValue: "miód" }))
             )
               gi = 70;
 
@@ -404,12 +407,12 @@ export default function MealPlate({
         setOnlineResults(localMatches.map((p) => ({ ...p, isOnline: true })));
       } else {
         setSearchError(
-          "Brak dostępu do AI i nie znaleziono dopasowań w bazach tradycyjnych.",
+          i18n.t('auto.brak_dostepu_do_ai_i_nie_znale', { defaultValue: "Brak dostępu do AI i nie znaleziono dopasowań w bazach tradycyjnych." }),
         );
       }
     } catch (e) {
       console.error("Online search failed:", e);
-      setSearchError("Błąd wyszukiwania. Sprawdź połączenie.");
+      setSearchError(i18n.t('auto.blad_wyszukiwania_sprawdz_pola', { defaultValue: "Błąd wyszukiwania. Sprawdź połączenie." }));
     } finally {
       setIsSearching(false);
     }
@@ -460,7 +463,7 @@ export default function MealPlate({
       toast.success(`Dodano ${product.name} (${weight}g) do skrótów!`);
     } catch (e) {
       console.error("Error saving shortcut:", e);
-      toast.error("Nie udało się zapisać skrótu.");
+      toast.error(i18n.t('auto.nie_udalo_sie_zapisac_skrotu', { defaultValue: "Nie udało się zapisać skrótu." }));
     }
   };
 
@@ -488,7 +491,7 @@ export default function MealPlate({
       toast(`Zapisano ${product.name} do bazy produktów.`);
     } catch (e) {
       console.error(e);
-      toast.error("Błąd zapisu.");
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu." }));
     }
   };
 
@@ -514,7 +517,7 @@ export default function MealPlate({
       Haptics.success();
     } catch (e) {
       console.error("Error publishing to community:", e);
-      toast.error("Wystąpił błąd podczas udostępniania.");
+      toast.error(i18n.t('auto.wystapil_blad_podczas_udostepn', { defaultValue: "Wystąpił błąd podczas udostępniania." }));
     }
   };
 
@@ -612,7 +615,7 @@ export default function MealPlate({
       const prompt = `Jesteś zaawansowanym asystentem diabetologicznym. Przeanalizuj poniższy skład posiłku pacjenta:
       ${JSON.stringify(plate.map((p) => ({ nazwa: p.name, waga: p.weight, wegle: p.carbs, bialko: p.protein, tluszcz: p.fat, IG: p.gi })))}
       
-      Wybrana obróbka termiczna całego posiłku: ${cookingMethod === "raw" ? "Surowe / Brak" : cookingMethod === "boiled" ? "Gotowane" : cookingMethod === "baked" ? "Pieczone" : cookingMethod === "fried" ? "Smażone" : "Zblendowane"}
+      Wybrana obróbka termiczna całego posiłku: ${cookingMethod === "raw" ? "Surowe / Brak" : cookingMethod === "boiled" ? "Gotowane" : cookingMethod === "baked" ? "Pieczone" : cookingMethod === "fried" ? i18n.t('auto.smazone', { defaultValue: "Smażone" }) : "Zblendowane"}
       ${dietContext}
       
       Zwróć szczegółową analizę w czytelnym formacie HTML (używaj <b>, <ul>, <li>, <br>, ale ZABRANIAM używania markdown, w szczególności gwazdek).
@@ -628,7 +631,7 @@ export default function MealPlate({
       setAnalysis(result);
     } catch (e) {
       console.error(e);
-      setAnalysis("Błąd analizy AI.");
+      setAnalysis(i18n.t('auto.blad_analizy_ai', { defaultValue: "Błąd analizy AI." }));
     } finally {
       setIsAnalyzing(false);
     }
@@ -1114,8 +1117,8 @@ export default function MealPlate({
       setPlate([]);
       setMergeCandidates(null);
       Haptics.success();
-      toast.success("Połączono z wpisem z pompy!");
-    } catch (e: any) { console.error(e); toast.error('Błąd scalania: ' + e.message); Haptics.error(); }
+      toast.success(i18n.t('auto.polaczono_z_wpisem_z_pompy', { defaultValue: "Połączono z wpisem z pompy!" }));
+    } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) + e.message); Haptics.error(); }
   };
 
   const handleLogMeal = async () => {
@@ -1144,7 +1147,7 @@ export default function MealPlate({
       );
       setPlate([]);
       Haptics.success();
-    } catch (e: any) { console.error(e); toast.error('Błąd scalania: ' + e.message); Haptics.error(); }
+    } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) + e.message); Haptics.error(); }
   };
 
   const startVoiceSearch = () => {
@@ -1153,7 +1156,7 @@ export default function MealPlate({
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast.error("Twoja przeglądarka nie obsługuje wyszukiwania głosowego.");
+      toast.error(i18n.t('auto.twoja_przegladarka_nie_obslugu', { defaultValue: "Twoja przeglądarka nie obsługuje wyszukiwania głosowego." }));
       return;
     }
     const recognition = new SpeechRecognition();
@@ -1187,13 +1190,80 @@ export default function MealPlate({
       console.warn("Speech recognition error:", event.error);
       if (event.error === "not-allowed") {
         setSearchError(
-          "Brak dostępu do mikrofonu. Uprawnienia mogą być blokowane przez przeglądarkę.",
+          i18n.t('auto.brak_dostepu_do_mikrofonu_upra', { defaultValue: "Brak dostępu do mikrofonu. Uprawnienia mogą być blokowane przez przeglądarkę." }),
         );
       } else {
-        setSearchError("Błąd rozpoznawania mowy. Spróbuj powtórzyć.");
+        setSearchError(i18n.t('auto.blad_rozpoznawania_mowy_sprobu', { defaultValue: "Błąd rozpoznawania mowy. Spróbuj powtórzyć." }));
       }
       setIsListening(false);
     };
+  };
+
+  
+  const startCameraAnalysis = async () => {
+    try {
+      const image = await CapCamera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera
+      });
+
+      if (image.dataUrl) {
+        setIsAnalyzing(true);
+        setSearchError("");
+        try {
+          const result = await geminiService.analyzeMeal(
+            image.dataUrl,
+            settings,
+          );
+          const estimatedWeight =
+            result.weight && result.weight > 0 ? result.weight : 100;
+
+          const p = {
+            id: `ai_${Date.now()}`,
+            name: result.mealName || i18n.t('auto.posilek_ai', { defaultValue: "Posiłek AI" }),
+            carbs: Number(
+              (((result.carbs || 0) / estimatedWeight) * 100).toFixed(1),
+            ),
+            protein: Number(
+              (((result.protein || 0) / estimatedWeight) * 100).toFixed(1),
+            ),
+            fat: Number(
+              (((result.fat || 0) / estimatedWeight) * 100).toFixed(1),
+            ),
+            gi: result.ig || result.gi || 50,
+            category: "AI Wizja",
+          };
+          const weight = estimatedWeight;
+          setPlate((prev) => [
+            ...prev,
+            {
+              ...p,
+              weight,
+              carbs: p.carbs,
+              protein: p.protein,
+              fat: p.fat,
+            },
+          ]);
+          setTimeout(() => {
+            const container = document.getElementById("meal-plate-container")?.parentElement;
+            if (container) {
+              container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+            }
+          }, 50);
+        } catch (err) {
+          console.error("Camera vision analysis:", err);
+          setSearchError(
+            i18n.t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: "Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie." }),
+          );
+        } finally {
+          setIsAnalyzing(false);
+        }
+      }
+    } catch (e) {
+      console.error("Camera cancelled or failed", e);
+    }
   };
 
   const startScanner = () => {
@@ -1231,8 +1301,9 @@ export default function MealPlate({
                   <X size={20} />
                 </button>
                 <h2 className="text-xl font-black text-white mb-6 pr-8">
-                  Skaner Produktów
-                </h2>
+                  
+                                                {t('auto.skaner_produktów', { defaultValue: 'Skaner Produktów' })}
+                                              </h2>
                 <div className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2 relative shadow-inner">
                   <MealScanner
                     ref={scannerRef}
@@ -1274,8 +1345,9 @@ export default function MealPlate({
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 text-center mt-4 uppercase tracking-[0.2em] font-black opacity-50">
-                  Nakieruj na kod kreskowy
-                </p>
+                  
+                                                {t('auto.nakieruj_na_kod_kreskowy', { defaultValue: 'Nakieruj na kod kreskowy' })}
+                                              </p>
               </motion.div>
             </motion.div>
           )}
@@ -1302,7 +1374,8 @@ export default function MealPlate({
                   <X size={20} />
                 </button>
                 <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
-                  Dodaj: {selectedProduct.name}
+                  
+                                                {t('auto.dodaj', { defaultValue: 'Dodaj:' })} {selectedProduct.name}
                 </h2>
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 mb-6 text-center shadow-inner">
                   <input
@@ -1315,12 +1388,14 @@ export default function MealPlate({
                     autoFocus
                   />
                   <span className="text-sm font-black text-slate-400 mt-2 block uppercase tracking-widest">
-                    Gramy (g)
-                  </span>
+                    
+                                                      {t('auto.gramy_g', { defaultValue: 'Gramy (g)' })}
+                                                    </span>
                   {parseFloat(weightInput) > 0 && selectedProduct && (
                     <div className="mt-4 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-2xl flex justify-center gap-4 text-xs font-black flex-wrap">
                       <span className="text-accent-600 dark:text-accent-400">
-                        Węgle:{" "}
+                        
+                                                                  {t('auto.węgle', { defaultValue: 'Węgle:' })}{" "}
                         {(
                           (selectedProduct.carbs * parseFloat(weightInput)) /
                           100
@@ -1331,7 +1406,8 @@ export default function MealPlate({
                           : ""}
                       </span>
                       <span className="text-emerald-600 dark:text-emerald-400">
-                        B+T:{" "}
+                        
+                                                                  {t('auto.b_t', { defaultValue: 'B+T:' })}{" "}
                         {(
                           (((selectedProduct.protein || 0) +
                             (selectedProduct.fat || 0)) *
@@ -1358,7 +1434,8 @@ export default function MealPlate({
                                     : "text-rose-600 dark:text-rose-400",
                               )}
                             >
-                              ŁG: {glV.toFixed(1)}
+                              
+                                                                {t('auto.łg', { defaultValue: 'ŁG:' })} {glV.toFixed(1)}
                             </span>
                           );
                         })()}
@@ -1369,7 +1446,7 @@ export default function MealPlate({
                   onClick={handleWeightSubmit}
                   className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95"
                 >
-                  Dodaj do Talerza
+                  {t('meal.add_to_plate', { defaultValue: 'Dodaj do Talerza' })}
                 </button>
               </motion.div>
             </motion.div>
@@ -1397,20 +1474,20 @@ export default function MealPlate({
                   <X size={20} />
                 </button>
                 <h2 className="text-xl font-black mb-4 dark:text-white pr-8 leading-tight">
-                  Zapisz skrót?
+                  {t('meal.save_shortcut', { defaultValue: 'Zapisz skrót?' })}
                 </h2>
                 <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-[2rem] border border-amber-100 dark:border-amber-900/20 mb-8">
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                    Zapisz{" "}
+                    {t('meal.save_shortcut_desc1', { defaultValue: 'Zapisz' })}{" "}
                     <span className="text-amber-600 font-extrabold">
                       {shortcutToConfirm.name}
                     </span>{" "}
-                    jako szybki skrót.
+                    {t('meal.save_shortcut_desc2', { defaultValue: 'jako szybki skrót.' })}
                   </p>
 
                   <div className="mt-4">
                     <label className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-2 block">
-                      Gramatura (g)
+                      {t('meal.weight_g', { defaultValue: 'Gramatura (g)' })}
                     </label>
                     <div className="flex items-center gap-3">
                       <input
@@ -1443,7 +1520,7 @@ export default function MealPlate({
                   <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-800/50">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] uppercase font-black text-slate-400">
-                        Suma węgli:
+                        {t('meal.carbs_sum', { defaultValue: 'Suma węgli:' })}
                       </span>
                       <span className="text-sm font-black text-amber-600">
                         {(
@@ -1461,13 +1538,13 @@ export default function MealPlate({
                     onClick={() => setIsShortcutConfirmModalOpen(false)}
                     className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
                   >
-                    Anuluj
+                    {t('meal.cancel', { defaultValue: 'Anuluj' })}
                   </button>
                   <button
                     onClick={handleShortcutConfirm}
                     className="flex-2 bg-amber-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-500/20 transition-all active:scale-95"
                   >
-                    Tak, Zapisz
+                    {t('meal.yes_save', { defaultValue: 'Tak, Zapisz' })}
                   </button>
                 </div>
               </motion.div>
@@ -1496,14 +1573,14 @@ export default function MealPlate({
                   <X size={20} />
                 </button>
                 <h2 className="text-xl font-black mb-1 dark:text-white">
-                  Zapisz jako szablon
+                  {t('meal.save_as_template', { defaultValue: 'Zapisz jako szablon' })}
                 </h2>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
-                  Szybkie dodawanie zestawu w przyszłości
+                  {t('meal.template_hint', { defaultValue: 'Szybkie dodawanie zestawu w przyszłości' })}
                 </p>
                 <input
                   type="text"
-                  placeholder="Nazwa zestawu (np. Śniadanie)"
+                  placeholder={t('meal.template_name_placeholder', { defaultValue: 'Nazwa zestawu (np. Śniadanie)' })}
                   value={mealName}
                   onChange={(e) => setMealName(e.target.value)}
                   className="w-full bg-white dark:bg-slate-800 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-700 font-bold mb-6 outline-none dark:text-white focus:border-accent-500 transition-colors"
@@ -1513,7 +1590,7 @@ export default function MealPlate({
                   onClick={saveMealSet}
                   className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase shadow-xl transition-all active:scale-95 tracking-widest"
                 >
-                  Zapisz Szablon
+                  {t('meal.save_template_btn', { defaultValue: 'Zapisz Szablon' })}
                 </button>
               </motion.div>
             </motion.div>
@@ -1544,7 +1621,7 @@ export default function MealPlate({
                   {expandedMeal.meal.name}
                 </h2>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
-                  Dostosuj i dodaj do talerza
+                  {t('meal.adjust_and_add', { defaultValue: 'Dostosuj i dodaj do talerza' })}
                 </p>
 
                 <div className="space-y-4 mb-6">
@@ -1552,7 +1629,7 @@ export default function MealPlate({
                     <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-sm dark:text-white truncate" title={item.name}>{item.name}</div>
-                        <div className="text-[10px] font-bold text-slate-400">{(item.carbs * expandedMeal.items[idx].weight / 100).toFixed(1)}g W | {(item.protein * expandedMeal.items[idx].weight / 100).toFixed(1)}g B | {(item.fat * expandedMeal.items[idx].weight / 100).toFixed(1)}g T</div>
+                        <div className="text-[10px] font-bold text-slate-400">{(item.carbs * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W |' })} {(item.protein * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_b', { defaultValue: 'g B |' })} {(item.fat * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_t', { defaultValue: 'g T' })}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <input 
@@ -1583,7 +1660,7 @@ export default function MealPlate({
                   }}
                   className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
                 >
-                  Do Talerza
+                  {t('meal.to_plate', { defaultValue: 'Do Talerza' })}
                 </button>
               </motion.div>
             </motion.div>
@@ -1604,10 +1681,10 @@ export default function MealPlate({
                 className="bg-slate-50 dark:bg-slate-900 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[3rem] p-8 shadow-2xl border border-slate-200 dark:border-slate-800 will-change-transform relative scrollbar-none"
               >
                 <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 leading-tight">
-                  Znaleziono wpis
+                  {t('meal.entry_found', { defaultValue: 'Znaleziono wpis' })}
                 </h2>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
-                  Wybierz niedawny bolus / wpis z pompy, aby uaktualnić go składnikami z talerza.
+                  {t('meal.merge_hint', { defaultValue: 'Wybierz niedawny bolus / wpis z pompy, aby uaktualnić go składnikami z talerza.' })}
                 </p>
 
                 <div className="space-y-4 mb-6">
@@ -1619,10 +1696,10 @@ export default function MealPlate({
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-sm dark:text-white truncate">
-                          {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {c.description || (c.type === 'bolus' ? 'Bolus' : 'Posiłek')}
+                          {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {c.description || (c.type === 'bolus' ? 'Bolus' : i18n.t('auto.posilek', { defaultValue: "Posiłek" }))}
                         </div>
                         <div className="text-[10px] font-bold text-slate-400 mt-1">
-                          {Number(c.value || c.linkedMeal?.carbs || 0).toFixed(1)}g W | {c.value ? `${c.value}J` : ''}
+                          {Number(c.value || c.linkedMeal?.carbs || 0).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W |' })} {c.value ? `${c.value}J` : ''}
                         </div>
                       </div>
                       <Check size={20} className="text-emerald-500" />
@@ -1635,13 +1712,13 @@ export default function MealPlate({
                      onClick={() => handleLogMeal()}
                      className="w-full bg-accent-600 text-white py-4 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
                    >
-                     Dodaj jako nowy (Osobny wpis)
+                     {t('meal.add_as_new', { defaultValue: 'Dodaj jako nowy (Osobny wpis)' })}
                    </button>
                    <button
                      onClick={() => setMergeCandidates(null)}
                      className="w-full bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white py-4 rounded-[2rem] font-black text-[11px] uppercase transition-all active:scale-95 tracking-[0.2em]"
                    >
-                     Anuluj
+                     {t('meal.cancel', { defaultValue: 'Anuluj' })}
                    </button>
                 </div>
               </motion.div>
@@ -1656,10 +1733,10 @@ export default function MealPlate({
         <>
           <div className="px-1">
             <h2 className="text-xl font-black dark:text-white mb-2">
-              Buduj swój posiłek
+              {t('meal.build_meal', { defaultValue: 'Buduj swój posiłek' })}
             </h2>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">
-              Wyszukaj produkty i dodaj je do talerza
+              {t('meal.search_hint', { defaultValue: 'Wyszukaj produkty i dodaj je do talerza' })}
             </p>
           </div>
           <div className="space-y-4">
@@ -1671,7 +1748,7 @@ export default function MealPlate({
                 />
                 <input
                   type="text"
-                  placeholder="Wyszukaj produkt / danie..."
+                  placeholder={t('meal.search_placeholder', { defaultValue: 'Wyszukaj produkt / danie...' })}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => {
@@ -1684,7 +1761,7 @@ export default function MealPlate({
                     <button
                       onClick={() => setSearchTerm("")}
                       className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
-                      title="Wyczyść"
+                      title={t('auto.wyczyść', { defaultValue: 'Wyczyść' })}
                     >
                       <X size={16} />
                     </button>
@@ -1692,7 +1769,7 @@ export default function MealPlate({
                   <button
                     onClick={startVoiceSearch}
                     className={`p-2 rounded-full transition-all ${isListening ? "bg-rose-500 text-white animate-pulse" : "text-slate-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/30"}`}
-                    title="Wyszukiwanie głosowe"
+                    title={t('auto.wyszukiwanie_głosowe', { defaultValue: 'Wyszukiwanie głosowe' })}
                   >
                     <Mic size={18} />
                   </button>
@@ -1706,16 +1783,16 @@ export default function MealPlate({
                     handleOnlineSearch();
                   }}
                   className="flex-1 bg-accent-600 text-white p-3.5 sm:p-4 rounded-[2rem] shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all font-bold text-[10px] sm:text-xs uppercase tracking-widest"
-                  title="Szukaj z GlikoSense AI"
+                  title={t('auto.szukaj_z_glikosense_ai', { defaultValue: 'Szukaj z GlikoSense AI' })}
                   disabled={isSearching}
                 >
                   {isSearching ? (
                     <>
-                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> Szukam...
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> {t('meal.searching', { defaultValue: 'Szukam...' })}
                     </>
                   ) : (
                     <>
-                      <Globe size={18} className="sm:w-5 sm:h-5" /> Szukaj
+                      <Globe size={18} className="sm:w-5 sm:h-5" /> {t('meal.search_btn', { defaultValue: 'Szukaj' })}
                     </>
                   )}
                 </button>
@@ -1730,7 +1807,7 @@ export default function MealPlate({
                     }
                   }}
                   className="bg-emerald-600 text-white p-3.5 sm:p-4 rounded-[2rem] px-4 sm:px-6 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 transition-all text-[9px] sm:text-xs font-bold uppercase tracking-widest"
-                  title="Zrób zdjęcie (Analiza AI)"
+                  title={t('auto.zrób_zdjęcie_analiza_ai', { defaultValue: 'Zrób zdjęcie (Analiza AI)' })}
                 >
                   {isAnalyzing ? (
                     <div className="flex items-center gap-2">
@@ -1738,7 +1815,7 @@ export default function MealPlate({
                     </div>
                   ) : (
                     <>
-                      <Camera size={18} className="sm:w-5 sm:h-5" /> <span>Analiza</span>
+                      <Camera size={18} className="sm:w-5 sm:h-5" /> <span>{t('meal.analyze_btn', { defaultValue: 'Analiza' })}</span>
                     </>
                   )}
                 </button>
@@ -1749,7 +1826,7 @@ export default function MealPlate({
                   }}
                   className="bg-slate-800 text-white p-3.5 sm:p-4 rounded-[2rem] px-4 sm:px-6 shadow-lg active:scale-95 flex items-center justify-center gap-1.5 transition-all text-[9px] sm:text-xs font-bold uppercase tracking-widest"
                 >
-                  <Scan size={18} className="sm:w-5 sm:h-5" /> <span>Kodów</span>
+                  <Scan size={18} className="sm:w-5 sm:h-5" /> <span>{t('meal.scan_btn', { defaultValue: 'Kodów' })}</span>
                 </button>
               </div>
               <input
@@ -1813,7 +1890,7 @@ export default function MealPlate({
 
                     const p: Product = {
                       id: `ai_${Date.now()}`,
-                      name: result.mealName || "Posiłek AI",
+                      name: result.mealName || i18n.t('auto.posilek_ai', { defaultValue: "Posiłek AI" }),
                       carbs: Number(
                         (((result.carbs || 0) / estimatedWeight) * 100).toFixed(
                           1,
@@ -1853,7 +1930,7 @@ export default function MealPlate({
                   } catch (err) {
                     console.error("Camera vision analysis:", err);
                     setSearchError(
-                      "Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie.",
+                      i18n.t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: "Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie." }),
                     );
                   } finally {
                     setIsAnalyzing(false);
@@ -1872,7 +1949,7 @@ export default function MealPlate({
                       size={14}
                       className="text-accent-500 fill-accent-500"
                     />
-                    Baza Posiłków
+                    {t('meal.meal_base', { defaultValue: 'Baza Posiłków' })}
                   </h4>
                   {!isLoadingSavedMeals && (
                     <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
@@ -1925,7 +2002,7 @@ export default function MealPlate({
                             }
                           }}
                           className="absolute top-3 right-3 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full transition-colors"
-                          title="Usuń z bazy"
+                          title={t('auto.usuń_z_bazy', { defaultValue: 'Usuń z bazy' })}
                         >
                           <X size={14} />
                         </button>
@@ -1962,7 +2039,7 @@ export default function MealPlate({
                               }
                             }}
                             className="absolute top-3 right-10 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/30 rounded-full transition-colors"
-                            title="Zaktualizuj obecnym talerzem"
+                            title={t('auto.zaktualizuj_obecnym_talerzem', { defaultValue: 'Zaktualizuj obecnym talerzem' })}
                           >
                             <Save size={14} />
                           </button>
@@ -1972,7 +2049,7 @@ export default function MealPlate({
                             {m.name}
                           </h5>
                           <p className="text-[10px] font-bold text-slate-400">
-                            {m.items.length} {pluralize(m.items.length, "składnik", "składniki", "składników")}
+                            {m.items.length} {pluralize(m.items.length, i18n.t('auto.skladnik', { defaultValue: "składnik" }), i18n.t('auto.skladniki', { defaultValue: "składniki" }), i18n.t('auto.skladnikow', { defaultValue: "składników" }))}
                           </p>
                         </div>
                         <div className="flex justify-between items-end">
@@ -1980,7 +2057,7 @@ export default function MealPlate({
                             {m.items
                               .reduce((acc: number, i: any) => acc + i.carbs, 0)
                               .toFixed(1)}
-                            g Węg.
+                             g {t('meal.carbs_abbr', { defaultValue: 'Węg.' })}
                           </div>
                           <div className="w-8 h-8 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-lg shadow-accent-500/30">
                             <Plus size={16} />
@@ -2010,21 +2087,21 @@ export default function MealPlate({
                     : "bg-white dark:bg-slate-900 text-slate-400 dark:border dark:border-slate-800",
                 )}
               >
-                Wszystko
+                {t('meal.cat_all', { defaultValue: 'Wszystko' })}
               </button>
               <button
                 onClick={() => {
                   Haptics.selection();
-                  setActiveCategory("Społeczność");
+                  setActiveCategory(i18n.t('auto.spolecznosc', { defaultValue: "Społeczność" }));
                 }}
                 className={cn(
                   "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                  activeCategory === "Społeczność"
+                  activeCategory === i18n.t('auto.spolecznosc', { defaultValue: "Społeczność" })
                     ? "bg-sky-600 text-white shadow-lg"
                     : "bg-sky-50 dark:bg-sky-900/10 text-sky-500 border border-sky-100 dark:border-sky-900/20",
                 )}
               >
-                Społeczność
+                {t('meal.cat_community', { defaultValue: 'Społeczność' })}
               </button>
               <button
                 onClick={() => {
@@ -2038,7 +2115,7 @@ export default function MealPlate({
                     : "bg-amber-50 dark:bg-amber-900/10 text-amber-500 border border-amber-100 dark:border-amber-900/20",
                 )}
               >
-                Moje Produkty
+                {t('meal.cat_my_products', { defaultValue: 'Moje Produkty' })}
               </button>
               {CATEGORIES.map((cat) => (
                 <button
@@ -2073,7 +2150,7 @@ export default function MealPlate({
               {onlineResults.length > 0 && (
                 <div className="mb-4">
                   <h4 className="text-[9px] font-black text-accent-500 uppercase tracking-widest mb-2 px-2">
-                    Wyniki AI
+                    {t('meal.ai_results', { defaultValue: 'Wyniki AI' })}
                   </h4>
                   <div className="space-y-2">
                     {onlineResults.map((p, i) => (
@@ -2089,8 +2166,9 @@ export default function MealPlate({
                             <div className="font-black text-xs dark:text-white flex items-center gap-2">
                               {p.name}
                               <span className="bg-accent-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black">
-                                AI
-                              </span>
+                                
+                                                                            {t('auto.ai', { defaultValue: 'AI' })}
+                                                                          </span>
                               {(() => {
                                 const badge = getDietBadge(
                                   p,
@@ -2111,15 +2189,18 @@ export default function MealPlate({
                             </div>
                             <div className="text-[9px] font-bold text-accent-500/60 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                               <span>
-                                Węgle:{" "}
+                                
+                                                                            {t('auto.węgle', { defaultValue: 'Węgle:' })}{" "}
                                 {Number(p.carbs || 0)
                                   .toFixed(1)
                                   .replace(/\.0$/, "")}
-                                g | B:{" "}
+                                
+                                                                            {t('auto.g_b', { defaultValue: 'g | B:' })}{" "}
                                 {Number(p.protein || 0)
                                   .toFixed(1)
                                   .replace(/\.0$/, "")}
-                                g | T:{" "}
+                                
+                                                                            {t('auto.g_t', { defaultValue: 'g | T:' })}{" "}
                                 {Number(p.fat || 0)
                                   .toFixed(1)
                                   .replace(/\.0$/, "")}
@@ -2137,7 +2218,8 @@ export default function MealPlate({
                                     : "bg-slate-500/10 text-slate-500",
                                 )}
                               >
-                                IG: {typeof p.gi === "number" ? p.gi : "??*"}
+                                
+                                                                            {t('auto.ig', { defaultValue: 'IG:' })} {typeof p.gi === "number" ? p.gi : "??*"}
                               </span>
                               {(() => {
                                 const giVal =
@@ -2155,7 +2237,8 @@ export default function MealPlate({
                                           : "bg-rose-500/10 text-rose-500",
                                     )}
                                   >
-                                    ŁG: {lgVal.toFixed(1)}
+                                    
+                                                                            {t('auto.łg', { defaultValue: 'ŁG:' })} {lgVal.toFixed(1)}
                                   </span>
                                 );
                               })()}
@@ -2166,32 +2249,35 @@ export default function MealPlate({
                         <button
                           onClick={() => openShortcutConfirmModal(p)}
                           className="bg-amber-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
-                          title="Dodaj jako skrót"
+                          title={t('auto.dodaj_jako_skrót', { defaultValue: 'Dodaj jako skrót' })}
                         >
                           <BookMarked size={16} />
                           <span className="text-[8px] font-bold leading-none">
-                            Skrót
-                          </span>
+                            
+                                                                {t('auto.skrót', { defaultValue: 'Skrót' })}
+                                                              </span>
                         </button>
                         <button
                           onClick={() => publishToCommunity(p)}
                           className="bg-sky-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
-                          title="Udostępnij społeczności"
+                          title={t('auto.udostępnij_społeczności', { defaultValue: 'Udostępnij społeczności' })}
                         >
                           <Share2 size={16} />
                           <span className="text-[8px] font-bold leading-none">
-                            Społeczność
-                          </span>
+                            
+                                                                {t('auto.społeczność', { defaultValue: 'Społeczność' })}
+                                                              </span>
                         </button>
                         <button
                           onClick={() => saveToCustomDb(p)}
                           className="bg-accent-500 text-white p-2.5 rounded-xl active:scale-90 transition-all flex flex-col items-center justify-center gap-1 min-w-[50px]"
-                          title="Zapisz do bazy"
+                          title={t('auto.zapisz_do_bazy', { defaultValue: 'Zapisz do bazy' })}
                         >
                           <Save size={16} />
                           <span className="text-[8px] font-bold leading-none">
-                            Zapisz
-                          </span>
+                            
+                                                                {t('auto.zapisz', { defaultValue: 'Zapisz' })}
+                                                              </span>
                         </button>
                       </div>
                     ))}
@@ -2202,16 +2288,16 @@ export default function MealPlate({
               <div className="flex flex-col gap-2 mb-2">
                 <div className="flex justify-between items-end px-4">
                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                    Baza GlikoSense
+                    {t('meal.glikosense_base', { defaultValue: 'Baza GlikoSense' })}
                     <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-accent-600 text-[9px]">
                       {browseResults.length}{" "}
-                      {browseResults.length === 1 ? "produkt" : "produkty"}
+                      {browseResults.length === 1 ? t('meal.product_1', { defaultValue: 'produkt' }) : t('meal.product_many', { defaultValue: 'produkty' })}
                     </span>
                   </h4>
                   <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
                     {activeCategory !== "Wszystko"
-                      ? `Kategoria: ${activeCategory}`
-                      : "Wszystkie kategorie"}
+                      ? `${t('meal.category_prefix', { defaultValue: 'Kategoria:' })} ${activeCategory}`
+                      : t('meal.all_categories', { defaultValue: 'Wszystkie kategorie' })}
                   </div>
                 </div>
                 {searchTerm.length > 2 && (
@@ -2225,7 +2311,7 @@ export default function MealPlate({
                       ) : (
                         <Globe size={12} />
                       )}
-                      Głębsze wyszukiwanie w sieci (AI)
+                      {t('meal.deep_search_ai', { defaultValue: 'Głębsze wyszukiwanie w sieci (AI)' })}
                     </button>
                   </div>
                 )}
@@ -2254,7 +2340,7 @@ export default function MealPlate({
                           onDelete={() => {
                             Haptics.success();
                             addToPlate(p, 100);
-                            toast.success(`Dodano 100g: ${p.name}`);
+                            toast.success(`${t('meal.added_100g', { defaultValue: 'Dodano 100g:' })} ${p.name}`);
                           }}
                           actionIcon={<Plus size={24} />}
                           actionColor="from-accent-600 to-accent-500"
@@ -2277,12 +2363,12 @@ export default function MealPlate({
                                 {p.name}
                                 {p.isCustom && !p.isCommunity && (
                                   <span className="bg-amber-500/10 text-amber-500 text-[8px] px-1.5 py-0.5 rounded border border-amber-500/20">
-                                    Twoje
+                                    {t('meal.yours', { defaultValue: 'Twoje' })}
                                   </span>
                                 )}
                                 {p.isCommunity && (
                                   <span className="bg-sky-500/10 text-sky-500 text-[8px] px-1.5 py-0.5 rounded border border-sky-500/20">
-                                    Społeczność
+                                    {t('meal.community', { defaultValue: 'Społeczność' })}
                                   </span>
                                 )}
                                 {(() => {
@@ -2305,15 +2391,17 @@ export default function MealPlate({
                               </div>
                               <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                                 <span>
-                                  Węgle:{" "}
+                                  {t('meal.carbs_long', { defaultValue: 'Węgle:' })}{" "}
                                   {Number(p.carbs || 0)
                                     .toFixed(1)
                                     .replace(/\.0$/, "")}
-                                  g | B:{" "}
+                                  
+                                                                                  {t('auto.g', { defaultValue: 'g |' })} {t('meal.protein_short', { defaultValue: 'B:' })}{" "}
                                   {Number(p.protein || 0)
                                     .toFixed(1)
                                     .replace(/\.0$/, "")}
-                                  g | T:{" "}
+                                  
+                                                                                  {t('auto.g', { defaultValue: 'g |' })} {t('meal.fat_short', { defaultValue: 'T:' })}{" "}
                                   {Number(p.fat || 0)
                                     .toFixed(1)
                                     .replace(/\.0$/, "")}
@@ -2331,7 +2419,8 @@ export default function MealPlate({
                                       : "bg-slate-500/10 text-slate-500",
                                   )}
                                 >
-                                  IG: {typeof p.gi === "number" ? p.gi : "??*"}
+                                  
+                                                                                  {t('auto.ig', { defaultValue: 'IG:' })} {typeof p.gi === "number" ? p.gi : "??*"}
                                 </span>
                                 {/* Restoring ŁG (Glycemic Load) calculation */}
                                 {typeof p.gi === "number" &&
@@ -2349,7 +2438,8 @@ export default function MealPlate({
                                               : "bg-rose-500/10 text-rose-500",
                                         )}
                                       >
-                                        ŁG: {lgVal.toFixed(1)}
+                                        
+                                                                                    {t('auto.łg', { defaultValue: 'ŁG:' })} {lgVal.toFixed(1)}
                                       </span>
                                     );
                                   })()}
@@ -2362,11 +2452,11 @@ export default function MealPlate({
                                   openShortcutConfirmModal(p);
                                 }}
                                 className="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors z-10 min-w-[48px] gap-1"
-                                title="Dodaj do skrótów"
+                                title={t('auto.dodaj_do_skrótów', { defaultValue: 'Dodaj do skrótów' })}
                               >
                                 <BookMarked size={16} />
                                 <span className="text-[8px] font-bold leading-none">
-                                  Skrót
+                                  {t('meal.shortcut_btn', { defaultValue: 'Skrót' })}
                                 </span>
                               </button>
                               {p.isCustom && !p.isCommunity && (
@@ -2376,11 +2466,11 @@ export default function MealPlate({
                                     publishToCommunity(p);
                                   }}
                                   className="flex flex-col items-center justify-center p-2 text-slate-400 hover:text-sky-500 dark:hover:text-sky-400 transition-colors z-10 min-w-[48px] gap-1"
-                                  title="Udostępnij społeczności"
+                                  title={t('auto.udostępnij_społeczności', { defaultValue: 'Udostępnij społeczności' })}
                                 >
                                   <Share2 size={16} />
                                   <span className="text-[8px] font-bold leading-none">
-                                    Społeczność
+                                    {t('meal.community_btn', { defaultValue: 'Społeczność' })}
                                   </span>
                                 </button>
                               )}
@@ -2390,7 +2480,7 @@ export default function MealPlate({
                                   className="bg-accent-50 dark:bg-accent-900/50 p-1 rounded-lg w-6 h-6"
                                 />
                                 <span className="text-[8px] font-bold leading-none">
-                                  Talerz
+                                  {t('meal.plate_btn', { defaultValue: 'Talerz' })}
                                 </span>
                               </div>
                             </div>
@@ -2404,7 +2494,7 @@ export default function MealPlate({
                 <div className="text-center py-12 p-8 bg-slate-100 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
                   <Tag size={32} className="mx-auto text-slate-300 mb-3" />
                   <p className="text-xs font-bold text-slate-400">
-                    Nie znaleziono produktów w tej kategorii.
+                    {t('meal.no_products', { defaultValue: 'Nie znaleziono produktów w tej kategorii.' })}
                   </p>
                 </div>
               )}
@@ -2475,11 +2565,10 @@ export default function MealPlate({
           </motion.div>
 
           <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-3 relative z-10 font-display">
-            Talerz jeszcze pusty
+            {t('meal.plate_empty_title', { defaultValue: 'Talerz jeszcze pusty' })}
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-[280px] mb-10 leading-relaxed font-medium relative z-10">
-            Twój talerz czeka na smakołyki! Odwiedź bazę i wybierz coś pysznego
-            do przeliczenia.
+            {t('meal.plate_empty_desc', { defaultValue: 'Twój talerz czeka na smakołyki! Odwiedź bazę i wybierz coś pysznego do przeliczenia.' })}
           </p>
 
           <button
@@ -2493,7 +2582,7 @@ export default function MealPlate({
               size={18}
               className="group-hover:rotate-12 transition-transform"
             />
-            <span>Przeglądaj Składniki</span>
+            <span>{t('meal.browse_ingredients', { defaultValue: 'Przeglądaj Składniki' })}</span>
             <div className="absolute inset-0 rounded-[2rem] bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
           </button>
         </motion.div>
@@ -2554,13 +2643,13 @@ export default function MealPlate({
                 <div>
                   <h3 className="font-bold text-slate-800 dark:text-white text-sm">
                     {activeMeal.type === "bolus" && activeMeal.linkedMeal
-                      ? activeMeal.linkedMeal.name || "Posiłek z pompy"
+                      ? activeMeal.linkedMeal.name || t('meal.pump_meal_fallback', { defaultValue: 'Posiłek z pompy' })
                       : activeMeal.name ||
                         activeMeal.notes ||
-                        "Aktywny posiłek"}
+                        t('meal.active_meal_fallback', { defaultValue: 'Aktywny posiłek' })}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Podano:{" "}
+                    {t('meal.given_at', { defaultValue: 'Podano:' })}{" "}
                     {new Date(activeMeal.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -2573,20 +2662,20 @@ export default function MealPlate({
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
-                  Szacowane Makro
+                  {t('meal.estimated_macros', { defaultValue: 'Szacowane Makro' })}
                 </div>
                 <div className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
                   <span className="text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-lg">
-                    {activeChartData[0]?.WW?.toFixed(1) || "?"} WW
-                  </span>
+                    {activeChartData[0]?.WW?.toFixed(1) || "?"}  {t('auto.ww', { defaultValue: 'WW' })}
+                                                        </span>
                   <span className="text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-lg">
-                    {activeChartData[0]?.WBT?.toFixed(1) || "?"} WBT
-                  </span>
+                    {activeChartData[0]?.WBT?.toFixed(1) || "?"}  {t('auto.wbt', { defaultValue: 'WBT' })}
+                                                        </span>
                 </div>
               </div>
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
-                  Koniec wchłaniania
+                  {t('meal.absorption_end', { defaultValue: 'Koniec wchłaniania' })}
                 </div>
                 <div className="text-xl font-black text-slate-800 dark:text-white">
                   {new Date(
@@ -2610,10 +2699,10 @@ export default function MealPlate({
           <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
             <div className="mb-4">
               <h3 className="font-bold text-slate-800 dark:text-white text-sm">
-                Wykres wchłaniania
+                {t('meal.absorption_chart', { defaultValue: 'Wykres wchłaniania' })}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[250px]">
-                Przebieg uwalniania się glukozy oraz insuliny w czasie
+                {t('meal.absorption_chart_desc', { defaultValue: 'Przebieg uwalniania się glukozy oraz insuliny w czasie' })}
               </p>
             </div>
 
@@ -2680,7 +2769,7 @@ export default function MealPlate({
                   <Area
                     yAxisId="left"
                     type="monotone"
-                    dataKey="Posiłek"
+                    dataKey={i18n.t('auto.posilek', { defaultValue: "Posiłek" })}
                     stroke="#f43f5e"
                     strokeWidth={3}
                     fillOpacity={1}
@@ -2718,23 +2807,23 @@ export default function MealPlate({
             </div>
 
             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-4">
-              <span className="text-rose-500 font-bold">Czerwona strefa</span>{" "}
-              to wchłanianie posiłku.{" "}
-              <span className="text-blue-500 font-bold">Niebieska</span> to
-              działanie insuliny.
+              <span className="text-rose-500 font-bold">{t('meal.chart_legend_red_zone', { defaultValue: 'Czerwona strefa' })}</span>{" "}
+              {t('meal.chart_legend_red_zone_desc', { defaultValue: 'to wchłanianie posiłku.' })}{" "}
+              <span className="text-blue-500 font-bold">{t('meal.chart_legend_blue_zone', { defaultValue: 'Niebieska' })}</span>{" "}
+              {t('meal.chart_legend_blue_zone_desc', { defaultValue: 'to działanie insuliny.' })}
               <span className="text-emerald-500 dark:text-emerald-400 font-bold">
                 {" "}
-                Zielona linia{" "}
+                {t('meal.chart_legend_green_line', { defaultValue: 'Zielona linia' })}{" "}
               </span>
-              to profil netto.
+              {t('meal.chart_legend_green_line_desc', { defaultValue: 'to profil netto.' })}
               <span className="text-amber-500 dark:text-amber-400 font-bold">
                 {" "}
-                Żółta linia (przerywana){" "}
+                {t('meal.chart_legend_yellow_line', { defaultValue: 'Żółta linia (przerywana)' })}{" "}
               </span>
-              to rzeczywista glikemia (prawa oś).{" "}
+              {t('meal.chart_legend_yellow_line_desc', { defaultValue: 'to rzeczywista glikemia (prawa oś).' })}{" "}
               {activeBolus
-                ? `Obliczono z ujęciem bolusa: ${Number(activeBolus.value).toFixed(1)}U.`
-                : "Brak zarejestrowanego bolusa."}
+                ? `${t('meal.bolus_included', { defaultValue: 'Obliczono z ujęciem bolusa:' })} ${Number(activeBolus.value).toFixed(1)}U.`
+                : t('meal.no_bolus_registered', { defaultValue: 'Brak zarejestrowanego bolusa.' })}
             </p>
           </div>
         </div>
@@ -2749,7 +2838,7 @@ export default function MealPlate({
                 <Utensils size={16} className="text-accent-400" />
               </div>
               <span className="text-xs font-black uppercase tracking-widest text-white">
-                Twój Talerz
+                {t('meal.your_plate', { defaultValue: 'Twój Talerz' })}
               </span>
               <span className="bg-accent-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
                 {plate.length}
@@ -2762,7 +2851,7 @@ export default function MealPlate({
               }}
               className="text-[9px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 px-4 py-2 rounded-xl active:bg-rose-500 active:text-white transition-all"
             >
-              Wyczyść
+              {t('meal.clear', { defaultValue: 'Wyczyść' })}
             </button>
           </div>
 
@@ -2776,7 +2865,7 @@ export default function MealPlate({
             className="space-y-3 mb-8"
           >
             <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1 font-mono">
-              Składniki:
+              {t('meal.ingredients_list', { defaultValue: 'Składniki:' })}
             </h5>
             <AnimatePresence>
               {plate.map((item, idx) => (
@@ -2817,7 +2906,7 @@ export default function MealPlate({
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] uppercase tracking-tighter opacity-50 font-black">
-                            Waga:
+                            {t('meal.weight_label', { defaultValue: 'Waga:' })}
                           </span>
                           <div className="flex items-center bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
                             <input
@@ -2854,7 +2943,8 @@ export default function MealPlate({
                                 : "bg-slate-500/20 text-slate-400",
                             )}
                           >
-                            IG: {typeof item.gi === "number" ? item.gi : "??*"}
+                            
+                                                                      {t('auto.ig', { defaultValue: 'IG:' })} {typeof item.gi === "number" ? item.gi : "??*"}
                           </div>
                           {typeof item.gi === "number" &&
                             (() => {
@@ -2872,7 +2962,8 @@ export default function MealPlate({
                                         : "bg-rose-500/20 text-rose-400",
                                   )}
                                 >
-                                  ŁG: {glValue.toFixed(1)}
+                                  
+                                                                        {t('auto.łg', { defaultValue: 'ŁG:' })} {glValue.toFixed(1)}
                                 </div>
                               );
                             })()}
@@ -2887,15 +2978,15 @@ export default function MealPlate({
 
           <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5 glass-target">
             <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-              Obróbka Termiczna Posiłku
+              {t('meal.thermal_processing', { defaultValue: 'Obróbka Termiczna Posiłku' })}
             </h5>
             <div className="flex flex-wrap gap-2">
               {[
-                { id: "raw", label: "Brak / Surowe" },
-                { id: "boiled", label: "Gotowane" },
-                { id: "baked", label: "Pieczone" },
-                { id: "fried", label: "Smażone na tłuszczu" },
-                { id: "blended", label: "Zblendowane" },
+                { id: "raw", label: t('meal.method_raw', { defaultValue: 'Brak / Surowe' }) },
+                { id: "boiled", label: t('meal.method_boiled', { defaultValue: 'Gotowane' }) },
+                { id: "baked", label: t('meal.method_baked', { defaultValue: 'Pieczone' }) },
+                { id: "fried", label: t('meal.method_fried', { defaultValue: 'Smażone na tłuszczu' }) },
+                { id: "blended", label: t('meal.method_blended', { defaultValue: 'Zblendowane' }) },
               ].map((method) => (
                 <button
                   key={method.id}
@@ -2916,24 +3007,22 @@ export default function MealPlate({
             </div>
             {cookingMethod === "fried" && (
               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
-                Uwaga: Smażenie automatycznie dodaje ~10g tłuszczu na 100g
-                składników. Obniża IG, ale podbija WBT i Kcal.
+                {t('meal.alert_fried', { defaultValue: 'Uwaga: Smażenie automatycznie dodaje ~10g tłuszczu na 100g składników. Obniża IG, ale podbija WBT i Kcal.' })}
               </p>
             )}
             {cookingMethod === "boiled" && (
               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
-                Gotowanie może mocno podnieść IG węglowodanów (np. stają się
-                szybciej przyswajalne).
+                {t('meal.alert_boiled', { defaultValue: 'Gotowanie może mocno podnieść IG węglowodanów (np. stają się szybciej przyswajalne).' })}
               </p>
             )}
             {cookingMethod === "baked" && (
               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
-                Pieczenie podnosi Indeks Glikemiczny potrawy.
+                {t('meal.alert_baked', { defaultValue: 'Pieczenie podnosi Indeks Glikemiczny potrawy.' })}
               </p>
             )}
             {cookingMethod === "blended" && (
               <p className="text-[9px] text-amber-400 font-bold mt-2 uppercase tracking-tight">
-                Rozdrabnianie (blendowanie) ułatwia trawienie i podnosi IG.
+                {t('meal.alert_blended', { defaultValue: 'Rozdrabnianie (blendowanie) ułatwia trawienie i podnosi IG.' })}
               </p>
             )}
           </div>
@@ -2943,14 +3032,14 @@ export default function MealPlate({
             if (settings?.activeDiet) {
               if (settings.activeDiet === "keto" && totalCarbs > 20) {
                 dietAlerts.push(
-                  "Posiłek dostarczy ponad 20g węgl., co mocno utrudnia pobyt w ketozie (Keto)!",
+                  t('meal.diet_alert_keto_carbs', { defaultValue: 'Posiłek dostarczy ponad 20g węgl., co mocno utrudnia pobyt w ketozie (Keto)!' })
                 );
               } else if (
                 settings.activeDiet === "keto" &&
                 fatPct > carbsPct + proteinPct
               ) {
                 dietAlerts.push({
-                  text: "Świetny stosunek makro dla diety Keto!",
+                  text: t('meal.diet_alert_keto_success', { defaultValue: 'Świetny stosunek makro dla diety Keto!' }),
                   type: "success",
                 });
               }
@@ -2958,11 +3047,11 @@ export default function MealPlate({
               if (settings.activeDiet === "plate") {
                 if (carbsPct > 40)
                   dietAlerts.push(
-                    "Zbyt duża przewaga węglowodanów względem talerza (Pamiętaj by 1/4 stanowiły węgle).",
+                    t('meal.diet_alert_plate_carbs', { defaultValue: 'Zbyt duża przewaga węglowodanów względem talerza (Pamiętaj by 1/4 stanowiły węgle).' })
                   );
                 if (proteinPct < 15)
                   dietAlerts.push(
-                    "Odrobinę za mało białka w porcji. (Pamiętaj by 1/4 stanowiło białko).",
+                    t('meal.diet_alert_plate_protein', { defaultValue: 'Odrobinę za mało białka w porcji. (Pamiętaj by 1/4 stanowiło białko).' })
                   );
               }
             }
@@ -2995,7 +3084,7 @@ export default function MealPlate({
                           ) : (
                             <AlertTriangle size={12} />
                           )}
-                          GlikoSense: Twoja Dieta
+                          {t('meal.glikosense_diet', { defaultValue: 'GlikoSense: Twoja Dieta' })}
                         </h5>
                         <p
                           className={cn(
@@ -3018,11 +3107,11 @@ export default function MealPlate({
           <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5 glass-target">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                Balans Posiłku (Energia %)
+                {t('meal.meal_balance', { defaultValue: 'Balans Posiłku (Energia %)' })}
               </span>
               <span className="text-[10px] font-black text-accent-400">
-                {Math.round(totalCalsFromMacros)} kcal
-              </span>
+                {Math.round(totalCalsFromMacros)}  {t('auto.kcal', { defaultValue: 'kcal' })}
+                                            </span>
             </div>
 
             <div className="flex h-3 w-full rounded-full overflow-hidden mb-4">
@@ -3050,19 +3139,22 @@ export default function MealPlate({
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-accent-500" />
                 <span className="text-[9px] font-bold text-slate-300">
-                  W: {carbsPct.toFixed(0)}%
+                  
+                                                    {t('auto.w', { defaultValue: 'W:' })} {carbsPct.toFixed(0)}%
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 <span className="text-[9px] font-bold text-slate-300">
-                  B: {proteinPct.toFixed(0)}%
+                  
+                                                    {t('auto.b', { defaultValue: 'B:' })} {proteinPct.toFixed(0)}%
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 <span className="text-[9px] font-bold text-slate-300">
-                  T: {fatPct.toFixed(0)}%
+                  
+                                                    {t('auto.t', { defaultValue: 'T:' })} {fatPct.toFixed(0)}%
                 </span>
               </div>
             </div>
@@ -3070,31 +3162,31 @@ export default function MealPlate({
 
           <div className="flex justify-center flex-col items-center py-6 border-t border-white/10 mb-2 mt-2">
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 block">
-              Kalorie z makroskładników
+              {t('meal.calories_from_macros', { defaultValue: 'Kalorie z makroskładników' })}
             </span>
             <span className="text-4xl font-black text-white drop-shadow-md flex items-baseline gap-1">
               {Math.round(totalCalsFromMacros)}
-              <span className="text-sm font-bold opacity-40">kcal</span>
+              <span className="text-sm font-bold opacity-40">{t('auto.kcal', { defaultValue: 'kcal' })}</span>
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-6 border-t border-white/10 pt-4">
             <div>
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Wymienniki WW
+                {t('meal.exchanges_ww', { defaultValue: 'Wymienniki WW' })}
               </span>
               <span className="text-2xl font-black text-accent-400">
                 {totalWW.toFixed(1)}
-                <span className="text-xs font-bold opacity-30 ml-1">WW</span>
+                <span className="text-xs font-bold opacity-30 ml-1">{t('auto.ww', { defaultValue: 'WW' })}</span>
               </span>
             </div>
             <div className="text-right">
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Wymienniki WBT
+                {t('meal.exchanges_wbt', { defaultValue: 'Wymienniki WBT' })}
               </span>
               <span className="text-2xl font-black text-amber-300">
                 {totalWBT.toFixed(1)}
-                <span className="text-xs font-bold opacity-30 ml-1">WBT</span>
+                <span className="text-xs font-bold opacity-30 ml-1">{t('auto.wbt', { defaultValue: 'WBT' })}</span>
               </span>
             </div>
           </div>
@@ -3102,7 +3194,7 @@ export default function MealPlate({
           <div className="grid grid-cols-4 gap-2 mb-6 border-t border-white/10 pt-4">
             <div>
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Węglowodany
+                {t('meal.carbohydrates', { defaultValue: 'Węglowodany' })}
               </span>
               <span className="text-lg font-black text-accent-300">
                 {totalCarbs.toFixed(1)}
@@ -3111,7 +3203,7 @@ export default function MealPlate({
             </div>
             <div className="text-center border-l border-white/10">
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Białko
+                {t('meal.protein', { defaultValue: 'Białko' })}
               </span>
               <span className="text-lg font-black text-emerald-400">
                 {totalProtein.toFixed(1)}
@@ -3120,7 +3212,7 @@ export default function MealPlate({
             </div>
             <div className="text-center border-l border-white/10">
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Tłuszcze
+                {t('meal.fats', { defaultValue: 'Tłuszcze' })}
               </span>
               <span className="text-lg font-black text-amber-400">
                 {totalFat.toFixed(1)}
@@ -3129,7 +3221,7 @@ export default function MealPlate({
             </div>
             <div className="text-right border-l border-white/10">
               <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
-                Ładunek Gl.
+                {t('meal.glycemic_load_abbr', { defaultValue: 'Ładunek Gl.' })}
               </span>
               <span
                 className={cn(
@@ -3142,13 +3234,13 @@ export default function MealPlate({
                 )}
               >
                 {totalGL.toFixed(1)}
-                <span className="text-[9px] font-bold opacity-30 ml-1">ŁG</span>
+                <span className="text-[9px] font-bold opacity-30 ml-1">{t('auto.łg', { defaultValue: 'ŁG' })}</span>
               </span>
             </div>
           </div>
           <div className="flex justify-between items-center mt-6">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-              Czas podania zjedzenia:
+              {t('meal.time_of_eating', { defaultValue: 'Czas podania zjedzenia:' })}
             </span>
             <input
               type="datetime-local"
@@ -3163,13 +3255,13 @@ export default function MealPlate({
               onClick={prepareToLogMeal}
               className="flex-3 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
             >
-              Dodaj do Dziennika
+              {t('meal.add_to_diary', { defaultValue: 'Dodaj do Dziennika' })}
             </button>
             <button
               onClick={analyzeMeal}
               disabled={isAnalyzing}
               className="bg-slate-800 text-accent-400 p-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center min-w-[56px]"
-              title="Analiza AI"
+              title={t('meal.ai_analysis_title', { defaultValue: 'Analiza AI' })}
             >
               {isAnalyzing ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -3180,7 +3272,7 @@ export default function MealPlate({
             <button
               onClick={() => setIsSaveModalOpen(true)}
               className="bg-slate-800 text-slate-400 p-4 rounded-2xl active:scale-95 transition-all flex items-center justify-center min-w-[56px]"
-              title="Zapisz jako szablon (ulubiony)"
+              title={t('meal.save_as_template', { defaultValue: 'Zapisz jako szablon (ulubiony)' })}
             >
               <Star size={20} />
             </button>
@@ -3203,7 +3295,7 @@ export default function MealPlate({
                   carbs: Math.round(totalCarbs * 10) / 10,
                   protein: Math.round(totalProtein * 10) / 10,
                   fat: Math.round(totalFat * 10) / 10,
-                  name: plate.map((i) => i.name).join(", ") || "Własny posiłek",
+                  name: plate.map((i) => i.name).join(", ") || t('meal.custom_meal', { defaultValue: 'Własny posiłek' }),
                   items: plate,
                 }),
               );
@@ -3211,7 +3303,7 @@ export default function MealPlate({
             }}
             className="w-full bg-slate-800 py-3 rounded-xl mt-3 font-black text-[9px] uppercase tracking-widest text-slate-400 active:scale-95 transition-all"
           >
-            Przejdź do Kalkulatora
+            {t('meal.go_to_calculator', { defaultValue: 'Przejdź do Kalkulatora' })}
           </button>
 
           {/* Dynamic absorption wizard for composing food - ALWAYS at the bottom as requested */}
@@ -3220,15 +3312,15 @@ export default function MealPlate({
               <div>
                 <h4 className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
                   <Zap size={14} className="text-accent-400 animate-pulse" />
-                  Profil wchłaniania posiłku
+                  {t('meal.absorption_profile', { defaultValue: 'Profil wchłaniania posiłku' })}
                 </h4>
                 <p className="text-[10px] text-slate-400">
-                  Planowane tempo uwalniania się energii ze składników na talerzu
+                  {t('meal.absorption_profile_desc', { defaultValue: 'Planowane tempo uwalniania się energii ze składników na talerzu' })}
                 </p>
               </div>
               <div className="text-right">
                 <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest block">
-                  Koniec wchłaniania
+                  {t('meal.absorption_end', { defaultValue: 'Koniec wchłaniania' })}
                 </span>
                 <span className="text-xs font-black text-accent-300">
                   {new Date(
@@ -3277,11 +3369,11 @@ export default function MealPlate({
                       color: "#f8fafc",
                     }}
                     labelStyle={{ color: "#94a3b8" }}
-                    formatter={(value: any, name: any) => [`${value} jedn.`, "Profil wchłaniania"]}
+                    formatter={(value: any, name: any) => [`${value} ${t('meal.unit', { defaultValue: 'jedn.' })}`, t('meal.absorption_profile_tooltip', { defaultValue: 'Profil wchłaniania' })]}
                   />
                   <Area
                     type="monotone"
-                    dataKey="Posiłek"
+                    dataKey={i18n.t('auto.posilek', { defaultValue: "Posiłek" })}
                     stroke="#f43f5e"
                     strokeWidth={2.5}
                     fillOpacity={1}
@@ -3291,7 +3383,7 @@ export default function MealPlate({
               </ResponsiveContainer>
             </div>
             <p className="text-[8px] text-slate-400 mt-2 text-center italic">
-              *Wykres przedstawia dynamiczną krzywą metaboliczną na podstawie wskaźnika IG oraz WBT dodanych składników.
+              {t('meal.chart_disclaimer', { defaultValue: '*Wykres przedstawia dynamiczną krzywą metaboliczną na podstawie wskaźnika IG oraz WBT dodanych składników.' })}
             </p>
           </div>
         </div>
@@ -3303,7 +3395,7 @@ export default function MealPlate({
 const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void }, ref) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
-  const [scanner, setScanner] = useState<Html5Qrcode | null>(null);
+  const [scanner, setScanner] = useState<any>(null);
 
   useImperativeHandle(ref, () => ({
     stopScanner: async () => {
@@ -3318,6 +3410,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
   }));
 
   useEffect(() => {
+    const Html5Qrcode = require('html5-qrcode').Html5Qrcode;
     const html5QrCode = new Html5Qrcode("reader-meal");
     setScanner(html5QrCode);
     setHasPermission(true);
@@ -3331,33 +3424,48 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
 
   useEffect(() => {
     if (scanner && !scanner.isScanning) {
-      scanner
-        .start(
-          { facingMode },
-          {
-            fps: 20,
-            videoConstraints: {
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
-              focusMode: "continuous"
+      const Html5QrcodeObj = require('html5-qrcode').Html5Qrcode;
+      
+      const startWithConfig = (config) => {
+          scanner.start(
+            config,
+            { 
+               fps: 20,
+               videoConstraints: typeof config === 'string' ? undefined : { facingMode: config.facingMode },
             },
-            qrbox: (viewfinderWidth, viewfinderHeight) => {
-              const width = Math.floor(viewfinderWidth * 0.95);
-              const height = Math.floor(viewfinderHeight * 0.6);
-              return { width, height };
+            (decodedText) => {
+              scanner.stop().then(() => onResult(decodedText)).catch((e) => console.error(e));
             },
-          },
-          (decodedText) => {
-            scanner
-              .stop()
-              .then(() => onResult(decodedText))
-              .catch((e) => console.error(e));
-          },
-          () => {},
-        )
-        .catch((err) => {
-          console.error("Scanner start error", err);
-        });
+            () => {}
+          ).catch((err) => {
+            console.error("Scanner start error", err);
+            if (config.facingMode) {
+               scanner.start({ facingMode: 'environment' }, { fps: 20 }, (txt) => { scanner.stop(); onResult(txt); }, () => {}).catch(console.error);
+            }
+          });
+      };
+
+      Html5QrcodeObj.getCameras().then((devices) => {
+         if (devices && devices.length > 0) {
+            let selectedCamId = devices[0].id;
+            if (facingMode === 'environment') {
+               const backCams = devices.filter((d) => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('tył') || d.label.toLowerCase().includes('environment'));
+               if (backCams.length > 0) {
+                   selectedCamId = backCams[backCams.length - 1].id;
+               }
+            } else {
+               const frontCams = devices.filter((d) => d.label.toLowerCase().includes('front') || d.label.toLowerCase().includes('przód'));
+               if (frontCams.length > 0) {
+                   selectedCamId = frontCams[0].id;
+               }
+            }
+            startWithConfig(selectedCamId);
+         } else {
+            startWithConfig({ facingMode });
+         }
+      }).catch(() => {
+         startWithConfig({ facingMode });
+      });
     }
   }, [scanner, facingMode]);
 
@@ -3381,7 +3489,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
       <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
         <X className="text-rose-500 mb-2" size={32} />
         <p className="text-[10px] font-bold text-white uppercase tracking-widest">
-          Brak dostępu do aparatu
+          {i18n.t('meal.camera_no_access', { defaultValue: 'Brak dostępu do aparatu' })}
         </p>
       </div>
     );
@@ -3419,7 +3527,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
       {hasPermission === null && (
         <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
           <p className="text-[10px] font-black text-white uppercase tracking-widest animate-pulse">
-            Ładowanie...
+            {i18n.t('meal.camera_loading', { defaultValue: 'Ładowanie...' })}
           </p>
         </div>
       )}

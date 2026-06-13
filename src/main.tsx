@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 
 import {ErrorBoundary} from './components/ErrorBoundary';
+import './i18n';
 
 import { defineCustomElements as jeepSqlite } from 'jeep-sqlite/loader';
 jeepSqlite(window);

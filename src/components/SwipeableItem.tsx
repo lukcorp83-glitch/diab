@@ -3,6 +3,7 @@ import { motion, useMotionValue, useTransform, useAnimation } from 'motion/react
 import { Trash2, AlertCircle, X } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 interface SwipeableItemProps {
   children: ReactNode;
@@ -24,6 +25,7 @@ export default function SwipeableItem({
   actionColor = "from-slate-600 to-slate-500",
   noConfirm = false
 }: SwipeableItemProps) {
+    const { t } = useTranslation();
   const x = useMotionValue(0);
   const controls = useAnimation();
   const isMounted = useRef(true);
@@ -118,7 +120,7 @@ export default function SwipeableItem({
         <motion.div style={{ opacity }} className="h-full flex items-center justify-end min-w-[220px] px-4">
           {showConfirm && !noConfirm ? (
             <div className="flex items-center justify-end gap-2 w-[180px]">
-              <span className="text-white font-black text-xs uppercase tracking-wider">Pewny?</span>
+              <span className="text-white font-black text-xs uppercase tracking-wider">{t('auto.pewny', { defaultValue: 'Pewny?' })}</span>
               <button 
                 onClick={handleCancelClick}
                 className="bg-white/20 p-2 rounded-full text-white active:scale-95 transition-all w-8 h-8 flex items-center justify-center cursor-pointer ml-1"
@@ -129,8 +131,9 @@ export default function SwipeableItem({
                 onClick={handleDeleteClick}
                 className="bg-white text-slate-600 p-2 py-1.5 rounded-full font-black text-sm px-4 shadow-xl active:scale-95 transition-all cursor-pointer"
               >
-                Tak
-              </button>
+                
+                                              {t('auto.tak', { defaultValue: 'Tak' })}
+                                            </button>
             </div>
           ) : (
             <div

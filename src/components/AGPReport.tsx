@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { ChevronLeft, Info, Calendar } from 'lucide-react';
+import { useTranslation } from "react-i18next";
 
 interface AGPReportProps {
   logs: LogEntry[];
@@ -31,6 +32,7 @@ const getPercentile = (sortedData: number[], p: number) => {
 };
 
 export default function AGPReport({ logs, settings, onClose, theme }: AGPReportProps) {
+    const { t } = useTranslation();
   const [daysBack, setDaysBack] = useState(14);
 
   const agpData = useMemo(() => {
@@ -105,11 +107,12 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
             <span>{Math.round(data.p25_75[0])} - {Math.round(data.p25_75[1])}</span>
           </div>
           <div className="flex justify-between gap-4 text-accent-400 font-bold mt-1 pt-1 border-t border-white/10">
-            <span>Mediana:</span>
+            <span>{t('auto.mediana', { defaultValue: 'Mediana:' })}</span>
             <span>{Math.round(data.median)}</span>
           </div>
           <div className="text-[9px] opacity-50 mt-2 text-right">
-            Próbki: {data.count}
+            
+                              {t('auto.próbki', { defaultValue: 'Próbki:' })} {data.count}
           </div>
         </div>
       );
@@ -130,11 +133,13 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
           </button>
           <div>
             <h1 className="font-display font-black text-lg text-slate-900 dark:text-white uppercase tracking-wider">
-              Ambulatory Glucose Profile
-            </h1>
+              
+                                        {t('auto.ambulatory_glucose_profile', { defaultValue: 'Ambulatory Glucose Profile' })}
+                                      </h1>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-              Standard Kliniczny AGP
-            </p>
+              
+                                        {t('auto.standard_kliniczny_agp', { defaultValue: 'Standard Kliniczny AGP' })}
+                                      </p>
           </div>
         </div>
       </div>
@@ -146,8 +151,9 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
         <div className="glass-card rounded-3xl p-4 flex flex-wrap gap-4 items-center justify-between">
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm font-bold">
             <Calendar size={18} />
-            Zakres analizy:
-          </div>
+            
+                                  {t('auto.zakres_analizy', { defaultValue: 'Zakres analizy:' })}
+                                </div>
           <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
             {[7, 14, 30, 90].map(d => (
               <button
@@ -169,11 +175,11 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
         <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30 rounded-3xl p-4 flex gap-3">
           <Info className="text-indigo-500 shrink-0 mt-0.5" size={20} />
           <div className="text-xs text-indigo-900 dark:text-indigo-200 space-y-2 font-medium">
-            <p><strong>Czym jest AGP?</strong> To nałożenie na siebie wszystkich dób z wybranego okresu. Pokazuje jak typowo zachowuje się Twój cukier o danej porze dnia.</p>
+            <p><strong>{t('auto.czym_jest_agp', { defaultValue: 'Czym jest AGP?' })}</strong>  {t('auto.to_nałożenie_na_siebie_wszystkich_d', { defaultValue: 'To nałożenie na siebie wszystkich dób z wybranego okresu. Pokazuje jak typowo zachowuje się Twój cukier o danej porze dnia.' })}</p>
             <ul className="list-disc pl-4 space-y-1 opacity-80 text-[11px]">
-              <li><strong className="text-accent-500">Ciemna linia (Mediana)</strong> - najczęstszy poziom cukru o tej porze.</li>
-              <li><strong>Ciemny pas (25-75%)</strong> - połowa wszystkich Twoich wyników mieści się w tym przedziale. Jeśli pas jest wąski, cukry są stabilne.</li>
-              <li><strong>Jasny pas (10-90%)</strong> - margines błędów i wahań. Pokazuje skrajne wyrzuty i spadki.</li>
+              <li><strong className="text-accent-500">{t('auto.ciemna_linia_mediana', { defaultValue: 'Ciemna linia (Mediana)' })}</strong>  {t('auto.najczęstszy_poziom_cukru_o_tej_porz', { defaultValue: '- najczęstszy poziom cukru o tej porze.' })}</li>
+              <li><strong>{t('auto.ciemny_pas_25_75', { defaultValue: 'Ciemny pas (25-75%)' })}</strong>  {t('auto.połowa_wszystkich_twoich_wyników_mi', { defaultValue: '- połowa wszystkich Twoich wyników mieści się w tym przedziale. Jeśli pas jest wąski, cukry są stabilne.' })}</li>
+              <li><strong>{t('auto.jasny_pas_10_90', { defaultValue: 'Jasny pas (10-90%)' })}</strong>  {t('auto.margines_błędów_i_wahań_pokazuje_sk', { defaultValue: '- margines błędów i wahań. Pokazuje skrajne wyrzuty i spadki.' })}</li>
             </ul>
           </div>
         </div>

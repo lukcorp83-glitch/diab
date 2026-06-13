@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Footprints } from 'lucide-react';
 import { healthService } from '../services/healthService';
+import { useTranslation } from "react-i18next";
 
 export default function HealthWidget() {
+    const { t } = useTranslation();
   const [steps, setSteps] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +47,7 @@ export default function HealthWidget() {
           <div className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-500">
             <Footprints size={16} />
           </div>
-          <span className="font-bold text-slate-700 dark:text-slate-300">Aktywność</span>
+          <span className="font-bold text-slate-700 dark:text-slate-300">{t('auto.aktywność', { defaultValue: 'Aktywność' })}</span>
         </div>
 
         <div>
@@ -58,19 +60,22 @@ export default function HealthWidget() {
                   {steps.toLocaleString()}
                 </span>
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  kroków
-                </span>
+                  
+                                                        {t('auto.kroków', { defaultValue: 'kroków' })}
+                                                      </span>
               </div>
               {steps === 0 && (
                 <div className="mt-2 text-[9px] text-slate-400 dark:text-slate-500 italic leading-tight">
-                  Połącz Gliko z Google Fit (Health Connect), aby widzieć tu swoją aktywność i kalorie.
-                </div>
+                  
+                                                        {t('auto.połącz_gliko_z_google_fit_health_co', { defaultValue: 'Połącz Gliko z Google Fit (Health Connect), aby widzieć tu swoją aktywność i kalorie.' })}
+                                                      </div>
               )}
             </div>
           ) : (
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 italic">
-              Brak uprawnień. Kliknij ikonkę ⚙️ w ustawieniach, by połączyć z Health Connect.
-            </div>
+              
+                                                {t('auto.brak_uprawnień_kliknij_ikonkę_w_ust', { defaultValue: 'Brak uprawnień. Kliknij ikonkę ⚙️ w ustawieniach, by połączyć z Health Connect.' })}
+                                              </div>
           )}
         </div>
       </div>

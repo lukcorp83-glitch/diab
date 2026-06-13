@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Bell, X, AlertTriangle, Info, Clock, CheckCircle2, Pill, Trash2, Check } from 'lucide-react';
 import { UserSettings } from '../types';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface AppNotification {
   id: string;
@@ -16,6 +18,7 @@ interface AppNotification {
 }
 
 export default function NotificationCenter({ userSettings, theme }: { userSettings: UserSettings | null, theme: 'light' | 'dark' }) {
+    const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -83,11 +86,11 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
         
         if (!deletedIds.includes(id)) {
           if (sensorMsLeft <= 0) {
-            newNotifications.push({ id: 'sensor-expired', title: 'Sensor wygasł', message: 'Czas na wymianę sensora!', type: 'alert', timestamp: sensorExpiryDate, read: false });
-            triggerSystemAlert('sensor-expired-alert', 'Wymień Sensor', 'Twój sensor wygasł. Czas na wymianę!');
+            newNotifications.push({ id: 'sensor-expired', title: i18n.t('auto.sensor_wygasl', { defaultValue: "Sensor wygasł" }), message: i18n.t('auto.czas_na_wymiane_sensora', { defaultValue: "Czas na wymianę sensora!" }), type: 'alert', timestamp: sensorExpiryDate, read: false });
+            triggerSystemAlert('sensor-expired-alert', i18n.t('auto.wymien_sensor', { defaultValue: "Wymień Sensor" }), i18n.t('auto.twoj_sensor_wygasl_czas_na_wym', { defaultValue: "Twój sensor wygasł. Czas na wymianę!" }));
           } else if (sensorMsLeft <= warningThresholdMs) {
-            newNotifications.push({ id: 'sensor-warning', title: 'Zbliża się wymiana sensora', message: 'Pozostało mniej niż 12 godzin do końca cyklu życia sensora.', type: 'warning', timestamp: sensorExpiryDate - warningThresholdMs, read: false });
-            triggerSystemAlert('sensor-warning-alert', 'Zbliża się wymiana sensora', 'Pozostało mniej niż 12 godzin do końca cyklu życia sensora.');
+            newNotifications.push({ id: 'sensor-warning', title: i18n.t('auto.zbliza_sie_wymiana_sensora', { defaultValue: "Zbliża się wymiana sensora" }), message: i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora." }), type: 'warning', timestamp: sensorExpiryDate - warningThresholdMs, read: false });
+            triggerSystemAlert('sensor-warning-alert', i18n.t('auto.zbliza_sie_wymiana_sensora', { defaultValue: "Zbliża się wymiana sensora" }), i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora." }));
           } else {
             newNotifications.push({ id: 'sensor-info', title: 'Aktywny sensor', message: `Kolejna wymiana: ${new Date(sensorExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: userSettings.sensorChangeDate, read: true });
           }
@@ -102,13 +105,13 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
         
         if (!deletedIds.includes(id)) {
           if (infusionMsLeft <= 0) {
-            newNotifications.push({ id: 'infusion-expired', title: 'Wkłucie wygasło', message: 'Czas na wymianę wkłucia!', type: 'alert', timestamp: infusionExpiryDate, read: false });
-            triggerSystemAlert('infusion-expired-alert', 'Wymień Wkłucie', 'Cykl życia wkłucia dobiegł końca!');
+            newNotifications.push({ id: 'infusion-expired', title: i18n.t('auto.wklucie_wygaslo', { defaultValue: "Wkłucie wygasło" }), message: i18n.t('auto.czas_na_wymiane_wklucia', { defaultValue: "Czas na wymianę wkłucia!" }), type: 'alert', timestamp: infusionExpiryDate, read: false });
+            triggerSystemAlert('infusion-expired-alert', i18n.t('auto.wymien_wklucie', { defaultValue: "Wymień Wkłucie" }), i18n.t('auto.cykl_zycia_wklucia_dobiegl_kon', { defaultValue: "Cykl życia wkłucia dobiegł końca!" }));
           } else if (infusionMsLeft <= warningThresholdMs) {
-            newNotifications.push({ id: 'infusion-warning', title: 'Zbliża się wymiana wkłucia', message: 'Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia.', type: 'warning', timestamp: infusionExpiryDate - warningThresholdMs, read: false });
-            triggerSystemAlert('infusion-warning-alert', 'Zbliża się wymiana wkłucia', 'Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia.');
+            newNotifications.push({ id: 'infusion-warning', title: i18n.t('auto.zbliza_sie_wymiana_wklucia', { defaultValue: "Zbliża się wymiana wkłucia" }), message: i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia." }), type: 'warning', timestamp: infusionExpiryDate - warningThresholdMs, read: false });
+            triggerSystemAlert('infusion-warning-alert', i18n.t('auto.zbliza_sie_wymiana_wklucia', { defaultValue: "Zbliża się wymiana wkłucia" }), i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia." }));
           } else {
-            newNotifications.push({ id: 'infusion-info', title: 'Aktywne wkłucie', message: `Kolejna wymiana: ${new Date(infusionExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: userSettings.infusionSetChangeDate, read: true });
+            newNotifications.push({ id: 'infusion-info', title: i18n.t('auto.aktywne_wklucie', { defaultValue: "Aktywne wkłucie" }), message: `Kolejna wymiana: ${new Date(infusionExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: userSettings.infusionSetChangeDate, read: true });
           }
         }
       }
@@ -153,7 +156,7 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
       }
 
       if (newNotifications.length === 0 && !deletedIds.includes('welcome')) {
-        newNotifications.push({ id: 'welcome', title: 'Witaj w GlikoControl', message: 'Twoje centrum powiadomień jest gotowe.', type: 'success', timestamp: 0, read: true });
+        newNotifications.push({ id: 'welcome', title: 'Witaj w GlikoControl', message: i18n.t('auto.twoje_centrum_powiadomien_jest', { defaultValue: "Twoje centrum powiadomień jest gotowe." }), type: 'success', timestamp: 0, read: true });
       }
 
       newNotifications.sort((a, b) => b.timestamp - a.timestamp);
@@ -257,11 +260,11 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
                       <Bell size={20} className="text-accent-500" />
                     </div>
                     <div>
-                      <h2 className="font-black text-sm dark:text-white uppercase tracking-widest font-display">Powiadomienia</h2>
+                      <h2 className="font-black text-sm dark:text-white uppercase tracking-widest font-display">{t('auto.powiadomienia', { defaultValue: 'Powiadomienia' })}</h2>
                       {unreadCount > 0 && (
                         <p className="text-[10px] font-bold text-rose-500 uppercase tracking-tight">
-                          {unreadCount} nowe wiadomości
-                        </p>
+                          {unreadCount}  {t('auto.nowe_wiadomości', { defaultValue: 'nowe wiadomości' })}
+                                                                      </p>
                       )}
                     </div>
                   </div>
@@ -279,8 +282,9 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
                       onClick={markAllAsRead}
                       className="text-[9px] font-black uppercase tracking-[0.1em] text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 transition-all hover:scale-105 active:scale-95"
                     >
-                      Oznacz jako przeczytane
-                    </button>
+                      
+                                                            {t('auto.oznacz_jako_przeczytane', { defaultValue: 'Oznacz jako przeczytane' })}
+                                                          </button>
                   </div>
                 )}
 
@@ -291,11 +295,13 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
                           <Bell size={24} className="text-indigo-400 dark:text-indigo-400/80" />
                         </div>
                         <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
-                          Brak powiadomień
-                        </p>
+                          
+                                                                    {t('auto.brak_powiadomień', { defaultValue: 'Brak powiadomień' })}
+                                                                  </p>
                         <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
-                          Twoje centrum komunikatów jest puste. Odpocznij.
-                        </p>
+                          
+                                                                    {t('auto.twoje_centrum_komunikatów_jest_pust', { defaultValue: 'Twoje centrum komunikatów jest puste. Odpocznij.' })}
+                                                                  </p>
                     </div>
                   ) : (
                     notifications.map((notification, idx) => (
@@ -331,7 +337,7 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
                                   <button 
                                     onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
                                     className="p-1 rounded-md hover:bg-emerald-500/10 text-emerald-500 transition-colors"
-                                    title="Oznacz jako przeczytane"
+                                    title={t('auto.oznacz_jako_przeczytane', { defaultValue: 'Oznacz jako przeczytane' })}
                                   >
                                     <Check size={14} />
                                   </button>
@@ -339,7 +345,7 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
                                   className="p-1 rounded-md hover:bg-rose-500/10 text-rose-500 transition-colors"
-                                  title="Usuń"
+                                  title={t('auto.usuń', { defaultValue: 'Usuń' })}
                                 >
                                   <Trash2 size={14} />
                                 </button>

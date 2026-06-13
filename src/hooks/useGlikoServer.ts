@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import i18n from "../i18n";
 
 export interface ConnectedDevice {
   deviceId: string;
@@ -70,7 +71,7 @@ export function useGlikoServer({
           type: 'join', 
           roomId,
           deviceId,
-          deviceName: deviceName || 'Nieznane urządzenie',
+          deviceName: deviceName || i18n.t('auto.nieznane_urzadzenie', { defaultValue: "Nieznane urządzenie" }),
           role,
           isAdmin
         }));
@@ -85,7 +86,7 @@ export function useGlikoServer({
           } else if (data.type === 'device_list') {
             setDevices(data.payload || []);
           } else if (data.type === 'kicked') {
-            console.warn("Zostałeś rozłączony przez administratora!");
+            console.warn(i18n.t('auto.zostales_rozlaczony_przez_admi', { defaultValue: "Zostałeś rozłączony przez administratora!" }));
             if (callbacksRef.current.onKicked) callbacksRef.current.onKicked();
             ws.close();
           }
@@ -106,11 +107,11 @@ export function useGlikoServer({
 
       ws.onerror = (e) => {
         console.error("GlikoServer WebSocket error", e);
-        setError("Błąd połączenia z serwerem");
+        setError(i18n.t('auto.blad_polaczenia_z_serwerem', { defaultValue: "Błąd połączenia z serwerem" }));
         // onclose will handle reconnect
       };
     } catch (e: any) {
-      setError(e.message || "Błąd inicjalizacji WebSocket");
+      setError(e.message || i18n.t('auto.blad_inicjalizacji_websocket', { defaultValue: "Błąd inicjalizacji WebSocket" }));
     }
   }, [actualUrl, roomId, deviceId, deviceName, role, isAdmin]);
 

@@ -1,8 +1,10 @@
+import i18n from '../i18n';
 import React, { useMemo, useState, useEffect } from 'react';
 import { RefreshCw, MapPin } from 'lucide-react';
 import { LogEntry, UserSettings } from '../types';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
+import { useTranslation } from "react-i18next";
 
 interface SiteRotationWidgetProps {
   logs: LogEntry[];
@@ -13,6 +15,7 @@ interface SiteRotationWidgetProps {
 }
 
 export default function SiteRotationWidget({ logs, settings, size, onAction, setTab }: SiteRotationWidgetProps) {
+    const { t } = useTranslation();
   const isCompact = size === '1x1' || size === '1x2';
   const [isZoomed, setIsZoomed] = useState(false);
 
@@ -29,7 +32,7 @@ export default function SiteRotationWidget({ logs, settings, size, onAction, set
   const siteChangeTimestamp = settings.infusionSetChangeDate || lastSiteChange?.timestamp;
   
   const rawNote = lastSiteChange?.notes || '';
-  const parsedNoteLocation = rawNote.startsWith('Wymiana wkłucia - ') ? rawNote.replace('Wymiana wkłucia - ', '') : rawNote;
+  const parsedNoteLocation = rawNote.startsWith(i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia -" })) ? rawNote.replace(i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia -" }), '') : rawNote;
 
   const locationText = settings.infusionSetSite || parsedNoteLocation || 'Brak danych';
   
@@ -56,12 +59,12 @@ export default function SiteRotationWidget({ logs, settings, size, onAction, set
       if (isLeft) left = '32%';
       else if (isRight) left = '68%';
       else left = '32%'; // default
-    } else if (locLower.includes('ramię') || locLower.includes('ramie')) {
+    } else if (locLower.includes(i18n.t('auto.ramie', { defaultValue: "ramię" })) || locLower.includes('ramie')) {
       top = '38%';
       if (isLeft) left = '20%';
       else if (isRight) left = '80%';
       else left = '20%'; // default
-    } else if (locLower.includes('pośladek') || locLower.includes('posladek')) {
+    } else if (locLower.includes(i18n.t('auto.posladek', { defaultValue: "pośladek" })) || locLower.includes('posladek')) {
       top = '52%';
       if (isLeft) left = '35%';
       else if (isRight) left = '65%';
@@ -106,8 +109,9 @@ export default function SiteRotationWidget({ logs, settings, size, onAction, set
         </div>
         {!isCompact && (
           <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none drop-shadow-sm">
-            Rotacja<br/>Wkłuć
-          </span>
+            
+                                  {t('auto.rotacja', { defaultValue: 'Rotacja' })}<br/>{t('auto.wkłuć', { defaultValue: 'Wkłuć' })}
+                                </span>
         )}
       </div>
 
@@ -135,8 +139,9 @@ export default function SiteRotationWidget({ logs, settings, size, onAction, set
       <div className={cn("flex flex-col flex-1 z-10 relative pointer-events-none", isCompact ? "justify-end pb-1" : "justify-end gap-0.5 w-full")}>
         {!isCompact && (
           <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 drop-shadow-sm">
-            Miejsce wkłucia:
-          </span>
+            
+                                  {t('auto.miejsce_wkłucia', { defaultValue: 'Miejsce wkłucia:' })}
+                                </span>
         )}
         <div className={cn("flex items-center", isCompact ? "justify-center mt-auto" : "gap-2")}>
           <span className={cn(

@@ -5,8 +5,11 @@ import { Haptics } from '../lib/haptics';
 import { CURRENT_VERSION } from '../constants/versions';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function UpdateModal() {
+    const { t } = useTranslation();
   const [show, setShow] = useState(false);
   const [versionData, setVersionData] = useState<any>(null);
 
@@ -71,8 +74,8 @@ export default function UpdateModal() {
               <Star size={24} className="fill-current" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-800 dark:text-white">Dostępna Wersja {versionData.version}</h2>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Oficjalna aplikacja APK</p>
+              <h2 className="text-xl font-black text-slate-800 dark:text-white">{t('auto.dostępna_wersja', { defaultValue: 'Dostępna Wersja' })} {versionData.version}</h2>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('auto.oficjalna_aplikacja_apk', { defaultValue: 'Oficjalna aplikacja APK' })}</p>
             </div>
           </div>
 
@@ -81,8 +84,9 @@ export default function UpdateModal() {
               {versionData.whatsNew}
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-bold">
-              Zalecamy instalację tej wersji dla wszystkich użytkowników (również wersji 1.1) dla poprawnego działania widżetów.
-            </p>
+              
+                                        {t('auto.zalecamy_instalację_tej_wersji_dla_', { defaultValue: 'Zalecamy instalację tej wersji dla wszystkich użytkowników (również wersji 1.1) dla poprawnego działania widżetów.' })}
+                                      </p>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -98,11 +102,11 @@ export default function UpdateModal() {
                       version: versionData.version
                     });
                     await CapacitorUpdater.set(version);
-                    alert("Aktualizacja zakończona sukcesem! Aplikacja zostanie teraz zrestartowana.");
+                    alert(i18n.t('auto.aktualizacja_zakonczona_sukces', { defaultValue: "Aktualizacja zakończona sukcesem! Aplikacja zostanie teraz zrestartowana." }));
                     window.location.reload();
                   } catch (e: any) {
                     console.error("Failed to update", e);
-                    alert("Błąd aktualizacji (sprawdź czy podano poprawny link do pliku ZIP w polu 'url'): " + e?.message);
+                    alert(i18n.t('auto.blad_aktualizacji_sprawdz_czy', { defaultValue: "Błąd aktualizacji (sprawdź czy podano poprawny link do pliku ZIP w polu 'url'):" }) + e?.message);
                     setIsUpdating(false);
                   }
                 }}
@@ -124,8 +128,9 @@ export default function UpdateModal() {
                 className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all"
               >
                 <Download size={18} />
-                Pobierz aplikację Android (APK)
-              </a>
+                
+                                                  {t('auto.pobierz_aplikację_android_apk', { defaultValue: 'Pobierz aplikację Android (APK)' })}
+                                                </a>
             )}
             <button
               onClick={() => {
@@ -135,8 +140,9 @@ export default function UpdateModal() {
               }}
               className="w-full py-3.5 font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition-all text-sm"
             >
-              Przypomnij później
-            </button>
+              
+                                        {t('auto.przypomnij_później', { defaultValue: 'Przypomnij później' })}
+                                      </button>
           </div>
         </motion.div>
       </motion.div>

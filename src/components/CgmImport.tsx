@@ -1,10 +1,13 @@
+import i18n from '../i18n';
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState } from 'react';
 import { Upload, Database } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { useTranslation } from "react-i18next";
 
 export default function CgmImport({ user, onComplete }: { user: any, onComplete?: () => void }) {
+    const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -22,7 +25,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
         const newLogs = await parseCgmCsv(csv);
         
         if (newLogs.length === 0) {
-          setResult('Nie znaleziono danych w pliku (lub zły format). Obsługiwane pliki: Dexcom Clarity / Freestyle Libre / CareLink CSV.');
+          setResult(i18n.t('auto.nie_znaleziono_danych_w_pliku', { defaultValue: "Nie znaleziono danych w pliku (lub zły format). Obsługiwane pliki: Dexcom Clarity / Freestyle Libre / CareLink CSV." }));
           setLoading(false);
           return;
         }
@@ -63,9 +66,9 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
     const logs: any[] = [];
     
     // Auto-detect format by checking first 5 lines (header)
-    const isDexcom = csvText.includes('Dexcom') || csvText.includes('Wartość glukozy') || csvText.includes('Glucose Value') || csvText.includes('Glukoze');
+    const isDexcom = csvText.includes('Dexcom') || csvText.includes(i18n.t('auto.wartosc_glukozy', { defaultValue: "Wartość glukozy" })) || csvText.includes('Glucose Value') || csvText.includes('Glukoze');
     const isLibre = csvText.includes('Freestyle') || csvText.includes('Oznaczenie glukozy') || csvText.includes('Skalibrowane') || csvText.includes('Historic Glucose') || csvText.includes('Record Type');
-    const isCarelink = csvText.includes('CareLink') || csvText.includes('Wartość SG') || csvText.includes('Sensor Glucose');
+    const isCarelink = csvText.includes('CareLink') || csvText.includes(i18n.t('auto.wartosc_sg', { defaultValue: "Wartość SG" })) || csvText.includes('Sensor Glucose');
 
     let clBgIdx = -1;
     let clDateIdx = -1;
@@ -118,7 +121,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
         if (isCarelink) {
             // Find headers
             if (clBgIdx === -1) {
-                const bgMatches = cols.findIndex(c => c.includes('Sensor Glucose (mg/dL)') || c.includes('Wartość SG (mg/dL)') || c === 'SG' || c.includes('Sensor Glucose'));
+                const bgMatches = cols.findIndex(c => c.includes('Sensor Glucose (mg/dL)') || c.includes(i18n.t('auto.wartosc_sg_mg_dl', { defaultValue: "Wartość SG (mg/dL)" })) || c === 'SG' || c.includes('Sensor Glucose'));
                 if (bgMatches > -1) {
                     clBgIdx = bgMatches;
                     clTimestampIdx = cols.findIndex(c => c.toLowerCase().includes('timestamp') || c.toLowerCase().includes('znacznik czasu') || c.toLowerCase().includes('data / czas'));
@@ -126,8 +129,8 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
                         clDateIdx = cols.findIndex(c => c.toLowerCase() === 'date' || c.toLowerCase() === 'data');
                         clTimeIdx = cols.findIndex(c => c.toLowerCase() === 'time' || c.toLowerCase() === 'czas');
                     }
-                    clInsIdx = cols.findIndex(c => c.toLowerCase().includes('bolus volume delivered') || c.toLowerCase().includes('podana objętość bolusa'));
-                    clCarbIdx = cols.findIndex(c => c.toLowerCase().includes('carb input') || c.toLowerCase().includes('węglowodany w kalkulatorze'));
+                    clInsIdx = cols.findIndex(c => c.toLowerCase().includes('bolus volume delivered') || c.toLowerCase().includes(i18n.t('auto.podana_objetosc_bolusa', { defaultValue: "podana objętość bolusa" })));
+                    clCarbIdx = cols.findIndex(c => c.toLowerCase().includes('carb input') || c.toLowerCase().includes(i18n.t('auto.weglowodany_w_kalkulatorze', { defaultValue: "węglowodany w kalkulatorze" })));
                 }
                 continue;
             }
@@ -165,7 +168,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
                     lbTimestampIdx = cols.findIndex(c => c.toLowerCase().includes('time') || c.toLowerCase().includes('czas'));
                     lbBgIdx = cols.findIndex(c => c.includes('Historic Glucose') || c.includes('Oznaczenie glukozy') || c.includes('Skalibrowane'));
                     lbInsIdx = cols.findIndex(c => c.toLowerCase().includes('insulin') || c.toLowerCase().includes('insulina'));
-                    lbCarbIdx = cols.findIndex(c => c.toLowerCase().includes('carb') || c.toLowerCase().includes('węglowodany'));
+                    lbCarbIdx = cols.findIndex(c => c.toLowerCase().includes('carb') || c.toLowerCase().includes(i18n.t('auto.weglowodany', { defaultValue: "węglowodany" })));
                 }
                 continue;
             }
@@ -209,12 +212,12 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
             // Find headers
             if (dxTimestampIdx === -1) {
                 const tsIdx = cols.findIndex(c => c === 'Timestamp' || c === 'Czas' || c === 'Znacznik czasu');
-                const bgIdx = cols.findIndex(c => c.includes('Glucose Value') || c.includes('Wartość glukozy'));
+                const bgIdx = cols.findIndex(c => c.includes('Glucose Value') || c.includes(i18n.t('auto.wartosc_glukozy', { defaultValue: "Wartość glukozy" })));
                 if (tsIdx > -1 && bgIdx > -1) {
                     dxTimestampIdx = tsIdx;
                     dxBgIdx = bgIdx;
                     dxInsIdx = cols.findIndex(c => c.includes('Insulin (units)') || c.includes('Insulina'));
-                    dxCarbIdx = cols.findIndex(c => c.includes('Carbohydrates (grams)') || c.includes('Węglowodany'));
+                    dxCarbIdx = cols.findIndex(c => c.includes('Carbohydrates (grams)') || c.includes(i18n.t('auto.weglowodany', { defaultValue: "Węglowodany" })));
                 }
                 continue;
             }
@@ -251,8 +254,8 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
       <div className="flex items-center gap-3 mb-2">
         <Database className="text-emerald-500" size={20} />
         <div>
-          <span className="text-xs font-bold dark:text-white">Import danych CGM (Plik CSV)</span>
-          <p className="text-[9px] text-slate-500 mt-1 leading-tight">Z Dexcom Clarity / LibreView / CareLink</p>
+          <span className="text-xs font-bold dark:text-white">{t('auto.import_danych_cgm_plik_csv', { defaultValue: 'Import danych CGM (Plik CSV)' })}</span>
+          <p className="text-[9px] text-slate-500 mt-1 leading-tight">{t('auto.z_dexcom_clarity_libreview_carelink', { defaultValue: 'Z Dexcom Clarity / LibreView / CareLink' })}</p>
         </div>
       </div>
       
@@ -266,12 +269,12 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
         />
         <div className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 transition-colors">
            {loading ? <span className="animate-spin text-emerald-500">⏳</span> : <Upload className="text-emerald-500" size={16} />}
-           <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">Wybierz plik CSV...</span>
+           <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{t('auto.wybierz_plik_csv', { defaultValue: 'Wybierz plik CSV...' })}</span>
         </div>
       </div>
 
       {result && (
-        <p className={`text-[10px] font-bold p-2 text-center rounded-lg ${result.includes('Błąd') || result.includes('Nie znaleziono') ? 'bg-red-50 text-red-600 dark:bg-red-900/20' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'}`}>
+        <p className={`text-[10px] font-bold p-2 text-center rounded-lg ${result.includes(i18n.t('auto.blad', { defaultValue: "Błąd" })) || result.includes('Nie znaleziono') ? 'bg-red-50 text-red-600 dark:bg-red-900/20' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'}`}>
           {result}
         </p>
       )}

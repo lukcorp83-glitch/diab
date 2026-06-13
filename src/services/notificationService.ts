@@ -5,6 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { getToken, onMessage } from 'firebase/messaging';
 import { messaging, auth, db } from '../lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import i18n from "../i18n";
 
 const VAPID_KEY = 'BDpTWMeEWqqbg9i1S4P33GC51S2TgPs_cozqFLQrYJl0y6RXMXUym50gG-1d3xvGsSH7EjVGRyERPQ1i-K2h3D4';
 
@@ -16,18 +17,18 @@ export const notificationService = {
       }
 
       if (!window.Notification) {
-        toast("Twoja przeglądarka lub aplikacja może nie obsługiwać systemowych powiadomień Push. Krytyczne alerty będą wyświetlane wewnątrz aplikacji.", { icon: 'ℹ️', duration: 8000 });
+        toast(i18n.t('auto.twoja_przegladarka_lub_aplikac', { defaultValue: "Twoja przeglądarka lub aplikacja może nie obsługiwać systemowych powiadomień Push. Krytyczne alerty będą wyświetlane wewnątrz aplikacji." }), { icon: 'ℹ️', duration: 8000 });
         return null;
       }
       const permission = await window.Notification.requestPermission();
       if (permission === 'granted') {
         return await this.registerToken();
       }
-      alert(`Odmowa dostępu do powiadomień.\nAby to naprawić:\n- Android: Ustawienia -> Aplikacje -> Uprawnienia -> Powiadomienia.\n- iOS: Ustawienia -> GlikoControl -> Powiadomienia -> 'Zezwalaj'.`);
+      alert(i18n.t('auto.odmowa_dostepu_do_powiadomien', { defaultValue: "Odmowa dostępu do powiadomień.\nAby to naprawić:\n- Android: Ustawienia -> Aplikacje -> Uprawnienia -> Powiadomienia.\n- iOS: Ustawienia -> GlikoControl -> Powiadomienia -> 'Zezwalaj'." }));
       return null;
     } catch (error) {
       console.error('Permission request failed:', error);
-      toast("Nie udało się aktywować powiadomień systemowych. Alerty będą wyświetlane jako komunikaty wewnątrz aplikacji.", { icon: 'ℹ️' });
+      toast(i18n.t('auto.nie_udalo_sie_aktywowac_powiad', { defaultValue: "Nie udało się aktywować powiadomień systemowych. Alerty będą wyświetlane jako komunikaty wewnątrz aplikacji." }), { icon: 'ℹ️' });
       return null;
     }
   },
@@ -71,7 +72,7 @@ export const notificationService = {
 
       const msg = await messaging();
       if (!msg) {
-        alert("Twoja przeglądarka nie obsługuje powiadomień Firebase PUSH.");
+        alert(i18n.t('auto.twoja_przegladarka_nie_obslugu', { defaultValue: "Twoja przeglądarka nie obsługuje powiadomień Firebase PUSH." }));
         return null;
       }
 
@@ -100,9 +101,9 @@ export const notificationService = {
       // More descriptive error for common issues
       const errMsg = error instanceof Error ? error.message : String(error);
       if (errMsg.includes('Permission denied')) {
-        alert("Dostęp do powiadomień został zablokowany. Zresetuj uprawnienia w ustawieniach przeglądarki.");
+        alert(i18n.t('auto.dostep_do_powiadomien_zostal_z', { defaultValue: "Dostęp do powiadomień został zablokowany. Zresetuj uprawnienia w ustawieniach przeglądarki." }));
       } else if (errMsg.includes('bad HTTP response code (404)')) {
-        alert("Błąd serwera (404) przy pobieraniu pliku powiadomień. Spróbuj odświeżyć stronę.");
+        alert(i18n.t('auto.blad_serwera_404_przy_pobieran', { defaultValue: "Błąd serwera (404) przy pobieraniu pliku powiadomień. Spróbuj odświeżyć stronę." }));
       } else {
         alert(`Błąd rejestracji tokena Push: ${errMsg}`);
       }
@@ -126,7 +127,7 @@ export const notificationService = {
           notificationsToSchedule.push({
             id: 998,
             title: 'Wymiana sensora',
-            body: 'Twój sensor wygasa za 12 godzin!',
+            body: i18n.t('auto.twoj_sensor_wygasa_za_12_godzi', { defaultValue: "Twój sensor wygasa za 12 godzin!" }),
             schedule: { at: reminderDate },
             sound: null,
             attachments: null,
@@ -143,8 +144,8 @@ export const notificationService = {
         if (reminderDate.getTime() > Date.now()) {
           notificationsToSchedule.push({
             id: 999,
-            title: 'Wymiana wkłucia',
-            body: 'Twoje wkłucie wygasa za 12 godzin!',
+            title: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia" }),
+            body: i18n.t('auto.twoje_wklucie_wygasa_za_12_god', { defaultValue: "Twoje wkłucie wygasa za 12 godzin!" }),
             schedule: { at: reminderDate },
             sound: null,
             attachments: null,
@@ -189,14 +190,14 @@ export const notificationService = {
     }
 
     if (!window.Notification) {
-      toast.error("Powiadomienia nie są obsługiwane na tym urządzeniu.");
+      toast.error(i18n.t('auto.powiadomienia_nie_sa_obslugiwa', { defaultValue: "Powiadomienia nie są obsługiwane na tym urządzeniu." }));
       return;
     }
 
     if (window.Notification && window.Notification.permission !== 'granted') {
       const permission = await window.Notification.requestPermission();
       if (permission !== 'granted') {
-        toast.error("Brak uprawnień do powiadomień. Nie można ustawić przypomnienia.");
+        toast.error(i18n.t('auto.brak_uprawnien_do_powiadomien', { defaultValue: "Brak uprawnień do powiadomień. Nie można ustawić przypomnienia." }));
         return;
       }
     }

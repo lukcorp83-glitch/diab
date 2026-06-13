@@ -4,8 +4,11 @@ import { Lightbulb, TrendingUp, TrendingDown, Clock, Info, CheckCircle2, AlertCi
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { LogEntry } from '../types';
 import { cn, calculateIOB, calculateCOB, getEffectiveIOB } from '../lib/utils';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { logs: LogEntry[], pumpStatus?: any, compact?: boolean }) {
+    const { t } = useTranslation();
   const [dismissedTips, setDismissedTips] = React.useState<string[]>(() => {
     const saved = localStorage.getItem('dismissed_tips');
     return saved ? JSON.parse(saved) : [];
@@ -27,7 +30,7 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
       results.push({
         id: 'real_iob',
         type: 'data',
-        title: 'Profil działania insuliny (IOB)',
+        title: i18n.t('auto.profil_dzialania_insuliny_iob', { defaultValue: "Profil działania insuliny (IOB)" }),
         content: `W Twoim organizmie pracuje teraz ok. ${iob.toFixed(1)} j. insuliny (Początek: ~20m, Szczyt: ~75m). Weź to pod uwagę przy planowaniu kolejnych kroków.`,
         icon: <Zap size={20} className="text-pink-500" />,
         color: 'pink'
@@ -38,7 +41,7 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
       results.push({
         id: 'real_cob',
         type: 'data',
-        title: 'Aktywne węglowodany (COB)',
+        title: i18n.t('auto.aktywne_weglowodany_cob', { defaultValue: "Aktywne węglowodany (COB)" }),
         content: `Masz jeszcze ok. ${Math.round(cob)}g aktywnych węglowodanów, które nadal się wchłaniają.`,
         icon: <Activity size={20} className="text-amber-500" />,
         color: 'amber'
@@ -53,7 +56,7 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
           id: 'trend_down',
           type: 'trend',
           title: 'Trend spadkowy',
-          content: 'Twoje glikemie wykazują tendencję spadkową. Uważaj na niedocukrzenia.',
+          content: i18n.t('auto.twoje_glikemie_wykazuja_tenden', { defaultValue: "Twoje glikemie wykazują tendencję spadkową. Uważaj na niedocukrzenia." }),
           icon: <TrendingDown size={20} className="text-emerald-500" />,
           color: 'emerald'
         });
@@ -62,7 +65,7 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
           id: 'trend_up',
           type: 'trend',
           title: 'Trend wzrostowy',
-          content: 'Ostatnie pomiary rosną. Może warto zweryfikować dawkę bazy?',
+          content: i18n.t('auto.ostatnie_pomiary_rosna_moze_wa', { defaultValue: "Ostatnie pomiary rosną. Może warto zweryfikować dawkę bazy?" }),
           icon: <TrendingUp size={20} className="text-rose-500" />,
           color: 'rose'
         });
@@ -79,8 +82,8 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
       results.push({
         id: 'sport_detected',
         type: 'activity',
-        title: 'Wykryto "Dzień Sportu"',
-        content: 'Zauważyłem powtarzające się spadki we wtorki wieczorem. Czy wtedy trenujesz? Rozważ redukcję bazy o 20% przed wysiłkiem.',
+        title: i18n.t('auto.wykryto_dzien_sportu', { defaultValue: "Wykryto \"Dzień Sportu\"" }),
+        content: i18n.t('auto.zauwazylem_powtarzajace_sie_sp', { defaultValue: "Zauważyłem powtarzające się spadki we wtorki wieczorem. Czy wtedy trenujesz? Rozważ redukcję bazy o 20% przed wysiłkiem." }),
         icon: <Activity size={20} className="text-indigo-500" />,
         color: 'indigo'
       });
@@ -92,8 +95,8 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
       results.push({
         id: 'weather_heat',
         type: 'weather',
-        title: 'Uwaga na upały!',
-        content: 'Wysoka temperatura może zwiększać wrażliwość na insulinę. Pamiętaj o częstszych pomiarach i nawodnieniu.',
+        title: i18n.t('auto.uwaga_na_upaly', { defaultValue: "Uwaga na upały!" }),
+        content: i18n.t('auto.wysoka_temperatura_moze_zwieks', { defaultValue: "Wysoka temperatura może zwiększać wrażliwość na insulinę. Pamiętaj o częstszych pomiarach i nawodnieniu." }),
         icon: <Sparkles size={20} className="text-amber-500" />,
         color: 'amber'
       });
@@ -105,8 +108,8 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
       results.push({
         id: 'meal_regularity',
         type: 'habit',
-        title: 'Regularność posiłków',
-        content: 'Pamiętaj o regularnych posiłkach, aby uniknąć gwałtownych skoków cukru.',
+        title: i18n.t('auto.regularnosc_posilkow', { defaultValue: "Regularność posiłków" }),
+        content: i18n.t('auto.pamietaj_o_regularnych_posilka', { defaultValue: "Pamiętaj o regularnych posiłkach, aby uniknąć gwałtownych skoków cukru." }),
         icon: <Clock size={20} className="text-amber-500" />,
         color: 'amber'
       });
@@ -156,8 +159,9 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
       <div className="flex items-center justify-between px-2">
         <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display flex items-center gap-2">
           <GlikoSenseIcon size={12} isAnalyzing={true} />
-          Sugestie GlikoSense
-        </h3>
+          
+                            {t('auto.sugestie_glikosense', { defaultValue: 'Sugestie GlikoSense' })}
+                          </h3>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {tips.map((tip, index) => (
@@ -171,7 +175,7 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
             <button 
               onClick={() => handleDismiss(tip.id)}
               className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100/50 dark:bg-white/5 rounded-full transition-all opacity-0 group-hover:opacity-100"
-              aria-label="Dismiss tip"
+              aria-label={t('auto.dismiss_tip', { defaultValue: 'Dismiss tip' })}
             >
               <X size={12} />
             </button>

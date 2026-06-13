@@ -4,6 +4,8 @@ import { Download, Upload, Copy, Check, Info, Loader2 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { UserSettings } from '../types';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function SettingsTransfer({ 
   settings, 
@@ -12,6 +14,7 @@ export default function SettingsTransfer({
   settings: UserSettings, 
   onImport: (s: UserSettings) => void 
 }) {
+    const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [syncCode, setSyncCode] = useState('');
   const [inputCode, setInputCode] = useState('');
@@ -38,7 +41,7 @@ export default function SettingsTransfer({
       setSyncCode(code);
     } catch (e) {
       console.error(e);
-      toast('Błąd podczas generowania kodu.');
+      toast(i18n.t('auto.blad_podczas_generowania_kodu', { defaultValue: "Błąd podczas generowania kodu." }));
     } finally {
       setLoading(false);
     }
@@ -54,15 +57,15 @@ export default function SettingsTransfer({
         const data = snapshot.data();
         if (data && data.settings) {
           onImport(data.settings);
-          alert('Ustawienia pomyślnie zaimportowane!');
+          alert(i18n.t('auto.ustawienia_pomyslnie_zaimporto', { defaultValue: "Ustawienia pomyślnie zaimportowane!" }));
           setInputCode('');
         }
       } else {
-        alert('Nieprawidłowy lub wygasły kod.');
+        alert(i18n.t('auto.nieprawidlowy_lub_wygasly_kod', { defaultValue: "Nieprawidłowy lub wygasły kod." }));
       }
     } catch (e) {
       console.error(e);
-      alert('Błąd podczas pobierania ustawień.');
+      alert(i18n.t('auto.blad_podczas_pobierania_ustawi', { defaultValue: "Błąd podczas pobierania ustawień." }));
     } finally {
       setLoading(false);
     }
@@ -78,15 +81,16 @@ export default function SettingsTransfer({
     <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 glass-target">
       <div className="flex items-center gap-3 mb-2">
         <Upload className="text-accent-500" size={20} />
-        <span className="text-xs font-bold dark:text-white">Transfer Ustawień Profli (Chmura)</span>
+        <span className="text-xs font-bold dark:text-white">{t('auto.transfer_ustawień_profli_chmura', { defaultValue: 'Transfer Ustawień Profli (Chmura)' })}</span>
       </div>
       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-2">
-        Wygeneruj tymczasowy krótki kod, aby przesłać swoje wrażliwe ustawienia (ISF, Cele) na inne urządzenie bez parowania konta.
-      </p>
+        
+                      {t('auto.wygeneruj_tymczasowy_krótki_kod_aby', { defaultValue: 'Wygeneruj tymczasowy krótki kod, aby przesłać swoje wrażliwe ustawienia (ISF, Cele) na inne urządzenie bez parowania konta.' })}
+                    </p>
 
       {syncCode ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center gap-2">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Twój kod jednorazowy</span>
+          <span className="text-[10px] uppercase font-bold text-slate-400">{t('auto.twój_kod_jednorazowy', { defaultValue: 'Twój kod jednorazowy' })}</span>
           <span className="text-3xl font-black tracking-widest text-accent-500">{syncCode}</span>
           <button 
             onClick={handleCopy}
@@ -103,8 +107,9 @@ export default function SettingsTransfer({
           className="w-full bg-accent-500 text-white rounded-xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 
-          Wygeneruj Kod Transferu
-        </button>
+           
+                                {t('auto.wygeneruj_kod_transferu', { defaultValue: 'Wygeneruj Kod Transferu' })}
+                              </button>
       )}
 
       <div className="mt-2 flex gap-2">
@@ -112,7 +117,7 @@ export default function SettingsTransfer({
           type="text" 
           value={inputCode}
           onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-          placeholder="np. X9A3K1"
+          placeholder={t('auto.np_x9a3k1', { defaultValue: 'np. X9A3K1' })}
           maxLength={6}
           className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black tracking-widest text-center outline-none focus:border-accent-500 text-slate-700 dark:text-white uppercase transition-all"
         />
@@ -122,8 +127,9 @@ export default function SettingsTransfer({
           className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl px-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
         >
           {loading && inputCode.length >= 6 ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} 
-          Pobierz
-        </button>
+           
+                            {t('auto.pobierz', { defaultValue: 'Pobierz' })}
+                          </button>
       </div>
     </div>
   );

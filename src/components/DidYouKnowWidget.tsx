@@ -2,21 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lightbulb, ChevronRight } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const tips = [
-  "Czy wiesz, że możesz poprosić GlikoCzata o samodzielne dodanie posiłku, używając komendy np.: 'dodaj do talerza jabłko'!",
-  "System Osiągnięć odblokowuje monety dla Twojego Zwierzaka, co zachęca Cię do częstszych kontroli.",
-  "Talerz współpracuje z AI. Im dokładniej opiszesz co zjadłeś, tym lepsze szacunki otrzymasz.",
-  "Kalkulator Bolusa potrafi wyciągnąć opóźnienia i uwzględnić resztkowe IOB, na podstawie zdefiniowanej skali.",
-  "Sprawdź integrację z Nightscout w zakładce 'Integracje (API) / Nightscout', aby pobierać wyniki CGM w tle.",
-  "Czy wiesz, że możesz skanować kody kreskowe produktów, aby szybko i precyzyjnie dodawać je do swojego posiłku?",
-  "Czy wiesz, że możesz użyć aparatu AI, aby zrobić zdjęcie swojego talerza, a sztuczna inteligencja automatycznie rozpozna i oszacuje dla Ciebie posiłek?",
-  "Czy wiesz, że możesz dodać własny klucz API w ustawieniach 'Integracje', aby korzystać z szybszego asystenta AI oraz podnieść limit zapytań?",
-  "Czy wiesz, że możesz zainstalować tę aplikację na telefonie? Użyj opcji 'Dodaj do ekranu głównego' w przeglądarce, by mieć do niej szybki dostęp!",
-  "Czy wiesz, że możesz stworzyć własny serwer do łączenia z xDrip przez wygenerowanie kodu w zakładce 'Integracje (API)'?"
+  i18n.t('auto.czy_wiesz_ze_mozesz_poprosic_g', { defaultValue: "Czy wiesz, że możesz poprosić GlikoCzata o samodzielne dodanie posiłku, używając komendy np.: 'dodaj do talerza jabłko'!" }),
+  i18n.t('auto.system_osiagniec_odblokowuje_m', { defaultValue: "System Osiągnięć odblokowuje monety dla Twojego Zwierzaka, co zachęca Cię do częstszych kontroli." }),
+  i18n.t('auto.talerz_wspolpracuje_z_ai_im_do', { defaultValue: "Talerz współpracuje z AI. Im dokładniej opiszesz co zjadłeś, tym lepsze szacunki otrzymasz." }),
+  i18n.t('auto.kalkulator_bolusa_potrafi_wyci', { defaultValue: "Kalkulator Bolusa potrafi wyciągnąć opóźnienia i uwzględnić resztkowe IOB, na podstawie zdefiniowanej skali." }),
+  i18n.t('auto.sprawdz_integracje_z_nightscou', { defaultValue: "Sprawdź integrację z Nightscout w zakładce 'Integracje (API) / Nightscout', aby pobierać wyniki CGM w tle." }),
+  i18n.t('auto.czy_wiesz_ze_mozesz_skanowac_k', { defaultValue: "Czy wiesz, że możesz skanować kody kreskowe produktów, aby szybko i precyzyjnie dodawać je do swojego posiłku?" }),
+  i18n.t('auto.czy_wiesz_ze_mozesz_uzyc_apara', { defaultValue: "Czy wiesz, że możesz użyć aparatu AI, aby zrobić zdjęcie swojego talerza, a sztuczna inteligencja automatycznie rozpozna i oszacuje dla Ciebie posiłek?" }),
+  i18n.t('auto.czy_wiesz_ze_mozesz_dodac_wlas', { defaultValue: "Czy wiesz, że możesz dodać własny klucz API w ustawieniach 'Integracje', aby korzystać z szybszego asystenta AI oraz podnieść limit zapytań?" }),
+  i18n.t('auto.czy_wiesz_ze_mozesz_zainstalow', { defaultValue: "Czy wiesz, że możesz zainstalować tę aplikację na telefonie? Użyj opcji 'Dodaj do ekranu głównego' w przeglądarce, by mieć do niej szybki dostęp!" }),
+  i18n.t('auto.czy_wiesz_ze_mozesz_stworzyc_w', { defaultValue: "Czy wiesz, że możesz stworzyć własny serwer do łączenia z xDrip przez wygenerowanie kodu w zakładce 'Integracje (API)'?" })
 ];
 
 export default function DidYouKnowWidget({ onClick }: { onClick: () => void }) {
+    const { t } = useTranslation();
   const [currentTip, setCurrentTip] = useState(tips[0]);
   const [tipKey, setTipKey] = useState(0);
 
@@ -60,7 +63,7 @@ export default function DidYouKnowWidget({ onClick }: { onClick: () => void }) {
           <Lightbulb size={20} />
         </div>
         <div className="flex-1 overflow-hidden">
-          <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1.5 leading-none">Czy wiesz, że...</h4>
+          <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1.5 leading-none">{t('auto.czy_wiesz_że', { defaultValue: 'Czy wiesz, że...' })}</h4>
           <div className="h-16 relative">
             <AnimatePresence mode="wait">
               <motion.p

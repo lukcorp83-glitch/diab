@@ -2,17 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Utensils, CheckCircle2, XCircle, Info, Trophy, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const MEALS = [
-  { name: 'Owsianka z borówkami', carbs: 45, image: '🥣', tips: 'Pełna błonnika, ale płatki owsiane mają sporo węgli.' },
-  { name: 'Sałatka Grecka', carbs: 8, image: '🥗', tips: 'Warzywa mają mało węgli, głównie z fety i oliwek.' },
-  { name: 'Spaghetti Bolognese', carbs: 65, image: '🍝', tips: 'Makaron to energetyczna bomba węglowodanowa.' },
-  { name: 'Jabłko (średnie)', carbs: 20, image: '🍎', tips: 'Jedno jabłko to zazwyczaj 2WW.' },
-  { name: 'Pizza (2 kawałki)', carbs: 55, image: '🍕', tips: 'Ciasto pszenne to czyste węglowodany plus tłuszcz spowalniający wzrost.' },
-  { name: 'Sushi (6 sztuk)', carbs: 35, image: '🍣', tips: 'Ryż do sushi jest słodzony octem ryżowym z cukrem.' },
+  { name: i18n.t('auto.owsianka_z_borowkami', { defaultValue: "Owsianka z borówkami" }), carbs: 45, image: '🥣', tips: i18n.t('auto.pelna_blonnika_ale_platki_owsi', { defaultValue: "Pełna błonnika, ale płatki owsiane mają sporo węgli." }) },
+  { name: i18n.t('auto.salatka_grecka', { defaultValue: "Sałatka Grecka" }), carbs: 8, image: '🥗', tips: i18n.t('auto.warzywa_maja_malo_wegli_glowni', { defaultValue: "Warzywa mają mało węgli, głównie z fety i oliwek." }) },
+  { name: 'Spaghetti Bolognese', carbs: 65, image: '🍝', tips: i18n.t('auto.makaron_to_energetyczna_bomba', { defaultValue: "Makaron to energetyczna bomba węglowodanowa." }) },
+  { name: i18n.t('auto.jablko_srednie', { defaultValue: "Jabłko (średnie)" }), carbs: 20, image: '🍎', tips: i18n.t('auto.jedno_jablko_to_zazwyczaj_2ww', { defaultValue: "Jedno jabłko to zazwyczaj 2WW." }) },
+  { name: i18n.t('auto.pizza_2_kawalki', { defaultValue: "Pizza (2 kawałki)" }), carbs: 55, image: '🍕', tips: i18n.t('auto.ciasto_pszenne_to_czyste_weglo', { defaultValue: "Ciasto pszenne to czyste węglowodany plus tłuszcz spowalniający wzrost." }) },
+  { name: 'Sushi (6 sztuk)', carbs: 35, image: '🍣', tips: i18n.t('auto.ryz_do_sushi_jest_slodzony_oct', { defaultValue: "Ryż do sushi jest słodzony octem ryżowym z cukrem." }) },
 ];
 
 export default function PlatePuzzle() {
+    const { t } = useTranslation();
   const [currentMeal, setCurrentMeal] = useState<any>(null);
   const [guess, setGuess] = useState<number | ''>('');
   const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
@@ -53,13 +56,14 @@ export default function PlatePuzzle() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-black text-sm dark:text-white flex items-center gap-2">
-            <Utensils size={16} className="text-amber-500" /> Zagadka Talerzy
-          </h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Zgadnij ile węglowodanów ma ten posiłek</p>
+            <Utensils size={16} className="text-amber-500" />  {t('auto.zagadka_talerzy', { defaultValue: 'Zagadka Talerzy' })}
+                                </h3>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.zgadnij_ile_węglowodanów_ma_ten_pos', { defaultValue: 'Zgadnij ile węglowodanów ma ten posiłek' })}</p>
         </div>
         <div className="flex items-center gap-2">
            <div className="text-[10px] font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm text-amber-600">
-             PKT: {score}
+             
+                                   {t('auto.pkt', { defaultValue: 'PKT:' })} {score}
            </div>
            {streak > 1 && (
              <div className="text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full animate-bounce">
@@ -80,7 +84,7 @@ export default function PlatePuzzle() {
             type="number"
             value={guess}
             onChange={(e) => setGuess(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder="Węgle (g)"
+            placeholder={t('auto.węgle_g', { defaultValue: 'Węgle (g)' })}
             className="w-24 bg-slate-100 dark:bg-slate-700 border-none rounded-xl px-4 py-3 text-center font-black focus:ring-2 focus:ring-amber-500"
             disabled={!!feedback}
           />
@@ -89,8 +93,9 @@ export default function PlatePuzzle() {
             disabled={guess === '' || !!feedback}
             className="bg-amber-500 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 disabled:opacity-50 transition-all shadow-lg shadow-amber-500/20"
           >
-            Sprawdź
-          </button>
+            
+                                  {t('auto.sprawdź', { defaultValue: 'Sprawdź' })}
+                                </button>
         </div>
       </div>
 
@@ -111,9 +116,9 @@ export default function PlatePuzzle() {
               {feedback === 'success' ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
               <div>
                 <p className="font-black text-xs uppercase tracking-widest mb-1">
-                  {feedback === 'success' ? 'Świetnie!' : 'Prawie...'}
+                  {feedback === 'success' ? i18n.t('auto.swietnie', { defaultValue: "Świetnie!" }) : 'Prawie...'}
                 </p>
-                <p className="text-xs font-medium">To danie ma ok. <span className="font-bold underline">{currentMeal.carbs}g</span> węglowodanów.</p>
+                <p className="text-xs font-medium">{t('auto.to_danie_ma_ok', { defaultValue: 'To danie ma ok.' })} <span className="font-bold underline">{currentMeal.carbs}g</span>  {t('auto.węglowodanów', { defaultValue: 'węglowodanów.' })}</p>
               </div>
             </div>
 
@@ -128,7 +133,8 @@ export default function PlatePuzzle() {
               onClick={nextMeal}
               className="w-full py-4 bg-slate-800 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 group transition-all"
             >
-              Następny Talerz <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              
+                                        {t('auto.następny_talerz', { defaultValue: 'Następny Talerz' })} <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </motion.div>
         )}

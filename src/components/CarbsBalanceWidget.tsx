@@ -4,6 +4,7 @@ import { Utensils, Edit3, Check } from 'lucide-react';
 import { LogEntry, UserSettings } from '../types';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
+import { useTranslation } from "react-i18next";
 
 interface CarbsBalanceWidgetProps {
   logs: LogEntry[];
@@ -14,6 +15,7 @@ interface CarbsBalanceWidgetProps {
 }
 
 export default function CarbsBalanceWidget({ logs, settings, size, onAction, setTab }: CarbsBalanceWidgetProps) {
+    const { t } = useTranslation();
   const isCompact = size === '1x1' || size === '1x2';
 
   const [dailyGoal, setDailyGoal] = useState(200); 
@@ -63,7 +65,7 @@ export default function CarbsBalanceWidget({ logs, settings, size, onAction, set
   if (isEditing) {
     return (
       <div className={cn("glass-card w-full h-full p-4 flex flex-col justify-center relative overflow-hidden transition-all", isCompact ? "items-center" : "items-start")}>
-         <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2">Ustaw Dzienny Cel (g)</span>
+         <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2">{t('auto.ustaw_dzienny_cel_g', { defaultValue: 'Ustaw Dzienny Cel (g)' })}</span>
          <form onSubmit={saveGoal} className="flex gap-2 w-full">
            <input 
              type="number" 
@@ -103,7 +105,7 @@ export default function CarbsBalanceWidget({ logs, settings, size, onAction, set
             <Utensils size={16} />
           </div>
           {!isCompact && (
-            <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none">Dzienny bilans<br/>węglowodanów</span>
+            <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none">{t('auto.dzienny_bilans', { defaultValue: 'Dzienny bilans' })}<br/>{t('auto.węglowodanów', { defaultValue: 'węglowodanów' })}</span>
           )}
         </div>
         <button 
@@ -121,7 +123,7 @@ export default function CarbsBalanceWidget({ logs, settings, size, onAction, set
           </span>
           <span className="text-sm font-bold text-slate-400">g</span>
         </div>
-        {!isCompact && <span className="text-[10px] font-bold text-slate-400">z ok. {dailyGoal}g docelowych</span>}
+        {!isCompact && <span className="text-[10px] font-bold text-slate-400">{t('auto.z_ok', { defaultValue: 'z ok.' })} {dailyGoal}{t('auto.g_docelowych', { defaultValue: 'g docelowych' })}</span>}
       </div>
 
       <div className="mt-3 bg-slate-100 dark:bg-slate-800/50 rounded-full h-2 w-full overflow-hidden shrink-0">
@@ -136,7 +138,7 @@ export default function CarbsBalanceWidget({ logs, settings, size, onAction, set
         />
       </div>
       {isCompact && (
-        <span className="text-[9px] font-bold text-slate-400 mt-2 text-center uppercase tracking-wider">{Math.round(percent)}% Celu</span>
+        <span className="text-[9px] font-bold text-slate-400 mt-2 text-center uppercase tracking-wider">{Math.round(percent)}{t('auto.celu', { defaultValue: '% Celu' })}</span>
       )}
     </div>
   );

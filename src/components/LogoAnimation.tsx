@@ -1,7 +1,9 @@
 import React from 'react';
 import './LogoAnimation.css';
+import { useTranslation } from "react-i18next";
 
 const GlikoControlLogo = () => {
+    const { t } = useTranslation();
   return (
     <div className="logo-container">
       {/* 1. Ciemnoszary zaokrąglony kwadrat */}
@@ -39,7 +41,7 @@ const GlikoControlLogo = () => {
       </div>
 
       {/* 4. Pojawiający się tekst pod spodem */}
-      <div className="logo-text">POWERED BY GLIKOSENSE</div>
+      <div className="logo-text">{t('auto.powered_by_glikosense', { defaultValue: 'POWERED BY GLIKOSENSE' })}</div>
     </div>
   );
 };

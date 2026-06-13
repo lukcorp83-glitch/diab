@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
 import { Calendar, Droplets, Utensils, Syringe, ChevronDown, ChevronUp, ActivitySquare, AlertTriangle, Signal } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface StatisticsViewProps {
   logs: LogEntry[];
@@ -32,6 +34,7 @@ interface MonthStats {
 }
 
 export default function StatisticsView({ logs, settings }: StatisticsViewProps) {
+    const { t } = useTranslation();
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
 
   const monthsData = useMemo(() => {
@@ -114,7 +117,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
 
   if (monthsData.length === 0) {
     return (
-      <div className="text-center text-slate-500 mt-10">Brak danych do wyświetlenia statystyk.</div>
+      <div className="text-center text-slate-500 mt-10">{t('auto.brak_danych_do_wyświetlenia_statyst', { defaultValue: 'Brak danych do wyświetlenia statystyk.' })}</div>
     );
   }
 
@@ -148,29 +151,29 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                 <div className="bg-amber-500/10 rounded-2xl p-3 flex flex-col justify-center relative group">
                   <div className="flex items-center gap-1.5 text-amber-600 mb-1">
                     <Utensils size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Węglowodany</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{t('auto.węglowodany', { defaultValue: 'Węglowodany' })}</span>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-lg font-black text-amber-700 dark:text-amber-500 leading-none">{Math.round(month.totalCarbs)}g</span>
-                    <span className="text-[10px] font-bold text-amber-600/70">~{Math.round(avgCarbs)}g/dzień</span>
+                    <span className="text-[10px] font-bold text-amber-600/70">~{Math.round(avgCarbs)}{t('auto.g_dzień', { defaultValue: 'g/dzień' })}</span>
                   </div>
                 </div>
                 
                 <div className="bg-indigo-500/10 rounded-2xl p-3 flex flex-col justify-center relative group">
                   <div className="flex items-center gap-1.5 text-indigo-600 mb-1">
                     <Syringe size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Insulina</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{t('auto.insulina', { defaultValue: 'Insulina' })}</span>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-lg font-black text-indigo-700 dark:text-indigo-500 leading-none">{month.totalInsulin.toFixed(1)}j</span>
-                    <span className="text-[10px] font-bold text-indigo-600/70">~{avgInsulin.toFixed(1)}j/dzień</span>
+                    <span className="text-[10px] font-bold text-indigo-600/70">~{avgInsulin.toFixed(1)}{t('auto.j_dzień', { defaultValue: 'j/dzień' })}</span>
                   </div>
                 </div>
 
                 <div className="bg-rose-500/10 rounded-2xl p-3 flex flex-col justify-center relative group">
                   <div className="flex items-center gap-1.5 text-rose-600 mb-1">
                     <AlertTriangle size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Hipoglikemie</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{t('auto.hipoglikemie', { defaultValue: 'Hipoglikemie' })}</span>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-lg font-black text-rose-700 dark:text-rose-500 leading-none">{month.hypos}</span>
@@ -180,7 +183,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                 <div className="bg-orange-500/10 rounded-2xl p-3 flex flex-col justify-center relative group">
                   <div className="flex items-center gap-1.5 text-orange-600 mb-1">
                     <ActivitySquare size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Hiperglikemie</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{t('auto.hiperglikemie', { defaultValue: 'Hiperglikemie' })}</span>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-lg font-black text-orange-700 dark:text-orange-500 leading-none">{month.hypers}</span>
@@ -190,7 +193,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                 <div className="bg-teal-500/10 rounded-2xl p-3 flex flex-col justify-center">
                   <div className="flex items-center gap-1.5 text-teal-600 mb-1">
                     <Droplets size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Wymiany wkłuć</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{t('auto.wymiany_wkłuć', { defaultValue: 'Wymiany wkłuć' })}</span>
                   </div>
                   <span className="text-lg font-black text-teal-700 dark:text-teal-500 leading-none">{month.siteChanges}</span>
                 </div>
@@ -198,7 +201,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                 <div className="bg-indigo-500/10 rounded-2xl p-3 flex flex-col justify-center">
                   <div className="flex items-center gap-1.5 text-indigo-600 mb-1">
                     <Signal size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Wymiany sensorów</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{t('auto.wymiany_sensorów', { defaultValue: 'Wymiany sensorów' })}</span>
                   </div>
                   <span className="text-lg font-black text-indigo-700 dark:text-indigo-500 leading-none">{month.sensorChanges}</span>
                 </div>
@@ -230,10 +233,10 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                     className="px-5 pb-5 border-t border-slate-100 dark:border-slate-800"
                   >
                     <div className="pt-4 space-y-2">
-                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Zestawienie Dzienne</h4>
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">{t('auto.zestawienie_dzienne', { defaultValue: 'Zestawienie Dzienne' })}</h4>
                       
                       <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center mb-1">
-                        {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'].map(day => (
+                        {['Pn', 'Wt', i18n.t('auto.sr', { defaultValue: "Śr" }), 'Cz', 'Pt', 'Sb', 'Nd'].map(day => (
                           <div key={day} className="text-[9px] font-black uppercase text-slate-400">{day}</div>
                         ))}
                       </div>
@@ -261,8 +264,8 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
 
                             {/* Górne sygnalizatory pulsujące przy wymianie sensora lub wkłucia */}
                             <div className="absolute top-1 right-1.5 flex gap-0.5 z-10">
-                              {stats?.sensorChange && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-sm animate-pulse" title="Dzień wymiany sensora" />}
-                              {stats?.siteChange && <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shadow-sm animate-pulse" title="Dzień wymiany wkłucia" />}
+                              {stats?.sensorChange && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-sm animate-pulse" title={t('auto.dzień_wymiany_sensora', { defaultValue: 'Dzień wymiany sensora' })} />}
+                              {stats?.siteChange && <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shadow-sm animate-pulse" title={t('auto.dzień_wymiany_wkłucia', { defaultValue: 'Dzień wymiany wkłucia' })} />}
                             </div>
                             
                             {stats && (
@@ -270,12 +273,12 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                                 {/* Węglowodany i Insulina w jednym wierszu flex-wrap */}
                                 <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5 w-full mt-3 px-0.5 text-center">
                                   {stats.carbs > 0 && (
-                                    <div className="text-[8px] sm:text-[9.5px] font-black text-amber-500 leading-none" title="Węglowodany">
+                                    <div className="text-[8px] sm:text-[9.5px] font-black text-amber-500 leading-none" title={t('auto.węglowodany', { defaultValue: 'Węglowodany' })}>
                                       {Math.round(stats.carbs)}g
                                     </div>
                                   )}
                                   {stats.insulin > 0 && (
-                                    <div className="text-[8px] sm:text-[9.5px] font-black text-indigo-600 dark:text-indigo-400 leading-none" title="Insulina">
+                                    <div className="text-[8px] sm:text-[9.5px] font-black text-indigo-600 dark:text-indigo-400 leading-none" title={t('auto.insulina', { defaultValue: 'Insulina' })}>
                                       {stats.insulin.toFixed(1)}j
                                     </div>
                                   )}
@@ -295,12 +298,12 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
                                       </div>
                                     )}
                                     {stats.siteChange && (
-                                      <div className="flex items-center justify-center text-white bg-teal-500 p-0.5 rounded shadow-sm hover:scale-110 transition-transform" title="Wymiana wkłucia">
+                                      <div className="flex items-center justify-center text-white bg-teal-500 p-0.5 rounded shadow-sm hover:scale-110 transition-transform" title={t('auto.wymiana_wkłucia', { defaultValue: 'Wymiana wkłucia' })}>
                                         <Droplets size={8} className="stroke-[3]" />
                                       </div>
                                     )}
                                     {stats.sensorChange && (
-                                      <div className="flex items-center justify-center text-white bg-indigo-500 p-0.5 rounded shadow-sm hover:scale-110 transition-transform" title="Wymiana sensora">
+                                      <div className="flex items-center justify-center text-white bg-indigo-500 p-0.5 rounded shadow-sm hover:scale-110 transition-transform" title={t('auto.wymiana_sensora', { defaultValue: 'Wymiana sensora' })}>
                                         <Signal size={8} className="stroke-[3]" />
                                       </div>
                                     )}

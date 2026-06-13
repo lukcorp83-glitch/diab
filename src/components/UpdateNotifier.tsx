@@ -3,8 +3,10 @@ import { Download, X } from 'lucide-react';
 import { useUpdateCheck } from '../hooks/useUpdateCheck';
 import { Browser } from '@capacitor/browser';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from "react-i18next";
 
 export const UpdateNotifier: React.FC = () => {
+    const { t } = useTranslation();
   const { updateInfo, dismissUpdate } = useUpdateCheck();
 
   if (!updateInfo || !updateInfo.isAvailable) return null;
@@ -38,8 +40,9 @@ export const UpdateNotifier: React.FC = () => {
                 <Download className="w-8 h-8 text-white drop-shadow-md" />
               </div>
               <h3 className="font-bold text-white text-lg tracking-wide drop-shadow-md">
-                Dostępna Aktualizacja!
-              </h3>
+                
+                                              {t('auto.dostępna_aktualizacja', { defaultValue: 'Dostępna Aktualizacja!' })}
+                                            </h3>
             </div>
             
             <button
@@ -54,10 +57,12 @@ export const UpdateNotifier: React.FC = () => {
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                GlikoControl
-              </span>
+                
+                                              {t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}
+                                            </span>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-400">
-                Wersja {updateInfo.latestVersionName}
+                
+                                              {t('auto.wersja', { defaultValue: 'Wersja' })} {updateInfo.latestVersionName}
               </span>
             </div>
 
@@ -70,15 +75,17 @@ export const UpdateNotifier: React.FC = () => {
                 onClick={dismissUpdate}
                 className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors"
               >
-                Później
-              </button>
+                
+                                              {t('auto.później', { defaultValue: 'Później' })}
+                                            </button>
               <button
                 onClick={handleDownload}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-accent-500 hover:from-indigo-400 hover:to-accent-400 rounded-xl shadow-lg shadow-accent-500/30 transition-all active:scale-95"
               >
                 <Download className="w-4 h-4" />
-                Pobierz
-              </button>
+                
+                                              {t('auto.pobierz', { defaultValue: 'Pobierz' })}
+                                            </button>
             </div>
           </div>
         </motion.div>

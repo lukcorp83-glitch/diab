@@ -1,9 +1,12 @@
+import i18n from '../i18n';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingBag, Target, Trophy, Coins, RotateCcw, Info, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
 
 export default function GlikoBackpack() {
+    const { t } = useTranslation();
   const [gameState, setGameState] = useState<'idle' | 'aiming' | 'result'>('idle');
   const [gamePower, setGamePower] = useState(0);
   const [score, setScore] = useState(0);
@@ -57,13 +60,13 @@ export default function GlikoBackpack() {
     
     if (finalPower >= 75 && finalPower <= 85) {
       earnedPoints = 50;
-      msg = 'IDEALNIE! Plecak wylądował w szafce! 🎒✨';
+      msg = i18n.t('auto.idealnie_plecak_wyladowal_w_sz', { defaultValue: "IDEALNIE! Plecak wylądował w szafce! 🎒✨" });
     } else if (finalPower >= 60 && finalPower <= 100) {
       earnedPoints = 20;
       msg = 'Dobry rzut! Plecak jest blisko. 🎒👍';
     } else {
       earnedPoints = 5;
-      msg = 'Ojej, plecak wylądował na podłodze! 🎒💨';
+      msg = i18n.t('auto.ojej_plecak_wyladowal_na_podlo', { defaultValue: "Ojej, plecak wylądował na podłodze! 🎒💨" });
     }
     
     setScore(s => s + earnedPoints);
@@ -81,16 +84,18 @@ export default function GlikoBackpack() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-black text-sm dark:text-white flex items-center gap-2">
-            <ShoppingBag size={16} className="text-indigo-500" /> Rzut Plecakiem
-          </h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Traf do szafki w odpowiednim momencie</p>
+            <ShoppingBag size={16} className="text-indigo-500" />  {t('auto.rzut_plecakiem', { defaultValue: 'Rzut Plecakiem' })}
+                                </h3>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.traf_do_szafki_w_odpowiednim_momenc', { defaultValue: 'Traf do szafki w odpowiednim momencie' })}</p>
         </div>
         <div className="flex items-center gap-3">
            <div className="text-[10px] font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm text-indigo-600">
-             PKT: {score}
+             
+                                   {t('auto.pkt', { defaultValue: 'PKT:' })} {score}
            </div>
            <div className="text-[10px] font-black bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full shadow-sm">
-             BEST: {highScore}
+             
+                                   {t('auto.best', { defaultValue: 'BEST:' })} {highScore}
            </div>
         </div>
       </div>
@@ -99,13 +104,14 @@ export default function GlikoBackpack() {
          {gameState === 'idle' && (
            <div className="text-center">
              <ShoppingBag size={48} className="mx-auto text-indigo-400 mb-4 animate-bounce" />
-             <p className="text-xs text-slate-500 mb-6 font-medium max-w-[200px]">Wyceluj i rzuć plecakiem prosto do szkolnej szafki!</p>
+             <p className="text-xs text-slate-500 mb-6 font-medium max-w-[200px]">{t('auto.wyceluj_i_rzuć_plecakiem_prosto_do_', { defaultValue: 'Wyceluj i rzuć plecakiem prosto do szkolnej szafki!' })}</p>
              <button 
                 onClick={startMiniGame} 
                 className="bg-indigo-500 hover:bg-indigo-600 text-white font-black text-xs px-8 py-3 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/20 uppercase tracking-widest"
              >
-                ZAGRAJ
-             </button>
+                
+                                          {t('auto.zagraj', { defaultValue: 'ZAGRAJ' })}
+                                       </button>
            </div>
          )}
          
@@ -144,8 +150,8 @@ export default function GlikoBackpack() {
                    onClick={throwBackpack} 
                    className="w-full bg-indigo-500 text-white font-black text-sm py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 uppercase tracking-[0.2em] outline-none"
                 >
-                   <Target size={20} /> RZUĆ!
-                </button>
+                   <Target size={20} />  {t('auto.rzuć', { defaultValue: 'RZUĆ!' })}
+                                              </button>
              ) : (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }} 
@@ -155,15 +161,16 @@ export default function GlikoBackpack() {
                    <p className="font-black text-lg dark:text-white mb-2 italic tracking-tight">{resultMsg}</p>
                    <div className="flex justify-center gap-4 mb-4">
                       <div className="flex items-center gap-1 text-amber-500 font-black">
-                         <Zap size={16} /> +{resultMsg.includes('IDEALNIE') ? 50 : resultMsg.includes('Dobry') ? 20 : 5} pkt
-                      </div>
+                         <Zap size={16} /> +{resultMsg.includes('IDEALNIE') ? 50 : resultMsg.includes('Dobry') ? 20 : 5}  {t('auto.pkt', { defaultValue: 'pkt' })}
+                                                                </div>
                    </div>
                    <button 
                      onClick={() => setGameState('idle')} 
                      className="bg-slate-800 dark:bg-white dark:text-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform"
                    >
-                     Graj Ponownie
-                   </button>
+                     
+                                                           {t('auto.graj_ponownie', { defaultValue: 'Graj Ponownie' })}
+                                                         </button>
                 </motion.div>
              )}
            </div>
@@ -172,7 +179,7 @@ export default function GlikoBackpack() {
 
       <div className="mt-4 flex items-center gap-3 text-slate-400">
          <Info size={14} className="shrink-0" />
-         <p className="text-[9px] font-medium leading-tight">Uchwyć moment, gdy wskaźnik znajduje się w zielonej strefie, aby trafić idealnie do szafki!</p>
+         <p className="text-[9px] font-medium leading-tight">{t('auto.uchwyć_moment_gdy_wskaźnik_znajduje', { defaultValue: 'Uchwyć moment, gdy wskaźnik znajduje się w zielonej strefie, aby trafić idealnie do szafki!' })}</p>
       </div>
     </div>
   );

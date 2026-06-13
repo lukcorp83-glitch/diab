@@ -1,9 +1,11 @@
+import i18n from '../i18n';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, Loader2, Sparkles, Thermometer, Clock, Syringe, Bug, Activity } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
 import { LogEntry } from '../types';
+import { useTranslation } from "react-i18next";
 
 interface InsulinDetectiveProps {
   logs?: LogEntry[];
@@ -11,6 +13,7 @@ interface InsulinDetectiveProps {
 }
 
 export default function InsulinDetective({ logs, onClose }: InsulinDetectiveProps) {
+    const { t } = useTranslation();
   const [openDate, setOpenDate] = useState('');
   const [temperature, setTemperature] = useState('');
   const [correctionDoses, setCorrectionDoses] = useState('');
@@ -50,7 +53,7 @@ Zasady:
       setResult(cleaned);
     } catch (err) {
       console.error(err);
-      setError("Wystąpił błąd podczas komunikacji z modelem AI.");
+      setError(i18n.t('auto.wystapil_blad_podczas_komunika', { defaultValue: "Wystąpił błąd podczas komunikacji z modelem AI." }));
     } finally {
       setIsAnalyzing(false);
     }
@@ -65,8 +68,8 @@ Zasady:
             <Bug size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Insulina Nie Działa?</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Detektyw skuteczności insuliny</p>
+            <h1 className="text-xl font-bold tracking-tight">{t('auto.insulina_nie_działa', { defaultValue: 'Insulina Nie Działa?' })}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('auto.detektyw_skuteczności_insuliny', { defaultValue: 'Detektyw skuteczności insuliny' })}</p>
           </div>
         </div>
         {onClose && (
@@ -88,10 +91,11 @@ Zasady:
               <AlertTriangle className="text-amber-500" size={24} />
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-2">Podejrzewasz zepsutą insulinę lub problem z wkłuciem?</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('auto.podejrzewasz_zepsutą_insulinę_lub_p', { defaultValue: 'Podejrzewasz zepsutą insulinę lub problem z wkłuciem?' })}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">
-                Insulina to białko - w słońcu czy w upale szybko traci właściwości. Z kolei przy pompie insulinowej problemem może być niedrożne lub zagięte wkłucie. Jeśli podajesz kolejne dawki, a cukier stoi w miejscu - pozwól asystentowi przeanalizować ryzyko leku / wkłucia.
-              </p>
+                
+                                              {t('auto.insulina_to_białko_w_słońcu_czy_w_u', { defaultValue: 'Insulina to białko - w słońcu czy w upale szybko traci właściwości. Z kolei przy pompie insulinowej problemem może być niedrożne lub zagięte wkłucie. Jeśli podajesz kolejne dawki, a cukier stoi w miejscu - pozwól asystentowi przeanalizować ryzyko leku / wkłucia.' })}
+                                            </p>
             </div>
           </div>
           <AlertTriangle size={150} className="absolute right-0 bottom-0 text-slate-100 dark:text-white/5 opacity-50 transform translate-x-1/4 translate-y-1/4" />
@@ -101,57 +105,58 @@ Zasady:
         <div className="bg-white dark:bg-[#121212] p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
           <h2 className="font-semibold text-lg flex items-center gap-2 mb-6">
             <Activity size={18} className="text-rose-500" />
-            Podaj szczegóły sytuacji
-          </h2>
+            
+                                  {t('auto.podaj_szczegóły_sytuacji', { defaultValue: 'Podaj szczegóły sytuacji' })}
+                                </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                <Clock size={12} /> Fiolka / pen / wkłucie od kiedy?
-              </label>
+                <Clock size={12} />  {t('auto.fiolka_pen_wkłucie_od_kiedy', { defaultValue: 'Fiolka / pen / wkłucie od kiedy?' })}
+                                            </label>
               <input
                 type="text"
                 value={openDate}
                 onChange={(e) => setOpenDate(e.target.value)}
-                placeholder="np. 3 dni temu wkłucie, wczoraj pen"
+                placeholder={t('auto.np_3_dni_temu_wkłucie_wczoraj_pen', { defaultValue: 'np. 3 dni temu wkłucie, wczoraj pen' })}
                 className="w-full bg-slate-50 dark:bg-[#0f0f0f] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
               />
             </div>
             
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                <Thermometer size={12} /> Przegrzana insulina (≥30°C)?
-              </label>
+                <Thermometer size={12} />  {t('auto.przegrzana_insulina_30_c', { defaultValue: 'Przegrzana insulina (≥30°C)?' })}
+                                            </label>
               <input
                 type="text"
                 value={temperature}
                 onChange={(e) => setTemperature(e.target.value)}
-                placeholder="np. auto w słońcu, basen, w kieszeni"
+                placeholder={t('auto.np_auto_w_słońcu_basen_w_kieszeni', { defaultValue: 'np. auto w słońcu, basen, w kieszeni' })}
                 className="w-full bg-slate-50 dark:bg-[#0f0f0f] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                <Syringe size={12} /> Ile dawek korekcyjnych podano?
-              </label>
+                <Syringe size={12} />  {t('auto.ile_dawek_korekcyjnych_podano', { defaultValue: 'Ile dawek korekcyjnych podano?' })}
+                                            </label>
               <input
                 type="text"
                 value={correctionDoses}
                 onChange={(e) => setCorrectionDoses(e.target.value)}
-                placeholder="np. 2 dawki po 4j co 2h"
+                placeholder={t('auto.np_2_dawki_po_4j_co_2h', { defaultValue: 'np. 2 dawki po 4j co 2h' })}
                 className="w-full bg-slate-50 dark:bg-[#0f0f0f] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                <Activity size={12} /> Aktualny poziom cukru (mg/dl)
-              </label>
+                <Activity size={12} />  {t('auto.aktualny_poziom_cukru_mg_dl', { defaultValue: 'Aktualny poziom cukru (mg/dl)' })}
+                                            </label>
               <input
                 type="number"
                 value={currentBg}
                 onChange={(e) => setCurrentBg(e.target.value)}
-                placeholder="np. 280"
+                placeholder={t('auto.np_280', { defaultValue: 'np. 280' })}
                 className="w-full bg-slate-50 dark:bg-[#0f0f0f] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
               />
             </div>
@@ -171,13 +176,15 @@ Zasady:
               {isAnalyzing ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Analizuję...
-                </>
+                  
+                                                    {t('auto.analizuję', { defaultValue: 'Analizuję...' })}
+                                                  </>
               ) : (
                 <>
                   <Sparkles size={16} />
-                  Diagnozuj Problem
-                </>
+                  
+                                                        {t('auto.diagnozuj_problem', { defaultValue: 'Diagnozuj Problem' })}
+                                                      </>
               )}
             </button>
           </div>

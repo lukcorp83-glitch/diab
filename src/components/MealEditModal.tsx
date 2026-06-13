@@ -29,6 +29,8 @@ import { getEffectiveUid, cn } from "../lib/utils";
 import { toast } from "react-hot-toast";
 import { LIB_BASE } from "../constants";
 import { geminiService } from "../services/gemini";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface MealEditModalProps {
   log: LogEntry;
@@ -41,6 +43,7 @@ export default function MealEditModal({
   user,
   onClose,
 }: MealEditModalProps) {
+    const { t } = useTranslation();
   const isBolus = log.type === "bolus";
   const formatVal = (v: any) =>
     typeof v === "number"
@@ -174,7 +177,7 @@ export default function MealEditModal({
       }
     } catch (err) {
       console.error("AI search failed:", err);
-      toast.error("Błąd wyszukiwania AI");
+      toast.error(i18n.t('auto.blad_wyszukiwania_ai', { defaultValue: "Błąd wyszukiwania AI" }));
     } finally {
       setIsSearching(false);
     }
@@ -245,7 +248,7 @@ export default function MealEditModal({
   const handleSave = async () => {
     if (!user || loading) return;
     if (!log.id) {
-      toast.error("Nie można edytować wpisu (brak ID elementu).");
+      toast.error(i18n.t('auto.nie_mozna_edytowac_wpisu_brak', { defaultValue: "Nie można edytować wpisu (brak ID elementu)." }));
       return;
     }
     setLoading(true);
@@ -290,7 +293,7 @@ export default function MealEditModal({
           updates.polyols = null;
           updates.protein = null;
           updates.fat = null;
-          updates.notes = (updates.notes || "") + " (Posiłek usunięty)";
+          updates.notes = (updates.notes || "") + i18n.t('auto.posilek_usuniety', { defaultValue: "(Posiłek usunięty)" });
         } else {
           const netCarbs = Math.max(
             0,
@@ -310,7 +313,7 @@ export default function MealEditModal({
       window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: log.id, updates } }));
       
       toast.success(
-        isBolus ? "Zaktualizowano bolus (lokalnie)!" : "Zaktualizowano posiłek (lokalnie)!",
+        isBolus ? "Zaktualizowano bolus (lokalnie)!" : i18n.t('auto.zaktualizowano_posilek_lokalni', { defaultValue: "Zaktualizowano posiłek (lokalnie)!" }),
       );
       onClose();
 
@@ -320,7 +323,7 @@ export default function MealEditModal({
       });
     } catch (err) {
       console.error("Update failed:", err);
-      toast.error("Błąd aktualizacji");
+      toast.error(i18n.t('auto.blad_aktualizacji', { defaultValue: "Błąd aktualizacji" }));
     } finally {
       setLoading(false);
     }
@@ -348,11 +351,12 @@ export default function MealEditModal({
               </div>
               <div>
                 <h3 className="text-lg font-black dark:text-white leading-none">
-                  {isBolus ? "Edytuj Bolus" : "Edytuj Posiłek"}
+                  {isBolus ? "Edytuj Bolus" : i18n.t('auto.edytuj_posilek', { defaultValue: "Edytuj Posiłek" })}
                 </h3>
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">
-                  Popraw dane wpisu
-                </p>
+                  
+                                                    {t('auto.popraw_dane_wpisu', { defaultValue: 'Popraw dane wpisu' })}
+                                                  </p>
               </div>
             </div>
             <button
@@ -367,8 +371,9 @@ export default function MealEditModal({
             {/* Search Section */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                Dodaj produkty do posiłku
-              </label>
+                
+                                              {t('auto.dodaj_produkty_do_posiłku', { defaultValue: 'Dodaj produkty do posiłku' })}
+                                            </label>
               <div className="relative">
                 <Search
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -376,7 +381,7 @@ export default function MealEditModal({
                 />
                 <input
                   type="text"
-                  placeholder="NP. Banan, Pizza, Chleb..."
+                  placeholder={t('auto.np_banan_pizza_chleb', { defaultValue: 'NP. Banan, Pizza, Chleb...' })}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleOnlineSearch()}
@@ -420,10 +425,10 @@ export default function MealEditModal({
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
-                                {p.carbs}g W
-                              </span>
+                                {p.carbs}{t('auto.g_w', { defaultValue: 'g W' })}
+                                                                          </span>
                               <span className="text-[9px] font-bold text-slate-400">
-                                {p.protein}B / {p.fat}T
+                                {p.protein}{t('auto.b', { defaultValue: 'B /' })} {p.fat}T
                               </span>
                               <span
                                 className={cn(
@@ -437,7 +442,8 @@ export default function MealEditModal({
                                     : "bg-slate-500/10 text-slate-500 dark:text-slate-400",
                                 )}
                               >
-                                IG: {typeof p.gi === "number" ? p.gi : "??*"}
+                                
+                                                                            {t('auto.ig', { defaultValue: 'IG:' })} {typeof p.gi === "number" ? p.gi : "??*"}
                               </span>
                             </div>
                           </div>
@@ -460,8 +466,9 @@ export default function MealEditModal({
                     size={14}
                     className="text-accent-500 fill-accent-500"
                   />{" "}
-                  Baza Posiłków (Zapisane zestawy)
-                </label>
+                  
+                                                    {t('auto.baza_posiłków_zapisane_zestawy', { defaultValue: 'Baza Posiłków (Zapisane zestawy)' })}
+                                                  </label>
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
                   {savedMeals.map((m) => (
                     <button
@@ -477,8 +484,8 @@ export default function MealEditModal({
                           {m.name}
                         </div>
                         <div className="text-[9px] font-bold text-slate-400 mt-0.5">
-                          {m.items.length} skład.
-                        </div>
+                          {m.items.length}  {t('auto.skład', { defaultValue: 'skład.' })}
+                                                          </div>
                       </div>
                       <div className="text-[10px] font-black text-accent-500">
                         {m.items
@@ -487,8 +494,9 @@ export default function MealEditModal({
                             0,
                           )
                           .toFixed(1)}
-                        g Węg.
-                      </div>
+                        
+                                                      {t('auto.g_węg', { defaultValue: 'g Węg.' })}
+                                                    </div>
                     </button>
                   ))}
                 </div>
@@ -499,8 +507,9 @@ export default function MealEditModal({
               {isBolus && (
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                    Dawka Insuliny (j.)
-                  </label>
+                    
+                                                          {t('auto.dawka_insuliny_j', { defaultValue: 'Dawka Insuliny (j.)' })}
+                                                        </label>
                   <input
                     type="number"
                     value={insulin}
@@ -514,14 +523,15 @@ export default function MealEditModal({
 
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                  Nazwa / Skład
-                </label>
+                  
+                                                    {t('auto.nazwa_skład', { defaultValue: 'Nazwa / Skład' })}
+                                                  </label>
                 <input
                   type="text"
                   value={mealName}
                   onChange={(e) => setMealName(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800/80 p-3 rounded-[1.5rem] font-bold outline-none border border-slate-200 dark:border-slate-700/50 focus:ring-2 focus:ring-accent-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all dark:text-white text-sm"
-                  placeholder="NP. Zestaw śniadaniowy"
+                  placeholder={t('auto.np_zestaw_śniadaniowy', { defaultValue: 'NP. Zestaw śniadaniowy' })}
                 />
                 {items && items.length > 0 && (
                   <div className="mt-3 flex gap-2 flex-wrap pb-2 border-slate-100 dark:border-slate-800 border-b">
@@ -558,12 +568,13 @@ export default function MealEditModal({
                   />
                   <div>
                     <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">
-                      Usuń Posiłek (Pozostaw Bolus)
-                    </div>
+                      
+                                                                {t('auto.usuń_posiłek_pozostaw_bolus', { defaultValue: 'Usuń Posiłek (Pozostaw Bolus)' })}
+                                                              </div>
                     <div className="text-[8px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
-                      Posiłek zniknie rano ze statystyk, zostanie sam wpis z
-                      podaną dawką insuliny
-                    </div>
+                      
+                                                                {t('auto.posiłek_zniknie_rano_ze_statystyk_z', { defaultValue: 'Posiłek zniknie rano ze statystyk, zostanie sam wpis z podaną dawką insuliny' })}
+                                                              </div>
                   </div>
                 </label>
               )}
@@ -578,12 +589,13 @@ export default function MealEditModal({
                   />
                   <div>
                     <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">
-                      Usuń Posiłek (Pozostaw Bolus)
-                    </div>
+                      
+                                                                {t('auto.usuń_posiłek_pozostaw_bolus', { defaultValue: 'Usuń Posiłek (Pozostaw Bolus)' })}
+                                                              </div>
                     <div className="text-[8px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
-                      Posiłek zniknie ze statystyk. Bolus pobrany z Nightscout
-                      pozostanie nienaruszony.
-                    </div>
+                      
+                                                                {t('auto.posiłek_zniknie_ze_statystyk_bolus_', { defaultValue: 'Posiłek zniknie ze statystyk. Bolus pobrany z Nightscout pozostanie nienaruszony.' })}
+                                                              </div>
                   </div>
                 </label>
               )}
@@ -593,7 +605,8 @@ export default function MealEditModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1 flex flex-col justify-center text-center">
                       <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400">
-                        Netto WW:{" "}
+                        
+                                                                      {t('auto.netto_ww', { defaultValue: 'Netto WW:' })}{" "}
                         {Math.max(
                           0,
                           (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0),
@@ -603,8 +616,9 @@ export default function MealEditModal({
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest ml-2">
-                        Poliole (g)
-                      </label>
+                        
+                                                                      {t('auto.poliole_g', { defaultValue: 'Poliole (g)' })}
+                                                                    </label>
                       <input
                         type="number"
                         value={polyols}
@@ -618,8 +632,9 @@ export default function MealEditModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                        Węglowodany (g)
-                      </label>
+                        
+                                                                      {t('auto.węglowodany_g', { defaultValue: 'Węglowodany (g)' })}
+                                                                    </label>
                       <input
                         type="number"
                         value={carbs}
@@ -629,8 +644,9 @@ export default function MealEditModal({
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest ml-2">
-                        Białko (g)
-                      </label>
+                        
+                                                                      {t('auto.białko_g', { defaultValue: 'Białko (g)' })}
+                                                                    </label>
                       <input
                         type="number"
                         value={protein}
@@ -643,8 +659,9 @@ export default function MealEditModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-rose-500/60 uppercase tracking-widest ml-2">
-                        Tłuszcz (g)
-                      </label>
+                        
+                                                                      {t('auto.tłuszcz_g', { defaultValue: 'Tłuszcz (g)' })}
+                                                                    </label>
                       <input
                         type="number"
                         value={fat}
@@ -654,8 +671,9 @@ export default function MealEditModal({
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                        Data / Godzina
-                      </label>
+                        
+                                                                      {t('auto.data_godzina', { defaultValue: 'Data / Godzina' })}
+                                                                    </label>
                       <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl font-bold text-[10px] text-center text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center justify-center glass-target">
                         {new Date(log.timestamp).toLocaleString([], {
                           day: "2-digit",
@@ -671,14 +689,15 @@ export default function MealEditModal({
 
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-                  Notatka (produkty)
-                </label>
+                  
+                                                    {t('auto.notatka_produkty', { defaultValue: 'Notatka (produkty)' })}
+                                                  </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-bold text-sm outline-none border border-slate-200 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white resize-none"
-                  placeholder="Opis posiłku..."
+                  placeholder={t('auto.opis_posiłku', { defaultValue: 'Opis posiłku...' })}
                 />
               </div>
             </div>
@@ -694,8 +713,9 @@ export default function MealEditModal({
             ) : (
               <Save size={18} />
             )}
-            Zaktualizuj Wpis
-          </button>
+            
+                                  {t('auto.zaktualizuj_wpis', { defaultValue: 'Zaktualizuj Wpis' })}
+                                </button>
         </div>
       </motion.div>
 
@@ -725,15 +745,16 @@ export default function MealEditModal({
                 {expandedMeal.meal.name}
               </h2>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 border-b border-slate-100 dark:border-slate-800 pb-6">
-                Dostosuj i dodaj
-              </p>
+                
+                                              {t('auto.dostosuj_i_dodaj', { defaultValue: 'Dostosuj i dodaj' })}
+                                            </p>
 
               <div className="space-y-4 mb-6">
                 {expandedMeal.items.map((item, idx) => (
                   <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-sm dark:text-white truncate" title={item.name}>{item.name}</div>
-                      <div className="text-[10px] font-bold text-slate-400">{(item.carbs * expandedMeal.items[idx].weight / 100).toFixed(1)}g W | {(item.protein * expandedMeal.items[idx].weight / 100).toFixed(1)}g B | {(item.fat * expandedMeal.items[idx].weight / 100).toFixed(1)}g T</div>
+                      <div className="text-[10px] font-bold text-slate-400">{(item.carbs * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W |' })} {(item.protein * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_b', { defaultValue: 'g B |' })} {(item.fat * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_t', { defaultValue: 'g T' })}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <input 
@@ -761,8 +782,9 @@ export default function MealEditModal({
                 }}
                 className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
               >
-                Dodaj Składniki
-              </button>
+                
+                                              {t('auto.dodaj_składniki', { defaultValue: 'Dodaj Składniki' })}
+                                            </button>
             </motion.div>
           </motion.div>
         )}

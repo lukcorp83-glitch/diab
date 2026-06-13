@@ -14,8 +14,11 @@ import {
 } from 'lucide-react';
 import { PWA_VERSIONS } from '../constants/versions';
 import { cn } from '../lib/utils';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
+    const { t } = useTranslation();
   const current = PWA_VERSIONS[0]; // Active top release (ver 4.1)
 
   return (
@@ -40,7 +43,7 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
         <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all cursor-pointer"
-          aria-label="Zamknij"
+          aria-label={t('auto.zamknij', { defaultValue: 'Zamknij' })}
           id="changelog-close-btn"
         >
           <X size={18} />
@@ -51,8 +54,9 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
           <div className="flex items-center gap-2.5 mb-2">
             <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40">
               <Sparkles size={11} className="animate-pulse" />
-              Aktualizacja
-            </span>
+              
+                                        {t('auto.aktualizacja', { defaultValue: 'Aktualizacja' })}
+                                      </span>
             <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400">
               v{current.version}
             </span>
@@ -62,8 +66,9 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
             {current.title}
           </h2>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">
-            Odkryj najnowsze inteligentne funkcje i ulepszenia w wersji mobilnej.
-          </p>
+            
+                                  {t('auto.odkryj_najnowsze_inteligentne_funkc', { defaultValue: 'Odkryj najnowsze inteligentne funkcje i ulepszenia w wersji mobilnej.' })}
+                                </p>
         </div>
 
         {/* List of changes */}
@@ -104,7 +109,8 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
             className="w-full flex items-center justify-center gap-2 py-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-black rounded-2xl text-[11px] uppercase tracking-widest shadow-lg shadow-black/10 dark:shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer font-display"
             id="changelog-start-btn"
           >
-            Przejdź do aplikacji <ArrowRight size={16} />
+            
+                                  {t('auto.przejdź_do_aplikacji', { defaultValue: 'Przejdź do aplikacji' })} <ArrowRight size={16} />
           </button>
         </div>
       </motion.div>
@@ -149,11 +155,11 @@ function getChangeIconAndColor(text: string): ChangeMeta {
     };
   }
   
-  if (t.includes('wchłaniania') || t.includes('posiłków') || t.includes('makroskładników')) {
+  if (t.includes(i18n.t('auto.wchlaniania', { defaultValue: "wchłaniania" })) || t.includes(i18n.t('auto.posilkow', { defaultValue: "posiłków" })) || t.includes(i18n.t('auto.makroskladnikow', { defaultValue: "makroskładników" }))) {
     return {
       icon: <Utensils size={16} className="text-amber-500 dark:text-amber-400" />,
       bgColor: "bg-amber-50 dark:bg-amber-950/40",
-      title: "Wchłanianie posiłków",
+      title: i18n.t('auto.wchlanianie_posilkow', { defaultValue: "Wchłanianie posiłków" }),
       desc: text
     };
   }
@@ -167,7 +173,7 @@ function getChangeIconAndColor(text: string): ChangeMeta {
     };
   }
   
-  if (t.includes('poprawki') || t.includes('interfejs') || t.includes('ui') || t.includes('widget') || t.includes('układ')) {
+  if (t.includes('poprawki') || t.includes('interfejs') || t.includes('ui') || t.includes('widget') || t.includes(i18n.t('auto.uklad', { defaultValue: "układ" }))) {
     return {
       icon: <Layout size={16} className="text-sky-500 dark:text-sky-400" />,
       bgColor: "bg-sky-50 dark:bg-sky-950/40",

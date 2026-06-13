@@ -1,6 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import i18n from "../i18n";
 
 export const GlikoSenseLearner = {
   async sendTelemetry(learnedRule: string, contextString: string) {
@@ -13,9 +14,9 @@ export const GlikoSenseLearner = {
           source: 'GlikoSense Client',
           model: 'v3.0.0-lstm'
         });
-        console.log("GlikoSense: Anonimowe dane o uczeniu wysłane z powodzeniem.");
+        console.log(i18n.t('auto.glikosense_anonimowe_dane_o_uc', { defaultValue: "GlikoSense: Anonimowe dane o uczeniu wysłane z powodzeniem." }));
       } catch (e) {
-        console.warn("GlikoSense: Błąd wysyłania telemetrii", e);
+        console.warn(i18n.t('auto.glikosense_blad_wysylania_tele', { defaultValue: "GlikoSense: Błąd wysyłania telemetrii" }), e);
       }
     }
   },
@@ -24,25 +25,25 @@ export const GlikoSenseLearner = {
     try {
       let rules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
       
-      if (text.includes('insulinooporność') || text.includes('oporność na insulinę') || text.includes('wysokie dawki')) {
+      if (text.includes(i18n.t('auto.insulinoopornosc', { defaultValue: "insulinooporność" })) || text.includes(i18n.t('auto.opornosc_na_insuline', { defaultValue: "oporność na insulinę" })) || text.includes('wysokie dawki')) {
         rules.insulinResistanceMultiplier = (rules.insulinResistanceMultiplier || 1.0) * 1.05;
-        this.sendTelemetry("insulinResistanceMultiplier_increase", "Wykryto słowo-klucz oporności w raporcie AI.");
+        this.sendTelemetry("insulinResistanceMultiplier_increase", i18n.t('auto.wykryto_slowo_klucz_opornosci', { defaultValue: "Wykryto słowo-klucz oporności w raporcie AI." }));
       }
-      if (text.includes('zwiększona wrażliwość') || text.includes('bardzo spada') || text.includes('szybki spadek')) {
+      if (text.includes(i18n.t('auto.zwiekszona_wrazliwosc', { defaultValue: "zwiększona wrażliwość" })) || text.includes('bardzo spada') || text.includes('szybki spadek')) {
         rules.insulinResistanceMultiplier = Math.max(0.5, (rules.insulinResistanceMultiplier || 1.0) * 0.95);
-        this.sendTelemetry("insulinResistanceMultiplier_decrease", "Wykryto słowo-klucz wrażliwości w raporcie AI.");
+        this.sendTelemetry("insulinResistanceMultiplier_decrease", i18n.t('auto.wykryto_slowo_klucz_wrazliwosc', { defaultValue: "Wykryto słowo-klucz wrażliwości w raporcie AI." }));
       }
       if (text.includes('brzask') || text.includes('wzrosty poranne')) {
         rules.dawnPhenomenonEnabled = true;
-        this.sendTelemetry("dawnPhenomenonEnabled_true", "Aktywowano regułę poranną.");
+        this.sendTelemetry("dawnPhenomenonEnabled_true", i18n.t('auto.aktywowano_regule_poranna', { defaultValue: "Aktywowano regułę poranną." }));
       }
       if (text.includes('somogyi') || text.includes('odbicie po hipo')) {
         rules.somogyiEnabled = true;
         this.sendTelemetry("somogyiEnabled_true", "Aktywowano zjawisko somogyi z porad Gemini.");
       }
-      if (text.includes('pizza') || text.includes('tłuste posiłki') || text.includes('przedłużone wchłanianie')) {
+      if (text.includes('pizza') || text.includes(i18n.t('auto.tluste_posilki', { defaultValue: "tłuste posiłki" })) || text.includes(i18n.t('auto.przedluzone_wchlanianie', { defaultValue: "przedłużone wchłanianie" }))) {
         rules.pizzaEffectMultiplier = 1.2;
-        this.sendTelemetry("pizzaEffectMultiplier_1.2", "Korekta bazy wchłaniania (Efekt Pizzy).");
+        this.sendTelemetry("pizzaEffectMultiplier_1.2", i18n.t('auto.korekta_bazy_wchlaniania_efekt', { defaultValue: "Korekta bazy wchłaniania (Efekt Pizzy)." }));
       }
       
       localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
@@ -135,7 +136,7 @@ export const MLAnalyzer = {
       _cachedResult = null;
       _lastLogsFingerprint = null;
       
-      console.log("GlikoSense: Pomyślnie przywrócono model (LSTM) z kopii zapasowej.");
+      console.log(i18n.t('auto.glikosense_pomyslnie_przywroco', { defaultValue: "GlikoSense: Pomyślnie przywrócono model (LSTM) z kopii zapasowej." }));
       return true;
     } catch (err) {
       console.error("Failed to import GlikoSense model", err);
@@ -163,7 +164,7 @@ export const MLAnalyzer = {
             _lastLogsFingerprint = logsFingerprint;
             return Promise.resolve(parsed);
           } catch (e) {
-            console.warn("Błąd odczytu cache GlikoSense");
+            console.warn(i18n.t('auto.blad_odczytu_cache_glikosense', { defaultValue: "Błąd odczytu cache GlikoSense" }));
           }
         }
       }
@@ -222,7 +223,7 @@ export const MLAnalyzer = {
           localStorage.setItem('glikosense_last_result_v4_lstm', JSON.stringify(res));
           localStorage.setItem('glikosense_last_fingerprint_v4', logsFingerprint);
         } catch (e) {
-          console.warn("Błąd zapisu do LocalStorage GlikoSense", e);
+          console.warn(i18n.t('auto.blad_zapisu_do_localstorage_gl', { defaultValue: "Błąd zapisu do LocalStorage GlikoSense" }), e);
         }
       }
       return res;

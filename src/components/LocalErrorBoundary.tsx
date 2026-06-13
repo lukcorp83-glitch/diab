@@ -1,4 +1,6 @@
 import React, { Component, ReactNode } from "react";
+import i18n from "../i18n";
+
 interface Props { children: ReactNode; fallback?: ReactNode; }
 interface State { hasError: boolean; error: Error | null; }
 
@@ -29,8 +31,7 @@ export class LocalErrorBoundary extends Component<Props, State> {
             onClick={() => window.location.reload()}
             className="mt-6 px-6 py-3 bg-white text-rose-600 rounded-full font-black uppercase"
           >
-            Odśwież
-          </button>
+            {i18n.t('auto.odswiez', { defaultValue: "Odśwież" })}</button>
         </div>
       );
     }

@@ -6,6 +6,8 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { LogEntry, UserSettings } from '../types';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface MiniDashboardProps {
   logs: LogEntry[];
@@ -13,6 +15,7 @@ interface MiniDashboardProps {
 }
 
 export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps) {
+    const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   
   const latestGlucose = logs.find(l => l.type === 'glucose')?.value || null;
@@ -32,7 +35,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
       };
 
       if (type === 'bolus') {
-        const amount = window.prompt("Podaj dawkę insuliny (U):");
+        const amount = window.prompt(i18n.t('auto.podaj_dawke_insuliny_u', { defaultValue: "Podaj dawkę insuliny (U):" }));
         if (!amount || isNaN(parseFloat(amount))) {
           setLoading(false);
           return;
@@ -44,7 +47,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
           unit: 'U'
         };
       } else if (type === 'meal') {
-        const carbs = window.prompt("Podaj ilość węglowodanów (g):");
+        const carbs = window.prompt(i18n.t('auto.podaj_ilosc_weglowodanow_g', { defaultValue: "Podaj ilość węglowodanów (g):" }));
         if (!carbs || isNaN(parseFloat(carbs))) {
           setLoading(false);
           return;
@@ -57,7 +60,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
         };
       }
 
-      await addDoc(collection(db, 'logs'), entry);
+      await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'logs'), entry);
       toast.success("Zapisano!");
       
       // Attempt to close the window
@@ -67,7 +70,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
 
     } catch (error) {
       console.error(error);
-      toast.error("Błąd zapisu");
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }));
     } finally {
       setLoading(false);
     }
@@ -83,19 +86,19 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
           animate={{ opacity: 1, y: 0 }}
           className="bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 text-center"
         >
-          <p className="text-slate-400 font-medium mb-2">Aktualny Poziom</p>
+          <p className="text-slate-400 font-medium mb-2">{t('auto.aktualny_poziom', { defaultValue: 'Aktualny Poziom' })}</p>
           <div className="text-6xl font-black mb-4">
             {latestGlucose ? `${latestGlucose}` : '--'}
-            <span className="text-2xl text-slate-500 ml-2">mg/dL</span>
+            <span className="text-2xl text-slate-500 ml-2">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
           </div>
           
           <div className="flex justify-center gap-6 text-sm">
             <div className="text-center">
-              <p className="text-slate-400">IOB</p>
+              <p className="text-slate-400">{t('auto.iob', { defaultValue: 'IOB' })}</p>
               <p className="font-bold text-lg text-blue-400">{iob.toFixed(1)} <span className="text-xs">U</span></p>
             </div>
             <div className="text-center">
-              <p className="text-slate-400">COB</p>
+              <p className="text-slate-400">{t('auto.cob', { defaultValue: 'COB' })}</p>
               <p className="font-bold text-lg text-orange-400">{Math.round(cob)} <span className="text-xs">g</span></p>
             </div>
           </div>
@@ -112,7 +115,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Droplet size={24} className="text-white" />
             </div>
-            <span className="font-bold">Podaj Insulinę</span>
+            <span className="font-bold">{t('auto.podaj_insulinę', { defaultValue: 'Podaj Insulinę' })}</span>
           </motion.button>
           
           <motion.button
@@ -124,13 +127,14 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Utensils size={24} className="text-white" />
             </div>
-            <span className="font-bold">Dodaj Posiłek</span>
+            <span className="font-bold">{t('auto.dodaj_posiłek', { defaultValue: 'Dodaj Posiłek' })}</span>
           </motion.button>
         </div>
         
         <p className="text-center text-xs text-slate-500 mt-8">
-          Po dodaniu wpisu okno powinno zamknąć się automatycznie.
-        </p>
+          
+                            {t('auto.po_dodaniu_wpisu_okno_powinno_zamkn', { defaultValue: 'Po dodaniu wpisu okno powinno zamknąć się automatycznie.' })}
+                          </p>
 
       </div>
     </div>

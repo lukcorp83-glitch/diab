@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        includeAssets: ['pwa-icon.svg', 'pwa-icon-maskable.svg', 'google.svg'],
+        includeAssets: ['pwa-icon.svg', 'pwa-icon-maskable.svg', 'google.svg', 'assets/sql-wasm.wasm'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
           cleanupOutdatedCaches: true,
