@@ -16,7 +16,8 @@ export class DatabaseService {
       if (this.isWeb) {
         // Inicjalizacja dla przeglądarki (PWA) z jeep-sqlite
         const jeepEl = document.createElement('jeep-sqlite');
-        jeepEl.setAttribute('wasm-path', 'assets/sql-wasm.wasm?v=1.11.0');
+        const wasmPath = `${import.meta.env.BASE_URL}assets/sql-wasm.wasm?v=1.11.0`;
+        jeepEl.setAttribute('wasm-path', wasmPath);
         document.body.appendChild(jeepEl);
         await customElements.whenDefined('jeep-sqlite');
         await this.sqlite.initWebStore();
