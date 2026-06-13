@@ -1,6 +1,5 @@
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { getApps, getApp, initializeApp } from 'firebase/app';
@@ -9,12 +8,13 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Using initializeFirestore with long polling for better reliability in some environments
+// Using initializeFirestore with modern persistence API
 export const db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
     ignoreUndefinedProperties: true,
     host: 'firestore.googleapis.com',
     ssl: true,
+    localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
 });
 
 // Verification function as per Firestore guidelines
@@ -55,25 +55,6 @@ async function testConnection() {
     }
 }
 testConnection();
-
-// Enable offline persistence with better error handling
-const enablePersistence = async () => {
-    if (typeof window === 'undefined') return;
-    try {
-        await enableMultiTabIndexedDbPersistence(db);
-        console.log('[Firestore] Multi-tab persistence enabled');
-    } catch (err: any) {
-        if (err.code === 'failed-precondition') {
-            console.warn('[Firestore] Persistence failed: Multiple tabs open');
-        } else if (err.code === 'unimplemented') {
-            console.warn('[Firestore] Persistence failed: Browser not supported');
-        } else {
-            console.error('[Firestore] Persistence unexpected error:', err.message);
-        }
-    }
-};
-
-enablePersistence();
 
 export const messaging = async () => {
     if (typeof window === 'undefined') return null;
