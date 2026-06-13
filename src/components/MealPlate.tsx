@@ -2707,7 +2707,7 @@ export default function MealPlate({
             </div>
 
             <div className="h-44 w-full mb-3 select-none">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <AreaChart
                   data={activeChartData}
                   margin={{ top: 10, right: 35, left: 0, bottom: 0 }}
@@ -3335,7 +3335,7 @@ export default function MealPlate({
             </div>
 
             <div className="h-32 w-full select-none mt-2">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <AreaChart
                   data={plateChartData}
                   margin={{ top: 5, right: 10, left: -22, bottom: 0 }}

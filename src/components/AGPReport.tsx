@@ -186,7 +186,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
 
         {/* Wykres */}
         <div className="glass-card rounded-3xl p-4 md:p-6 h-[400px] md:h-[500px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             <ComposedChart data={agpData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} vertical={false} />
               

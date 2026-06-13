@@ -1083,7 +1083,7 @@ export default function BolusCalculator({
               <BarChart2 size={14} className="text-accent-500" /> {t('bolus.dose_analysis')}
             </h3>
             <div className="h-44 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart
                   data={doseBreakdown}
                   margin={{ top: 0, right: 30, left: -20, bottom: 0 }}

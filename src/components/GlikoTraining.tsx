@@ -231,7 +231,7 @@ const TrainingChart = ({ user, startTime, endTime, startSugar, endSugar }: { use
         </div>
       </div>
       <div className="h-24 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <LineChart data={data}>
             <Line 
               type="monotone" 

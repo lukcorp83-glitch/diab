@@ -69,7 +69,7 @@ export default function DailyTirWidget({ logs, settings }: DailyTirWidgetProps) 
                       {t('auto.dzienny_tir', { defaultValue: 'Dzienny TIR' })}
                     </h3>
       <div className="flex-1 relative flex items-center justify-center min-h-[100px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <PieChart>
             <Pie
               data={data}
