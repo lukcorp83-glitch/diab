@@ -194,7 +194,7 @@ export default function Profile({
   const [nsSyncLoading, setNsSyncLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [cleaningLoading, setCleaningLoading] = useState(false);
-  const [nsUrl, setNsUrl] = useState("");
+  const [nsUrl, setNsUrl] = useState(() => localStorage.getItem("ns_url_backup") || "");
   const [nsSecret, setNsSecret] = useState("");
   const [shopTab, setShopTab] = useState<
     "skins" | "accessories" | "backgrounds"
@@ -216,6 +216,44 @@ export default function Profile({
     }
     return onConnectionChange(setIsFirebaseConnected);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const nsSettingsRef = doc(
+      db,
+      "artifacts",
+      "diacontrolapp",
+      "users",
+      getEffectiveUid(user),
+      "settings",
+      "nightscout",
+    );
+
+    const unsubscribeNs = onSnapshot(
+      nsSettingsRef,
+      (d) => {
+        if (d.exists()) {
+          const data = d.data();
+          if (data) {
+            const firebaseUrl = data.url || "";
+            const localUrl = localStorage.getItem("ns_url_backup") || "";
+            
+            // Only overwrite if Firebase has a value, or if local is empty
+            if (firebaseUrl || !localUrl) {
+              setNsUrl(firebaseUrl);
+              localStorage.setItem("ns_url_backup", firebaseUrl);
+            } else if (localUrl && !firebaseUrl) {
+              // Firebase is empty but we have a local backup, let's restore it to Firebase
+              setDoc(nsSettingsRef, { url: localUrl, secret: data.secret || "" }, { merge: true }).catch(console.error);
+            }
+            setNsSecret(data.secret || "");
+          }
+        }
+      }
+    );
+    return () => unsubscribeNs();
+  }, [user]);
 
   const testKey = async () => {
     setIsTestingKey(true);
@@ -936,31 +974,7 @@ export default function Profile({
       }
     });
 
-    const nsSettingsRef = doc(
-      db,
-      "artifacts",
-      "diacontrolapp",
-      "users",
-      getEffectiveUid(user),
-      "settings",
-      "nightscout",
-    );
-    const unsubscribeNs = onSnapshot(
-      nsSettingsRef,
-      (d) => {
-        if (d.exists()) {
-          const data = d.data();
-          if (data) {
-            setNsUrl(data.url || "");
-            setNsSecret(data.secret || "");
-          }
-        }
-      },
-      (error) => {
-        if (!error.message?.includes("offline"))
-          console.error("Error fetching NS settings:", error);
-      },
-    );
+
 
     const unsubscribeShortcuts = onSnapshot(
       collection(
