@@ -47,7 +47,7 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
                 date: new Date(timestamp).toISOString(),
                 timestamp: timestamp,
                 type: 'glucose' as const,
-                tags: [i18n.t('auto.z_powiadomien', { defaultValue: "Z powiadomień" })],
+                tags: [i18n.t('auto.z_powiadomien', { defaultValue: i18n.t('auto.z_powiadomien', { defaultValue: "Z powiadomień" }) })],
                 notes: `Zczytane w tle z aplikacji (${pkg || 'unknown'})`,
                 source: 'NotificationListener',
                 createdAt: new Date(timestamp).toISOString()
@@ -100,7 +100,7 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
               date: new Date(now).toISOString(),
               timestamp: now,
               type: 'glucose',
-              tags: [i18n.t('auto.z_powiadomien', { defaultValue: "Z powiadomień" })],
+              tags: [i18n.t('auto.z_powiadomien', { defaultValue: i18n.t('auto.z_powiadomien', { defaultValue: "Z powiadomień" }) })],
               notes: `Zczytane w tle z aplikacji (${data.package})`,
               source: 'NotificationListener',
               createdAt: new Date(now).toISOString()

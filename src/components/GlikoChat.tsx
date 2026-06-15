@@ -214,7 +214,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
       {
         id: 'initial',
         role: 'model',
-        text: !isKidMode ? i18n.t('auto.witaj_w_czym_moge_ci_pomoc_w_a', { defaultValue: "Witaj, w czym mogę Ci pomóc w analizie Twojej glikemii?" }) : `Cześć! Jestem ${petData?.name || 'Gliko'}! 🐾 Bardzo się cieszę, że ze mną rozmawiasz. O czym dzisiaj pogadamy? Mogę Ci opowiedzieć o cukrzycy, albo po prostu dotrzymać towarzystwa! ✨`,
+        text: !isKidMode ? i18n.t('auto.witaj_w_czym_moge_ci_pomoc_w_a', { defaultValue: i18n.t('auto.witaj_w_czym_moge_ci_pomo', { defaultValue: "Witaj, w czym mogę Ci pomóc w analizie Twojej glikemii?" }) }) : i18n.t('auto.czesc_jestem_var0_bardzo', { defaultValue: "Cześć! Jestem {{var0}}! 🐾 Bardzo się cieszę, że ze mną rozmawiasz. O czym dzisiaj pogadamy? Mogę Ci opowiedzieć o cukrzycy, albo po prostu dotrzymać towarzystwa! ✨", var0: petData?.name || 'Gliko' }),
         timestamp: Date.now()
       }
     ];
@@ -301,11 +301,11 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
   };
 
   const clearChat = () => {
-    if (window.confirm(i18n.t('auto.czy_na_pewno_chcesz_wyczyscic', { defaultValue: "Czy na pewno chcesz wyczyścić naszą rozmowę? 🐾" }))) {
+    if (window.confirm(i18n.t('auto.czy_na_pewno_chcesz_wyczyscic', { defaultValue: i18n.t('auto.czy_na_pewno_chcesz_wyczy', { defaultValue: "Czy na pewno chcesz wyczyścić naszą rozmowę? 🐾" }) }))) {
       const initialMessage: Message = {
         id: 'initial-' + Date.now(),
         role: 'model',
-        text: !isKidMode ? i18n.t('auto.wyczyscilem_rozmowe_w_czym_mog', { defaultValue: "Wyczyściłem rozmowę. W czym mogę pomóc?" }) : i18n.t('auto.czesc_znowu_o_czym_chcesz_tera', { defaultValue: "Cześć znowu! ✨ O czym chcesz teraz pogadać?" }),
+        text: !isKidMode ? i18n.t('auto.wyczyscilem_rozmowe_w_czym_mog', { defaultValue: i18n.t('auto.wyczyscilem_rozmowe_w_czy', { defaultValue: "Wyczyściłem rozmowę. W czym mogę pomóc?" }) }) : i18n.t('auto.czesc_znowu_o_czym_chcesz_tera', { defaultValue: i18n.t('auto.czesc_znowu_o_czym_chcesz', { defaultValue: "Cześć znowu! ✨ O czym chcesz teraz pogadać?" }) }),
         timestamp: Date.now()
       };
       setMessages([initialMessage]);
@@ -314,10 +314,10 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
 
   const suggestions = [
     "Co to jest insulina?",
-    i18n.t('auto.opowiedz_mi_zart', { defaultValue: "Opowiedz mi żart!" }),
-    i18n.t('auto.jak_dbac_o_poziom_cukru', { defaultValue: "Jak dbać o poziom cukru?" }),
-    i18n.t('auto.pobawmy_sie', { defaultValue: "Pobawmy się!" }),
-    i18n.t('auto.dlaczego_jestem_zmeczony', { defaultValue: "Dlaczego jestem zmęczony?" })
+    i18n.t('auto.opowiedz_mi_zart', { defaultValue: i18n.t('auto.opowiedz_mi_zart', { defaultValue: "Opowiedz mi żart!" }) }),
+    i18n.t('auto.jak_dbac_o_poziom_cukru', { defaultValue: i18n.t('auto.jak_dbac_o_poziom_cukru', { defaultValue: "Jak dbać o poziom cukru?" }) }),
+    i18n.t('auto.pobawmy_sie', { defaultValue: i18n.t('auto.pobawmy_sie', { defaultValue: "Pobawmy się!" }) }),
+    i18n.t('auto.dlaczego_jestem_zmeczony', { defaultValue: i18n.t('auto.dlaczego_jestem_zmeczony', { defaultValue: "Dlaczego jestem zmęczony?" }) })
   ];
 
   return (
@@ -342,14 +342,14 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
           <button 
             onClick={toggleVoice}
             className="p-3 hover:bg-white/20 rounded-2xl transition-all text-white/80 hover:text-white bg-white/10 border border-white/20 shadow-sm glass-target"
-            title={voiceEnabled ? i18n.t('auto.wycisz_glos', { defaultValue: "Wycisz głos" }) : i18n.t('auto.wlacz_glos', { defaultValue: "Włącz głos" })}
+            title={voiceEnabled ? i18n.t('auto.wycisz_glos', { defaultValue: i18n.t('auto.wycisz_glos', { defaultValue: "Wycisz głos" }) }) : i18n.t('auto.wlacz_glos', { defaultValue: i18n.t('auto.wlacz_glos', { defaultValue: "Włącz głos" }) })}
           >
             {voiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
           </button>
           <button 
             onClick={clearChat}
             className="p-3 hover:bg-white/20 rounded-2xl transition-all text-white/80 hover:text-white bg-white/10 border border-white/20 shadow-sm glass-target"
-            title={t('auto.wyczyść_rozmowę', { defaultValue: 'Wyczyść rozmowę' })}
+            title={t('auto.wyczyść_rozmowę', { defaultValue: i18n.t('auto.wyczysc_rozmowe', { defaultValue: "Wyczyść rozmowę" }) })}
           >
             <Trash2 size={20} />
           </button>
@@ -424,7 +424,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
                     <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 bg-current rounded-full" />
                     <motion.span animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 bg-current rounded-full" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{!isKidMode ? i18n.t('auto.analizuje', { defaultValue: "Analizuję..." }) : (petData?.name || 'Gliko') + i18n.t('auto.mysli', { defaultValue: "myśli..." })}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{!isKidMode ? i18n.t('auto.analizuje', { defaultValue: i18n.t('auto.analizuje', { defaultValue: "Analizuję..." }) }) : (petData?.name || 'Gliko') + i18n.t('auto.mysli', { defaultValue: i18n.t('auto.mysli', { defaultValue: "myśli..." }) })}</span>
                 </motion.div>
               </div>
             ) : <div className="h-6" />
@@ -460,7 +460,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
                   ? "bg-rose-500 text-white animate-pulse" 
                   : "bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-indigo-500"
               )}
-              title={t('auto.rozmowa_głosowa', { defaultValue: 'Rozmowa głosowa' })}
+              title={t('auto.rozmowa_głosowa', { defaultValue: i18n.t('auto.rozmowa_glosowa', { defaultValue: "Rozmowa głosowa" }) })}
             >
               {isListening ? <Mic size={24} className="landscape:w-5 landscape:h-5" /> : <Mic size={24} className="landscape:w-5 landscape:h-5" />}
             </button>
@@ -469,7 +469,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={isListening ? i18n.t('auto.slucham_cie', { defaultValue: "Słucham Cię..." }) : "Zapytaj AI"}
+              placeholder={isListening ? i18n.t('auto.slucham_cie', { defaultValue: i18n.t('auto.slucham_cie', { defaultValue: "Słucham Cię..." }) }) : "Zapytaj AI"}
               className={cn(
                 "w-full bg-slate-100 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-400 rounded-[1.5rem] py-4 landscape:py-2 pl-6 pr-6 text-sm focus:ring-0 transition-all dark:text-white font-medium italic shadow-inner",
                 isListening && "border-rose-400 placeholder-rose-400"
@@ -494,7 +494,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
            <div className="h-px bg-slate-100 dark:bg-slate-800 flex-1" />
            <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] whitespace-nowrap">
               
-                                    {t('auto.zawsze_słuchaj_rodziców', { defaultValue: 'Zawsze słuchaj rodziców ✨' })}
+                                    {t('auto.zawsze_słuchaj_rodziców', { defaultValue: i18n.t('auto.zawsze_sluchaj_rodzicow', { defaultValue: "Zawsze słuchaj rodziców ✨" }) })}
                                  </p>
            <div className="h-px bg-slate-100 dark:bg-slate-800 flex-1" />
         </div>

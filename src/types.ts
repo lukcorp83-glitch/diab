@@ -1,6 +1,8 @@
 export interface Product {
   id?: string;
   name: string;
+  nameEn?: string;
+  namePl?: string;
   carbs: number;
   polyols?: number;
   protein?: number;

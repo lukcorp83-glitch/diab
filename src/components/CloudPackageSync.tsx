@@ -58,10 +58,10 @@ export default function CloudPackageSync({
       
       setLastSync(Date.now());
       localStorage.setItem('last_cloud_package_sync', Date.now().toString());
-      toast.success(i18n.t('auto.dane_wyslane_do_paczki_w_chmur', { defaultValue: "Dane wysłane do paczki w chmurze" }));
+      toast.success(i18n.t('auto.dane_wyslane_do_paczki_w_chmur', { defaultValue: i18n.t('auto.dane_wyslane_do_paczki_w', { defaultValue: "Dane wysłane do paczki w chmurze" }) }));
     } catch (e) {
       console.error(e);
-      toast.error(i18n.t('auto.blad_zapisu_zbyt_duzo_danych', { defaultValue: "Błąd zapisu (zbyt dużo danych?)." }));
+      toast.error(i18n.t('auto.blad_zapisu_zbyt_duzo_danych', { defaultValue: i18n.t('auto.blad_zapisu_zbyt_duzo_dan', { defaultValue: "Błąd zapisu (zbyt dużo danych?)." }) }));
     } finally {
       setLoading(false);
     }
@@ -106,13 +106,13 @@ export default function CloudPackageSync({
       setLastSync(Date.now());
       localStorage.setItem('last_cloud_package_sync', Date.now().toString());
 
-      toast.success(i18n.t('auto.pobrano_paczke_chmurowa_przela', { defaultValue: "Pobrano paczkę chmurową. Przeładowuję..." }));
+      toast.success(i18n.t('auto.pobrano_paczke_chmurowa_przela', { defaultValue: i18n.t('auto.pobrano_paczke_chmurowa_p', { defaultValue: "Pobrano paczkę chmurową. Przeładowuję..." }) }));
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (e) {
       console.error(e);
-      toast.error(i18n.t('auto.blad_podczas_pobierania_paczki', { defaultValue: "Błąd podczas pobierania paczki" }));
+      toast.error(i18n.t('auto.blad_podczas_pobierania_paczki', { defaultValue: i18n.t('auto.blad_podczas_pobierania_p', { defaultValue: "Błąd podczas pobierania paczki" }) }));
     } finally {
       setLoading(false);
     }
@@ -137,7 +137,7 @@ export default function CloudPackageSync({
       </div>
       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-2">
         
-                      {t('auto.pozwala_zredukować_zużycie_odczytów', { defaultValue: 'Pozwala zredukować zużycie odczytów bazy Firebase. Aplikacja zamiast przesyłać poszczególne zdarzenia jedno po drugim, przesyła historię, dziennik i ustawienia w formie pojedynczej paczki zbiorczej (aktualizowane ręcznie). Idealne do przenoszenia stanu na drugie urządzenie lub robienia kopii w chmurze bez ciągłego obciążania bazy.' })}
+                      {t('auto.pozwala_zredukować_zużycie_odczytów', { defaultValue: i18n.t('auto.pozwala_zredukowac_zuzyci', { defaultValue: "Pozwala zredukować zużycie odczytów bazy Firebase. Aplikacja zamiast przesyłać poszczególne zdarzenia jedno po drugim, przesyła historię, dziennik i ustawienia w formie pojedynczej paczki zbiorczej (aktualizowane ręcznie). Idealne do przenoszenia stanu na drugie urządzenie lub robienia kopii w chmurze bez ciągłego obciążania bazy." }) })}
                     </p>
 
       <div className="grid grid-cols-2 gap-2 mt-2">
@@ -148,7 +148,7 @@ export default function CloudPackageSync({
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <CloudUpload size={14} />} 
            
-                            {t('auto.wyślij_do_chmury', { defaultValue: 'Wyślij do chmury' })}
+                            {t('auto.wyślij_do_chmury', { defaultValue: i18n.t('auto.wyslij_do_chmury', { defaultValue: "Wyślij do chmury" }) })}
                           </button>
         
         <button 

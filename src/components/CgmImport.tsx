@@ -25,7 +25,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
         const newLogs = await parseCgmCsv(csv);
         
         if (newLogs.length === 0) {
-          setResult(i18n.t('auto.nie_znaleziono_danych_w_pliku', { defaultValue: "Nie znaleziono danych w pliku (lub zły format). Obsługiwane pliki: Dexcom Clarity / Freestyle Libre / CareLink CSV." }));
+          setResult(i18n.t('auto.nie_znaleziono_danych_w_pliku', { defaultValue: i18n.t('auto.nie_znaleziono_danych_w_p', { defaultValue: "Nie znaleziono danych w pliku (lub zły format). Obsługiwane pliki: Dexcom Clarity / Freestyle Libre / CareLink CSV." }) }));
           setLoading(false);
           return;
         }
@@ -66,9 +66,9 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
     const logs: any[] = [];
     
     // Auto-detect format by checking first 5 lines (header)
-    const isDexcom = csvText.includes('Dexcom') || csvText.includes(i18n.t('auto.wartosc_glukozy', { defaultValue: "Wartość glukozy" })) || csvText.includes('Glucose Value') || csvText.includes('Glukoze');
+    const isDexcom = csvText.includes('Dexcom') || csvText.includes(i18n.t('auto.wartosc_glukozy', { defaultValue: i18n.t('auto.wartosc_glukozy', { defaultValue: "Wartość glukozy" }) })) || csvText.includes('Glucose Value') || csvText.includes('Glukoze');
     const isLibre = csvText.includes('Freestyle') || csvText.includes('Oznaczenie glukozy') || csvText.includes('Skalibrowane') || csvText.includes('Historic Glucose') || csvText.includes('Record Type');
-    const isCarelink = csvText.includes('CareLink') || csvText.includes(i18n.t('auto.wartosc_sg', { defaultValue: "Wartość SG" })) || csvText.includes('Sensor Glucose');
+    const isCarelink = csvText.includes('CareLink') || csvText.includes(i18n.t('auto.wartosc_sg', { defaultValue: i18n.t('auto.wartosc_sg', { defaultValue: "Wartość SG" }) })) || csvText.includes('Sensor Glucose');
 
     let clBgIdx = -1;
     let clDateIdx = -1;
@@ -121,7 +121,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
         if (isCarelink) {
             // Find headers
             if (clBgIdx === -1) {
-                const bgMatches = cols.findIndex(c => c.includes('Sensor Glucose (mg/dL)') || c.includes(i18n.t('auto.wartosc_sg_mg_dl', { defaultValue: "Wartość SG (mg/dL)" })) || c === 'SG' || c.includes('Sensor Glucose'));
+                const bgMatches = cols.findIndex(c => c.includes('Sensor Glucose (mg/dL)') || c.includes(i18n.t('auto.wartosc_sg_mg_dl', { defaultValue: i18n.t('auto.wartosc_sg_mg_dl', { defaultValue: "Wartość SG (mg/dL)" }) })) || c === 'SG' || c.includes('Sensor Glucose'));
                 if (bgMatches > -1) {
                     clBgIdx = bgMatches;
                     clTimestampIdx = cols.findIndex(c => c.toLowerCase().includes('timestamp') || c.toLowerCase().includes('znacznik czasu') || c.toLowerCase().includes('data / czas'));
@@ -129,8 +129,8 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
                         clDateIdx = cols.findIndex(c => c.toLowerCase() === 'date' || c.toLowerCase() === 'data');
                         clTimeIdx = cols.findIndex(c => c.toLowerCase() === 'time' || c.toLowerCase() === 'czas');
                     }
-                    clInsIdx = cols.findIndex(c => c.toLowerCase().includes('bolus volume delivered') || c.toLowerCase().includes(i18n.t('auto.podana_objetosc_bolusa', { defaultValue: "podana objętość bolusa" })));
-                    clCarbIdx = cols.findIndex(c => c.toLowerCase().includes('carb input') || c.toLowerCase().includes(i18n.t('auto.weglowodany_w_kalkulatorze', { defaultValue: "węglowodany w kalkulatorze" })));
+                    clInsIdx = cols.findIndex(c => c.toLowerCase().includes('bolus volume delivered') || c.toLowerCase().includes(i18n.t('auto.podana_objetosc_bolusa', { defaultValue: i18n.t('auto.podana_objetosc_bolusa', { defaultValue: "podana objętość bolusa" }) })));
+                    clCarbIdx = cols.findIndex(c => c.toLowerCase().includes('carb input') || c.toLowerCase().includes(i18n.t('auto.weglowodany_w_kalkulatorze', { defaultValue: i18n.t('auto.weglowodany_w_kalkulatorz', { defaultValue: "węglowodany w kalkulatorze" }) })));
                 }
                 continue;
             }
@@ -168,7 +168,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
                     lbTimestampIdx = cols.findIndex(c => c.toLowerCase().includes('time') || c.toLowerCase().includes('czas'));
                     lbBgIdx = cols.findIndex(c => c.includes('Historic Glucose') || c.includes('Oznaczenie glukozy') || c.includes('Skalibrowane'));
                     lbInsIdx = cols.findIndex(c => c.toLowerCase().includes('insulin') || c.toLowerCase().includes('insulina'));
-                    lbCarbIdx = cols.findIndex(c => c.toLowerCase().includes('carb') || c.toLowerCase().includes(i18n.t('auto.weglowodany', { defaultValue: "węglowodany" })));
+                    lbCarbIdx = cols.findIndex(c => c.toLowerCase().includes('carb') || c.toLowerCase().includes(i18n.t('auto.weglowodany', { defaultValue: i18n.t('auto.weglowodany', { defaultValue: "węglowodany" }) })));
                 }
                 continue;
             }
@@ -212,12 +212,12 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
             // Find headers
             if (dxTimestampIdx === -1) {
                 const tsIdx = cols.findIndex(c => c === 'Timestamp' || c === 'Czas' || c === 'Znacznik czasu');
-                const bgIdx = cols.findIndex(c => c.includes('Glucose Value') || c.includes(i18n.t('auto.wartosc_glukozy', { defaultValue: "Wartość glukozy" })));
+                const bgIdx = cols.findIndex(c => c.includes('Glucose Value') || c.includes(i18n.t('auto.wartosc_glukozy', { defaultValue: i18n.t('auto.wartosc_glukozy', { defaultValue: "Wartość glukozy" }) })));
                 if (tsIdx > -1 && bgIdx > -1) {
                     dxTimestampIdx = tsIdx;
                     dxBgIdx = bgIdx;
                     dxInsIdx = cols.findIndex(c => c.includes('Insulin (units)') || c.includes('Insulina'));
-                    dxCarbIdx = cols.findIndex(c => c.includes('Carbohydrates (grams)') || c.includes(i18n.t('auto.weglowodany', { defaultValue: "Węglowodany" })));
+                    dxCarbIdx = cols.findIndex(c => c.includes('Carbohydrates (grams)') || c.includes(i18n.t('auto.weglowodany', { defaultValue: i18n.t('auto.weglowodany', { defaultValue: "Węglowodany" }) })));
                 }
                 continue;
             }
@@ -274,7 +274,7 @@ export default function CgmImport({ user, onComplete }: { user: any, onComplete?
       </div>
 
       {result && (
-        <p className={`text-[10px] font-bold p-2 text-center rounded-lg ${result.includes(i18n.t('auto.blad', { defaultValue: "Błąd" })) || result.includes('Nie znaleziono') ? 'bg-red-50 text-red-600 dark:bg-red-900/20' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'}`}>
+          <p className={i18n.t('auto.text_10px_font_bold_p_2_t', { defaultValue: "text-[10px] font-bold p-2 text-center rounded-lg {{var0}}", var0: result.includes(i18n.t('auto.blad', { defaultValue: "Błąd" })) || result.includes('Nie znaleziono') ? 'bg-red-50 text-red-600 dark:bg-red-900/20' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' })}>
           {result}
         </p>
       )}

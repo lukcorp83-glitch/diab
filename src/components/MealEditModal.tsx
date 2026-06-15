@@ -159,9 +159,7 @@ export default function MealEditModal({
     setIsSearching(true);
     setOnlineResults([]);
     try {
-      const prompt = `Jesteś dietetykiem. Podaj wartości odżywcze dla produktu: "${searchTerm}" na 100g lub standardową porcję. 
-      Zwróć format JSON (tylko JSON): [{"name": string, "carbs": number, "protein": number, "fat": number, "gi": number}]. 
-      Dla pola "gi" (Indeks Glikemiczny) podaj konkretną liczbę (np. 50, 70), a nie tekst.`;
+      const prompt = i18n.t('auto.jestes_dietetykiem_podaj', { defaultValue: "Jesteś dietetykiem. Podaj wartości odżywcze dla produktu: \"{{var0}}\" na 100g lub standardową porcję. \n      Zwróć format JSON (tylko JSON): [{\"name\": string, \"carbs\": number, \"protein\": number, \"fat\": number, \"gi\": number}]. \n      Dla pola \"gi\" (Indeks Glikemiczny) podaj konkretną liczbę (np. 50, 70), a nie tekst.", var0: searchTerm });
       const result = await geminiService.generateContent(prompt);
       const jsonMatch = result.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -177,7 +175,7 @@ export default function MealEditModal({
       }
     } catch (err) {
       console.error("AI search failed:", err);
-      toast.error(i18n.t('auto.blad_wyszukiwania_ai', { defaultValue: "Błąd wyszukiwania AI" }));
+      toast.error(i18n.t('auto.blad_wyszukiwania_ai', { defaultValue: i18n.t('auto.blad_wyszukiwania_ai', { defaultValue: "Błąd wyszukiwania AI" }) }));
     } finally {
       setIsSearching(false);
     }
@@ -248,7 +246,7 @@ export default function MealEditModal({
   const handleSave = async () => {
     if (!user || loading) return;
     if (!log.id) {
-      toast.error(i18n.t('auto.nie_mozna_edytowac_wpisu_brak', { defaultValue: "Nie można edytować wpisu (brak ID elementu)." }));
+      toast.error(i18n.t('auto.nie_mozna_edytowac_wpisu_brak', { defaultValue: i18n.t('auto.nie_mozna_edytowac_wpisu', { defaultValue: "Nie można edytować wpisu (brak ID elementu)." }) }));
       return;
     }
     setLoading(true);
@@ -293,7 +291,7 @@ export default function MealEditModal({
           updates.polyols = null;
           updates.protein = null;
           updates.fat = null;
-          updates.notes = (updates.notes || "") + i18n.t('auto.posilek_usuniety', { defaultValue: "(Posiłek usunięty)" });
+          updates.notes = (updates.notes || "") + i18n.t('auto.posilek_usuniety', { defaultValue: i18n.t('auto.posilek_usuniety', { defaultValue: "(Posiłek usunięty)" }) });
         } else {
           const netCarbs = Math.max(
             0,
@@ -313,7 +311,7 @@ export default function MealEditModal({
       window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: log.id, updates } }));
       
       toast.success(
-        isBolus ? "Zaktualizowano bolus (lokalnie)!" : i18n.t('auto.zaktualizowano_posilek_lokalni', { defaultValue: "Zaktualizowano posiłek (lokalnie)!" }),
+        isBolus ? "Zaktualizowano bolus (lokalnie)!" : i18n.t('auto.zaktualizowano_posilek_lokalni', { defaultValue: i18n.t('auto.zaktualizowano_posilek_lo', { defaultValue: "Zaktualizowano posiłek (lokalnie)!" }) }),
       );
       onClose();
 
@@ -323,7 +321,7 @@ export default function MealEditModal({
       });
     } catch (err) {
       console.error("Update failed:", err);
-      toast.error(i18n.t('auto.blad_aktualizacji', { defaultValue: "Błąd aktualizacji" }));
+      toast.error(i18n.t('auto.blad_aktualizacji', { defaultValue: i18n.t('auto.blad_aktualizacji', { defaultValue: "Błąd aktualizacji" }) }));
     } finally {
       setLoading(false);
     }
@@ -351,7 +349,7 @@ export default function MealEditModal({
               </div>
               <div>
                 <h3 className="text-lg font-black dark:text-white leading-none">
-                  {isBolus ? "Edytuj Bolus" : i18n.t('auto.edytuj_posilek', { defaultValue: "Edytuj Posiłek" })}
+                  {isBolus ? "Edytuj Bolus" : i18n.t('auto.edytuj_posilek', { defaultValue: i18n.t('auto.edytuj_posilek', { defaultValue: "Edytuj Posiłek" }) })}
                 </h3>
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">
                   
@@ -372,7 +370,7 @@ export default function MealEditModal({
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
                 
-                                              {t('auto.dodaj_produkty_do_posiłku', { defaultValue: 'Dodaj produkty do posiłku' })}
+                                              {t('auto.dodaj_produkty_do_posiłku', { defaultValue: i18n.t('auto.dodaj_produkty_do_posilku', { defaultValue: "Dodaj produkty do posiłku" }) })}
                                             </label>
               <div className="relative">
                 <Search
@@ -467,7 +465,7 @@ export default function MealEditModal({
                     className="text-accent-500 fill-accent-500"
                   />{" "}
                   
-                                                    {t('auto.baza_posiłków_zapisane_zestawy', { defaultValue: 'Baza Posiłków (Zapisane zestawy)' })}
+                                                    {t('auto.baza_posiłków_zapisane_zestawy', { defaultValue: i18n.t('auto.baza_posilkow_zapisane_ze', { defaultValue: "Baza Posiłków (Zapisane zestawy)" }) })}
                                                   </label>
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
                   {savedMeals.map((m) => (
@@ -484,7 +482,7 @@ export default function MealEditModal({
                           {m.name}
                         </div>
                         <div className="text-[9px] font-bold text-slate-400 mt-0.5">
-                          {m.items.length}  {t('auto.skład', { defaultValue: 'skład.' })}
+                          {m.items.length}  {t('auto.skład', { defaultValue: i18n.t('auto.sklad', { defaultValue: "skład." }) })}
                                                           </div>
                       </div>
                       <div className="text-[10px] font-black text-accent-500">
@@ -495,7 +493,7 @@ export default function MealEditModal({
                           )
                           .toFixed(1)}
                         
-                                                      {t('auto.g_węg', { defaultValue: 'g Węg.' })}
+                                                      {t('auto.g_węg', { defaultValue: i18n.t('auto.g_weg', { defaultValue: "g Węg." }) })}
                                                     </div>
                     </button>
                   ))}
@@ -524,14 +522,14 @@ export default function MealEditModal({
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
                   
-                                                    {t('auto.nazwa_skład', { defaultValue: 'Nazwa / Skład' })}
+                                                    {t('auto.nazwa_skład', { defaultValue: i18n.t('auto.nazwa_sklad', { defaultValue: "Nazwa / Skład" }) })}
                                                   </label>
                 <input
                   type="text"
                   value={mealName}
                   onChange={(e) => setMealName(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800/80 p-3 rounded-[1.5rem] font-bold outline-none border border-slate-200 dark:border-slate-700/50 focus:ring-2 focus:ring-accent-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all dark:text-white text-sm"
-                  placeholder={t('auto.np_zestaw_śniadaniowy', { defaultValue: 'NP. Zestaw śniadaniowy' })}
+                  placeholder={t('auto.np_zestaw_śniadaniowy', { defaultValue: i18n.t('auto.np_zestaw_sniadaniowy', { defaultValue: "NP. Zestaw śniadaniowy" }) })}
                 />
                 {items && items.length > 0 && (
                   <div className="mt-3 flex gap-2 flex-wrap pb-2 border-slate-100 dark:border-slate-800 border-b">
@@ -569,11 +567,11 @@ export default function MealEditModal({
                   <div>
                     <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">
                       
-                                                                {t('auto.usuń_posiłek_pozostaw_bolus', { defaultValue: 'Usuń Posiłek (Pozostaw Bolus)' })}
+                                                                {t('auto.usuń_posiłek_pozostaw_bolus', { defaultValue: i18n.t('auto.usun_posilek_pozostaw_bol', { defaultValue: "Usuń Posiłek (Pozostaw Bolus)" }) })}
                                                               </div>
                     <div className="text-[8px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
                       
-                                                                {t('auto.posiłek_zniknie_rano_ze_statystyk_z', { defaultValue: 'Posiłek zniknie rano ze statystyk, zostanie sam wpis z podaną dawką insuliny' })}
+                                                                {t('auto.posiłek_zniknie_rano_ze_statystyk_z', { defaultValue: i18n.t('auto.posilek_zniknie_rano_ze_s', { defaultValue: "Posiłek zniknie rano ze statystyk, zostanie sam wpis z podaną dawką insuliny" }) })}
                                                               </div>
                   </div>
                 </label>
@@ -590,11 +588,11 @@ export default function MealEditModal({
                   <div>
                     <div className="text-[10px] font-black uppercase dark:text-slate-300 tracking-widest">
                       
-                                                                {t('auto.usuń_posiłek_pozostaw_bolus', { defaultValue: 'Usuń Posiłek (Pozostaw Bolus)' })}
+                                                                {t('auto.usuń_posiłek_pozostaw_bolus', { defaultValue: i18n.t('auto.usun_posilek_pozostaw_bol', { defaultValue: "Usuń Posiłek (Pozostaw Bolus)" }) })}
                                                               </div>
                     <div className="text-[8px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
                       
-                                                                {t('auto.posiłek_zniknie_ze_statystyk_bolus_', { defaultValue: 'Posiłek zniknie ze statystyk. Bolus pobrany z Nightscout pozostanie nienaruszony.' })}
+                                                                {t('auto.posiłek_zniknie_ze_statystyk_bolus_', { defaultValue: i18n.t('auto.posilek_zniknie_ze_statys', { defaultValue: "Posiłek zniknie ze statystyk. Bolus pobrany z Nightscout pozostanie nienaruszony." }) })}
                                                               </div>
                   </div>
                 </label>
@@ -633,7 +631,7 @@ export default function MealEditModal({
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
                         
-                                                                      {t('auto.węglowodany_g', { defaultValue: 'Węglowodany (g)' })}
+                                                                      {t('auto.węglowodany_g', { defaultValue: i18n.t('auto.weglowodany_g', { defaultValue: "Węglowodany (g)" }) })}
                                                                     </label>
                       <input
                         type="number"
@@ -645,7 +643,7 @@ export default function MealEditModal({
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest ml-2">
                         
-                                                                      {t('auto.białko_g', { defaultValue: 'Białko (g)' })}
+                                                                      {t('auto.białko_g', { defaultValue: i18n.t('auto.bialko_g', { defaultValue: "Białko (g)" }) })}
                                                                     </label>
                       <input
                         type="number"
@@ -660,7 +658,7 @@ export default function MealEditModal({
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-rose-500/60 uppercase tracking-widest ml-2">
                         
-                                                                      {t('auto.tłuszcz_g', { defaultValue: 'Tłuszcz (g)' })}
+                                                                      {t('auto.tłuszcz_g', { defaultValue: i18n.t('auto.tluszcz_g', { defaultValue: "Tłuszcz (g)" }) })}
                                                                     </label>
                       <input
                         type="number"
@@ -697,7 +695,7 @@ export default function MealEditModal({
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-bold text-sm outline-none border border-slate-200 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white resize-none"
-                  placeholder={t('auto.opis_posiłku', { defaultValue: 'Opis posiłku...' })}
+                  placeholder={t('auto.opis_posiłku', { defaultValue: i18n.t('auto.opis_posilku', { defaultValue: "Opis posiłku..." }) })}
                 />
               </div>
             </div>
@@ -783,7 +781,7 @@ export default function MealEditModal({
                 className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 tracking-[0.2em]"
               >
                 
-                                              {t('auto.dodaj_składniki', { defaultValue: 'Dodaj Składniki' })}
+                                              {t('auto.dodaj_składniki', { defaultValue: i18n.t('auto.dodaj_skladniki', { defaultValue: "Dodaj Składniki" }) })}
                                             </button>
             </motion.div>
           </motion.div>

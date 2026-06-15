@@ -10,52 +10,52 @@ const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
   const steps = [
     {
       title: 'Witaj w ekipie GlikoControl!',
-      description: i18n.t('auto.to_projekt_fanowski_tworzony_z', { defaultValue: "To projekt fanowski, tworzony z myślą o nas – diabetykach. Bez zbędnego patosu, po prostu narzędzie, które ma ułatwić nam życie z cukrzycą." }),
+      description: i18n.t('auto.to_projekt_fanowski_tworzony_z', { defaultValue: i18n.t('auto.to_projekt_fanowski_tworz', { defaultValue: "To projekt fanowski, tworzony z myślą o nas – diabetykach. Bez zbędnego patosu, po prostu narzędzie, które ma ułatwić nam życie z cukrzycą." }) }),
       icon: <HeartPulse className="w-16 h-16 text-rose-500" />
     },
     {
-      title: i18n.t('auto.dodawanie_posilku', { defaultValue: "Dodawanie posiłku" }),
-      description: i18n.t('auto.zarzadzaj_posilkami_latwiej_ni', { defaultValue: "Zarządzaj posiłkami łatwiej niż kiedykolwiek. Użyj Talerza Posiłków, by szybko zsumować węglowodany i białka z produktów, a aplikacja wyliczy wymienniki za Ciebie." }),
+      title: i18n.t('auto.dodawanie_posilku', { defaultValue: i18n.t('auto.dodawanie_posilku', { defaultValue: "Dodawanie posiłku" }) }),
+      description: i18n.t('auto.zarzadzaj_posilkami_latwiej_ni', { defaultValue: i18n.t('auto.zarzadzaj_posilkami_latwi', { defaultValue: "Zarządzaj posiłkami łatwiej niż kiedykolwiek. Użyj Talerza Posiłków, by szybko zsumować węglowodany i białka z produktów, a aplikacja wyliczy wymienniki za Ciebie." }) }),
       icon: <Utensils className="w-16 h-16 text-orange-500" />
     },
     {
       title: 'Logowanie bolusa',
-      description: i18n.t('auto.po_podaniu_insuliny_wpisz_ja_w', { defaultValue: "Po podaniu insuliny wpisz ją w Dzienniku lub za pomocą Kalkulatora. Dzięki temu algorytmy wyliczą Twoją Aktywną Insulinę (IOB) i zapobiegną nakładaniu się dawek." }),
+      description: i18n.t('auto.po_podaniu_insuliny_wpisz_ja_w', { defaultValue: i18n.t('auto.po_podaniu_insuliny_wpisz', { defaultValue: "Po podaniu insuliny wpisz ją w Dzienniku lub za pomocą Kalkulatora. Dzięki temu algorytmy wyliczą Twoją Aktywną Insulinę (IOB) i zapobiegną nakładaniu się dawek." }) }),
       icon: <Database className="w-16 h-16 text-indigo-500" />
     },
     {
       title: 'Kalibracja CGM',
-      description: i18n.t('auto.jezeli_roznica_miedzy_sensorem', { defaultValue: "Jeżeli różnica między sensorem (CGM) a glukometrem jest duża, w profilu (sekcja Osprzęt) możesz wpisać wynik z palca, a GlikoControl skoryguje kolejne odczyty." }),
+      description: i18n.t('auto.jezeli_roznica_miedzy_sensorem', { defaultValue: i18n.t('auto.jezeli_roznica_miedzy_sen', { defaultValue: "Jeżeli różnica między sensorem (CGM) a glukometrem jest duża, w profilu (sekcja Osprzęt) możesz wpisać wynik z palca, a GlikoControl skoryguje kolejne odczyty." }) }),
       icon: <Scan className="w-16 h-16 text-teal-500" />
     },
     {
-      title: i18n.t('auto.pogoda_a_wrazliwosc', { defaultValue: "Pogoda a wrażliwość" }),
-      description: i18n.t('auto.czesto_zapominamy_ze_temperatu', { defaultValue: "Często zapominamy, że temperatura i ciśnienie potężnie wpływają na nasze cukry. GlikoControl posiada wbudowane wskaźniki pogody, które ostrzegą Cię przed większym ryzykiem hipo lub hiper." }),
+      title: i18n.t('auto.pogoda_a_wrazliwosc', { defaultValue: i18n.t('auto.pogoda_a_wrazliwosc', { defaultValue: "Pogoda a wrażliwość" }) }),
+      description: i18n.t('auto.czesto_zapominamy_ze_temperatu', { defaultValue: i18n.t('auto.czesto_zapominamy_ze_temp', { defaultValue: "Często zapominamy, że temperatura i ciśnienie potężnie wpływają na nasze cukry. GlikoControl posiada wbudowane wskaźniki pogody, które ostrzegą Cię przed większym ryzykiem hipo lub hiper." }) }),
       icon: <CloudSun className="w-16 h-16 text-sky-400" />
     },
     {
-      title: i18n.t('auto.twoja_prywatnosc_rodo', { defaultValue: "Twoja Prywatność (RODO)" }),
-      description: i18n.t('auto.twoje_dane_medyczne_sa_swiete', { defaultValue: "Twoje dane medyczne są święte. NIE są one przetwarzane w celach reklamowych ani udostępniane nikomu bez Twojej wyraźnej zgody. Wszystko jest szyfrowane i bezpieczne." }),
+      title: i18n.t('auto.twoja_prywatnosc_rodo', { defaultValue: i18n.t('auto.twoja_prywatnosc_rodo', { defaultValue: "Twoja Prywatność (RODO)" }) }),
+      description: i18n.t('auto.twoje_dane_medyczne_sa_swiete', { defaultValue: i18n.t('auto.twoje_dane_medyczne_sa_sw', { defaultValue: "Twoje dane medyczne są święte. NIE są one przetwarzane w celach reklamowych ani udostępniane nikomu bez Twojej wyraźnej zgody. Wszystko jest szyfrowane i bezpieczne." }) }),
       icon: <ShieldCheck className="w-16 h-16 text-emerald-500" />
     },
     {
-      title: i18n.t('auto.dane_pozostaja_u_ciebie', { defaultValue: "Dane pozostają u Ciebie" }),
-      description: i18n.t('auto.zastosowalismy_technologie_gli', { defaultValue: "Zastosowaliśmy technologię GlikoSense, która analizuje Twoje cukry bezpośrednio na telefonie (offline). Żadne wrażliwe dane o trendach nie opuszczają Twojego urządzenia." }),
+      title: i18n.t('auto.dane_pozostaja_u_ciebie', { defaultValue: i18n.t('auto.dane_pozostaja_u_ciebie', { defaultValue: "Dane pozostają u Ciebie" }) }),
+      description: i18n.t('auto.zastosowalismy_technologie_gli', { defaultValue: i18n.t('auto.zastosowalismy_technologi', { defaultValue: "Zastosowaliśmy technologię GlikoSense, która analizuje Twoje cukry bezpośrednio na telefonie (offline). Żadne wrażliwe dane o trendach nie opuszczają Twojego urządzenia." }) }),
       icon: <EyeOff className="w-16 h-16 text-sky-500" />
     },
     {
-      title: i18n.t('auto.glikosense_twoj_mozg_offline', { defaultValue: "GlikoSense – Twój mózg offline" }),
-      description: i18n.t('auto.sercem_aplikacji_jest_siec_neu', { defaultValue: "Sercem aplikacji jest sieć neuronowa LSTM. To zaawansowany algorytm, który uczy się Twoich trendów, dawkowania i reakcji na jedzenie." }),
+      title: i18n.t('auto.glikosense_twoj_mozg_offline', { defaultValue: i18n.t('auto.glikosense_twoj_mozg_offl', { defaultValue: "GlikoSense – Twój mózg offline" }) }),
+      description: i18n.t('auto.sercem_aplikacji_jest_siec_neu', { defaultValue: i18n.t('auto.sercem_aplikacji_jest_sie', { defaultValue: "Sercem aplikacji jest sieć neuronowa LSTM. To zaawansowany algorytm, który uczy się Twoich trendów, dawkowania i reakcji na jedzenie." }) }),
       icon: <Activity className="w-16 h-16 text-accent-500" />
     },
     {
-      title: i18n.t('auto.gliko_przyjaciel_dla_dzieciako', { defaultValue: "Gliko – przyjaciel dla dzieciaków" }),
-      description: i18n.t('auto.dla_najmlodszych_i_tych_starsz', { defaultValue: "Dla najmłodszych (i tych starszych duchem!) mamy Gliko. Dbaj o swoje cukry, a Twój zwierzak będzie rósł, zdobywał poziomy i nowe przebrania." }),
+      title: i18n.t('auto.gliko_przyjaciel_dla_dzieciako', { defaultValue: i18n.t('auto.gliko_przyjaciel_dla_dzie', { defaultValue: "Gliko – przyjaciel dla dzieciaków" }) }),
+      description: i18n.t('auto.dla_najmlodszych_i_tych_starsz', { defaultValue: i18n.t('auto.dla_najmlodszych_i_tych_s', { defaultValue: "Dla najmłodszych (i tych starszych duchem!) mamy Gliko. Dbaj o swoje cukry, a Twój zwierzak będzie rósł, zdobywał poziomy i nowe przebrania." }) }),
       icon: <Star className="w-16 h-16 text-purple-500" />
     },
     {
-      title: i18n.t('auto.wazna_klauzula_medyczna', { defaultValue: "Ważna Klauzula Medyczna" }),
-      description: i18n.t('auto.glikocontrol_nie_jest_wyrobem', { defaultValue: "GlikoControl NIE JEST wyrobem medycznym. Aplikacja ma charakter wyłącznie informacyjny i edukacyjny. Nigdy nie podejmuj decyzji o dawkowaniu insuliny czy zmianie diety wyłącznie na podstawie danych z aplikacji. Każda zmiana w terapii musi być skonsultowana z lekarzem diabetologiem." }),
+      title: i18n.t('auto.wazna_klauzula_medyczna', { defaultValue: i18n.t('auto.wazna_klauzula_medyczna', { defaultValue: "Ważna Klauzula Medyczna" }) }),
+      description: i18n.t('auto.glikocontrol_nie_jest_wyrobem', { defaultValue: i18n.t('auto.glikocontrol_nie_jest_wyr', { defaultValue: "GlikoControl NIE JEST wyrobem medycznym. Aplikacja ma charakter wyłącznie informacyjny i edukacyjny. Nigdy nie podejmuj decyzji o dawkowaniu insuliny czy zmianie diety wyłącznie na podstawie danych z aplikacji. Każda zmiana w terapii musi być skonsultowana z lekarzem diabetologiem." }) }),
       icon: <ShieldAlert className="w-16 h-16 text-red-600 animate-pulse" />
     }
   ];
@@ -112,7 +112,7 @@ const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
               className="mt-1 w-5 h-5 rounded border-red-300 text-red-600 focus:ring-red-500"
             />
             <label htmlFor="confirm-disclaimer" className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed cursor-pointer select-none">
-              {i18n.t('auto.rozumiem_ze_aplikacja_nie_zast', { defaultValue: "Rozumiem, że aplikacja nie zastępuje porady lekarskiej i akceptuję ryzyko związane z jej używaniem." })}</label>
+              {i18n.t('auto.rozumiem_ze_aplikacja_nie_zast', { defaultValue: i18n.t('auto.rozumiem_ze_aplikacja_nie', { defaultValue: "Rozumiem, że aplikacja nie zastępuje porady lekarskiej i akceptuję ryzyko związane z jej używaniem." }) })}</label>
           </div>
         )}
 
@@ -138,7 +138,7 @@ const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
               : "bg-accent-600 text-white"
           )}
         >
-          {isLastStep ? i18n.t('auto.zgadzam_sie_i_rozpoczynam', { defaultValue: "Zgadzam się i Rozpoczynam" }) : 'Dalej'}
+          {isLastStep ? i18n.t('auto.zgadzam_sie_i_rozpoczynam', { defaultValue: i18n.t('auto.zgadzam_sie_i_rozpoczynam', { defaultValue: "Zgadzam się i Rozpoczynam" }) }) : 'Dalej'}
         </button>
 
         {step < steps.length - 1 && (
@@ -146,8 +146,8 @@ const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
             onClick={onComplete}
             className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
           >
-            <span className="sr-only">{i18n.t('auto.pomin', { defaultValue: "Pomiń" })}</span>
-            <span className="text-[10px] font-black uppercase">{i18n.t('auto.pomin', { defaultValue: "Pomiń" })}</span>
+            <span className="sr-only">{i18n.t('auto.pomin', { defaultValue: i18n.t('auto.pomin', { defaultValue: "Pomiń" }) })}</span>
+            <span className="text-[10px] font-black uppercase">{i18n.t('auto.pomin', { defaultValue: i18n.t('auto.pomin', { defaultValue: "Pomiń" }) })}</span>
           </button>
         )}
       </motion.div>

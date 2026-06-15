@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 export function clampSafeBolus(
   proposedDose: number,
   currentBg: number,
@@ -45,7 +47,7 @@ export function clampSafeBolus(
       safeDose: roundedMaxSafe,
       maxSafeDose: roundedMaxSafe,
       capped: true,
-      reason: `Zabezpieczenie fizjologiczne: Zablokowano próbę podania ${proposedDose.toFixed(2)} j. ze względu na ryzyko głębokiej hipoglikemii. Zredukowano do bezpiecznej granicy ${roundedMaxSafe} j.`
+      reason: i18n.t('auto.zabezpieczenie_fizjologic', { defaultValue: "Zabezpieczenie fizjologiczne: Zablokowano próbę podania {{var0}} j. ze względu na ryzyko głębokiej hipoglikemii. Zredukowano do bezpiecznej granicy {{var1}} j.", var0: proposedDose.toFixed(2), var1: roundedMaxSafe })
     };
   }
 

@@ -35,7 +35,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
       };
 
       if (type === 'bolus') {
-        const amount = window.prompt(i18n.t('auto.podaj_dawke_insuliny_u', { defaultValue: "Podaj dawkę insuliny (U):" }));
+        const amount = window.prompt(i18n.t('auto.podaj_dawke_insuliny_u', { defaultValue: i18n.t('auto.podaj_dawke_insuliny_u', { defaultValue: "Podaj dawkę insuliny (U):" }) }));
         if (!amount || isNaN(parseFloat(amount))) {
           setLoading(false);
           return;
@@ -47,7 +47,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
           unit: 'U'
         };
       } else if (type === 'meal') {
-        const carbs = window.prompt(i18n.t('auto.podaj_ilosc_weglowodanow_g', { defaultValue: "Podaj ilość węglowodanów (g):" }));
+        const carbs = window.prompt(i18n.t('auto.podaj_ilosc_weglowodanow_g', { defaultValue: i18n.t('auto.podaj_ilosc_weglowodanow', { defaultValue: "Podaj ilość węglowodanów (g):" }) }));
         if (!carbs || isNaN(parseFloat(carbs))) {
           setLoading(false);
           return;
@@ -70,7 +70,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
 
     } catch (error) {
       console.error(error);
-      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }));
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }) }));
     } finally {
       setLoading(false);
     }
@@ -115,7 +115,7 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Droplet size={24} className="text-white" />
             </div>
-            <span className="font-bold">{t('auto.podaj_insulinę', { defaultValue: 'Podaj Insulinę' })}</span>
+            <span className="font-bold">{t('auto.podaj_insulinę', { defaultValue: i18n.t('auto.podaj_insuline', { defaultValue: "Podaj Insulinę" }) })}</span>
           </motion.button>
           
           <motion.button
@@ -127,13 +127,13 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Utensils size={24} className="text-white" />
             </div>
-            <span className="font-bold">{t('auto.dodaj_posiłek', { defaultValue: 'Dodaj Posiłek' })}</span>
+            <span className="font-bold">{t('auto.dodaj_posiłek', { defaultValue: i18n.t('auto.dodaj_posilek', { defaultValue: "Dodaj Posiłek" }) })}</span>
           </motion.button>
         </div>
         
         <p className="text-center text-xs text-slate-500 mt-8">
           
-                            {t('auto.po_dodaniu_wpisu_okno_powinno_zamkn', { defaultValue: 'Po dodaniu wpisu okno powinno zamknąć się automatycznie.' })}
+                            {t('auto.po_dodaniu_wpisu_okno_powinno_zamkn', { defaultValue: i18n.t('auto.po_dodaniu_wpisu_okno_pow', { defaultValue: "Po dodaniu wpisu okno powinno zamknąć się automatycznie." }) })}
                           </p>
 
       </div>

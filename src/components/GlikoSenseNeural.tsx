@@ -134,7 +134,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.pewność', { defaultValue: 'Pewność:' })}</span>
+                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.pewność', { defaultValue: i18n.t('auto.pewnosc', { defaultValue: "Pewność:" }) })}</span>
                     <span className="text-xs font-black dark:text-white">{accuracy}%</span>
                   </div>
                 </div>
@@ -291,10 +291,10 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                  </div>
                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-relaxed">
                    {glucose && glucose < 70 
-                     ? `GlikoSense czuje, że ${petName} traci siły! Szybko, zjedzmy coś pysznego, żeby go rozweselić. 🍎`
+                     ? i18n.t('auto.glikosense_czuje_ze_var0', { defaultValue: "GlikoSense czuje, że {{var0}} traci siły! Szybko, zjedzmy coś pysznego, żeby go rozweselić. 🍎", var0: petName })
                      : glucose && glucose > 180
-                     ? `${petName} pije teraz dużo wody. Może pobawimy się w coś spokojnego? GlikoSense czuwa. 💧`
-                     : `GlikoSense świeci na zielono! ${petName} czuje się świetnie i jest gotowy na zabawę! 🌟`}
+                     ? i18n.t('auto.var0_pije_teraz_duzo_wody', { defaultValue: "{{var0}} pije teraz dużo wody. Może pobawimy się w coś spokojnego? GlikoSense czuwa. 💧", var0: petName })
+                     : i18n.t('auto.glikosense_swieci_na_ziel', { defaultValue: "GlikoSense świeci na zielono! {{var0}} czuje się świetnie i jest gotowy na zabawę! 🌟", var0: petName })}
                  </p>
                </div>
             </div>
@@ -303,7 +303,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <Zap className="text-indigo-500" size={12} />
-                  <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase">{t('auto.więź', { defaultValue: 'Więź' })}</span>
+                  <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase">{t('auto.więź', { defaultValue: i18n.t('auto.wiez', { defaultValue: "Więź" }) })}</span>
                 </div>
                 <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <motion.div animate={{ width: '92%' }} className="h-full bg-indigo-500" />
@@ -327,7 +327,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               {[
                 { label: i18n.t('auto.analiza_trendu', { defaultValue: 'Analiza Trendu' }), active: trend !== 'STABLE' && trend !== null },
                 { label: i18n.t('auto.detekcja_anomalii', { defaultValue: 'Detekcja Anomalii' }), active: (glucose !== null && (glucose < 70 || glucose > 200)) || (trend?.includes('FAST')) },
-                { label: i18n.t('auto.weryfikacja_posilku', { defaultValue: "Weryfikacja Posiłku" }), active: false }, // Will be linked to recent logs in next step if needed
+                { label: i18n.t('auto.weryfikacja_posilku', { defaultValue: i18n.t('auto.weryfikacja_posilku', { defaultValue: "Weryfikacja Posiłku" }) }), active: false }, // Will be linked to recent logs in next step if needed
                 { label: i18n.t('auto.ochrona_hypo', { defaultValue: 'Ochrona Hypo' }), active: glucose !== null && (glucose < 90 || (glucose < 110 && trend?.includes('DOWN'))) }
               ].map(fn => (
                 <div 
@@ -345,7 +345,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
 
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('auto.stabilność_systemu', { defaultValue: 'Stabilność Systemu' })}</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('auto.stabilność_systemu', { defaultValue: i18n.t('auto.stabilnosc_systemu', { defaultValue: "Stabilność Systemu" }) })}</div>
                 <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
@@ -355,7 +355,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('auto.pewność', { defaultValue: 'Pewność' })}</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('auto.pewność', { defaultValue: i18n.t('auto.pewnosc', { defaultValue: "Pewność" }) })}</div>
                 <div className="text-sm font-black dark:text-white">{accuracy !== undefined ? `${accuracy}%` : '---'}</div>
               </div>
             </div>
@@ -371,7 +371,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     >
                       <Sparkles size={10} />
                     </motion.div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.postęp_nauki', { defaultValue: 'Postęp Nauki:' })}</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.postęp_nauki', { defaultValue: i18n.t('auto.postep_nauki', { defaultValue: "Postęp Nauki:" }) })}</span>
                   </div>
                   <span className="text-[9px] font-black text-indigo-500">{datasetSize}  {t('auto.pkt', { defaultValue: 'pkt /' })} {nextTarget}  {t('auto.pkt', { defaultValue: 'pkt' })}</span>
                 </div>
@@ -389,9 +389,9 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                   />
                 </div>
                 <p className="text-[8px] font-bold text-slate-400 leading-tight">
-                  {datasetSize < 300 ? i18n.t('auto.model_w_fazie_bazowej_gromadze', { defaultValue: "Model w fazie bazowej. Gromadzę dane..." }) : 
-                   datasetSize < 1000 ? i18n.t('auto.model_uczy_sie_twoich_nawykow', { defaultValue: "Model uczy się Twoich nawyków. Coraz wyższa precyzja." }) :
-                   datasetSize < 3000 ? i18n.t('auto.model_wysoko_wyuczony_rozpozna', { defaultValue: "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne." }) :
+                  {datasetSize < 300 ? i18n.t('auto.model_w_fazie_bazowej_gromadze', { defaultValue: i18n.t('auto.model_w_fazie_bazowej_gro', { defaultValue: "Model w fazie bazowej. Gromadzę dane..." }) }) : 
+                   datasetSize < 1000 ? i18n.t('auto.model_uczy_sie_twoich_nawykow', { defaultValue: i18n.t('auto.model_uczy_sie_twoich_naw', { defaultValue: "Model uczy się Twoich nawyków. Coraz wyższa precyzja." }) }) :
+                   datasetSize < 3000 ? i18n.t('auto.model_wysoko_wyuczony_rozpozna', { defaultValue: i18n.t('auto.model_wysoko_wyuczony_roz', { defaultValue: "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne." }) }) :
                    "Model klasy mistrzowskiej. Ekstremalna precyzja analityczna."}
                 </p>
               </div>

@@ -46,7 +46,7 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
     return (
       <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
         <Pill className="text-slate-300 dark:text-slate-700 mb-2" size={24} />
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('auto.brak_aktywnych_leków', { defaultValue: 'Brak aktywnych leków' })}</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('auto.brak_aktywnych_leków', { defaultValue: i18n.t('auto.brak_aktywnych_lekow', { defaultValue: "Brak aktywnych leków" }) })}</p>
       </div>
     );
   }
@@ -124,7 +124,7 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
                   className="shrink-0 bg-indigo-500 hover:bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl transition-colors active:scale-95"
                 >
                   
-                                            {t('auto.przyjąłem', { defaultValue: 'Przyjąłem' })}
+                                            {t('auto.przyjąłem', { defaultValue: i18n.t('auto.przyjalem', { defaultValue: "Przyjąłem" }) })}
                                           </button>
               ) : isTakenToday ? (
                 <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />

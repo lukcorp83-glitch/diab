@@ -60,13 +60,13 @@ export default function GlikoBackpack() {
     
     if (finalPower >= 75 && finalPower <= 85) {
       earnedPoints = 50;
-      msg = i18n.t('auto.idealnie_plecak_wyladowal_w_sz', { defaultValue: "IDEALNIE! Plecak wylądował w szafce! 🎒✨" });
+      msg = i18n.t('auto.idealnie_plecak_wyladowal_w_sz', { defaultValue: i18n.t('auto.idealnie_plecak_wyladowal', { defaultValue: "IDEALNIE! Plecak wylądował w szafce! 🎒✨" }) });
     } else if (finalPower >= 60 && finalPower <= 100) {
       earnedPoints = 20;
       msg = 'Dobry rzut! Plecak jest blisko. 🎒👍';
     } else {
       earnedPoints = 5;
-      msg = i18n.t('auto.ojej_plecak_wyladowal_na_podlo', { defaultValue: "Ojej, plecak wylądował na podłodze! 🎒💨" });
+      msg = i18n.t('auto.ojej_plecak_wyladowal_na_podlo', { defaultValue: i18n.t('auto.ojej_plecak_wyladowal_na', { defaultValue: "Ojej, plecak wylądował na podłodze! 🎒💨" }) });
     }
     
     setScore(s => s + earnedPoints);
@@ -104,7 +104,7 @@ export default function GlikoBackpack() {
          {gameState === 'idle' && (
            <div className="text-center">
              <ShoppingBag size={48} className="mx-auto text-indigo-400 mb-4 animate-bounce" />
-             <p className="text-xs text-slate-500 mb-6 font-medium max-w-[200px]">{t('auto.wyceluj_i_rzuć_plecakiem_prosto_do_', { defaultValue: 'Wyceluj i rzuć plecakiem prosto do szkolnej szafki!' })}</p>
+             <p className="text-xs text-slate-500 mb-6 font-medium max-w-[200px]">{t('auto.wyceluj_i_rzuć_plecakiem_prosto_do_', { defaultValue: i18n.t('auto.wyceluj_i_rzuc_plecakiem', { defaultValue: "Wyceluj i rzuć plecakiem prosto do szkolnej szafki!" }) })}</p>
              <button 
                 onClick={startMiniGame} 
                 className="bg-indigo-500 hover:bg-indigo-600 text-white font-black text-xs px-8 py-3 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/20 uppercase tracking-widest"
@@ -150,7 +150,7 @@ export default function GlikoBackpack() {
                    onClick={throwBackpack} 
                    className="w-full bg-indigo-500 text-white font-black text-sm py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 uppercase tracking-[0.2em] outline-none"
                 >
-                   <Target size={20} />  {t('auto.rzuć', { defaultValue: 'RZUĆ!' })}
+                   <Target size={20} />  {t('auto.rzuć', { defaultValue: i18n.t('auto.rzuc', { defaultValue: "RZUĆ!" }) })}
                                               </button>
              ) : (
                 <motion.div 
@@ -179,7 +179,7 @@ export default function GlikoBackpack() {
 
       <div className="mt-4 flex items-center gap-3 text-slate-400">
          <Info size={14} className="shrink-0" />
-         <p className="text-[9px] font-medium leading-tight">{t('auto.uchwyć_moment_gdy_wskaźnik_znajduje', { defaultValue: 'Uchwyć moment, gdy wskaźnik znajduje się w zielonej strefie, aby trafić idealnie do szafki!' })}</p>
+         <p className="text-[9px] font-medium leading-tight">{t('auto.uchwyć_moment_gdy_wskaźnik_znajduje', { defaultValue: i18n.t('auto.uchwyc_moment_gdy_wskazni', { defaultValue: "Uchwyć moment, gdy wskaźnik znajduje się w zielonej strefie, aby trafić idealnie do szafki!" }) })}</p>
       </div>
     </div>
   );

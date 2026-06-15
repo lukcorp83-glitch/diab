@@ -7,112 +7,112 @@ import i18n from "../i18n";
 
 const QUIZ_POOL = [
   {
-    question: i18n.t('auto.co_gliko_powinien_zrobic_przy', { defaultValue: "Co Gliko powinien zrobić przy niskim cukru (hipoglikemii)?" }),
+    question: i18n.t('auto.co_gliko_powinien_zrobic_przy', { defaultValue: i18n.t('auto.co_gliko_powinien_zrobic', { defaultValue: "Co Gliko powinien zrobić przy niskim cukru (hipoglikemii)?" }) }),
     options: [
-      i18n.t('auto.podac_insuline', { defaultValue: "Podać insulinę" }),
-      i18n.t('auto.wypic_soczek_lub_zjesc_pastylk', { defaultValue: "Wypić soczek lub zjeść pastylkę z glukozą" }),
-      i18n.t('auto.isc_pograc_w_pilke', { defaultValue: "Iść pograć w piłkę" }),
-      i18n.t('auto.polozyc_sie_spac_bez_jedzenia', { defaultValue: "Położyć się spać bez jedzenia" })
+      i18n.t('auto.podac_insuline', { defaultValue: i18n.t('auto.podac_insuline', { defaultValue: "Podać insulinę" }) }),
+      i18n.t('auto.wypic_soczek_lub_zjesc_pastylk', { defaultValue: i18n.t('auto.wypic_soczek_lub_zjesc_pa', { defaultValue: "Wypić soczek lub zjeść pastylkę z glukozą" }) }),
+      i18n.t('auto.isc_pograc_w_pilke', { defaultValue: i18n.t('auto.isc_pograc_w_pilke', { defaultValue: "Iść pograć w piłkę" }) }),
+      i18n.t('auto.polozyc_sie_spac_bez_jedzenia', { defaultValue: i18n.t('auto.polozyc_sie_spac_bez_jedz', { defaultValue: "Położyć się spać bez jedzenia" }) })
     ],
     correct: 1,
-    explanation: i18n.t('auto.brawo_soczek_szybko_podniesie', { defaultValue: "Brawo! Soczek szybko podniesie cukier i Gliko poczuje się lepiej." })
+    explanation: i18n.t('auto.brawo_soczek_szybko_podniesie', { defaultValue: i18n.t('auto.brawo_soczek_szybko_podni', { defaultValue: "Brawo! Soczek szybko podniesie cukier i Gliko poczuje się lepiej." }) })
   },
   {
-    question: i18n.t('auto.gdzie_najczesciej_gliko_dostaj', { defaultValue: "Gdzie najczęściej Gliko dostaje swój bolus do posiłku?" }),
+    question: i18n.t('auto.gdzie_najczesciej_gliko_dostaj', { defaultValue: i18n.t('auto.gdzie_najczesciej_gliko_d', { defaultValue: "Gdzie najczęściej Gliko dostaje swój bolus do posiłku?" }) }),
     options: [
       "W czubek nosa",
       "W ucho",
-      i18n.t('auto.w_brzuszek_udo_lub_ramie', { defaultValue: "W brzuszek, udo lub ramię" }),
+      i18n.t('auto.w_brzuszek_udo_lub_ramie', { defaultValue: i18n.t('auto.w_brzuszek_udo_lub_ramie', { defaultValue: "W brzuszek, udo lub ramię" }) }),
       "W buta"
     ],
     correct: 2,
-    explanation: i18n.t('auto.dokladnie_to_najlepsze_miejsca', { defaultValue: "Dokładnie! To najlepsze miejsca, żeby insulina zaczęła działać." })
+    explanation: i18n.t('auto.dokladnie_to_najlepsze_miejsca', { defaultValue: i18n.t('auto.dokladnie_to_najlepsze_mi', { defaultValue: "Dokładnie! To najlepsze miejsca, żeby insulina zaczęła działać." }) })
   },
   {
-    question: i18n.t('auto.co_to_jest_ww_wymiennik_weglow', { defaultValue: "Co to jest WW (Wymiennik Węglowodanowy)?" }),
+    question: i18n.t('auto.co_to_jest_ww_wymiennik_weglow', { defaultValue: i18n.t('auto.co_to_jest_ww_wymiennik_w', { defaultValue: "Co to jest WW (Wymiennik Węglowodanowy)?" }) }),
     options: [
-      i18n.t('auto.wesoly_wieloryb', { defaultValue: "Wesoły Wieloryb" }),
-      i18n.t('auto.miara_weglowodanow_w_jedzeniu', { defaultValue: "Miara węglowodanów w jedzeniu" }),
+      i18n.t('auto.wesoly_wieloryb', { defaultValue: i18n.t('auto.wesoly_wieloryb', { defaultValue: "Wesoły Wieloryb" }) }),
+      i18n.t('auto.miara_weglowodanow_w_jedzeniu', { defaultValue: i18n.t('auto.miara_weglowodanow_w_jedz', { defaultValue: "Miara węglowodanów w jedzeniu" }) }),
       "Wielkie Wyzwanie",
-      i18n.t('auto.woda_wyscigowa', { defaultValue: "Woda Wyścigowa" })
+      i18n.t('auto.woda_wyscigowa', { defaultValue: i18n.t('auto.woda_wyscigowa', { defaultValue: "Woda Wyścigowa" }) })
     ],
     correct: 1,
-    explanation: i18n.t('auto.tak_ww_pomaga_nam_obliczyc_ile', { defaultValue: "Tak! WW pomaga nam obliczyć, ile insuliny potrzebujemy do jedzenia." })
+    explanation: i18n.t('auto.tak_ww_pomaga_nam_obliczyc_ile', { defaultValue: i18n.t('auto.tak_ww_pomaga_nam_obliczy', { defaultValue: "Tak! WW pomaga nam obliczyć, ile insuliny potrzebujemy do jedzenia." }) })
   },
   {
-    question: i18n.t('auto.czy_przed_bieganiem_lub_zabawa', { defaultValue: "Czy przed bieganiem lub zabawą na podwórku warto sprawdzić cukier?" }),
+    question: i18n.t('auto.czy_przed_bieganiem_lub_zabawa', { defaultValue: i18n.t('auto.czy_przed_bieganiem_lub_z', { defaultValue: "Czy przed bieganiem lub zabawą na podwórku warto sprawdzić cukier?" }) }),
     options: [
-      i18n.t('auto.nie_po_co_tracic_czas_na_zabaw', { defaultValue: "Nie, po co tracić czas na zabawę" }),
-      i18n.t('auto.tak_zeby_gliko_nie_mial_za_nis', { defaultValue: "Tak, żeby Gliko nie miał za niskiego cukru" }),
-      i18n.t('auto.tylko_jesli_pada_deszcz', { defaultValue: "Tylko jeśli pada deszcz" }),
-      i18n.t('auto.tylko_jesli_gliko_jest_glodny', { defaultValue: "Tylko jeśli Gliko jest głodny" })
+      i18n.t('auto.nie_po_co_tracic_czas_na_zabaw', { defaultValue: i18n.t('auto.nie_po_co_tracic_czas_na', { defaultValue: "Nie, po co tracić czas na zabawę" }) }),
+      i18n.t('auto.tak_zeby_gliko_nie_mial_za_nis', { defaultValue: i18n.t('auto.tak_zeby_gliko_nie_mial_z', { defaultValue: "Tak, żeby Gliko nie miał za niskiego cukru" }) }),
+      i18n.t('auto.tylko_jesli_pada_deszcz', { defaultValue: i18n.t('auto.tylko_jesli_pada_deszcz', { defaultValue: "Tylko jeśli pada deszcz" }) }),
+      i18n.t('auto.tylko_jesli_gliko_jest_glodny', { defaultValue: i18n.t('auto.tylko_jesli_gliko_jest_gl', { defaultValue: "Tylko jeśli Gliko jest głodny" }) })
     ],
     correct: 1,
-    explanation: i18n.t('auto.super_sport_obniza_cukier_wiec', { defaultValue: "Super! Sport obniża cukier, więc dobrze wiedzieć, od jakiego poziomu zaczynamy." })
+    explanation: i18n.t('auto.super_sport_obniza_cukier_wiec', { defaultValue: i18n.t('auto.super_sport_obniza_cukier', { defaultValue: "Super! Sport obniża cukier, więc dobrze wiedzieć, od jakiego poziomu zaczynamy." }) })
   },
   {
-    question: i18n.t('auto.jaki_napoj_jest_najlepszy_dla', { defaultValue: "Jaki napój jest najlepszy dla Gliko, gdy ma wysoki cukier?" }),
+    question: i18n.t('auto.jaki_napoj_jest_najlepszy_dla', { defaultValue: i18n.t('auto.jaki_napoj_jest_najlepszy', { defaultValue: "Jaki napój jest najlepszy dla Gliko, gdy ma wysoki cukier?" }) }),
     options: [
-      i18n.t('auto.slodka_oranzada', { defaultValue: "Słodka oranżada" }),
+      i18n.t('auto.slodka_oranzada', { defaultValue: i18n.t('auto.slodka_oranzada', { defaultValue: "Słodka oranżada" }) }),
       "Woda",
       "Sok owocowy",
-      i18n.t('auto.gesty_koktajl', { defaultValue: "Gęsty koktajl" })
+      i18n.t('auto.gesty_koktajl', { defaultValue: i18n.t('auto.gesty_koktajl', { defaultValue: "Gęsty koktajl" }) })
     ],
     correct: 1,
-    explanation: i18n.t('auto.woda_to_super_paliwo_pomaga_wy', { defaultValue: "Woda to super-paliwo! Pomaga wypłukać nadmiar cukru z organizmu." })
+    explanation: i18n.t('auto.woda_to_super_paliwo_pomaga_wy', { defaultValue: i18n.t('auto.woda_to_super_paliwo_poma', { defaultValue: "Woda to super-paliwo! Pomaga wypłukać nadmiar cukru z organizmu." }) })
   },
   {
-    question: i18n.t('auto.co_robimy_gdy_zapomnimy_podac', { defaultValue: "Co robimy, gdy zapomnimy podać bolus do obiadu?" }),
+    question: i18n.t('auto.co_robimy_gdy_zapomnimy_podac', { defaultValue: i18n.t('auto.co_robimy_gdy_zapomnimy_p', { defaultValue: "Co robimy, gdy zapomnimy podać bolus do obiadu?" }) }),
     options: [
-      i18n.t('auto.placzemy_i_nic_nie_robimy', { defaultValue: "Płaczemy i nic nie robimy" }),
-      i18n.t('auto.mowimy_od_razu_rodzicom_lub_op', { defaultValue: "Mówimy od razu rodzicom lub opiekunowi" }),
-      i18n.t('auto.zjadamy_jeszcze_wiecej', { defaultValue: "Zjadamy jeszcze więcej" }),
-      i18n.t('auto.chowamy_sie_pod_lozko', { defaultValue: "Chowamy się pod łóżko" })
+      i18n.t('auto.placzemy_i_nic_nie_robimy', { defaultValue: i18n.t('auto.placzemy_i_nic_nie_robimy', { defaultValue: "Płaczemy i nic nie robimy" }) }),
+      i18n.t('auto.mowimy_od_razu_rodzicom_lub_op', { defaultValue: i18n.t('auto.mowimy_od_razu_rodzicom_l', { defaultValue: "Mówimy od razu rodzicom lub opiekunowi" }) }),
+      i18n.t('auto.zjadamy_jeszcze_wiecej', { defaultValue: i18n.t('auto.zjadamy_jeszcze_wiecej', { defaultValue: "Zjadamy jeszcze więcej" }) }),
+      i18n.t('auto.chowamy_sie_pod_lozko', { defaultValue: i18n.t('auto.chowamy_sie_pod_lozko', { defaultValue: "Chowamy się pod łóżko" }) })
     ],
     correct: 1,
-    explanation: i18n.t('auto.zawsze_powiedz_doroslym_oni_po', { defaultValue: "Zawsze powiedz dorosłym! Oni pomogą Gliko naprawić tę sytuację." })
+    explanation: i18n.t('auto.zawsze_powiedz_doroslym_oni_po', { defaultValue: i18n.t('auto.zawsze_powiedz_doroslym_o', { defaultValue: "Zawsze powiedz dorosłym! Oni pomogą Gliko naprawić tę sytuację." }) })
   },
   {
-    question: i18n.t('auto.co_gliko_powinien_miec_zawsze', { defaultValue: "Co Gliko powinien mieć zawsze przy sobie na wypadek niskiego cukru?" }),
+    question: i18n.t('auto.co_gliko_powinien_miec_zawsze', { defaultValue: i18n.t('auto.co_gliko_powinien_miec_za', { defaultValue: "Co Gliko powinien mieć zawsze przy sobie na wypadek niskiego cukru?" }) }),
     options: [
       "Pluszowego misia",
       "Zapasowe skarpetki",
-      i18n.t('auto.cos_slodkiego_np_soczek_lub_gl', { defaultValue: "Coś słodkiego (np. soczek lub glukozę)" }),
+      i18n.t('auto.cos_slodkiego_np_soczek_lub_gl', { defaultValue: i18n.t('auto.cos_slodkiego_np_soczek_l', { defaultValue: "Coś słodkiego (np. soczek lub glukozę)" }) }),
       "Kredki"
     ],
     called: 1,
     correct: 2,
-    explanation: i18n.t('auto.zawsze_warto_miec_ratunkowy_so', { defaultValue: "Zawsze warto mieć 'ratunkowy soczek' pod ręką!" })
+    explanation: i18n.t('auto.zawsze_warto_miec_ratunkowy_so', { defaultValue: i18n.t('auto.zawsze_warto_miec_ratunko', { defaultValue: "Zawsze warto mieć 'ratunkowy soczek' pod ręką!" }) })
   },
   {
-    question: i18n.t('auto.jak_gliko_moze_sie_czuc_gdy_ma', { defaultValue: "Jak Gliko może się czuć, gdy ma niski cukier?" }),
+    question: i18n.t('auto.jak_gliko_moze_sie_czuc_gdy_ma', { defaultValue: i18n.t('auto.jak_gliko_moze_sie_czuc_g', { defaultValue: "Jak Gliko może się czuć, gdy ma niski cukier?" }) }),
     options: [
-      i18n.t('auto.moze_mu_sie_krecic_w_glowie_i', { defaultValue: "Może mu się kręcić w głowie i trząść rączki" }),
-      i18n.t('auto.moze_miec_ochote_na_sprzatanie', { defaultValue: "Może mieć ochotę na sprzątanie pokoju" }),
-      i18n.t('auto.moze_nagle_urosnac', { defaultValue: "Może nagle urosnąć" }),
-      i18n.t('auto.moze_zaczac_szczekac', { defaultValue: "Może zacząć szczekać" })
+      i18n.t('auto.moze_mu_sie_krecic_w_glowie_i', { defaultValue: i18n.t('auto.moze_mu_sie_krecic_w_glow', { defaultValue: "Może mu się kręcić w głowie i trząść rączki" }) }),
+      i18n.t('auto.moze_miec_ochote_na_sprzatanie', { defaultValue: i18n.t('auto.moze_miec_ochote_na_sprza', { defaultValue: "Może mieć ochotę na sprzątanie pokoju" }) }),
+      i18n.t('auto.moze_nagle_urosnac', { defaultValue: i18n.t('auto.moze_nagle_urosnac', { defaultValue: "Może nagle urosnąć" }) }),
+      i18n.t('auto.moze_zaczac_szczekac', { defaultValue: i18n.t('auto.moze_zaczac_szczekac', { defaultValue: "Może zacząć szczekać" }) })
     ],
     correct: 0,
-    explanation: i18n.t('auto.tak_drzenie_raczek_lub_slabosc', { defaultValue: "Tak, drżenie rączek lub słabość to sygnały, że cukier jest za niski." })
+    explanation: i18n.t('auto.tak_drzenie_raczek_lub_slabosc', { defaultValue: i18n.t('auto.tak_drzenie_raczek_lub_sl', { defaultValue: "Tak, drżenie rączek lub słabość to sygnały, że cukier jest za niski." }) })
   },
   {
-    question: i18n.t('auto.dlaczego_myjemy_rece_przed_bad', { defaultValue: "Dlaczego myjemy ręce przed badaniem cukru?" }),
+    question: i18n.t('auto.dlaczego_myjemy_rece_przed_bad', { defaultValue: i18n.t('auto.dlaczego_myjemy_rece_prze', { defaultValue: "Dlaczego myjemy ręce przed badaniem cukru?" }) }),
     options: [
-      i18n.t('auto.zeby_glukometr_byl_lsni_cy', { defaultValue: "Żeby glukometr był lśnišcy" }),
-      i18n.t('auto.zeby_resztki_dzemu_na_palcu_ni', { defaultValue: "Żeby resztki dżemu na palcu nie oszukały wyniku" }),
-      i18n.t('auto.zeby_bylo_zimniej', { defaultValue: "Żeby było zimniej" }),
+      i18n.t('auto.zeby_glukometr_byl_lsni_cy', { defaultValue: i18n.t('auto.zeby_glukometr_byl_lsni_c', { defaultValue: "Żeby glukometr był lśnišcy" }) }),
+      i18n.t('auto.zeby_resztki_dzemu_na_palcu_ni', { defaultValue: i18n.t('auto.zeby_resztki_dzemu_na_pal', { defaultValue: "Żeby resztki dżemu na palcu nie oszukały wyniku" }) }),
+      i18n.t('auto.zeby_bylo_zimniej', { defaultValue: i18n.t('auto.zeby_bylo_zimniej', { defaultValue: "Żeby było zimniej" }) }),
       "Bo Gliko nie lubi brudu"
     ],
     correct: 1,
-    explanation: i18n.t('auto.prawda_brudne_raczki_moga_poka', { defaultValue: "Prawda! Brudne rączki mogą pokazać wyższy cukier niż jest naprawdę." })
+    explanation: i18n.t('auto.prawda_brudne_raczki_moga_poka', { defaultValue: i18n.t('auto.prawda_brudne_raczki_moga', { defaultValue: "Prawda! Brudne rączki mogą pokazać wyższy cukier niż jest naprawdę." }) })
   },
   {
     question: "Co to jest glukometr?",
     options: [
       "Maszyna do robienia waty cukrowej",
-      i18n.t('auto.urzadzenie_do_sprawdzania_pozi', { defaultValue: "Urządzenie do sprawdzania poziomu cukru" }),
-      i18n.t('auto.maly_telewizor', { defaultValue: "Mały telewizor" }),
-      i18n.t('auto.licznik_krokow_gliko', { defaultValue: "Licznik kroków Gliko" })
+      i18n.t('auto.urzadzenie_do_sprawdzania_pozi', { defaultValue: i18n.t('auto.urzadzenie_do_sprawdzania', { defaultValue: "Urządzenie do sprawdzania poziomu cukru" }) }),
+      i18n.t('auto.maly_telewizor', { defaultValue: i18n.t('auto.maly_telewizor', { defaultValue: "Mały telewizor" }) }),
+      i18n.t('auto.licznik_krokow_gliko', { defaultValue: i18n.t('auto.licznik_krokow_gliko', { defaultValue: "Licznik kroków Gliko" }) })
     ],
     correct: 1,
     explanation: "Glukometr to nasz najlepszy doradca!"
@@ -169,8 +169,8 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
           <Trophy className="w-20 h-20 text-amber-500 mx-auto mb-4" />
         </motion.div>
         <h3 className="text-2xl font-black mb-2 dark:text-white">{t('auto.wspaniale', { defaultValue: 'Wspaniale!' })}</h3>
-        <p className="text-slate-500 text-sm mb-2">{t('auto.ukończyłeś_quiz_edukacyjny_gliko', { defaultValue: 'Ukończyłeś quiz edukacyjny Gliko.' })}</p>
-        <p className="text-accent-500 font-black text-lg mb-6">{t('auto.twój_wynik', { defaultValue: 'Twój wynik:' })} {score}/{sessionQuestions.length}</p>
+        <p className="text-slate-500 text-sm mb-2">{t('auto.ukończyłeś_quiz_edukacyjny_gliko', { defaultValue: i18n.t('auto.ukonczyles_quiz_edukacyjn', { defaultValue: "Ukończyłeś quiz edukacyjny Gliko." }) })}</p>
+        <p className="text-accent-500 font-black text-lg mb-6">{t('auto.twój_wynik', { defaultValue: i18n.t('auto.twoj_wynik', { defaultValue: "Twój wynik:" }) })} {score}/{sessionQuestions.length}</p>
         
         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 mb-8 border border-slate-100 dark:border-slate-800 glass-target">
            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t('auto.twoje_nagrody', { defaultValue: 'Twoje nagrody:' })}</p>
@@ -196,7 +196,7 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
           onClick={handleFinish}
           className="w-full bg-accent-500 hover:bg-accent-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-lg shadow-accent-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
         >
-          <Check size={20} />  {t('auto.zakończ_i_odbierz_nagrody', { defaultValue: 'Zakończ i odbierz nagrody' })}
+          <Check size={20} />  {t('auto.zakończ_i_odbierz_nagrody', { defaultValue: i18n.t('auto.zakoncz_i_odbierz_nagrody', { defaultValue: "Zakończ i odbierz nagrody" }) })}
                         </button>
       </div>
     );
@@ -210,7 +210,7 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
             <HelpCircle size={20} />
           </div>
           <div>
-            <h4 className="font-black text-sm dark:text-white">{t('auto.mądry_gliko', { defaultValue: 'Mądry Gliko' })}</h4>
+            <h4 className="font-black text-sm dark:text-white">{t('auto.mądry_gliko', { defaultValue: i18n.t('auto.madry_gliko', { defaultValue: "Mądry Gliko" }) })}</h4>
             <div className="flex gap-1 mt-0.5">
               {[...Array(sessionQuestions.length)].map((_, i) => (
                 <div 
@@ -272,7 +272,7 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
             <div className="flex items-start gap-4 mb-4">
               <div className="text-2xl mt-1">{isCorrect ? '🌟' : '💡'}</div>
               <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                <span className="font-black text-accent-500 uppercase tracking-widest block mb-1">{t('auto.gliko_mówi', { defaultValue: 'Gliko mówi:' })}</span>
+                <span className="font-black text-accent-500 uppercase tracking-widest block mb-1">{t('auto.gliko_mówi', { defaultValue: i18n.t('auto.gliko_mowi', { defaultValue: "Gliko mówi:" }) })}</span>
                 {quiz.explanation}
               </p>
             </div>
@@ -280,7 +280,7 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
               onClick={next}
               className="w-full bg-accent-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs active:scale-95 transition-all shadow-md shadow-accent-500/20"
             >
-              {currentIdx === sessionQuestions.length - 1 ? "Zobacz wynik" : i18n.t('auto.nastepne_pytanie', { defaultValue: "Następne pytanie" })}
+              {currentIdx === sessionQuestions.length - 1 ? "Zobacz wynik" : i18n.t('auto.nastepne_pytanie', { defaultValue: i18n.t('auto.nastepne_pytanie', { defaultValue: "Następne pytanie" }) })}
             </button>
           </motion.div>
         )}

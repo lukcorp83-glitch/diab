@@ -24,7 +24,7 @@ export default function BarcodeScannerModal({
         if (status.camera !== 'granted') {
           const request = await BarcodeScanner.requestPermissions();
           if (request.camera !== 'granted') {
-            if (isActive) setError(i18n.t('auto.brak_uprawnien_do_aparatu_przy', { defaultValue: "Brak uprawnień do aparatu. Przyznaj je w ustawieniach systemowych." }));
+            if (isActive) setError(i18n.t('auto.brak_uprawnien_do_aparatu_przy', { defaultValue: i18n.t('auto.brak_uprawnien_do_aparatu', { defaultValue: "Brak uprawnień do aparatu. Przyznaj je w ustawieniach systemowych." }) }));
             return;
           }
         }
@@ -43,7 +43,7 @@ export default function BarcodeScannerModal({
       } catch (err: any) {
         console.error("ML Kit Barcode Error:", err);
         if (isActive) {
-          setError(err.message || i18n.t('auto.blad_podczas_uruchamiania_skan', { defaultValue: "Błąd podczas uruchamiania skanera systemowego." }));
+          setError(err.message || i18n.t('auto.blad_podczas_uruchamiania_skan', { defaultValue: i18n.t('auto.blad_podczas_uruchamiania', { defaultValue: "Błąd podczas uruchamiania skanera systemowego." }) }));
         }
       }
     };
@@ -62,7 +62,7 @@ export default function BarcodeScannerModal({
           <div className="flex items-center justify-between text-white">
             <div className="flex items-center gap-2">
               <Camera size={20} />
-              <span className="font-bold">{t('auto.skaner_opakowań', { defaultValue: 'Skaner Opakowań' })}</span>
+              <span className="font-bold">{t('auto.skaner_opakowań', { defaultValue: i18n.t('auto.skaner_opakowan', { defaultValue: "Skaner Opakowań" }) })}</span>
             </div>
             <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all">
               <X size={20} />

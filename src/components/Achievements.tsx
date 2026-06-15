@@ -63,7 +63,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "first_meal",
       title: "Pierwsze Danie",
-      description: i18n.t('auto.zapisz_swoj_pierwszy_posilek_w', { defaultValue: "Zapisz swój pierwszy posiłek w aplikacji." }),
+      description: i18n.t('auto.zapisz_swoj_pierwszy_posilek_w', { defaultValue: i18n.t('auto.zapisz_swoj_pierwszy_posi', { defaultValue: "Zapisz swój pierwszy posiłek w aplikacji." }) }),
       icon: <UtensilsIcon className="w-8 h-8 text-amber-500" />,
       color: "bg-amber-500",
       unlocked: stats.totalMeals >= 1,
@@ -73,7 +73,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "detailed_meal",
       title: "Dietetyk WBT",
-      description: i18n.t('auto.oblicz_10_posilkow_z_uwzgledni', { defaultValue: "Oblicz 10 posiłków z uwzględnieniem tłuszczów i białek (WBT)." }),
+      description: i18n.t('auto.oblicz_10_posilkow_z_uwzgledni', { defaultValue: i18n.t('auto.oblicz_10_posilkow_z_uwzg', { defaultValue: "Oblicz 10 posiłków z uwzględnieniem tłuszczów i białek (WBT)." }) }),
       icon: <Trophy className="w-8 h-8 text-orange-500" />,
       color: "bg-orange-500",
       unlocked: stats.detailedMeals >= 10,
@@ -83,7 +83,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "tir_master",
       title: "Snajper Glikemiczny",
-      description: i18n.t('auto.osiagnij_ponad_65_czasu_w_norm', { defaultValue: "Osiągnij ponad 65% czasu w normie." }),
+      description: i18n.t('auto.osiagnij_ponad_65_czasu_w_norm', { defaultValue: i18n.t('auto.osiagnij_ponad_65_czasu_w', { defaultValue: "Osiągnij ponad 65% czasu w normie." }) }),
       icon: <Target className="w-8 h-8 text-emerald-500" />,
       color: "bg-emerald-500",
       unlocked: stats.totalGlucose > 8 && stats.tirRatio >= 65,
@@ -93,7 +93,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "tir_ninja",
       title: "Cukrowy Ninja",
-      description: i18n.t('auto.osiagnij_ponad_80_czasu_w_norm', { defaultValue: "Osiągnij ponad 80% czasu w normie (min. 12 pomiarów)." }),
+      description: i18n.t('auto.osiagnij_ponad_80_czasu_w_norm', { defaultValue: i18n.t('auto.osiagnij_ponad_80_czasu_w', { defaultValue: "Osiągnij ponad 80% czasu w normie (min. 12 pomiarów)." }) }),
       icon: <Trophy className="w-8 h-8 text-teal-400" />,
       color: "bg-teal-400",
       unlocked: stats.totalGlucose >= 12 && stats.tirRatio >= 80,
@@ -103,7 +103,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "night_owl",
       title: "Nocny Marek",
-      description: i18n.t('auto.zarejestruj_5_pomiarow_w_nocy', { defaultValue: "Zarejestruj 5 pomiarów w nocy (00:00 - 04:00)." }),
+      description: i18n.t('auto.zarejestruj_5_pomiarow_w_nocy', { defaultValue: i18n.t('auto.zarejestruj_5_pomiarow_w', { defaultValue: "Zarejestruj 5 pomiarów w nocy (00:00 - 04:00)." }) }),
       icon: <Clock className="w-8 h-8 text-accent-300" />,
       color: "bg-accent-300",
       unlocked: stats.nightReadings >= 5,
@@ -113,7 +113,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "early_bird",
       title: "Poranny Ptaszek",
-      description: i18n.t('auto.zarejestruj_5_pomiarow_wczesny', { defaultValue: "Zarejestruj 5 pomiarów wczesnym rankiem (05:00 - 07:00)." }),
+      description: i18n.t('auto.zarejestruj_5_pomiarow_wczesny', { defaultValue: i18n.t('auto.zarejestruj_5_pomiarow_wc', { defaultValue: "Zarejestruj 5 pomiarów wczesnym rankiem (05:00 - 07:00)." }) }),
       icon: <Clock className="w-8 h-8 text-sky-400" />,
       color: "bg-sky-400",
       unlocked: stats.morningReadings >= 5,
@@ -123,7 +123,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "glucose_tracker",
       title: "Czuwaj!",
-      description: i18n.t('auto.zaznacz_50_pomiarow_glikemii', { defaultValue: "Zaznacz 50 pomiarów glikemii." }),
+      description: i18n.t('auto.zaznacz_50_pomiarow_glikemii', { defaultValue: i18n.t('auto.zaznacz_50_pomiarow_glike', { defaultValue: "Zaznacz 50 pomiarów glikemii." }) }),
       icon: <Zap className="w-8 h-8 text-accent-500" />,
       color: "bg-accent-500",
       unlocked: stats.totalGlucose >= 50,
@@ -143,7 +143,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "bolus_cyborg",
       title: "Cyber Trzustka",
-      description: i18n.t('auto.kalkuluj_bolus_i_podaj_insulin', { defaultValue: "Kalkuluj bolus i podaj insulinę 50 razy." }),
+      description: i18n.t('auto.kalkuluj_bolus_i_podaj_insulin', { defaultValue: i18n.t('auto.kalkuluj_bolus_i_podaj_in', { defaultValue: "Kalkuluj bolus i podaj insulinę 50 razy." }) }),
       icon: <Award className="w-8 h-8 text-fuchsia-500" />,
       color: "bg-fuchsia-500",
       unlocked: stats.totalBoluses >= 50,
@@ -153,7 +153,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "consistent",
       title: "Systematyczny",
-      description: i18n.t('auto.dziennik_kompletny_glukoza_pos', { defaultValue: "Dziennik kompletny: glukoza, posiłek i bolus." }),
+      description: i18n.t('auto.dziennik_kompletny_glukoza_pos', { defaultValue: i18n.t('auto.dziennik_kompletny_glukoz', { defaultValue: "Dziennik kompletny: glukoza, posiłek i bolus." }) }),
       icon: <Star className="w-8 h-8 text-yellow-400" />,
       color: "bg-yellow-400",
       unlocked: stats.totalMeals > 0 && stats.totalGlucose > 0 && stats.totalBoluses > 0,
@@ -162,7 +162,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     },
     {
       id: "rich_pet",
-      title: i18n.t('auto.zamozny_gliko', { defaultValue: "Zamożny Gliko" }),
+      title: i18n.t('auto.zamozny_gliko', { defaultValue: i18n.t('auto.zamozny_gliko', { defaultValue: "Zamożny Gliko" }) }),
       description: "Zebierz 500 monet w grze i zadaniach.",
       icon: <Coins className="w-8 h-8 text-amber-500" />,
       color: "bg-amber-500",
@@ -173,7 +173,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
     {
       id: "level_5",
       title: "Mentor",
-      description: i18n.t('auto.rozwin_swojego_stworka_do_5_po', { defaultValue: "Rozwiń swojego stworka do 5 poziomu." }),
+      description: i18n.t('auto.rozwin_swojego_stworka_do_5_po', { defaultValue: i18n.t('auto.rozwin_swojego_stworka_do', { defaultValue: "Rozwiń swojego stworka do 5 poziomu." }) }),
       icon: <Star className="w-8 h-8 text-indigo-500" />,
       color: "bg-indigo-500",
       unlocked: stats.petLevel >= 5,
@@ -209,7 +209,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
           <ChevronLeft size={20} />
         </button>
         <div>
-          <h2 className="text-2xl font-black dark:text-white leading-none">{t('auto.osiągnięcia', { defaultValue: 'Osiągnięcia' })}</h2>
+          <h2 className="text-2xl font-black dark:text-white leading-none">{t('auto.osiągnięcia', { defaultValue: i18n.t('auto.osiagniecia', { defaultValue: "Osiągnięcia" }) })}</h2>
           <p className="text-[10px] font-bold text-accent-500 uppercase tracking-widest mt-1">
             
                                   {t('auto.odblokowano', { defaultValue: 'Odblokowano:' })} {unlockedCount} / {achievements.length}
@@ -227,7 +227,7 @@ export default function Achievements({ logs, user, setTab, petData }: Achievemen
           <h3 className="text-2xl font-black mb-2 relative z-10">{t('auto.poziom', { defaultValue: 'Poziom:' })} {Math.floor(unlockedCount / 2) + 1}</h3>
           <p className="text-accent-100 font-medium relative z-10 text-sm mb-4">
             
-                                  {t('auto.każde_działanie_przybliża_cię_do_le', { defaultValue: 'Każde działanie przybliża Cię do lepszej kontroli glikemii. Trzymaj tak dalej!' })}
+                                  {t('auto.każde_działanie_przybliża_cię_do_le', { defaultValue: i18n.t('auto.kazde_dzialanie_przybliza', { defaultValue: "Każde działanie przybliża Cię do lepszej kontroli glikemii. Trzymaj tak dalej!" }) })}
                                 </p>
           <div className="w-full bg-accent-900/50 rounded-full h-3 overflow-hidden relative z-10">
             <motion.div 

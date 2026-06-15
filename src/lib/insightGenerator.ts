@@ -35,7 +35,7 @@ export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
 
   Object.entries(weekdayPatterns).forEach(([day, hours]) => {
     if (hours.length >= 3) {
-      const dayName = ['Niedziela', i18n.t('auto.poniedzialek', { defaultValue: "Poniedziałek" }), 'Wtorek', i18n.t('auto.sroda', { defaultValue: "Środa" }), 'Czwartek', i18n.t('auto.piatek', { defaultValue: "Piątek" }), 'Sobota'][Number(day)];
+      const dayName = ['Niedziela', i18n.t('auto.poniedzialek', { defaultValue: i18n.t('auto.poniedzialek', { defaultValue: "Poniedziałek" }) }), 'Wtorek', i18n.t('auto.sroda', { defaultValue: i18n.t('auto.sroda', { defaultValue: "Środa" }) }), 'Czwartek', i18n.t('auto.piatek', { defaultValue: i18n.t('auto.piatek', { defaultValue: "Piątek" }) }), 'Sobota'][Number(day)];
       insights.push(`Wykryto powtarzające się niskie cukry w dni: ${dayName}.`);
     }
   });
@@ -46,7 +46,7 @@ export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
   });
 
   if (nightLows.length >= 2) {
-    insights.push(i18n.t('auto.wykryto_powtarzajace_sie_nocne', { defaultValue: "Wykryto powtarzające się nocne hipoglikemie." }));
+    insights.push(i18n.t('auto.wykryto_powtarzajace_sie_nocne', { defaultValue: i18n.t('auto.wykryto_powtarzajace_sie', { defaultValue: "Wykryto powtarzające się nocne hipoglikemie." }) }));
   }
 
   // Time In Range (TIR) Estimate
@@ -67,7 +67,7 @@ export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
     return l.type === 'glucose' && l.value > 150 && (d.getHours() >= 4 && d.getHours() <= 8);
   });
   if (morningHighs.length >= 3) {
-    insights.push(i18n.t('auto.wykryto_tendencje_do_wysokich', { defaultValue: "Wykryto tendencję do wysokich cukrów nad ranem (możliwe zjawisko brzasku)." }));
+    insights.push(i18n.t('auto.wykryto_tendencje_do_wysokich', { defaultValue: i18n.t('auto.wykryto_tendencje_do_wyso', { defaultValue: "Wykryto tendencję do wysokich cukrów nad ranem (możliwe zjawisko brzasku)." }) }));
   }
 
   // Weather correlation detection (Offline Neural Network pattern simulation)
@@ -78,9 +78,9 @@ export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
     if (hotLogs.length >= 3) {
       const avgHotBg = hotLogs.reduce((sum, l) => sum + l.value, 0) / hotLogs.length;
       if (avgHotBg < 85) {
-        insights.push(i18n.t('auto.glikosense_zauwazyl_podczas_up', { defaultValue: "GlikoSense zauważył: Podczas upalnych dni (powyżej 25°C) Twoje cukry bywają niższe." }));
+        insights.push(i18n.t('auto.glikosense_zauwazyl_podczas_up', { defaultValue: i18n.t('auto.glikosense_zauwazyl_podcz', { defaultValue: "GlikoSense zauważył: Podczas upalnych dni (powyżej 25°C) Twoje cukry bywają niższe." }) }));
       } else if (avgHotBg > 160) {
-        insights.push(i18n.t('auto.glikosense_zauwazyl_przy_wysok', { defaultValue: "GlikoSense zauważył: Przy wysokich temperaturach częściej dochodzi do wysokiej glikemii." }));
+        insights.push(i18n.t('auto.glikosense_zauwazyl_przy_wysok', { defaultValue: i18n.t('auto.glikosense_zauwazyl_przy', { defaultValue: "GlikoSense zauważył: Przy wysokich temperaturach częściej dochodzi do wysokiej glikemii." }) }));
       }
     }
 
@@ -91,7 +91,7 @@ export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
       if (lowPressureLogs.length >= 2) {
         const avgBgLowPres = lowPressureLogs.reduce((sum, l) => sum + l.value, 0) / lowPressureLogs.length;
         if (avgBgLowPres > 150) {
-          insights.push(i18n.t('auto.glikosense_powiazal_niskie_cis', { defaultValue: "GlikoSense powiązał niskie ciśnienie atmosferyczne ze skłonnością do hiperglikemii." }));
+          insights.push(i18n.t('auto.glikosense_powiazal_niskie_cis', { defaultValue: i18n.t('auto.glikosense_powiazal_niski', { defaultValue: "GlikoSense powiązał niskie ciśnienie atmosferyczne ze skłonnością do hiperglikemii." }) }));
         }
       }
     }

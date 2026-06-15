@@ -13,18 +13,18 @@ export default function GlikoGarden({ logs }: { logs: any[] }) {
   }, [logs]);
 
   const plants = [
-    { id: 1, name: i18n.t('auto.slonecznik_sukcesu', { defaultValue: "Słonecznik Sukcesu" }), threshold: 50, icon: '🌻' },
-    { id: 2, name: i18n.t('auto.roza_regularnosci', { defaultValue: "Róża Regularności" }), threshold: 75, icon: '🌹' },
+    { id: 1, name: i18n.t('auto.slonecznik_sukcesu', { defaultValue: i18n.t('auto.slonecznik_sukcesu', { defaultValue: "Słonecznik Sukcesu" }) }), threshold: 50, icon: '🌻' },
+    { id: 2, name: i18n.t('auto.roza_regularnosci', { defaultValue: i18n.t('auto.roza_regularnosci', { defaultValue: "Róża Regularności" }) }), threshold: 75, icon: '🌹' },
     { id: 3, name: 'Drzewo Dyscypliny', threshold: 90, icon: '🌳' },
-    { id: 4, name: i18n.t('auto.zloty_kwiatek_tir', { defaultValue: "Złoty Kwiatek TIR" }), threshold: 100, icon: '🌼' },
+    { id: 4, name: i18n.t('auto.zloty_kwiatek_tir', { defaultValue: i18n.t('auto.zloty_kwiatek_tir', { defaultValue: "Złoty Kwiatek TIR" }) }), threshold: 100, icon: '🌼' },
   ];
 
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h4 className="font-black text-sm dark:text-white flex items-center gap-2"><Flower2 size={16} className="text-emerald-500" />  {t('auto.ogród_tir', { defaultValue: 'Ogród TIR' })}</h4>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.twoje_rośliny_rosną_dzięki_dobrym_c', { defaultValue: 'Twoje rośliny rosną dzięki dobrym cukrom' })}</p>
+          <h4 className="font-black text-sm dark:text-white flex items-center gap-2"><Flower2 size={16} className="text-emerald-500" />  {t('auto.ogród_tir', { defaultValue: i18n.t('auto.ogrod_tir', { defaultValue: "Ogród TIR" }) })}</h4>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.twoje_rośliny_rosną_dzięki_dobrym_c', { defaultValue: i18n.t('auto.twoje_rosliny_rosna_dziek', { defaultValue: "Twoje rośliny rosną dzięki dobrym cukrom" }) })}</p>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-500/20">
           <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{tir.toFixed(0)}{t('auto.tir', { defaultValue: '% TIR' })}</span>
@@ -66,7 +66,7 @@ export default function GlikoGarden({ logs }: { logs: any[] }) {
             <Sun className="text-amber-500 shrink-0" size={16} />
             <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">
               
-                                    {t('auto.podlewaj_swój_ogród_dobrą_glikemią_', { defaultValue: 'Podlewaj swój ogród dobrą glikemią! Rośliny potrzebują słońca (70-180 mg/dL), żeby rozkwitnąć.' })}
+                                    {t('auto.podlewaj_swój_ogród_dobrą_glikemią_', { defaultValue: i18n.t('auto.podlewaj_swoj_ogrod_dobra', { defaultValue: "Podlewaj swój ogród dobrą glikemią! Rośliny potrzebują słońca (70-180 mg/dL), żeby rozkwitnąć." }) })}
                                   </p>
          </div>
       )}

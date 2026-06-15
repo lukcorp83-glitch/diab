@@ -47,9 +47,9 @@ export default function ChartFullView({
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-black text-slate-800 dark:text-white px-2 italic tracking-tighter">
           
-                            {t('auto.szczegóły_glikemii', { defaultValue: 'Szczegóły Glikemii' })}
+                            {t('auto.szczegóły_glikemii', { defaultValue: i18n.t('auto.szczegoly_glikemii', { defaultValue: "Szczegóły Glikemii" }) })}
                           </h2>
-        <p className="text-[10px] font-black text-slate-400 px-2 uppercase tracking-widest">{t('auto.pełny_podgląd_danych_z_ostatnich_go', { defaultValue: 'Pełny podgląd danych z ostatnich godzin' })}</p>
+        <p className="text-[10px] font-black text-slate-400 px-2 uppercase tracking-widest">{t('auto.pełny_podgląd_danych_z_ostatnich_go', { defaultValue: i18n.t('auto.pelny_podglad_danych_z_os', { defaultValue: "Pełny podgląd danych z ostatnich godzin" }) })}</p>
       </div>
 
       <div className="flex flex-col gap-3 px-2">
@@ -88,7 +88,7 @@ export default function ChartFullView({
             >
               <Activity size={14} />
               
-                                    {t('auto.pętla', { defaultValue: 'Pętla' })} {showLoopSimulation ? "ON" : "OFF"}
+                                    {t('auto.pętla', { defaultValue: i18n.t('auto.petla', { defaultValue: "Pętla" }) })} {showLoopSimulation ? "ON" : "OFF"}
             </button>
 
             <button
@@ -140,19 +140,19 @@ export default function ChartFullView({
            <div className="p-1 max-w-fit rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
              <span className="text-[10px] leading-none mb-0.5">🍽️</span>
            </div>
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.węgle_ww', { defaultValue: 'Węgle (WW)' })}</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.węgle_ww', { defaultValue: i18n.t('auto.wegle_ww', { defaultValue: "Węgle (WW)" }) })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-rose-500">
            <div className="p-1 max-w-fit rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
              <span className="text-[10px] leading-none mb-0.5">⚠️</span>
            </div>
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center">{t('auto.nakładanie_dawek', { defaultValue: 'Nakładanie dawek' })}</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center">{t('auto.nakładanie_dawek', { defaultValue: i18n.t('auto.nakladanie_dawek', { defaultValue: "Nakładanie dawek" }) })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-teal-500">
            <div className="p-1 max-w-fit rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
              <Droplets size={10} strokeWidth={2.5} />
            </div>
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.wkłucie', { defaultValue: 'Wkłucie' })}</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.wkłucie', { defaultValue: i18n.t('auto.wklucie', { defaultValue: "Wkłucie" }) })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-indigo-500">
            <div className="p-1 max-w-fit rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
@@ -171,7 +171,7 @@ export default function ChartFullView({
           )}
         >
            <div className="w-3 h-[2px] border-b-2 border-emerald-500 border-dashed" />
-           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.prognoza_pętli', { defaultValue: 'Prognoza Pętli' })}</span>
+           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.prognoza_pętli', { defaultValue: i18n.t('auto.prognoza_petli', { defaultValue: "Prognoza Pętli" }) })}</span>
         </div>
         <div 
           onClick={() => {

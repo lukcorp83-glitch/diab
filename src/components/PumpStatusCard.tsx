@@ -60,7 +60,7 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
       <div className={cn("flex justify-between items-start", compact ? "mb-4" : "mb-6")}>
         <div>
           <h3 className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] mb-1">
-            {isPump ? 'Status Pompy' : i18n.t('auto.status_urzadzenia', { defaultValue: "Status Urządzenia" })}
+            {isPump ? 'Status Pompy' : i18n.t('auto.status_urzadzenia', { defaultValue: i18n.t('auto.status_urzadzenia', { defaultValue: "Status Urządzenia" }) })}
           </h3>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={cn("font-black dark:text-white", compact ? "text-base" : "text-xl")}>{deviceName}</span>
@@ -166,7 +166,7 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
 
       <div className={cn("pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center", compact ? "mt-4" : "mt-6")}>
         <div>
-          <span className="text-[8px] font-black text-slate-400 uppercase block">{t('auto.profil_działania_insuliny_iob', { defaultValue: 'Profil Działania Insuliny (IOB)' })}</span>
+          <span className="text-[8px] font-black text-slate-400 uppercase block">{t('auto.profil_działania_insuliny_iob', { defaultValue: i18n.t('auto.profil_dzialania_insuliny', { defaultValue: "Profil Działania Insuliny (IOB)" }) })}</span>
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">{data.activeInsulin != null ? Number(data.activeInsulin).toFixed(2) : '--'} U</span>
           {data.activeInsulin > 0 && (
             <span className="text-[7px] font-bold text-pink-500/80 block mt-0.5">{t('auto.start_20m_szczyt_75m', { defaultValue: 'Start: ~20m • Szczyt: ~75m' })}</span>

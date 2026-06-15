@@ -26,75 +26,75 @@ const DIET_TYPES = [
     name: 'Talerz Diabetologiczny',
     icon: <Utensils size={24} className="text-blue-500" />,
     color: 'bg-blue-500',
-    description: i18n.t('auto.najbardziej_uniwersalna_metoda', { defaultValue: "Najbardziej uniwersalna metoda zbilansowanych posiłków na oko. Dzieli talerz na połowę, ćwierć i ćwierć." }),
+    description: i18n.t('auto.najbardziej_uniwersalna_metoda', { defaultValue: i18n.t('auto.najbardziej_uniwersalna_m', { defaultValue: "Najbardziej uniwersalna metoda zbilansowanych posiłków na oko. Dzieli talerz na połowę, ćwierć i ćwierć." }) }),
     principles: [
       '1/2 talerza: Warzywa (najlepiej surowe lub gotowane na parze)',
-      i18n.t('auto.1_4_talerza_zrodlo_bialka_chud', { defaultValue: "1/4 talerza: Źródło białka (chude mięso, ryby, jaja, tofu, naczyniowe)" }),
-      i18n.t('auto.1_4_talerza_weglowodany_zlozon', { defaultValue: "1/4 talerza: Węglowodany złożone (kasze, brązowy ryż, ciemny makaron)" }),
-      i18n.t('auto.dodatek_zdrowe_tluszcze_oliwa', { defaultValue: "Dodatek: Zdrowe tłuszcze (oliwa, awokado, orzechy)" })
+      i18n.t('auto.1_4_talerza_zrodlo_bialka_chud', { defaultValue: i18n.t('auto.1_4_talerza_zrodlo_bialka', { defaultValue: "1/4 talerza: Źródło białka (chude mięso, ryby, jaja, tofu, naczyniowe)" }) }),
+      i18n.t('auto.1_4_talerza_weglowodany_zlozon', { defaultValue: i18n.t('auto.1_4_talerza_weglowodany_z', { defaultValue: "1/4 talerza: Węglowodany złożone (kasze, brązowy ryż, ciemny makaron)" }) }),
+      i18n.t('auto.dodatek_zdrowe_tluszcze_oliwa', { defaultValue: i18n.t('auto.dodatek_zdrowe_tluszcze_o', { defaultValue: "Dodatek: Zdrowe tłuszcze (oliwa, awokado, orzechy)" }) })
     ],
-    pros: [i18n.t('auto.latwa_do_wdrozenia', { defaultValue: "Łatwa do wdrożenia" }), 'Nie wymaga liczenia kalorii', i18n.t('auto.przystepna_na_miescie', { defaultValue: "Przystępna na mieście" })],
-    cons: [i18n.t('auto.mniej_precyzyjna_przy_duzych_w', { defaultValue: "Mniej precyzyjna przy dużych wahaniach cukru" })],
-    tips: i18n.t('auto.idealna_metoda_dla_dzieci_i_do', { defaultValue: "Idealna metoda dla dzieci i dorosłych na początek przygody z pompą i liczeniem." })
+    pros: [i18n.t('auto.latwa_do_wdrozenia', { defaultValue: i18n.t('auto.latwa_do_wdrozenia', { defaultValue: "Łatwa do wdrożenia" }) }), 'Nie wymaga liczenia kalorii', i18n.t('auto.przystepna_na_miescie', { defaultValue: i18n.t('auto.przystepna_na_miescie', { defaultValue: "Przystępna na mieście" }) })],
+    cons: [i18n.t('auto.mniej_precyzyjna_przy_duzych_w', { defaultValue: i18n.t('auto.mniej_precyzyjna_przy_duz', { defaultValue: "Mniej precyzyjna przy dużych wahaniach cukru" }) })],
+    tips: i18n.t('auto.idealna_metoda_dla_dzieci_i_do', { defaultValue: i18n.t('auto.idealna_metoda_dla_dzieci', { defaultValue: "Idealna metoda dla dzieci i dorosłych na początek przygody z pompą i liczeniem." }) })
   },
   {
     id: 'keto',
-    name: i18n.t('auto.dieta_niskoweglowodanowa_keto', { defaultValue: "Dieta Niskowęglowodanowa / Keto" }),
+    name: i18n.t('auto.dieta_niskoweglowodanowa_keto', { defaultValue: i18n.t('auto.dieta_niskoweglowodanowa', { defaultValue: "Dieta Niskowęglowodanowa / Keto" }) }),
     icon: <Heart size={24} className="text-red-500" />,
     color: 'bg-red-500',
-    description: i18n.t('auto.minimalizuje_spozycie_weglowod', { defaultValue: "Minimalizuje spożycie węglowodanów, zmuszając organizm do czerpania energii z tłuszczu i ułatwiając płaskie wykresy." }),
+    description: i18n.t('auto.minimalizuje_spozycie_weglowod', { defaultValue: i18n.t('auto.minimalizuje_spozycie_weg', { defaultValue: "Minimalizuje spożycie węglowodanów, zmuszając organizm do czerpania energii z tłuszczu i ułatwiając płaskie wykresy." }) }),
     principles: [
-      i18n.t('auto.weglowodany_ponizej_50_100g_lo', { defaultValue: "Węglowodany poniżej 50-100g (Low-Carb) lub 20-30g (Keto) na dobę" }),
-      i18n.t('auto.wysokie_spozycie_zdrowych_tlus', { defaultValue: "Wysokie spożycie zdrowych tłuszczów (orzechy, oliwa, masło, awokado)" }),
-      i18n.t('auto.umiarkowane_spozycie_bialka', { defaultValue: "Umiarkowane spożycie białka" })
+      i18n.t('auto.weglowodany_ponizej_50_100g_lo', { defaultValue: i18n.t('auto.weglowodany_ponizej_50_10', { defaultValue: "Węglowodany poniżej 50-100g (Low-Carb) lub 20-30g (Keto) na dobę" }) }),
+      i18n.t('auto.wysokie_spozycie_zdrowych_tlus', { defaultValue: i18n.t('auto.wysokie_spozycie_zdrowych', { defaultValue: "Wysokie spożycie zdrowych tłuszczów (orzechy, oliwa, masło, awokado)" }) }),
+      i18n.t('auto.umiarkowane_spozycie_bialka', { defaultValue: i18n.t('auto.umiarkowane_spozycie_bial', { defaultValue: "Umiarkowane spożycie białka" }) })
     ],
-    pros: [i18n.t('auto.mniej_skokow_glikemii_po_posil', { defaultValue: "Mniej skoków glikemii po posiłkach" }), i18n.t('auto.mniejsze_dawki_insuliny_mniej', { defaultValue: "Mniejsze dawki insuliny (mniej błędów pomiarowych)" })],
-    cons: [i18n.t('auto.moze_wymagac_dluzszego_ustawia', { defaultValue: "Może wymagać dłuższego ustawiania bazy (tzw. Wymienniki Białkowo-Tłuszczowe)" }), i18n.t('auto.ryzyko_ketozy_i_kwasicy_wymaga', { defaultValue: "Ryzyko ketozy i kwasicy (wymaga kontroli ciał ketonowych)" }), 'Trudna dla dzieci w okresie wzrostu'],
-    tips: i18n.t('auto.uzywajac_pompy_wbt_wymienniki', { defaultValue: "Używając pompy, WBT (Wymienniki Białkowo-Tłuszczowe) powinieneś podawać jako Bolus Przedłużony, np. na 2-4 godziny." })
+    pros: [i18n.t('auto.mniej_skokow_glikemii_po_posil', { defaultValue: i18n.t('auto.mniej_skokow_glikemii_po', { defaultValue: "Mniej skoków glikemii po posiłkach" }) }), i18n.t('auto.mniejsze_dawki_insuliny_mniej', { defaultValue: i18n.t('auto.mniejsze_dawki_insuliny_m', { defaultValue: "Mniejsze dawki insuliny (mniej błędów pomiarowych)" }) })],
+    cons: [i18n.t('auto.moze_wymagac_dluzszego_ustawia', { defaultValue: i18n.t('auto.moze_wymagac_dluzszego_us', { defaultValue: "Może wymagać dłuższego ustawiania bazy (tzw. Wymienniki Białkowo-Tłuszczowe)" }) }), i18n.t('auto.ryzyko_ketozy_i_kwasicy_wymaga', { defaultValue: i18n.t('auto.ryzyko_ketozy_i_kwasicy_w', { defaultValue: "Ryzyko ketozy i kwasicy (wymaga kontroli ciał ketonowych)" }) }), 'Trudna dla dzieci w okresie wzrostu'],
+    tips: i18n.t('auto.uzywajac_pompy_wbt_wymienniki', { defaultValue: i18n.t('auto.uzywajac_pompy_wbt_wymien', { defaultValue: "Używając pompy, WBT (Wymienniki Białkowo-Tłuszczowe) powinieneś podawać jako Bolus Przedłużony, np. na 2-4 godziny." }) })
   },
   {
     id: 'dash',
-    name: i18n.t('auto.dash_srodziemnomorska', { defaultValue: "DASH / Śródziemnomorska" }),
+    name: i18n.t('auto.dash_srodziemnomorska', { defaultValue: i18n.t('auto.dash_srodziemnomorska', { defaultValue: "DASH / Śródziemnomorska" }) }),
     icon: <BookOpen size={24} className="text-green-500" />,
     color: 'bg-green-500',
-    description: i18n.t('auto.diety_ukierunkowane_na_zdrowie', { defaultValue: "Diety ukierunkowane na zdrowie sercowo-naczyniowe, często polecane w cukrzycy jako ogólny złoty standard." }),
+    description: i18n.t('auto.diety_ukierunkowane_na_zdrowie', { defaultValue: i18n.t('auto.diety_ukierunkowane_na_zd', { defaultValue: "Diety ukierunkowane na zdrowie sercowo-naczyniowe, często polecane w cukrzycy jako ogólny złoty standard." }) }),
     principles: [
-      i18n.t('auto.duzo_warzyw_owocow_szczegolnie', { defaultValue: "Dużo warzyw, owoców (szczególnie jagodowych ze względu na niski reżim GI)" }),
-      i18n.t('auto.oliwa_z_oliwek_jako_glowne_zro', { defaultValue: "Oliwa z oliwek jako główne źródło tłuszczu" }),
-      i18n.t('auto.ryby_drob_ograniczone_czerwone', { defaultValue: "Ryby, drób, ograniczone czerwone mięso" }),
-      i18n.t('auto.ograniczona_podaz_soli_dash', { defaultValue: "Ograniczona podaż soli (DASH)" })
+      i18n.t('auto.duzo_warzyw_owocow_szczegolnie', { defaultValue: i18n.t('auto.duzo_warzyw_owocow_szczeg', { defaultValue: "Dużo warzyw, owoców (szczególnie jagodowych ze względu na niski reżim GI)" }) }),
+      i18n.t('auto.oliwa_z_oliwek_jako_glowne_zro', { defaultValue: i18n.t('auto.oliwa_z_oliwek_jako_glown', { defaultValue: "Oliwa z oliwek jako główne źródło tłuszczu" }) }),
+      i18n.t('auto.ryby_drob_ograniczone_czerwone', { defaultValue: i18n.t('auto.ryby_drob_ograniczone_cze', { defaultValue: "Ryby, drób, ograniczone czerwone mięso" }) }),
+      i18n.t('auto.ograniczona_podaz_soli_dash', { defaultValue: i18n.t('auto.ograniczona_podaz_soli_da', { defaultValue: "Ograniczona podaż soli (DASH)" }) })
     ],
-    pros: [i18n.t('auto.najzdrowszy_profil_lipidowy_na', { defaultValue: "Najzdrowszy profil lipidowy na przyszłość" }), i18n.t('auto.zalecana_przez_wiekszosc_towar', { defaultValue: "Zalecana przez większość towarzystw diabetologicznych" })],
-    cons: [i18n.t('auto.wiecej_weglowodanow_wymaga_pre', { defaultValue: "Więcej węglowodanów wymaga precyzyjnego liczenia (WW i WBT)" })],
-    tips: i18n.t('auto.aby_nie_podbijac_wagi_i_unikna', { defaultValue: "Aby nie podbijać wagi i uniknąć skoków, owoc zjadaj zaraz po posiłku białkowym, a nie osobno (opóźni to skok cukru)." })
+    pros: [i18n.t('auto.najzdrowszy_profil_lipidowy_na', { defaultValue: i18n.t('auto.najzdrowszy_profil_lipido', { defaultValue: "Najzdrowszy profil lipidowy na przyszłość" }) }), i18n.t('auto.zalecana_przez_wiekszosc_towar', { defaultValue: i18n.t('auto.zalecana_przez_wiekszosc', { defaultValue: "Zalecana przez większość towarzystw diabetologicznych" }) })],
+    cons: [i18n.t('auto.wiecej_weglowodanow_wymaga_pre', { defaultValue: i18n.t('auto.wiecej_weglowodanow_wymag', { defaultValue: "Więcej węglowodanów wymaga precyzyjnego liczenia (WW i WBT)" }) })],
+    tips: i18n.t('auto.aby_nie_podbijac_wagi_i_unikna', { defaultValue: i18n.t('auto.aby_nie_podbijac_wagi_i_u', { defaultValue: "Aby nie podbijać wagi i uniknąć skoków, owoc zjadaj zaraz po posiłku białkowym, a nie osobno (opóźni to skok cukru)." }) })
   },
   {
     id: 'if',
     name: 'Intermittent Fasting (Post Przerywany)',
     icon: <Clock size={24} className="text-purple-500" />,
     color: 'bg-purple-500',
-    description: i18n.t('auto.niespozywanie_posilkow_przez_k', { defaultValue: "Niespożywanie posiłków przez konkretne okno czasowe (np. 16 godzin postu, 8 godzin jedzenia)." }),
+    description: i18n.t('auto.niespozywanie_posilkow_przez_k', { defaultValue: i18n.t('auto.niespozywanie_posilkow_pr', { defaultValue: "Niespożywanie posiłków przez konkretne okno czasowe (np. 16 godzin postu, 8 godzin jedzenia)." }) }),
     principles: [
       'Najpopularniejszy wariant: 16/8. Jesz np. od 10:00 do 18:00.',
       'W czasie postu: woda, czarna kawa polecane.'
     ],
-    pros: [i18n.t('auto.pomaga_w_redukcji_insulinoopor', { defaultValue: "Pomaga w redukcji insulinooporności" }), i18n.t('auto.baza_nocna_czesto_stabilizuje', { defaultValue: "Baza nocna często stabilizuje się lepiej bez późnego posiłku" })],
-    cons: [i18n.t('auto.ryzyko_hipoglikemii_u_diabetyk', { defaultValue: "Ryzyko hipoglikemii - u diabetyków z pompą należy BARDZO OSTRZEŻNIE dobierać bazę" }), i18n.t('auto.mozliwe_zjawisko_brzasku_skok', { defaultValue: "Możliwe zjawisko \"brzasku\" - skok cukru rano mimo braku jedzenia" })],
-    tips: i18n.t('auto.jezeli_rano_mocno_skacze_cukie', { defaultValue: "Jeżeli rano mocno skacze cukier (tzw. brzask), przedłużony bolus nocny i dobrze ustawiona baza to podstawa. Nie polecane dla dzieci." })
+    pros: [i18n.t('auto.pomaga_w_redukcji_insulinoopor', { defaultValue: i18n.t('auto.pomaga_w_redukcji_insulin', { defaultValue: "Pomaga w redukcji insulinooporności" }) }), i18n.t('auto.baza_nocna_czesto_stabilizuje', { defaultValue: i18n.t('auto.baza_nocna_czesto_stabili', { defaultValue: "Baza nocna często stabilizuje się lepiej bez późnego posiłku" }) })],
+    cons: [i18n.t('auto.ryzyko_hipoglikemii_u_diabetyk', { defaultValue: i18n.t('auto.ryzyko_hipoglikemii_u_dia', { defaultValue: "Ryzyko hipoglikemii - u diabetyków z pompą należy BARDZO OSTRZEŻNIE dobierać bazę" }) }), i18n.t('auto.mozliwe_zjawisko_brzasku_skok', { defaultValue: i18n.t('auto.mozliwe_zjawisko_brzasku', { defaultValue: "Możliwe zjawisko \"brzasku\" - skok cukru rano mimo braku jedzenia" }) })],
+    tips: i18n.t('auto.jezeli_rano_mocno_skacze_cukie', { defaultValue: i18n.t('auto.jezeli_rano_mocno_skacze', { defaultValue: "Jeżeli rano mocno skacze cukier (tzw. brzask), przedłużony bolus nocny i dobrze ustawiona baza to podstawa. Nie polecane dla dzieci." }) })
   },
   {
     id: 'gluten',
     name: 'Bezglutenowa / Przy Celiakii',
     icon: <AlertTriangle size={24} className="text-orange-500" />,
     color: 'bg-orange-500',
-    description: i18n.t('auto.celiakia_wystepuje_statystyczn', { defaultValue: "Celiakia występuje statystycznie częściej u osób z CT1. Wymaga całkowitego wykluczenia glutenu." }),
+    description: i18n.t('auto.celiakia_wystepuje_statystyczn', { defaultValue: i18n.t('auto.celiakia_wystepuje_statys', { defaultValue: "Celiakia występuje statystycznie częściej u osób z CT1. Wymaga całkowitego wykluczenia glutenu." }) }),
     principles: [
-      i18n.t('auto.brak_pszenicy_zyta_jeczmienia', { defaultValue: "Brak: pszenicy, żyta, jęczmienia, owsa (niecertyfikowanego)" }),
-      i18n.t('auto.zastepniki_maki_kukurydziane_r', { defaultValue: "Zastępniki: mąki kukurydziane, ryżowe, gryczane" })
+      i18n.t('auto.brak_pszenicy_zyta_jeczmienia', { defaultValue: i18n.t('auto.brak_pszenicy_zyta_jeczmi', { defaultValue: "Brak: pszenicy, żyta, jęczmienia, owsa (niecertyfikowanego)" }) }),
+      i18n.t('auto.zastepniki_maki_kukurydziane_r', { defaultValue: i18n.t('auto.zastepniki_maki_kukurydzi', { defaultValue: "Zastępniki: mąki kukurydziane, ryżowe, gryczane" }) })
     ],
-    pros: [i18n.t('auto.kluczowa_u_zdiagnozowanych_pac', { defaultValue: "Kluczowa u zdiagnozowanych pacjentów z celiakią i rygorystycznie poprawia trawienie oraz glikemie, jeśli były wchłonięcia" })],
-    cons: [i18n.t('auto.zastepniki_chleba_np_ryzowe_ku', { defaultValue: "Zastępniki chleba (np. ryżowe/kukurydziane) często mają o wiele wyższy Indeks Glikemiczny, powodując większe skoki glikemii!" })],
-    tips: i18n.t('auto.produkty_gluten_free_bywaja_pe', { defaultValue: "Produkty \"Gluten Free\" bywają pełne cukru dodanego i mąki o ułatwionym wchłanianiu. Zawsze czytaj makro, przeliczaj i obserwuj czas działania insuliny!" })
+    pros: [i18n.t('auto.kluczowa_u_zdiagnozowanych_pac', { defaultValue: i18n.t('auto.kluczowa_u_zdiagnozowanyc', { defaultValue: "Kluczowa u zdiagnozowanych pacjentów z celiakią i rygorystycznie poprawia trawienie oraz glikemie, jeśli były wchłonięcia" }) })],
+    cons: [i18n.t('auto.zastepniki_chleba_np_ryzowe_ku', { defaultValue: i18n.t('auto.zastepniki_chleba_np_ryzo', { defaultValue: "Zastępniki chleba (np. ryżowe/kukurydziane) często mają o wiele wyższy Indeks Glikemiczny, powodując większe skoki glikemii!" }) })],
+    tips: i18n.t('auto.produkty_gluten_free_bywaja_pe', { defaultValue: i18n.t('auto.produkty_gluten_free_bywa', { defaultValue: "Produkty \"Gluten Free\" bywają pełne cukru dodanego i mąki o ułatwionym wchłanianiu. Zawsze czytaj makro, przeliczaj i obserwuj czas działania insuliny!" }) })
   }
 ];
 
@@ -117,11 +117,11 @@ export function Diets({ user, setTab, settings }: DietsProps) {
         toast.success(`Aktywowano dietę: ${DIET_TYPES.find(d => d.id === dietId)?.name}`);
         setSelectedDiet(null); // Return to dashboard view
       } else {
-        toast.success(i18n.t('auto.zakonczono_diete', { defaultValue: "Zakończono dietę." }));
+        toast.success(i18n.t('auto.zakonczono_diete', { defaultValue: i18n.t('auto.zakonczono_diete', { defaultValue: "Zakończono dietę." }) }));
       }
     } catch (e) {
       console.error(e);
-      toast.error(i18n.t('auto.blad_podczas_zmiany_diety', { defaultValue: "Błąd podczas zmiany diety" }));
+      toast.error(i18n.t('auto.blad_podczas_zmiany_diety', { defaultValue: i18n.t('auto.blad_podczas_zmiany_diety', { defaultValue: "Błąd podczas zmiany diety" }) }));
     }
   };
 
@@ -138,7 +138,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
               {activeDietData.icon}
             </div>
             <div className="flex flex-col">
-              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">{t('auto.zarządzanie_dietą', { defaultValue: 'Zarządzanie Dietą' })}</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">{t('auto.zarządzanie_dietą', { defaultValue: i18n.t('auto.zarzadzanie_dieta', { defaultValue: "Zarządzanie Dietą" }) })}</h2>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{activeDietData.name}</p>
             </div>
           </div>
@@ -166,7 +166,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                </div>
 
                <div>
-                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-2">{t('auto.twój_cel_na_dziś', { defaultValue: 'Twój cel na dziś' })}</h3>
+                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-2">{t('auto.twój_cel_na_dziś', { defaultValue: i18n.t('auto.twoj_cel_na_dzis', { defaultValue: "Twój cel na dziś" }) })}</h3>
                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                    {activeDietData.description}
                  </p>
@@ -176,7 +176,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                     
-                                                  {t('auto.główne_zasady', { defaultValue: 'Główne Zasady' })}
+                                                  {t('auto.główne_zasady', { defaultValue: i18n.t('auto.glowne_zasady', { defaultValue: "Główne Zasady" }) })}
                                                </h4>
                  <ul className="space-y-2">
                    {activeDietData.principles.map((p, i) => (
@@ -199,7 +199,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                                                  </h4>
                    <p className="text-xs font-medium text-indigo-900 dark:text-indigo-200 leading-relaxed">
                      
-                                                   {t('auto.asystent_ai_uwzględnia_dietę', { defaultValue: 'Asystent AI uwzględnia dietę' })} {activeDietData.name}  {t('auto.podczas_swoich_analiz_i_rekomendacj', { defaultValue: 'podczas swoich analiz i rekomendacji posiłków. Otwórz czat aby zapytać o poradę!' })}
+                                                   {t('auto.asystent_ai_uwzględnia_dietę', { defaultValue: i18n.t('auto.asystent_ai_uwzglednia_di', { defaultValue: "Asystent AI uwzględnia dietę" }) })} {activeDietData.name}  {t('auto.podczas_swoich_analiz_i_rekomendacj', { defaultValue: i18n.t('auto.podczas_swoich_analiz_i_r', { defaultValue: "podczas swoich analiz i rekomendacji posiłków. Otwórz czat aby zapytać o poradę!" }) })}
                                                  </p>
                </div>
                
@@ -286,7 +286,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
               </div>
 
               <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-2">{t('auto.wady_pułapki', { defaultValue: 'Wady / Pułapki' })}</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-2">{t('auto.wady_pułapki', { defaultValue: i18n.t('auto.wady_pulapki', { defaultValue: "Wady / Pułapki" }) })}</h3>
                 <ul className="space-y-1">
                   {selectedDiet.cons.map((p, i) => (
                     <li key={i} className="text-xs font-semibold text-rose-800 flex items-start gap-2">
@@ -316,7 +316,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                   <>
                     <Check size={18} />
                     
-                                                    {t('auto.przejdź_na_tę_dietę', { defaultValue: 'Przejdź na tę dietę' })}
+                                                    {t('auto.przejdź_na_tę_dietę', { defaultValue: i18n.t('auto.przejdz_na_te_diete', { defaultValue: "Przejdź na tę dietę" }) })}
                                                   </>
               </button>
             </div>
@@ -330,14 +330,14 @@ export function Diets({ user, setTab, settings }: DietsProps) {
     <div className="w-full max-w-md mx-auto space-y-4 p-4 pb-32">
       <div className="mb-6 space-y-1">
         <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-display">{t('auto.diety_nawyki', { defaultValue: 'Diety & Nawyki' })}</h2>
-        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('auto.pomysły_na_zbilansowane_żywienie', { defaultValue: 'Pomysły na zbilansowane żywienie' })}</p>
+        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('auto.pomysły_na_zbilansowane_żywienie', { defaultValue: i18n.t('auto.pomysly_na_zbilansowane_z', { defaultValue: "Pomysły na zbilansowane żywienie" }) })}</p>
       </div>
 
       <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] p-6 mb-6 border border-indigo-100 dark:border-indigo-800/30">
-        <h3 className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2">{t('auto.pamiętaj', { defaultValue: 'Pamiętaj!' })}</h3>
+        <h3 className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2">{t('auto.pamiętaj', { defaultValue: i18n.t('auto.pamietaj', { defaultValue: "Pamiętaj!" }) })}</h3>
         <p className="text-xs font-medium text-indigo-900 dark:text-indigo-200 leading-relaxed">
           
-                            {t('auto.nie_ma_jednej_idealnej_diety_dla_ka', { defaultValue: 'Nie ma jednej idealnej diety dla każdego diabetyka. Reakcja na węglowodany, tłuszcze i białko jest indywidualna. Zawsze modyfikuj dawki insuliny z głową i w porozumieniu z lekarzem prowadzącym.' })}
+                            {t('auto.nie_ma_jednej_idealnej_diety_dla_ka', { defaultValue: i18n.t('auto.nie_ma_jednej_idealnej_di', { defaultValue: "Nie ma jednej idealnej diety dla każdego diabetyka. Reakcja na węglowodany, tłuszcze i białko jest indywidualna. Zawsze modyfikuj dawki insuliny z głową i w porozumieniu z lekarzem prowadzącym." }) })}
                           </p>
       </div>
 

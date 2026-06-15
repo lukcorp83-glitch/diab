@@ -105,7 +105,7 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
               
               <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">
                 
-                                              {t('auto.wiadomość_z', { defaultValue: 'Wiadomość z:' })} {activeAlert.senderDevice}
+                                              {t('auto.wiadomość_z', { defaultValue: i18n.t('auto.wiadomosc_z', { defaultValue: "Wiadomość z:" }) })} {activeAlert.senderDevice}
               </span>
 
               <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-snug mb-8">
@@ -118,7 +118,7 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
               >
                 <CheckCircle2 size={24} />
                 
-                                              {t('auto.zrozumiałem', { defaultValue: 'ZROZUMIAŁEM' })}
+                                              {t('auto.zrozumiałem', { defaultValue: i18n.t('auto.zrozumialem', { defaultValue: "ZROZUMIAŁEM" }) })}
                                             </button>
             </div>
           </motion.div>

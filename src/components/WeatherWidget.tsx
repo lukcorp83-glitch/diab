@@ -63,66 +63,66 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
 
   if (isMorning) {
     const todayMax = weather.todayMax !== undefined ? weather.todayMax : weather.temp;
-    alertTitle = `Prognoza na dziś (Rano) • maks. ${todayMax}°C`;
+    alertTitle = i18n.t('auto.prognoza_na_dzis_rano_mak', { defaultValue: "Prognoza na dziś (Rano) • maks. {{var0}}°C", var0: todayMax });
     
     if (todayMax >= 30) {
       alertColor = "text-rose-600 dark:text-rose-400";
       alertBg = "bg-rose-50 dark:bg-rose-500/10 border border-rose-500/20";
-      alertText = `Dziś zapowiadany jest upał do ${todayMax}°C! Uważaj rano i w południe – insulina może wchłaniać się znacznie szybciej, gwałtownie zwiększając ryzyko nagłej hipoglikemii i odwodnienia. Zabezpiecz peny/pompy przed słońcem!`;
+      alertText = i18n.t('auto.dzis_zapowiadany_jest_upa', { defaultValue: "Dziś zapowiadany jest upał do {{var0}}°C! Uważaj rano i w południe – insulina może wchłaniać się znacznie szybciej, gwałtownie zwiększając ryzyko nagłej hipoglikemii i odwodnienia. Zabezpiecz peny/pompy przed słońcem!", var0: todayMax });
       alertIcon = <AlertTriangle size={14} className="text-rose-500 shrink-0" />;
     } else if (todayMax >= 25) {
       alertColor = "text-orange-600 dark:text-orange-400";
       alertBg = "bg-orange-50 dark:bg-orange-500/10 border border-orange-500/20";
-      alertText = `Dziś ciepły dzień (do ${todayMax}°C). Wyższa temperatura może przyspieszyć działanie bolusów posiłkowych. Pamiętaj o piciu wody i miej przy sobie szybkie węglowodany.`;
+      alertText = i18n.t('auto.dzis_cieply_dzien_do_var0', { defaultValue: "Dziś ciepły dzień (do {{var0}}°C). Wyższa temperatura może przyspieszyć działanie bolusów posiłkowych. Pamiętaj o piciu wody i miej przy sobie szybkie węglowodany.", var0: todayMax });
       alertIcon = <Thermometer size={14} className="text-orange-500 shrink-0" />;
     } else if (todayMax <= 0) {
       alertColor = "text-sky-600 dark:text-sky-400";
       alertBg = "bg-sky-50 dark:bg-sky-500/10 border border-sky-500/20";
-      alertText = `Dziś prognozowany jest mróz (maks. ${todayMax}°C). Kurczenie naczyń krwionośnych w zimnie może opóźnić wchłanianie insuliny, a nagłe wejście do ciepłego pokoju wywoła spadek. Chroń glukometr i insulinę!`;
+      alertText = i18n.t('auto.dzis_prognozowany_jest_mr', { defaultValue: "Dziś prognozowany jest mróz (maks. {{var0}}°C). Kurczenie naczyń krwionośnych w zimnie może opóźnić wchłanianie insuliny, a nagłe wejście do ciepłego pokoju wywoła spadek. Chroń glukometr i insulinę!", var0: todayMax });
       alertIcon = <AlertTriangle size={14} className="text-sky-500 shrink-0" />;
     } else {
-      alertText = i18n.t('auto.temperatura_umiarkowana_stabil', { defaultValue: "Temperatura umiarkowana, stabilne warunki zewnętrzne dla Twojej insuliny na resztę dnia." });
+      alertText = i18n.t('auto.temperatura_umiarkowana_stabil', { defaultValue: i18n.t('auto.temperatura_umiarkowana_s', { defaultValue: "Temperatura umiarkowana, stabilne warunki zewnętrzne dla Twojej insuliny na resztę dnia." }) });
       alertIcon = <Sun size={14} className="text-indigo-400 shrink-0" />;
     }
   } else if (isEvening) {
     const tomorrowMax = weather.tomorrowMax !== undefined ? weather.tomorrowMax : weather.temp;
     const tomorrowCond = weather.tomorrowCondition ? ` (${weather.tomorrowCondition.toLowerCase()})` : '';
-    alertTitle = `Prognoza na jutro (Wieczór) • maks. ${tomorrowMax}°C`;
+    alertTitle = i18n.t('auto.prognoza_na_jutro_wieczor', { defaultValue: "Prognoza na jutro (Wieczór) • maks. {{var0}}°C", var0: tomorrowMax });
 
     if (tomorrowMax >= 30) {
       alertColor = "text-rose-600 dark:text-rose-400";
       alertBg = "bg-rose-50 dark:bg-rose-500/10 border border-rose-500/20";
-      alertText = `Jutro szykuje się bardzo upalny dzień, aż do ${tomorrowMax}°C${tomorrowCond}. Zaplanuj schronienie dla zapasu insuliny i przygotuj się na ewentualną redukcję dawek na jutrzejszą aktywność w ciągu dnia.`;
+      alertText = i18n.t('auto.jutro_szykuje_sie_bardzo', { defaultValue: "Jutro szykuje się bardzo upalny dzień, aż do {{var0}}°C{{var1}}. Zaplanuj schronienie dla zapasu insuliny i przygotuj się na ewentualną redukcję dawek na jutrzejszą aktywność w ciągu dnia.", var0: tomorrowMax, var1: tomorrowCond });
       alertIcon = <AlertTriangle size={14} className="text-rose-500 shrink-0" />;
     } else if (tomorrowMax >= 25) {
       alertColor = "text-orange-600 dark:text-orange-400";
       alertBg = "bg-orange-50 dark:bg-orange-500/10 border border-orange-500/20";
-      alertText = `Jutro cieplejszy dzień (do ${tomorrowMax}°C)${tomorrowCond}. Rozważ przygotowanie dodatkowych zapasów lub delikatną korektę bazy w pompie podczas dłuższego przebywania na słońcu.`;
+      alertText = i18n.t('auto.jutro_cieplejszy_dzien_do', { defaultValue: "Jutro cieplejszy dzień (do {{var0}}°C){{var1}}. Rozważ przygotowanie dodatkowych zapasów lub delikatną korektę bazy w pompie podczas dłuższego przebywania na słońcu.", var0: tomorrowMax, var1: tomorrowCond });
       alertIcon = <Thermometer size={14} className="text-orange-500 shrink-0" />;
     } else if (tomorrowMax <= 0) {
       alertColor = "text-sky-600 dark:text-sky-400";
       alertBg = "bg-sky-50 dark:bg-sky-500/10 border border-sky-500/20";
-      alertText = `Jutro prognozowany mróz (maks. ${tomorrowMax}°C)${tomorrowCond}. Organizm może rano zużywać więcej energii na ogrzanie, co podnosi wrażliwość na insulinę rano, a stres termiczny może dać chwilowy skok cukru.`;
+      alertText = i18n.t('auto.jutro_prognozowany_mroz_m', { defaultValue: "Jutro prognozowany mróz (maks. {{var0}}°C){{var1}}. Organizm może rano zużywać więcej energii na ogrzanie, co podnosi wrażliwość na insulinę rano, a stres termiczny może dać chwilowy skok cukru.", var0: tomorrowMax, var1: tomorrowCond });
       alertIcon = <AlertTriangle size={14} className="text-sky-500 shrink-0" />;
     } else {
-      alertText = `Stabilne warunki na jutro (maks. ${tomorrowMax}°C)${tomorrowCond}. Brak przewidywanych anomalii wywołanych aurą pogodową.`;
+      alertText = i18n.t('auto.stabilne_warunki_na_jutro', { defaultValue: "Stabilne warunki na jutro (maks. {{var0}}°C){{var1}}. Brak przewidywanych anomalii wywołanych aurą pogodową.", var0: tomorrowMax, var1: tomorrowCond });
       alertIcon = <Cloud size={14} className="text-slate-400 shrink-0" />;
     }
   } else {
     // Popołudnie (15:00 - 16:59)
-    alertTitle = `Status popołudniowy • aktualnie ${weather.temp}°C`;
+    alertTitle = i18n.t('auto.status_popoludniowy_aktua', { defaultValue: "Status popołudniowy • aktualnie {{var0}}°C", var0: weather.temp });
     if (weather.temp >= 30) {
       alertColor = "text-rose-600 dark:text-rose-400";
       alertBg = "bg-rose-50 dark:bg-rose-500/10 border border-rose-500/20";
-      alertText = `Upał trwa (${weather.temp}°C). Chroń wkłucie i pompę przed słońcem. Przegrzany analog insuliny powyżej 30°C traci swoje właściwości lecznicze!`;
+      alertText = i18n.t('auto.upal_trwa_var0_c_chron_wk', { defaultValue: "Upał trwa ({{var0}}°C). Chroń wkłucie i pompę przed słońcem. Przegrzany analog insuliny powyżej 30°C traci swoje właściwości lecznicze!", var0: weather.temp });
       alertIcon = <AlertTriangle size={14} className="text-rose-500 shrink-0" />;
     } else if (weather.temp >= 25) {
       alertColor = "text-orange-600 dark:text-orange-400";
       alertBg = "bg-orange-50 dark:bg-orange-500/10 border border-orange-500/20";
-      alertText = `Ciepło (${weather.temp}°C). Utrzymuj nawodnienie organizmu. Gęstsza krew z odwodnienia sztucznie zawyża wyniki poziomu glukozy.`;
+      alertText = i18n.t('auto.cieplo_var0_c_utrzymuj_na', { defaultValue: "Ciepło ({{var0}}°C). Utrzymuj nawodnienie organizmu. Gęstsza krew z odwodnienia sztucznie zawyża wyniki poziomu glukozy.", var0: weather.temp });
       alertIcon = <Thermometer size={14} className="text-orange-500 shrink-0" />;
     } else {
-      alertText = `Warunki stabilne, temperatura wynosi ${weather.temp}°C. Brak aktywnych alertów ze strony GlikoSense.`;
+      alertText = i18n.t('auto.warunki_stabilne_temperat', { defaultValue: "Warunki stabilne, temperatura wynosi {{var0}}°C. Brak aktywnych alertów ze strony GlikoSense.", var0: weather.temp });
       alertIcon = <Sun size={14} className="text-amber-400 shrink-0" />;
     }
   }
@@ -130,15 +130,15 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
   const renderWeatherIcon = () => {
     const condition = (weather.condition || "").toLowerCase();
     
-    if (condition.includes('sleet') || condition.includes(i18n.t('auto.snieg_z_deszczem', { defaultValue: "śnieg z deszczem" }))) return <CloudDrizzle size={24} className="text-sky-300" />;
-    if (condition.includes('drizzle') || condition.includes(i18n.t('auto.mzawka', { defaultValue: "mżawka" }))) return <CloudDrizzle size={24} className="text-sky-400" />;
+    if (condition.includes('sleet') || condition.includes(i18n.t('auto.snieg_z_deszczem', { defaultValue: i18n.t('auto.snieg_z_deszczem', { defaultValue: "śnieg z deszczem" }) }))) return <CloudDrizzle size={24} className="text-sky-300" />;
+    if (condition.includes('drizzle') || condition.includes(i18n.t('auto.mzawka', { defaultValue: i18n.t('auto.mzawka', { defaultValue: "mżawka" }) }))) return <CloudDrizzle size={24} className="text-sky-400" />;
     if (condition.includes('thunder') || condition.includes('burza')) return <CloudLightning size={24} className="text-amber-500" />;
-    if (condition.includes('snow') || condition.includes(i18n.t('auto.snieg', { defaultValue: "śnieg" }))) return <CloudSnow size={24} className="text-sky-300" />;
-    if (condition.includes('fog') || condition.includes(i18n.t('auto.mgla', { defaultValue: "mgła" })) || condition.includes('mist')) return <CloudFog size={24} className="text-slate-400" />;
+    if (condition.includes('snow') || condition.includes(i18n.t('auto.snieg', { defaultValue: i18n.t('auto.snieg', { defaultValue: "śnieg" }) }))) return <CloudSnow size={24} className="text-sky-300" />;
+    if (condition.includes('fog') || condition.includes(i18n.t('auto.mgla', { defaultValue: i18n.t('auto.mgla', { defaultValue: "mgła" }) })) || condition.includes('mist')) return <CloudFog size={24} className="text-slate-400" />;
     if (condition.includes('rain') || condition.includes('deszcz')) return <CloudRain size={24} className="text-blue-500" />;
     if (condition.includes('cloud') || condition.includes('chmur') || condition.includes('pochmurnie') || condition.includes('overcast')) return <Cloud size={24} className="text-slate-400" />;
     
-    if (condition.includes('clear') || condition.includes(i18n.t('auto.slonce', { defaultValue: "słońce" })) || condition.includes('jasno') || condition.includes('bezchmurnie') || condition.includes(i18n.t('auto.slonecznie', { defaultValue: "słonecznie" }))) return <Sun size={24} className="text-amber-400" />;
+    if (condition.includes('clear') || condition.includes(i18n.t('auto.slonce', { defaultValue: i18n.t('auto.slonce', { defaultValue: "słońce" }) })) || condition.includes('jasno') || condition.includes('bezchmurnie') || condition.includes(i18n.t('auto.slonecznie', { defaultValue: i18n.t('auto.slonecznie', { defaultValue: "słonecznie" }) }))) return <Sun size={24} className="text-amber-400" />;
     
     // Default to sun if it's hot, cloud if cold, etc or just Sun
     if (weather.temp < 5) return <Snowflake size={24} className="text-sky-300" />;
@@ -169,7 +169,7 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
                      onClick={handleRefreshLoc}
                      disabled={loadingLoc}
                      className="text-slate-400 hover:text-indigo-500 transition-colors disabled:opacity-50"
-                     title={t('auto.odśwież_lokalizację_gps', { defaultValue: 'Odśwież lokalizację GPS' })}
+                     title={t('auto.odśwież_lokalizację_gps', { defaultValue: i18n.t('auto.odswiez_lokalizacje_gps', { defaultValue: "Odśwież lokalizację GPS" }) })}
                    >
                      {loadingLoc ? <RefreshCw size={10} className="animate-spin" /> : <MapPin size={10} />}
                    </button>
@@ -191,15 +191,15 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
             <div className="flex items-center gap-1.5 border-b border-black/[0.04] dark:border-white/[0.04] pb-1">
                {alertIcon}
                <span className={`text-[9px] font-black uppercase tracking-widest leading-none ${alertColor}`}>
-                 {compact ? i18n.t('auto.wskazowka', { defaultValue: "Wskazówka" }) : alertTitle}
+                 {compact ? i18n.t('auto.wskazowka', { defaultValue: i18n.t('auto.wskazowka', { defaultValue: "Wskazówka" }) }) : alertTitle}
                </span>
             </div>
             <p className={`text-[10px] font-bold leading-relaxed line-clamp-3 ${alertColor}`}>
                {compact 
                  ? (weather.temp >= 30 
-                     ? i18n.t('auto.upal_insulina_szybciej_sie_wch', { defaultValue: "Upał: Insulina szybciej się wchłania. Nawodnij się!" }) 
+                     ? i18n.t('auto.upal_insulina_szybciej_sie_wch', { defaultValue: i18n.t('auto.upal_insulina_szybciej_si', { defaultValue: "Upał: Insulina szybciej się wchłania. Nawodnij się!" }) }) 
                      : weather.temp <= 0 
-                     ? i18n.t('auto.mroz_opoznienie_wchlaniania_in', { defaultValue: "Mróz: opóźnienie wchłaniania insuliny. Chroń sprzęt!" }) 
+                     ? i18n.t('auto.mroz_opoznienie_wchlaniania_in', { defaultValue: i18n.t('auto.mroz_opoznienie_wchlanian', { defaultValue: "Mróz: opóźnienie wchłaniania insuliny. Chroń sprzęt!" }) }) 
                      : "Stabilne temperatury, bezpieczne warunki dla insuliny.") 
                  : alertText}
             </p>

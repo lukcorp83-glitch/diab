@@ -82,21 +82,21 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t('auto.symulator_bolusa', { defaultValue: 'Symulator Bolusa' })}</h3>
         <p className="text-[10px] text-slate-500 leading-relaxed font-medium bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
           
-                            {t('auto.symulator_uczy_jak_działa_insulina_', { defaultValue: 'Symulator uczy, jak działa insulina przy różnych posiłkach. Wpisz co jesz, a kalkulator policzy proponowaną dawkę na podstawie Twoich ustawień (przeliczników WW/WBT). Dowiesz się, czy na tłusty obiad (np. schabowy) podać całą insulinę od razu, czy lepiej rozłożyć ją w czasie na kilka godzin, żeby uniknąć skoków i spadków cukru.' })}
+                            {t('auto.symulator_uczy_jak_działa_insulina_', { defaultValue: i18n.t('auto.symulator_uczy_jak_dziala', { defaultValue: "Symulator uczy, jak działa insulina przy różnych posiłkach. Wpisz co jesz, a kalkulator policzy proponowaną dawkę na podstawie Twoich ustawień (przeliczników WW/WBT). Dowiesz się, czy na tłusty obiad (np. schabowy) podać całą insulinę od razu, czy lepiej rozłożyć ją w czasie na kilka godzin, żeby uniknąć skoków i spadków cukru." }) })}
                           </p>
         
         <div className="mb-2">
-           <SettingInput label={t('auto.glukoza_początkowa_mg_dl', { defaultValue: 'Glukoza początkowa (mg/dL)' })} value={simBg} onChange={(v) => { setSimBg(Number(v)); setSimResult(false); }} />
+           <SettingInput label={t('auto.glukoza_początkowa_mg_dl', { defaultValue: i18n.t('auto.glukoza_poczatkowa_mg_dl', { defaultValue: "Glukoza początkowa (mg/dL)" }) })} value={simBg} onChange={(v) => { setSimBg(Number(v)); setSimResult(false); }} />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-           <SettingInput label={t('auto.węglowodany_g', { defaultValue: 'Węglowodany (g)' })} value={simCarbs} onChange={(v) => setSimCarbs(Number(v))} />
-           <SettingInput label={t('auto.wbt_1wbt_100kcal_tłuszczu', { defaultValue: 'WBT (1WBT=100kcal tłuszczu)' })} value={simFat} onChange={(v) => setSimFat(Number(v))} />
+           <SettingInput label={t('auto.węglowodany_g', { defaultValue: i18n.t('auto.weglowodany_g', { defaultValue: "Węglowodany (g)" }) })} value={simCarbs} onChange={(v) => setSimCarbs(Number(v))} />
+           <SettingInput label={t('auto.wbt_1wbt_100kcal_tłuszczu', { defaultValue: i18n.t('auto.wbt_1wbt_100kcal_tluszczu', { defaultValue: "WBT (1WBT=100kcal tłuszczu)" }) })} value={simFat} onChange={(v) => setSimFat(Number(v))} />
         </div>
 
         <div className="space-y-4 pt-2">
            <div className="space-y-2">
-             <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">{t('auto.indeks_glikemiczny_szybkość_wchłani', { defaultValue: 'Indeks Glikemiczny (Szybkość wchłaniania)' })}</label>
+             <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">{t('auto.indeks_glikemiczny_szybkość_wchłani', { defaultValue: i18n.t('auto.indeks_glikemiczny_szybko', { defaultValue: "Indeks Glikemiczny (Szybkość wchłaniania)" }) })}</label>
              <select 
                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white"
                value={simGi}
@@ -105,14 +105,14 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                  setSimResult(false);
                }}
              >
-               <option value="high">{t('auto.wysoki_szybkie_np_soki_słodycze', { defaultValue: 'Wysoki (Szybkie np. soki, słodycze)' })}</option>
-               <option value="medium">{t('auto.średni_umiarkowane_np_chleb_makaron', { defaultValue: 'Średni (Umiarkowane np. chleb, makaron)' })}</option>
-               <option value="low">{t('auto.niski_wolne_np_warzywa_strączkowe', { defaultValue: 'Niski (Wolne np. warzywa, strączkowe)' })}</option>
+               <option value="high">{t('auto.wysoki_szybkie_np_soki_słodycze', { defaultValue: i18n.t('auto.wysoki_szybkie_np_soki_sl', { defaultValue: "Wysoki (Szybkie np. soki, słodycze)" }) })}</option>
+               <option value="medium">{t('auto.średni_umiarkowane_np_chleb_makaron', { defaultValue: i18n.t('auto.sredni_umiarkowane_np_chl', { defaultValue: "Średni (Umiarkowane np. chleb, makaron)" }) })}</option>
+               <option value="low">{t('auto.niski_wolne_np_warzywa_strączkowe', { defaultValue: i18n.t('auto.niski_wolne_np_warzywa_st', { defaultValue: "Niski (Wolne np. warzywa, strączkowe)" }) })}</option>
              </select>
            </div>
 
            <div className="space-y-2">
-             <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">{t('auto.aktywność_fizyczna_wpływ_treningu', { defaultValue: 'Aktywność Fizyczna (Wpływ Treningu)' })}</label>
+             <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">{t('auto.aktywność_fizyczna_wpływ_treningu', { defaultValue: i18n.t('auto.aktywnosc_fizyczna_wplyw', { defaultValue: "Aktywność Fizyczna (Wpływ Treningu)" }) })}</label>
              <select 
                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-bold text-sm outline-none dark:text-white"
                value={simWorkout}
@@ -121,8 +121,8 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                  setSimResult(false);
                }}
              >
-               <option value="none">{t('auto.brak_standardowa_wrażliwość', { defaultValue: 'Brak (Standardowa wrażliwość)' })}</option>
-               <option value="light">{t('auto.lekki_wysiłek_spacer_15_bg_wzrost_i', { defaultValue: 'Lekki wysiłek (Spacer, -15 BG / wzrost ISF)' })}</option>
+               <option value="none">{t('auto.brak_standardowa_wrażliwość', { defaultValue: i18n.t('auto.brak_standardowa_wrazliwo', { defaultValue: "Brak (Standardowa wrażliwość)" }) })}</option>
+               <option value="light">{t('auto.lekki_wysiłek_spacer_15_bg_wzrost_i', { defaultValue: i18n.t('auto.lekki_wysilek_spacer_15_b', { defaultValue: "Lekki wysiłek (Spacer, -15 BG / wzrost ISF)" }) })}</option>
                <option value="intense">{t('auto.mocny_trening_bieganie_30_bg_max_is', { defaultValue: 'Mocny trening (Bieganie, -30 BG / max ISF)' })}</option>
              </select>
            </div>
@@ -139,8 +139,8 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                 className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500" 
               />
               <div>
-                 <label htmlFor="autoBasalCheck" className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('auto.włącz_algorytm_hybrydowy_auto_baza', { defaultValue: 'Włącz Algorytm Hybrydowy (Auto Baza)' })}</label>
-                 <p className="text-[9px] text-slate-400 leading-tight">{t('auto.symuluje_pompę_np_780g_control_iq_k', { defaultValue: 'Symuluje pompę (np. 780G, Control-IQ), która reaguje na spadki i wzrosty automatycznymi korektami (mikrobolusy i zawieszenia).' })}</p>
+                 <label htmlFor="autoBasalCheck" className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('auto.włącz_algorytm_hybrydowy_auto_baza', { defaultValue: i18n.t('auto.wlacz_algorytm_hybrydowy', { defaultValue: "Włącz Algorytm Hybrydowy (Auto Baza)" }) })}</label>
+                 <p className="text-[9px] text-slate-400 leading-tight">{t('auto.symuluje_pompę_np_780g_control_iq_k', { defaultValue: i18n.t('auto.symuluje_pompe_np_780g_co', { defaultValue: "Symuluje pompę (np. 780G, Control-IQ), która reaguje na spadki i wzrosty automatycznymi korektami (mikrobolusy i zawieszenia)." }) })}</p>
               </div>
            </div>
         </div>
@@ -155,34 +155,34 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                setSimResult(false);
              }}
            >
-             <option value="standard">{t('auto.standardowy_całość_od_razu', { defaultValue: 'Standardowy (Całość od razu)' })}</option>
-             <option value="extended">{t('auto.przedłużony_całość_rozłożona_w_czas', { defaultValue: 'Przedłużony (Całość rozłożona w czasie)' })}</option>
-             <option value="dual">{t('auto.złożony_pizza_część_teraz_część_w_c', { defaultValue: 'Złożony / Pizza (Część teraz, Część w czasie)' })}</option>
+             <option value="standard">{t('auto.standardowy_całość_od_razu', { defaultValue: i18n.t('auto.standardowy_calosc_od_raz', { defaultValue: "Standardowy (Całość od razu)" }) })}</option>
+             <option value="extended">{t('auto.przedłużony_całość_rozłożona_w_czas', { defaultValue: i18n.t('auto.przedluzony_calosc_rozloz', { defaultValue: "Przedłużony (Całość rozłożona w czasie)" }) })}</option>
+             <option value="dual">{t('auto.złożony_pizza_część_teraz_część_w_c', { defaultValue: i18n.t('auto.zlozony_pizza_czesc_teraz', { defaultValue: "Złożony / Pizza (Część teraz, Część w czasie)" }) })}</option>
            </select>
         </div>
         
         {simType === 'dual' && (
           <div className="grid grid-cols-2 gap-4">
              <SettingInput label={t('auto.teraz', { defaultValue: '% Teraz' })} value={simSplitNow} onChange={(v) => setSimSplitNow(Number(v))} />
-             <SettingInput label={t('auto.czas_przedłużenia_h', { defaultValue: 'Czas przedłużenia (h)' })} value={simDuration} onChange={(v) => setSimDuration(Number(v))} />
+             <SettingInput label={t('auto.czas_przedłużenia_h', { defaultValue: i18n.t('auto.czas_przedluzenia_h', { defaultValue: "Czas przedłużenia (h)" }) })} value={simDuration} onChange={(v) => setSimDuration(Number(v))} />
           </div>
         )}
         
         {simType === 'extended' && (
           <div className="grid grid-cols-1 gap-4">
-             <SettingInput label={t('auto.czas_działania_h', { defaultValue: 'Czas działania (h)' })} value={simDuration} onChange={(v) => setSimDuration(Number(v))} />
+             <SettingInput label={t('auto.czas_działania_h', { defaultValue: i18n.t('auto.czas_dzialania_h', { defaultValue: "Czas działania (h)" }) })} value={simDuration} onChange={(v) => setSimDuration(Number(v))} />
           </div>
         )}
 
         <div className="p-4 bg-accent-50 dark:bg-accent-900/10 rounded-2xl space-y-3">
           <div className="flex justify-between items-center text-xs font-bold text-accent-500">
-             <span>{t('auto.początkowa_sugerowana_dawka', { defaultValue: 'Początkowa sugerowana dawka:' })} {(simCarbs / Number(settings?.wwRatio || 10) + simFat / Number(settings?.wbtRatio || 10)).toFixed(2)} J</span>
+             <span>{t('auto.początkowa_sugerowana_dawka', { defaultValue: i18n.t('auto.poczatkowa_sugerowana_daw', { defaultValue: "Początkowa sugerowana dawka:" }) })} {(simCarbs / Number(settings?.wwRatio || 10) + simFat / Number(settings?.wbtRatio || 10)).toFixed(2)} J</span>
           </div>
           <div className="space-y-2">
-            <label className="text-[8px] font-black uppercase text-accent-400 tracking-widest ml-2">{t('auto.wprowadź_własną_dawkę_do_testu_błęd', { defaultValue: 'Wprowadź własną dawkę do testu błędów (J) - Zostaw puste aby użyć sugerowanej' })}</label>
+            <label className="text-[8px] font-black uppercase text-accent-400 tracking-widest ml-2">{t('auto.wprowadź_własną_dawkę_do_testu_błęd', { defaultValue: i18n.t('auto.wprowadz_wlasna_dawke_do', { defaultValue: "Wprowadź własną dawkę do testu błędów (J) - Zostaw puste aby użyć sugerowanej" }) })}</label>
             <input 
               type="number"
-              placeholder={t('auto.wpisz_np_1_0_aby_zobaczyć_skutek_ni', { defaultValue: 'Wpisz np. 1.0 aby zobaczyć skutek niedoboru' })}
+              placeholder={t('auto.wpisz_np_1_0_aby_zobaczyć_skutek_ni', { defaultValue: i18n.t('auto.wpisz_np_1_0_aby_zobaczyc', { defaultValue: "Wpisz np. 1.0 aby zobaczyć skutek niedoboru" }) })}
               className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-xl font-bold text-sm outline-none dark:text-white"
               value={simManualDose}
               onChange={e => {
@@ -205,11 +205,11 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                 }} 
                 className="w-4 h-4 rounded text-accent-600 focus:ring-accent-500" 
               />
-              <label htmlFor="stackingCheck" className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('auto.dodaj_nakładającą_się_dawkę_korekta', { defaultValue: 'Dodaj nakładającą się dawkę (korekta IOB)' })}</label>
+              <label htmlFor="stackingCheck" className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('auto.dodaj_nakładającą_się_dawkę_korekta', { defaultValue: i18n.t('auto.dodaj_nakladajaca_sie_daw', { defaultValue: "Dodaj nakładającą się dawkę (korekta IOB)" }) })}</label>
            </div>
            {simStackingEnabled && (
               <div className="grid grid-cols-2 gap-4 mt-2">
-                 <SettingInput label={t('auto.wielkość_korekty_j', { defaultValue: 'Wielkość Korekty (J)' })} value={simStackDose} onChange={(v) => setSimStackDose(Number(v))} />
+                 <SettingInput label={t('auto.wielkość_korekty_j', { defaultValue: i18n.t('auto.wielkosc_korekty_j', { defaultValue: "Wielkość Korekty (J)" }) })} value={simStackDose} onChange={(v) => setSimStackDose(Number(v))} />
                  <SettingInput label={t('auto.podana_za_godzin', { defaultValue: 'Podana za (Godzin)' })} value={simStackTime} onChange={(v) => setSimStackTime(Number(v))} />
               </div>
            )}
@@ -237,13 +237,13 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                 
                 <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                   <p className="font-bold text-slate-700 dark:text-slate-300 mb-1">{t('auto.co_widzisz_na_wykresie', { defaultValue: 'Co widzisz na wykresie?' })}</p>
-                  <p className="mb-2"><strong>{t('auto.kolorowe_słupki', { defaultValue: 'Kolorowe słupki' })}</strong>  {t('auto.pokazują_ile_insuliny_działa_w_dany', { defaultValue: 'pokazują, ile insuliny działa w danym momencie.' })} <strong>{t('auto.czerwona_linia', { defaultValue: 'Czerwona linia' })}</strong>  {t('auto.to_prognozowany_poziom_twojego_cukr', { defaultValue: 'to prognozowany poziom Twojego cukru we krwi.' })}</p>
+                  <p className="mb-2"><strong>{t('auto.kolorowe_słupki', { defaultValue: i18n.t('auto.kolorowe_slupki', { defaultValue: "Kolorowe słupki" }) })}</strong>  {t('auto.pokazują_ile_insuliny_działa_w_dany', { defaultValue: i18n.t('auto.pokazuja_ile_insuliny_dzi', { defaultValue: "pokazują, ile insuliny działa w danym momencie." }) })} <strong>{t('auto.czerwona_linia', { defaultValue: 'Czerwona linia' })}</strong>  {t('auto.to_prognozowany_poziom_twojego_cukr', { defaultValue: 'to prognozowany poziom Twojego cukru we krwi.' })}</p>
                   
                   <ul className="list-disc pl-4 space-y-1.5 text-[9px]">
-                     <li><strong>{t('auto.całkowita_dawka', { defaultValue: 'Całkowita dawka:' })}</strong>  {t('auto.tyle_insuliny_potrzebujesz_na_zjedz', { defaultValue: 'Tyle insuliny potrzebujesz na zjedzony posiłek bazując na Twoich przelicznikach z ustawień.' })}</li>
-                     <li><strong>{t('auto.isf', { defaultValue: 'ISF (' })}{settings?.isf || 40}):</strong>  {t('auto.wskaźnik_wrażliwości_pokazuje_o_ile', { defaultValue: 'Wskaźnik wrażliwości. Pokazuje, o ile mg/dL spadnie Twój cukier po podaniu 1 jednostki insuliny.' })}</li>
-                     <li><strong>{t('auto.tłuszcze_opóźniają_trawienie', { defaultValue: 'Tłuszcze opóźniają trawienie:' })}</strong>  {t('auto.mięso_sery_czy_pizza_sprawiają_że_c', { defaultValue: 'Mięso, sery czy pizza sprawiają, że cukier może rosnąć nawet przez 5 godzin. Dlatego insulina rozłożona w czasie zadziała tu znacznie lepiej niż jeden strzał z pena!' })}</li>
-                     <li><strong>{t('auto.ruch_a_cukier', { defaultValue: 'Ruch a cukier:' })}</strong>  {t('auto.zaznaczenie_treningu_sprawia_że_ins', { defaultValue: 'Zaznaczenie treningu sprawia, że insulina działa mocniej i szybciej spala węglowodany, przez co cukier ma naturalną tendencję do spadania.' })}</li>
+                     <li><strong>{t('auto.całkowita_dawka', { defaultValue: i18n.t('auto.calkowita_dawka', { defaultValue: "Całkowita dawka:" }) })}</strong>  {t('auto.tyle_insuliny_potrzebujesz_na_zjedz', { defaultValue: i18n.t('auto.tyle_insuliny_potrzebujes', { defaultValue: "Tyle insuliny potrzebujesz na zjedzony posiłek bazując na Twoich przelicznikach z ustawień." }) })}</li>
+                     <li><strong>{t('auto.isf', { defaultValue: 'ISF (' })}{settings?.isf || 40}):</strong>  {t('auto.wskaźnik_wrażliwości_pokazuje_o_ile', { defaultValue: i18n.t('auto.wskaznik_wrazliwosci_poka', { defaultValue: "Wskaźnik wrażliwości. Pokazuje, o ile mg/dL spadnie Twój cukier po podaniu 1 jednostki insuliny." }) })}</li>
+                     <li><strong>{t('auto.tłuszcze_opóźniają_trawienie', { defaultValue: i18n.t('auto.tluszcze_opozniaja_trawie', { defaultValue: "Tłuszcze opóźniają trawienie:" }) })}</strong>  {t('auto.mięso_sery_czy_pizza_sprawiają_że_c', { defaultValue: i18n.t('auto.mieso_sery_czy_pizza_spra', { defaultValue: "Mięso, sery czy pizza sprawiają, że cukier może rosnąć nawet przez 5 godzin. Dlatego insulina rozłożona w czasie zadziała tu znacznie lepiej niż jeden strzał z pena!" }) })}</li>
+                     <li><strong>{t('auto.ruch_a_cukier', { defaultValue: 'Ruch a cukier:' })}</strong>  {t('auto.zaznaczenie_treningu_sprawia_że_ins', { defaultValue: i18n.t('auto.zaznaczenie_treningu_spra', { defaultValue: "Zaznaczenie treningu sprawia, że insulina działa mocniej i szybciej spala węglowodany, przez co cukier ma naturalną tendencję do spadania." }) })}</li>
                   </ul>
                 </div>
               </div>
@@ -392,7 +392,7 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                                cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
                                contentStyle={{ borderRadius: '1rem', border: '1px solid #e2e8f0', background: 'rgba(255, 255, 255, 0.95)', color: '#334155', fontSize: '12px', fontWeight: '500', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)', backdropFilter: 'blur(8px)' }}
                                labelStyle={{ color: '#64748b', marginBottom: '8px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '700' }}
-                               formatter={(value: any, name: string) => [typeof value === 'number' && name !== 'bg' ? value.toFixed(2) : Math.round(Number(value)), name === 'bg' ? 'Cukier (mg/dL)' : name === 'dose1' ? i18n.t('auto.dawka_glowna_j', { defaultValue: "Dawka główna (J)" }) : name === 'dose2' ? i18n.t('auto.dawka_reczna_j', { defaultValue: "Dawka ręczna (J)" }) : 'Auto Baza (J)']}
+                               formatter={(value: any, name: string) => [typeof value === 'number' && name !== 'bg' ? value.toFixed(2) : Math.round(Number(value)), name === 'bg' ? 'Cukier (mg/dL)' : name === 'dose1' ? i18n.t('auto.dawka_glowna_j', { defaultValue: i18n.t('auto.dawka_glowna_j', { defaultValue: "Dawka główna (J)" }) }) : name === 'dose2' ? i18n.t('auto.dawka_reczna_j', { defaultValue: i18n.t('auto.dawka_reczna_j', { defaultValue: "Dawka ręczna (J)" }) }) : 'Auto Baza (J)']}
                             />
                             
                             <Area yAxisId="right" type="monotone" dataKey="bg" stroke="none" fill="url(#colorBgArea)" />
@@ -421,7 +421,7 @@ export default function PumpSimulator({ settings }: PumpSimulatorProps) {
                                                </div>
                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 tracking-widest">
                    <div className="w-3 h-3 rounded-md shadow-sm opacity-80" style={{ background: `linear-gradient(to bottom, ${simType === 'standard' ? "#94a3b8, #cbd5e1" : simType === 'extended' ? "#64748b, #94a3b8" : "#475569, #64748b"})` }}></div> 
-                   {simType === 'standard' ? i18n.t('auto.bolus_zwykly', { defaultValue: "Bolus Zwykły" }) : simType === 'extended' ? i18n.t('auto.bolus_przedluzony', { defaultValue: "Bolus Przedłużony" }) : i18n.t('auto.bolus_zlozony', { defaultValue: "Bolus Złożony" })}
+                   {simType === 'standard' ? i18n.t('auto.bolus_zwykly', { defaultValue: i18n.t('auto.bolus_zwykly', { defaultValue: "Bolus Zwykły" }) }) : simType === 'extended' ? i18n.t('auto.bolus_przedluzony', { defaultValue: i18n.t('auto.bolus_przedluzony', { defaultValue: "Bolus Przedłużony" }) }) : i18n.t('auto.bolus_zlozony', { defaultValue: i18n.t('auto.bolus_zlozony', { defaultValue: "Bolus Złożony" }) })}
                  </div>
                  {simStackingEnabled && (
                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 tracking-widest">

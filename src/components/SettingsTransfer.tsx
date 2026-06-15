@@ -41,7 +41,7 @@ export default function SettingsTransfer({
       setSyncCode(code);
     } catch (e) {
       console.error(e);
-      toast(i18n.t('auto.blad_podczas_generowania_kodu', { defaultValue: "Błąd podczas generowania kodu." }));
+      toast(i18n.t('auto.blad_podczas_generowania_kodu', { defaultValue: i18n.t('auto.blad_podczas_generowania', { defaultValue: "Błąd podczas generowania kodu." }) }));
     } finally {
       setLoading(false);
     }
@@ -57,15 +57,15 @@ export default function SettingsTransfer({
         const data = snapshot.data();
         if (data && data.settings) {
           onImport(data.settings);
-          alert(i18n.t('auto.ustawienia_pomyslnie_zaimporto', { defaultValue: "Ustawienia pomyślnie zaimportowane!" }));
+          alert(i18n.t('auto.ustawienia_pomyslnie_zaimporto', { defaultValue: i18n.t('auto.ustawienia_pomyslnie_zaim', { defaultValue: "Ustawienia pomyślnie zaimportowane!" }) }));
           setInputCode('');
         }
       } else {
-        alert(i18n.t('auto.nieprawidlowy_lub_wygasly_kod', { defaultValue: "Nieprawidłowy lub wygasły kod." }));
+        alert(i18n.t('auto.nieprawidlowy_lub_wygasly_kod', { defaultValue: i18n.t('auto.nieprawidlowy_lub_wygasly', { defaultValue: "Nieprawidłowy lub wygasły kod." }) }));
       }
     } catch (e) {
       console.error(e);
-      alert(i18n.t('auto.blad_podczas_pobierania_ustawi', { defaultValue: "Błąd podczas pobierania ustawień." }));
+      alert(i18n.t('auto.blad_podczas_pobierania_ustawi', { defaultValue: i18n.t('auto.blad_podczas_pobierania_u', { defaultValue: "Błąd podczas pobierania ustawień." }) }));
     } finally {
       setLoading(false);
     }
@@ -81,16 +81,16 @@ export default function SettingsTransfer({
     <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 glass-target">
       <div className="flex items-center gap-3 mb-2">
         <Upload className="text-accent-500" size={20} />
-        <span className="text-xs font-bold dark:text-white">{t('auto.transfer_ustawień_profli_chmura', { defaultValue: 'Transfer Ustawień Profli (Chmura)' })}</span>
+        <span className="text-xs font-bold dark:text-white">{t('auto.transfer_ustawień_profli_chmura', { defaultValue: i18n.t('auto.transfer_ustawien_profli', { defaultValue: "Transfer Ustawień Profli (Chmura)" }) })}</span>
       </div>
       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-2">
         
-                      {t('auto.wygeneruj_tymczasowy_krótki_kod_aby', { defaultValue: 'Wygeneruj tymczasowy krótki kod, aby przesłać swoje wrażliwe ustawienia (ISF, Cele) na inne urządzenie bez parowania konta.' })}
+                      {t('auto.wygeneruj_tymczasowy_krótki_kod_aby', { defaultValue: i18n.t('auto.wygeneruj_tymczasowy_krot', { defaultValue: "Wygeneruj tymczasowy krótki kod, aby przesłać swoje wrażliwe ustawienia (ISF, Cele) na inne urządzenie bez parowania konta." }) })}
                     </p>
 
       {syncCode ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center gap-2">
-          <span className="text-[10px] uppercase font-bold text-slate-400">{t('auto.twój_kod_jednorazowy', { defaultValue: 'Twój kod jednorazowy' })}</span>
+          <span className="text-[10px] uppercase font-bold text-slate-400">{t('auto.twój_kod_jednorazowy', { defaultValue: i18n.t('auto.twoj_kod_jednorazowy', { defaultValue: "Twój kod jednorazowy" }) })}</span>
           <span className="text-3xl font-black tracking-widest text-accent-500">{syncCode}</span>
           <button 
             onClick={handleCopy}

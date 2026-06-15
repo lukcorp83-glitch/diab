@@ -22,17 +22,17 @@ interface GlikoTrainingProps {
 export const SPORTS = [
   {
     id: 'gym',
-    name: i18n.t('auto.silownia_trening_silowy', { defaultValue: "Siłownia (Trening Siłowy)" }),
+    name: i18n.t('auto.silownia_trening_silowy', { defaultValue: i18n.t('auto.silownia_trening_silowy', { defaultValue: "Siłownia (Trening Siłowy)" }) }),
     icon: Dumbbell,
     color: 'text-rose-500',
     bg: 'bg-rose-500/10',
     border: 'border-rose-500/20',
-    effect: i18n.t('auto.czesto_podnosi_poziom_cukru', { defaultValue: "Często podnosi poziom cukru" }),
-    description: i18n.t('auto.krotki_intensywny_wysilek_uwal', { defaultValue: "Krótki, intensywny wysiłek uwalnia adrenalinę, która stymuluje wątrobę do wyrzutu glukozy. Często powoduje niespodziewane wzrosty glikemii w trakcie i po treningu." }),
+    effect: i18n.t('auto.czesto_podnosi_poziom_cukru', { defaultValue: i18n.t('auto.czesto_podnosi_poziom_cuk', { defaultValue: "Często podnosi poziom cukru" }) }),
+    description: i18n.t('auto.krotki_intensywny_wysilek_uwal', { defaultValue: i18n.t('auto.krotki_intensywny_wysilek', { defaultValue: "Krótki, intensywny wysiłek uwalnia adrenalinę, która stymuluje wątrobę do wyrzutu glukozy. Często powoduje niespodziewane wzrosty glikemii w trakcie i po treningu." }) }),
     tips: [
-      i18n.t('auto.mozesz_potrzebowac_malego_bolu', { defaultValue: "Możesz potrzebować małego bolusa przed siłownią." }),
-      i18n.t('auto.uwazaj_na_opoznione_spadki_cuk', { defaultValue: "Uważaj na opóźnione spadki cukru (nawet do 24h po)." }),
-      i18n.t('auto.nie_zaczynaj_treningu_z_wysoki', { defaultValue: "Nie zaczynaj treningu z wysokim cukrem (powyżej 250 mg/dL)." })
+      i18n.t('auto.mozesz_potrzebowac_malego_bolu', { defaultValue: i18n.t('auto.mozesz_potrzebowac_malego', { defaultValue: "Możesz potrzebować małego bolusa przed siłownią." }) }),
+      i18n.t('auto.uwazaj_na_opoznione_spadki_cuk', { defaultValue: i18n.t('auto.uwazaj_na_opoznione_spadk', { defaultValue: "Uważaj na opóźnione spadki cukru (nawet do 24h po)." }) }),
+      i18n.t('auto.nie_zaczynaj_treningu_z_wysoki', { defaultValue: i18n.t('auto.nie_zaczynaj_treningu_z_w', { defaultValue: "Nie zaczynaj treningu z wysokim cukrem (powyżej 250 mg/dL)." }) })
     ]
   },
   {
@@ -43,10 +43,10 @@ export const SPORTS = [
     bg: 'bg-blue-500/10',
     border: 'border-blue-500/20',
     effect: 'Szybki spadek cukru',
-    description: i18n.t('auto.wysilek_tlenowy_aerobowy_gwalt', { defaultValue: "Wysiłek tlenowy (aerobowy) gwałtownie spala glukozę, zwiększając wrażliwość na insulinę. Cukier może spadać w trakcie całego treningu." }),
+    description: i18n.t('auto.wysilek_tlenowy_aerobowy_gwalt', { defaultValue: i18n.t('auto.wysilek_tlenowy_aerobowy', { defaultValue: "Wysiłek tlenowy (aerobowy) gwałtownie spala glukozę, zwiększając wrażliwość na insulinę. Cukier może spadać w trakcie całego treningu." }) }),
     tips: [
-      i18n.t('auto.zmniejsz_dawke_insuliny_przed', { defaultValue: "Zmniejsz dawkę insuliny przed biegiem." }),
-      i18n.t('auto.miej_przy_sobie_szybko_przyswa', { defaultValue: "Miej przy sobie szybko przyswajalne węglowodany (soki, żele)." }),
+      i18n.t('auto.zmniejsz_dawke_insuliny_przed', { defaultValue: i18n.t('auto.zmniejsz_dawke_insuliny_p', { defaultValue: "Zmniejsz dawkę insuliny przed biegiem." }) }),
+      i18n.t('auto.miej_przy_sobie_szybko_przyswa', { defaultValue: i18n.t('auto.miej_przy_sobie_szybko_pr', { defaultValue: "Miej przy sobie szybko przyswajalne węglowodany (soki, żele)." }) }),
       'Kontroluj cukier co 20-30 minut w trakcie biegu.'
     ]
   },
@@ -58,69 +58,69 @@ export const SPORTS = [
     bg: 'bg-emerald-500/10',
     border: 'border-emerald-500/20',
     effect: 'Umiarkowany spadek',
-    description: i18n.t('auto.ciagly_wysilek_aerobowy_obniza', { defaultValue: "Ciągły wysiłek aerobowy obniża poziom glukozy, choć zazwyczaj nieco wolniej niż intensywne bieganie. Oczywiście zależy od intensywności (np. interwały mogą działać jak siłownia)." }),
+    description: i18n.t('auto.ciagly_wysilek_aerobowy_obniza', { defaultValue: i18n.t('auto.ciagly_wysilek_aerobowy_o', { defaultValue: "Ciągły wysiłek aerobowy obniża poziom glukozy, choć zazwyczaj nieco wolniej niż intensywne bieganie. Oczywiście zależy od intensywności (np. interwały mogą działać jak siłownia)." }) }),
     tips: [
-      i18n.t('auto.jedz_male_porcje_weglowodanow', { defaultValue: "Jedz małe porcje węglowodanów w trakcie jazdy (węglowodany złożone)." }),
-      i18n.t('auto.zmniejsz_baze_o_30_50_min_1_5h', { defaultValue: "Zmniejsz bazę o 30-50% min. 1,5h przed wyjazdem." }),
+      i18n.t('auto.jedz_male_porcje_weglowodanow', { defaultValue: i18n.t('auto.jedz_male_porcje_weglowod', { defaultValue: "Jedz małe porcje węglowodanów w trakcie jazdy (węglowodany złożone)." }) }),
+      i18n.t('auto.zmniejsz_baze_o_30_50_min_1_5h', { defaultValue: i18n.t('auto.zmniejsz_baze_o_30_50_min', { defaultValue: "Zmniejsz bazę o 30-50% min. 1,5h przed wyjazdem." }) }),
     ]
   },
   {
     id: 'swim',
-    name: i18n.t('auto.plywanie', { defaultValue: "Pływanie" }),
+    name: i18n.t('auto.plywanie', { defaultValue: i18n.t('auto.plywanie', { defaultValue: "Pływanie" }) }),
     icon: Waves,
     color: 'text-cyan-500',
     bg: 'bg-cyan-500/10',
     border: 'border-cyan-500/20',
     effect: 'Szybki spadek cukru',
-    description: i18n.t('auto.jeden_z_trudniejszych_do_kontr', { defaultValue: "Jeden z trudniejszych do kontroli sportów. Zimna woda, opór i angażowanie wszystkich partii ciała powodują szybkie spalanie energii." }),
+    description: i18n.t('auto.jeden_z_trudniejszych_do_kontr', { defaultValue: i18n.t('auto.jeden_z_trudniejszych_do', { defaultValue: "Jeden z trudniejszych do kontroli sportów. Zimna woda, opór i angażowanie wszystkich partii ciała powodują szybkie spalanie energii." }) }),
     tips: [
-      i18n.t('auto.sprawdzaj_cukier_przed_wejscie', { defaultValue: "Sprawdzaj cukier przed wejściem i zaraz po wejściu z wody." }),
-      i18n.t('auto.bezpieczny_poziom_do_rozpoczec', { defaultValue: "Bezpieczny poziom do rozpoczęcia to często pow. 150 mg/dL." }),
-      i18n.t('auto.sensory_i_pompy_moga_tracic_za', { defaultValue: "Sensory i pompy mogą tracić zasięg lub odklejać się pod wodą." })
+      i18n.t('auto.sprawdzaj_cukier_przed_wejscie', { defaultValue: i18n.t('auto.sprawdzaj_cukier_przed_we', { defaultValue: "Sprawdzaj cukier przed wejściem i zaraz po wejściu z wody." }) }),
+      i18n.t('auto.bezpieczny_poziom_do_rozpoczec', { defaultValue: i18n.t('auto.bezpieczny_poziom_do_rozp', { defaultValue: "Bezpieczny poziom do rozpoczęcia to często pow. 150 mg/dL." }) }),
+      i18n.t('auto.sensory_i_pompy_moga_tracic_za', { defaultValue: i18n.t('auto.sensory_i_pompy_moga_trac', { defaultValue: "Sensory i pompy mogą tracić zasięg lub odklejać się pod wodą." }) })
     ]
   },
   {
     id: 'mountain',
-    name: i18n.t('auto.spacer_po_gorach', { defaultValue: "Spacer po górach" }),
+    name: i18n.t('auto.spacer_po_gorach', { defaultValue: i18n.t('auto.spacer_po_gorach', { defaultValue: "Spacer po górach" }) }),
     icon: Mountain,
     color: 'text-amber-500',
     bg: 'bg-amber-500/10',
     border: 'border-amber-500/20',
-    effect: i18n.t('auto.dlugotrwaly_spadek', { defaultValue: "Długotrwały spadek" }),
-    description: i18n.t('auto.wysilek_o_niskiej_do_sredniej', { defaultValue: "Wysiłek o niskiej do średniej intensywności rozłożony na wiele godzin. Prowadzi do wyczerpania zapasów glikogenu wegetatywnego i nocnych spadków cukru." }),
+    effect: i18n.t('auto.dlugotrwaly_spadek', { defaultValue: i18n.t('auto.dlugotrwaly_spadek', { defaultValue: "Długotrwały spadek" }) }),
+    description: i18n.t('auto.wysilek_o_niskiej_do_sredniej', { defaultValue: i18n.t('auto.wysilek_o_niskiej_do_sred', { defaultValue: "Wysiłek o niskiej do średniej intensywności rozłożony na wiele godzin. Prowadzi do wyczerpania zapasów glikogenu wegetatywnego i nocnych spadków cukru." }) }),
     tips: [
-      i18n.t('auto.zmniejsz_baze_na_czas_wedrowki', { defaultValue: "Zmniejsz bazę na czas wędrówki (niektórzy zmniejszają o >50%)." }),
-      i18n.t('auto.podjadaj_regularnie_weglowodan', { defaultValue: "Podjadaj regularnie węglowodany złożone (np. batony owsiane)." }),
-      i18n.t('auto.zabezpiecz_insuline_przed_skra', { defaultValue: "Zabezpiecz insulinę przed skrajnymi temperaturami." })
+      i18n.t('auto.zmniejsz_baze_na_czas_wedrowki', { defaultValue: i18n.t('auto.zmniejsz_baze_na_czas_wed', { defaultValue: "Zmniejsz bazę na czas wędrówki (niektórzy zmniejszają o >50%)." }) }),
+      i18n.t('auto.podjadaj_regularnie_weglowodan', { defaultValue: i18n.t('auto.podjadaj_regularnie_weglo', { defaultValue: "Podjadaj regularnie węglowodany złożone (np. batony owsiane)." }) }),
+      i18n.t('auto.zabezpiecz_insuline_przed_skra', { defaultValue: i18n.t('auto.zabezpiecz_insuline_przed', { defaultValue: "Zabezpiecz insulinę przed skrajnymi temperaturami." }) })
     ]
   },
   {
     id: 'football',
-    name: i18n.t('auto.pilka_nozna', { defaultValue: "Piłka Nożna" }),
+    name: i18n.t('auto.pilka_nozna', { defaultValue: i18n.t('auto.pilka_nozna', { defaultValue: "Piłka Nożna" }) }),
     icon: Trophy,
     color: 'text-green-600',
     bg: 'bg-green-500/10',
     border: 'border-green-500/20',
     effect: 'Mieszany (spadek/wzrost)',
-    description: i18n.t('auto.wysilek_interwalowy_sprinty_mo', { defaultValue: "Wysiłek interwałowy. Sprinty mogą powodować wyrzuty adrenaliny (wzrosty), ale ogólny bilans często prowadzi do spadku cukru po meczu." }),
+    description: i18n.t('auto.wysilek_interwalowy_sprinty_mo', { defaultValue: i18n.t('auto.wysilek_interwalowy_sprin', { defaultValue: "Wysiłek interwałowy. Sprinty mogą powodować wyrzuty adrenaliny (wzrosty), ale ogólny bilans często prowadzi do spadku cukru po meczu." }) }),
     tips: [
       'Kontroluj cukier w przerwie meczu.',
-      i18n.t('auto.miej_zel_pod_reka_przy_linii_b', { defaultValue: "Miej żel pod ręką przy linii bocznej." }),
-      i18n.t('auto.uwazaj_na_hipoglikemie_po_zako', { defaultValue: "Uważaj na hipoglikemię po zakończonym wysiłku." })
+      i18n.t('auto.miej_zel_pod_reka_przy_linii_b', { defaultValue: i18n.t('auto.miej_zel_pod_reka_przy_li', { defaultValue: "Miej żel pod ręką przy linii bocznej." }) }),
+      i18n.t('auto.uwazaj_na_hipoglikemie_po_zako', { defaultValue: i18n.t('auto.uwazaj_na_hipoglikemie_po', { defaultValue: "Uważaj na hipoglikemię po zakończonym wysiłku." }) })
     ]
   },
   {
     id: 'basketball',
-    name: i18n.t('auto.koszykowka', { defaultValue: "Koszykówka" }),
+    name: i18n.t('auto.koszykowka', { defaultValue: i18n.t('auto.koszykowka', { defaultValue: "Koszykówka" }) }),
     icon: Target,
     color: 'text-orange-600',
     bg: 'bg-orange-500/10',
     border: 'border-orange-500/20',
-    effect: i18n.t('auto.wysoka_intensywnosc', { defaultValue: "Wysoka intensywność" }),
-    description: i18n.t('auto.dynamiczny_sport_z_duza_ilosci', { defaultValue: "Dynamiczny sport z dużą ilością skoków i sprintów. Bardzo szybko zużywa zapasy energii." }),
+    effect: i18n.t('auto.wysoka_intensywnosc', { defaultValue: i18n.t('auto.wysoka_intensywnosc', { defaultValue: "Wysoka intensywność" }) }),
+    description: i18n.t('auto.dynamiczny_sport_z_duza_ilosci', { defaultValue: i18n.t('auto.dynamiczny_sport_z_duza_i', { defaultValue: "Dynamiczny sport z dużą ilością skoków i sprintów. Bardzo szybko zużywa zapasy energii." }) }),
     tips: [
-      i18n.t('auto.zredukuj_bolus_do_posilku_prze', { defaultValue: "Zredukuj bolus do posiłku przed meczem." }),
-      i18n.t('auto.uzupelniaj_plyny_i_elektrolity', { defaultValue: "Uzupełniaj płyny i elektrolity." }),
+      i18n.t('auto.zredukuj_bolus_do_posilku_prze', { defaultValue: i18n.t('auto.zredukuj_bolus_do_posilku', { defaultValue: "Zredukuj bolus do posiłku przed meczem." }) }),
+      i18n.t('auto.uzupelniaj_plyny_i_elektrolity', { defaultValue: i18n.t('auto.uzupelniaj_plyny_i_elektr', { defaultValue: "Uzupełniaj płyny i elektrolity." }) }),
     ]
   },
   {
@@ -130,11 +130,11 @@ export const SPORTS = [
     color: 'text-lime-500',
     bg: 'bg-lime-500/10',
     border: 'border-lime-500/20',
-    effect: i18n.t('auto.dlugotrwaly_wysilek', { defaultValue: "Długotrwały wysiłek" }),
-    description: i18n.t('auto.mecz_moze_trwac_od_godziny_do', { defaultValue: "Mecz może trwać od godziny do trzech. Wymaga stałego dopływu energii i skupienia." }),
+    effect: i18n.t('auto.dlugotrwaly_wysilek', { defaultValue: i18n.t('auto.dlugotrwaly_wysilek', { defaultValue: "Długotrwały wysiłek" }) }),
+    description: i18n.t('auto.mecz_moze_trwac_od_godziny_do', { defaultValue: i18n.t('auto.mecz_moze_trwac_od_godzin', { defaultValue: "Mecz może trwać od godziny do trzech. Wymaga stałego dopływu energii i skupienia." }) }),
     tips: [
-      i18n.t('auto.podjadaj_male_porcje_w_trakcie', { defaultValue: "Podjadaj małe porcje w trakcie przerw między gemami." }),
-      i18n.t('auto.emocje_stres_meczowy_moga_podn', { defaultValue: "Emocje (stres meczowy) mogą podnosić cukier." })
+      i18n.t('auto.podjadaj_male_porcje_w_trakcie', { defaultValue: i18n.t('auto.podjadaj_male_porcje_w_tr', { defaultValue: "Podjadaj małe porcje w trakcie przerw między gemami." }) }),
+      i18n.t('auto.emocje_stres_meczowy_moga_podn', { defaultValue: i18n.t('auto.emocje_stres_meczowy_moga', { defaultValue: "Emocje (stres meczowy) mogą podnosić cukier." }) })
     ]
   },
   {
@@ -145,10 +145,10 @@ export const SPORTS = [
     bg: 'bg-purple-500/10',
     border: 'border-purple-500/20',
     effect: 'Stabilizacja / Lekki spadek',
-    description: i18n.t('auto.wysilek_statyczny_skupiony_na', { defaultValue: "Wysiłek statyczny, skupiony na oddechu i rozciąganiu. Zazwyczaj działa stabilizująco na poziom cukru." }),
+    description: i18n.t('auto.wysilek_statyczny_skupiony_na', { defaultValue: i18n.t('auto.wysilek_statyczny_skupion', { defaultValue: "Wysiłek statyczny, skupiony na oddechu i rozciąganiu. Zazwyczaj działa stabilizująco na poziom cukru." }) }),
     tips: [
       'Idealny sport przy lekkich wahaniach glikemii.',
-      i18n.t('auto.pamietaj_ze_niektore_pozycje_n', { defaultValue: "Pamiętaj, że niektóre pozycje (np. odwrócone) wymagają stabilnego cukru." })
+      i18n.t('auto.pamietaj_ze_niektore_pozycje_n', { defaultValue: i18n.t('auto.pamietaj_ze_niektore_pozy', { defaultValue: "Pamiętaj, że niektóre pozycje (np. odwrócone) wymagają stabilnego cukru." }) })
     ]
   },
   {
@@ -159,10 +159,10 @@ export const SPORTS = [
     bg: 'bg-slate-500/10',
     border: 'border-slate-500/20',
     effect: 'Delikatny spadek',
-    description: i18n.t('auto.najbezpieczniejsza_forma_ruchu', { defaultValue: "Najbezpieczniejsza forma ruchu. Pomaga obniżyć cukier po posiłku bez ryzyka gwałtownej hipoglikemii." }),
+    description: i18n.t('auto.najbezpieczniejsza_forma_ruchu', { defaultValue: i18n.t('auto.najbezpieczniejsza_forma', { defaultValue: "Najbezpieczniejsza forma ruchu. Pomaga obniżyć cukier po posiłku bez ryzyka gwałtownej hipoglikemii." }) }),
     tips: [
-      i18n.t('auto.swietny_sposob_na_zbicie_wysok', { defaultValue: "Świetny sposób na zbicie \"wysokiego\" po kolacji." }),
-      i18n.t('auto.wystarczy_15_20_minut_by_zauwa', { defaultValue: "Wystarczy 15-20 minut, by zauważyć różnicę." })
+      i18n.t('auto.swietny_sposob_na_zbicie_wysok', { defaultValue: i18n.t('auto.swietny_sposob_na_zbicie', { defaultValue: "Świetny sposób na zbicie \"wysokiego\" po kolacji." }) }),
+      i18n.t('auto.wystarczy_15_20_minut_by_zauwa', { defaultValue: i18n.t('auto.wystarczy_15_20_minut_by', { defaultValue: "Wystarczy 15-20 minut, by zauważyć różnicę." }) })
     ]
   },
   {
@@ -173,10 +173,10 @@ export const SPORTS = [
     bg: 'bg-pink-500/10',
     border: 'border-pink-500/20',
     effect: 'Spalanie cardio',
-    description: i18n.t('auto.pol_godziny_intensywnego_tanca', { defaultValue: "Pół godziny intensywnego tańca to duży wysiłek energetyczny." }),
+    description: i18n.t('auto.pol_godziny_intensywnego_tanca', { defaultValue: i18n.t('auto.pol_godziny_intensywnego', { defaultValue: "Pół godziny intensywnego tańca to duży wysiłek energetyczny." }) }),
     tips: [
-      i18n.t('auto.baw_sie_dobrze_ale_zerkaj_na_s', { defaultValue: "Baw się dobrze, ale zerkaj na sensor!" }),
-      i18n.t('auto.alkohol_przy_tancu_np_na_impre', { defaultValue: "Alkohol przy tańcu (np. na imprezie) drastycznie zwiększa ryzyko hipo." })
+      i18n.t('auto.baw_sie_dobrze_ale_zerkaj_na_s', { defaultValue: i18n.t('auto.baw_sie_dobrze_ale_zerkaj', { defaultValue: "Baw się dobrze, ale zerkaj na sensor!" }) }),
+      i18n.t('auto.alkohol_przy_tancu_np_na_impre', { defaultValue: i18n.t('auto.alkohol_przy_tancu_np_na', { defaultValue: "Alkohol przy tańcu (np. na imprezie) drastycznie zwiększa ryzyko hipo." }) })
     ]
   }
 ];
@@ -287,21 +287,21 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
 
     if (currentSugar < 100) {
       return {
-        text: i18n.t('auto.cukier_jest_niski_zjedz_15_20g', { defaultValue: "Cukier jest niski. Zjedz 15-20g węglowodanów prostych przed startem!" }),
+        text: i18n.t('auto.cukier_jest_niski_zjedz_15_20g', { defaultValue: i18n.t('auto.cukier_jest_niski_zjedz_1', { defaultValue: "Cukier jest niski. Zjedz 15-20g węglowodanów prostych przed startem!" }) }),
         type: 'warning'
       };
     }
 
     if (isAerobic) {
-      if (currentSugar > 250) return { text: i18n.t('auto.wysoki_cukier_sprawdz_ketony_p', { defaultValue: "Wysoki cukier. Sprawdź ketony przed intensywnym cardio!" }), type: 'danger' };
-      if (currentSugar < 130) return { text: i18n.t('auto.dobry_moment_na_start_ale_miej', { defaultValue: "Dobry moment na start, ale miej pod ręką żel lub sok." }), type: 'info' };
+      if (currentSugar > 250) return { text: i18n.t('auto.wysoki_cukier_sprawdz_ketony_p', { defaultValue: i18n.t('auto.wysoki_cukier_sprawdz_ket', { defaultValue: "Wysoki cukier. Sprawdź ketony przed intensywnym cardio!" }) }), type: 'danger' };
+      if (currentSugar < 130) return { text: i18n.t('auto.dobry_moment_na_start_ale_miej', { defaultValue: i18n.t('auto.dobry_moment_na_start_ale', { defaultValue: "Dobry moment na start, ale miej pod ręką żel lub sok." }) }), type: 'info' };
     } else {
       // Strength/Gym
-      if (currentSugar > 230) return { text: i18n.t('auto.wysoka_glikemia_trening_silowy', { defaultValue: "Wysoka glikemia. Trening siłowy może ją chwilowo podnieść przez adrenalinę." }), type: 'warning' };
-      if (currentSugar >= 100 && currentSugar <= 180) return { text: i18n.t('auto.idealny_poziom_na_trening_silo', { defaultValue: "Idealny poziom na trening siłowy." }), type: 'success' };
+      if (currentSugar > 230) return { text: i18n.t('auto.wysoka_glikemia_trening_silowy', { defaultValue: i18n.t('auto.wysoka_glikemia_trening_s', { defaultValue: "Wysoka glikemia. Trening siłowy może ją chwilowo podnieść przez adrenalinę." }) }), type: 'warning' };
+      if (currentSugar >= 100 && currentSugar <= 180) return { text: i18n.t('auto.idealny_poziom_na_trening_silo', { defaultValue: i18n.t('auto.idealny_poziom_na_trening', { defaultValue: "Idealny poziom na trening siłowy." }) }), type: 'success' };
     }
 
-    return { text: i18n.t('auto.glikemia_stabilna_pamietaj_o_m', { defaultValue: "Glikemia stabilna. Pamiętaj o monitorowaniu w trakcie wysiłku." }), type: 'info' };
+    return { text: i18n.t('auto.glikemia_stabilna_pamietaj_o_m', { defaultValue: i18n.t('auto.glikemia_stabilna_pamieta', { defaultValue: "Glikemia stabilna. Pamiętaj o monitorowaniu w trakcie wysiłku." }) }), type: 'info' };
   };
 
   const handleStartTraining = async () => {
@@ -341,7 +341,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
       type: 'activity',
       value: parseInt(duration),
       timestamp: Date.now(),
-      notes: `Start treningu: ${sportName} (Intensywność: ${intensity === 'low' ? 'Lekka' : intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka'}). Cukier: ${currentSugar || '---'} mg/dL`,
+      notes: i18n.t('auto.start_treningu_var0_inten', { defaultValue: "Start treningu: {{var0}} (Intensywność: {{var1}}). Cukier: {{var2}} mg/dL", var0: sportName, var1: intensity === 'low' ? 'Lekka' : intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka', var2: currentSugar || '---' }),
       sportId: selectedSportLog,
       intensity: intensity
     });
@@ -395,7 +395,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
           <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
              <Activity className="text-emerald-500" size={24} />  {t('auto.glikotrening', { defaultValue: 'GlikoTrening' })}
                                 </h2>
-          <p className="text-sm font-medium text-slate-500">{t('auto.zarządzaj_aktywnością', { defaultValue: 'Zarządzaj aktywnością' })}</p>
+          <p className="text-sm font-medium text-slate-500">{t('auto.zarządzaj_aktywnością', { defaultValue: i18n.t('auto.zarzadzaj_aktywnoscia', { defaultValue: "Zarządzaj aktywnością" }) })}</p>
         </div>
         {onClose && (
           <button
@@ -450,7 +450,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                   <div>
                     <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('auto.trwa_trening', { defaultValue: 'Trwa Trening' })}</h3>
                     <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                      {SPORTS.find(s => s.id === activeTraining.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" })}
+                      {SPORTS.find(s => s.id === activeTraining.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" }) })}
                     </p>
                   </div>
                   <div className="flex justify-center items-center gap-6 text-slate-500 dark:text-slate-400">
@@ -460,9 +460,9 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                      </div>
                      <div className="w-px h-8 bg-slate-200 dark:bg-white/10" />
                      <div className="flex flex-col items-center">
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('auto.intensywność', { defaultValue: 'Intensywność' })}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('auto.intensywność', { defaultValue: i18n.t('auto.intensywnosc', { defaultValue: "Intensywność" }) })}</span>
                         <span className="text-lg font-black text-slate-700 dark:text-slate-200 capitalize">
-                          {activeTraining.intensity === 'low' ? 'Lekka' : activeTraining.intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka'}
+                          {activeTraining.intensity === 'low' ? 'Lekka' : activeTraining.intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: i18n.t('auto.srednia', { defaultValue: "Średnia" }) }) : 'Wysoka'}
                         </span>
                      </div>
                   </div>
@@ -471,13 +471,13 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                     className="w-full bg-rose-500 text-white rounded-2xl py-4 font-black uppercase tracking-widest text-sm shadow-xl shadow-rose-500/20 active:scale-95 transition-transform"
                   >
                     
-                                                          {t('auto.zakończ_trening', { defaultValue: 'Zakończ trening' })}
+                                                          {t('auto.zakończ_trening', { defaultValue: i18n.t('auto.zakoncz_trening', { defaultValue: "Zakończ trening" }) })}
                                                         </button>
                 </div>
               ) : (
                 <>
                   <div className="glass p-5 rounded-[2.5rem] border border-white/20 dark:border-white/5 space-y-4">
-                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('auto.wybierz_dyscyplinę', { defaultValue: 'Wybierz dyscyplinę' })}</h3>
+                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('auto.wybierz_dyscyplinę', { defaultValue: i18n.t('auto.wybierz_dyscypline', { defaultValue: "Wybierz dyscyplinę" }) })}</h3>
                     <div className="grid grid-cols-2 gap-3">
                       {SPORTS.map(sport => {
                         const Icon = sport.icon;
@@ -525,7 +525,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                         ))}
                      </div>
                      <div className="pt-2">
-                       <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-3">{t('auto.intensywność', { defaultValue: 'Intensywność' })}</h3>
+                       <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-3">{t('auto.intensywność', { defaultValue: i18n.t('auto.intensywnosc', { defaultValue: "Intensywność" }) })}</h3>
                        <div className="flex gap-2">
                          <button
                            onClick={() => { Haptics.light(); setIntensity('low'); }}
@@ -585,7 +585,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto">
                       <History size={32} />
                    </div>
-                   <p className="text-sm font-bold uppercase tracking-tight">{t('auto.brak_zapisanych_treningów', { defaultValue: 'Brak zapisanych treningów' })}</p>
+                   <p className="text-sm font-bold uppercase tracking-tight">{t('auto.brak_zapisanych_treningów', { defaultValue: i18n.t('auto.brak_zapisanych_treningow', { defaultValue: "Brak zapisanych treningów" }) })}</p>
                 </div>
               ) : (
                 trainingHistory.map((t) => {
@@ -613,7 +613,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                              <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500">
                                 <span className="flex items-center gap-1"><Clock size={10} /> {t.duration}  {t('auto.min', { defaultValue: 'min' })}</span>
                                 <span className="flex items-center gap-1 uppercase tracking-tighter">
-                                  {t.intensity === 'low' ? 'Lekka' : t.intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka'}
+                                  {t.intensity === 'low' ? 'Lekka' : t.intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: i18n.t('auto.srednia', { defaultValue: "Średnia" }) }) : 'Wysoka'}
                                 </span>
                              </div>
                           </div>
@@ -679,7 +679,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                   className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1 transition-colors"
                 >
                   
-                                                        {t('auto.larr_wróć_do_listy', { defaultValue: '&larr; Wróć do listy' })}
+                                                        {t('auto.larr_wróć_do_listy', { defaultValue: i18n.t('auto.larr_wroc_do_listy', { defaultValue: "&larr; Wróć do listy" }) })}
                                                       </button>
 
                 {(() => {
@@ -701,14 +701,14 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
 
                       <div className="space-y-6">
                         <div className={cn("p-5 rounded-3xl", isGlassmorphic ? "bg-white/40 dark:bg-white/5" : "bg-slate-50 dark:bg-slate-800/50")}>
-                          <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">{t('auto.mechanizm_działania', { defaultValue: 'Mechanizm Działania' })}</h4>
+                          <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">{t('auto.mechanizm_działania', { defaultValue: i18n.t('auto.mechanizm_dzialania', { defaultValue: "Mechanizm Działania" }) })}</h4>
                           <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
                             {sport.description}
                           </p>
                         </div>
 
                         <div className={cn("p-5 rounded-3xl border", sport.bg, sport.border)}>
-                          <h4 className={cn("text-[10px] font-black uppercase mb-3 tracking-wider", sport.color)}>{t('auto.praktyczne_wskazówki', { defaultValue: 'Praktyczne Wskazówki' })}</h4>
+                          <h4 className={cn("text-[10px] font-black uppercase mb-3 tracking-wider", sport.color)}>{t('auto.praktyczne_wskazówki', { defaultValue: i18n.t('auto.praktyczne_wskazowki', { defaultValue: "Praktyczne Wskazówki" }) })}</h4>
                           <ul className="space-y-3">
                             {sport.tips.map((tip, idx) => (
                               <li key={idx} className="flex items-start gap-3">
@@ -734,7 +734,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                 <div className="col-span-full mb-2">
                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                      
-                                                                   {t('auto.rozmaite_wysiłki_fizyczne_mają_różn', { defaultValue: 'Rozmaite wysiłki fizyczne mają różny wpływ na poziom glukozy. Wybierz dyscyplinę, aby dowiedzieć się na co uważać.' })}
+                                                                   {t('auto.rozmaite_wysiłki_fizyczne_mają_różn', { defaultValue: i18n.t('auto.rozmaite_wysilki_fizyczne', { defaultValue: "Rozmaite wysiłki fizyczne mają różny wpływ na poziom glukozy. Wybierz dyscyplinę, aby dowiedzieć się na co uważać." }) })}
                                                                  </p>
                 </div>
                 

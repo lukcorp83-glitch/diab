@@ -84,7 +84,7 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
                </h3>
                <p className="text-xs text-white/90 font-medium">
                  
-                                               {t('auto.twój_cukier_jest_niski_zjadłeś_aś_c', { defaultValue: 'Twój cukier jest niski. Zjadłeś/aś coś i chcesz to szybko zapisać?' })}
+                                               {t('auto.twój_cukier_jest_niski_zjadłeś_aś_c', { defaultValue: i18n.t('auto.twoj_cukier_jest_niski_zj', { defaultValue: "Twój cukier jest niski. Zjadłeś/aś coś i chcesz to szybko zapisać?" }) })}
                                              </p>
              </div>
           </div>
@@ -97,13 +97,13 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
           >
             <Apple size={16} />
             
-                                  {t('auto.dodaj_posiłek', { defaultValue: 'Dodaj posiłek' })}
+                                  {t('auto.dodaj_posiłek', { defaultValue: i18n.t('auto.dodaj_posilek', { defaultValue: "Dodaj posiłek" }) })}
                                 </button>
         </div>
 
         {shortcuts && shortcuts.length > 0 && onQuickAdd && (
           <div className="relative z-10 mt-5 pt-5 border-t border-white/20">
-            <p className="text-[9px] text-white/90 font-black uppercase tracking-widest mb-3">{t('auto.szybkie_skróty', { defaultValue: 'Szybkie skróty:' })}</p>
+            <p className="text-[9px] text-white/90 font-black uppercase tracking-widest mb-3">{t('auto.szybkie_skróty', { defaultValue: i18n.t('auto.szybkie_skroty', { defaultValue: "Szybkie skróty:" }) })}</p>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 snap-x scrollbar-hide">
               {shortcuts.map(s => (
                 <button

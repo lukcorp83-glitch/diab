@@ -87,7 +87,7 @@ export default function InsulinDetectiveAlert({ logs }: InsulinDetectiveAlertPro
                                                    </h3>
                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed max-w-lg">
                    
-                                                     {t('auto.system_wykrył_wysoki_poziom_cukru_m', { defaultValue: 'System wykrył wysoki poziom cukru mimo podanej insuliny w ostatnich godzinach. Czy chcesz przeprowadzić diagnostykę jakości leku lub poprawności wkłucia?' })}
+                                                     {t('auto.system_wykrył_wysoki_poziom_cukru_m', { defaultValue: i18n.t('auto.system_wykryl_wysoki_pozi', { defaultValue: "System wykrył wysoki poziom cukru mimo podanej insuliny w ostatnich godzinach. Czy chcesz przeprowadzić diagnostykę jakości leku lub poprawności wkłucia?" }) })}
                                                    </p>
                </div>
             </div>
@@ -106,7 +106,7 @@ export default function InsulinDetectiveAlert({ logs }: InsulinDetectiveAlertPro
               >
                 <Bug size={16} />
                 
-                                              {t('auto.insulina_nie_działa', { defaultValue: 'Insulina nie działa?' })}
+                                              {t('auto.insulina_nie_działa', { defaultValue: i18n.t('auto.insulina_nie_dziala', { defaultValue: "Insulina nie działa?" }) })}
                                             </button>
             </div>
           </div>

@@ -51,7 +51,7 @@ export default function DailyTirWidget({ logs, settings }: DailyTirWidgetProps) 
     return (
       <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center opacity-50">
         <div className="w-16 h-16 rounded-full border-4 border-dashed border-slate-300 dark:border-slate-700 mb-2"></div>
-        <p className="text-[10px] font-black uppercase text-slate-500">{t('auto.brak_pomiarów_dzisiaj', { defaultValue: 'Brak pomiarów dzisiaj' })}</p>
+        <p className="text-[10px] font-black uppercase text-slate-500">{t('auto.brak_pomiarów_dzisiaj', { defaultValue: i18n.t('auto.brak_pomiarow_dzisiaj', { defaultValue: "Brak pomiarów dzisiaj" }) })}</p>
       </div>
     );
   }

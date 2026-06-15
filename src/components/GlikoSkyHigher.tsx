@@ -101,7 +101,7 @@ export default function GlikoSkyHigher() {
           <h3 className="font-black text-sm dark:text-white flex items-center gap-2">
             <Zap size={16} className="text-sky-500" />  {t('auto.sky_higher', { defaultValue: 'Sky Higher' })}
                                 </h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.leć_wysoko_nad_chmurami_cukru', { defaultValue: 'Leć wysoko nad chmurami cukru' })}</p>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('auto.leć_wysoko_nad_chmurami_cukru', { defaultValue: i18n.t('auto.lec_wysoko_nad_chmurami_c', { defaultValue: "Leć wysoko nad chmurami cukru" }) })}</p>
         </div>
         <div className="flex items-center gap-3">
            <div className="text-[10px] font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm text-sky-600">
@@ -159,7 +159,7 @@ export default function GlikoSkyHigher() {
               <Plane size={48} className="text-white mb-4 animate-bounce" />
               <p className="text-white font-black text-xs uppercase tracking-widest bg-sky-600 px-6 py-2 rounded-full">
                 
-                                              {t('auto.kliknij_aby_wystartować', { defaultValue: 'Kliknij aby wystartować' })}
+                                              {t('auto.kliknij_aby_wystartować', { defaultValue: i18n.t('auto.kliknij_aby_wystartowac', { defaultValue: "Kliknij aby wystartować" }) })}
                                             </p>
             </motion.div>
           )}
@@ -175,7 +175,7 @@ export default function GlikoSkyHigher() {
                 onClick={(e) => { e.stopPropagation(); startGame(); }}
                 className="bg-white text-rose-600 px-8 py-3 rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform"
               >
-                <RotateCcw size={16} />  {t('auto.ponów_próbę', { defaultValue: 'Ponów próbę' })}
+                <RotateCcw size={16} />  {t('auto.ponów_próbę', { defaultValue: i18n.t('auto.ponow_probe', { defaultValue: "Ponów próbę" }) })}
                                             </button>
             </motion.div>
           )}
@@ -184,7 +184,7 @@ export default function GlikoSkyHigher() {
 
       <div className="mt-4 flex items-center gap-3 text-slate-400">
          <Info size={14} className="shrink-0" />
-         <p className="text-[9px] font-medium leading-tight">{t('auto.omijaj_chmury_wysokich_i_niskich_cu', { defaultValue: 'Omijaj chmury wysokich i niskich cukrów (czerwone przeszkody). Każdy skok to walka o stabilną glikemię!' })}</p>
+         <p className="text-[9px] font-medium leading-tight">{t('auto.omijaj_chmury_wysokich_i_niskich_cu', { defaultValue: i18n.t('auto.omijaj_chmury_wysokich_i', { defaultValue: "Omijaj chmury wysokich i niskich cukrów (czerwone przeszkody). Każdy skok to walka o stabilną glikemię!" }) })}</p>
       </div>
     </div>
   );

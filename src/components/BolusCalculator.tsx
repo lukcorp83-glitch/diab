@@ -354,8 +354,8 @@ export default function BolusCalculator({
           ) {
             setScanResultMsg(t('bolus.scan_invalid_api'));
           } else if (
-            errStr.includes(i18n.t('auto.wszystkie_modele_ai_sa_obecnie', { defaultValue: "Wszystkie modele AI są obecnie zajęte" })) ||
-            errStr.includes(i18n.t('auto.zajete', { defaultValue: "zajęte" }))
+            errStr.includes(i18n.t('auto.wszystkie_modele_ai_sa_obecnie', { defaultValue: i18n.t('auto.wszystkie_modele_ai_sa_ob', { defaultValue: "Wszystkie modele AI są obecnie zajęte" }) })) ||
+            errStr.includes(i18n.t('auto.zajete', { defaultValue: i18n.t('auto.zajete', { defaultValue: "zajęte" }) }))
           ) {
             setScanResultMsg(t('bolus.scan_overloaded'));
           } else {
@@ -415,7 +415,7 @@ export default function BolusCalculator({
           type: "bolus",
           value: Math.round(finalDose * 10) / 10,
           timestamp,
-          description: mealName === "Szybka korekta" ? "Szybka korekta" : (isPizzaMode ? i18n.t('auto.laczony', { defaultValue: "Łączony" }) : "Kalkulator bolusa"),
+          description: mealName === "Szybka korekta" ? "Szybka korekta" : (isPizzaMode ? i18n.t('auto.laczony', { defaultValue: i18n.t('auto.laczony', { defaultValue: "Łączony" }) }) : "Kalkulator bolusa"),
         };
         if (carbsNum > 0) {
           payload.linkedMeal = {

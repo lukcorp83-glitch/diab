@@ -66,18 +66,18 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
                 <AlertCircle size={14} className="text-white/80" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/80">
                 
-                                              {t('auto.oczekujący_posiłek', { defaultValue: 'Oczekujący Posiłek' })}
+                                              {t('auto.oczekujący_posiłek', { defaultValue: i18n.t('auto.oczekujacy_posilek', { defaultValue: "Oczekujący Posiłek" }) })}
                                               </span>
              </div>
              
              <h3 className="text-lg font-black text-white leading-tight">
                 
-                                          {t('auto.podano', { defaultValue: 'Podano' })} {carbs}{t('auto.g_węglowodanów_o', { defaultValue: 'g węglowodanów o' })} {timeStr}
+                                          {t('auto.podano', { defaultValue: 'Podano' })} {carbs}{t('auto.g_węglowodanów_o', { defaultValue: i18n.t('auto.g_weglowodanow_o', { defaultValue: "g węglowodanów o" }) })} {timeStr}
              </h3>
              
              <p className="text-[11px] font-bold text-indigo-100 pr-4 leading-relaxed mt-1">
                 
-                                          {t('auto.ten_wpis_z_pompy_nie_zawiera_inform', { defaultValue: 'Ten wpis z pompy nie zawiera informacji o jedzeniu. Dodaj składniki, aby GlikoSense mogło analizować wchłanianie.' })}
+                                          {t('auto.ten_wpis_z_pompy_nie_zawiera_inform', { defaultValue: i18n.t('auto.ten_wpis_z_pompy_nie_zawi', { defaultValue: "Ten wpis z pompy nie zawiera informacji o jedzeniu. Dodaj składniki, aby GlikoSense mogło analizować wchłanianie." }) })}
                                        </p>
           </div>
           
@@ -87,7 +87,7 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
           >
             <Plus size={16} />
             
-                                  {t('auto.ułóż_posiłek_na_talerzu', { defaultValue: 'Ułóż Posiłek na Talerzu' })}
+                                  {t('auto.ułóż_posiłek_na_talerzu', { defaultValue: i18n.t('auto.uloz_posilek_na_talerzu', { defaultValue: "Ułóż Posiłek na Talerzu" }) })}
                                 </button>
         </div>
       </motion.div>

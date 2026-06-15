@@ -47,7 +47,7 @@ export default function HealthWidget() {
           <div className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-500">
             <Footprints size={16} />
           </div>
-          <span className="font-bold text-slate-700 dark:text-slate-300">{t('auto.aktywność', { defaultValue: 'Aktywność' })}</span>
+          <span className="font-bold text-slate-700 dark:text-slate-300">{t('auto.aktywność', { defaultValue: i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" }) })}</span>
         </div>
 
         <div>
@@ -61,20 +61,20 @@ export default function HealthWidget() {
                 </span>
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                   
-                                                        {t('auto.kroków', { defaultValue: 'kroków' })}
+                                                        {t('auto.kroków', { defaultValue: i18n.t('auto.krokow', { defaultValue: "kroków" }) })}
                                                       </span>
               </div>
               {steps === 0 && (
                 <div className="mt-2 text-[9px] text-slate-400 dark:text-slate-500 italic leading-tight">
                   
-                                                        {t('auto.połącz_gliko_z_google_fit_health_co', { defaultValue: 'Połącz Gliko z Google Fit (Health Connect), aby widzieć tu swoją aktywność i kalorie.' })}
+                                                        {t('auto.połącz_gliko_z_google_fit_health_co', { defaultValue: i18n.t('auto.polacz_gliko_z_google_fit', { defaultValue: "Połącz Gliko z Google Fit (Health Connect), aby widzieć tu swoją aktywność i kalorie." }) })}
                                                       </div>
               )}
             </div>
           ) : (
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 italic">
               
-                                                {t('auto.brak_uprawnień_kliknij_ikonkę_w_ust', { defaultValue: 'Brak uprawnień. Kliknij ikonkę ⚙️ w ustawieniach, by połączyć z Health Connect.' })}
+                                                {t('auto.brak_uprawnień_kliknij_ikonkę_w_ust', { defaultValue: i18n.t('auto.brak_uprawnien_kliknij_ik', { defaultValue: "Brak uprawnień. Kliknij ikonkę ⚙️ w ustawieniach, by połączyć z Health Connect." }) })}
                                               </div>
           )}
         </div>

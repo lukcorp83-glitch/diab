@@ -1,5 +1,6 @@
 
 import { LogEntry } from '../types';
+import i18n from "../i18n";
 
 export interface NightscoutEntry {
   sgv: number;
@@ -325,10 +326,10 @@ export const nightscoutService = {
       });
 
       if (response && response.ok) {
-        console.log(`Pomyślnie usunięto treatment z NS: ${nsId}`);
+        console.log(i18n.t('auto.pomyslnie_usunieto_treatm', { defaultValue: "Pomyślnie usunięto treatment z NS: {{var0}}", var0: nsId }));
         return true;
       } else {
-        console.error(`Błąd przy usuwaniu z NS: ${response?.status}`);
+        console.error(i18n.t('auto.blad_przy_usuwaniu_z_ns_v', { defaultValue: "Błąd przy usuwaniu z NS: {{var0}}", var0: response?.status }));
         return false;
       }
     } catch (error) {

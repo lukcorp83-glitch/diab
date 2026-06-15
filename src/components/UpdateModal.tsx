@@ -74,7 +74,7 @@ export default function UpdateModal() {
               <Star size={24} className="fill-current" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-800 dark:text-white">{t('auto.dostępna_wersja', { defaultValue: 'Dostępna Wersja' })} {versionData.version}</h2>
+              <h2 className="text-xl font-black text-slate-800 dark:text-white">{t('auto.dostępna_wersja', { defaultValue: i18n.t('auto.dostepna_wersja', { defaultValue: "Dostępna Wersja" }) })} {versionData.version}</h2>
               <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('auto.oficjalna_aplikacja_apk', { defaultValue: 'Oficjalna aplikacja APK' })}</p>
             </div>
           </div>
@@ -85,7 +85,7 @@ export default function UpdateModal() {
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-bold">
               
-                                        {t('auto.zalecamy_instalację_tej_wersji_dla_', { defaultValue: 'Zalecamy instalację tej wersji dla wszystkich użytkowników (również wersji 1.1) dla poprawnego działania widżetów.' })}
+                                        {t('auto.zalecamy_instalację_tej_wersji_dla_', { defaultValue: i18n.t('auto.zalecamy_instalacje_tej_w', { defaultValue: "Zalecamy instalację tej wersji dla wszystkich użytkowników (również wersji 1.1) dla poprawnego działania widżetów." }) })}
                                       </p>
           </div>
 
@@ -102,11 +102,11 @@ export default function UpdateModal() {
                       version: versionData.version
                     });
                     await CapacitorUpdater.set(version);
-                    alert(i18n.t('auto.aktualizacja_zakonczona_sukces', { defaultValue: "Aktualizacja zakończona sukcesem! Aplikacja zostanie teraz zrestartowana." }));
+                    alert(i18n.t('auto.aktualizacja_zakonczona_sukces', { defaultValue: i18n.t('auto.aktualizacja_zakonczona_s', { defaultValue: "Aktualizacja zakończona sukcesem! Aplikacja zostanie teraz zrestartowana." }) }));
                     window.location.reload();
                   } catch (e: any) {
                     console.error("Failed to update", e);
-                    alert(i18n.t('auto.blad_aktualizacji_sprawdz_czy', { defaultValue: "Błąd aktualizacji (sprawdź czy podano poprawny link do pliku ZIP w polu 'url'):" }) + e?.message);
+                    alert(i18n.t('auto.blad_aktualizacji_sprawdz_czy', { defaultValue: i18n.t('auto.blad_aktualizacji_sprawdz', { defaultValue: "Błąd aktualizacji (sprawdź czy podano poprawny link do pliku ZIP w polu 'url'):" }) }) + e?.message);
                     setIsUpdating(false);
                   }
                 }}
@@ -129,7 +129,7 @@ export default function UpdateModal() {
               >
                 <Download size={18} />
                 
-                                                  {t('auto.pobierz_aplikację_android_apk', { defaultValue: 'Pobierz aplikację Android (APK)' })}
+                                                  {t('auto.pobierz_aplikację_android_apk', { defaultValue: i18n.t('auto.pobierz_aplikacje_android', { defaultValue: "Pobierz aplikację Android (APK)" }) })}
                                                 </a>
             )}
             <button
@@ -141,7 +141,7 @@ export default function UpdateModal() {
               className="w-full py-3.5 font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition-all text-sm"
             >
               
-                                        {t('auto.przypomnij_później', { defaultValue: 'Przypomnij później' })}
+                                        {t('auto.przypomnij_później', { defaultValue: i18n.t('auto.przypomnij_pozniej', { defaultValue: "Przypomnij później" }) })}
                                       </button>
           </div>
         </motion.div>

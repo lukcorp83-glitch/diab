@@ -110,7 +110,7 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
             id="changelog-start-btn"
           >
             
-                                  {t('auto.przejdź_do_aplikacji', { defaultValue: 'Przejdź do aplikacji' })} <ArrowRight size={16} />
+                                  {t('auto.przejdź_do_aplikacji', { defaultValue: i18n.t('auto.przejdz_do_aplikacji', { defaultValue: "Przejdź do aplikacji" }) })} <ArrowRight size={16} />
           </button>
         </div>
       </motion.div>
@@ -155,11 +155,11 @@ function getChangeIconAndColor(text: string): ChangeMeta {
     };
   }
   
-  if (t.includes(i18n.t('auto.wchlaniania', { defaultValue: "wchłaniania" })) || t.includes(i18n.t('auto.posilkow', { defaultValue: "posiłków" })) || t.includes(i18n.t('auto.makroskladnikow', { defaultValue: "makroskładników" }))) {
+  if (t.includes(i18n.t('auto.wchlaniania', { defaultValue: i18n.t('auto.wchlaniania', { defaultValue: "wchłaniania" }) })) || t.includes(i18n.t('auto.posilkow', { defaultValue: i18n.t('auto.posilkow', { defaultValue: "posiłków" }) })) || t.includes(i18n.t('auto.makroskladnikow', { defaultValue: i18n.t('auto.makroskladnikow', { defaultValue: "makroskładników" }) }))) {
     return {
       icon: <Utensils size={16} className="text-amber-500 dark:text-amber-400" />,
       bgColor: "bg-amber-50 dark:bg-amber-950/40",
-      title: i18n.t('auto.wchlanianie_posilkow', { defaultValue: "Wchłanianie posiłków" }),
+      title: i18n.t('auto.wchlanianie_posilkow', { defaultValue: i18n.t('auto.wchlanianie_posilkow', { defaultValue: "Wchłanianie posiłków" }) }),
       desc: text
     };
   }
@@ -173,7 +173,7 @@ function getChangeIconAndColor(text: string): ChangeMeta {
     };
   }
   
-  if (t.includes('poprawki') || t.includes('interfejs') || t.includes('ui') || t.includes('widget') || t.includes(i18n.t('auto.uklad', { defaultValue: "układ" }))) {
+  if (t.includes('poprawki') || t.includes('interfejs') || t.includes('ui') || t.includes('widget') || t.includes(i18n.t('auto.uklad', { defaultValue: i18n.t('auto.uklad', { defaultValue: "układ" }) }))) {
     return {
       icon: <Layout size={16} className="text-sky-500 dark:text-sky-400" />,
       bgColor: "bg-sky-50 dark:bg-sky-950/40",

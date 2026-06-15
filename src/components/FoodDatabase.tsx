@@ -18,6 +18,13 @@ import {
 import { LIB_BASE, CATEGORIES } from "../constants";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { geminiService } from "../services/gemini";
+
+export const getProductName = (p: Product, lang: string) => {
+  if (lang.startsWith("en") && p.nameEn) return p.nameEn;
+  if (lang.startsWith("pl") && p.namePl) return p.namePl;
+  return p.name;
+};
 
 export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddToPlate?: (p: Product) => void }) {
     const { t } = useTranslation();
@@ -81,8 +88,20 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
   const handleAddProduct = async () => {
     if (!user || !newProduct.name) return;
     try {
+      let finalNamePl = newProduct.name;
+      let finalNameEn = newProduct.name;
+
+      if (shareWithCommunity) {
+        // Translate the product for community database
+        const translation = await geminiService.translateProduct(newProduct.name);
+        if (translation.namePl) finalNamePl = translation.namePl;
+        if (translation.nameEn) finalNameEn = translation.nameEn;
+      }
+
       const prodData = {
         name: newProduct.name,
+        namePl: finalNamePl,
+        nameEn: finalNameEn,
         carbs: newProduct.carbs,
         polyols: newProduct.polyols,
         protein: newProduct.protein,
@@ -134,13 +153,17 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
     new Map(
       allProducts
         .filter((item) => item && item.name)
-        .map((item) => [item.name.toLowerCase(), item]),
+        .map((item) => [getProductName(item, i18n.language).toLowerCase(), item]),
     ).values(),
   );
   const filtered = uniqueProducts.filter((p) => {
-    const matchesSearch = p.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const displayName = getProductName(p, i18n.language).toLowerCase();
+    
+    const matchesSearch = displayName.includes(searchLower) ||
+      (p.name && p.name.toLowerCase().includes(searchLower)) ||
+      (p.namePl && p.namePl.toLowerCase().includes(searchLower)) ||
+      (p.nameEn && p.nameEn.toLowerCase().includes(searchLower));
     const matchesCategory =
       activeCategory === "Wszystko" || p.category === activeCategory;
       
@@ -209,7 +232,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                 </button>
                 <h2 className="text-xl font-black mb-6 dark:text-white pr-8 leading-tight">
                   
-                                                {t('auto.dodaj_własny_produkt', { defaultValue: 'Dodaj własny produkt' })}
+                                                {t('auto.dodaj_własny_produkt', { defaultValue: i18n.t('auto.dodaj_wlasny_produkt', { defaultValue: "Dodaj własny produkt" }) })}
                                               </h2>
               <div className="space-y-4">
                 <div>
@@ -230,7 +253,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                   <div>
                     <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
                       
-                                                                {t('auto.węglowodany_g', { defaultValue: 'Węglowodany (g)' })}
+                                                                {t('auto.węglowodany_g', { defaultValue: i18n.t('auto.weglowodany_g', { defaultValue: "Węglowodany (g)" }) })}
                                                               </label>
                     <input
                       type="number"
@@ -285,7 +308,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                   <div>
                     <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
                       
-                                                                {t('auto.białko_g', { defaultValue: 'Białko (g)' })}
+                                                                {t('auto.białko_g', { defaultValue: i18n.t('auto.bialko_g', { defaultValue: "Białko (g)" }) })}
                                                               </label>
                     <input
                       type="number"
@@ -302,7 +325,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                   <div>
                     <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
                       
-                                                                {t('auto.tłuszcz_g', { defaultValue: 'Tłuszcz (g)' })}
+                                                                {t('auto.tłuszcz_g', { defaultValue: i18n.t('auto.tluszcz_g', { defaultValue: "Tłuszcz (g)" }) })}
                                                               </label>
                     <input
                       type="number"
@@ -350,7 +373,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                     className="text-xs font-bold text-slate-600 dark:text-slate-300"
                   >
                     
-                                                          {t('auto.udostępnij_w_bazie_społeczności', { defaultValue: 'Udostępnij w bazie społeczności' })}
+                                                          {t('auto.udostępnij_w_bazie_społeczności', { defaultValue: i18n.t('auto.udostepnij_w_bazie_spolec', { defaultValue: "Udostępnij w bazie społeczności" }) })}
                                                         </label>
                 </div>
               </div>
@@ -372,9 +395,9 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
         <div className="flex gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-full w-full mx-auto max-w-sm">
           {[
             { id: 'all', label: 'Wszystkie' },
-            { id: 'system', label: i18n.t('auto.baza_glowna', { defaultValue: "Baza Główna" }) },
-            { id: 'own', label: i18n.t('auto.wlasne', { defaultValue: "Własne" }) },
-            { id: 'community', label: i18n.t('auto.spolecznosc', { defaultValue: "Społeczność" }) }
+            { id: 'system', label: i18n.t('auto.baza_glowna', { defaultValue: i18n.t('auto.baza_glowna', { defaultValue: "Baza Główna" }) }) },
+            { id: 'own', label: i18n.t('auto.wlasne', { defaultValue: i18n.t('auto.wlasne', { defaultValue: "Własne" }) }) },
+            { id: 'community', label: i18n.t('auto.spolecznosc', { defaultValue: i18n.t('auto.spolecznosc', { defaultValue: "Społeczność" }) }) }
           ].map((src) => (
             <button
               key={src.id}
@@ -424,18 +447,18 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                 <div className="flex-1 min-w-0 pr-4">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-black text-sm dark:text-white truncate">
-                      {p.name}
+                      {getProductName(p, i18n.language)}
                     </h4>
                     {p.isCommunity && (
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-accent-50 dark:bg-accent-950 text-accent-500">
                         
-                                                            {t('auto.społeczność', { defaultValue: 'Społeczność' })}
+                                                            {t('auto.społeczność', { defaultValue: i18n.t('auto.spolecznosc', { defaultValue: "Społeczność" }) })}
                                                           </span>
                     )}
                     {(isCustom || isOwnCommunity) && (
                       <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950 text-emerald-500">
                         
-                                                            {t('auto.własne', { defaultValue: 'Własne' })}
+                                                            {t('auto.własne', { defaultValue: i18n.t('auto.wlasne', { defaultValue: "Własne" }) })}
                                                           </span>
                     )}
                     <span
@@ -466,7 +489,7 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
                           )}
                         >
                           
-                                                        {t('auto.łg', { defaultValue: 'ŁG:' })} {glValue.toFixed(1)}
+                                                        {t('auto.łg', { defaultValue: i18n.t('auto.lg', { defaultValue: "ŁG:" }) })} {glValue.toFixed(1)}
                         </span>
                       );
                     })()}

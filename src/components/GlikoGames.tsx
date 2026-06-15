@@ -36,7 +36,7 @@ export default function GlikoGames({ logs, user, setTab }: GlikoGamesProps) {
     { 
       id: 'garden', 
       name: 'Gliko Garden', 
-      desc: i18n.t('auto.podlewaj_rosliny_dobra_glikemi', { defaultValue: "Podlewaj rośliny dobrą glikemią" }), 
+      desc: i18n.t('auto.podlewaj_rosliny_dobra_glikemi', { defaultValue: i18n.t('auto.podlewaj_rosliny_dobra_gl', { defaultValue: "Podlewaj rośliny dobrą glikemią" }) }), 
       icon: <Flower2 className="text-emerald-500" />,
       tag: 'TIR',
       color: 'emerald' 
@@ -44,9 +44,9 @@ export default function GlikoGames({ logs, user, setTab }: GlikoGamesProps) {
     { 
       id: 'skyhigher', 
       name: 'Sky Higher', 
-      desc: i18n.t('auto.lec_ponad_chmurami_cukru_kids', { defaultValue: "Leć ponad chmurami cukru (Kids Edition)" }), 
+      desc: i18n.t('auto.lec_ponad_chmurami_cukru_kids', { defaultValue: i18n.t('auto.lec_ponad_chmurami_cukru', { defaultValue: "Leć ponad chmurami cukru (Kids Edition)" }) }), 
       icon: <Plane className="text-sky-500" />,
-      tag: i18n.t('auto.zrecznosc', { defaultValue: "ZRĘCZNOŚĆ" }),
+      tag: i18n.t('auto.zrecznosc', { defaultValue: i18n.t('auto.zrecznosc', { defaultValue: "ZRĘCZNOŚĆ" }) }),
       color: 'sky' 
     },
     { 
@@ -60,7 +60,7 @@ export default function GlikoGames({ logs, user, setTab }: GlikoGamesProps) {
     { 
       id: 'plate', 
       name: 'Zagadka Talerzy', 
-      desc: i18n.t('auto.zgadnij_gramature_weglowodanow', { defaultValue: "Zgadnij gramaturę węglowodanów" }), 
+      desc: i18n.t('auto.zgadnij_gramature_weglowodanow', { defaultValue: i18n.t('auto.zgadnij_gramature_weglowo', { defaultValue: "Zgadnij gramaturę węglowodanów" }) }), 
       icon: <Puzzle className="text-amber-500" />,
       tag: 'WIEDZA',
       color: 'amber' 
@@ -68,9 +68,9 @@ export default function GlikoGames({ logs, user, setTab }: GlikoGamesProps) {
     { 
       id: 'memory', 
       name: 'Gliko Memory', 
-      desc: i18n.t('auto.cwicz_pamiec_z_gliko', { defaultValue: "Ćwicz pamięć z Gliko" }), 
+      desc: i18n.t('auto.cwicz_pamiec_z_gliko', { defaultValue: i18n.t('auto.cwicz_pamiec_z_gliko', { defaultValue: "Ćwicz pamięć z Gliko" }) }), 
       icon: <Brain className="text-violet-500" />,
-      tag: i18n.t('auto.pamiec', { defaultValue: "PAMIĘĆ" }),
+      tag: i18n.t('auto.pamiec', { defaultValue: i18n.t('auto.pamiec', { defaultValue: "PAMIĘĆ" }) }),
       color: 'violet' 
     },
   ];
@@ -104,7 +104,7 @@ export default function GlikoGames({ logs, user, setTab }: GlikoGamesProps) {
                    
                                                      {t('auto.gliko_arcade', { defaultValue: 'Gliko Arcade' })} <Gamepad2 size={24} />
                 </h2>
-                <p className="text-xs font-medium text-white/80 max-w-[200px]">{t('auto.graj_ucz_się_i_rozwijaj_swój_ogród_', { defaultValue: 'Graj, ucz się i rozwijaj swój ogród glikemii każdego dnia!' })}</p>
+                <p className="text-xs font-medium text-white/80 max-w-[200px]">{t('auto.graj_ucz_się_i_rozwijaj_swój_ogród_', { defaultValue: i18n.t('auto.graj_ucz_sie_i_rozwijaj_s', { defaultValue: "Graj, ucz się i rozwijaj swój ogród glikemii każdego dnia!" }) })}</p>
               </div>
             </div>
 
@@ -146,7 +146,7 @@ export default function GlikoGames({ logs, user, setTab }: GlikoGamesProps) {
 
             <div className="bg-slate-100/50 dark:bg-slate-800/30 p-6 rounded-[2.5rem] border border-dashed border-slate-300 dark:border-slate-700 text-center">
               <Trophy className="text-slate-400 dark:text-slate-600 mx-auto mb-2" size={32} />
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('auto.twoje_rekordy_są_zapisywane_lokalni', { defaultValue: 'Twoje rekordy są zapisywane lokalnie' })}</p>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('auto.twoje_rekordy_są_zapisywane_lokalni', { defaultValue: i18n.t('auto.twoje_rekordy_sa_zapisywa', { defaultValue: "Twoje rekordy są zapisywane lokalnie" }) })}</p>
             </div>
           </motion.div>
         ) : (
@@ -161,7 +161,7 @@ export default function GlikoGames({ logs, user, setTab }: GlikoGamesProps) {
               onClick={() => setSelectedGame(null)}
               className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-6 active:scale-95 transition-all"
             >
-              <ChevronLeft size={16} />  {t('auto.wróć_do_salonu_gier', { defaultValue: 'Wróć do salonu gier' })}
+              <ChevronLeft size={16} />  {t('auto.wróć_do_salonu_gier', { defaultValue: i18n.t('auto.wroc_do_salonu_gier', { defaultValue: "Wróć do salonu gier" }) })}
                                           </button>
             {renderGame()}
           </motion.div>

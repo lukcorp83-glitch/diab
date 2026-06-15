@@ -112,7 +112,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
           </div>
           <div className="text-[9px] opacity-50 mt-2 text-right">
             
-                              {t('auto.próbki', { defaultValue: 'Próbki:' })} {data.count}
+                              {t('auto.próbki', { defaultValue: i18n.t('auto.probki', { defaultValue: "Próbki:" }) })} {data.count}
           </div>
         </div>
       );
@@ -175,11 +175,11 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
         <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30 rounded-3xl p-4 flex gap-3">
           <Info className="text-indigo-500 shrink-0 mt-0.5" size={20} />
           <div className="text-xs text-indigo-900 dark:text-indigo-200 space-y-2 font-medium">
-            <p><strong>{t('auto.czym_jest_agp', { defaultValue: 'Czym jest AGP?' })}</strong>  {t('auto.to_nałożenie_na_siebie_wszystkich_d', { defaultValue: 'To nałożenie na siebie wszystkich dób z wybranego okresu. Pokazuje jak typowo zachowuje się Twój cukier o danej porze dnia.' })}</p>
+            <p><strong>{t('auto.czym_jest_agp', { defaultValue: 'Czym jest AGP?' })}</strong>  {t('auto.to_nałożenie_na_siebie_wszystkich_d', { defaultValue: i18n.t('auto.to_nalozenie_na_siebie_ws', { defaultValue: "To nałożenie na siebie wszystkich dób z wybranego okresu. Pokazuje jak typowo zachowuje się Twój cukier o danej porze dnia." }) })}</p>
             <ul className="list-disc pl-4 space-y-1 opacity-80 text-[11px]">
-              <li><strong className="text-accent-500">{t('auto.ciemna_linia_mediana', { defaultValue: 'Ciemna linia (Mediana)' })}</strong>  {t('auto.najczęstszy_poziom_cukru_o_tej_porz', { defaultValue: '- najczęstszy poziom cukru o tej porze.' })}</li>
-              <li><strong>{t('auto.ciemny_pas_25_75', { defaultValue: 'Ciemny pas (25-75%)' })}</strong>  {t('auto.połowa_wszystkich_twoich_wyników_mi', { defaultValue: '- połowa wszystkich Twoich wyników mieści się w tym przedziale. Jeśli pas jest wąski, cukry są stabilne.' })}</li>
-              <li><strong>{t('auto.jasny_pas_10_90', { defaultValue: 'Jasny pas (10-90%)' })}</strong>  {t('auto.margines_błędów_i_wahań_pokazuje_sk', { defaultValue: '- margines błędów i wahań. Pokazuje skrajne wyrzuty i spadki.' })}</li>
+              <li><strong className="text-accent-500">{t('auto.ciemna_linia_mediana', { defaultValue: 'Ciemna linia (Mediana)' })}</strong>  {t('auto.najczęstszy_poziom_cukru_o_tej_porz', { defaultValue: i18n.t('auto.najczestszy_poziom_cukru', { defaultValue: "- najczęstszy poziom cukru o tej porze." }) })}</li>
+              <li><strong>{t('auto.ciemny_pas_25_75', { defaultValue: 'Ciemny pas (25-75%)' })}</strong>  {t('auto.połowa_wszystkich_twoich_wyników_mi', { defaultValue: i18n.t('auto.polowa_wszystkich_twoich', { defaultValue: "- połowa wszystkich Twoich wyników mieści się w tym przedziale. Jeśli pas jest wąski, cukry są stabilne." }) })}</li>
+              <li><strong>{t('auto.jasny_pas_10_90', { defaultValue: 'Jasny pas (10-90%)' })}</strong>  {t('auto.margines_błędów_i_wahań_pokazuje_sk', { defaultValue: i18n.t('auto.margines_bledow_i_wahan_p', { defaultValue: "- margines błędów i wahań. Pokazuje skrajne wyrzuty i spadki." }) })}</li>
             </ul>
           </div>
         </div>

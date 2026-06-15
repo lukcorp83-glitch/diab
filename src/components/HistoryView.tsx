@@ -106,7 +106,7 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
           )}
         >
           
-                            {t('auto.posiłki_i_leki', { defaultValue: 'Posiłki i Leki' })}
+                            {t('auto.posiłki_i_leki', { defaultValue: i18n.t('auto.posilki_i_leki', { defaultValue: "Posiłki i Leki" }) })}
                           </button>
       </div>
 
@@ -326,7 +326,7 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                             n.toLowerCase() === "meal" ||
                             n.toLowerCase() === "carbs"
                           )
-                            return i18n.t('auto.posilek', { defaultValue: "Posiłek" });
+                            return i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) });
                           if (
                             n.toLowerCase() === "bolus" ||
                             n.toLowerCase() === "insulin"
@@ -337,14 +337,14 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                             (log.type === "glucose"
                               ? "Glukoza"
                               : log.type === "meal"
-                                ? i18n.t('auto.posilek', { defaultValue: "Posiłek" })
+                                ? i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) })
                                 : log.type === "site_change"
-                                  ? i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana Wkłucia" })
+                                  ? i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana Wkłucia" }) })
                                   : log.type === "sensor_change"
                                     ? "Wymiana Sensora"
                                     : "Bolus");
                           if (log.isExtended) {
-                            baseLabel = `Łączony (${log.extendedTime}h)`;
+                            baseLabel = i18n.t('auto.laczony_var0_h', { defaultValue: "Łączony ({{var0}}h)", var0: log.extendedTime });
                           }
                           return baseLabel;
                         })()}
@@ -364,7 +364,7 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                         ) : (
                           <span className="text-[8px] bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
                             
-                                                                                  {t('auto.ręcz', { defaultValue: 'Ręcz.' })}
+                                                                                  {t('auto.ręcz', { defaultValue: i18n.t('auto.recz', { defaultValue: "Ręcz." }) })}
                                                                                 </span>
                         )}
 
@@ -394,7 +394,7 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                                       </p>
             <p className="text-[9px] font-bold text-slate-400/70 dark:text-slate-500/70 mt-2 text-center max-w-[200px]">
               
-                                        {t('auto.dodaj_swój_pierwszy_wpis_aby_rozpoc', { defaultValue: 'Dodaj swój pierwszy wpis, aby rozpocząć monitorowanie terapii.' })}
+                                        {t('auto.dodaj_swój_pierwszy_wpis_aby_rozpoc', { defaultValue: i18n.t('auto.dodaj_swoj_pierwszy_wpis', { defaultValue: "Dodaj swój pierwszy wpis, aby rozpocząć monitorowanie terapii." }) })}
                                       </p>
           </div>
         )}

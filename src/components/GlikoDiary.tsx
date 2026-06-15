@@ -20,30 +20,30 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
       const time = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
       if (log.type === 'meal') {
-        const value = log.notes || i18n.t('auto.pyszny_posilek', { defaultValue: "pyszny posiłek" });
+        const value = log.notes || i18n.t('auto.pyszny_posilek', { defaultValue: i18n.t('auto.pyszny_posilek', { defaultValue: "pyszny posiłek" }) });
         const carbs = (log as any).carbs;
         entries.push({
           time,
-          text: `Zadbałem o pyszny posiłek: ${value}! ${carbs ? `Miało to ${carbs}g węglowodanów.` : ''} Mam nadzieję, że oszacowałem to dobrze!`,
+            text: i18n.t('auto.zadbalem_o_pyszny_posilek', { defaultValue: "Zadbałem o pyszny posiłek: {{var0}}! {{var1}} Mam nadzieję, że oszacowałem to dobrze!", var0: value, var1: carbs ? `Miało to ${carbs}g węglowodanów.` : '' }),
           icon: '🍕'
         });
       } else if (log.type === 'glucose') {
         if (log.value < 70) {
           entries.push({
             time,
-            text: `Uff! Cukier spadł do ${log.value}. Pamiętaj o soku, bo robię się głodny i trochę wystraszony...`,
+            text: i18n.t('auto.uff_cukier_spadl_do_var0', { defaultValue: "Uff! Cukier spadł do {{var0}}. Pamiętaj o soku, bo robię się głodny i trochę wystraszony...", var0: log.value }),
             icon: '🧃'
           });
         } else if (log.value > 180) {
           entries.push({
             time,
-            text: `Oj, cukier jest na poziomie ${log.value}. Trochę mnie to męczy, może pora na małą korektę?`,
+            text: i18n.t('auto.oj_cukier_jest_na_poziomi', { defaultValue: "Oj, cukier jest na poziomie {{var0}}. Trochę mnie to męczy, może pora na małą korektę?", var0: log.value }),
             icon: '💧'
           });
         } else {
           entries.push({
             time,
-            text: `Idealnie! Cukier ${log.value} to bezpieczna strefa. Tak trzymać!`,
+            text: i18n.t('auto.idealnie_cukier_var0_to_b', { defaultValue: "Idealnie! Cukier {{var0}} to bezpieczna strefa. Tak trzymać!", var0: log.value }),
             icon: '✨'
           });
         }
@@ -51,7 +51,7 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
         const bolusVal = Number(log.value).toFixed(2);
         entries.push({
           time,
-          text: `Podałem ${bolusVal}j insuliny. To moja tarcza przeciwko wysokim cukrom!`,
+          text: i18n.t('auto.podalem_var0_j_insuliny_t', { defaultValue: "Podałem {{var0}}j insuliny. To moja tarcza przeciwko wysokim cukrom!", var0: bolusVal }),
           icon: '🛡️'
         });
       }
@@ -69,11 +69,11 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
             </div>
             <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
                 
-                                      {t('auto.pusty_pamiętnik', { defaultValue: 'Pusty pamiętnik' })}
+                                      {t('auto.pusty_pamiętnik', { defaultValue: i18n.t('auto.pusty_pamietnik', { defaultValue: "Pusty pamiętnik" }) })}
                                   </p>
             <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
                 
-                                      {t('auto.brak_dzisiejszych_wpisów_zapisz_coś', { defaultValue: 'Brak dzisiejszych wpisów. Zapisz coś, żeby było co wspominać!' })}
+                                      {t('auto.brak_dzisiejszych_wpisów_zapisz_coś', { defaultValue: i18n.t('auto.brak_dzisiejszych_wpisow', { defaultValue: "Brak dzisiejszych wpisów. Zapisz coś, żeby było co wspominać!" }) })}
                                   </p>
         </div>
       ) : (

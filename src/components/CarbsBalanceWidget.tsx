@@ -105,7 +105,7 @@ export default function CarbsBalanceWidget({ logs, settings, size, onAction, set
             <Utensils size={16} />
           </div>
           {!isCompact && (
-            <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none">{t('auto.dzienny_bilans', { defaultValue: 'Dzienny bilans' })}<br/>{t('auto.węglowodanów', { defaultValue: 'węglowodanów' })}</span>
+            <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none">{t('auto.dzienny_bilans', { defaultValue: 'Dzienny bilans' })}<br/>{t('auto.węglowodanów', { defaultValue: i18n.t('auto.weglowodanow', { defaultValue: "węglowodanów" }) })}</span>
           )}
         </div>
         <button 

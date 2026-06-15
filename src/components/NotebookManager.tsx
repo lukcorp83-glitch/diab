@@ -156,7 +156,7 @@ export default function NotebookManager({ user }: { user: any }) {
           >
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
               <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2 text-lg">
-                <Book className="text-blue-500" size={20} />  {t('auto.mój_notatnik', { defaultValue: 'Mój Notatnik' })}
+                <Book className="text-blue-500" size={20} />  {t('auto.mój_notatnik', { defaultValue: i18n.t('auto.moj_notatnik', { defaultValue: "Mój Notatnik" }) })}
                                         </h3>
               <button onClick={() => setIsOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-white dark:bg-slate-800 shadow-sm rounded-full transition-colors active:scale-90">
                 <X size={20} />
@@ -209,7 +209,7 @@ export default function NotebookManager({ user }: { user: any }) {
                                                           </p>
                         <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
                           
-                                                            {t('auto.zapisz_tutaj_ważne_informacje_dla_l', { defaultValue: 'Zapisz tutaj ważne informacje dla lekarza lub na przyszłość.' })}
+                                                            {t('auto.zapisz_tutaj_ważne_informacje_dla_l', { defaultValue: i18n.t('auto.zapisz_tutaj_wazne_inform', { defaultValue: "Zapisz tutaj ważne informacje dla lekarza lub na przyszłość." }) })}
                                                           </p>
                     </div>
                   ) : (

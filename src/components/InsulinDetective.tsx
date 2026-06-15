@@ -32,20 +32,7 @@ export default function InsulinDetective({ logs, onClose }: InsulinDetectiveProp
     setError(null);
     setResult(null);
 
-    const prompt = `Jesteś systemem inteligentnej analizy skuteczności insuliny (Detektyw Insuliny). Użytkownik to diabetyk, u którego cukier nie spada mimo korekt.
-Podaje fakty:
-- Kiedy otwarto fiolkę / pen / założono wkłucie: ${openDate}
-- Czy insulina (pen/zbiorniczek) była w temperaturze powyżej 30°C: ${temperature}
-- Ile dawek korekcyjnych już podano: ${correctionDoses}
-- Aktualny poziom cukru: ${currentBg} mg/dl
-
-Dokonaj oceny sytuacji (czy matematyka wskazuje, że przy tej ilości insuliny i tym czasie od otwarcia/warunków cukier powinien już spaść?). Jeśli tak, postaw ostrzeżenie, np. "Stop. Istnieje duże prawdopodobieństwo, że Twoja insulina straciła aktywność..."
-Zasady:
-- Krótki, ale stanowczy, duży komunikat ujęty w HTML (użyj np. <h2> z klasami tailwind, <p>, <strong>, etc.)
-- Bez lania wody, konkretna kalkulacja i diagnoza ryzyk.
-- Zwróć uwagę na użytkowników pomp: problemem może być niedziałające wkłucie lub zapowietrzony dren, a nie tylko zepsuta insulina.
-- Zalecając nową dawkę dodaj informację o mniejszej (bezpiecznej) dawce korekcyjnej z nowego pena lub po zmianie wkłucia.
-- Zwracaj sam kod HTML. Odpowiadaj po polsku.`;
+    const prompt = i18n.t('auto.jestes_systemem_inteligen', { defaultValue: "Jesteś systemem inteligentnej analizy skuteczności insuliny (Detektyw Insuliny). Użytkownik to diabetyk, u którego cukier nie spada mimo korekt.\nPodaje fakty:\n- Kiedy otwarto fiolkę / pen / założono wkłucie: {{var0}}\n- Czy insulina (pen/zbiorniczek) była w temperaturze powyżej 30°C: {{var1}}\n- Ile dawek korekcyjnych już podano: {{var2}}\n- Aktualny poziom cukru: {{var3}} mg/dl\n\nDokonaj oceny sytuacji (czy matematyka wskazuje, że przy tej ilości insuliny i tym czasie od otwarcia/warunków cukier powinien już spaść?). Jeśli tak, postaw ostrzeżenie, np. \"Stop. Istnieje duże prawdopodobieństwo, że Twoja insulina straciła aktywność...\"\nZasady:\n- Krótki, ale stanowczy, duży komunikat ujęty w HTML (użyj np. <h2> z klasami tailwind, <p>, <strong>, etc.)\n- Bez lania wody, konkretna kalkulacja i diagnoza ryzyk.\n- Zwróć uwagę na użytkowników pomp: problemem może być niedziałające wkłucie lub zapowietrzony dren, a nie tylko zepsuta insulina.\n- Zalecając nową dawkę dodaj informację o mniejszej (bezpiecznej) dawce korekcyjnej z nowego pena lub po zmianie wkłucia.\n- Zwracaj sam kod HTML. Odpowiadaj po polsku.", var0: openDate, var1: temperature, var2: correctionDoses, var3: currentBg });
 
     try {
       const response = await geminiService.generateContent(prompt);
@@ -53,7 +40,7 @@ Zasady:
       setResult(cleaned);
     } catch (err) {
       console.error(err);
-      setError(i18n.t('auto.wystapil_blad_podczas_komunika', { defaultValue: "Wystąpił błąd podczas komunikacji z modelem AI." }));
+      setError(i18n.t('auto.wystapil_blad_podczas_komunika', { defaultValue: i18n.t('auto.wystapil_blad_podczas_kom', { defaultValue: "Wystąpił błąd podczas komunikacji z modelem AI." }) }));
     } finally {
       setIsAnalyzing(false);
     }
@@ -68,8 +55,8 @@ Zasady:
             <Bug size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">{t('auto.insulina_nie_działa', { defaultValue: 'Insulina Nie Działa?' })}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t('auto.detektyw_skuteczności_insuliny', { defaultValue: 'Detektyw skuteczności insuliny' })}</p>
+            <h1 className="text-xl font-bold tracking-tight">{t('auto.insulina_nie_działa', { defaultValue: i18n.t('auto.insulina_nie_dziala', { defaultValue: "Insulina Nie Działa?" }) })}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('auto.detektyw_skuteczności_insuliny', { defaultValue: i18n.t('auto.detektyw_skutecznosci_ins', { defaultValue: "Detektyw skuteczności insuliny" }) })}</p>
           </div>
         </div>
         {onClose && (
@@ -91,10 +78,10 @@ Zasady:
               <AlertTriangle className="text-amber-500" size={24} />
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-2">{t('auto.podejrzewasz_zepsutą_insulinę_lub_p', { defaultValue: 'Podejrzewasz zepsutą insulinę lub problem z wkłuciem?' })}</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('auto.podejrzewasz_zepsutą_insulinę_lub_p', { defaultValue: i18n.t('auto.podejrzewasz_zepsuta_insu', { defaultValue: "Podejrzewasz zepsutą insulinę lub problem z wkłuciem?" }) })}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">
                 
-                                              {t('auto.insulina_to_białko_w_słońcu_czy_w_u', { defaultValue: 'Insulina to białko - w słońcu czy w upale szybko traci właściwości. Z kolei przy pompie insulinowej problemem może być niedrożne lub zagięte wkłucie. Jeśli podajesz kolejne dawki, a cukier stoi w miejscu - pozwól asystentowi przeanalizować ryzyko leku / wkłucia.' })}
+                                              {t('auto.insulina_to_białko_w_słońcu_czy_w_u', { defaultValue: i18n.t('auto.insulina_to_bialko_w_slon', { defaultValue: "Insulina to białko - w słońcu czy w upale szybko traci właściwości. Z kolei przy pompie insulinowej problemem może być niedrożne lub zagięte wkłucie. Jeśli podajesz kolejne dawki, a cukier stoi w miejscu - pozwól asystentowi przeanalizować ryzyko leku / wkłucia." }) })}
                                             </p>
             </div>
           </div>
@@ -106,18 +93,18 @@ Zasady:
           <h2 className="font-semibold text-lg flex items-center gap-2 mb-6">
             <Activity size={18} className="text-rose-500" />
             
-                                  {t('auto.podaj_szczegóły_sytuacji', { defaultValue: 'Podaj szczegóły sytuacji' })}
+                                  {t('auto.podaj_szczegóły_sytuacji', { defaultValue: i18n.t('auto.podaj_szczegoly_sytuacji', { defaultValue: "Podaj szczegóły sytuacji" }) })}
                                 </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                <Clock size={12} />  {t('auto.fiolka_pen_wkłucie_od_kiedy', { defaultValue: 'Fiolka / pen / wkłucie od kiedy?' })}
+                <Clock size={12} />  {t('auto.fiolka_pen_wkłucie_od_kiedy', { defaultValue: i18n.t('auto.fiolka_pen_wklucie_od_kie', { defaultValue: "Fiolka / pen / wkłucie od kiedy?" }) })}
                                             </label>
               <input
                 type="text"
                 value={openDate}
                 onChange={(e) => setOpenDate(e.target.value)}
-                placeholder={t('auto.np_3_dni_temu_wkłucie_wczoraj_pen', { defaultValue: 'np. 3 dni temu wkłucie, wczoraj pen' })}
+                placeholder={t('auto.np_3_dni_temu_wkłucie_wczoraj_pen', { defaultValue: i18n.t('auto.np_3_dni_temu_wklucie_wcz', { defaultValue: "np. 3 dni temu wkłucie, wczoraj pen" }) })}
                 className="w-full bg-slate-50 dark:bg-[#0f0f0f] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
               />
             </div>
@@ -130,7 +117,7 @@ Zasady:
                 type="text"
                 value={temperature}
                 onChange={(e) => setTemperature(e.target.value)}
-                placeholder={t('auto.np_auto_w_słońcu_basen_w_kieszeni', { defaultValue: 'np. auto w słońcu, basen, w kieszeni' })}
+                placeholder={t('auto.np_auto_w_słońcu_basen_w_kieszeni', { defaultValue: i18n.t('auto.np_auto_w_sloncu_basen_w', { defaultValue: "np. auto w słońcu, basen, w kieszeni" }) })}
                 className="w-full bg-slate-50 dark:bg-[#0f0f0f] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
               />
             </div>
@@ -177,7 +164,7 @@ Zasady:
                 <>
                   <Loader2 size={16} className="animate-spin" />
                   
-                                                    {t('auto.analizuję', { defaultValue: 'Analizuję...' })}
+                                                    {t('auto.analizuję', { defaultValue: i18n.t('auto.analizuje', { defaultValue: "Analizuję..." }) })}
                                                   </>
               ) : (
                 <>

@@ -259,7 +259,7 @@ export default function App() {
       if (Capacitor.getPlatform() === 'android') {
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
           LocalNotifications.createChannel({
-            id: 'glucose_alerts_v3',
+            id: 'glucose_alerts_v4',
             name: 'Alarmy Glikemii',
             description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
             importance: 5, // MAX importance
@@ -273,16 +273,16 @@ export default function App() {
     
     // Inicjalizacja hybrydowej bazy SQLite (APK & PWA)
     dbService.init().then(async () => {
-      console.log(i18n.t('auto.baza_danych_zainicjowana_prawi', { defaultValue: "Baza danych zainicjowana prawidłowo!" }));
+      console.log(i18n.t('auto.baza_danych_zainicjowana_prawi', { defaultValue: i18n.t('auto.baza_danych_zainicjowana', { defaultValue: "Baza danych zainicjowana prawidłowo!" }) }));
       try {
         const localData = await dbService.getLogs(15000);
         setCachedLogs(localData);
       } catch (err) {
-        console.error(i18n.t('auto.blad_pobierania_danych_startow', { defaultValue: "Błąd pobierania danych startowych" }), err);
+        console.error(i18n.t('auto.blad_pobierania_danych_startow', { defaultValue: i18n.t('auto.blad_pobierania_danych_st', { defaultValue: "Błąd pobierania danych startowych" }) }), err);
       }
       setCachedLogsLoaded(true);
     }).catch(err => {
-      console.error(i18n.t('auto.blad_inicjalizacji_bazy_danych', { defaultValue: "Błąd inicjalizacji bazy danych" }), err);
+      console.error(i18n.t('auto.blad_inicjalizacji_bazy_danych', { defaultValue: i18n.t('auto.blad_inicjalizacji_bazy_d', { defaultValue: "Błąd inicjalizacji bazy danych" }) }), err);
       setCachedLogsLoaded(true);
     });
   }, []);
@@ -408,7 +408,7 @@ export default function App() {
     url: userSettings?.websocketUrl,
     roomId: userSettings?.websocketRoomId || (user ? getEffectiveUid(user) : undefined),
     deviceId: localDeviceId,
-    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : i18n.t('auto.przegladarka_www', { defaultValue: "Przeglądarka WWW" })),
+    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : i18n.t('auto.przegladarka_www', { defaultValue: i18n.t('auto.przegladarka_www', { defaultValue: "Przeglądarka WWW" }) })),
     role,
     isAdmin,
     onDataReceived: (payload) => {
@@ -654,7 +654,7 @@ export default function App() {
         // Replace old long initial message
         if (parsed && parsed.length > 0) {
           const firstMsg = parsed[0];
-          if (firstMsg.id.startsWith('initial') && (firstMsg.text.includes(i18n.t('auto.przeanalizowalem', { defaultValue: "Przeanalizowałem" })) || firstMsg.text.includes('System Aktywny'))) {
+          if (firstMsg.id.startsWith('initial') && (firstMsg.text.includes(i18n.t('auto.przeanalizowalem', { defaultValue: i18n.t('auto.przeanalizowalem', { defaultValue: "Przeanalizowałem" }) })) || firstMsg.text.includes('System Aktywny'))) {
              return []; // Clear to generate new initial message
           }
         }
@@ -813,7 +813,7 @@ export default function App() {
                 <Sparkles size={16} className="text-amber-500" />
                 <span className="font-black text-[10px]">
                   
-                                              {t('auto.aszystent_ai_odpowiedział', { defaultValue: 'ASZYSTENT AI ODPOWIEDZIAŁ!' })}
+                                              {t('auto.aszystent_ai_odpowiedział', { defaultValue: i18n.t('auto.aszystent_ai_odpowiedzial', { defaultValue: "ASZYSTENT AI ODPOWIEDZIAŁ!" }) })}
                                             </span>
               </div>
               <p className="text-[9px] lowercase opacity-70 line-clamp-2">
@@ -827,7 +827,7 @@ export default function App() {
                 className="mt-1 px-3 py-1.5 bg-accent-600 text-white text-[8px] font-black uppercase rounded-lg w-fit"
               >
                 
-                                        {t('auto.pokaż_odpowiedź', { defaultValue: 'Pokaż odpowiedź' })}
+                                        {t('auto.pokaż_odpowiedź', { defaultValue: i18n.t('auto.pokaz_odpowiedz', { defaultValue: "Pokaż odpowiedź" }) })}
                                       </button>
             </div>
           ),
@@ -835,8 +835,8 @@ export default function App() {
         );
 
         if (window.Notification && window.Notification.permission === "granted") {
-          new window.Notification(i18n.t('auto.nowa_odpowiedz_od_asystenta_ai', { defaultValue: "Nowa odpowiedź od Asystenta AI" }), {
-            body: i18n.t('auto.twoj_asystent_przygotowal_anal', { defaultValue: "Twój asystent przygotował analizę. Kliknij aby zobaczyć." }),
+          new window.Notification(i18n.t('auto.nowa_odpowiedz_od_asystenta_ai', { defaultValue: i18n.t('auto.nowa_odpowiedz_od_asysten', { defaultValue: "Nowa odpowiedź od Asystenta AI" }) }), {
+            body: i18n.t('auto.twoj_asystent_przygotowal_anal', { defaultValue: i18n.t('auto.twoj_asystent_przygotowal', { defaultValue: "Twój asystent przygotował analizę. Kliknij aby zobaczyć." }) }),
             icon: "/apple-touch-icon.png",
           });
         }
@@ -852,12 +852,12 @@ export default function App() {
         id: (Date.now() + 1).toString(),
         role: "model",
         text: isInvalidKey
-          ? i18n.t('auto.b_blad_klucza_api_gemini_b_two', { defaultValue: "⚠️ <b>Błąd klucza API Gemini!</b> Twój klucz wydaje się być nieprawidłowy. Sprawdź go w ustawieniach profilu." })
-          : `⚠️ <b>Błąd komunikacji z AI:</b> ${errMsg}`,
+          ? i18n.t('auto.b_blad_klucza_api_gemini_b_two', { defaultValue: i18n.t('auto.b_blad_klucza_api_gemini', { defaultValue: "⚠️ <b>Błąd klucza API Gemini!</b> Twój klucz wydaje się być nieprawidłowy. Sprawdź go w ustawieniach profilu." }) })
+          : i18n.t('auto.b_blad_komunikacji_z_ai_b', { defaultValue: "⚠️ <b>Błąd komunikacji z AI:</b> {{var0}}", var0: errMsg }),
         timestamp: Date.now(),
       };
       setAssistantMessages((prev) => [...prev, errorMessage]);
-      toast.error(i18n.t('auto.wystapil_blad_ai', { defaultValue: "Wystąpił błąd AI." }));
+      toast.error(i18n.t('auto.wystapil_blad_ai', { defaultValue: i18n.t('auto.wystapil_blad_ai', { defaultValue: "Wystąpił błąd AI." }) }));
     } finally {
       setIsAssistantTyping(false);
     }
@@ -942,8 +942,8 @@ export default function App() {
           );
           toast.success(
             isEnabled
-              ? i18n.t('auto.wibracje_zostaly_wlaczone_prze', { defaultValue: "Wibracje zostały włączone przez AI" })
-              : i18n.t('auto.wibracje_zostaly_wylaczone_prz', { defaultValue: "Wibracje zostały wyłączone przez AI" }),
+              ? i18n.t('auto.wibracje_zostaly_wlaczone_prze', { defaultValue: i18n.t('auto.wibracje_zostaly_wlaczone', { defaultValue: "Wibracje zostały włączone przez AI" }) })
+              : i18n.t('auto.wibracje_zostaly_wylaczone_prz', { defaultValue: i18n.t('auto.wibracje_zostaly_wylaczon', { defaultValue: "Wibracje zostały wyłączone przez AI" }) }),
           );
         }
       } else if (action === "add_log" && user) {
@@ -999,7 +999,7 @@ export default function App() {
         if (tab === "baza") targetTab = "database";
         if (tab === "talerz") targetTab = "meal";
         setActiveTab(targetTab);
-        toast(i18n.t('auto.przejscie_do_zakladki', { defaultValue: "Przejście do zakładki..." }), { icon: "🚀" });
+        toast(i18n.t('auto.przejscie_do_zakladki', { defaultValue: i18n.t('auto.przejscie_do_zakladki', { defaultValue: "Przejście do zakładki..." }) }), { icon: "🚀" });
       }
     };
 
@@ -1025,7 +1025,7 @@ export default function App() {
         ) {
           console.error("[Firestore] Connection issue:", error);
           toast.error(
-            i18n.t('auto.brak_polaczenia_z_baza_firesto', { defaultValue: "Brak połączenia z bazą Firestore - sprawdź internet lub konfigurację." }),
+            i18n.t('auto.brak_polaczenia_z_baza_firesto', { defaultValue: i18n.t('auto.brak_polaczenia_z_baza_fi', { defaultValue: "Brak połączenia z bazą Firestore - sprawdź internet lub konfigurację." }) }),
           );
         }
       }
@@ -1136,7 +1136,7 @@ export default function App() {
           },
           { merge: true },
         );
-        toast.success(i18n.t('auto.zgoda_zatwierdzona_pomyslnie', { defaultValue: "Zgoda zatwierdzona pomyślnie" }));
+        toast.success(i18n.t('auto.zgoda_zatwierdzona_pomyslnie', { defaultValue: i18n.t('auto.zgoda_zatwierdzona_pomysl', { defaultValue: "Zgoda zatwierdzona pomyślnie" }) }));
       } catch (err) {
         console.error("Error saving privacy to Firestore:", err);
       }
@@ -1306,7 +1306,7 @@ export default function App() {
                 body: body,
                 id: Math.floor(Math.random() * 100000),
                 schedule: { at: new Date() },
-                sound: null,
+                sound: undefined,
                 attachments: null,
                 actionTypeId: "",
                 extra: null
@@ -1351,8 +1351,8 @@ export default function App() {
           const notifiedKey = `notified_sensor_${userSettings.sensorChangeDate}`;
           if (!localStorage.getItem(notifiedKey)) {
             sendAppNotification(
-              i18n.t('auto.zbliza_sie_wymiana_sensora', { defaultValue: "Zbliża się wymiana sensora!" }),
-              i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!" })
+              i18n.t('auto.zbliza_sie_wymiana_sensora', { defaultValue: i18n.t('auto.zbliza_sie_wymiana_sensor', { defaultValue: "Zbliża się wymiana sensora!" }) }),
+              i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!" }) })
             );
             localStorage.setItem(notifiedKey, "true");
           }
@@ -1372,8 +1372,8 @@ export default function App() {
           const notifiedKey = `notified_infusion_${userSettings.infusionSetChangeDate}`;
           if (!localStorage.getItem(notifiedKey)) {
             sendAppNotification(
-              i18n.t('auto.zbliza_sie_wymiana_wklucia', { defaultValue: "Zbliża się wymiana wkłucia!" }),
-              i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!" })
+              i18n.t('auto.zbliza_sie_wymiana_wklucia', { defaultValue: i18n.t('auto.zbliza_sie_wymiana_wkluci', { defaultValue: "Zbliża się wymiana wkłucia!" }) }),
+              i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!" }) })
             );
             localStorage.setItem(notifiedKey, "true");
           }
@@ -1517,18 +1517,18 @@ export default function App() {
       if (currentViolation === "hypo") {
         if (isReminder) {
           alertTitle = "⏳ PRZYPOMNIENIE: Cukier nadal niski (Hipoglikemia)!";
-          alertBody = `Twoja glikemia od ponad 30 minut utrzymuje się poniżej normy. Aktualny odczyt: ${Math.round(bgVal)} mg/dL. Zjedz szybko węglowodany proste!`;
+          alertBody = i18n.t('auto.twoja_glikemia_od_ponad_3', { defaultValue: "Twoja glikemia od ponad 30 minut utrzymuje się poniżej normy. Aktualny odczyt: {{var0}} mg/dL. Zjedz szybko węglowodany proste!", var0: Math.round(bgVal) });
         } else {
           alertTitle = "🚨 NISKI POZIOM CUKRU (Hipoglikemia)!";
-          alertBody = `Twoja glikemia wynosi ${Math.round(bgVal)} mg/dL, co jest poniżej bezpiecznej granicy ${minSafe} mg/dL. Zjedz szybko węglowodany proste!`;
+          alertBody = i18n.t('auto.twoja_glikemia_wynosi_var', { defaultValue: "Twoja glikemia wynosi {{var0}} mg/dL, co jest poniżej bezpiecznej granicy {{var1}} mg/dL. Zjedz szybko węglowodany proste!", var0: Math.round(bgVal), var1: minSafe });
         }
       } else {
         if (isReminder) {
           alertTitle = "⏳ PRZYPOMNIENIE: Cukier nadal wysoki (Hiperglikemia)!";
-          alertBody = `Twoja glikemia od ponad 30 minut utrzymuje się powyżej normy. Aktualny odczyt: ${Math.round(bgVal)} mg/dL. Rozważ podanie korekty insuliną.`;
+          alertBody = i18n.t('auto.twoja_glikemia_od_ponad_3', { defaultValue: "Twoja glikemia od ponad 30 minut utrzymuje się powyżej normy. Aktualny odczyt: {{var0}} mg/dL. Rozważ podanie korekty insuliną.", var0: Math.round(bgVal) });
         } else {
           alertTitle = "⚠️ WYSOKI POZIOM CUKRU (Hiperglikemia)!";
-          alertBody = `Twoja glikemia wynosi ${Math.round(bgVal)} mg/dL, co przewyższa bezpieczną granicę ${maxSafe} mg/dL. Rozważ korektę insuliną.`;
+          alertBody = i18n.t('auto.twoja_glikemia_wynosi_var', { defaultValue: "Twoja glikemia wynosi {{var0}} mg/dL, co przewyższa bezpieczną granicę {{var1}} mg/dL. Rozważ korektę insuliną.", var0: Math.round(bgVal), var1: maxSafe });
         }
       }
 
@@ -1561,8 +1561,8 @@ export default function App() {
                   body: alertBody,
                   id: Math.floor(Math.random() * 100000),
                   schedule: { at: new Date() },
-                  channelId: "glucose_alerts_v3",
-                  sound: "critical_alarm",
+                  channelId: "glucose_alerts_v4",
+                  sound: "critical_alarm.wav",
                   attachments: null,
                   actionTypeId: "",
                   extra: null
@@ -1603,16 +1603,16 @@ export default function App() {
                  setTimeout(() => {
                    toast((toastItem) => (
                      <div>
-                       <b className="text-accent-600">{t('auto.glikosense_ai', { defaultValue: 'GlikoSense AI:' })}</b> <br/>  {t('auto.zauważyłem_u_ciebie_powtarzające_si', { defaultValue: 'Zauważyłem u Ciebie powtarzające się spadki cukru w nocy. Czy chcesz, abym zaczął ostrzegać Cię wieczorem, jeśli ryzyko nocnego niedocukrzenia będzie wysokie?' })}
+                       <b className="text-accent-600">{t('auto.glikosense_ai', { defaultValue: 'GlikoSense AI:' })}</b> <br/>  {t('auto.zauważyłem_u_ciebie_powtarzające_si', { defaultValue: i18n.t('auto.zauwazylem_u_ciebie_powta', { defaultValue: "Zauważyłem u Ciebie powtarzające się spadki cukru w nocy. Czy chcesz, abym zaczął ostrzegać Cię wieczorem, jeśli ryzyko nocnego niedocukrzenia będzie wysokie?" }) })}
                                                   <div className="flex gap-2 mt-3">
                          <button onClick={() => { 
                            const prefs = userSettings.notificationPrefs || { hypo: true, hyper: true, reminders: true, predictions: true };
                            setDoc(doc(db, "artifacts", "diacontrolapp", "users", (userSettings as any).userId || "temp", "settings", "profile"), {
                               notificationPrefs: { ...prefs, nightSnackReminder: true }
                            }, { merge: true });
-                           toast.success(i18n.t('auto.inteligentna_regula_wlaczona', { defaultValue: "Inteligentna reguła włączona!" }));
+                           toast.success(i18n.t('auto.inteligentna_regula_wlaczona', { defaultValue: i18n.t('auto.inteligentna_regula_wlacz', { defaultValue: "Inteligentna reguła włączona!" }) }));
                            toast.dismiss(toastItem.id);
-                         }} className="bg-accent-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">{t('auto.tak_włącz_regułę', { defaultValue: 'Tak, włącz regułę' })}</button>
+                         }} className="bg-accent-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">{t('auto.tak_włącz_regułę', { defaultValue: i18n.t('auto.tak_wlacz_regule', { defaultValue: "Tak, włącz regułę" }) })}</button>
                          <button onClick={() => toast.dismiss(toastItem.id)} className="bg-slate-200 dark:bg-slate-700 dark:text-white text-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold">{t('auto.nie_teraz', { defaultValue: 'Nie teraz' })}</button>
                        </div>
                      </div>
@@ -1821,17 +1821,17 @@ export default function App() {
         console.error("Firestore subscription error:", error);
         if (error.message.includes("permission-denied")) {
           setAuthError(
-            i18n.t('auto.blad_uprawnien_sprawdz_czy_jes', { defaultValue: "Błąd uprawnień - sprawdź czy jesteś zalogowany poprawnie." }),
+            i18n.t('auto.blad_uprawnien_sprawdz_czy_jes', { defaultValue: i18n.t('auto.blad_uprawnien_sprawdz_cz', { defaultValue: "Błąd uprawnień - sprawdź czy jesteś zalogowany poprawnie." }) }),
           );
         } else if (
           error.message.includes("quota") ||
           error.message.includes("Quota")
         ) {
           setAuthError(
-            i18n.t('auto.przekroczono_limit_bazy_danych', { defaultValue: "Przekroczono limit bazy danych (Quota exceeded). Spróbuj ponownie jutro." }),
+            i18n.t('auto.przekroczono_limit_bazy_danych', { defaultValue: i18n.t('auto.przekroczono_limit_bazy_d', { defaultValue: "Przekroczono limit bazy danych (Quota exceeded). Spróbuj ponownie jutro." }) }),
           );
         } else {
-          setAuthError(i18n.t('auto.blad_bazy_danych', { defaultValue: "Błąd bazy danych:" }) + error.message);
+          setAuthError(i18n.t('auto.blad_bazy_danych', { defaultValue: i18n.t('auto.blad_bazy_danych', { defaultValue: "Błąd bazy danych:" }) }) + error.message);
         }
       },
     );
@@ -2168,18 +2168,18 @@ export default function App() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setAuthError(i18n.t('auto.podaj_adres_email_aby_zresetow', { defaultValue: "Podaj adres email aby zresetować hasło." }));
+      setAuthError(i18n.t('auto.podaj_adres_email_aby_zresetow', { defaultValue: i18n.t('auto.podaj_adres_email_aby_zre', { defaultValue: "Podaj adres email aby zresetować hasło." }) }));
       return;
     }
     try {
       await sendPasswordResetEmail(auth, email);
-      toast.success(i18n.t('auto.link_do_resetowania_hasla_zost', { defaultValue: "Link do resetowania hasła został wysłany na Twój email." }));
+      toast.success(i18n.t('auto.link_do_resetowania_hasla_zost', { defaultValue: i18n.t('auto.link_do_resetowania_hasla', { defaultValue: "Link do resetowania hasła został wysłany na Twój email." }) }));
       setAuthError("");
     } catch (e: any) {
       let msg = e.message;
       if (e.code === "auth/user-not-found")
-        msg = i18n.t('auto.nie_znaleziono_uzytkownika_o_t', { defaultValue: "Nie znaleziono użytkownika o tym adresie email." });
-      if (e.code === "auth/invalid-email") msg = i18n.t('auto.bledny_format_adresu_email', { defaultValue: "Błędny format adresu email." });
+        msg = i18n.t('auto.nie_znaleziono_uzytkownika_o_t', { defaultValue: i18n.t('auto.nie_znaleziono_uzytkownik', { defaultValue: "Nie znaleziono użytkownika o tym adresie email." }) });
+      if (e.code === "auth/invalid-email") msg = i18n.t('auto.bledny_format_adresu_email', { defaultValue: i18n.t('auto.bledny_format_adresu_emai', { defaultValue: "Błędny format adresu email." }) });
       setAuthError(msg);
     }
   };
@@ -2198,7 +2198,7 @@ export default function App() {
     } catch (e: any) {
       if (e.code === "auth/operation-not-allowed") {
         toast.error(
-          i18n.t('auto.logowanie_jako_gosc_anonymous', { defaultValue: "Logowanie jako gość (Anonymous Auth) jest wyłączone w Twoim projekcie Firebase. Włącz je w konsoli Firebase lub użyj konta Google." }),
+          i18n.t('auto.logowanie_jako_gosc_anonymous', { defaultValue: i18n.t('auto.logowanie_jako_gosc_anony', { defaultValue: "Logowanie jako gość (Anonymous Auth) jest wyłączone w Twoim projekcie Firebase. Włącz je w konsoli Firebase lub użyj konta Google." }) }),
           { duration: 6000 },
         );
       }
@@ -2220,7 +2220,7 @@ export default function App() {
       }
     } catch (e: any) {
       console.error("Google Auth Error:", e);
-      setAuthError(e.message || i18n.t('auto.blad_logowania_google', { defaultValue: "Błąd logowania Google" }));
+      setAuthError(e.message || i18n.t('auto.blad_logowania_google', { defaultValue: i18n.t('auto.blad_logowania_google', { defaultValue: "Błąd logowania Google" }) }));
     }
   };
 
@@ -2284,7 +2284,7 @@ export default function App() {
             />
             <input
               type="password"
-              placeholder={t('auto.hasło', { defaultValue: 'Hasło' })}
+              placeholder={t('auto.hasło', { defaultValue: i18n.t('auto.haslo', { defaultValue: "Hasło" }) })}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
@@ -2303,7 +2303,7 @@ export default function App() {
                 className="text-[10px] font-bold text-accent-500 hover:text-accent-400 transition-colors uppercase tracking-widest"
               >
                 
-                                            {t('auto.zapomniałeś_hasła', { defaultValue: 'Zapomniałeś hasła?' })}
+                                            {t('auto.zapomniałeś_hasła', { defaultValue: i18n.t('auto.zapomniales_hasla', { defaultValue: "Zapomniałeś hasła?" }) })}
                                           </button>
             </div>
           </div>
@@ -2317,7 +2317,7 @@ export default function App() {
                   className="bg-rose-500/20 text-rose-600 text-[8px] font-black uppercase tracking-widest px-2 py-1.5 rounded-lg w-fit hover:bg-rose-500/30 transition-colors"
                 >
                   
-                                                  {t('auto.otwórz_w_nowej_karcie', { defaultValue: 'Otwórz w nowej karcie' })}
+                                                  {t('auto.otwórz_w_nowej_karcie', { defaultValue: i18n.t('auto.otworz_w_nowej_karcie', { defaultValue: "Otwórz w nowej karcie" }) })}
                                                 </button>
               )}
             </div>
@@ -2333,7 +2333,7 @@ export default function App() {
             >
               <LogIn size={14} />
               
-                                      {t('auto.wejdź', { defaultValue: 'Wejdź' })}
+                                      {t('auto.wejdź', { defaultValue: i18n.t('auto.wejdz', { defaultValue: "Wejdź" }) })}
                                     </button>
             <button
               onClick={() => {
@@ -2387,7 +2387,7 @@ export default function App() {
               <Zap className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-wider">
                 
-                                            {t('auto.logowanie_bez_konta_gość', { defaultValue: 'Logowanie bez konta (Gość)' })}
+                                            {t('auto.logowanie_bez_konta_gość', { defaultValue: i18n.t('auto.logowanie_bez_konta_gosc', { defaultValue: "Logowanie bez konta (Gość)" }) })}
                                           </span>
             </button>
 
@@ -2398,7 +2398,7 @@ export default function App() {
               )}
             >
               
-                                      {t('auto.uwaga_w_trybie_gościa_po_odświeżeni', { defaultValue: 'Uwaga: W trybie Gościa, po odświeżeniu aplikacji (szczególnie w               oknie testowym), dane i adres Nightscout mogą zostać zresetowane.               Użyj konta Google by zapisać je trwale.' })}
+                                      {t('auto.uwaga_w_trybie_gościa_po_odświeżeni', { defaultValue: i18n.t('auto.uwaga_w_trybie_goscia_po', { defaultValue: "Uwaga: W trybie Gościa, po odświeżeniu aplikacji (szczególnie w               oknie testowym), dane i adres Nightscout mogą zostać zresetowane.               Użyj konta Google by zapisać je trwale." }) })}
                                     </p>
           </div>
 
@@ -2778,7 +2778,7 @@ export default function App() {
           <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
           <span className="tracking-widest">
             
-                                      {t('auto.tryb_offline_funkcje_mogą_być_ogran', { defaultValue: 'Tryb Offline - Funkcje mogą być ograniczone' })}
+                                      {t('auto.tryb_offline_funkcje_mogą_być_ogran', { defaultValue: i18n.t('auto.tryb_offline_funkcje_moga', { defaultValue: "Tryb Offline - Funkcje mogą być ograniczone" }) })}
                                     </span>
         </motion.div>
       )}
@@ -2825,7 +2825,7 @@ export default function App() {
                       Haptics.medium();
                       setShowChangelog(true);
                     }}
-                    title={t('auto.kliknij_aby_zobaczyć_co_nowego', { defaultValue: 'Kliknij, aby zobaczyć co nowego' })}
+                    title={t('auto.kliknij_aby_zobaczyć_co_nowego', { defaultValue: i18n.t('auto.kliknij_aby_zobaczyc_co_n', { defaultValue: "Kliknij, aby zobaczyć co nowego" }) })}
                     className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />

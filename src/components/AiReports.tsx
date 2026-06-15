@@ -45,8 +45,8 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
     
     const progressTexts = [
       "Analiza danych na serwerze...",
-      i18n.t('auto.wykrywanie_trendow_i_wzorcow', { defaultValue: "Wykrywanie trendów i wzorców..." }),
-      i18n.t('auto.przygotowywanie_wnioskow_ai', { defaultValue: "Przygotowywanie wniosków AI..." }),
+      i18n.t('auto.wykrywanie_trendow_i_wzorcow', { defaultValue: i18n.t('auto.wykrywanie_trendow_i_wzor', { defaultValue: "Wykrywanie trendów i wzorców..." }) }),
+      i18n.t('auto.przygotowywanie_wnioskow_ai', { defaultValue: i18n.t('auto.przygotowywanie_wnioskow', { defaultValue: "Przygotowywanie wniosków AI..." }) }),
       "Prawie gotowe..."
     ];
     let ptIdx = 0;
@@ -71,7 +71,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
         });
         content = await geminiService.getPeriodAnalysis(type, filteredLogs, settings);
         if (type === 'day') reportType = "Raport Dzienny";
-        else reportType = i18n.t('auto.raport_miesieczny', { defaultValue: "Raport Miesięczny" });
+        else reportType = i18n.t('auto.raport_miesieczny', { defaultValue: i18n.t('auto.raport_miesieczny', { defaultValue: "Raport Miesięczny" }) });
       }
       
       // Feed local ML model with learnings from Gemini AI
@@ -85,19 +85,19 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
         timestamp: Date.now()
       });
       clearInterval(progressInterval);
-      toast.success(i18n.t('auto.raport_wygenerowany_pomyslnie', { defaultValue: "Raport wygenerowany pomyślnie!" }), { id: loadingToastId });
+      toast.success(i18n.t('auto.raport_wygenerowany_pomyslnie', { defaultValue: i18n.t('auto.raport_wygenerowany_pomys', { defaultValue: "Raport wygenerowany pomyślnie!" }) }), { id: loadingToastId });
     } catch (e) {
       clearInterval(progressInterval);
       console.error(e);
       const errStr = String(e);
       if (errStr.includes("API key not valid") || errStr.includes("API_KEY_INVALID")) {
-         toast.error(i18n.t('auto.nieprawidlowy_klucz_api', { defaultValue: "Nieprawidłowy klucz API." }), { id: loadingToastId });
-      } else if (errStr.includes(i18n.t('auto.zajete', { defaultValue: "zajęte" }))) {
-         toast.error(i18n.t('auto.serwery_ai_zapchane_sprobuj_po', { defaultValue: "Serwery AI zapchane. Spróbuj później." }), { id: loadingToastId });
+         toast.error(i18n.t('auto.nieprawidlowy_klucz_api', { defaultValue: i18n.t('auto.nieprawidlowy_klucz_api', { defaultValue: "Nieprawidłowy klucz API." }) }), { id: loadingToastId });
+      } else if (errStr.includes(i18n.t('auto.zajete', { defaultValue: i18n.t('auto.zajete', { defaultValue: "zajęte" }) }))) {
+         toast.error(i18n.t('auto.serwery_ai_zapchane_sprobuj_po', { defaultValue: i18n.t('auto.serwery_ai_zapchane_sprob', { defaultValue: "Serwery AI zapchane. Spróbuj później." }) }), { id: loadingToastId });
       } else if (errStr.includes("Timeout_AI") || errStr.includes("Request Timeout")) {
          toast.error("Przekroczono czas (Timeout). Zbyt wiele danych do przetworzenia.", { id: loadingToastId });
       } else {
-         toast.error(i18n.t('auto.blad_generowania_raportu_ai', { defaultValue: "Błąd generowania raportu AI." }), { id: loadingToastId });
+         toast.error(i18n.t('auto.blad_generowania_raportu_ai', { defaultValue: i18n.t('auto.blad_generowania_raportu', { defaultValue: "Błąd generowania raportu AI." }) }), { id: loadingToastId });
       }
     } finally {
       clearInterval(progressInterval);
@@ -149,8 +149,8 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
               <TrendingUp size={18} className="text-accent-600 dark:text-accent-400" />
             </div>
             <div>
-              <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('auto.trend_miesięczny', { defaultValue: 'Trend Miesięczny' })}</h3>
-              <p className="text-[9px] font-bold text-slate-400 opacity-60">{t('auto.średni_dobowy_poziom_cukru_mg_dl', { defaultValue: 'Średni dobowy poziom cukru (mg/dL)' })}</p>
+              <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('auto.trend_miesięczny', { defaultValue: i18n.t('auto.trend_miesieczny', { defaultValue: "Trend Miesięczny" }) })}</h3>
+              <p className="text-[9px] font-bold text-slate-400 opacity-60">{t('auto.średni_dobowy_poziom_cukru_mg_dl', { defaultValue: i18n.t('auto.sredni_dobowy_poziom_cukr', { defaultValue: "Średni dobowy poziom cukru (mg/dL)" }) })}</p>
             </div>
           </div>
           
@@ -275,16 +275,16 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
              >
                <span>⚠️</span>
                
-                                             {t('auto.insulina_nie_działa', { defaultValue: 'Insulina nie działa?' })}
+                                             {t('auto.insulina_nie_działa', { defaultValue: i18n.t('auto.insulina_nie_dziala', { defaultValue: "Insulina nie działa?" }) })}
                                            </motion.button>
           </div>
           
-          <p className="text-[9px] text-accent-300 font-bold uppercase tracking-tighter opacity-60">{t('auto.analiza_obejmuje_trendy_posiłki_wzo', { defaultValue: 'Analiza obejmuje: trendy, posiłki, wzorce i hba1c' })}</p>
+          <p className="text-[9px] text-accent-300 font-bold uppercase tracking-tighter opacity-60">{t('auto.analiza_obejmuje_trendy_posiłki_wzo', { defaultValue: i18n.t('auto.analiza_obejmuje_trendy_p', { defaultValue: "Analiza obejmuje: trendy, posiłki, wzorce i hba1c" }) })}</p>
         </div>
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">{t('auto.historia_raportów', { defaultValue: 'Historia Raportów' })}</h3>
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">{t('auto.historia_raportów', { defaultValue: i18n.t('auto.historia_raportow', { defaultValue: "Historia Raportów" }) })}</h3>
         <div className="space-y-1">
           {reports.map((report) => (
             <SwipeableItem
@@ -305,7 +305,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                     <span className="text-[8px] font-bold text-slate-400">{new Date(report.timestamp).toLocaleString()}</span>
                   </div>
                   <div className="bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 p-2 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                    {activeReport === report.id ? 'Ukryj' : i18n.t('auto.podglad', { defaultValue: "Podgląd" })}
+                    {activeReport === report.id ? 'Ukryj' : i18n.t('auto.podglad', { defaultValue: i18n.t('auto.podglad', { defaultValue: "Podgląd" }) })}
                   </div>
                 </div>
                 <AnimatePresence>
@@ -336,11 +336,11 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                 </div>
                 <p className="text-[11px] font-black text-indigo-400 dark:text-indigo-400/80 uppercase tracking-widest text-center">
                   
-                                                    {t('auto.brak_raportów', { defaultValue: 'Brak raportów' })}
+                                                    {t('auto.brak_raportów', { defaultValue: i18n.t('auto.brak_raportow', { defaultValue: "Brak raportów" }) })}
                                                   </p>
                 <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 text-center max-w-[200px]">
                   
-                                                    {t('auto.twój_inteligentny_analityk_czeka_na', { defaultValue: 'Twój inteligentny analityk czeka na więcej danych, by móc wyciągnąć wnioski.' })}
+                                                    {t('auto.twój_inteligentny_analityk_czeka_na', { defaultValue: i18n.t('auto.twoj_inteligentny_anality', { defaultValue: "Twój inteligentny analityk czeka na więcej danych, by móc wyciągnąć wnioski." }) })}
                                                   </p>
              </div>
           )}

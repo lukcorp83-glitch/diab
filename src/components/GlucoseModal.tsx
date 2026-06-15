@@ -69,7 +69,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
         timestamp: logTime,
         createdAt: serverTimestamp(),
         source: 'manual',
-        description: i18n.t('auto.pomiar_reczny', { defaultValue: "Pomiar ręczny" })
+        description: i18n.t('auto.pomiar_reczny', { defaultValue: i18n.t('auto.pomiar_reczny', { defaultValue: "Pomiar ręczny" }) })
       };
       
       if (weather) {
@@ -81,7 +81,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
       window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { ...logData, id: docRef.id } }));
     } catch (e) {
       console.error(e);
-      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }));
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }) }));
     }
   };
 
@@ -102,7 +102,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight font-display uppercase tracking-tighter italic">{t('auto.zapisz_cukier', { defaultValue: 'Zapisz Cukier' })}</h2>
-            <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mt-1">{t('auto.pomiar_ręczny_glukozy', { defaultValue: 'Pomiar ręczny glukozy' })}</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mt-1">{t('auto.pomiar_ręczny_glukozy', { defaultValue: i18n.t('auto.pomiar_reczny_glukozy', { defaultValue: "Pomiar ręczny glukozy" }) })}</p>
           </div>
           <button 
             type="button"
@@ -149,7 +149,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
             {loading ? 'Przetwarzanie...' : (
               <>
                 
-                                              {t('auto.zatwierdź_pomiar', { defaultValue: 'Zatwierdź pomiar' })}
+                                              {t('auto.zatwierdź_pomiar', { defaultValue: i18n.t('auto.zatwierdz_pomiar', { defaultValue: "Zatwierdź pomiar" }) })}
                                               <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </>
             )}

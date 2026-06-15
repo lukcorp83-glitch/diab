@@ -129,7 +129,7 @@ export default function SettingsSync({
   const handleUnlink = () => {
     if (
       confirm(
-        i18n.t('auto.czy_na_pewno_chcesz_odlaczyc_s', { defaultValue: "Czy na pewno chcesz odłączyć swoje urządzenie i powrócić do swojego pustego profilu?" }),
+        i18n.t('auto.czy_na_pewno_chcesz_odlaczyc_s', { defaultValue: i18n.t('auto.czy_na_pewno_chcesz_odlac', { defaultValue: "Czy na pewno chcesz odłączyć swoje urządzenie i powrócić do swojego pustego profilu?" }) }),
       )
     ) {
       localStorage.removeItem("diacontrol_linked_uid");
@@ -142,7 +142,7 @@ export default function SettingsSync({
     const blockUntil = Number(localStorage.getItem("pairing_block_until") || 0);
 
     if (now < blockUntil) {
-      toast(i18n.t('auto.przekroczono_limit_prob_sprobu', { defaultValue: "Przekroczono limit prób. Spróbuj ponownie za chwilę." }));
+      toast(i18n.t('auto.przekroczono_limit_prob_sprobu', { defaultValue: i18n.t('auto.przekroczono_limit_prob_s', { defaultValue: "Przekroczono limit prób. Spróbuj ponownie za chwilę." }) }));
       return;
     }
 
@@ -155,7 +155,7 @@ export default function SettingsSync({
         if (age > 5 * 60 * 1000) {
           // 5 minutes
           alert(
-            i18n.t('auto.ten_kod_parowania_wygasl_wygen', { defaultValue: "Ten kod parowania wygasł. Wygeneruj nowy kod na drugim urządzeniu." }),
+            i18n.t('auto.ten_kod_parowania_wygasl_wygen', { defaultValue: i18n.t('auto.ten_kod_parowania_wygasl', { defaultValue: "Ten kod parowania wygasł. Wygeneruj nowy kod na drugim urządzeniu." }) }),
           );
           return;
         }
@@ -163,7 +163,7 @@ export default function SettingsSync({
 
       if (parsed.action === "pair" && parsed.uid) {
         if (parsed.uid === getEffectiveUid(user)) {
-          alert(i18n.t('auto.nie_mozesz_sparowac_konta_ze_s', { defaultValue: "Nie możesz sparować konta ze sobą samym." }));
+          alert(i18n.t('auto.nie_mozesz_sparowac_konta_ze_s', { defaultValue: i18n.t('auto.nie_mozesz_sparowac_konta', { defaultValue: "Nie możesz sparować konta ze sobą samym." }) }));
           return;
         }
 
@@ -194,14 +194,14 @@ export default function SettingsSync({
         localStorage.removeItem("pairing_failed_attempts");
         localStorage.removeItem("pairing_block_until");
         localStorage.setItem("diacontrol_linked_uid", parsed.uid);
-        alert(i18n.t('auto.polaczono_pomyslnie_aplikacja', { defaultValue: "Połączono pomyślnie! Aplikacja zostanie przeładowana." }));
+        alert(i18n.t('auto.polaczono_pomyslnie_aplikacja', { defaultValue: i18n.t('auto.polaczono_pomyslnie_aplik', { defaultValue: "Połączono pomyślnie! Aplikacja zostanie przeładowana." }) }));
         window.location.reload();
       } else if (parsed && typeof parsed === "object") {
         // legacy settings import
         onImport(parsed);
         setShowImport(false);
         setImportText("");
-        alert(i18n.t('auto.zaimportowano_ustawienia_pomys', { defaultValue: "Zaimportowano ustawienia pomyślnie!" }));
+        alert(i18n.t('auto.zaimportowano_ustawienia_pomys', { defaultValue: i18n.t('auto.zaimportowano_ustawienia', { defaultValue: "Zaimportowano ustawienia pomyślnie!" }) }));
       } else {
         throw new Error("Invalid format");
       }
@@ -219,7 +219,7 @@ export default function SettingsSync({
         setIsBlocked(true);
         setTimeout(() => setIsBlocked(false), lockoutTime);
         alert(
-          i18n.t('auto.zbyt_wiele_nieudanych_prob_moz', { defaultValue: "Zbyt wiele nieudanych prób. Możliwość parowania zablokowana na 5 minut." }),
+          i18n.t('auto.zbyt_wiele_nieudanych_prob_moz', { defaultValue: i18n.t('auto.zbyt_wiele_nieudanych_pro', { defaultValue: "Zbyt wiele nieudanych prób. Możliwość parowania zablokowana na 5 minut." }) }),
         );
       } else {
         alert(`Nieprawidłowy kod. Pozostało prób: ${5 - newCount}`);
@@ -252,7 +252,7 @@ export default function SettingsSync({
       </div>
       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-2">
         
-                      {t('auto.spraw_aby_drugi_rodzic_lub_bliska_o', { defaultValue: 'Spraw, aby drugi rodzic lub bliska osoba widziała i dodawała dokładnie te same dane (Posiłki, Insulina, Cukry dziecka).' })}
+                      {t('auto.spraw_aby_drugi_rodzic_lub_bliska_o', { defaultValue: i18n.t('auto.spraw_aby_drugi_rodzic_lu', { defaultValue: "Spraw, aby drugi rodzic lub bliska osoba widziała i dodawała dokładnie te same dane (Posiłki, Insulina, Cukry dziecka)." }) })}
                     </p>
 
       {linkedUid ? (
@@ -260,7 +260,7 @@ export default function SettingsSync({
           onClick={handleUnlink}
           className="w-full bg-rose-50 dark:bg-rose-500/10 text-rose-500 border border-rose-100 dark:border-rose-900 rounded-2xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all mt-2"
         >
-          <Unlink size={14} />  {t('auto.odłącz_konto', { defaultValue: 'Odłącz Konto' })}
+          <Unlink size={14} />  {t('auto.odłącz_konto', { defaultValue: i18n.t('auto.odlacz_konto', { defaultValue: "Odłącz Konto" }) })}
                           </button>
       ) : (
         <div className="flex gap-2">
@@ -268,7 +268,7 @@ export default function SettingsSync({
             onClick={() => setShowExport(true)}
             className="flex-1 bg-accent-500 text-white rounded-2xl p-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
           >
-            <Share2 size={14} />  {t('auto.pokaż_qr', { defaultValue: 'Pokaż QR' })}
+            <Share2 size={14} />  {t('auto.pokaż_qr', { defaultValue: i18n.t('auto.pokaz_qr', { defaultValue: "Pokaż QR" }) })}
                                     </button>
           <button
             onClick={() => setShowImport(true)}
@@ -293,7 +293,7 @@ export default function SettingsSync({
                                                   </h4>
                 <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold leading-tight">
                   
-                                                    {t('auto.połączone_urządzenia_nie_będą_mogły', { defaultValue: 'Połączone urządzenia nie będą mogły edytować ustawień terapii.' })}
+                                                    {t('auto.połączone_urządzenia_nie_będą_mogły', { defaultValue: i18n.t('auto.polaczone_urzadzenia_nie', { defaultValue: "Połączone urządzenia nie będą mogły edytować ustawień terapii." }) })}
                                                   </p>
               </div>
             </div>
@@ -344,7 +344,7 @@ export default function SettingsSync({
                                               </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 self-start">
                   
-                                                {t('auto.zeskanuj_ten_kod_na_drugim_telefoni', { defaultValue: 'Zeskanuj ten kod na drugim telefonie używając opcji \"Zeskanuj QR\".' })}
+                                                {t('auto.zeskanuj_ten_kod_na_drugim_telefoni', { defaultValue: i18n.t('auto.zeskanuj_ten_kod_na_drugi', { defaultValue: "Zeskanuj ten kod na drugim telefonie używając opcji \"Zeskanuj QR\"." }) })}
                                               </p>
                 <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 mb-6 w-full flex justify-center items-center aspect-square">
                   <QRCode
@@ -354,7 +354,7 @@ export default function SettingsSync({
                 </div>
                 <p className="text-[10px] text-rose-500 font-bold mb-4 animate-pulse">
                   
-                                                {t('auto.kod_wygaśnie_za_5_minut', { defaultValue: 'Kod wygaśnie za 5 minut' })}
+                                                {t('auto.kod_wygaśnie_za_5_minut', { defaultValue: i18n.t('auto.kod_wygasnie_za_5_minut', { defaultValue: "Kod wygaśnie za 5 minut" }) })}
                                               </p>
                 <button
                   onClick={handleCopy}
@@ -431,7 +431,7 @@ export default function SettingsSync({
                     disabled={isBlocked}
                     className={`w-full mt-4 flex items-center justify-center gap-2 rounded-[2rem] py-4 font-black text-[12px] uppercase tracking-widest transition-all shadow-xl ${isBlocked ? "bg-slate-300 text-slate-500 dark:text-slate-400 cursor-not-allowed" : "bg-accent-600 text-white hover:bg-accent-700 active:scale-95"}`}
                   >
-                    {isBlocked ? "Blokada czasowa..." : i18n.t('auto.polacz_konta', { defaultValue: "Połącz Konta" })}
+                    {isBlocked ? "Blokada czasowa..." : i18n.t('auto.polacz_konta', { defaultValue: i18n.t('auto.polacz_konta', { defaultValue: "Połącz Konta" }) })}
                   </button>
                 </div>
               </motion.div>
@@ -463,7 +463,7 @@ function QrScanner({ onResult }: { onResult: (res: string) => void }) {
           const backCamera = devices.find(
             (d) =>
               d.label.toLowerCase().includes("back") ||
-              d.label.toLowerCase().includes(i18n.t('auto.tyl', { defaultValue: "tył" })),
+              d.label.toLowerCase().includes(i18n.t('auto.tyl', { defaultValue: i18n.t('auto.tyl', { defaultValue: "tył" }) })),
           );
           setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
           setHasPermission(true);
@@ -534,11 +534,11 @@ function QrScanner({ onResult }: { onResult: (res: string) => void }) {
         <X className="text-rose-500 mb-2" size={32} />
         <p className="text-[10px] font-bold text-white uppercase tracking-widest">
           
-                          {t('auto.brak_dostępu_do_aparatu', { defaultValue: 'Brak dostępu do aparatu' })}
+                          {t('auto.brak_dostępu_do_aparatu', { defaultValue: i18n.t('auto.brak_dostepu_do_aparatu', { defaultValue: "Brak dostępu do aparatu" }) })}
                         </p>
         <p className="text-[10px] text-slate-400 mt-2">
           
-                          {t('auto.sprawdź_uprawnienia_w_ustawieniach_', { defaultValue: 'Sprawdź uprawnienia w ustawieniach przeglądarki.' })}
+                          {t('auto.sprawdź_uprawnienia_w_ustawieniach_', { defaultValue: i18n.t('auto.sprawdz_uprawnienia_w_ust', { defaultValue: "Sprawdź uprawnienia w ustawieniach przeglądarki." }) })}
                         </p>
       </div>
     );

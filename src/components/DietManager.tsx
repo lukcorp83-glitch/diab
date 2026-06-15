@@ -46,7 +46,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
 
   const saveTdeeAndAllergies = async () => {
     if (!tdee || Number(tdee) < 500) {
-      toast.error(i18n.t('auto.bledna_wartosc_tdee', { defaultValue: "Błędna wartość TDEE" }));
+      toast.error(i18n.t('auto.bledna_wartosc_tdee', { defaultValue: i18n.t('auto.bledna_wartosc_tdee', { defaultValue: "Błędna wartość TDEE" }) }));
       return;
     }
     
@@ -59,7 +59,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
       toast.success('Zapisano ustawienia');
     } catch (e) {
       console.error("Error saving settings", e);
-      toast.error(i18n.t('auto.nie_udalo_sie_zapisac_ustawien', { defaultValue: "Nie udało się zapisać ustawień" }));
+      toast.error(i18n.t('auto.nie_udalo_sie_zapisac_ustawien', { defaultValue: i18n.t('auto.nie_udalo_sie_zapisac_ust', { defaultValue: "Nie udało się zapisać ustawień" }) }));
     }
   };
 
@@ -78,10 +78,10 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
     if (plan && plan.days) {
       setMealPlan(plan);
       localStorage.setItem(`glikosfera_mealplan_${activeDietData.id}`, JSON.stringify(plan));
-      toast.success(i18n.t('auto.pobrano_nowy_jadlospis', { defaultValue: "Pobrano nowy jadłospis!" }));
+      toast.success(i18n.t('auto.pobrano_nowy_jadlospis', { defaultValue: i18n.t('auto.pobrano_nowy_jadlospis', { defaultValue: "Pobrano nowy jadłospis!" }) }));
       setExpandedDay(1);
     } else {
-       toast.error(i18n.t('auto.glikosense_nie_zdolalo_ulozyc', { defaultValue: "GlikoSense nie zdołało ułożyć menu. Spróbuj ułożyć swoje menu lub ponów za chwilę." }));
+       toast.error(i18n.t('auto.glikosense_nie_zdolalo_ulozyc', { defaultValue: i18n.t('auto.glikosense_nie_zdolalo_ul', { defaultValue: "GlikoSense nie zdołało ułożyć menu. Spróbuj ułożyć swoje menu lub ponów za chwilę." }) }));
     }
     
     setIsLoadingPlan(false);
@@ -100,10 +100,10 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
         updatedPlan.days[dayIndex].meals[mealIdx] = newMeal;
         setMealPlan(updatedPlan);
         localStorage.setItem(`glikosfera_mealplan_${activeDietData.id}`, JSON.stringify(updatedPlan));
-        toast.success(i18n.t('auto.wymieniono_posilek', { defaultValue: "Wymieniono posiłek!" }));
+        toast.success(i18n.t('auto.wymieniono_posilek', { defaultValue: i18n.t('auto.wymieniono_posilek', { defaultValue: "Wymieniono posiłek!" }) }));
       }
     } else {
-      toast.error(i18n.t('auto.nie_udalo_sie_wygenerowac_zast', { defaultValue: "Nie udało się wygenerować zastępczego posiłku." }));
+      toast.error(i18n.t('auto.nie_udalo_sie_wygenerowac_zast', { defaultValue: i18n.t('auto.nie_udalo_sie_wygenerowac', { defaultValue: "Nie udało się wygenerować zastępczego posiłku." }) }));
     }
     setReplacingMeal(null);
   };
@@ -120,9 +120,9 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
     
     // Estimate kcal based on type
     let fraction = 0.3; // Default 30%
-    if (singleMealType === i18n.t('auto.sniadanie', { defaultValue: "Śniadanie" }) || singleMealType === 'Kolacja') fraction = 0.25;
+    if (singleMealType === i18n.t('auto.sniadanie', { defaultValue: i18n.t('auto.sniadanie', { defaultValue: "Śniadanie" }) }) || singleMealType === 'Kolacja') fraction = 0.25;
     if (singleMealType === 'Obiad') fraction = 0.35;
-    if (singleMealType === i18n.t('auto.przekaska', { defaultValue: "Przekąska" }) || singleMealType === 'Deser') fraction = 0.15;
+    if (singleMealType === i18n.t('auto.przekaska', { defaultValue: i18n.t('auto.przekaska', { defaultValue: "Przekąska" }) }) || singleMealType === 'Deser') fraction = 0.15;
 
     const targetKcal = Math.round(settings.tdee * fraction);
     
@@ -132,7 +132,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
       setSingleMealResult(meal);
       toast.success('Wygenerowano przepis!');
     } else {
-      toast.error(i18n.t('auto.blad_generowania_sprobuj_ponow', { defaultValue: "Błąd generowania. Spróbuj ponownie." }));
+      toast.error(i18n.t('auto.blad_generowania_sprobuj_ponow', { defaultValue: i18n.t('auto.blad_generowania_sprobuj', { defaultValue: "Błąd generowania. Spróbuj ponownie." }) }));
     }
     
     setIsLoadingSingleMeal(false);
@@ -143,7 +143,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
     
     const mealKey = `${dayIdx}-${mealIdx}`;
     if (savedMealIds.has(mealKey)) {
-      toast(i18n.t('auto.ten_posilek_jest_juz_w_twojej', { defaultValue: "Ten posiłek jest już w Twojej bazie" }), { icon: 'ℹ️' });
+      toast(i18n.t('auto.ten_posilek_jest_juz_w_twojej', { defaultValue: i18n.t('auto.ten_posilek_jest_juz_w_tw', { defaultValue: "Ten posiłek jest już w Twojej bazie" }) }), { icon: 'ℹ️' });
       return;
     }
 
@@ -167,10 +167,10 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
       });
       
       setSavedMealIds(prev => new Set(prev).add(mealKey));
-      toast.success(i18n.t('auto.dodano_do_bazy_moj_talerz_zjed', { defaultValue: "Dodano do Bazy Mój Talerz (Zjedz)!" }));
+      toast.success(i18n.t('auto.dodano_do_bazy_moj_talerz_zjed', { defaultValue: i18n.t('auto.dodano_do_bazy_moj_talerz', { defaultValue: "Dodano do Bazy Mój Talerz (Zjedz)!" }) }));
     } catch (err) {
       console.error(err);
-      toast.error(i18n.t('auto.blad_podczas_zapisywania', { defaultValue: "Błąd podczas zapisywania" }));
+      toast.error(i18n.t('auto.blad_podczas_zapisywania', { defaultValue: i18n.t('auto.blad_podczas_zapisywania', { defaultValue: "Błąd podczas zapisywania" }) }));
     }
   };
 
@@ -202,7 +202,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
 
              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl overflow-hidden focus-within:ring-2 ring-blue-500/50 p-1">
                <textarea
-                 placeholder={t('auto.alergie_i_wykluczenia_np_bez_gluten', { defaultValue: 'Alergie i wykluczenia (np. bez glutenu, uczulenie na orzechy, nie lubię pomidorów)' })}
+                 placeholder={t('auto.alergie_i_wykluczenia_np_bez_gluten', { defaultValue: i18n.t('auto.alergie_i_wykluczenia_np', { defaultValue: "Alergie i wykluczenia (np. bez glutenu, uczulenie na orzechy, nie lubię pomidorów)" }) })}
                  value={allergies}
                  onChange={(e) => setAllergies(e.target.value)}
                  className="w-full bg-transparent px-3 py-2 outline-none text-xs text-slate-900 dark:text-white font-medium resize-none min-h-[60px]"
@@ -288,7 +288,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
                         }}
                       >
                         <div>
-                          <span className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('auto.dzień', { defaultValue: 'Dzień' })} {day.dayNumber}</span>
+                          <span className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('auto.dzień', { defaultValue: i18n.t('auto.dzien', { defaultValue: "Dzień" }) })} {day.dayNumber}</span>
                           <p className="text-[10px] font-bold text-slate-400">~{day.totalKcal}  {t('auto.kcal', { defaultValue: 'kcal' })}</p>
                         </div>
                         {expandedDay === day.dayNumber ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
@@ -315,7 +315,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
                                       }}
                                       disabled={replacingMeal?.dayIdx === day.dayNumber && replacingMeal?.mealIdx === idx}
                                       className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-indigo-500 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                                      aria-label={t('auto.wymień_ten_posiłek_na_inny', { defaultValue: 'Wymień ten posiłek na inny' })}
+                                      aria-label={t('auto.wymień_ten_posiłek_na_inny', { defaultValue: i18n.t('auto.wymien_ten_posilek_na_inn', { defaultValue: "Wymień ten posiłek na inny" }) })}
                                     >
                                       {replacingMeal?.dayIdx === day.dayNumber && replacingMeal?.mealIdx === idx ? (
                                         <Loader2 size={14} className="animate-spin" />
@@ -330,7 +330,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
                                         ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-500' 
                                         : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-600'
                                       }`}
-                                      aria-label={t('auto.zapisz_do_bazy_posiłków', { defaultValue: 'Zapisz do bazy posiłków' })}
+                                      aria-label={t('auto.zapisz_do_bazy_posiłków', { defaultValue: i18n.t('auto.zapisz_do_bazy_posilkow', { defaultValue: "Zapisz do bazy posiłków" }) })}
                                     >
                                       <Heart size={14} className={savedMealIds.has(`${day.dayNumber}-${idx}`) ? "fill-rose-500" : ""} />
                                     </button>
@@ -366,7 +366,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
            ) : (
              <div className="py-6 flex flex-col items-center justify-center text-center px-4">
                 <Sparkles size={24} className="text-slate-300 mb-2" />
-                <p className="text-xs text-slate-500 font-medium">{t('auto.wygeneruj_jadłospis_układający_się_', { defaultValue: 'Wygeneruj jadłospis układający się w' })} {settings.tdee}  {t('auto.kcal_dopasowany_do_makroskładników_', { defaultValue: 'kcal, dopasowany do makroskładników Twojej diety.' })}</p>
+                <p className="text-xs text-slate-500 font-medium">{t('auto.wygeneruj_jadłospis_układający_się_', { defaultValue: i18n.t('auto.wygeneruj_jadlospis_uklad', { defaultValue: "Wygeneruj jadłospis układający się w" }) })} {settings.tdee}  {t('auto.kcal_dopasowany_do_makroskładników_', { defaultValue: i18n.t('auto.kcal_dopasowany_do_makros', { defaultValue: "kcal, dopasowany do makroskładników Twojej diety." }) })}</p>
              </div>
            )}
         </div>
@@ -384,7 +384,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
             
             <div className="flex flex-col gap-3 mb-4">
                <div className="flex gap-2">
-                 {[i18n.t('auto.sniadanie', { defaultValue: "Śniadanie" }), 'Obiad', 'Kolacja', i18n.t('auto.przekaska', { defaultValue: "Przekąska" })].map(type => (
+                 {[i18n.t('auto.sniadanie', { defaultValue: i18n.t('auto.sniadanie', { defaultValue: "Śniadanie" }) }), 'Obiad', 'Kolacja', i18n.t('auto.przekaska', { defaultValue: i18n.t('auto.przekaska', { defaultValue: "Przekąska" }) })].map(type => (
                    <button
                      key={type}
                      onClick={() => setSingleMealType(type)}
@@ -406,7 +406,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
                >
                  {isLoadingSingleMeal ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                  
-                                           {t('auto.wygeneruj_1_posiłek', { defaultValue: 'Wygeneruj 1 posiłek' })}
+                                           {t('auto.wygeneruj_1_posiłek', { defaultValue: i18n.t('auto.wygeneruj_1_posilek', { defaultValue: "Wygeneruj 1 posiłek" }) })}
                                          </button>
             </div>
 

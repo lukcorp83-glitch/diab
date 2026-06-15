@@ -151,7 +151,7 @@ export default function DevicePairing({
   const handleUnlink = () => {
     if (
       confirm(
-        i18n.t('auto.czy_na_pewno_chcesz_odlaczyc_s', { defaultValue: "Czy na pewno chcesz odłączyć swoje urządzenie i powrócić do swojego pustego profilu?" }),
+        i18n.t('auto.czy_na_pewno_chcesz_odlaczyc_s', { defaultValue: i18n.t('auto.czy_na_pewno_chcesz_odlac', { defaultValue: "Czy na pewno chcesz odłączyć swoje urządzenie i powrócić do swojego pustego profilu?" }) }),
       )
     ) {
       localStorage.removeItem("diacontrol_linked_uid");
@@ -164,7 +164,7 @@ export default function DevicePairing({
     const blockUntil = Number(localStorage.getItem("pairing_block_until") || 0);
 
     if (now < blockUntil) {
-      toast(i18n.t('auto.przekroczono_limit_prob_sprobu', { defaultValue: "Przekroczono limit prób. Spróbuj ponownie za chwilę." }));
+      toast(i18n.t('auto.przekroczono_limit_prob_sprobu', { defaultValue: i18n.t('auto.przekroczono_limit_prob_s', { defaultValue: "Przekroczono limit prób. Spróbuj ponownie za chwilę." }) }));
       return;
     }
 
@@ -174,14 +174,14 @@ export default function DevicePairing({
       if (parsed.action === "pair" && parsed.ts) {
         const age = now - parsed.ts;
         if (age > 5 * 60 * 1000) {
-          alert(i18n.t('auto.ten_kod_parowania_wygasl_wygen', { defaultValue: "Ten kod parowania wygasł. Wygeneruj nowy kod na drugim urządzeniu." }));
+          alert(i18n.t('auto.ten_kod_parowania_wygasl_wygen', { defaultValue: i18n.t('auto.ten_kod_parowania_wygasl', { defaultValue: "Ten kod parowania wygasł. Wygeneruj nowy kod na drugim urządzeniu." }) }));
           return;
         }
       }
 
       if (parsed.action === "pair" && parsed.uid) {
         if (parsed.uid === getEffectiveUid(user)) {
-          alert(i18n.t('auto.nie_mozesz_sparowac_konta_ze_s', { defaultValue: "Nie możesz sparować konta ze sobą samym." }));
+          alert(i18n.t('auto.nie_mozesz_sparowac_konta_ze_s', { defaultValue: i18n.t('auto.nie_mozesz_sparowac_konta', { defaultValue: "Nie możesz sparować konta ze sobą samym." }) }));
           return;
         }
 
@@ -217,13 +217,13 @@ export default function DevicePairing({
            onUpdateSettings({ websocketUrl: parsed.settings.websocketUrl });
         }
         
-        alert(i18n.t('auto.polaczono_pomyslnie_aplikacja', { defaultValue: "Połączono pomyślnie! Aplikacja zostanie przeładowana." }));
+        alert(i18n.t('auto.polaczono_pomyslnie_aplikacja', { defaultValue: i18n.t('auto.polaczono_pomyslnie_aplik', { defaultValue: "Połączono pomyślnie! Aplikacja zostanie przeładowana." }) }));
         window.location.reload();
       } else if (parsed && typeof parsed === "object") {
         onImport(parsed);
         setShowImport(false);
         setImportText("");
-        alert(i18n.t('auto.zaimportowano_ustawienia_pomys', { defaultValue: "Zaimportowano ustawienia pomyślnie!" }));
+        alert(i18n.t('auto.zaimportowano_ustawienia_pomys', { defaultValue: i18n.t('auto.zaimportowano_ustawienia', { defaultValue: "Zaimportowano ustawienia pomyślnie!" }) }));
       } else {
         throw new Error("Invalid format");
       }
@@ -241,7 +241,7 @@ export default function DevicePairing({
         setIsBlocked(true);
         setTimeout(() => setIsBlocked(false), lockoutTime);
         alert(
-          i18n.t('auto.zbyt_wiele_nieudanych_prob_moz', { defaultValue: "Zbyt wiele nieudanych prób. Możliwość parowania zablokowana na 5 minut." }),
+          i18n.t('auto.zbyt_wiele_nieudanych_prob_moz', { defaultValue: i18n.t('auto.zbyt_wiele_nieudanych_pro', { defaultValue: "Zbyt wiele nieudanych prób. Możliwość parowania zablokowana na 5 minut." }) }),
         );
       } else {
         alert(`Nieprawidłowy kod. Pozostało prób: ${5 - newCount}`);
@@ -256,7 +256,7 @@ export default function DevicePairing({
           <Network className="text-indigo-500" size={20} />
         </div>
         <div>
-          <h2 className="text-xl font-black dark:text-white tracking-tight">{t('auto.zarządzanie_urządzeniami', { defaultValue: 'Zarządzanie Urządzeniami' })}</h2>
+          <h2 className="text-xl font-black dark:text-white tracking-tight">{t('auto.zarządzanie_urządzeniami', { defaultValue: i18n.t('auto.zarzadzanie_urzadzeniami', { defaultValue: "Zarządzanie Urządzeniami" }) })}</h2>
           <p className="text-xs text-slate-500 font-medium">{t('auto.parowanie_kont_i_super_szybki_serwe', { defaultValue: 'Parowanie kont i super-szybki serwer' })}</p>
         </div>
       </div>
@@ -285,11 +285,11 @@ export default function DevicePairing({
         </div>
         <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium mb-4">
           
-                            {t('auto.połącz_urządzenia_aby_bliska_osoba_', { defaultValue: 'Połącz urządzenia, aby bliska osoba widziała na żywo cukry i dodawane bolusy. Wybierz rolę dla tego telefonu przed parowaniem.' })}
+                            {t('auto.połącz_urządzenia_aby_bliska_osoba_', { defaultValue: i18n.t('auto.polacz_urzadzenia_aby_bli', { defaultValue: "Połącz urządzenia, aby bliska osoba widziała na żywo cukry i dodawane bolusy. Wybierz rolę dla tego telefonu przed parowaniem." }) })}
                           </p>
 
         <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-2 rounded-2xl mb-4 flex flex-col gap-1">
-          <label className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-1 ml-1">{t('auto.rola_tego_urządzenia', { defaultValue: 'Rola tego urządzenia' })}</label>
+          <label className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-1 ml-1">{t('auto.rola_tego_urządzenia', { defaultValue: i18n.t('auto.rola_tego_urzadzenia', { defaultValue: "Rola tego urządzenia" }) })}</label>
           <div className="flex gap-1">
             <button
               onClick={() => handleRoleChange('master')}
@@ -329,7 +329,7 @@ export default function DevicePairing({
             onClick={handleUnlink}
             className="w-full bg-rose-50 dark:bg-rose-500/10 text-rose-500 border border-rose-100 dark:border-rose-900/50 rounded-2xl p-4 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all mt-2 shadow-sm"
           >
-            <Unlink size={16} />  {t('auto.odłącz_konto', { defaultValue: 'Odłącz Konto' })}
+            <Unlink size={16} />  {t('auto.odłącz_konto', { defaultValue: i18n.t('auto.odlacz_konto', { defaultValue: "Odłącz Konto" }) })}
                                 </button>
         ) : (
           <div className="flex gap-2">
@@ -337,7 +337,7 @@ export default function DevicePairing({
               onClick={() => setShowExport(true)}
               className="flex-1 bg-accent-500 text-white rounded-2xl p-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent-600 active:scale-95 transition-all shadow-md shadow-accent-500/20"
             >
-              <Share2 size={16} />  {t('auto.pokaż_qr', { defaultValue: 'Pokaż QR' })}
+              <Share2 size={16} />  {t('auto.pokaż_qr', { defaultValue: i18n.t('auto.pokaz_qr', { defaultValue: "Pokaż QR" }) })}
                                           </button>
             <button
               onClick={() => setShowImport(true)}
@@ -370,7 +370,7 @@ export default function DevicePairing({
                     <button
                       onClick={() => kickDevice(d.deviceId)}
                       className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
-                      title={t('auto.odłącz_to_urządzenie', { defaultValue: 'Odłącz to urządzenie' })}
+                      title={t('auto.odłącz_to_urządzenie', { defaultValue: i18n.t('auto.odlacz_to_urzadzenie', { defaultValue: "Odłącz to urządzenie" }) })}
                     >
                       <Unlink size={14} />
                     </button>
@@ -395,7 +395,7 @@ export default function DevicePairing({
                                                         </h4>
                   <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold leading-tight">
                     
-                                                          {t('auto.połączone_urządzenia_nie_edytują_us', { defaultValue: 'Połączone urządzenia nie edytują ustawień.' })}
+                                                          {t('auto.połączone_urządzenia_nie_edytują_us', { defaultValue: i18n.t('auto.polaczone_urzadzenia_nie', { defaultValue: "Połączone urządzenia nie edytują ustawień." }) })}
                                                         </p>
                 </div>
               </div>
@@ -446,7 +446,7 @@ export default function DevicePairing({
                                               </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 self-start">
                   
-                                                {t('auto.zeskanuj_ten_kod_na_drugim_telefoni', { defaultValue: 'Zeskanuj ten kod na drugim telefonie używając opcji \"Zeskanuj QR\". Upewnij się, że na drugim telefonie wybrano odpowiednią rolę przed skanowaniem.' })}
+                                                {t('auto.zeskanuj_ten_kod_na_drugim_telefoni', { defaultValue: i18n.t('auto.zeskanuj_ten_kod_na_drugi', { defaultValue: "Zeskanuj ten kod na drugim telefonie używając opcji \"Zeskanuj QR\". Upewnij się, że na drugim telefonie wybrano odpowiednią rolę przed skanowaniem." }) })}
                                               </p>
 
                 <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 mb-6 w-full flex justify-center items-center aspect-square">
@@ -454,7 +454,7 @@ export default function DevicePairing({
                 </div>
                 <p className="text-[10px] text-rose-500 font-bold mb-4 animate-pulse">
                   
-                                                {t('auto.kod_wygaśnie_za_5_minut', { defaultValue: 'Kod wygaśnie za 5 minut' })}
+                                                {t('auto.kod_wygaśnie_za_5_minut', { defaultValue: i18n.t('auto.kod_wygasnie_za_5_minut', { defaultValue: "Kod wygaśnie za 5 minut" }) })}
                                               </p>
                 <button
                   onClick={handleCopy}
@@ -527,7 +527,7 @@ export default function DevicePairing({
                     disabled={isBlocked}
                     className={`w-full mt-4 flex items-center justify-center gap-2 rounded-[2rem] py-4 font-black text-[12px] uppercase tracking-widest transition-all shadow-xl ${isBlocked ? "bg-slate-300 text-slate-500 dark:text-slate-400 cursor-not-allowed" : "bg-accent-600 text-white hover:bg-accent-700 active:scale-95"}`}
                   >
-                    {isBlocked ? "Blokada czasowa..." : i18n.t('auto.polacz_konta', { defaultValue: "Połącz Konta" })}
+                    {isBlocked ? "Blokada czasowa..." : i18n.t('auto.polacz_konta', { defaultValue: i18n.t('auto.polacz_konta', { defaultValue: "Połącz Konta" }) })}
                   </button>
                 </div>
               </motion.div>
@@ -558,7 +558,7 @@ function QrScanner({ onResult }: { onResult: (res: string) => void }) {
           const backCamera = devices.find(
             (d) =>
               d.label.toLowerCase().includes("back") ||
-              d.label.toLowerCase().includes(i18n.t('auto.tyl', { defaultValue: "tył" })),
+              d.label.toLowerCase().includes(i18n.t('auto.tyl', { defaultValue: i18n.t('auto.tyl', { defaultValue: "tył" }) })),
           );
           setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
           setHasPermission(true);
@@ -628,7 +628,7 @@ function QrScanner({ onResult }: { onResult: (res: string) => void }) {
         <X className="text-rose-500 mb-2" size={32} />
         <p className="text-[10px] font-bold text-white uppercase tracking-widest">
           
-                          {t('auto.brak_dostępu_do_aparatu', { defaultValue: 'Brak dostępu do aparatu' })}
+                          {t('auto.brak_dostępu_do_aparatu', { defaultValue: i18n.t('auto.brak_dostepu_do_aparatu', { defaultValue: "Brak dostępu do aparatu" }) })}
                         </p>
       </div>
     );

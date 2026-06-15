@@ -29,14 +29,7 @@ export default function JetLagMode({ onClose }: JetLagModeProps) {
     setError(null);
     setPlan(null);
 
-    const prompt = `Jesteś ekspertem diabetologiem (Jet-Lag Mode). Użytkownik to diabetyk. Podaje podróż: Lot z "${fromLocation}" do "${toLocation}", o godzinie ${departureTime}. 
-Wygeneruj prostą, liniową oś czasu (timeline) na czas lotu i pierwsze 24 godziny na miejscu, pokazując krok po kroku, jak przesunąć godziny dawek insuliny długodziałającej (bazowej) i posiłkowej, żeby bezpiecznie "przestawić" organizm na nową strefę czasową.
-Zasady:
-- Żadnego "gadania" początkowego, tylko zwięzły, konkretny plan.
-- Używaj struktury HTML: użyj div z klasami Tailwind CSS w razie potrzeby, albo po prostu znaczników <b>, <ul>, <li>, <br>, <h3> aby utworzyć przejrzystą oś czasu.
-- Skup się na godzinach (np. "14:00 - Wylot", "02:00 czasu docelowego - Podanie 50% bazy").
-- Bądź bezpośredni i bezpieczny w zaleceniach (sugeruj częstsze monitorowanie cukru).
-- Odpowiadaj w języku polskim. Brak formatowania markdown, tylko HTML wewnątrz.`;
+    const prompt = i18n.t('auto.jestes_ekspertem_diabetol', { defaultValue: "Jesteś ekspertem diabetologiem (Jet-Lag Mode). Użytkownik to diabetyk. Podaje podróż: Lot z \"{{var0}}\" do \"{{var1}}\", o godzinie {{var2}}. \nWygeneruj prostą, liniową oś czasu (timeline) na czas lotu i pierwsze 24 godziny na miejscu, pokazując krok po kroku, jak przesunąć godziny dawek insuliny długodziałającej (bazowej) i posiłkowej, żeby bezpiecznie \"przestawić\" organizm na nową strefę czasową.\nZasady:\n- Żadnego \"gadania\" początkowego, tylko zwięzły, konkretny plan.\n- Używaj struktury HTML: użyj div z klasami Tailwind CSS w razie potrzeby, albo po prostu znaczników <b>, <ul>, <li>, <br>, <h3> aby utworzyć przejrzystą oś czasu.\n- Skup się na godzinach (np. \"14:00 - Wylot\", \"02:00 czasu docelowego - Podanie 50% bazy\").\n- Bądź bezpośredni i bezpieczny w zaleceniach (sugeruj częstsze monitorowanie cukru).\n- Odpowiadaj w języku polskim. Brak formatowania markdown, tylko HTML wewnątrz.", var0: fromLocation, var1: toLocation, var2: departureTime });
 
     try {
       const response = await geminiService.generateContent(prompt);
@@ -45,7 +38,7 @@ Zasady:
       setPlan(cleaned);
     } catch (err) {
       console.error(err);
-      setError(i18n.t('auto.wystapil_blad_podczas_generowa', { defaultValue: "Wystąpił błąd podczas generowania planu podróży." }));
+      setError(i18n.t('auto.wystapil_blad_podczas_generowa', { defaultValue: i18n.t('auto.wystapil_blad_podczas_gen', { defaultValue: "Wystąpił błąd podczas generowania planu podróży." }) }));
     } finally {
       setIsGenerating(false);
     }
@@ -61,7 +54,7 @@ Zasady:
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">{t('auto.jet_lag_mode', { defaultValue: 'Jet-Lag Mode' })}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t('auto.asystent_podróży_i_zmiany_stref_cza', { defaultValue: 'Asystent Podróży i Zmiany Stref Czasowych' })}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('auto.asystent_podróży_i_zmiany_stref_cza', { defaultValue: i18n.t('auto.asystent_podrozy_i_zmiany', { defaultValue: "Asystent Podróży i Zmiany Stref Czasowych" }) })}</p>
           </div>
         </div>
       </div>
@@ -77,11 +70,11 @@ Zasady:
               <h3 className="font-semibold text-lg mb-2">{t('auto.bezpieczna_zmiana_strefy_czasowej', { defaultValue: 'Bezpieczna zmiana strefy czasowej' })}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-4">
                 
-                                              {t('auto.dla_diabetyka_lot_na_inny_kontynent', { defaultValue: 'Dla diabetyka lot na inny kontynent to logistyczne wyzwanie. Funkcja Jet-Lag Mode wygeneruje prostą, liniową oś czasu pokazującą, jak przesunąć godziny dawek insuliny długodziałającej, żeby łagodnie przestawić organizm.' })}
+                                              {t('auto.dla_diabetyka_lot_na_inny_kontynent', { defaultValue: i18n.t('auto.dla_diabetyka_lot_na_inny', { defaultValue: "Dla diabetyka lot na inny kontynent to logistyczne wyzwanie. Funkcja Jet-Lag Mode wygeneruje prostą, liniową oś czasu pokazującą, jak przesunąć godziny dawek insuliny długodziałającej, żeby łagodnie przestawić organizm." }) })}
                                             </p>
               <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-4 flex gap-3 text-amber-800 dark:text-amber-400 text-sm">
                 <AlertCircle className="shrink-0 mt-0.5" size={16} />
-                <p>{t('auto.narzędzie_służy_wyłącznie_do_celów_', { defaultValue: 'Narzędzie służy wyłącznie do celów planowania i nie zastępuje porady lekarskiej. Zawsze monitoruj poziom glikemii częściej podczas podróży.' })}</p>
+                <p>{t('auto.narzędzie_służy_wyłącznie_do_celów_', { defaultValue: i18n.t('auto.narzedzie_sluzy_wylacznie', { defaultValue: "Narzędzie służy wyłącznie do celów planowania i nie zastępuje porady lekarskiej. Zawsze monitoruj poziom glikemii częściej podczas podróży." }) })}</p>
               </div>
             </div>
           </div>
@@ -92,11 +85,11 @@ Zasady:
           <h2 className="font-semibold text-lg flex items-center gap-2 mb-6">
             <MapPin size={18} className="text-indigo-500" />
             
-                                  {t('auto.szczegóły_lotu', { defaultValue: 'Szczegóły lotu' })}
+                                  {t('auto.szczegóły_lotu', { defaultValue: i18n.t('auto.szczegoly_lotu', { defaultValue: "Szczegóły lotu" }) })}
                                 </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 ml-2">{t('auto.wylot_z_skąd', { defaultValue: 'Wylot z (Skąd)' })}</label>
+              <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 ml-2">{t('auto.wylot_z_skąd', { defaultValue: i18n.t('auto.wylot_z_skad', { defaultValue: "Wylot z (Skąd)" }) })}</label>
               <input
                 type="text"
                 value={fromLocation}
@@ -106,7 +99,7 @@ Zasady:
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 ml-2">{t('auto.przylot_do_dokąd', { defaultValue: 'Przylot do (Dokąd)' })}</label>
+              <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 ml-2">{t('auto.przylot_do_dokąd', { defaultValue: i18n.t('auto.przylot_do_dokad', { defaultValue: "Przylot do (Dokąd)" }) })}</label>
               <input
                 type="text"
                 value={toLocation}
@@ -169,7 +162,7 @@ Zasady:
             className="bg-white dark:bg-[#121212] p-8 rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl"
           >
             <h3 className="text-xl font-bold mb-6 flex items-center gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
-              <Clock className="text-indigo-500" />  {t('auto.oś_czasu_adaptacji', { defaultValue: 'Oś czasu adaptacji' })}
+              <Clock className="text-indigo-500" />  {t('auto.oś_czasu_adaptacji', { defaultValue: i18n.t('auto.os_czasu_adaptacji', { defaultValue: "Oś czasu adaptacji" }) })}
                                       </h3>
             <div
               className="prose prose-slate dark:prose-invert prose-indigo max-w-none 

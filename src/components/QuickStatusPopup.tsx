@@ -73,12 +73,12 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
                <StatusItem 
                   icon={<ShieldCheck size={14} className="text-emerald-500" />} 
                   label={t('auto.baza_danych', { defaultValue: 'Baza danych' })} 
-                  value={i18n.t('auto.polaczono', { defaultValue: "Połączono" })} 
+                  value={i18n.t('auto.polaczono', { defaultValue: i18n.t('auto.polaczono', { defaultValue: "Połączono" }) })} 
                   status="ok" 
                />
                <StatusItem 
                   icon={<Zap size={14} className="text-amber-500" />} 
-                  label={t('auto.sieć_neuronowa', { defaultValue: 'sieć neuronowa' })} 
+                  label={t('auto.sieć_neuronowa', { defaultValue: i18n.t('auto.siec_neuronowa', { defaultValue: "sieć neuronowa" }) })} 
                   value="GlikoSense 3.0" 
                   status="ok" 
                />
@@ -95,7 +95,7 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
                 <Info size={12} />
                 <p className="text-[9px] font-bold leading-tight italic">
                   
-                                                    {t('auto.aplikacja_jest_w_ciągłym_rozwoju_tw', { defaultValue: 'Aplikacja jest w ciągłym rozwoju. Twoje dane są bezpieczne i szyfrowane (AES-256).' })}
+                                                    {t('auto.aplikacja_jest_w_ciągłym_rozwoju_tw', { defaultValue: i18n.t('auto.aplikacja_jest_w_ciaglym', { defaultValue: "Aplikacja jest w ciągłym rozwoju. Twoje dane są bezpieczne i szyfrowane (AES-256)." }) })}
                                                   </p>
               </div>
             </div>

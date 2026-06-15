@@ -18,7 +18,7 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
 
   const handleAccept = async () => {
     if (!agreed) {
-      setError(i18n.t('auto.musisz_zaakceptowac_warunki_kl', { defaultValue: "Musisz zaakceptować warunki klauzuli." }));
+      setError(i18n.t('auto.musisz_zaakceptowac_warunki_kl', { defaultValue: i18n.t('auto.musisz_zaakceptowac_warun', { defaultValue: "Musisz zaakceptować warunki klauzuli." }) }));
       return;
     }
     
@@ -26,7 +26,7 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
     try {
       await onAccept();
     } catch (err) {
-      setError(i18n.t('auto.wystapil_blad_podczas_zapisywa', { defaultValue: "Wystąpił błąd podczas zapisywania zgody." }));
+      setError(i18n.t('auto.wystapil_blad_podczas_zapisywa', { defaultValue: i18n.t('auto.wystapil_blad_podczas_zap', { defaultValue: "Wystąpił błąd podczas zapisywania zgody." }) }));
     } finally {
       setLoading(false);
     }
@@ -46,7 +46,7 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
             </div>
             <div>
               <h2 className="text-2xl font-black dark:text-white leading-tight font-display uppercase tracking-tighter italic">{t('auto.klauzula_zgody', { defaultValue: 'Klauzula Zgody' })}</h2>
-              <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] mt-1">{t('auto.zgodność_z_rodo_gdpr_ue', { defaultValue: 'Zgodność z RODO / GDPR (UE)' })}</p>
+              <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] mt-1">{t('auto.zgodność_z_rodo_gdpr_ue', { defaultValue: i18n.t('auto.zgodnosc_z_rodo_gdpr_ue', { defaultValue: "Zgodność z RODO / GDPR (UE)" }) })}</p>
             </div>
           </div>
 
@@ -55,26 +55,26 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
               <h4 className="text-[11px] font-black uppercase tracking-widest mb-5 text-indigo-500 font-display">{t('auto.zgoda_na_przetwarzanie_danych_zdrow', { defaultValue: 'Zgoda na przetwarzanie danych zdrowotnych' })}</h4>
               <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-bold opacity-80">
                 
-                                              {t('auto.niniejszym_wyrażam_dobrowolną_i_świ', { defaultValue: 'Niniejszym wyrażam dobrowolną i świadomą zgodę na przetwarzanie moich danych osobowych dotyczących stanu zdrowia (wyniki glikemii, insulinoterapia, dieta) w aplikacji GlikoControl.' })}
+                                              {t('auto.niniejszym_wyrażam_dobrowolną_i_świ', { defaultValue: i18n.t('auto.niniejszym_wyrazam_dobrow', { defaultValue: "Niniejszym wyrażam dobrowolną i świadomą zgodę na przetwarzanie moich danych osobowych dotyczących stanu zdrowia (wyniki glikemii, insulinoterapia, dieta) w aplikacji GlikoControl." }) })}
                                             </p>
               <ul className="text-[11px] text-slate-600 dark:text-slate-300 space-y-4 mt-6 list-none pl-0 font-bold opacity-70">
                 <li className="flex gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                  <span>{t('auto.dane_są_używane_wyłącznie_do_twojej', { defaultValue: 'Dane są używane wyłącznie do Twojej analizy przez moduł GlikoSense AI.' })}</span>
+                  <span>{t('auto.dane_są_używane_wyłącznie_do_twojej', { defaultValue: i18n.t('auto.dane_sa_uzywane_wylacznie', { defaultValue: "Dane są używane wyłącznie do Twojej analizy przez moduł GlikoSense AI." }) })}</span>
                 </li>
                 <li className="flex gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                  <span>{t('auto.prawo_do_wycofania_zgody_w_dowolnym', { defaultValue: 'Prawo do wycofania zgody w dowolnym momencie (usunięcie konta).' })}</span>
+                  <span>{t('auto.prawo_do_wycofania_zgody_w_dowolnym', { defaultValue: i18n.t('auto.prawo_do_wycofania_zgody', { defaultValue: "Prawo do wycofania zgody w dowolnym momencie (usunięcie konta)." }) })}</span>
                 </li>
                 <li className="flex gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                  <span>{t('auto.najwyższy_standard_szyfrowania_tls_', { defaultValue: 'Najwyższy standard szyfrowania TLS 1.3 i przechowywania danych w UE.' })}</span>
+                  <span>{t('auto.najwyższy_standard_szyfrowania_tls_', { defaultValue: i18n.t('auto.najwyzszy_standard_szyfro', { defaultValue: "Najwyższy standard szyfrowania TLS 1.3 i przechowywania danych w UE." }) })}</span>
                 </li>
               </ul>
               <div className="mt-8 p-5 bg-amber-500/5 rounded-2xl border border-amber-500/20">
                 <p className="text-[9px] font-black text-amber-600 dark:text-amber-400 leading-tight uppercase tracking-widest text-center">
                   
-                                                    {t('auto.aplikacja_nie_zastępuje_profesjonal', { defaultValue: 'Aplikacja nie zastępuje profesjonalnej porady lekarskiej.' })}
+                                                    {t('auto.aplikacja_nie_zastępuje_profesjonal', { defaultValue: i18n.t('auto.aplikacja_nie_zastepuje_p', { defaultValue: "Aplikacja nie zastępuje profesjonalnej porady lekarskiej." }) })}
                                                   </p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
               </div>
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-relaxed">
                 
-                                              {t('auto.oświadczam_że_zapoznałem_się_z_treś', { defaultValue: 'Oświadczam, że zapoznałem się z treścią klauzuli i dobrowolnie wyrażam zgodę na przetwarzanie moich danych.' })}
+                                              {t('auto.oświadczam_że_zapoznałem_się_z_treś', { defaultValue: i18n.t('auto.oswiadczam_ze_zapoznalem', { defaultValue: "Oświadczam, że zapoznałem się z treścią klauzuli i dobrowolnie wyrażam zgodę na przetwarzanie moich danych." }) })}
                                             </span>
             </label>
 
@@ -115,7 +115,7 @@ export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {
             >
               {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={18} className="group-hover:rotate-6 transition-transform" />}
               
-                                        {t('auto.zatwierdź_i_kontynuuj', { defaultValue: 'Zatwierdź i Kontynuuj' })}
+                                        {t('auto.zatwierdź_i_kontynuuj', { defaultValue: i18n.t('auto.zatwierdz_i_kontynuuj', { defaultValue: "Zatwierdź i Kontynuuj" }) })}
                                       </button>
             <p className="text-[9px] text-center text-slate-400 font-black uppercase tracking-widest opacity-50">
               

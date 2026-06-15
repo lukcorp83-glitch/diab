@@ -3,7 +3,7 @@ const { Project, SyntaxKind, Node } = require('ts-morph');
 const { translate } = require('bing-translate-api');
 
 const project = new Project();
-project.addSourceFilesAtPaths("src/workers/glikosense.worker.ts");
+project.addSourceFilesAtPaths("src/**/*.{ts,tsx}");
 
 const plFile = 'src/locales/pl/translation.json';
 const enFile = 'src/locales/en/translation.json';

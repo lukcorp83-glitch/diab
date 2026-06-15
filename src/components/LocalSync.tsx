@@ -52,10 +52,10 @@ export default function LocalSync({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      toast.success(i18n.t('auto.zapisano_kopie_zapasowa', { defaultValue: "Zapisano kopię zapasową" }));
+      toast.success(i18n.t('auto.zapisano_kopie_zapasowa', { defaultValue: i18n.t('auto.zapisano_kopie_zapasowa', { defaultValue: "Zapisano kopię zapasową" }) }));
     } catch (e) {
       console.error(e);
-      toast.error(i18n.t('auto.blad_podczas_eksportu', { defaultValue: "Błąd podczas eksportu." }));
+      toast.error(i18n.t('auto.blad_podczas_eksportu', { defaultValue: i18n.t('auto.blad_podczas_eksportu', { defaultValue: "Błąd podczas eksportu." }) }));
     } finally {
       setLoading(false);
     }
@@ -88,13 +88,13 @@ export default function LocalSync({
         );
       }
 
-      toast.success(i18n.t('auto.pomyslnie_zaimportowano_odswie', { defaultValue: "Pomyślnie zaimportowano. Odświeżam..." }));
+      toast.success(i18n.t('auto.pomyslnie_zaimportowano_odswie', { defaultValue: i18n.t('auto.pomyslnie_zaimportowano_o', { defaultValue: "Pomyślnie zaimportowano. Odświeżam..." }) }));
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (err) {
       console.error(err);
-      toast.error(i18n.t('auto.blad_formatu_pliku_lub_blad_im', { defaultValue: "Błąd formatu pliku lub błąd importu" }));
+      toast.error(i18n.t('auto.blad_formatu_pliku_lub_blad_im', { defaultValue: i18n.t('auto.blad_formatu_pliku_lub_bl', { defaultValue: "Błąd formatu pliku lub błąd importu" }) }));
     } finally {
       setLoading(false);
       e.target.value = ''; // reset
@@ -109,7 +109,7 @@ export default function LocalSync({
       </div>
       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-2">
         
-                      {t('auto.bezpieczny_sposób_na_przeniesienie_', { defaultValue: 'Bezpieczny sposób na przeniesienie dancyh (ustawień, dziennika, układu kafelków) między przeglądarką (PWA) a aplikacją (APK) bez użycia chmury. Dodatkowo działa to jako lokalny backup w razie awarii.' })}
+                      {t('auto.bezpieczny_sposób_na_przeniesienie_', { defaultValue: i18n.t('auto.bezpieczny_sposob_na_prze', { defaultValue: "Bezpieczny sposób na przeniesienie dancyh (ustawień, dziennika, układu kafelków) między przeglądarką (PWA) a aplikacją (APK) bez użycia chmury. Dodatkowo działa to jako lokalny backup w razie awarii." }) })}
                     </p>
 
       <div className="grid grid-cols-2 gap-2 mt-2">

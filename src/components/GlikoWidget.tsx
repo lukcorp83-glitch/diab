@@ -220,7 +220,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Droplet size={12} className="text-accent-500" />
-                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_jednostek', { defaultValue: 'Dziś Jednostek' })}</span>
+                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_jednostek', { defaultValue: i18n.t('auto.dzis_jednostek', { defaultValue: "Dziś Jednostek" }) })}</span>
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-slate-800 dark:text-white">{todayStats.insulin.toFixed(1)}</span>
@@ -236,7 +236,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Utensils size={12} className="text-amber-500" />
-                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_węglowodany', { defaultValue: 'Dziś Węglowodany' })}</span>
+                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_węglowodany', { defaultValue: i18n.t('auto.dzis_weglowodany', { defaultValue: "Dziś Węglowodany" }) })}</span>
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-slate-800 dark:text-white">{todayStats.carbs}</span>

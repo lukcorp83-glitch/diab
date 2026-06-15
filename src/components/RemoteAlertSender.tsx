@@ -15,7 +15,7 @@ export default function RemoteAlertSender({ user }: { user: any }) {
   const sendAlert = async (message: string, type: 'insulin' | 'food' | 'urgent' | 'custom') => {
     const uid = getEffectiveUid(user);
     if (!uid) {
-      toast.error(i18n.t('auto.brak_powiazanego_konta_uid', { defaultValue: "Brak powiązanego konta UID." }));
+      toast.error(i18n.t('auto.brak_powiazanego_konta_uid', { defaultValue: i18n.t('auto.brak_powiazanego_konta_ui', { defaultValue: "Brak powiązanego konta UID." }) }));
       return;
     }
 
@@ -35,11 +35,11 @@ export default function RemoteAlertSender({ user }: { user: any }) {
         acknowledged: false
       });
 
-      toast.success(i18n.t('auto.alert_wyslany_na_sparowane_urz', { defaultValue: "Alert wysłany na sparowane urządzenia!" }));
+      toast.success(i18n.t('auto.alert_wyslany_na_sparowane_urz', { defaultValue: i18n.t('auto.alert_wyslany_na_sparowan', { defaultValue: "Alert wysłany na sparowane urządzenia!" }) }));
       if (type === 'custom') setCustomMessage('');
     } catch (e) {
       console.error(e);
-      toast.error(i18n.t('auto.nie_udalo_sie_wyslac_alertu', { defaultValue: "Nie udało się wysłać alertu." }));
+      toast.error(i18n.t('auto.nie_udalo_sie_wyslac_alertu', { defaultValue: i18n.t('auto.nie_udalo_sie_wyslac_aler', { defaultValue: "Nie udało się wysłać alertu." }) }));
     } finally {
       setLoading(false);
     }
@@ -53,12 +53,12 @@ export default function RemoteAlertSender({ user }: { user: any }) {
       </div>
       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-2">
         
-                      {t('auto.wyślij_pełnoekranowy_alert_dźwiękow', { defaultValue: 'Wyślij pełnoekranowy alert dźwiękowy na wszystkie sparowane telefony (np. do dziecka).' })}
+                      {t('auto.wyślij_pełnoekranowy_alert_dźwiękow', { defaultValue: i18n.t('auto.wyslij_pelnoekranowy_aler', { defaultValue: "Wyślij pełnoekranowy alert dźwiękowy na wszystkie sparowane telefony (np. do dziecka)." }) })}
                     </p>
 
       <div className="grid grid-cols-2 gap-2">
         <button
-          onClick={() => sendAlert(i18n.t('auto.podaj_1_jednostke_insuliny', { defaultValue: "Podaj 1 jednostkę insuliny!" }), 'insulin')}
+          onClick={() => sendAlert(i18n.t('auto.podaj_1_jednostke_insuliny', { defaultValue: i18n.t('auto.podaj_1_jednostke_insulin', { defaultValue: "Podaj 1 jednostkę insuliny!" }) }), 'insulin')}
           disabled={loading}
           className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
         >
@@ -67,12 +67,12 @@ export default function RemoteAlertSender({ user }: { user: any }) {
         </button>
 
         <button
-          onClick={() => sendAlert(i18n.t('auto.zjedz_szybko_10g_weglowodanow', { defaultValue: "Zjedz szybko 10g węglowodanów!" }), 'food')}
+          onClick={() => sendAlert(i18n.t('auto.zjedz_szybko_10g_weglowodanow', { defaultValue: i18n.t('auto.zjedz_szybko_10g_weglowod', { defaultValue: "Zjedz szybko 10g węglowodanów!" }) }), 'food')}
           disabled={loading}
           className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
         >
           <Apple size={24} />
-          <span className="text-[9px] font-black uppercase text-center">{t('auto.zjedz_coś', { defaultValue: 'Zjedz coś' })}<br/>{t('auto.szybko', { defaultValue: 'Szybko' })}</span>
+          <span className="text-[9px] font-black uppercase text-center">{t('auto.zjedz_coś', { defaultValue: i18n.t('auto.zjedz_cos', { defaultValue: "Zjedz coś" }) })}<br/>{t('auto.szybko', { defaultValue: 'Szybko' })}</span>
         </button>
       </div>
 
@@ -81,7 +81,7 @@ export default function RemoteAlertSender({ user }: { user: any }) {
           type="text" 
           value={customMessage}
           onChange={e => setCustomMessage(e.target.value)}
-          placeholder={t('auto.własna_wiadomość', { defaultValue: 'Własna wiadomość...' })}
+          placeholder={t('auto.własna_wiadomość', { defaultValue: i18n.t('auto.wlasna_wiadomosc', { defaultValue: "Własna wiadomość..." }) })}
           className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-white outline-none focus:border-indigo-500 transition-all"
         />
         <button

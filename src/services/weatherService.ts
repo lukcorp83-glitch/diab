@@ -108,11 +108,11 @@ export async function fetchCurrentWeather(lat?: number, lon?: number, force: boo
 // WMO Weather interpretation codes
 function getWeatherCondition(code: number): string {
   if (code === 0) return 'Czyste niebo';
-  if (code === 1 || code === 2 || code === 3) return i18n.t('auto.czesciowo_zachmurzone', { defaultValue: "Częściowo zachmurzone" });
-  if (code === 45 || code === 48) return i18n.t('auto.mgla', { defaultValue: "Mgła" });
-  if (code >= 51 && code <= 57) return i18n.t('auto.mzawka', { defaultValue: "Mżawka" });
+  if (code === 1 || code === 2 || code === 3) return i18n.t('auto.czesciowo_zachmurzone', { defaultValue: i18n.t('auto.czesciowo_zachmurzone', { defaultValue: "Częściowo zachmurzone" }) });
+  if (code === 45 || code === 48) return i18n.t('auto.mgla', { defaultValue: i18n.t('auto.mgla', { defaultValue: "Mgła" }) });
+  if (code >= 51 && code <= 57) return i18n.t('auto.mzawka', { defaultValue: i18n.t('auto.mzawka', { defaultValue: "Mżawka" }) });
   if (code >= 61 && code <= 67) return 'Deszcz';
-  if (code >= 71 && code <= 77) return i18n.t('auto.snieg', { defaultValue: "Śnieg" });
+  if (code >= 71 && code <= 77) return i18n.t('auto.snieg', { defaultValue: i18n.t('auto.snieg', { defaultValue: "Śnieg" }) });
   if (code >= 80 && code <= 82) return 'Przelotny deszcz';
   if (code >= 95) return 'Burza';
   return 'Nieznana';

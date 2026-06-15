@@ -47,7 +47,7 @@ export const useUpdateCheck = () => {
         });
       }
     } catch (err) {
-      console.error(i18n.t('auto.blad_sprawdzania_aktualizacji', { defaultValue: "Błąd sprawdzania aktualizacji:" }), err);
+      console.error(i18n.t('auto.blad_sprawdzania_aktualizacji', { defaultValue: i18n.t('auto.blad_sprawdzania_aktualiz', { defaultValue: "Błąd sprawdzania aktualizacji:" }) }), err);
     } finally {
       setChecking(false);
     }

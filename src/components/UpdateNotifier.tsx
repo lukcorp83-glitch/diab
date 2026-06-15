@@ -41,7 +41,7 @@ export const UpdateNotifier: React.FC = () => {
               </div>
               <h3 className="font-bold text-white text-lg tracking-wide drop-shadow-md">
                 
-                                              {t('auto.dostępna_aktualizacja', { defaultValue: 'Dostępna Aktualizacja!' })}
+                                              {t('auto.dostępna_aktualizacja', { defaultValue: i18n.t('auto.dostepna_aktualizacja', { defaultValue: "Dostępna Aktualizacja!" }) })}
                                             </h3>
             </div>
             
@@ -76,7 +76,7 @@ export const UpdateNotifier: React.FC = () => {
                 className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors"
               >
                 
-                                              {t('auto.później', { defaultValue: 'Później' })}
+                                              {t('auto.później', { defaultValue: i18n.t('auto.pozniej', { defaultValue: "Później" }) })}
                                             </button>
               <button
                 onClick={handleDownload}

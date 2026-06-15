@@ -133,26 +133,26 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
 export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "main_stats", name: i18n.t('auto.podsumowanie_glikemii_gliko', { defaultValue: 'Podsumowanie glikemii (Gliko)' }), visible: true, size: "2x2", canResize: false, canChangeShape: false },
   { id: "neural_pet", name: i18n.t('auto.glikosense_ai_zwierzak', { defaultValue: 'GlikoSense AI & Zwierzak' }), visible: true, size: "2x2", canResize: false, canChangeShape: false },
-  { id: "weather", name: i18n.t('auto.wpływ_pogody_na_insulinę', { defaultValue: 'Wpływ pogody na insulinę' }), visible: true, size: "2x1", canResize: true, canChangeShape: true },
-  { id: "sensor_reminder", name: i18n.t('auto.wymiana_sensora_urządzenie', { defaultValue: 'Wymiana sensora (Urządzenie)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
-  { id: "infusion_reminder", name: i18n.t('auto.wymiana_wkłucia_urządzenie', { defaultValue: 'Wymiana wkłucia (Urządzenie)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
-  { id: "health_connect", name: i18n.t('auto.aktywność_health_connect', { defaultValue: 'Aktywność (Health Connect)' }), visible: false, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
-  { id: "assistant", name: i18n.t('auto.skrót_do_asystenta_ai', { defaultValue: 'Skrót do Asystenta AI' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "weather", name: i18n.t('auto.wpływ_pogody_na_insulinę', { defaultValue: i18n.t('auto.wplyw_pogody_na_insuline', { defaultValue: "Wpływ pogody na insulinę" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: true },
+  { id: "sensor_reminder", name: i18n.t('auto.wymiana_sensora_urządzenie', { defaultValue: i18n.t('auto.wymiana_sensora_urzadzeni', { defaultValue: "Wymiana sensora (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
+  { id: "infusion_reminder", name: i18n.t('auto.wymiana_wkłucia_urządzenie', { defaultValue: i18n.t('auto.wymiana_wklucia_urzadzeni', { defaultValue: "Wymiana wkłucia (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
+  { id: "health_connect", name: i18n.t('auto.aktywność_health_connect', { defaultValue: i18n.t('auto.aktywnosc_health_connect', { defaultValue: "Aktywność (Health Connect)" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
+  { id: "assistant", name: i18n.t('auto.skrót_do_asystenta_ai', { defaultValue: i18n.t('auto.skrot_do_asystenta_ai', { defaultValue: "Skrót do Asystenta AI" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "tips", name: i18n.t('auto.porady_i_ciekawostki_didyouknow', { defaultValue: 'Porady i ciekawostki (DidYouKnow)' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "glikosense_suggestions", name: i18n.t('auto.sugestie_i_analizy_glikosense', { defaultValue: 'Sugestie i analizy GlikoSense' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
-  { id: "shortcuts", name: i18n.t('auto.szybkie_akcje_i_ulubione_posiłki', { defaultValue: 'Szybkie akcje i ulubione posiłki' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "shortcuts", name: i18n.t('auto.szybkie_akcje_i_ulubione_posiłki', { defaultValue: i18n.t('auto.szybkie_akcje_i_ulubione', { defaultValue: "Szybkie akcje i ulubione posiłki" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "quick_measurement", name: i18n.t('auto.szybki_pomiar_glikemii_przycisk', { defaultValue: 'Szybki pomiar glikemii (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
   { id: "quick_bolus", name: i18n.t('auto.zapis_bolusa_kalkulator_przycisk', { defaultValue: 'Zapis bolusa / kalkulator (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
-  { id: "history_measurements", name: i18n.t('auto.historia_ostatnich_pomiarów', { defaultValue: 'Historia ostatnich pomiarów' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
-  { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: 'Historia leczenia i posiłków' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "history_measurements", name: i18n.t('auto.historia_ostatnich_pomiarów', { defaultValue: i18n.t('auto.historia_ostatnich_pomiar', { defaultValue: "Historia ostatnich pomiarów" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "pump", name: i18n.t('auto.status_pompy_insulinowej_xdrip', { defaultValue: 'Status pompy insulinowej / xDrip' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "daily_tir", name: i18n.t('auto.dzienny_tir_wykres', { defaultValue: 'Dzienny TIR (Wykres)' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
   { id: "quick_correction", name: i18n.t('auto.sugerowana_szybka_korekta_alerty', { defaultValue: 'Sugerowana szybka korekta (Alerty)' }), visible: false, size: "2x2", canResize: true, canChangeShape: false },
-  { id: "training_widget", name: i18n.t('auto.trening_i_aktywność_fizyczna', { defaultValue: 'Trening i Aktywność fizyczna' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "training_widget", name: i18n.t('auto.trening_i_aktywność_fizyczna', { defaultValue: i18n.t('auto.trening_i_aktywnosc_fizyc', { defaultValue: "Trening i Aktywność fizyczna" }) }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
   { id: "medications", name: i18n.t('auto.leki_przypomnienia', { defaultValue: 'Leki (Przypomnienia)' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
-  { id: "carbs_balance", name: i18n.t('auto.dzienny_bilans_węglowodanów', { defaultValue: 'Dzienny bilans węglowodanów' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
+  { id: "carbs_balance", name: i18n.t('auto.dzienny_bilans_węglowodanów', { defaultValue: i18n.t('auto.dzienny_bilans_weglowodan', { defaultValue: "Dzienny bilans węglowodanów" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
   { id: "hydration", name: i18n.t('auto.nawodnienie_woda', { defaultValue: 'Nawodnienie (Woda)' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
-  { id: "site_rotation", name: i18n.t('auto.rotacja_wkłuć', { defaultValue: 'Rotacja wkłuć' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "site_rotation", name: i18n.t('auto.rotacja_wkłuć', { defaultValue: i18n.t('auto.rotacja_wkluc', { defaultValue: "Rotacja wkłuć" }) }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
 ];
 
 interface DashboardProps {
@@ -509,7 +509,7 @@ export default function Dashboard({
       setInlineBgValue("");
     } catch (err) {
       console.error(err);
-      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }));
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }) }));
     }
   };
 
@@ -519,7 +519,7 @@ export default function Dashboard({
     const dose = parseFloat(inlineBolusDose);
     const carbs = parseFloat(inlineBolusCarbs) || 0;
     if (isNaN(dose) && isNaN(carbs)) {
-      toast.error(i18n.t('auto.wpisz_dawke_insuliny_lub_weglo', { defaultValue: "Wpisz dawkę insuliny lub węglowodany!" }));
+      toast.error(i18n.t('auto.wpisz_dawke_insuliny_lub_weglo', { defaultValue: i18n.t('auto.wpisz_dawke_insuliny_lub', { defaultValue: "Wpisz dawkę insuliny lub węglowodany!" }) }));
       return;
     }
     Haptics.medium();
@@ -542,7 +542,7 @@ export default function Dashboard({
             id: Math.random().toString(),
             timestamp: Date.now(),
             type: 'meal', createdAt: serverTimestamp(), source: 'manual', value: carbs,
-            notes: inlineBolusNotes ? `Posiłek: ${inlineBolusNotes}` : i18n.t('auto.szybki_posilek_z_kafelka', { defaultValue: "Szybki posiłek z kafelka" })
+            notes: inlineBolusNotes ? i18n.t('auto.posilek_var0', { defaultValue: "Posiłek: {{var0}}", var0: inlineBolusNotes }) : i18n.t('auto.szybki_posilek_z_kafelka', { defaultValue: i18n.t('auto.szybki_posilek_z_kafelka', { defaultValue: "Szybki posiłek z kafelka" }) })
           }
         );
       }
@@ -552,7 +552,7 @@ export default function Dashboard({
       setInlineBolusNotes("");
     } catch (err) {
       console.error(err);
-      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }));
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }) }));
     }
   };
 
@@ -643,7 +643,7 @@ export default function Dashboard({
       }
     }
 
-    toast.success(i18n.t('auto.przywrocono_domyslny_uklad_zgo', { defaultValue: "Przywrócono domyślny układ zgodny z najnowszym wyglądem Diacontrol!" }));
+    toast.success(i18n.t('auto.przywrocono_domyslny_uklad_zgo', { defaultValue: i18n.t('auto.przywrocono_domyslny_ukla', { defaultValue: "Przywrócono domyślny układ zgodny z najnowszym wyglądem Diacontrol!" }) }));
   };
 
   useEffect(() => {
@@ -692,7 +692,7 @@ export default function Dashboard({
           {
             type: "meal", createdAt: serverTimestamp(), source: "manual", value: s.carbs,
             timestamp: Date.now(),
-            notes: `Szybki wybór: ${s.name}`,
+            notes: i18n.t('auto.szybki_wybor_var0', { defaultValue: "Szybki wybór: {{var0}}", var0: s.name }),
             items: [{ name: s.name, carbs: s.carbs }],
           },
         );
@@ -751,13 +751,13 @@ export default function Dashboard({
       if (morningLogs.some((l) => l.value > 150)) {
         insights.push({
           type: "dawn",
-          text: i18n.t('auto.możliwy_efekt_brzasku_skoki_rano', { defaultValue: 'Możliwy efekt brzasku (skoki rano)' }),
+          text: i18n.t('auto.możliwy_efekt_brzasku_skoki_rano', { defaultValue: i18n.t('auto.mozliwy_efekt_brzasku_sko', { defaultValue: "Możliwy efekt brzasku (skoki rano)" }) }),
         });
       }
 
       const lows = glucoseLogs.filter((l) => l.value < 70);
       if (lows.length > 2) {
-        insights.push({ type: "lows", text: i18n.t('auto.zbyt_wiele_niskich_cukrów', { defaultValue: 'Zbyt wiele niskich cukrów' }) });
+        insights.push({ type: "lows", text: i18n.t('auto.zbyt_wiele_niskich_cukrów', { defaultValue: i18n.t('auto.zbyt_wiele_niskich_cukrow', { defaultValue: "Zbyt wiele niskich cukrów" }) }) });
       }
 
       const postMeal = logs.filter((l) => l.type === "meal").slice(0, 5);
@@ -770,7 +770,7 @@ export default function Dashboard({
         if (afterMeal && afterMeal.value > 180) {
           insights.push({
             type: "postMeal",
-            text: i18n.t('auto.wysoki_cukier_po_ostatnim_posiłku', { defaultValue: 'Wysoki cukier po ostatnim posiłku' }),
+            text: i18n.t('auto.wysoki_cukier_po_ostatnim_posiłku', { defaultValue: i18n.t('auto.wysoki_cukier_po_ostatnim', { defaultValue: "Wysoki cukier po ostatnim posiłku" }) }),
           });
         }
       });
@@ -817,7 +817,7 @@ export default function Dashboard({
       return {
         icon: <ChevronRight className="-rotate-90" />,
         color: "text-rose-500",
-        text: i18n.t('auto.szybko_rośnie', { defaultValue: 'Szybko rośnie' }),
+        text: i18n.t('auto.szybko_rośnie', { defaultValue: i18n.t('auto.szybko_rosnie', { defaultValue: "Szybko rośnie" }) }),
         direction: "UP_FAST",
         deltaText,
         rawDiff: diff
@@ -826,7 +826,7 @@ export default function Dashboard({
       return {
         icon: <ChevronRight className="-rotate-45" />,
         color: "text-rose-400",
-        text: i18n.t('auto.rośnie', { defaultValue: 'Rośnie' }),
+        text: i18n.t('auto.rośnie', { defaultValue: i18n.t('auto.rosnie', { defaultValue: "Rośnie" }) }),
         direction: "UP",
         deltaText,
         rawDiff: diff
@@ -994,7 +994,7 @@ export default function Dashboard({
                                     {t('auto.sugerowana_szybka_korekta_nieaktywn', { defaultValue: '⚡ Sugerowana Szybka Korekta [Nieaktywna]' })}
                                     <p className="text-[10px] text-slate-400 dark:text-slate-600 font-normal mt-1">
                   
-                                          {t('auto.pojawia_się_automatycznie_grawitacy', { defaultValue: 'Pojawia się automatycznie grawitacyjnie powyżej celu glikemii.' })}
+                                          {t('auto.pojawia_się_automatycznie_grawitacy', { defaultValue: i18n.t('auto.pojawia_sie_automatycznie', { defaultValue: "Pojawia się automatycznie grawitacyjnie powyżej celu glikemii." }) })}
                                         </p>
               </div>
             );
@@ -1104,7 +1104,7 @@ export default function Dashboard({
                                     {t('auto.sensor_glikemii_brak_daty', { defaultValue: '📡 Sensor glikemii [Brak daty]' })}
                                     <p className="text-[9px] text-slate-400 dark:text-slate-600 font-normal mt-1">
                   
-                                          {t('auto.ustaw_datę_sensora_w_profilu', { defaultValue: 'Ustaw datę sensora w Profilu.' })}
+                                          {t('auto.ustaw_datę_sensora_w_profilu', { defaultValue: i18n.t('auto.ustaw_date_sensora_w_prof', { defaultValue: "Ustaw datę sensora w Profilu." }) })}
                                         </p>
               </div>
             );
@@ -1162,10 +1162,10 @@ export default function Dashboard({
             return (
               <div className="mx-2 p-4 bg-slate-500/10 dark:bg-slate-950/20 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-[10px] text-slate-400 dark:text-slate-500 font-bold font-display flex flex-col justify-center items-center min-h-[140px] w-full">
                 
-                                    {t('auto.wkłucie_brak_daty', { defaultValue: '💧 Wkłucie [Brak daty]' })}
+                                    {t('auto.wkłucie_brak_daty', { defaultValue: i18n.t('auto.wklucie_brak_daty', { defaultValue: "💧 Wkłucie [Brak daty]" }) })}
                                     <p className="text-[9px] text-slate-400 dark:text-slate-600 font-normal mt-1">
                   
-                                          {t('auto.ustaw_datę_wkłucia_w_profilu', { defaultValue: 'Ustaw datę wkłucia w Profilu.' })}
+                                          {t('auto.ustaw_datę_wkłucia_w_profilu', { defaultValue: i18n.t('auto.ustaw_date_wklucia_w_prof', { defaultValue: "Ustaw datę wkłucia w Profilu." }) })}
                                         </p>
               </div>
             );
@@ -1187,7 +1187,7 @@ export default function Dashboard({
             <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
             <div className="flex justify-between items-start w-full">
               <div className="p-1.5 bg-teal-500/10 rounded-xl border border-teal-500/20 text-teal-500"><Droplets size={14} /></div>
-              <span className="text-[8px] font-black text-teal-500 uppercase tracking-widest bg-teal-500/5 py-1 px-2 rounded-full border border-teal-500/10">{t('auto.wkłucie', { defaultValue: 'Wkłucie' })}</span>
+              <span className="text-[8px] font-black text-teal-500 uppercase tracking-widest bg-teal-500/5 py-1 px-2 rounded-full border border-teal-500/10">{t('auto.wkłucie', { defaultValue: i18n.t('auto.wklucie', { defaultValue: "Wkłucie" }) })}</span>
             </div>
             <div className={isInfCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
@@ -1266,7 +1266,7 @@ export default function Dashboard({
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-tight truncate font-display">
                   {isAssCompact
                     ? "Inteligentna analityka predykcyjna."
-                    : i18n.t('auto.zadaj_pytanie_swoim_opiekunom', { defaultValue: "Zadaj pytanie swoim opiekunom AI o wyniki, dietę lub trendy glikemii." })}
+                    : i18n.t('auto.zadaj_pytanie_swoim_opiekunom', { defaultValue: i18n.t('auto.zadaj_pytanie_swoim_opiek', { defaultValue: "Zadaj pytanie swoim opiekunom AI o wyniki, dietę lub trendy glikemii." }) })}
                 </p>
               </div>
               {!isAssCompact && (
@@ -1312,7 +1312,7 @@ export default function Dashboard({
                 <p className="font-black text-xl dark:text-white font-display text-left tracking-tight leading-none text-emerald-600 dark:text-emerald-400">
                   {patternInsights.length + 1}
                 </p>
-                <span className="text-[7px] opacity-60 uppercase font-black text-slate-400 block text-left mt-0.5 leading-none">{t('auto.wskazówki_ai', { defaultValue: 'Wskazówki AI' })}</span>
+                <span className="text-[7px] opacity-60 uppercase font-black text-slate-400 block text-left mt-0.5 leading-none">{t('auto.wskazówki_ai', { defaultValue: i18n.t('auto.wskazowki_ai', { defaultValue: "Wskazówki AI" }) })}</span>
               </div>
               <p className="text-[7px] font-black text-emerald-500 uppercase tracking-tighter truncate font-display text-left">
                 
@@ -1342,7 +1342,7 @@ export default function Dashboard({
                     <span className="truncate">{patternInsights[0].text}</span>
                   </div>
                 ) : (
-                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-600 italic">{t('auto.cukry_są_stabilne', { defaultValue: 'Cukry są stabilne!' })}</div>
+                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-600 italic">{t('auto.cukry_są_stabilne', { defaultValue: i18n.t('auto.cukry_sa_stabilne', { defaultValue: "Cukry są stabilne!" }) })}</div>
                 )}
               </div>
 
@@ -1429,7 +1429,7 @@ export default function Dashboard({
             toast.success(`Dodano posiłek: ${shortcut.name} (${shortcut.carbs}g)`);
           } catch (err) {
             console.error("Error quick adding shortcut:", err);
-            toast.error(i18n.t('auto.wystapil_blad', { defaultValue: "Wystąpił błąd" }));
+            toast.error(i18n.t('auto.wystapil_blad', { defaultValue: i18n.t('auto.wystapil_blad', { defaultValue: "Wystąpił błąd" }) }));
           }
         };
 
@@ -1447,7 +1447,7 @@ export default function Dashboard({
             >
               <span className="text-2xl mb-1">🍔</span>
               <h4 className="text-[10px] font-black uppercase tracking-wider leading-none mb-1">{t('auto.brak_moich_ulubionych', { defaultValue: 'Brak Moich Ulubionych' })}</h4>
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{t('auto.dotknij_tutaj_aby_dodać_ulubione_po', { defaultValue: 'Dotknij tutaj, aby dodać ulubione posiłki w Profilu' })}</span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{t('auto.dotknij_tutaj_aby_dodać_ulubione_po', { defaultValue: i18n.t('auto.dotknij_tutaj_aby_dodac_u', { defaultValue: "Dotknij tutaj, aby dodać ulubione posiłki w Profilu" }) })}</span>
             </div>
           );
         }
@@ -1455,7 +1455,7 @@ export default function Dashboard({
         return (
           <div className="glass-card !p-6 flex flex-col gap-4 border border-white/50 dark:border-white/5 shadow-lg w-full h-full">
             <div className="flex justify-between items-center px-1">
-              <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">{t('auto.moje_ulubione_posiłki', { defaultValue: 'MOJE ULUBIONE POSIŁKI' })}</h4>
+              <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">{t('auto.moje_ulubione_posiłki', { defaultValue: i18n.t('auto.moje_ulubione_posilki', { defaultValue: "MOJE ULUBIONE POSIŁKI" }) })}</h4>
               <button 
                 onClick={() => {
                   if (!isEditingLayout) {
@@ -1480,7 +1480,7 @@ export default function Dashboard({
                   <span className="text-2xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
                   <div className="flex flex-col items-start text-left">
                     <span className="leading-tight text-slate-800 dark:text-slate-200">{s.name}</span>
-                    <span className="text-[9px] opacity-50 lowercase font-bold">{Number(s.carbs).toFixed(1)}{t('auto.g_węgli', { defaultValue: 'g węgli' })}</span>
+                    <span className="text-[9px] opacity-50 lowercase font-bold">{Number(s.carbs).toFixed(1)}{t('auto.g_węgli', { defaultValue: i18n.t('auto.g_wegli', { defaultValue: "g węgli" }) })}</span>
                   </div>
                 </button>
               ))}
@@ -1547,10 +1547,10 @@ export default function Dashboard({
                 <div>
                   <h4 className="font-black text-rose-500 text-[10px] uppercase tracking-wide leading-none animate-pulse mb-0.5">{t('auto.trwa_trening', { defaultValue: 'Trwa Trening!' })}</h4>
                   <p className="font-bold text-slate-800 dark:text-white leading-tight font-display truncate text-sm">
-                    {SPORTS.find(s => s.id === settings.activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" })}
+                    {SPORTS.find(s => s.id === settings.activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" }) })}
                   </p>
                   {!isTrCompact && (
-                    <p className="text-[8px] text-slate-400 font-bold">{t('auto.czas_trwania', { defaultValue: 'Czas trwania:' })} {settings.activeTraining.duration}  {t('auto.min_kliknij_aby_zarządzać', { defaultValue: 'min • Kliknij aby zarządzać' })}</p>
+                    <p className="text-[8px] text-slate-400 font-bold">{t('auto.czas_trwania', { defaultValue: 'Czas trwania:' })} {settings.activeTraining.duration}  {t('auto.min_kliknij_aby_zarządzać', { defaultValue: i18n.t('auto.min_kliknij_aby_zarzadzac', { defaultValue: "min • Kliknij aby zarządzać" }) })}</p>
                   )}
                 </div>
               ) : (
@@ -1559,7 +1559,7 @@ export default function Dashboard({
                     {isTrCompact ? "Ruch to zdrowie" : "Rozpocznij Trening"}
                   </h4>
                   <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold leading-tight mt-0.5">
-                    {isTrCompact ? i18n.t('auto.rejestruj_aktywnosc', { defaultValue: "Rejestruj aktywność" }) : i18n.t('auto.dodaj_wysilek_i_kontroluj_spad', { defaultValue: "Dodaj wysiłek i kontroluj spadek zapotrzebowania na insulinę." })}
+                    {isTrCompact ? i18n.t('auto.rejestruj_aktywnosc', { defaultValue: i18n.t('auto.rejestruj_aktywnosc', { defaultValue: "Rejestruj aktywność" }) }) : i18n.t('auto.dodaj_wysilek_i_kontroluj_spad', { defaultValue: i18n.t('auto.dodaj_wysilek_i_kontroluj', { defaultValue: "Dodaj wysiłek i kontroluj spadek zapotrzebowania na insulinę." }) })}
                   </p>
                 </div>
               )}
@@ -1570,7 +1570,7 @@ export default function Dashboard({
             )}
             {isTrBig && !hasActiveTraining && (
               <div className="mt-3 border-t border-slate-100 dark:border-white/5 pt-3">
-                <p className="text-[8px] uppercase tracking-wider text-slate-400 font-black mb-1.5">{t('auto.dostępne_dyscypliny', { defaultValue: 'DOSTĘPNE DYSCYPLINY:' })}</p>
+                <p className="text-[8px] uppercase tracking-wider text-slate-400 font-black mb-1.5">{t('auto.dostępne_dyscypliny', { defaultValue: i18n.t('auto.dostepne_dyscypliny', { defaultValue: "DOSTĘPNE DYSCYPLINY:" }) })}</p>
                 <div className="flex flex-wrap gap-1">
                   {SPORTS.slice(0, 4).map(s => (
                     <span key={s.id} className="text-[9px] font-bold bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md flex items-center gap-1"><s.icon size={11} /> {s.name}</span>
@@ -1604,7 +1604,7 @@ export default function Dashboard({
               </div>
               <div className="text-center pointer-events-none">
                 <span className="font-black text-[10px] uppercase tracking-widest font-display block">{t('auto.pomiar', { defaultValue: 'Pomiar' })}</span>
-                <span className="text-[8px] text-white/70 font-bold leading-none">{t('auto.ręczny_wynik', { defaultValue: 'Ręczny wynik' })}</span>
+                <span className="text-[8px] text-white/70 font-bold leading-none">{t('auto.ręczny_wynik', { defaultValue: i18n.t('auto.reczny_wynik', { defaultValue: "Ręczny wynik" }) })}</span>
               </div>
             </button>
           );
@@ -1679,7 +1679,7 @@ export default function Dashboard({
                 </div>
                 <div>
                   <span className="font-black text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-300 font-display block leading-none">{t('auto.dodaj_pomiar', { defaultValue: 'Dodaj Pomiar' })}</span>
-                  <span className="text-[8px] text-slate-400 font-bold leading-none">{t('auto.zapisz_glukozę_natychmiast', { defaultValue: 'Zapisz glukozę natychmiast' })}</span>
+                  <span className="text-[8px] text-slate-400 font-bold leading-none">{t('auto.zapisz_glukozę_natychmiast', { defaultValue: i18n.t('auto.zapisz_glukoze_natychmias', { defaultValue: "Zapisz glukozę natychmiast" }) })}</span>
                 </div>
               </div>
             </div>
@@ -1717,7 +1717,7 @@ export default function Dashboard({
 
               {isFullHeight && (
                 <div className="space-y-1.5 mt-1">
-                  <p className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.szybki_wybór', { defaultValue: 'Szybki wybór:' })}</p>
+                  <p className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.szybki_wybór', { defaultValue: i18n.t('auto.szybki_wybor', { defaultValue: "Szybki wybór:" }) })}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {[80, 100, 120, 150, 180, 220].map((v) => (
                       <button
@@ -1804,7 +1804,7 @@ export default function Dashboard({
                     <div className="relative">
                       <input
                         type="number"
-                        placeholder={t('auto.węgle', { defaultValue: 'Węgle' })}
+                        placeholder={t('auto.węgle', { defaultValue: i18n.t('auto.wegle', { defaultValue: "Węgle" }) })}
                         value={inlineBolusCarbs}
                         onChange={(e) => handleInlineBolusCarbsChange(e.target.value)}
                         disabled={isEditingLayout}
@@ -1850,8 +1850,8 @@ export default function Dashboard({
                   <Zap size={16} />
                 </div>
                 <div>
-                  <span className="font-black text-[10px] uppercase tracking-wider text-white font-display block leading-none">{t('auto.zapisz_bolus_i_posiłek', { defaultValue: 'Zapisz Bolus i Posiłek' })}</span>
-                  <span className="text-[8px] text-white/70 font-bold leading-none">{t('auto.wpisz_dawkę_i_węglowodany', { defaultValue: 'Wpisz dawkę i węglowodany' })}</span>
+                  <span className="font-black text-[10px] uppercase tracking-wider text-white font-display block leading-none">{t('auto.zapisz_bolus_i_posiłek', { defaultValue: i18n.t('auto.zapisz_bolus_i_posilek', { defaultValue: "Zapisz Bolus i Posiłek" }) })}</span>
+                  <span className="text-[8px] text-white/70 font-bold leading-none">{t('auto.wpisz_dawkę_i_węglowodany', { defaultValue: i18n.t('auto.wpisz_dawke_i_weglowodany', { defaultValue: "Wpisz dawkę i węglowodany" }) })}</span>
                 </div>
               </div>
             </div>
@@ -1877,7 +1877,7 @@ export default function Dashboard({
                 <div className="relative">
                   <input
                     type="number"
-                    placeholder={t('auto.węgle_g', { defaultValue: 'Węgle g' })}
+                    placeholder={t('auto.węgle_g', { defaultValue: i18n.t('auto.wegle_g', { defaultValue: "Węgle g" }) })}
                     value={inlineBolusCarbs}
                     onChange={(e) => handleInlineBolusCarbsChange(e.target.value)}
                     disabled={isEditingLayout}
@@ -2064,7 +2064,7 @@ export default function Dashboard({
                 </p>
                 <p className="text-[8px] text-slate-400 mt-0.5 truncate">
                   
-                                            {t('auto.godz', { defaultValue: 'godz.' })} {new Date(latestLog.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {latestLog.notes || (isMeal ? i18n.t('auto.posilek', { defaultValue: "Posiłek" }) : 'Bolus')}
+                                            {t('auto.godz', { defaultValue: 'godz.' })} {new Date(latestLog.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {latestLog.notes || (isMeal ? i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) }) : 'Bolus')}
                 </p>
               </div>
 
@@ -2103,7 +2103,7 @@ export default function Dashboard({
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 
-                                        {t('auto.leczenie_i_posiłki', { defaultValue: 'Leczenie i posiłki' })}
+                                        {t('auto.leczenie_i_posiłki', { defaultValue: i18n.t('auto.leczenie_i_posilki', { defaultValue: "Leczenie i posiłki" }) })}
                                       </h3>
               <button onClick={() => { if (!isEditingLayout) { Haptics.light(); setListFilter('treatment'); setTab("history"); } }} className="text-[9px] font-black text-accent-500 uppercase font-display">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
             </div>
@@ -2120,7 +2120,7 @@ export default function Dashboard({
                           {typeof log.value === 'number' ? Number(log.value.toFixed(2)) : Number(Number(log.value).toFixed(2))} <span className="text-[10px] opacity-40 uppercase font-bold text-slate-400">{log.type === "meal" ? "g" : " j."}</span>
                         </p>
                         <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter truncate font-display text-left">
-                          {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.type === 'meal' ? i18n.t('auto.posilek', { defaultValue: "Posiłek" }) : 'Bolus'}
+                          {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.type === 'meal' ? i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) }) : 'Bolus'}
                         </p>
                       </div>
                     </div>
@@ -2140,7 +2140,7 @@ export default function Dashboard({
                                     {t('auto.status_pompy_insulinowej_nieaktywny', { defaultValue: '📟 Status Pompy Insulinowej [Nieaktywny]' })}
                                     <p className="text-[10px] text-slate-400 dark:text-slate-600 font-normal mt-1">
                   
-                                          {t('auto.połącz_pompę_np_carelink_w_profilu_', { defaultValue: 'Połącz pompę (np. CareLink) w Profilu, by aktywować te dane.' })}
+                                          {t('auto.połącz_pompę_np_carelink_w_profilu_', { defaultValue: i18n.t('auto.polacz_pompe_np_carelink', { defaultValue: "Połącz pompę (np. CareLink) w Profilu, by aktywować te dane." }) })}
                                         </p>
               </div>
             );
@@ -2229,11 +2229,11 @@ export default function Dashboard({
               <button
                 onClick={resetWidgets}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-500/10 text-slate-500 hover:bg-slate-500/20 text-[9px] font-black uppercase tracking-tight transition-colors"
-                title={t('auto.przywróć_domyślny_układ', { defaultValue: 'Przywróć domyślny układ' })}
+                title={t('auto.przywróć_domyślny_układ', { defaultValue: i18n.t('auto.przywroc_domyslny_uklad', { defaultValue: "Przywróć domyślny układ" }) })}
               >
                 <RotateCcw size={10} />
                 
-                                              {t('auto.domyślne', { defaultValue: 'Domyślne' })}
+                                              {t('auto.domyślne', { defaultValue: i18n.t('auto.domyslne', { defaultValue: "Domyślne" }) })}
                                             </button>
               <button
                 onClick={handleFinishEditing}
@@ -2247,8 +2247,8 @@ export default function Dashboard({
           
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 bg-white/70 dark:bg-slate-900/60 rounded-[1.8rem] border border-slate-200/55 dark:border-white/5 font-display select-none">
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-wider dark:text-white leading-none mb-1">{t('auto.układ_pulpitu', { defaultValue: 'Układ Pulpitu' })}</h4>
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{t('auto.wybierz_główny_szkielet_i_reguły_ro', { defaultValue: 'Wybierz główny szkielet i reguły rozkładu ekranu' })}</span>
+              <h4 className="text-[10px] font-black uppercase tracking-wider dark:text-white leading-none mb-1">{t('auto.układ_pulpitu', { defaultValue: i18n.t('auto.uklad_pulpitu', { defaultValue: "Układ Pulpitu" }) })}</h4>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{t('auto.wybierz_główny_szkielet_i_reguły_ro', { defaultValue: i18n.t('auto.wybierz_glowny_szkielet_i', { defaultValue: "Wybierz główny szkielet i reguły rozkładu ekranu" }) })}</span>
             </div>
             <div className="bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl flex gap-1 self-stretch sm:self-auto shrink-0 font-display">
               <button
@@ -2280,15 +2280,15 @@ export default function Dashboard({
 
           <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-normal">
             {layoutMode === "classic" 
-              ? i18n.t('auto.uzywasz_klasycznego_i_czytelne', { defaultValue: "🏛️ Używasz klasycznego i czytelnego układu bez ucięć z optymalnymi rozmiarami. Aby móc dowolnie powiększać lub pomniejszać kafelki własnoręcznie, przełącz na tryb „📐 Kafelki Dynamiczne” poniżej, a przy każdym kafelku pojawi się przycisk zmiany rozmiaru 📐!" })
-              : i18n.t('auto.korzystasz_z_ukladu_kafelkoweg', { defaultValue: "📐 Korzystasz z układu kafelkowego. Możesz układać kafelki przeciągając je za ikonę uchwytu lub używając strzałek! Kliknij przycisk „📐 [rozmiar]” przy kafelku, aby cyklicznie powiększyć lub pomniejszyć go (1x1 ➡️ 2x1 ➡️ 1x2 ➡️ 2x2)." })}
+              ? i18n.t('auto.uzywasz_klasycznego_i_czytelne', { defaultValue: i18n.t('auto.uzywasz_klasycznego_i_czy', { defaultValue: "🏛️ Używasz klasycznego i czytelnego układu bez ucięć z optymalnymi rozmiarami. Aby móc dowolnie powiększać lub pomniejszać kafelki własnoręcznie, przełącz na tryb „📐 Kafelki Dynamiczne” poniżej, a przy każdym kafelku pojawi się przycisk zmiany rozmiaru 📐!" }) })
+              : i18n.t('auto.korzystasz_z_ukladu_kafelkoweg', { defaultValue: i18n.t('auto.korzystasz_z_ukladu_kafel', { defaultValue: "📐 Korzystasz z układu kafelkowego. Możesz układać kafelki przeciągając je za ikonę uchwytu lub używając strzałek! Kliknij przycisk „📐 [rozmiar]” przy kafelku, aby cyklicznie powiększyć lub pomniejszyć go (1x1 ➡️ 2x1 ➡️ 1x2 ➡️ 2x2)." }) })}
           </p>
 
 
 
           {widgets.some(w => !w.visible) && (
             <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-white/5">
-              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">{t('auto.ukryte_kafelki_kliknij_aby_przywróc', { defaultValue: 'Ukryte kafelki (kliknij, aby przywrócić):' })}</span>
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">{t('auto.ukryte_kafelki_kliknij_aby_przywróc', { defaultValue: i18n.t('auto.ukryte_kafelki_kliknij_ab', { defaultValue: "Ukryte kafelki (kliknij, aby przywrócić):" }) })}</span>
               <div className="flex flex-wrap gap-1.5">
                 {widgets.filter(w => !w.visible).map(w => (
                   <button
@@ -2321,7 +2321,7 @@ export default function Dashboard({
                <div>
                   <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight font-display mb-0.5">{t('auto.trwa_trening', { defaultValue: 'Trwa Trening' })}</h4>
                   <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                    {SPORTS.find(s => s.id === settings.activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" })} • {settings.activeTraining.duration}m
+                    {SPORTS.find(s => s.id === settings.activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" }) })} • {settings.activeTraining.duration}m
                   </p>
                </div>
             </div>
@@ -2330,7 +2330,7 @@ export default function Dashboard({
                className="px-4 py-2 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-500/20 active:scale-95 transition-all hover:bg-rose-600"
             >
                
-                                         {t('auto.zakończ', { defaultValue: 'Zakończ' })}
+                                         {t('auto.zakończ', { defaultValue: i18n.t('auto.zakoncz', { defaultValue: "Zakończ" }) })}
                                       </button>
           </div>
         </motion.div>
@@ -2349,7 +2349,7 @@ export default function Dashboard({
             <h4 className="text-xs font-black uppercase tracking-wider dark:text-white">{t('auto.pulpit_jest_pusty', { defaultValue: 'Pulpit jest pusty' })}</h4>
             <p className="text-[10px] text-slate-500 max-w-[280px] mx-auto mt-1 leading-normal font-bold">
               
-                                        {t('auto.ukryłeś_wszystkie_kafelki_ze_sceny_', { defaultValue: 'Ukryłeś wszystkie kafelki ze sceny. Kliknij poniżej, aby natychmiast przywrócić domyślny układ całej aplikacji!' })}
+                                        {t('auto.ukryłeś_wszystkie_kafelki_ze_sceny_', { defaultValue: i18n.t('auto.ukryles_wszystkie_kafelki', { defaultValue: "Ukryłeś wszystkie kafelki ze sceny. Kliknij poniżej, aby natychmiast przywrócić domyślny układ całej aplikacji!" }) })}
                                       </p>
             <button
               onClick={resetWidgets}
@@ -2357,7 +2357,7 @@ export default function Dashboard({
             >
               <RotateCcw size={10} />
               
-                                        {t('auto.przywróć_domyślny_układ', { defaultValue: 'Przywróć domyślny układ' })}
+                                        {t('auto.przywróć_domyślny_układ', { defaultValue: i18n.t('auto.przywroc_domyslny_uklad', { defaultValue: "Przywróć domyślny układ" }) })}
                                       </button>
           </div>
         ) : (
@@ -2452,7 +2452,7 @@ export default function Dashboard({
                            <button
                              onClick={() => cycleWidgetSize(w.id)}
                              className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-[8px] font-black uppercase tracking-wider active:scale-90 flex items-center gap-1 text-white shadow-sm shrink-0"
-                             title={t('auto.zmień_rozmiar', { defaultValue: 'Zmień rozmiar' })}
+                             title={t('auto.zmień_rozmiar', { defaultValue: i18n.t('auto.zmien_rozmiar', { defaultValue: "Zmień rozmiar" }) })}
                            >
                              📐 {w.size}
                            </button>
@@ -2461,9 +2461,9 @@ export default function Dashboard({
                            <button
                              onClick={() => cycleWidgetShape(w.id)}
                              className="px-2 py-1 bg-pink-500 hover:bg-pink-600 rounded-lg text-[8px] font-black uppercase tracking-wider active:scale-90 flex items-center gap-1 text-white shadow-sm shrink-0"
-                             title={t('auto.zmień_kształt', { defaultValue: 'Zmień kształt' })}
+                             title={t('auto.zmień_kształt', { defaultValue: i18n.t('auto.zmien_ksztalt', { defaultValue: "Zmień kształt" }) })}
                            >
-                             ✨ {(!w.shape || w.shape === "default") ? "standardowy" : w.shape === "circle" ? i18n.t('auto.pigulka', { defaultValue: "pigułka" }) : w.shape === "leaf" ? i18n.t('auto.lisc', { defaultValue: "liść" }) : w.shape === "leaf-mirror" ? i18n.t('auto.lisc_odbity', { defaultValue: "liść (odbity)" }) : "dysk"}
+                             ✨ {(!w.shape || w.shape === "default") ? "standardowy" : w.shape === "circle" ? i18n.t('auto.pigulka', { defaultValue: i18n.t('auto.pigulka', { defaultValue: "pigułka" }) }) : w.shape === "leaf" ? i18n.t('auto.lisc', { defaultValue: i18n.t('auto.lisc', { defaultValue: "liść" }) }) : w.shape === "leaf-mirror" ? i18n.t('auto.lisc_odbity', { defaultValue: i18n.t('auto.lisc_odbity', { defaultValue: "liść (odbity)" }) }) : "dysk"}
                            </button>
                          )}
                        </div>
@@ -2561,7 +2561,7 @@ export default function Dashboard({
                <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
                <div className="flex justify-between items-start">
                  <div className="p-2 bg-teal-500/10 rounded-xl border border-teal-500/20 text-teal-500"><Droplets size={16} /></div>
-                 <span className="text-[8px] font-black text-teal-500 uppercase tracking-widest bg-teal-500/5 py-1 px-2.5 rounded-full border border-teal-500/10">{t('auto.wkłucie', { defaultValue: 'Wkłucie' })}</span>
+                 <span className="text-[8px] font-black text-teal-500 uppercase tracking-widest bg-teal-500/5 py-1 px-2.5 rounded-full border border-teal-500/10">{t('auto.wkłucie', { defaultValue: i18n.t('auto.wklucie', { defaultValue: "Wkłucie" }) })}</span>
                </div>
                <div className="mt-4">
                  {(() => {
@@ -2616,8 +2616,8 @@ export default function Dashboard({
                                               </h4>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-tight">
               {settings.childMode 
-                ? i18n.t('auto.zadaj_pytanie_swoim_opiekunom', { defaultValue: "Zadaj pytanie swoim opiekunom AI o wyniki, dietę lub trendy." })
-                : i18n.t('auto.zaawansowana_analityka_predykc', { defaultValue: "Zaawansowana analityka predykcyjna i optymalizacja parametrów." })}
+                ? i18n.t('auto.zadaj_pytanie_swoim_opiekunom', { defaultValue: i18n.t('auto.zadaj_pytanie_swoim_opiek', { defaultValue: "Zadaj pytanie swoim opiekunom AI o wyniki, dietę lub trendy." }) })
+                : i18n.t('auto.zaawansowana_analityka_predykc', { defaultValue: i18n.t('auto.zaawansowana_analityka_pr', { defaultValue: "Zaawansowana analityka predykcyjna i optymalizacja parametrów." }) })}
             </p>
           </div>
           <div className="p-2 rounded-full bg-slate-100/50 dark:bg-white/5 text-slate-400 group-hover:text-indigo-500 transition-colors">
@@ -2695,7 +2695,7 @@ export default function Dashboard({
                 <span className="text-2xl group-hover:scale-110 transition-transform block">🏃‍♂️</span>
                 <div className="flex flex-col items-start">
                   <span className="leading-tight text-slate-800 dark:text-slate-200">{t('auto.trening', { defaultValue: 'Trening' })}</span>
-                  <span className="text-[9px] text-emerald-500 lowercase font-bold">{t('auto.zarządzaj', { defaultValue: 'Zarządzaj' })}</span>
+                  <span className="text-[9px] text-emerald-500 lowercase font-bold">{t('auto.zarządzaj', { defaultValue: i18n.t('auto.zarzadzaj', { defaultValue: "Zarządzaj" }) })}</span>
                 </div>
               </button>
 
@@ -2708,7 +2708,7 @@ export default function Dashboard({
                   <span className="text-2xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
                   <div className="flex flex-col items-start">
                     <span className="leading-tight text-slate-800 dark:text-slate-200">{s.name}</span>
-                    <span className="text-[9px] opacity-50 lowercase font-bold">{Number(s.carbs).toFixed(1)}{t('auto.g_węgli', { defaultValue: 'g węgli' })}</span>
+                    <span className="text-[9px] opacity-50 lowercase font-bold">{Number(s.carbs).toFixed(1)}{t('auto.g_węgli', { defaultValue: i18n.t('auto.g_wegli', { defaultValue: "g węgli" }) })}</span>
                   </div>
                 </button>
               ))}
@@ -2807,7 +2807,7 @@ export default function Dashboard({
                             {typeof log.value === 'number' ? Number(log.value.toFixed(2)) : Number(Number(log.value).toFixed(2))} <span className="text-[10px] opacity-40 uppercase">{log.type === "meal" ? "g" : " j."}</span>
                           </p>
                           <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
-                            {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.type === 'meal' ? i18n.t('auto.posilek', { defaultValue: "Posiłek" }) : 'Bolus'}
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.type === 'meal' ? i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) }) : 'Bolus'}
                           </p>
                         </div>
                       </div>
