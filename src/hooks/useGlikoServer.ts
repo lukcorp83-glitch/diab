@@ -34,6 +34,7 @@ export function useGlikoServer({
   const [devices, setDevices] = useState<ConnectedDevice[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<any>(null);
+  const reconnectAttemptsRef = useRef(0);
   const callbacksRef = useRef({ onDataReceived, onKicked });
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export function useGlikoServer({
       ws.onopen = () => {
         setIsConnected(true);
         setError(null);
+        reconnectAttemptsRef.current = 0; // reset attempts on success
         // Join the room immediately after connecting
         ws.send(JSON.stringify({ 
           type: 'join', 
@@ -99,10 +101,14 @@ export function useGlikoServer({
         setIsConnected(false);
         wsRef.current = null;
         setDevices([]); // clear list on disconnect
-        // Auto-reconnect after 5 seconds if we still have a url
+        
+        // Exponential backoff: 5s, 10s, 20s, up to 60s max
+        const backoff = Math.min(5000 * Math.pow(2, reconnectAttemptsRef.current), 60000);
+        reconnectAttemptsRef.current += 1;
+        
         reconnectTimeoutRef.current = setTimeout(() => {
           connect();
-        }, 5000);
+        }, backoff);
       };
 
       ws.onerror = (e) => {
