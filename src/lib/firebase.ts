@@ -48,8 +48,7 @@ async function testConnection() {
             console.error("[Firestore] Connection issue: Client appears to be offline.");
             updateConnectionStatus(false);
         } else {
-            // Permission errors etc still mean we reached the server
-            console.log('[Firestore] Server reached (status: ' + (error.code || 'connected') + ')');
+            console.log(`[Firestore] Connection test successful (server reachable, expected ${error.code})`);
             updateConnectionStatus(true);
         }
     }
