@@ -22,10 +22,11 @@ export class DatabaseService {
         if (basePath === './') {
             basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
         }
-        const wasmUrl = new URL(`${basePath}assets/sql-wasm.wasm`, window.location.origin).href;
+        // jeep-sqlite expects the DIRECTORY path where sql-wasm.wasm is located
+        const wasmDirUrl = new URL(`${basePath}assets`, window.location.origin).href;
         
-        (jeepEl as any).wasmPath = wasmUrl;
-        jeepEl.setAttribute('wasm-path', wasmUrl);
+        (jeepEl as any).wasmPath = wasmDirUrl;
+        jeepEl.setAttribute('wasmPath', wasmDirUrl);
         document.body.appendChild(jeepEl);
         await customElements.whenDefined('jeep-sqlite');
         await this.sqlite.initWebStore();

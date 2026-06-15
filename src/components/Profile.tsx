@@ -5351,7 +5351,15 @@ export default function Profile({
                     type="password"
                     placeholder={t('auto.aizasy', { defaultValue: 'AIzaSy...' })}
                     value={geminiApiKey}
-                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setGeminiApiKey(val);
+                      if (val) {
+                        localStorage.setItem("gemini_api_key", val.trim());
+                      } else {
+                        localStorage.removeItem("gemini_api_key");
+                      }
+                    }}
                     onBlur={() => {
                       const val = geminiApiKey.trim();
                       setGeminiApiKey(val);
