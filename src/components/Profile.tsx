@@ -992,7 +992,6 @@ export default function Profile({
       },
     );
     return () => {
-      unsubscribeNs();
       unsubscribeShortcuts();
       unsubscribePet();
     };
