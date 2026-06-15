@@ -8,6 +8,7 @@ import { Haptics } from '../lib/haptics';
 
 import { Plus, Minus, Maximize2, Move, Droplets, Signal } from 'lucide-react';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 // Insulin on Board calculation using a more realistic decay model
 const calculateIOBAt = (time: number, boluses: LogEntry[], diaHours: number) => {

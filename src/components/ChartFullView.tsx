@@ -7,6 +7,7 @@ import GlikoSenseIcon from "./GlikoSenseIcon";
 import { Activity, Clock, Droplet, Apple, Droplets, RefreshCw, Zap, Signal } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface ChartFullViewProps {
   logs: LogEntry[];

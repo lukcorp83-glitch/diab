@@ -5,6 +5,7 @@ import { AlertCircle, FileQuestion, Bug, X } from 'lucide-react';
 import InsulinDetective from './InsulinDetective';
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface InsulinDetectiveAlertProps {
   logs: LogEntry[];

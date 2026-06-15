@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Activity, Footprints } from 'lucide-react';
 import { healthService } from '../services/healthService';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function HealthWidget() {
     const { t } = useTranslation();

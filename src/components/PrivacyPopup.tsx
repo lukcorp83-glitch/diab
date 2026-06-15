@@ -4,6 +4,7 @@ import { Shield, Lock as LucideLock, EyeOff, ChevronRight, Info, CheckCircle2, C
 import { cn } from '../lib/utils';
 import { CURRENT_VERSION } from '../constants/versions';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export default function PrivacyPopup({ onAccept }: { onAccept: () => void }) {
     const { t } = useTranslation();

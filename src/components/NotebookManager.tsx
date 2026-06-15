@@ -8,6 +8,7 @@ import { collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc, serverTimest
 import { getEffectiveUid } from '../lib/utils';
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface Note {
   id: string;

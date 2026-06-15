@@ -5,6 +5,7 @@ import { LogEntry, UserSettings } from '../types';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface CarbsBalanceWidgetProps {
   logs: LogEntry[];

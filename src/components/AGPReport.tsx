@@ -13,6 +13,7 @@ import {
 import { LogEntry, UserSettings } from '../types';
 import { ChevronLeft, Info, Calendar } from 'lucide-react';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface AGPReportProps {
   logs: LogEntry[];

@@ -3,6 +3,7 @@ import { LogEntry } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Merge, AlertCircle, Plus, X } from 'lucide-react';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface Props {
   logs: LogEntry[];

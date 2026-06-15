@@ -4,6 +4,7 @@ import { useUpdateCheck } from '../hooks/useUpdateCheck';
 import { Browser } from '@capacitor/browser';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export const UpdateNotifier: React.FC = () => {
     const { t } = useTranslation();

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, CheckCircle2, MessageCircle, AlertTriangle, Pill } from 'lucide-react';
 import { playHighGlucoseSound } from '../lib/audioUtils';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 export interface RemoteAlert {
   id: string;

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const CARDS = [
   { id: 1, icon: <Apple className="text-emerald-500" />, type: 'apple', color: 'emerald' },

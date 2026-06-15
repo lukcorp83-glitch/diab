@@ -97,6 +97,7 @@ import {
   PetBackground,
   MEDICAL_DICTIONARY,
   extractGTIN,
+  lookupMedicalDictionary,
 } from "../constants";
 import { PWA_VERSIONS, APK_VERSIONS, CURRENT_VERSION } from "../constants/versions";
 
@@ -431,7 +432,7 @@ export default function Profile({
          console.error(e);
        }
     } else {
-       const knownProduct = MEDICAL_DICTIONARY[scannedBarcode];
+       const knownProduct = lookupMedicalDictionary(scannedBarcode);
        if (knownProduct) {
          setNewInventoryItem({
             id: "",
@@ -6749,5 +6750,6 @@ function SettingInput({
     </div>
   );
 }
+
 
 
