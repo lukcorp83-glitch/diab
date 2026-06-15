@@ -254,6 +254,21 @@ export default function App() {
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       CapacitorUpdater.notifyAppReady();
+      
+      // Setup Android notification channels for custom sounds
+      if (Capacitor.getPlatform() === 'android') {
+        import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+          LocalNotifications.createChannel({
+            id: 'glucose_alerts_v3',
+            name: 'Alarmy Glikemii',
+            description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
+            importance: 5, // MAX importance
+            visibility: 1, // Public
+            sound: 'critical_alarm.wav',
+            vibration: true
+          }).catch(e => console.warn('Failed to create notification channel', e));
+        });
+      }
     }
     
     // Inicjalizacja hybrydowej bazy SQLite (APK & PWA)
@@ -1546,7 +1561,7 @@ export default function App() {
                   body: alertBody,
                   id: Math.floor(Math.random() * 100000),
                   schedule: { at: new Date() },
-                  channelId: "glucose_alerts_v2",
+                  channelId: "glucose_alerts_v3",
                   sound: "critical_alarm",
                   attachments: null,
                   actionTypeId: "",
