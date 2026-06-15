@@ -22,8 +22,9 @@ export class DatabaseService {
         if (basePath === './') {
             basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
         }
-        const wasmUrl = new URL(`${basePath}assets/sql-wasm.wasm?v=1.11.0`, window.location.origin).href;
+        const wasmUrl = new URL(`${basePath}assets/sql-wasm.wasm`, window.location.origin).href;
         
+        (jeepEl as any).wasmPath = wasmUrl;
         jeepEl.setAttribute('wasm-path', wasmUrl);
         document.body.appendChild(jeepEl);
         await customElements.whenDefined('jeep-sqlite');
