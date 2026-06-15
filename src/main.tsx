@@ -11,6 +11,16 @@ let basePath = import.meta.env.BASE_URL;
 if (basePath === './') {
     basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
 }
+
+(window as any).Module = {
+  locateFile: function(path: string, prefix: string) {
+    if (path.endsWith('.wasm')) {
+      return basePath + 'assets/' + path;
+    }
+    return prefix + path;
+  }
+};
+
 jeepSqlite(window, { resourcesUrl: basePath + 'assets/' });
 
 createRoot(document.getElementById('root')!).render(
