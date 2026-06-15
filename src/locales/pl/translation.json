@@ -3369,5 +3369,6 @@
   "auto.blad_zapisu_do_localstorage_gl": "Błąd zapisu do LocalStorage GlikoSense",
   "auto.twoj_sensor_wygasa_za_12_godzi": "Twój sensor wygasa za 12 godzin!",
   "auto.twoje_wklucie_wygasa_za_12_god": "Twoje wkłucie wygasa za 12 godzin!",
-  "auto.czesciowo_zachmurzone": "Częściowo zachmurzone"
+  "auto.czesciowo_zachmurzone": "Częściowo zachmurzone",
+  "auto.przod": "przód"
 }

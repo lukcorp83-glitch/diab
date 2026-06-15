@@ -3451,12 +3451,12 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
          if (devices && devices.length > 0) {
             let selectedCamId = devices[0].id;
             if (facingMode === 'environment') {
-               const backCams = devices.filter((d) => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('tył') || d.label.toLowerCase().includes('environment'));
+               const backCams = devices.filter((d) => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes(i18n.t('auto.tyl', { defaultValue: "tył" })) || d.label.toLowerCase().includes('environment'));
                if (backCams.length > 0) {
                    selectedCamId = backCams[backCams.length - 1].id;
                }
             } else {
-               const frontCams = devices.filter((d) => d.label.toLowerCase().includes('front') || d.label.toLowerCase().includes('przód'));
+               const frontCams = devices.filter((d) => d.label.toLowerCase().includes('front') || d.label.toLowerCase().includes(i18n.t('auto.przod', { defaultValue: "przód" })));
                if (frontCams.length > 0) {
                    selectedCamId = frontCams[0].id;
                }
