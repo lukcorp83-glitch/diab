@@ -3410,7 +3410,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
   }));
 
   useEffect(() => {
-    const Html5Qrcode = require('html5-qrcode').Html5Qrcode;
+    // Html5Qrcode is imported at the top
     const html5QrCode = new Html5Qrcode("reader-meal");
     setScanner(html5QrCode);
     setHasPermission(true);
@@ -3424,7 +3424,9 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
 
   useEffect(() => {
     if (scanner && !scanner.isScanning) {
-      const Html5QrcodeObj = require('html5-qrcode').Html5Qrcode;
+      // Html5QrcodeObj is not needed because we use Html5Qrcode directly
+      // but let's alias it for the rest of the code
+      const Html5QrcodeObj = Html5Qrcode;
       
       const startWithConfig = (config) => {
           scanner.start(
