@@ -236,7 +236,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             <div>
               <h3 className="text-sm font-black dark:text-white leading-tight">{t('auto.glikosense', { defaultValue: 'GlikoSense' })}</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {isChildMode ? `Opiekun ${petName}` : 'Analiza Systemowa AI'}
+                {isChildMode ? i18n.t('auto.opiekun', { defaultValue: 'Opiekun ' }) + petName : i18n.t('auto.analiza_systemowa_ai', { defaultValue: 'Analiza Systemowa AI' })}
               </p>
             </div>
           </div>
@@ -325,10 +325,10 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             {/* Key Functions Indicators */}
             <div className="flex flex-wrap gap-2 mb-2">
               {[
-                { label: 'Analiza Trendu', active: trend !== 'STABLE' && trend !== null },
-                { label: 'Detekcja Anomalii', active: (glucose !== null && (glucose < 70 || glucose > 200)) || (trend?.includes('FAST')) },
+                { label: i18n.t('auto.analiza_trendu', { defaultValue: 'Analiza Trendu' }), active: trend !== 'STABLE' && trend !== null },
+                { label: i18n.t('auto.detekcja_anomalii', { defaultValue: 'Detekcja Anomalii' }), active: (glucose !== null && (glucose < 70 || glucose > 200)) || (trend?.includes('FAST')) },
                 { label: i18n.t('auto.weryfikacja_posilku', { defaultValue: "Weryfikacja Posiłku" }), active: false }, // Will be linked to recent logs in next step if needed
-                { label: 'Ochrona Hypo', active: glucose !== null && (glucose < 90 || (glucose < 110 && trend?.includes('DOWN'))) }
+                { label: i18n.t('auto.ochrona_hypo', { defaultValue: 'Ochrona Hypo' }), active: glucose !== null && (glucose < 90 || (glucose < 110 && trend?.includes('DOWN'))) }
               ].map(fn => (
                 <div 
                   key={fn.label}

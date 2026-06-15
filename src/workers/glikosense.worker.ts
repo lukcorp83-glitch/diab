@@ -23,8 +23,8 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[], rules: any) 
     const classifyMealGlycemia = (meal: any) => {
         const text = ((meal.description || meal.notes || meal.note || meal.nameValue || "") + " " + (meal.linkedMeal?.name || "")).toLowerCase();
         let isFastCarb = 0, isSlowCarb = 0;
-        const fastKeywords = ["sok", "cukier", "glukoza", "glucose", i18n.t('auto.zel', { defaultValue: "żel" }), "dextro", i18n.t('auto.miod', { defaultValue: "miód" }), "honey", "cola", i18n.t('auto.slodkie', { defaultValue: "słodkie" }), i18n.t('auto.slodki', { defaultValue: "słodki" }), i18n.t('auto.zelki', { defaultValue: "żelki" }), "banan", i18n.t('auto.dzem', { defaultValue: "dżem" }), "sprite", "fanta", i18n.t('auto.oranzada', { defaultValue: "oranżada" }), "herbata z cukrem", "cukierki", "czekolada", "owoce", "juice"];
-        const slowKeywords = ["pizza", "kebab", "burger", "ser", "cheese", "orzechy", i18n.t('auto.mieso', { defaultValue: "mięso" }), "meat", "pasta", "spaghetti", "makaron", "boczek", "frytki", i18n.t('auto.maslo', { defaultValue: "masło" }), i18n.t('auto.tluszcz', { defaultValue: "tłuszcz" }), i18n.t('auto.bialko', { defaultValue: "białko" }), i18n.t('auto.karkowka', { defaultValue: "karkówka" }), i18n.t('auto.kielbasa', { defaultValue: "kiełbasa" }), "nuts", "chocolate"];
+        const fastKeywords = ["sok", "cukier", "glukoza", "glucose", i18n.t('auto.zel', { defaultValue: i18n.t('auto.zel', { defaultValue: "żel" }) }), "dextro", i18n.t('auto.miod', { defaultValue: i18n.t('auto.miod', { defaultValue: "miód" }) }), "honey", "cola", i18n.t('auto.slodkie', { defaultValue: i18n.t('auto.slodkie', { defaultValue: "słodkie" }) }), i18n.t('auto.slodki', { defaultValue: i18n.t('auto.slodki', { defaultValue: "słodki" }) }), i18n.t('auto.zelki', { defaultValue: i18n.t('auto.zelki', { defaultValue: "żelki" }) }), "banan", i18n.t('auto.dzem', { defaultValue: i18n.t('auto.dzem', { defaultValue: "dżem" }) }), "sprite", "fanta", i18n.t('auto.oranzada', { defaultValue: i18n.t('auto.oranzada', { defaultValue: "oranżada" }) }), "herbata z cukrem", "cukierki", "czekolada", "owoce", "juice"];
+        const slowKeywords = ["pizza", "kebab", "burger", "ser", "cheese", "orzechy", i18n.t('auto.mieso', { defaultValue: i18n.t('auto.mieso', { defaultValue: "mięso" }) }), "meat", "pasta", "spaghetti", "makaron", "boczek", "frytki", i18n.t('auto.maslo', { defaultValue: i18n.t('auto.maslo', { defaultValue: "masło" }) }), i18n.t('auto.tluszcz', { defaultValue: i18n.t('auto.tluszcz', { defaultValue: "tłuszcz" }) }), i18n.t('auto.bialko', { defaultValue: i18n.t('auto.bialko', { defaultValue: "białko" }) }), i18n.t('auto.karkowka', { defaultValue: i18n.t('auto.karkowka', { defaultValue: "karkówka" }) }), i18n.t('auto.kielbasa', { defaultValue: i18n.t('auto.kielbasa', { defaultValue: "kiełbasa" }) }), "nuts", "chocolate"];
         if (fastKeywords.some(kw => text.includes(kw))) isFastCarb = 1;
         if (slowKeywords.some(kw => text.includes(kw))) isSlowCarb = 1;
         const protein = meal.protein || meal.linkedMeal?.protein || 0;
@@ -161,7 +161,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
   try {
     if (!logs || logs.length < 3) {
-      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [i18n.t('auto.zbyt_malo_danych_dla_glikosens', { defaultValue: "Zbyt mało danych dla GlikoSense." })], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
+      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [i18n.t('auto.zbyt_malo_danych_dla_glikosens', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: "Zbyt mało danych dla GlikoSense." }) })], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
       return;
     }
 
@@ -189,8 +189,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
     const timeBlocks = {
       morning: { label: 'Poranek', starts: 6, ends: 11, sensitivity: 0, count: 0, drops: [] as number[] },
-      afternoon: { label: i18n.t('auto.popoludnie', { defaultValue: "Popołudnie" }), starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
-      evening: { label: i18n.t('auto.wieczor', { defaultValue: "Wieczór" }), starts: 17, ends: 23, sensitivity: 0, count: 0, drops: [] as number[] },
+      afternoon: { label: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: "Popołudnie" }) }), starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
+      evening: { label: i18n.t('auto.wieczor', { defaultValue: i18n.t('auto.wieczor', { defaultValue: "Wieczór" }) }), starts: 17, ends: 23, sensitivity: 0, count: 0, drops: [] as number[] },
       night: { label: 'Noc', starts: 23, ends: 6, sensitivity: 0, count: 0, drops: [] as number[] }
     };
 
@@ -239,8 +239,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     allMeals.slice(0, 100).forEach(m => {
       const mealTime = m.timestamp || new Date(m.createdAt).getTime();
-      const mealName = m.note || m.name || m.description || i18n.t('auto.posilek', { defaultValue: "Posiłek" });
-      if (!mealName || mealName.length < 3 || mealName === i18n.t('auto.posilek', { defaultValue: "Posiłek" })) return;
+      const mealName = m.note || m.name || m.description || i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) });
+      if (!mealName || mealName.length < 3 || mealName === i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) })) return;
       const postMealBg = allGlucose.filter(g => {
         const gt = g.timestamp || new Date(g.createdAt).getTime();
         return gt > mealTime + 45*60*1000 && gt < mealTime + 180*60*1000;
@@ -258,7 +258,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     if (mode === 'full') {
       const daysStats: { [day: string]: { sum: number, count: number } } = { "Niedziela": { sum: 0, count: 0 }, "Poniedziałek": { sum: 0, count: 0 }, "Wtorek": { sum: 0, count: 0 }, "Środa": { sum: 0, count: 0 }, "Czwartek": { sum: 0, count: 0 }, "Piątek": { sum: 0, count: 0 }, "Sobota": { sum: 0, count: 0 } };
-      const dayNames = ["Niedziela", i18n.t('auto.poniedzialek', { defaultValue: "Poniedziałek" }), "Wtorek", i18n.t('auto.sroda', { defaultValue: "Środa" }), "Czwartek", i18n.t('auto.piatek', { defaultValue: "Piątek" }), "Sobota"];
+      const dayNames = ["Niedziela", i18n.t('auto.poniedzialek', { defaultValue: i18n.t('auto.poniedzialek', { defaultValue: "Poniedziałek" }) }), "Wtorek", i18n.t('auto.sroda', { defaultValue: i18n.t('auto.sroda', { defaultValue: "Środa" }) }), "Czwartek", i18n.t('auto.piatek', { defaultValue: i18n.t('auto.piatek', { defaultValue: "Piątek" }) }), "Sobota"];
       allGlucose.forEach(g => {
         const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
         const dayName = dayNames[d.getDay()];
@@ -277,7 +277,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     if (glucoseLogsOrig.length < 5) {
-      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [...insights, i18n.t('auto.czekam_na_wiecej_odczytow_glik', { defaultValue: "Czekam na więcej odczytów glikemii..." })], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
+      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [...insights, i18n.t('auto.czekam_na_wiecej_odczytow_glik', { defaultValue: i18n.t('auto.czekam_na_wiecej_odczytow', { defaultValue: "Czekam na więcej odczytów glikemii..." }) })], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
       return;
     }
     
@@ -306,7 +306,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
     
     if (resampledGlucose.length === 0) {
-      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [i18n.t('auto.zbyt_malo_poprawnych_danych_gl', { defaultValue: "Zbyt mało poprawnych danych glikemii po przetworzeniu." })], accuracy: 0 } });
+      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [i18n.t('auto.zbyt_malo_poprawnych_danych_gl', { defaultValue: i18n.t('auto.zbyt_malo_poprawnych_dany', { defaultValue: "Zbyt mało poprawnych danych glikemii po przetworzeniu." }) })], accuracy: 0 } });
       return;
     }
 
@@ -588,16 +588,16 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     // RESTORING 400 LINES OF INSIGHTS
     const accuracyPhrases = [
-        `🧠 Oparłem się o moje doświadczenie z Twoich ostatnich dni. Mój margines błędu to około ${Math.round(avgErrorInMgDl)} mg/dL.`,
-        `🧠 Wciąż zbieram dane. Moje odchylenie na tę chwilę to ok. ${Math.round(avgErrorInMgDl)} mg/dL. Im więcej danych, tym mniejszy błąd.`,
-        `🧠 Przeanalizowałem Twoje wykresy używając silnika LSTM. Błąd w przewidywaniach to ${Math.round(avgErrorInMgDl)} mg/dL.`
+        i18n.t('auto.oparlem_sie_o_moje_doswia', { defaultValue: "🧠 Oparłem się o moje doświadczenie z Twoich ostatnich dni. Mój margines błędu to około {{var0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }),
+        i18n.t('auto.wciaz_zbieram_dane_moje_o', { defaultValue: "🧠 Wciąż zbieram dane. Moje odchylenie na tę chwilę to ok. {{var0}} mg/dL. Im więcej danych, tym mniejszy błąd.", var0: Math.round(avgErrorInMgDl) }),
+        i18n.t('auto.przeanalizowalem_twoje_wy', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika LSTM. Błąd w przewidywaniach to {{var0}} mg/dL.", var0: Math.round(avgErrorInMgDl) })
     ];
     insights.push(accuracyPhrases[Math.floor(Math.random() * accuracyPhrases.length)]);
 
     const predictionPhrases = [
-        `🔮 Jeżeli trend się nie zmieni, w ciągu godziny powinniśmy dotrzeć do ${Math.round(predictedNextHour)} mg/dL.`,
-        `🔮 Wybiegając do przodu - przewiduję okolice ${Math.round(predictedNextHour)} mg/dL za godzinkę.`,
-        `🔮 Analizując tempo, spodziewam się poziomu ok. ${Math.round(predictedNextHour)} mg/dL w ciągu 60 minut.`
+        i18n.t('auto.jezeli_trend_sie_nie_zmie', { defaultValue: "🔮 Jeżeli trend się nie zmieni, w ciągu godziny powinniśmy dotrzeć do {{var0}} mg/dL.", var0: Math.round(predictedNextHour) }),
+        i18n.t('auto.wybiegajac_do_przodu_prze', { defaultValue: "🔮 Wybiegając do przodu - przewiduję okolice {{var0}} mg/dL za godzinkę.", var0: Math.round(predictedNextHour) }),
+        i18n.t('auto.analizujac_tempo_spodziew', { defaultValue: "🔮 Analizując tempo, spodziewam się poziomu ok. {{var0}} mg/dL w ciągu 60 minut.", var0: Math.round(predictedNextHour) })
     ];
     insights.push(predictionPhrases[Math.floor(Math.random() * predictionPhrases.length)]);
     
@@ -616,40 +616,40 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(text + parts.join(', ') + '.');
     }
 
-    if (carbSensitivity > 30) insights.push(i18n.t('auto.wydaje_mi_sie_ze_weglowodany_d', { defaultValue: "💡 Wydaje mi się, że węglowodany dość szybko wchłaniają się teraz u Ciebie do krwi. Porcja np. 50g może mieć duży wpływ!" }));
-    else if (carbSensitivity > 10) insights.push(i18n.t('auto.to_co_zjadles_uwalnia_sie_moim', { defaultValue: "💡 To co zjadłeś, uwalnia się moim zdaniem bardzo spokojnie i bez skoków. Dobra nasza!" }));
+    if (carbSensitivity > 30) insights.push(i18n.t('auto.wydaje_mi_sie_ze_weglowodany_d', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_weglowod', { defaultValue: "💡 Wydaje mi się, że węglowodany dość szybko wchłaniają się teraz u Ciebie do krwi. Porcja np. 50g może mieć duży wpływ!" }) }));
+    else if (carbSensitivity > 10) insights.push(i18n.t('auto.to_co_zjadles_uwalnia_sie_moim', { defaultValue: i18n.t('auto.to_co_zjadles_uwalnia_sie', { defaultValue: "💡 To co zjadłeś, uwalnia się moim zdaniem bardzo spokojnie i bez skoków. Dobra nasza!" }) }));
 
-    if (insulinSensitivity < -30) insights.push(i18n.t('auto.masz_w_tym_momencie_podwyzszon', { defaultValue: "💉 Masz w tym momencie podwyższoną wrażliwość na insulinę. Postaraj się delikatniej podejść do ewentualnych korekt." }));
+    if (insulinSensitivity < -30) insights.push(i18n.t('auto.masz_w_tym_momencie_podwyzszon', { defaultValue: i18n.t('auto.masz_w_tym_momencie_podwy', { defaultValue: "💉 Masz w tym momencie podwyższoną wrażliwość na insulinę. Postaraj się delikatniej podejść do ewentualnych korekt." }) }));
 
     if (avgBias < -15) insights.push(`🚨 Z moich szacunków wynika, że masz lekką oporność (byłem o ${Math.abs(Math.round(avgBias))} mg/dL w błędzie w dół). Jakieś emocje, stres?`);
-    else if (avgBias > 15) insights.push(i18n.t('auto.cukier_trzyma_sie_nizej_niz_pr', { defaultValue: "🏃‍♂️ Cukier trzyma się niżej niż przewidywałem! Miałeś ukryty wysiłek fizyczny, o którym mi nie powiedziałeś?" }));
+    else if (avgBias > 15) insights.push(i18n.t('auto.cukier_trzyma_sie_nizej_niz_pr', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: "🏃‍♂️ Cukier trzyma się niżej niż przewidywałem! Miałeś ukryty wysiłek fizyczny, o którym mi nie powiedziałeś?" }) }));
 
     const latestDate = new Date(latestTimeMs);
     const lastHourDec = latestDate.getHours() + (latestDate.getMinutes() / 60);
 
     if (rules.dawnPhenomenonEnabled && lastHourDec > 2 && lastHourDec < 9 && lastTrendNum > 3) {
-         insights.push(i18n.t('auto.poranne_wstawanie_twoj_organiz', { defaultValue: "🌅 Poranne wstawanie... Twój organizm włącza Zjawisko Brzasku. Zapisuję, że w ostatnich dniach u Ciebie to częste." }));
+         insights.push(i18n.t('auto.poranne_wstawanie_twoj_organiz', { defaultValue: i18n.t('auto.poranne_wstawanie_twoj_or', { defaultValue: "🌅 Poranne wstawanie... Twój organizm włącza Zjawisko Brzasku. Zapisuję, że w ostatnich dniach u Ciebie to częste." }) }));
     } else if (lastHourDec > 3 && lastHourDec < 8 && lastTrendNum > 5 && currentCob === 0 && currentPob === 0) {
-        insights.push(i18n.t('auto.prawdopodobnie_organizm_budzi', { defaultValue: "🌅 Prawdopodobnie organizm budzi Cię właśnie hormonami porannymi. Tzw. zjawisko brzasku, rośniemy nawet bez jedzenia." }));
+        insights.push(i18n.t('auto.prawdopodobnie_organizm_budzi', { defaultValue: i18n.t('auto.prawdopodobnie_organizm_b', { defaultValue: "🌅 Prawdopodobnie organizm budzi Cię właśnie hormonami porannymi. Tzw. zjawisko brzasku, rośniemy nawet bez jedzenia." }) }));
     }
 
     const twoHoursAgoMs = latestTimeMs - (2 * 60 * 60 * 1000);
     const recentHypos = sorted.filter(l => (l.type === 'glucose' && (l.value || l.bg) < 70 && (l.timestamp || new Date(l.createdAt).getTime()) >= twoHoursAgoMs));
     if (rules.somogyiEnabled && recentHypos.length > 0 && lastTrendNum > 3) {
-        insights.push(i18n.t('auto.uwaga_ostatnio_miales_hipo_wie', { defaultValue: "🔄 Uwaga! Ostatnio miałeś hipo, więc widzę jak Twój organizm zaczął walczyć wypuszczając zapasy glukozy (tzw. efekt Somogyi). Powoli z korektami." }));
+        insights.push(i18n.t('auto.uwaga_ostatnio_miales_hipo_wie', { defaultValue: i18n.t('auto.uwaga_ostatnio_miales_hip', { defaultValue: "🔄 Uwaga! Ostatnio miałeś hipo, więc widzę jak Twój organizm zaczął walczyć wypuszczając zapasy glukozy (tzw. efekt Somogyi). Powoli z korektami." }) }));
     } else if (recentHypos.length > 0 && lastTrendNum > 6) {
-        insights.push(i18n.t('auto.miales_przed_chwila_gleboki_sp', { defaultValue: "🔄 Miałeś przed chwilą głęboki spadek. Ten gwałtowny wzrost to odbicie po-hipowe. Uważnie z potężną korektą, by znów nie spaść!" }));
+        insights.push(i18n.t('auto.miales_przed_chwila_gleboki_sp', { defaultValue: i18n.t('auto.miales_przed_chwila_glebo', { defaultValue: "🔄 Miałeś przed chwilą głęboki spadek. Ten gwałtowny wzrost to odbicie po-hipowe. Uważnie z potężną korektą, by znów nie spaść!" }) }));
     }
 
-    if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier > 1.1) insights.push(i18n.t('auto.w_moim_cenniku_twojego_uodporn', { defaultValue: "💪 W moim cenniku Twojego uodpornienia, widnieje lekka blokada na insulinę. Licz się z trochę chłodniejszą reakcją organizmu." }));
-    else if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier < 0.9) insights.push(i18n.t('auto.moje_ukryte_wagi_mowia_ze_powi', { defaultValue: "📉 Moje ukryte wagi mówią, że powinieneś w najbliższym czasie być podwójnie ostrożny z dawkami. Będziesz zbijał cukier skuteczniej!" }));
+    if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier > 1.1) insights.push(i18n.t('auto.w_moim_cenniku_twojego_uodporn', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: "💪 W moim cenniku Twojego uodpornienia, widnieje lekka blokada na insulinę. Licz się z trochę chłodniejszą reakcją organizmu." }) }));
+    else if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier < 0.9) insights.push(i18n.t('auto.moje_ukryte_wagi_mowia_ze_powi', { defaultValue: i18n.t('auto.moje_ukryte_wagi_mowia_ze', { defaultValue: "📉 Moje ukryte wagi mówią, że powinieneś w najbliższym czasie być podwójnie ostrożny z dawkami. Będziesz zbijał cukier skuteczniej!" }) }));
 
     if (latestBg > 160 && currentIob > 1.5 && predictedNextHour > 160) {
-        insights.push(i18n.t('auto.jest_wysoko_ale_uwaga_ustrzez', { defaultValue: "📉 Jest wysoko, ale uwaga! Ustrzeż się nawarstwienia insuliny, masz już zgromadzoną u siebie aktywną porcję. Wymaga to tylko chwili cierpliwości." }));
+        insights.push(i18n.t('auto.jest_wysoko_ale_uwaga_ustrzez', { defaultValue: i18n.t('auto.jest_wysoko_ale_uwaga_ust', { defaultValue: "📉 Jest wysoko, ale uwaga! Ustrzeż się nawarstwienia insuliny, masz już zgromadzoną u siebie aktywną porcję. Wymaga to tylko chwili cierpliwości." }) }));
     }
 
     if ((lastHourDec > 23 || lastHourDec < 5) && Math.abs(lastTrendNum) < 3 && latestBg > 90 && latestBg < 140) {
-        insights.push(i18n.t('auto.widze_spokojna_i_udana_nocke_p', { defaultValue: "🌙 Widzę spokojną i udaną nockę. Parametry ucięte jak od sznurka do snu!" }));
+        insights.push(i18n.t('auto.widze_spokojna_i_udana_nocke_p', { defaultValue: i18n.t('auto.widze_spokojna_i_udana_no', { defaultValue: "🌙 Widzę spokojną i udaną nockę. Parametry ucięte jak od sznurka do snu!" }) }));
     }
 
     let varianceSum = 0;
@@ -665,11 +665,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         const bollingerUpper = Math.round(meanGlucose + (2 * stdDev));
         const bollingerLower = Math.max(40, Math.round(meanGlucose - (2 * stdDev)));
 
-        if (latestBg > bollingerUpper && lastTrendNum > 3) insights.push(i18n.t('auto.oho_poszlismy_wyzej_niz_zaklad', { defaultValue: "📈 Oho, poszliśmy wyżej niż zakładałem! Cukier chyba poszukuje nowego miejsca żeby odpocząć, musisz zareagować." }));
-        else if (latestBg < bollingerLower && lastTrendNum < -3) insights.push(i18n.t('auto.cukier_zapikowal_ostrzej_niz_m', { defaultValue: "📉 Cukier zapikował ostrzej niż można by sądzić! Polecam szybko zabezpieczyć się węglowodanami." }));
+        if (latestBg > bollingerUpper && lastTrendNum > 3) insights.push(i18n.t('auto.oho_poszlismy_wyzej_niz_zaklad', { defaultValue: i18n.t('auto.oho_poszlismy_wyzej_niz_z', { defaultValue: "📈 Oho, poszliśmy wyżej niż zakładałem! Cukier chyba poszukuje nowego miejsca żeby odpocząć, musisz zareagować." }) }));
+        else if (latestBg < bollingerLower && lastTrendNum < -3) insights.push(i18n.t('auto.cukier_zapikowal_ostrzej_niz_m', { defaultValue: i18n.t('auto.cukier_zapikowal_ostrzej', { defaultValue: "📉 Cukier zapikował ostrzej niż można by sądzić! Polecam szybko zabezpieczyć się węglowodanami." }) }));
 
-        if (cv > 33 && meanGlucose > 80 && countGlucose > 30) insights.push(i18n.t('auto.hej_jedziemy_na_sporym_roller', { defaultValue: "🎢 Hej, jedziemy na sporym roller-coasterze. Zwróć większą uwagę na wcześniejsze podanie insuliny by ograniczyć piki!" }));
-        else if (cv < 15 && countGlucose > 30) insights.push(i18n.t('auto.chcialbym_ci_bardzo_podziekowa', { defaultValue: "🏆 Chciałbym Ci bardzo podziękować - Twoje wykresy trzymają tak mało huśtawek, to powód do zadowolenia!" }));
+        if (cv > 33 && meanGlucose > 80 && countGlucose > 30) insights.push(i18n.t('auto.hej_jedziemy_na_sporym_roller', { defaultValue: i18n.t('auto.hej_jedziemy_na_sporym_ro', { defaultValue: "🎢 Hej, jedziemy na sporym roller-coasterze. Zwróć większą uwagę na wcześniejsze podanie insuliny by ograniczyć piki!" }) }));
+        else if (cv < 15 && countGlucose > 30) insights.push(i18n.t('auto.chcialbym_ci_bardzo_podziekowa', { defaultValue: i18n.t('auto.chcialbym_ci_bardzo_podzi', { defaultValue: "🏆 Chciałbym Ci bardzo podziękować - Twoje wykresy trzymają tak mało huśtawek, to powód do zadowolenia!" }) }));
     }
 
     if (currentCob > 50 && latestBg > 150 && lastTrendNum > 4 && currentIob < Math.max(1, currentCob / 15)) {
@@ -679,10 +679,10 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const threeHoursAgoForBasal = latestTimeMs - (3 * 60 * 60 * 1000);
     const recentMealsOrBoluses = sorted.filter(l => (l.type === 'meal' || l.type === 'bolus' || l.type === 'insulin') && (l.timestamp || new Date(l.createdAt).getTime()) >= threeHoursAgoForBasal);
     if (recentMealsOrBoluses.length === 0 && lastTrendNum > 3 && latestBg > 130 && latestBg < 200 && currentIob === 0 && currentCob === 0) {
-        insights.push(i18n.t('auto.nic_nie_bylo_jedzone_nie_bylo', { defaultValue: "🧗 Nic nie było jedzone, nie było insuliny, a mimo to pomalutku brniemy w góry. Tzw. pusta luka - sprawdź, czy Ci lekko baza nie nawala!" }));
+        insights.push(i18n.t('auto.nic_nie_bylo_jedzone_nie_bylo', { defaultValue: i18n.t('auto.nic_nie_bylo_jedzone_nie', { defaultValue: "🧗 Nic nie było jedzone, nie było insuliny, a mimo to pomalutku brniemy w góry. Tzw. pusta luka - sprawdź, czy Ci lekko baza nie nawala!" }) }));
     }
 
-    if (currentFob > 15 || currentPob > 20) insights.push(i18n.t('auto.mam_u_siebie_zapisana_mase_tlu', { defaultValue: "⚠️ Mam u siebie zapisaną masę tłuszczów lub białek czekającą by się strawić! Zwracaj uwagę na ukryte wyskoki potraw za ok. 3-4 godziny - efekt pizzy wisi w powietrzu!" }));
+    if (currentFob > 15 || currentPob > 20) insights.push(i18n.t('auto.mam_u_siebie_zapisana_mase_tlu', { defaultValue: i18n.t('auto.mam_u_siebie_zapisana_mas', { defaultValue: "⚠️ Mam u siebie zapisaną masę tłuszczów lub białek czekającą by się strawić! Zwracaj uwagę na ukryte wyskoki potraw za ok. 3-4 godziny - efekt pizzy wisi w powietrzu!" }) }));
 
     const last4h = sorted.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) > (latestTimeMs - 4 * 3600000));
     const recentBolusesIn4h = last4h.filter(l => l.type === 'bolus' || l.type === 'insulin');
@@ -697,17 +697,17 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     if (currentIob > 3 && latestBg < 110 && lastTrendNum < -5 && currentCob < 10) {
-        insights.push(i18n.t('auto.trend_leci_masz_solidny_ladune', { defaultValue: "🎯 Trend leci! Masz solidny ładunek aktywnej insuliny w ciele i ani trochę zabezpieczonych węglowodanów w żołądku. Koniecznie zjedz ok. 15g soku lub glukozy!" }));
+        insights.push(i18n.t('auto.trend_leci_masz_solidny_ladune', { defaultValue: i18n.t('auto.trend_leci_masz_solidny_l', { defaultValue: "🎯 Trend leci! Masz solidny ładunek aktywnej insuliny w ciele i ani trochę zabezpieczonych węglowodanów w żołądku. Koniecznie zjedz ok. 15g soku lub glukozy!" }) }));
     }
 
     if (riskOfHypo) {
-        const hypoPhrases = [i18n.t('auto.przeczucie_mi_mowi_ze_zbliza_s', { defaultValue: "⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały." }), i18n.t('auto.bardzo_czerwone_swiatlo_u_mnie', { defaultValue: "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku." }), i18n.t('auto.spadek_i_maly_zakres_konieczni', { defaultValue: "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!" })];
+        const hypoPhrases = [i18n.t('auto.przeczucie_mi_mowi_ze_zbliza_s', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: "⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały." }) }), i18n.t('auto.bardzo_czerwone_swiatlo_u_mnie', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku." }) }), i18n.t('auto.spadek_i_maly_zakres_konieczni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!" }) })];
         insights.push(hypoPhrases[Math.floor(Math.random() * hypoPhrases.length)]);
     } else if (predictedNextHour > 180) {
-        const hyperPhrases = [i18n.t('auto.powoli_wybiegamy_w_teren_wysok', { defaultValue: "📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem." }), i18n.t('auto.sklaniamy_sie_gwaltownie_przed', { defaultValue: "📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę." }), i18n.t('auto.wydaje_mi_sie_ze_ostatnio_musi', { defaultValue: "📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Spodziewaj się lotu powyżej linii." })]
+        const hyperPhrases = [i18n.t('auto.powoli_wybiegamy_w_teren_wysok', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: "📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem." }) }), i18n.t('auto.sklaniamy_sie_gwaltownie_przed', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: "📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę." }) }), i18n.t('auto.wydaje_mi_sie_ze_ostatnio_musi', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: "📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Spodziewaj się lotu powyżej linii." }) })]
         insights.push(hyperPhrases[Math.floor(Math.random() * hyperPhrases.length)]);
     } else {
-        const normalPhrases = [i18n.t('auto.piekna_chwila_homeostazy_napra', { defaultValue: "✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!" }), i18n.t('auto.krok_po_kroku_i_mamy_idealny_m', { defaultValue: "✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!" }), i18n.t('auto.w_tej_minucie_mozna_powiedziec', { defaultValue: "✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!" })];
+        const normalPhrases = [i18n.t('auto.piekna_chwila_homeostazy_napra', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: "✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!" }) }), i18n.t('auto.krok_po_kroku_i_mamy_idealny_m', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: "✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!" }) }), i18n.t('auto.w_tej_minucie_mozna_powiedziec', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: "✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!" }) })];
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
 
