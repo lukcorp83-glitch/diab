@@ -729,6 +729,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     });
 
   } catch (error: any) {
+    if (error && error.message && (error.message.includes('dimension') || error.message.includes('shape'))) {
+      // Shape mismatch due to old model version restore from backup. 
+      // Delete the corrupted model from IndexedDB.
+      try { tf.io.removeModel('indexeddb://glikosense-lstm-v4'); } catch(e) {}
+    }
     self.postMessage({ type: 'error', error: error.message });
   }
 };

@@ -96,8 +96,11 @@ export const healthService = {
           startDate: date,
           endDate: date,
           dataType: 'blood_glucose',
-          value: value,
-          unit: 'mg/dL',
+          value: {
+            glucose: value / 18.0182, // Health Connect expects mmol/L for blood_glucose in this plugin
+            source: 'interstitial_fluid'
+          },
+          unit: 'mmol/L',
         },
         () => {
           console.log('[HealthConnect] Successfully wrote blood glucose:', value);

@@ -120,6 +120,12 @@ export const MLAnalyzer = {
         throw new Error("Invalid backup data format.");
       }
       
+      const topoString = JSON.stringify(backup.modelTopology);
+      if (!topoString.includes('LSTM') && !topoString.includes('lstm')) {
+        console.error("Backup model is not an LSTM model. Refusing to restore to avoid shape mismatch.");
+        return false;
+      }
+      
       const weightData = this.base64ToArrayBuffer(backup.weightDataB64);
       const artifacts: tf.io.ModelArtifacts = {
         modelTopology: backup.modelTopology,
