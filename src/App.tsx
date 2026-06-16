@@ -613,6 +613,13 @@ export default function App() {
     return undefined;
   }, [logs, userSettings?.showMealWidget]);
 
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   const mealProgress = useMemo(() => {
     if (!activeMenuMeal) return null;
     const mSrc =
@@ -631,12 +638,12 @@ export default function App() {
 
     const durationH = getMealAbsorptionTime(mWW, mWBT);
     const ageH =
-      (Date.now() - (activeMenuMeal.timestamp || 0)) / (1000 * 60 * 60);
+      (currentTime - (activeMenuMeal.timestamp || 0)) / (1000 * 60 * 60);
 
     if (ageH >= durationH && !userSettings?.showMealWidget) return null;
 
     return Math.max(0, Math.min(1, ageH / durationH));
-  }, [activeMenuMeal, userSettings?.showMealWidget]);
+  }, [activeMenuMeal, userSettings?.showMealWidget, currentTime]);
 
   useEffect(() => {
     if (mainRef.current) {
