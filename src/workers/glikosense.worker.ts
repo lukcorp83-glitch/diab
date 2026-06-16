@@ -165,10 +165,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       return;
     }
 
+    try { await tf.setBackend('cpu'); } catch(e) {}
     await tf.ready();
-    if (tf.getBackend() === null) {
-        await tf.setBackend('cpu');
-    }
 
     const now = Date.now();
     const lookbackMs = mode === 'quick' ? (24 * 60 * 60 * 1000) : (14 * 24 * 60 * 60 * 1000);
@@ -738,4 +736,5 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     self.postMessage({ type: 'error', error: error.message });
   }
 };
+
 
