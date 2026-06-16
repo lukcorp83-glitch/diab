@@ -282,3 +282,4 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
     </motion.div>
   );
 }
+

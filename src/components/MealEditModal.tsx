@@ -328,7 +328,7 @@ export default function MealEditModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 pt-safe pb-safe z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -724,7 +724,7 @@ export default function MealEditModal({
             animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
             exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-4"
+            className="fixed inset-0 pt-safe pb-safe z-[120] flex items-end sm:items-center justify-center bg-black/60 p-4"
           >
             <motion.div
               initial={{ y: "100%", opacity: 0 }}
@@ -791,3 +791,4 @@ export default function MealEditModal({
     document.body,
   );
 }
+

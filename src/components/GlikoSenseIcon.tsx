@@ -76,3 +76,4 @@ export default function GlikoSenseIcon({ className = "", size = 24, isAnalyzing 
     </div>
   );
 }
+

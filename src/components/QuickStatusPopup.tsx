@@ -22,7 +22,7 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[110] flex items-start justify-center p-4 pt-20 bg-slate-950/20 backdrop-blur-sm" onClick={onClose}>
+      <div className="fixed inset-0 pt-safe pb-safe z-[110] flex items-start justify-center p-4 pt-20 bg-slate-950/20 backdrop-blur-sm" onClick={onClose}>
         <motion.div
           initial={{ opacity: 0, y: -20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -122,3 +122,4 @@ function StatusItem({ icon, label, value, status }: { icon: any, label: string, 
     </div>
   );
 }
+

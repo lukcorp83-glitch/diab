@@ -325,3 +325,4 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
     </div>
   );
 }
+

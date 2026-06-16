@@ -211,3 +211,4 @@ export default function InsulinDetective({ logs, onClose }: InsulinDetectiveProp
     </div>
   );
 }
+

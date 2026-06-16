@@ -144,3 +144,4 @@ export default function CarbsBalanceWidget({ logs, settings, size, onAction, set
     </div>
   );
 }
+

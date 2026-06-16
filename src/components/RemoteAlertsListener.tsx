@@ -89,7 +89,7 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
   return (
     <AnimatePresence>
       {activeAlert && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl">
+        <div className="fixed inset-0 pt-safe pb-safe z-[9999] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -128,3 +128,4 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
     </AnimatePresence>
   );
 }
+

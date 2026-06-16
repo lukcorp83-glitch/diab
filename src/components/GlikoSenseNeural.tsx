@@ -440,3 +440,4 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
     </div>
   );
 }
+

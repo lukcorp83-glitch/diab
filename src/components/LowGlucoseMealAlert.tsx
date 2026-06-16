@@ -127,3 +127,4 @@ export default function LowGlucoseMealAlert({ logs, lastGlucose, onAddCarbs, sho
     </AnimatePresence>
   );
 }
+

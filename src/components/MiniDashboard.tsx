@@ -140,3 +140,4 @@ export default function MiniDashboard({ logs, userSettings }: MiniDashboardProps
     </div>
   );
 }
+

@@ -367,3 +367,4 @@ export function Diets({ user, setTab, settings }: DietsProps) {
     </div>
   );
 }
+

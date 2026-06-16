@@ -78,7 +78,7 @@ const OnboardingTutorial = ({ onComplete }: { onComplete: () => void }) => {
       animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
       exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 pt-safe pb-safe z-[200] flex items-end sm:items-center justify-center bg-black/60 p-4"
     >
       <motion.div 
         key={step}
@@ -160,3 +160,4 @@ export default OnboardingTutorial;
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
 }
+

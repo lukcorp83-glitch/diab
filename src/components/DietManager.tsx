@@ -448,3 +448,4 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
     </div>
   );
 }
+

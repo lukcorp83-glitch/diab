@@ -202,3 +202,4 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
     </div>
   );
 }
+

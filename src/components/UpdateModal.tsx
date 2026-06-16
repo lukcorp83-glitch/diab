@@ -42,7 +42,7 @@ export default function UpdateModal() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
+        className="fixed inset-0 pt-safe pb-safe z-[999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
         style={{
           paddingTop: 'calc(env(safe-area-inset-top, 24px) + 16px)',
           paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 16px)',
@@ -149,3 +149,4 @@ export default function UpdateModal() {
     </AnimatePresence>
   );
 }
+

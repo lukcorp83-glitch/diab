@@ -156,3 +156,4 @@ export default function SiteRotationWidget({ logs, settings, size, onAction, set
     </div>
   );
 }
+

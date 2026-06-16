@@ -91,7 +91,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-slate-950/40 backdrop-blur-md p-4"
+      className="fixed inset-0 pt-safe pb-safe z-[100] flex items-end sm:items-center justify-center bg-slate-950/40 backdrop-blur-md p-4"
     >
       <motion.div 
         initial={{ y: "20%", opacity: 0, scale: 0.95 }}
@@ -160,3 +160,4 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
     document.body
   );
 }
+

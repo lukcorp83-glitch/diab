@@ -11,7 +11,7 @@ export default function PrivacyPopup({ onAccept }: { onAccept: () => void }) {
   const [agreed, setAgreed] = React.useState(false);
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md">
+    <div className="fixed inset-0 pt-safe pb-safe z-[110] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -104,3 +104,4 @@ export default function PrivacyPopup({ onAccept }: { onAccept: () => void }) {
     </div>
   );
 }
+

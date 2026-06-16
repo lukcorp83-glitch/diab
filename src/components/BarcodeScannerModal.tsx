@@ -57,7 +57,7 @@ export default function BarcodeScannerModal({
 
   if (error) {
     return createPortal(
-      <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-4">
+      <div className="fixed inset-0 pt-safe pb-safe z-[9999] bg-black/90 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm flex flex-col gap-4">
           <div className="flex items-center justify-between text-white">
             <div className="flex items-center gap-2">
@@ -80,7 +80,8 @@ export default function BarcodeScannerModal({
   // W trakcie ładowania natywnego interfejsu renderujemy jedynie tło blokujące WebView,
   // ponieważ interfejs Capacitor ML Kit zostanie narysowany na wierzchu przez system Android.
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-black"></div>,
+    <div className="fixed inset-0 pt-safe pb-safe z-[9999] bg-black"></div>,
     document.body
   );
 }
+

@@ -111,3 +111,4 @@ export default function GlikoDiary({ logs, petName }: { logs: LogEntry[], petNam
     </div>
   );
 }
+

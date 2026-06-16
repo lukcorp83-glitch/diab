@@ -119,3 +119,4 @@ export default function HydrationWidget({ size }: HydrationWidgetProps) {
     </div>
   );
 }
+

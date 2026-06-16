@@ -83,3 +83,4 @@ export default function DietScoreWidget({ user, activeDiet }: { user: User, acti
     </div>
   );
 }
+

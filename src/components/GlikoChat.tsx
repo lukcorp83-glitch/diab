@@ -502,3 +502,4 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
     </div>
   );
 }
+

@@ -85,3 +85,4 @@ export default function DidYouKnowWidget({ onClick }: { onClick: () => void }) {
     </motion.div>
   );
 }
+

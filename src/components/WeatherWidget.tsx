@@ -208,3 +208,4 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
     </div>
   );
 }
+

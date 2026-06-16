@@ -144,3 +144,4 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
   }, [user]);
   return null;
 };
+

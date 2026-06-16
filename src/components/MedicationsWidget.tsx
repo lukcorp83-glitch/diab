@@ -137,3 +137,4 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
     </div>
   );
 }
+

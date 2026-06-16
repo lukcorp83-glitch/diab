@@ -182,3 +182,4 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
     </motion.div>
   );
 };
+

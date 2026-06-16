@@ -95,3 +95,4 @@ export default function RemoteAlertSender({ user }: { user: any }) {
     </div>
   );
 }
+

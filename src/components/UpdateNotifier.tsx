@@ -26,7 +26,7 @@ export const UpdateNotifier: React.FC = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm" style={{ paddingTop: 'calc(env(safe-area-inset-top, 24px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 16px)' }}>
+      <div className="fixed inset-0 pt-safe pb-safe z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm" style={{ paddingTop: 'calc(env(safe-area-inset-top, 24px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 16px)' }}>
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -94,3 +94,4 @@ export const UpdateNotifier: React.FC = () => {
     </AnimatePresence>
   );
 };
+

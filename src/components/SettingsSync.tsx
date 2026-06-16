@@ -323,7 +323,7 @@ export default function SettingsSync({
               animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
               exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60"
+              className="fixed inset-0 pt-safe pb-safe z-50 flex items-end sm:items-center justify-center p-4 bg-black/60"
             >
               <motion.div
                 initial={{ y: "100%", opacity: 0 }}
@@ -382,7 +382,7 @@ export default function SettingsSync({
               animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
               exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 overflow-y-auto"
+              className="fixed inset-0 pt-safe pb-safe z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 overflow-y-auto"
             >
               <motion.div
                 initial={{ y: "100%", opacity: 0 }}
@@ -586,3 +586,4 @@ function QrScanner({ onResult }: { onResult: (res: string) => void }) {
     </div>
   );
 }
+

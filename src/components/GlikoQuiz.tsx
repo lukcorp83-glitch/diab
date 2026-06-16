@@ -289,3 +289,4 @@ export default function GlikoQuiz({ onComplete }: { onComplete: (rewardCoins: nu
   );
 }
 
+

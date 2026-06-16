@@ -154,7 +154,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 pt-safe pb-safe bg-slate-900/60 backdrop-blur-sm z-[100]"
           />
 
           {/* Sidebar */}
@@ -301,3 +301,4 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
     </AnimatePresence>
   );
 }
+

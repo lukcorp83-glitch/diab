@@ -994,3 +994,4 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     </div>
   );
 }
+

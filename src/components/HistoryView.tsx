@@ -402,3 +402,4 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
     </motion.div>
   );
 }
+

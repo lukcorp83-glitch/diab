@@ -170,3 +170,4 @@ export default function GlikoGames({ logs, user, setTab }: GlikoGamesProps) {
     </div>
   );
 }
+

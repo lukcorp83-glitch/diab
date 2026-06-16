@@ -95,3 +95,4 @@ export default function UnlinkedCarbsWidget({ logs, onAddCarbs }: Props) {
     </AnimatePresence>
   );
 }
+

@@ -122,7 +122,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950 flex flex-col animation-fade-in">
+    <div className="fixed inset-0 pt-safe pb-safe z-[100] bg-slate-50 dark:bg-slate-950 flex flex-col animation-fade-in">
       {/* Header */}
       <div className="pt-safe px-4 pb-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-lg">
         <div className="flex items-center gap-3">
@@ -251,3 +251,4 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
     </div>
   );
 }
+

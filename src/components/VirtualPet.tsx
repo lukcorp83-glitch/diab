@@ -1576,3 +1576,4 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     </div>
   );
 }
+

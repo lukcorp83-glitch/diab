@@ -492,3 +492,12 @@ body {
   display: none !important;
 }
 
+
+
+/* Safe Area Utilities */
+@layer utilities {
+  .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+  .mt-safe { margin-top: env(safe-area-inset-top, 20px); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom, 20px); }
+}

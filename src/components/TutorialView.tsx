@@ -322,3 +322,4 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
     </motion.div>
   );
 }
+
