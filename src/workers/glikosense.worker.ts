@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import i18n from "../i18n";
+const i18n = { t: (key, options) => { if (options && options.defaultValue) return options.defaultValue; return key; }, language: 'pl' };
 
 export interface GlikoWorkerInput {
     logs: any[];
@@ -738,3 +738,4 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     self.postMessage({ type: 'error', error: error.message });
   }
 };
+
