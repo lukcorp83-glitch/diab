@@ -234,6 +234,7 @@
     "processing": "Przetwarzanie...",
     "saved_syncing": "Zapisano (Synchronizacja w tle...)",
     "timing_hypo": "🔴 HIPO! Zjedz węgle. Nie podawaj bolusa!",
+    "timing_immediate": "🟢 SPADEK! Zjedz od razu bez czekania.",
     "timing_normal": "🟢 NORMA. Bolus i posiłek za 5-10 min.",
     "timing_high": "🟡 WYSOKI. Odczekaj ok. 15 min.",
     "timing_very_high": "🟠 BARDZO WYSOKI! Odczekaj min. 30 min.",

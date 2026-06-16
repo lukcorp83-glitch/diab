@@ -234,6 +234,7 @@
     "processing": "Processing...",
     "saved_syncing": "Saved (Syncing in background...)",
     "timing_hypo": "🔴 HYPO! Eat carbs. Do not administer bolus!",
+    "timing_immediate": "🟢 DROPPING! Eat immediately without waiting.",
     "timing_normal": "🟢 NORMAL. Bolus and eat in 5-10 min.",
     "timing_high": "🟡 HIGH. Wait approx. 15 min.",
     "timing_very_high": "🟠 VERY HIGH! Wait at least 30 min.",

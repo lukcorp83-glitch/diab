@@ -130,6 +130,15 @@ export default function BolusCalculator({
     const lastG = logs.find((l) => l.type === "glucose");
     if (lastG && Date.now() - lastG.timestamp < 30 * 60 * 1000 && !bg) {
       setBg(lastG.value.toString());
+      if (lastG.direction) {
+        if (['SingleUp', 'DoubleUp', 'FortyFiveUp'].includes(lastG.direction)) setTrend('up');
+        else if (['SingleDown', 'DoubleDown', 'FortyFiveDown'].includes(lastG.direction)) setTrend('down');
+        else setTrend('stable');
+      } else if (lastG.delta !== undefined) {
+        if (lastG.delta >= 2) setTrend('up');
+        else if (lastG.delta <= -2) setTrend('down');
+        else setTrend('stable');
+      }
     }
 
     const pending = sessionStorage.getItem("pending_meal");
@@ -535,21 +544,42 @@ export default function BolusCalculator({
         text: t('bolus.timing_hypo'),
         color: "text-red-500",
       };
-    if (bgNum <= 130)
+    if (bgNum <= 130) {
+      if (trend === 'down' && bgNum <= 95) {
+        return {
+          text: t('bolus.timing_immediate', { defaultValue: "🟢 Zjedz od razu bez czekania" }),
+          color: "text-green-500",
+        };
+      }
       return {
         text: t('bolus.timing_normal'),
         color: "text-green-500",
       };
-    if (bgNum <= 180)
+    }
+    if (bgNum <= 180) {
+      if (trend === 'down') {
+        return {
+          text: t('bolus.timing_normal'),
+          color: "text-green-500",
+        };
+      }
       return {
         text: t('bolus.timing_high'),
         color: "text-amber-500",
       };
-    if (bgNum <= 200)
+    }
+    if (bgNum <= 200) {
+      if (trend === 'down') {
+        return {
+          text: t('bolus.timing_high'),
+          color: "text-amber-500",
+        };
+      }
       return {
         text: t('bolus.timing_very_high'),
         color: "text-orange-500",
       };
+    }
     return {
       text: t('bolus.timing_critical'),
       color: "text-red-600",
