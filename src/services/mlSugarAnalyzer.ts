@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import i18n from "../i18n";
-import GlikoWorker from '../workers/glikosense.worker?worker';
+import GlikoWorker from '../workers/glikosense.worker?worker&inline';
 
 export const GlikoSenseLearner = {
   async sendTelemetry(learnedRule: string, contextString: string) {
