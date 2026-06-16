@@ -616,7 +616,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(Date.now());
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(Date.now()), 60000);
+    const timer = setInterval(() => setCurrentTime(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
 
