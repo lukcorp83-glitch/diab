@@ -1,0 +1,48 @@
+                    onClick={async () => {
+                      const now = Date.now();
+                      const currentInv = settings.inventory || [];
+                      const setIndex = currentInv.findIndex(i => i.category === "infusion_sets" && i.quantity > 0);
+                      let updatedInv = currentInv;
+                      if (setIndex !== -1) {
+                        updatedInv = [...currentInv];
+                        updatedInv[setIndex] = { ...updatedInv[setIndex], quantity: Math.max(0, updatedInv[setIndex].quantity - 1) };
+                      }
+                      const updates = { infusionSetChangeDate: now, infusionSetSite: insertionSite, inventory: updatedInv };
+                      setSettings((prev) => ({ ...prev, ...updates }));
+                      if (user) {
+                        await setDoc(
+                          doc(
+                            db,
+                            "artifacts",
+                            "diacontrolapp",
+                            "users",
+                            getEffectiveUid(user),
+                            "settings",
+                            "profile",
+                          ),
+                          updates,
+                          { merge: true },
+                        );
+                        await addDoc(
+                          collection(
+                            db,
+                            "artifacts",
+                            "diacontrolapp",
+                            "users",
+                            getEffectiveUid(user),
+                            "logs",
+                          ),
+                          {
+                            type: "site_change",
+                            value: 1,
+                            timestamp: now,
+                            createdAt: serverTimestamp(),
+                            notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }),
+                            source: "system",
+                          },
+                        );
+                      }
+                      toast.success(
+                        `Zapisano wymianę wkłucia (${insertionSite})!`,
+                      );
+                    }}

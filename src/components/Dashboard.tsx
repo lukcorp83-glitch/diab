@@ -317,7 +317,7 @@ export default function Dashboard({
 
   const [layoutMode, setLayoutMode] = useState<"classic" | "grid">(() => {
     const saved = localStorage.getItem('glikosfera_layout_mode_v6');
-    return (saved === "grid" || saved === "classic") ? saved : "classic";
+    return (saved === "grid" || saved === "classic") ? saved : "grid";
   });
 
   useEffect(() => {

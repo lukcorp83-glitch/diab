@@ -4644,5 +4644,14 @@
   "auto.twoj_sensor_wygasa_za_12_godzi": "Your sensor expires in 12 hours!",
   "auto.twoje_wklucie_wygasa_za_12_god": "Your injection expires in 12 hours!",
   "auto.czesciowo_zachmurzone": "Partly cloudy",
-  "auto.przod": "front"
+  "auto.przod": "front",
+  "auto.zbiorniczki": "Reservoirs",
+  "auto.zbiorniczek_na_insuline": "Insulin reservoir",
+  "auto.pojemnik_z_insulina": "Insulin container",
+  "auto.zywotnosc_zbiorniczka_dni": "Reservoir Lifespan (days)",
+  "auto.data_i_godzina_zalozenia_zbiorniczka": "Date and time of insertion",
+  "auto.wymiana_zbiorniczka": "Reservoir replacement",
+  "auto.zapisano_wymiane_zbiorniczka": "Reservoir replacement saved!",
+  "auto.zaktualizowano_date_dni_zbiorniczka": "Reservoir date/days updated!",
+  "auto.czy_wymieniasz_rowniez_zbiornicze": "Are you also replacing the insulin reservoir?"
 }

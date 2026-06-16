@@ -114,9 +114,11 @@ export interface UserSettings {
   cgmTimestamp?: number; // When was the last calibration
   sensorChangeDate?: number;
   infusionSetChangeDate?: number;
+  reservoirChangeDate?: number;
   infusionSetSite?: string;
   sensorDurationDays?: number;
   infusionSetDurationDays?: number;
+  reservoirDurationDays?: number;
   notificationsEnabled?: boolean;
   apkSystemNotificationsEnabled?: boolean;
   notificationPrefs?: {

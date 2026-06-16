@@ -404,7 +404,7 @@ export const ITEMS: PetItem[] = [
   { id: 'ball', name: i18n.t('auto.pileczka', { defaultValue: i18n.t('auto.pileczka', { defaultValue: "Piłeczka" }) }), type: 'toy', price: 20, icon: '🎾', effect: { happiness: 30, xp: 15 } },
   { id: 'cake', name: "Pyszne Ciastko", namePl: "Pyszne Ciastko", nameEn: "Delicious Cookie", type: 'food', price: 25, icon: '🍰', effect: { hunger: 50, happiness: 20, xp: 20 } },
 ];
-export const MEDICAL_DICTIONARY: Record<string, { name: string; category: "insulin" | "sensors" | "infusion_sets" | "strips" | "other" }> = {
+export const MEDICAL_DICTIONARY: Record<string, { name: string; category: "insulin" | "sensors" | "infusion_sets" | "reservoirs" | "strips" | "other" }> = {
   // Insuliny
   "5909990451814": { name: "NovoRapid Penfill", namePl: "NovoRapid Penfill", nameEn: "NovoRapid Penfill", category: "insulin" },
   "5712249127619": { name: "NovoRapid FlexPen", namePl: "NovoRapid FlexPen", nameEn: "NovoRapid FlexPen", category: "insulin" },

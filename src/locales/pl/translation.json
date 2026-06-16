@@ -4607,5 +4607,14 @@
   "auto.twoj_sensor_wygasa_za_12_godzi": "Twój sensor wygasa za 12 godzin!",
   "auto.twoje_wklucie_wygasa_za_12_god": "Twoje wkłucie wygasa za 12 godzin!",
   "auto.czesciowo_zachmurzone": "Częściowo zachmurzone",
-  "auto.przod": "przód"
+  "auto.przod": "przód",
+  "auto.zbiorniczki": "Zbiorniczki",
+  "auto.zbiorniczek_na_insuline": "Zbiorniczek na insulinę",
+  "auto.pojemnik_z_insulina": "Pojemnik z insuliną",
+  "auto.zywotnosc_zbiorniczka_dni": "Żywotność Zbiorniczka (dni)",
+  "auto.data_i_godzina_zalozenia_zbiorniczka": "Data i godzina założenia",
+  "auto.wymiana_zbiorniczka": "Wymiana zbiorniczka",
+  "auto.zapisano_wymiane_zbiorniczka": "Zapisano wymianę zbiorniczka!",
+  "auto.zaktualizowano_date_dni_zbiorniczka": "Zaktualizowano datę/dni zbiorniczka!",
+  "auto.czy_wymieniasz_rowniez_zbiornicze": "Czy wymieniasz również zbiorniczek na insulinę?"
 }
