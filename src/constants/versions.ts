@@ -269,6 +269,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "5.3.2",
+    date: "2026-06-16",
+    title: "Poprawka GlikoSense i Alarmów",
+    changes: [
+      i18n.t('auto.naprawa_glikosense_android', { defaultValue: "Naprawa działania GlikoSense na urządzeniach Android (wymuszenie CPU)." }),
+      i18n.t('auto.naprawa_dzwiekow_alarmu', { defaultValue: "Przywrócenie dźwięków wbudowanego alarmu (critical_alarm.wav)." }),
+      i18n.t('auto.poprawka_paska_statusu_w_oknach', { defaultValue: "Korekty interfejsu (Safe Area) uodparniające okna modalne na nachodzący pasek baterii telefonu." })
+    ]
+  },
+  {
     version: "5.3.1",
     date: "2026-06-10",
     title: "Wsparcie dla Android Auto",
