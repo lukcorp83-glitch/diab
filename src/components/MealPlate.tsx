@@ -7,7 +7,8 @@ import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils"
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Product, PlateItem } from "../types";
+import { Product, PlateItem } from '../types';
+import { getProductName } from './FoodDatabase';
 import {
   Search,
   Plus,
