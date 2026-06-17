@@ -111,6 +111,8 @@ import CloudPackageSync from "./CloudPackageSync";
 import ApiIntegration from "./ApiIntegration";
 import PumpSimulator from "./PumpSimulator";
 import { Diets } from "./Diets";
+import InteractiveBodyMap from './InteractiveBodyMap';
+import SiteRotationWidget from './SiteRotationWidget';
 import StatisticsView from "./StatisticsView";
 import TutorialView from "./TutorialView";
 import GlikoTraining from "./GlikoTraining";
@@ -298,6 +300,7 @@ export default function Profile({
     useState<InventoryItem | null>(null);
 
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const sensorSite = settings.sensorSite || "Tył lewego ramienia";
 
   const insertionSite = settings.infusionSetSite || "Prawy brzuch";
 
@@ -2889,8 +2892,8 @@ export default function Profile({
       )}
 
       {activeCategory === "devices" && (
-        <div className="space-y-4">
-          <div className="glass p-6 rounded-[2.5rem] space-y-4">
+          <div className="space-y-4">
+            <div className="glass p-6 rounded-[2.5rem] space-y-4">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
               
                                         {t('auto.kalibracja_cgm', { defaultValue: 'Kalibracja CGM' })}
@@ -3527,7 +3530,7 @@ export default function Profile({
                             value: 1,
                             timestamp: now,
                             createdAt: serverTimestamp(),
-                            notes: "Wymiana sensora",
+                            notes: "Wymiana sensora - " + sensorSite,
                             source: "system",
                           },
                         );

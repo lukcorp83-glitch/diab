@@ -91,12 +91,11 @@ export default function FoodDatabase({ user, onAddToPlate }: { user: any; onAddT
       let finalNamePl = newProduct.name;
       let finalNameEn = newProduct.name;
 
-      if (shareWithCommunity) {
-        // Translate the product for community database
-        const translation = await geminiService.translateProduct(newProduct.name);
-        if (translation.namePl) finalNamePl = translation.namePl;
-        if (translation.nameEn) finalNameEn = translation.nameEn;
-      }
+      // Translate the product for database (always translate to keep 2 languages)
+      const translation = await geminiService.translateProduct(newProduct.name);
+      if (translation.namePl) finalNamePl = translation.namePl;
+      if (translation.nameEn) finalNameEn = translation.nameEn;
+
 
       const prodData = {
         name: newProduct.name,
