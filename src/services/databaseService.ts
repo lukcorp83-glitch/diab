@@ -81,13 +81,13 @@ export class DatabaseService {
   async saveMultipleLogs(logs: any[]) {
     if (!this.db || logs.length === 0) return;
     try {
-      let sqlString = "BEGIN TRANSACTION;\n";
+      let sqlString = "";
       for (const log of logs) {
         const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
         const payloadStr = JSON.stringify(log).replace(/'/g, "''"); // escape single quotes for literal
         sqlString += `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES ('${id}', ${log.timestamp}, '${log.type}', '${payloadStr}', 0);\n`;
       }
-      sqlString += "COMMIT;";
+      
       await this.db.execute(sqlString);
       if (this.isWeb) {
         await this.sqlite.saveToStore('glikocontrol_db');

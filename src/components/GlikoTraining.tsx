@@ -37,12 +37,12 @@ export const SPORTS = [
   },
   {
     id: 'run',
-    name: 'Bieganie / Cardio',
+    name: i18n.t('auto.bieganie_kardio', { defaultValue: 'Bieganie / Cardio' }),
     icon: Wind,
     color: 'text-blue-500',
     bg: 'bg-blue-500/10',
     border: 'border-blue-500/20',
-    effect: 'Szybki spadek cukru',
+    effect: i18n.t('auto.szybki_spadek_cukru', { defaultValue: 'Szybki spadek cukru' }),
     description: i18n.t('auto.wysilek_tlenowy_aerobowy_gwalt', { defaultValue: i18n.t('auto.wysilek_tlenowy_aerobowy', { defaultValue: "Wysiłek tlenowy (aerobowy) gwałtownie spala glukozę, zwiększając wrażliwość na insulinę. Cukier może spadać w trakcie całego treningu." }) }),
     tips: [
       i18n.t('auto.zmniejsz_dawke_insuliny_przed', { defaultValue: i18n.t('auto.zmniejsz_dawke_insuliny_p', { defaultValue: "Zmniejsz dawkę insuliny przed biegiem." }) }),
@@ -52,12 +52,12 @@ export const SPORTS = [
   },
   {
     id: 'bike',
-    name: 'Jazda na Rowerze',
+    name: i18n.t('auto.jazda_na_rowerze', { defaultValue: 'Jazda na Rowerze' }),
     icon: Bike,
     color: 'text-emerald-500',
     bg: 'bg-emerald-500/10',
     border: 'border-emerald-500/20',
-    effect: 'Umiarkowany spadek',
+    effect: i18n.t('auto.umiarkowany_spadek', { defaultValue: 'Umiarkowany spadek' }),
     description: i18n.t('auto.ciagly_wysilek_aerobowy_obniza', { defaultValue: i18n.t('auto.ciagly_wysilek_aerobowy_o', { defaultValue: "Ciągły wysiłek aerobowy obniża poziom glukozy, choć zazwyczaj nieco wolniej niż intensywne bieganie. Oczywiście zależy od intensywności (np. interwały mogą działać jak siłownia)." }) }),
     tips: [
       i18n.t('auto.jedz_male_porcje_weglowodanow', { defaultValue: i18n.t('auto.jedz_male_porcje_weglowod', { defaultValue: "Jedz małe porcje węglowodanów w trakcie jazdy (węglowodany złożone)." }) }),
@@ -71,7 +71,7 @@ export const SPORTS = [
     color: 'text-cyan-500',
     bg: 'bg-cyan-500/10',
     border: 'border-cyan-500/20',
-    effect: 'Szybki spadek cukru',
+    effect: i18n.t('auto.szybki_spadek_cukru', { defaultValue: 'Szybki spadek cukru' }),
     description: i18n.t('auto.jeden_z_trudniejszych_do_kontr', { defaultValue: i18n.t('auto.jeden_z_trudniejszych_do', { defaultValue: "Jeden z trudniejszych do kontroli sportów. Zimna woda, opór i angażowanie wszystkich partii ciała powodują szybkie spalanie energii." }) }),
     tips: [
       i18n.t('auto.sprawdzaj_cukier_przed_wejscie', { defaultValue: i18n.t('auto.sprawdzaj_cukier_przed_we', { defaultValue: "Sprawdzaj cukier przed wejściem i zaraz po wejściu z wody." }) }),
@@ -101,7 +101,7 @@ export const SPORTS = [
     color: 'text-green-600',
     bg: 'bg-green-500/10',
     border: 'border-green-500/20',
-    effect: 'Mieszany (spadek/wzrost)',
+    effect: i18n.t('auto.mieszany_spadek_wzrost', { defaultValue: 'Mieszany (spadek/wzrost)' }),
     description: i18n.t('auto.wysilek_interwalowy_sprinty_mo', { defaultValue: i18n.t('auto.wysilek_interwalowy_sprin', { defaultValue: "Wysiłek interwałowy. Sprinty mogą powodować wyrzuty adrenaliny (wzrosty), ale ogólny bilans często prowadzi do spadku cukru po meczu." }) }),
     tips: [
       'Kontroluj cukier w przerwie meczu.',
@@ -125,7 +125,7 @@ export const SPORTS = [
   },
   {
     id: 'tennis',
-    name: 'Tenis',
+    name: i18n.t('auto.tenis', { defaultValue: 'Tenis' }),
     icon: Activity,
     color: 'text-lime-500',
     bg: 'bg-lime-500/10',
@@ -139,26 +139,26 @@ export const SPORTS = [
   },
   {
     id: 'yoga',
-    name: 'Joga / Pilates',
+    name: i18n.t('auto.joga', { defaultValue: 'Joga / Pilates' }),
     icon: Activity,
     color: 'text-purple-500',
     bg: 'bg-purple-500/10',
     border: 'border-purple-500/20',
-    effect: 'Stabilizacja / Lekki spadek',
+    effect: i18n.t('auto.stabilizacja_spadek', { defaultValue: 'Stabilizacja / Lekki spadek' }),
     description: i18n.t('auto.wysilek_statyczny_skupiony_na', { defaultValue: i18n.t('auto.wysilek_statyczny_skupion', { defaultValue: "Wysiłek statyczny, skupiony na oddechu i rozciąganiu. Zazwyczaj działa stabilizująco na poziom cukru." }) }),
     tips: [
-      'Idealny sport przy lekkich wahaniach glikemii.',
+      i18n.t('auto.idealny_sport_przy_wahaniach', { defaultValue: 'Idealny sport przy lekkich wahaniach glikemii.' }),
       i18n.t('auto.pamietaj_ze_niektore_pozycje_n', { defaultValue: i18n.t('auto.pamietaj_ze_niektore_pozy', { defaultValue: "Pamiętaj, że niektóre pozycje (np. odwrócone) wymagają stabilnego cukru." }) })
     ]
   },
   {
     id: 'walk',
-    name: 'Spacer / Marsz',
+    name: i18n.t('auto.marsz_spacer', { defaultValue: 'Spacer / Marsz' }),
     icon: Footprints,
     color: 'text-slate-500',
     bg: 'bg-slate-500/10',
     border: 'border-slate-500/20',
-    effect: 'Delikatny spadek',
+    effect: i18n.t('auto.delikatny_spadek', { defaultValue: 'Delikatny spadek' }),
     description: i18n.t('auto.najbezpieczniejsza_forma_ruchu', { defaultValue: i18n.t('auto.najbezpieczniejsza_forma', { defaultValue: "Najbezpieczniejsza forma ruchu. Pomaga obniżyć cukier po posiłku bez ryzyka gwałtownej hipoglikemii." }) }),
     tips: [
       i18n.t('auto.swietny_sposob_na_zbicie_wysok', { defaultValue: i18n.t('auto.swietny_sposob_na_zbicie', { defaultValue: "Świetny sposób na zbicie \"wysokiego\" po kolacji." }) }),
@@ -167,12 +167,12 @@ export const SPORTS = [
   },
   {
     id: 'dance',
-    name: 'Taniec',
+    name: i18n.t('auto.taniec', { defaultValue: 'Taniec' }),
     icon: Music,
     color: 'text-pink-500',
     bg: 'bg-pink-500/10',
     border: 'border-pink-500/20',
-    effect: 'Spalanie cardio',
+    effect: i18n.t('auto.spalanie_cardio', { defaultValue: 'Spalanie cardio' }),
     description: i18n.t('auto.pol_godziny_intensywnego_tanca', { defaultValue: i18n.t('auto.pol_godziny_intensywnego', { defaultValue: "Pół godziny intensywnego tańca to duży wysiłek energetyczny." }) }),
     tips: [
       i18n.t('auto.baw_sie_dobrze_ale_zerkaj_na_s', { defaultValue: i18n.t('auto.baw_sie_dobrze_ale_zerkaj', { defaultValue: "Baw się dobrze, ale zerkaj na sensor!" }) }),

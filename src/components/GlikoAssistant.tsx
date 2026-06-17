@@ -52,7 +52,7 @@ export default function GlikoAssistant({
         {
           id: 'initial',
           role: 'model',
-          text: `Witam, jestem Twoim asystentem.`,
+          text: i18n.t('auto.witam_jestem_twoim_asystentem', { defaultValue: 'Witam, jestem Twoim asystentem.' }),
           timestamp: Date.now()
         }
       ]);
@@ -139,7 +139,7 @@ export default function GlikoAssistant({
       setMessages([{
         id: 'initial-' + Date.now(),
         role: 'model',
-        text: `Witam, jestem Twoim asystentem.`,
+        text: i18n.t('auto.witam_jestem_twoim_asystentem', { defaultValue: 'Witam, jestem Twoim asystentem.' }),
         timestamp: Date.now()
       }]);
     }
@@ -152,11 +152,11 @@ export default function GlikoAssistant({
     i18n.t('auto.czuje_sie_zle', { defaultValue: i18n.t('auto.czuje_sie_zle', { defaultValue: "Czuję się źle" }) }),
     i18n.t('auto.glodny', { defaultValue: i18n.t('auto.glodny', { defaultValue: "Głodny!" }) })
   ] : [
-    "Analiza TIR",
+    i18n.t('auto.analiza_tir', { defaultValue: 'Analiza TIR' }),
     i18n.t('auto.korelacja_posilkow', { defaultValue: i18n.t('auto.korelacja_posilkow', { defaultValue: "Korelacja posiłków" }) }),
-    "Trendy Glikemii",
-    "Odczyty Nocne",
-    "Model Bazalny"
+    i18n.t('auto.trendy_glikemii', { defaultValue: 'Trendy Glikemii' }),
+    i18n.t('auto.odczyty_nocne', { defaultValue: 'Odczyty Nocne' }),
+    i18n.t('auto.model_bazalny', { defaultValue: 'Model Bazalny' })
   ];
 
   const renderAvatar = (size: 'sm' | 'md' | 'lg' = 'md') => {

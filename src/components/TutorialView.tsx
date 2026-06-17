@@ -30,7 +30,7 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
       a: i18n.t('auto.jezeli_rowniez_zakladce_system', { defaultValue: i18n.t('auto.jezeli_rowniez_zakladce_s', { defaultValue: "Jeżeli również zakładce 'Systemowe' zaznaczysz przełącznik 'GlikoSense & Pogoda', wszystkie nowo zapisywane cukry (szczególnie te ściągane automatycznie np. z chmury Nightscout) będą 'stemplowane' temperaturą i ciśnieniem z danego momentu. Pozwala to w przyszłości Twojej Neuralnej Sztucznej Inteligencji zauważyć tendencję, czy mróz podnosi cukier, albo czy w upały masz więcej spadków." }) })
     },
     { 
-      q: "Czym jest GlikoCzat?", 
+      q: i18n.t('auto.czym_jest_gliko_czat', { defaultValue: "Czym jest GlikoCzat?" }), 
       a: i18n.t('auto.to_inteligentny_asystent_ai_na', { defaultValue: i18n.t('auto.to_inteligentny_asystent', { defaultValue: "To inteligentny asystent AI na stałe wbudowany w aplikację, zoptymalizowany pod kątem wsparcia przy cukrzycy. Odpowie na Twoje pytania z zakresu diety czy zarządzania glikemią, a na prośbę błyskawicznie dodaje opisany przez Ciebie posiłek do Talerza Posiłków." }) })
     },
     {
@@ -73,19 +73,19 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
 
   const compendium = [
     {
-      title: 'Cele Glikemiczne (rekomendacje PTD)',
+      title: i18n.t('auto.cele_glikemiczne_ptd', { defaultValue: 'Cele Glikemiczne (rekomendacje PTD)' }),
       content: i18n.t('auto.dla_wiekszosci_pacjentow_z_cuk', { defaultValue: i18n.t('auto.dla_wiekszosci_pacjentow', { defaultValue: "Dla większości pacjentów z cukrzycą:\n- Na czczo i przed posiłkiem: 70–110 mg/dL.\n- 2 godziny po posiłku: < 140 mg/dL.\n- Czas w zakresie docelowym (TIR 70-180 mg/dL): min. 70% czasu.\n- HbA1c (hemoglobina glikowana): ≤ 7% (w wybranych grupach i u kobiet w ciąży normy są bardziej restrykcyjne)." }) }),
     },
     {
-      title: 'Hipoglikemia (Niedocukrzenie)',
+      title: i18n.t('auto.hipoglikemia_niedocukrzenie', { defaultValue: 'Hipoglikemia (Niedocukrzenie)' }),
       content: i18n.t('auto.poziom_cukru_70_mg_dl_dla_pacj', { defaultValue: i18n.t('auto.poziom_cukru_70_mg_dl_dla', { defaultValue: "Poziom cukru < 70 mg/dL (dla pacjentów zdrowych normy są głębsze, dla diabetyków to granica alarmowa).\nObjawy: poty, drżenie rąk, przyspieszone bicie serca, zmieszanie, ogromny głód.\nLeczenie (Reguła 15/15): Zjedz/wypij 15g węglowodanów prostych (np. pół szklanki soku, 3 tabletki glukozy). Odczekaj 15 minut i zmierz cukier. Powtórz jeśli nadal < 70 mg/dL." }) }),
     },
     {
-      title: 'Hiperglikemia i Kwasica Ketonowa',
+      title: i18n.t('auto.hiperglikemia_kwasica', { defaultValue: 'Hiperglikemia i Kwasica Ketonowa' }),
       content: i18n.t('auto.hiperglikemia_to_przedluzajacy', { defaultValue: i18n.t('auto.hiperglikemia_to_przedluz', { defaultValue: "Hiperglikemia to przedłużający się wysoki poziom cukru (np. >200 mg/dL). Jeśli cukier przekracza 250 mg/dL i towarzyszą temu objawy (bóle brzucha, mdłości, suchość w ustach, ciągłe oddawanie moczu), ZBADAJ KETONY z krwi lub moczu.\nBrak insuliny powoduje spalanie tłuszczu i uwalnianie ciał ketonowych. Kwasica ketonowa to stan zagrażający życiu wymagający szybkiego nawodnienia i podania insuliny." }) }),
     },
     {
-      title: 'Hemoglobina Glikowana (HbA1c)',
+      title: i18n.t('auto.hba1c', { defaultValue: 'Hemoglobina Glikowana (HbA1c)' }),
       content: i18n.t('auto.wskaznik_odzwierciedlajacy_sre', { defaultValue: i18n.t('auto.wskaznik_odzwierciedlajac', { defaultValue: "Wskaźnik odzwierciedlający średnie stężenie glukozy we krwi z ostatnich ok. 3 miesięcy. Wynik podawany jest w %. \nDocelowo u większości młodych dorosłych to poniżej 7%, a w cukrzycy typu 1 często dąży się do <6.5%. \nHbA1c koreluje z ryzykiem wystąpienia przewlekłych powikłań cukrzycowych." }) }),
     },
     {
@@ -117,15 +117,15 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
       content: i18n.t('auto.insuline_podaje_sie_do_tkanki', { defaultValue: i18n.t('auto.insuline_podaje_sie_do_tk', { defaultValue: "Insulinę podaje się do tkanki podskórnej. Regularna rotacja miejsc wkłuć (brzuch, uda, pośladki, ramiona) zapobiega powstawaniu zrostów i lipohipertrofii.\nWstrzykiwanie w zrosty powoduje że insulina gorzej i bardzo powoli się wchłania, co jest częstą przyczyną \"skakania\" i niewyjaśnionych wahań cukru." }) }),
     },
     {
-      title: 'Efekt Brzasku i Zjawisko Somogyi',
+      title: i18n.t('auto.efekt_brzasku_somogyi', { defaultValue: 'Efekt Brzasku i Zjawisko Somogyi' }),
       content: i18n.t('auto.efekt_brzasku_naturalny_uwarun', { defaultValue: i18n.t('auto.efekt_brzasku_naturalny_u', { defaultValue: "Efekt brzasku: Naturalny, uwarunkowany hormonalnie (hormon wzrostu, kortyzol) wzrost glikemii we wczesnych godzinach porannych (zwykle 3:00 - 8:00), bez uprzedniego niedocukrzenia.\nZjawisko Somogyi (zjawisko z odbicia): Poranna hiperglikemia będąca reakcją obronną organizmu na niewykryte, głębokie niedocukrzenie wymuszające wyrzut hormonów stresu w nocy. Wymaga obniżenia bazy nocnej, w przeciwieństwie do efektu brzasku, który wymaga jej zwiększenia." }) }),
     },
     {
-      title: 'Glukagon (Zastrzyk Ratunkowy / Donosowy)',
+      title: i18n.t('auto.glukagon_zastrzyk', { defaultValue: 'Glukagon (Zastrzyk Ratunkowy / Donosowy)' }),
       content: i18n.t('auto.hormon_przeciwstawny_do_insuli', { defaultValue: i18n.t('auto.hormon_przeciwstawny_do_i', { defaultValue: "Hormon przeciwstawny do insuliny. Stosowany w ciężkiej hipoglikemii, gdy pacjent jest nieprzytomny, ma drgawki lub nie może połykać. Uwalnia zmagazynowaną w wątrobie glukozę (glikogen). \nJak użyć: Postępuj zgodnie z instrukcją (zastrzyk domięśniowy lub proszek do nosa typu Baqsimi). Po wybudzeniu i poprawie stanu (gdy może połykać), zjedz węglowodany złożone, aby uzupełnić rezerwy wątroby (ryzyko nawrotu hipoglikemii)." }) }),
     },
     {
-      title: 'Alkohol a Cukrzyca',
+      title: i18n.t('auto.alkohol_a_cukrzyca', { defaultValue: 'Alkohol a Cukrzyca' }),
       content: i18n.t('auto.alkohol_szczegolnie_wysokoproc', { defaultValue: i18n.t('auto.alkohol_szczegolnie_wysok', { defaultValue: "Alkohol (szczególnie wysokoprocentowy) blokuje uwalnianie glukozy przez wątrobę, co GWAŁTOWNIE ZWIĘKSZA RYZYKO CIĘŻKIEJ HIPOGLIKEMII. Ten efekt może trwać nawet do kilkunastu godzin po spożyciu.\nNigdy nie pij alkoholu na pusty żołądek. Przed pójściem spać upewnij się, że zjadłeś dodatkową porcję węglowodanów złożonych, by zapobiec spadkowi nocnemu. Ważne: glukagon może nie zadziałać podczas upojenia alkoholowego, gdyż wątroba jest zajęta metabolizowaniem alkoholu." }) }),
     },
     {
@@ -141,7 +141,7 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
       content: i18n.t('auto.blonnik_wlokno_pokarmowe_nie_u', { defaultValue: i18n.t('auto.blonnik_wlokno_pokarmowe', { defaultValue: "Błonnik (włókno pokarmowe) nie ulega trawieniu i wchłanianiu w przewodzie pokarmowym. Spożywanie produktów bogatych w błonnik (warzywa, pieczywo pełnoziarniste, płatki owsiane) znacznie obniża całkowity Ładunek Glikemiczny posiłku i zapobiega gwałtownym skokom cukru po jedzeniu." }) }),
     },
     {
-      title: 'Przechowywanie insuliny',
+      title: i18n.t('auto.przechowywanie_insuliny', { defaultValue: 'Przechowywanie insuliny' }),
       content: i18n.t('auto.zapas_insuliny_zawsze_przechow', { defaultValue: i18n.t('auto.zapas_insuliny_zawsze_prz', { defaultValue: "Zapas insuliny ZAWSZE przechowujemy w lodówce (2-8°C). Nie wolno jej zamrażać! \nRozpoczętego pena (wstrzykiwacz) z insuliną lub fiolkę używaną do pompy nosimy w temperaturze pokojowej (do 25-30°C) i musimy zużyć zazwyczaj w ciągu 28 dni (lub 4 tygodni). Insulina wystawiona na mróz lub upał traci swoje właściwości i staje się woda." }) }),
     },
     {
