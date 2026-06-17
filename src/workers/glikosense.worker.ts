@@ -443,7 +443,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     if (shouldTrain && trainingDataset.length > 0) {
         const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, 6, 15]);
         const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
-        await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 2 : 5) : (isModelLoaded ? 5 : 15), shuffle: true, verbose: 0 });
+        await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
         inputsTensor.dispose(); outputTensor.dispose();
         self.postMessage({ type: 'storage_update', payload: { key: 'glikosense_last_train_time', value: Date.now().toString() } });
         if (mode === 'full') { try { await model.save('indexeddb://glikosense-lstm-v4'); } catch(err) {} }
