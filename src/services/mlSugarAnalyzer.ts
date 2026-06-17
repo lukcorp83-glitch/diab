@@ -184,7 +184,14 @@ export const MLAnalyzer = {
       // Setup Web Worker using Vite ?worker syntax for better Capacitor compatibility
       const worker = new GlikoWorker();
       
+      // Timeout to prevent hanging if worker is killed by WebView
+      const timeoutId = setTimeout(() => {
+        worker.terminate();
+        reject(new Error("GlikoSense Worker timeout"));
+      }, mode === 'quick' ? 30000 : 90000);
+
       worker.onmessage = (e) => {
+        clearTimeout(timeoutId);
         const { type, payload, value, key, error } = e.data;
         if (type === 'result') {
           worker.terminate();
@@ -204,6 +211,7 @@ export const MLAnalyzer = {
       };
       
       worker.onerror = (err) => {
+        clearTimeout(timeoutId);
         worker.terminate();
         console.error("GlikoSense Worker runtime error:", err);
         reject(err);

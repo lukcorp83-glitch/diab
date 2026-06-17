@@ -259,7 +259,7 @@ export default function App() {
       if (Capacitor.getPlatform() === 'android') {
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
           LocalNotifications.createChannel({
-            id: 'glucose_alerts_v4',
+            id: 'glucose_alerts_v5',
             name: 'Alarmy Glikemii',
             description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
             importance: 5, // MAX importance
@@ -1568,7 +1568,7 @@ export default function App() {
                   body: alertBody,
                   id: Math.floor(Math.random() * 100000),
                   schedule: { at: new Date() },
-                  channelId: "glucose_alerts_v4",
+                  channelId: "glucose_alerts_v5",
                   sound: "critical_alarm.wav",
                   attachments: null,
                   actionTypeId: "",

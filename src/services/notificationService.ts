@@ -179,6 +179,7 @@ export const notificationService = {
             body: body,
             id: Math.floor(Math.random() * 100000),
             schedule: { at: scheduleDate },
+            channelId: 'glucose_alerts_v5',
             sound: 'critical_alarm.wav',
             attachments: null,
             actionTypeId: "",
