@@ -10,6 +10,24 @@ import i18n from "../i18n";
 const VAPID_KEY = 'BDpTWMeEWqqbg9i1S4P33GC51S2TgPs_cozqFLQrYJl0y6RXMXUym50gG-1d3xvGsSH7EjVGRyERPQ1i-K2h3D4';
 
 export const notificationService = {
+  async initChannels() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await LocalNotifications.createChannel({
+          id: 'glucose_alerts_v5',
+          name: 'Krytyczne Alerty Glikemii',
+          description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
+          importance: 5,
+          visibility: 1,
+          sound: 'critical_alarm.wav',
+          vibration: true
+        });
+      } catch (err) {
+        console.warn('Failed to create notification channel:', err);
+      }
+    }
+  },
+
   async requestPermission(): Promise<string | null> {
     try {
       if (Capacitor.isNativePlatform()) {
@@ -36,6 +54,7 @@ export const notificationService = {
   async registerToken(): Promise<string | null> {
     try {
       if (Capacitor.isNativePlatform()) {
+        await this.initChannels();
         const result = await PushNotifications.requestPermissions();
         if (result.receive === 'granted') {
           await PushNotifications.removeAllListeners();
@@ -171,6 +190,7 @@ export const notificationService = {
 
     if (Capacitor.isNativePlatform()) {
       const scheduleDate = new Date(Date.now() + delayMs);
+      await this.initChannels();
       await LocalNotifications.requestPermissions();
       await LocalNotifications.schedule({
         notifications: [

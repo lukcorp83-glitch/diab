@@ -2,7 +2,6 @@ import * as tf from '@tensorflow/tfjs';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import i18n from "../i18n";
-import GlikoWorker from '../workers/glikosense.worker?worker&inline';
 
 export const GlikoSenseLearner = {
   async sendTelemetry(learnedRule: string, contextString: string) {
@@ -153,7 +152,7 @@ export const MLAnalyzer = {
 
   analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<any> {
     const logsFingerprint = logs && logs.length > 0 
-      ? `v4-lstm-${mode}-${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}` 
+      ? `v4-lstm-${mode}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
       : 'empty';
 
     if (!force) {
@@ -181,8 +180,8 @@ export const MLAnalyzer = {
     if (mode === 'quick' && _currentQuickAnalysisPromise) return _currentQuickAnalysisPromise;
 
     const analysisPromise = new Promise((resolve, reject) => {
-      // Setup Web Worker using Vite ?worker syntax for better Capacitor compatibility
-      const worker = new GlikoWorker();
+      // Setup Web Worker using standard URL module approach for Capacitor compatibility
+      const worker = new Worker(new URL('../workers/glikosense.worker.ts', import.meta.url), { type: 'module' });
       
       // Timeout to prevent hanging if worker is killed by WebView
       const timeoutId = setTimeout(() => {

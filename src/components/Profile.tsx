@@ -3791,7 +3791,15 @@ export default function Profile({
                           updates,
                           { merge: true },
                         );
-                        await addDoc(
+                        const siteLog = {
+                          type: "site_change",
+                          value: 1,
+                          timestamp: now,
+                          createdAt: new Date().toISOString(),
+                          notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }),
+                          source: "system",
+                        };
+                        const docRef = await addDoc(
                           collection(
                             db,
                             "artifacts",
@@ -3800,17 +3808,22 @@ export default function Profile({
                             getEffectiveUid(user),
                             "logs",
                           ),
-                          {
+                          siteLog
+                        );
+                        const addedSiteLog = { ...siteLog, id: docRef.id };
+                        await dbService.saveLog(addedSiteLog);
+                        window.dispatchEvent(new CustomEvent("localLogAdd", { detail: addedSiteLog }));
+                        
+                        if (alsoReplaceReservoir) {
+                          const resLog = {
                             type: "site_change",
                             value: 1,
                             timestamp: now,
-                            createdAt: serverTimestamp(),
-                            notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }),
+                            createdAt: new Date().toISOString(),
+                            notes: i18n.t('auto.wymiana_zbiorniczka', { defaultValue: "Wymiana zbiorniczka" }),
                             source: "system",
-                          },
-                        );
-                        if (alsoReplaceReservoir) {
-                          await addDoc(
+                          };
+                          const resDocRef = await addDoc(
                             collection(
                               db,
                               "artifacts",
@@ -3819,15 +3832,11 @@ export default function Profile({
                               getEffectiveUid(user),
                               "logs",
                             ),
-                            {
-                              type: "site_change",
-                              value: 1,
-                              timestamp: now,
-                              createdAt: serverTimestamp(),
-                              notes: i18n.t('auto.wymiana_zbiorniczka', { defaultValue: "Wymiana zbiorniczka" }),
-                              source: "system",
-                            },
+                            resLog
                           );
+                          const addedResLog = { ...resLog, id: resDocRef.id };
+                          await dbService.saveLog(addedResLog);
+                          window.dispatchEvent(new CustomEvent("localLogAdd", { detail: addedResLog }));
                         }
                       }
                       toast.success(

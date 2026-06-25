@@ -81,14 +81,21 @@ export class DatabaseService {
   async saveMultipleLogs(logs: any[]) {
     if (!this.db || logs.length === 0) return;
     try {
-      let sqlString = "";
-      for (const log of logs) {
-        const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
-        const payloadStr = JSON.stringify(log).replace(/'/g, "''"); // escape single quotes for literal
-        sqlString += `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES ('${id}', ${log.timestamp}, '${log.type}', '${payloadStr}', 0);\n`;
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < logs.length; i += BATCH_SIZE) {
+        const chunk = logs.slice(i, i + BATCH_SIZE);
+        const statements = chunk.map(log => {
+          const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
+          const payloadStr = JSON.stringify(log);
+          return {
+            statement: `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES (?, ?, ?, ?, 0)`,
+            values: [id, log.timestamp, log.type, payloadStr]
+          };
+        });
+        
+        await this.db.executeSet(statements);
       }
       
-      await this.db.execute(sqlString);
       if (this.isWeb) {
         await this.sqlite.saveToStore('glikocontrol_db');
       }

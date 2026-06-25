@@ -96,11 +96,15 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
       }
       
       if (log.type === 'site_change') {
-        data[monthKey].siteChanges += 1;
+        if (!data[monthKey].days[dayKey].siteChange) {
+          data[monthKey].siteChanges += 1;
+        }
         data[monthKey].days[dayKey].siteChange = true;
       }
       if (log.type === 'sensor_change') {
-        data[monthKey].sensorChanges += 1;
+        if (!data[monthKey].days[dayKey].sensorChange) {
+          data[monthKey].sensorChanges += 1;
+        }
         data[monthKey].days[dayKey].sensorChange = true;
       }
     });

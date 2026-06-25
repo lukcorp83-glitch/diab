@@ -295,7 +295,7 @@ export default function MLAnalysisWidget({ logs, settings, user }: MLAnalysisWid
 
   useEffect(() => {
     const logsKey = logs.length > 0 
-      ? `${logs.length}-${logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt}`
+      ? `${logs.length}-${logs[0].timestamp || logs[0].createdAt}`
       : "empty";
 
     let timer: NodeJS.Timeout;
