@@ -1,10 +1,17 @@
 ﻿import i18n from "../i18n";
 
+export interface ChangeEntry {
+  categoryKey: string;
+  icon: string;
+  colorClass: string;
+  descriptionKey: string;
+}
+
 export interface VersionEntry {
   version: string;
   date: string;
   title: string;
-  changes: string[];
+  changes: (string | ChangeEntry)[];
 }
 
 export const CURRENT_VERSION = '5.3.5';
@@ -15,10 +22,30 @@ export const PWA_VERSIONS: VersionEntry[] = [
     date: "2026-06-25",
     title: 'auto.co_nowego_w_wersji_5_3_5',
     changes: [
-      'auto.nowosc_ota_system',
-      'auto.naprawa_mechanizmu_apk',
-      'auto.naprawa_przycisk_apk',
-      'auto.ulepszenie_wersje_ujednolicone'
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "auto.nowosc_ota_system"
+      },
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "auto.naprawa_mechanizmu_apk"
+      },
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "auto.naprawa_przycisk_apk"
+      },
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "Wrench",
+        colorClass: "bg-indigo-50 text-indigo-500 dark:bg-indigo-950/40 dark:text-indigo-400",
+        descriptionKey: "auto.ulepszenie_wersje_ujednolicone"
+      }
     ]
   },
   {
@@ -284,10 +311,30 @@ export const APK_VERSIONS: VersionEntry[] = [
     date: "2026-06-25",
     title: 'auto.co_nowego_w_wersji_5_3_5',
     changes: [
-      'auto.nowosc_ota_system',
-      'auto.naprawa_mechanizmu_apk',
-      'auto.naprawa_przycisk_apk',
-      'auto.ulepszenie_wersje_ujednolicone'
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "auto.nowosc_ota_system"
+      },
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "auto.naprawa_mechanizmu_apk"
+      },
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "auto.naprawa_przycisk_apk"
+      },
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "Wrench",
+        colorClass: "bg-indigo-50 text-indigo-500 dark:bg-indigo-950/40 dark:text-indigo-400",
+        descriptionKey: "auto.ulepszenie_wersje_ujednolicone"
+      }
     ]
   },
   {
@@ -359,6 +406,7 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   }
 ];
+
 
 
 
