@@ -42,7 +42,9 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
       (l) => (l.type === 'glucose' || l.bg) && l.timestamp >= cutoffTime
     );
 
-    if (glucoseLogs.length === 0) return [];
+    // Aby wykres AGP miał kliniczny sens, potrzebujemy przynajmniej jakiejś puli danych,
+    // inaczej percentyle (10,25,75,90) pokazują bzdury.
+    if (glucoseLogs.length < 30) return [];
 
     // Create 48 buckets (one for every 30 minutes)
     const buckets: { [key: number]: number[] } = {};
@@ -186,10 +188,21 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
         </div>
 
         {/* Wykres */}
-        <div className="glass-card rounded-3xl p-4 md:p-6 h-[400px] md:h-[500px]">
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-            <ComposedChart data={agpData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} vertical={false} />
+        <div className="glass-card rounded-3xl p-4 md:p-6 h-[400px] md:h-[500px] flex flex-col relative">
+          {agpData.length === 0 ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <Info size={28} className="text-slate-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-2">{t('auto.brak_wystarczajacej_ilosci_da', { defaultValue: 'Brak wystarczającej ilości danych' })}</h3>
+              <p className="text-sm text-slate-500 max-w-xs mx-auto">
+                {t('auto.aby_wykres_agp_byl_statystyczni', { defaultValue: 'Aby wykres AGP był statystycznie poprawny, potrzebuje przynajmniej 30 odczytów glikemii w wybranym okresie. Zwiększ zakres dni lub dodaj więcej pomiarów.' })}
+              </p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+              <ComposedChart data={agpData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} vertical={false} />
               
               <XAxis 
                 dataKey="time" 
@@ -246,6 +259,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
               />
             </ComposedChart>
           </ResponsiveContainer>
+          )}
         </div>
       </div>
     </div>

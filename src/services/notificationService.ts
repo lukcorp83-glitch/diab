@@ -1,4 +1,4 @@
-﻿import { toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -127,6 +127,70 @@ export const notificationService = {
         alert(`Błąd rejestracji tokena Push: ${errMsg}`);
       }
       return null;
+    }
+  },
+
+
+  async scheduleSensorCheck() {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      const perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') return;
+      
+      // Cancel previous sensor check (ID 777)
+      await LocalNotifications.cancel({ notifications: [{ id: 777 }] }).catch(() => {});
+      
+      const timeoutDate = new Date(Date.now() + 30 * 60 * 1000);
+      
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: 777,
+          title: i18n.t('auto.awaria_sensora_30min', { defaultValue: "Awaria sensora (30 min)" }),
+          body: i18n.t('auto.sprawdz_sensor_brak_odczytow', { defaultValue: "Brak odczytów! Sprawdź pozycję sensora." }),
+          schedule: { at: timeoutDate },
+          channelId: 'glucose_alerts_v6',
+          sound: 'critical_alarm.wav'
+        }]
+      });
+    } catch (e) {
+      console.error('Failed to schedule sensor check', e);
+    }
+  },
+
+  async sendHypoProtectionAlert() {
+    const title = i18n.t('auto.ochrona_przed_hipo', { defaultValue: "Ochrona przed hipo (AI)" });
+    const body = i18n.t('auto.uwaga_glikosense_przewiduje_hipo', { defaultValue: "Ostrzeżenie: GlikoSense przewiduje spadek poniżej normy (hipoglikemia)!" });
+    
+    if (Capacitor.isNativePlatform()) {
+      await this.initChannels();
+      await LocalNotifications.requestPermissions();
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title,
+            body,
+            id: 888,
+            schedule: { at: new Date(Date.now() + 1000) },
+            channelId: 'glucose_alerts_v6',
+            sound: 'critical_alarm.wav',
+            attachments: null,
+            actionTypeId: '',
+            extra: null
+          }
+        ]
+      });
+    } else {
+      if (window.Notification && window.Notification.permission === 'granted') {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration) {
+             registration.showNotification(title, {
+              body,
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/')
+            });
+          }
+        } catch (e) { console.warn(e); }
+      }
     }
   },
 

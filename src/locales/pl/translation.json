@@ -1,4 +1,4 @@
-﻿{
+{
   "sidebar": {
     "items": {
       "profile_settings": "Ustawienia Profilu",
@@ -3629,7 +3629,16 @@
     "twoj_sensor_wygasa_za_12": "Twój sensor wygasa za 12 godzin!",
     "twoje_wklucie_wygasa_za_1": "Twoje wkłucie wygasa za 12 godzin!",
     "powiadomienia_nie_sa_obsl": "Powiadomienia nie są obsługiwane na tym urządzeniu.",
-    "brak_uprawnien_do_powiado": "Brak uprawnień do powiadomień. Nie można ustawić przypomnienia."
+    "brak_uprawnien_do_powiado": "Brak uprawnień do powiadomień. Nie można ustawić przypomnienia.",
+    "brak_wystarczajacej_ilosci_da": "Brak wystarczającej ilości danych",
+    "aby_wykres_agp_byl_statystyczni": "Aby wykres AGP był statystycznie poprawny, potrzebuje przynajmniej 30 odczytów glikemii w wybranym okresie. Zwiększ zakres dni lub dodaj więcej pomiarów.",
+    "centrum_powiadomien": "Centrum powiadomień",
+    "alerty_push": "Alerty Push",
+    "zarzadzaj_alertami": "Zarządzaj alertami i przypomnieniami.",
+    "ochrona_przed_hipo": "Ochrona przed hipo (AI)",
+    "awaria_sensora_30min": "Awaria sensora (30 min)",
+    "sprawdz_sensor_brak_odczytow": "Brak odczytów! Sprawdź pozycję sensora.",
+    "uwaga_glikosense_przewiduje_hipo": "Ostrzeżenie: GlikoSense przewiduje spadek poniżej normy (hipoglikemia)!"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {
@@ -5838,12 +5847,12 @@
   "auto.aplikacja_native_wersja": "Aplikacja Native • Wersja",
   "auto.pobierz_najnowsza_wersje": "Pobierz najnowszą wersję oficjalnej aplikacji na system Android (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia i mniejsze zużycie baterii.",
   "auto.co_nowego_w_wersji_5_3_5": "Co nowego w wersji 5.3.5?",
-    "kategoria_powiadomienia_popup": "Powiadomienia & Pop-up",
-    "kategoria_synchronizacja_chmura": "Synchronizacja & Chmura",
-    "kategoria_wersja_apk_mobilna": "Wersja APK & mobilna",
-    "kategoria_aktualizacje": "Aktualizacje",
-    "kategoria_design_ui": "Design & UI",
-    "kategoria_nowosci_funkcje": "Nowości & Funkcje",
+  "kategoria_powiadomienia_popup": "Powiadomienia & Pop-up",
+  "kategoria_synchronizacja_chmura": "Synchronizacja & Chmura",
+  "kategoria_wersja_apk_mobilna": "Wersja APK & mobilna",
+  "kategoria_aktualizacje": "Aktualizacje",
+  "kategoria_design_ui": "Design & UI",
+  "kategoria_nowosci_funkcje": "Nowości & Funkcje",
   "auto.calkiem_nowa_integracja_z": "Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto",
   "auto.nowe_szczegolowe_raporty": "Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu",
   "auto.optymalizacja_animacji_we_wszystkic": "Optymalizacja animacji we wszystkich widokach",
@@ -6460,14 +6469,4 @@
   "auto.jak_wejsc_w_ukryte_ustawienia": "Jak wejść w ukryte ustawienia profilu?",
   "auto.skad_pobierane_dane_zywnosc": "Skąd pobierane są dane o żywności?",
   "auto.efekt_brzasku_somogyi": "Efekt Brzasku i Zjawisko Somogyi"
-  ,"kategoria_powiadomienia_popup": "Powiadomienia & Pop-up",
-  "kategoria_synchronizacja_chmura": "Synchronizacja & Chmura",
-  "kategoria_wersja_apk_mobilna": "Wersja APK & mobilna",
-  "kategoria_aktualizacje": "Aktualizacje",
-  "kategoria_design_ui": "Design & UI",
-  "kategoria_nowosci_funkcje": "Nowości & Funkcje"
 }
-
-
-
-

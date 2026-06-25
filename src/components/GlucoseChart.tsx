@@ -197,7 +197,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
 
     const dataG = logs.filter(l => l.type === 'glucose' && l.timestamp >= start - rangeMs).sort((a, b) => a.timestamp - b.timestamp);
     const dataB = logs.filter(l => l.type === 'bolus' && l.timestamp >= start - rangeMs).sort((a, b) => a.timestamp - b.timestamp);
-    const dataM = logs.filter(l => l.type === 'meal' && l.timestamp >= start - rangeMs);
+    const getTs = (l: any) => l.timestamp || new Date(l.createdAt).getTime();
+    const dataM = logs.filter(l => l.type === 'meal' && getTs(l) >= start - rangeMs).map(l => ({...l, timestamp: getTs(l)}));
     const dataSite = logs.filter(l => l.type === 'site_change' && l.timestamp >= start - rangeMs);
     const dataSensor = logs.filter(l => l.type === 'sensor_change' && l.timestamp >= start - rangeMs);
 
@@ -748,19 +749,34 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
              ctx.fillStyle = 'rgba(79, 70, 229, 0.4)';
              ctx.fillRect(x - 2, yObj - bh, 4, bh);
              ctx.font = '16px serif';
+             ctx.textAlign = 'center';
              ctx.fillText('💉', x, yObj - bh - 10);
              if (d.stackingWarning) {
                  ctx.font = '12px serif';
                  ctx.fillText('⚠️', x, yObj - bh - 24);
              }
              ctx.font = '14px serif';
+             ctx.textAlign = 'start';
          }
          if (d.mealVal) {
              let baseCy = Math.round(getY(chartMinY)) - 10;
              if (d.bolusVal) baseCy -= Math.round(Math.min(40, (d.originalB?.value||0)*5)) + 10;
+             
+             // Tło dla ikony talerza żeby nie zlewała się z tłem
+             ctx.beginPath();
+             ctx.arc(x, baseCy - 5, 12, 0, 2 * Math.PI);
+             ctx.fillStyle = theme === 'dark' ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+             ctx.fill();
+             ctx.strokeStyle = '#f59e0b';
+             ctx.lineWidth = 1.5;
+             ctx.stroke();
+
              ctx.font = '16px serif';
+             ctx.textAlign = 'center';
+             // Używamy natywnego emoji
              ctx.fillText('🍽️', x, baseCy);
              ctx.font = '14px serif';
+             ctx.textAlign = 'start';
          }
          if (d.siteVal) {
              const cy = Math.round(getY(chartMaxY) + 15);

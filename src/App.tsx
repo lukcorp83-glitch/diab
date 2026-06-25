@@ -60,6 +60,7 @@ import {
   signInWithCustomToken,
   signInWithCredential,
 } from "firebase/auth";
+import { downloadCloudPackage } from "./components/CloudPackageSync";
 import {
   collection,
   query,
@@ -1789,6 +1790,36 @@ export default function App() {
     if (!user || !cachedLogsLoaded) return;
 
     let q;
+    // Auto-Restore logic: if local DB was wiped (logs = 0) but we had them before (flag)
+    if (cachedLogs.length === 0 && localStorage.getItem('glikocontrol_has_local_data') === 'true') {
+      console.log("SQLite wipe detected, attempting auto-restore...");
+      localStorage.setItem('glikocontrol_has_local_data', 'false'); // prevent loop
+      downloadCloudPackage(user).then(ok => {
+        if (ok) {
+          console.log("Auto-restore successful, reloading...");
+          setTimeout(() => window.location.reload(), 500);
+        }
+      });
+    } else if (cachedLogs.length > 0) {
+      localStorage.setItem('glikocontrol_has_local_data', 'true');
+      
+      // Smart Auto-Backup raz na 24h - żeby uchronić przed niespodziewanym OTA Capgo
+      const lastBackup = parseInt(localStorage.getItem('last_auto_cloud_backup') || '0');
+      const now = Date.now();
+      if (now - lastBackup > 24 * 60 * 60 * 1000) {
+        console.log("24h passed, silently uploading cloud package backup...");
+        import('./components/CloudPackageSync').then(module => {
+          const userSettingsRaw = localStorage.getItem(`firebase_settings_diacontrolapp_users_${user.uid}`);
+          let userSettingsParsed = null;
+          try { if (userSettingsRaw) userSettingsParsed = JSON.parse(userSettingsRaw); } catch(e){}
+          
+          module.uploadCloudPackage(user, userSettingsParsed || {} as any).then(ok => {
+            if (ok) localStorage.setItem('last_auto_cloud_backup', now.toString());
+          });
+        });
+      }
+    }
+
     // Znajdź najnowszą datę w buforze
     const newestLocalTs =
       cachedLogs.length > 0 ? cachedLogs[0].timestamp : 0;
@@ -1987,6 +2018,12 @@ export default function App() {
         // 1. FRESH UI FEEDBACK - Get the latest and check if we need weather
         if (entries.length > 0) {
           const latest = entries[0];
+          if (latest.type === "glucose" && userSettingsRef.current?.notificationPrefs?.sensorCheck !== false) {
+             // schedule the 30 min dead man's switch
+             import("./services/notificationService").then(mod => {
+                 mod.notificationService.scheduleSensorCheck();
+             });
+          }
           setNsLogs((prev) => {
             const hasLatest = prev.some((p) => p.id === latest.id || p.nsId === latest.id);
             if (hasLatest) return prev;
@@ -2131,11 +2168,27 @@ export default function App() {
     };
 
     window.addEventListener("force-nightscout-sync", handleForceSync);
+    
+    const handleHypoAlert = (e: any) => {
+      const prefs = userSettingsRef.current?.notificationPrefs;
+      if (prefs?.hypoProtection !== false) {
+        // debounce check (e.g. 1 hour)
+        const lastSent = parseInt(localStorage.getItem('last_hypo_protect_alert') || '0', 10);
+        if (Date.now() - lastSent > 60 * 60 * 1000) {
+          localStorage.setItem('last_hypo_protect_alert', Date.now().toString());
+          import("./services/notificationService").then(mod => {
+            mod.notificationService.sendHypoProtectionAlert();
+          });
+        }
+      }
+    };
+    window.addEventListener("glikosense_hypo_alert", handleHypoAlert);
 
     return () => {
       worker.postMessage({ type: 'STOP_SYNC' });
       worker.terminate();
       window.removeEventListener("force-nightscout-sync", handleForceSync);
+      window.removeEventListener("glikosense_hypo_alert", handleHypoAlert);
     };
   }, [user, nsUrl]);
 

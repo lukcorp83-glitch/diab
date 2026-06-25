@@ -111,7 +111,7 @@ import CloudPackageSync from "./CloudPackageSync";
 import ApiIntegration from "./ApiIntegration";
 import PumpSimulator from "./PumpSimulator";
 import { Diets } from "./Diets";
-import InteractiveBodyMap from './InteractiveBodyMap';
+
 import SiteRotationWidget from './SiteRotationWidget';
 import StatisticsView from "./StatisticsView";
 import TutorialView from "./TutorialView";
@@ -300,6 +300,7 @@ export default function Profile({
     useState<InventoryItem | null>(null);
 
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  // @ts-ignore
   const sensorSite = settings.sensorSite || "Tył lewego ramienia";
 
   const insertionSite = settings.infusionSetSite || "Prawy brzuch";
@@ -503,6 +504,27 @@ export default function Profile({
           ]
         : []),
       {
+        id: "notifications",
+        label: i18n.t('auto.centrum_powiadomien', { defaultValue: "Centrum powiadomień" }),
+        sub: i18n.t('auto.alerty_push', { defaultValue: "Alerty Push" }),
+        icon: <Bell size={24} />,
+        color: "bg-amber-500",
+      },
+      {
+        id: "devices",
+        label: i18n.t('auto.osprzęt', { defaultValue: i18n.t('auto.osprzet', { defaultValue: "Osprzęt" }) }),
+        sub: i18n.t('auto.cgm_wklucia', { defaultValue: i18n.t('auto.cgm_wklucia', { defaultValue: "CGM & Wkłucia" }) }),
+        icon: <Signal size={24} />,
+        color: "bg-indigo-500",
+      },
+      {
+        id: "diets",
+        label: i18n.t('auto.diety', { defaultValue: 'Diety' }),
+        sub: i18n.t('auto.nawyki', { defaultValue: "Nawyki" }),
+        icon: <BookOpen size={24} />,
+        color: "bg-rose-500",
+      },
+      {
         id: "devices",
         label: i18n.t('auto.osprzęt', { defaultValue: i18n.t('auto.osprzet', { defaultValue: "Osprzęt" }) }),
         sub: i18n.t('auto.cgm_wklucia', { defaultValue: i18n.t('auto.cgm_wklucia', { defaultValue: "CGM & Wkłucia" }) }),
@@ -570,7 +592,7 @@ export default function Profile({
     let filteredCategories = ALL_CATEGORIES;
     if (settings.followerMode) {
       filteredCategories = ALL_CATEGORIES.filter(c => 
-        ["system", "android", "account", "devices"].includes(c.id)
+        ["system", "android", "account", "devices", "notifications"].includes(c.id)
       );
     }
 
@@ -1830,6 +1852,7 @@ export default function Profile({
                   icon: <Smartphone size={14} />,
                   color: "text-green-500 bg-green-500/10",
                 },
+                { id: "notifications", label: i18n.t('auto.centrum_powiadomien', { defaultValue: "Centrum powiadomień" }), icon: <Bell size={14} />, color: "text-amber-500 bg-amber-500/10" },
                 { id: "system", label: i18n.t('auto.system', { defaultValue: 'System' }), icon: <Settings size={14} />, color: "text-slate-500 bg-slate-500/10" },
               ].map((cat) => (
                 <button
@@ -2891,134 +2914,16 @@ export default function Profile({
         </motion.div>
       )}
 
-      {activeCategory === "devices" && (
+      {activeCategory === "notifications" && (
           <div className="space-y-4">
-            <div className="glass p-6 rounded-[2.5rem] space-y-4">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-              
-                                        {t('auto.kalibracja_cgm', { defaultValue: 'Kalibracja CGM' })}
-                                      </h3>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-              
-                                        {t('auto.jeżeli_odczyty_z_cgm_różnią_się_od_', { defaultValue: i18n.t('auto.jezeli_odczyty_z_cgm_rozn', { defaultValue: "Jeżeli odczyty z CGM różnią się od glukometru, podaj wartość z krwi, a system skoryguje kolejne odczyty (offset kalibracji)." }) })}
-                                      </p>
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2 mb-1 block">
-                  
-                                                    {t('auto.wartość_z_glukometru_mg_dl', { defaultValue: i18n.t('auto.wartosc_z_glukometru_mg_d', { defaultValue: "Wartość z Glukometru (mg/dL)" }) })}
-                                                  </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="600"
-                  id="cgmCalibrationInput"
-                  placeholder={t('auto.np_110', { defaultValue: 'np. 110' })}
-                  onBlur={(e) => {
-                    let val = parseFloat(e.target.value);
-                    if (!isNaN(val)) {
-                      if (val < 0) val = 0;
-                      if (val > 600) val = 600;
-                      e.target.value = val.toString();
-                    }
-                  }}
-                  className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50 p-4 rounded-[1.5rem] font-bold text-sm outline-none dark:text-white text-center shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-800"
-                />
-              </div>
-              <button
-                onClick={async () => {
-                  const input = document.getElementById(
-                    "cgmCalibrationInput",
-                  ) as HTMLInputElement;
-                  const glukoValue = parseFloat(input?.value);
-                  if (glukoValue > 0) {
-                    Haptics.medium();
-                    // If we don't have current CGM bg we can't fully compute offset easily without current bg context,
-                    // but let's assume user just sets an explicit offset or we calculate it vs last known.
-                    // Without last known, we might just prompt. Let's do a simple prompt for now.
-                    const currentCgm = prompt(
-                      i18n.t('auto.jaka_jest_obecnie_widoczna_war', { defaultValue: i18n.t('auto.jaka_jest_obecnie_widoczn', { defaultValue: "Jaka jest obecnie widoczna wartość na CGM?" }) }),
-                    );
-                    if (currentCgm) {
-                      const offset = glukoValue - parseFloat(currentCgm);
-                      const updates = {
-                        cgmCalibration: offset,
-                        cgmTimestamp: Date.now(),
-                      };
-                      setSettings((prev) => ({ ...prev, ...updates }));
-                      if (user)
-                        await setDoc(
-                          doc(
-                            db,
-                            "artifacts",
-                            "diacontrolapp",
-                            "users",
-                            getEffectiveUid(user),
-                            "settings",
-                            "profile",
-                          ),
-                          updates,
-                          { merge: true },
-                        );
-                      alert(
-                        `Skalibrowano! Offset wynosi: ${offset > 0 ? "+" : ""}${offset} mg/dL.`,
-                      );
-                      input.value = "";
-                      Haptics.success();
-                    }
-                  } else {
-                    Haptics.error();
-                  }
-                }}
-                className="bg-emerald-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest mt-4"
-              >
-                
-                                              {t('auto.kalibruj', { defaultValue: 'Kalibruj' })}
-                                            </button>
-            </div>
-            {settings.cgmCalibration ? (
-              <div className="text-center">
-                <span className="text-[10px] font-bold text-emerald-500">
-                  
-                                                    {t('auto.aktywny_offset', { defaultValue: 'Aktywny offset:' })} {settings.cgmCalibration > 0 ? "+" : ""}
-                  {settings.cgmCalibration}  {t('auto.mg_dl', { defaultValue: 'mg/dL' })}
-                                                  </span>
-                <button
-                  onClick={async () => {
-                    const updateObj = { cgmCalibration: 0, cgmTimestamp: 0 };
-                    setSettings({ ...settings, ...updateObj });
-                    if (user)
-                      await setDoc(
-                        doc(
-                          db,
-                          "artifacts",
-                          "diacontrolapp",
-                          "users",
-                          getEffectiveUid(user),
-                          "settings",
-                          "profile",
-                        ),
-                        updateObj,
-                        { merge: true },
-                      );
-                  }}
-                  className="ml-4 text-[10px] text-rose-500 font-bold uppercase underline"
-                >
-                  
-                                                    {t('auto.anuluj_kalibrację', { defaultValue: i18n.t('auto.anuluj_kalibracje', { defaultValue: "Anuluj Kalibrację" }) })}
-                                                  </button>
-              </div>
-            ) : null}
-          </div>
-
           <div className="glass p-6 rounded-[2.5rem] space-y-4">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
               
-                                        {t('auto.powiadomienia_i_osprzęt', { defaultValue: i18n.t('auto.powiadomienia_i_osprzet', { defaultValue: "Powiadomienia i Osprzęt" }) })}
+                                        {t('auto.centrum_powiadomien', { defaultValue: "Centrum powiadomień" })}
                                       </h3>
             <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium text-center">
               
-                                        {t('auto.ustaw_czasy_życia_dla_twojego_osprz', { defaultValue: i18n.t('auto.ustaw_czasy_zycia_dla_two', { defaultValue: "Ustaw czasy życia dla Twojego osprzętu." }) })}
+                                        {t('auto.zarzadzaj_alertami', { defaultValue: "Zarządzaj alertami i przypomnieniami." })}
                                       </p>
 
             <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700">
@@ -3315,6 +3220,11 @@ export default function Profile({
                         id: "nightSnackReminder",
                         label: i18n.t('auto.nocne_przekąski_ostrzeżenia', { defaultValue: i18n.t('auto.nocne_przekaski_ostrzezen', { defaultValue: "Nocne Przekąski (Ostrzeżenia)" }) }),
                         icon: <Moon size={14} className="text-indigo-400" />,
+                      },
+                      {
+                        id: "hypoProtection",
+                        label: i18n.t('auto.ochrona_przed_hipo', { defaultValue: "Ochrona przed hipo (AI)" }),
+                        icon: <Shield size={14} className="text-rose-500" />,
                       }
                     ].map((pref) => {
                       const prefs = settings.notificationPrefs || {
@@ -3370,8 +3280,12 @@ export default function Profile({
               )}
             </div>
           </div>
+          </div>
+      )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+      {activeCategory === "devices" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
             <div
               className={cn(
                 "group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden",
@@ -3767,6 +3681,7 @@ export default function Profile({
                       const updates = { infusionSetChangeDate: now, infusionSetSite: insertionSite } as any;
                       
                       if (alsoReplaceReservoir) {
+                        // @ts-ignore
                         const resIndex = currentInv.findIndex(i => i.category === "reservoirs" && i.quantity > 0);
                         if (resIndex !== -1) {
                           updatedInv[resIndex] = { ...updatedInv[resIndex], quantity: Math.max(0, updatedInv[resIndex].quantity - 1) };
@@ -4031,6 +3946,7 @@ export default function Profile({
                     onClick={async () => {
                       const now = Date.now();
                       const currentInv = settings.inventory || [];
+                      // @ts-ignore
                       const setIndex = currentInv.findIndex(i => i.category === "reservoirs" && i.quantity > 0);
                       let updatedInv = currentInv;
                       if (setIndex !== -1) {

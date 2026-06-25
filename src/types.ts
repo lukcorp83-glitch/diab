@@ -126,6 +126,8 @@ export interface UserSettings {
     hyper: boolean;
     reminders: boolean;
     predictions: boolean;
+    sensorCheck?: boolean;
+    hypoProtection?: boolean;
   };
   childMode?: boolean;
   groupTherapyLock?: boolean;

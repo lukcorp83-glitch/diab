@@ -1,4 +1,4 @@
-﻿{
+{
   "sidebar": {
     "items": {
       "profile_settings": "Profile Settings",
@@ -1022,7 +1022,7 @@
     "ten_wpis_z_pompy_nie_zawiera_inform": "This pump entry does not contain information about food. Add ingredients so that GlikoSense can analyze absorption.",
     "ułóż_posiłek_na_talerzu": "Arrange the Meal on the Plate",
     "dostępna_wersja": "Available Version",
-    "oficjalna_aplikacja_apk": "Official APK app",
+    "oficjalna_aplikacja_apk": "Official APK Application",
     "zalecamy_instalację_tej_wersji_dla_": "We recommend installing this version for all users (including version 1.1) for the proper functioning of widgets.",
     "pobierz_aplikację_android_apk": "Download the Android app (APK)",
     "przypomnij_później": "Remind me later",
@@ -1629,8 +1629,8 @@
     "medtronic_mio_advance_wklucia": "Medtronic Mio Advance (Infusions)",
     "medtronic_quick_set_wklucia": "Medtronic Quick-Set (Infusions)",
     "medtronic_silhouette_wklucia": "Medtronic Silhouette (Infusions)",
-    "baza_danych_zainicjowana_prawi": "Database initialized correctly!",
-    "blad_pobierania_danych_startow": "Error getting boot data",
+    "baza_danych_zainicjowana_prawi": "Database initialized successfully!",
+    "blad_pobierania_danych_startow": "Error fetching initial data",
     "blad_inicjalizacji_bazy_danych": "Database initialization error",
     "przegladarka_www": "Web browser",
     "przeanalizowalem": "I analyzed it",
@@ -3449,7 +3449,7 @@
     "zalecamy_instalacje_tej_w": "We recommend installing this version for all users (including version 1.1) for the proper functioning of widgets.",
     "aktualizacja_zakonczona_s": "Update completed successfully! The application will now restart.",
     "blad_aktualizacji_sprawdz": "Update error (check if a correct link to the ZIP file is provided in the 'url' field):",
-    "pobierz_aplikacje_android": "Download the Android app (APK)",
+    "pobierz_aplikacje_android": "Download Android App (APK)",
     "przypomnij_pozniej": "Remind me later",
     "dostepna_aktualizacja": "Update Available!",
     "pozniej": "Later",
@@ -3666,7 +3666,16 @@
     "twoj_sensor_wygasa_za_12": "Your sensor will expire in 12 hours!",
     "twoje_wklucie_wygasa_za_1": "Your infusion set expires in 12 hours!",
     "powiadomienia_nie_sa_obsl": "Notifications are not supported on this device.",
-    "brak_uprawnien_do_powiado": "No permission for notifications. Cannot set a reminder."
+    "brak_uprawnien_do_powiado": "No permission for notifications. Cannot set a reminder.",
+    "brak_wystarczajacej_ilosci_da": "Not enough data available",
+    "aby_wykres_agp_byl_statystyczni": "For the AGP chart to be statistically valid, it requires at least 30 glucose readings in the selected period. Please increase the date range or add more measurements.",
+    "centrum_powiadomien": "Notification Center",
+    "alerty_push": "Push Alerts",
+    "zarzadzaj_alertami": "Manage alerts and reminders.",
+    "ochrona_przed_hipo": "Hypo Protection (AI)",
+    "awaria_sensora_30min": "Sensor Failure (30 min)",
+    "sprawdz_sensor_brak_odczytow": "No readings! Please check your sensor.",
+    "uwaga_glikosense_przewiduje_hipo": "Warning: GlikoSense predicts a drop below target (hypoglycemia)!"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {
@@ -4744,15 +4753,11 @@
   "auto.czy_dziala_bez_internetu": "Does the app work without internet?",
   "auto.jak_wejsc_w_ukryte_ustawienia": "How to access hidden profile settings?",
   "auto.skad_pobierane_dane_zywnosc": "Where is the food data from?",
-  "auto.efekt_brzasku_somogyi": "Dawn Phenomenon and Somogyi Effect"
-  ,"kategoria_powiadomienia_popup": "Notifications & Pop-up",
+  "auto.efekt_brzasku_somogyi": "Dawn Phenomenon and Somogyi Effect",
+  "kategoria_powiadomienia_popup": "Notifications & Pop-up",
   "kategoria_synchronizacja_chmura": "Sync & Cloud",
   "kategoria_wersja_apk_mobilna": "APK & Mobile version",
   "kategoria_aktualizacje": "Updates",
   "kategoria_design_ui": "Design & UI",
   "kategoria_nowosci_funkcje": "New Features"
 }
-
-
-
-

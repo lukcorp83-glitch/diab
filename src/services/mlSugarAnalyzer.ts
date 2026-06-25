@@ -199,6 +199,14 @@ export const MLAnalyzer = {
              rules.pkParams = payload.learnedPkParams;
              localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
           }
+          
+          if (payload.riskOfHypo) {
+            const hasEnoughData = !(payload.insights || []).some((i: string) => i.includes('Zbyt mało'));
+            if (hasEnoughData) {
+              window.dispatchEvent(new CustomEvent('glikosense_hypo_alert', { detail: payload }));
+            }
+          }
+          
           resolve(payload);
         } else if (type === 'storage_update') {
           localStorage.setItem(key, value);

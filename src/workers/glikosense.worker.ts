@@ -586,16 +586,16 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     // RESTORING 400 LINES OF INSIGHTS
     const accuracyPhrases = [
-        i18n.t('auto.oparlem_sie_o_moje_doswia', { defaultValue: i18n.t('auto.oparlem_sie_o_moje_doswia', { defaultValue: "🧠 Oparłem się o moje doświadczenie z Twoich ostatnich dni. Mój margines błędu to około {{var0}} mg/dL." }), var0: Math.round(avgErrorInMgDl) }),
-        i18n.t('auto.wciaz_zbieram_dane_moje_o', { defaultValue: i18n.t('auto.wciaz_zbieram_dane_moje_o', { defaultValue: "🧠 Wciąż zbieram dane. Moje odchylenie na tę chwilę to ok. {{var0}} mg/dL. Im więcej danych, tym mniejszy błąd." }), var0: Math.round(avgErrorInMgDl) }),
-        i18n.t('auto.przeanalizowalem_twoje_wy', { defaultValue: i18n.t('auto.przeanalizowalem_twoje_wy', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika LSTM. Błąd w przewidywaniach to {{var0}} mg/dL." }), var0: Math.round(avgErrorInMgDl) })
+        i18n.t('auto.oparlem_sie_o_moje_doswia', { defaultValue: "🧠 Oparłem się o moje doświadczenie z Twoich ostatnich dni. Mój margines błędu to około {{var0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }),
+        i18n.t('auto.wciaz_zbieram_dane_moje_o', { defaultValue: "🧠 Wciąż zbieram dane. Moje odchylenie na tę chwilę to ok. {{var0}} mg/dL. Im więcej danych, tym mniejszy błąd.", var0: Math.round(avgErrorInMgDl) }),
+        i18n.t('auto.przeanalizowalem_twoje_wy', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika LSTM. Błąd w przewidywaniach to {{var0}} mg/dL.", var0: Math.round(avgErrorInMgDl) })
     ];
     insights.push(accuracyPhrases[Math.floor(Math.random() * accuracyPhrases.length)]);
 
     const predictionPhrases = [
-        i18n.t('auto.jezeli_trend_sie_nie_zmie', { defaultValue: i18n.t('auto.jezeli_trend_sie_nie_zmie', { defaultValue: "🔮 Jeżeli trend się nie zmieni, w ciągu godziny powinniśmy dotrzeć do {{var0}} mg/dL." }), var0: Math.round(predictedNextHour) }),
-        i18n.t('auto.wybiegajac_do_przodu_prze', { defaultValue: i18n.t('auto.wybiegajac_do_przodu_prze', { defaultValue: "🔮 Wybiegając do przodu - przewiduję okolice {{var0}} mg/dL za godzinkę." }), var0: Math.round(predictedNextHour) }),
-        i18n.t('auto.analizujac_tempo_spodziew', { defaultValue: i18n.t('auto.analizujac_tempo_spodziew', { defaultValue: "🔮 Analizując tempo, spodziewam się poziomu ok. {{var0}} mg/dL w ciągu 60 minut." }), var0: Math.round(predictedNextHour) })
+        i18n.t('auto.jezeli_trend_sie_nie_zmie', { defaultValue: "🔮 Jeżeli trend się nie zmieni, w ciągu godziny powinniśmy dotrzeć do {{var0}} mg/dL.", var0: Math.round(predictedNextHour) }),
+        i18n.t('auto.wybiegajac_do_przodu_prze', { defaultValue: "🔮 Wybiegając do przodu - przewiduję okolice {{var0}} mg/dL za godzinkę.", var0: Math.round(predictedNextHour) }),
+        i18n.t('auto.analizujac_tempo_spodziew', { defaultValue: "🔮 Analizując tempo, spodziewam się poziomu ok. {{var0}} mg/dL w ciągu 60 minut.", var0: Math.round(predictedNextHour) })
     ];
     insights.push(predictionPhrases[Math.floor(Math.random() * predictionPhrases.length)]);
     

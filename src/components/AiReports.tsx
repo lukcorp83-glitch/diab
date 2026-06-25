@@ -130,6 +130,9 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
       .map(([date, values]) => ({
         date: new Date(date).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }),
         avg: Math.round(values.reduce((a, b) => a + b, 0) / values.length),
+        min: Math.round(Math.min(...values)),
+        max: Math.round(Math.max(...values)),
+        range: [Math.round(Math.min(...values)), Math.round(Math.max(...values))],
         rawDate: date
       }))
       .sort((a, b) => a.rawDate.localeCompare(b.rawDate));
@@ -179,27 +182,26 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                   width={30}
                 />
                 <Tooltip 
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl shadow-2xl">
-                          <p className="text-[8px] font-black text-slate-500 uppercase mb-1">{payload[0].payload.date}</p>
-                          <p className="text-sm font-black text-white">{payload[0].value} <span className="text-[10px] text-slate-400">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span></p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
+                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}
+                  itemStyle={{ color: '#4f46e5', fontWeight: 800 }}
+                  labelStyle={{ color: '#64748b', fontWeight: 700, marginBottom: '4px' }}
                 />
                 <ReferenceLine y={140} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'right', value: '140', fill: '#94a3b8', fontSize: 8, fontWeight: 700 }} />
                 <ReferenceLine y={70} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'right', value: '70', fill: '#94a3b8', fontSize: 8, fontWeight: 700 }} />
                 <Area 
                   type="monotone" 
+                  dataKey="range" 
+                  stroke="none" 
+                  fill="#4f46e5" 
+                  fillOpacity={0.15} 
+                  animationDuration={2000}
+                />
+                <Area 
+                  type="monotone" 
                   dataKey="avg" 
                   stroke="#4f46e5" 
                   strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorAvg)" 
+                  fillOpacity={0} 
                   animationDuration={2000}
                   dot={{ r: 4, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }}
                   activeDot={{ r: 6, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }}

@@ -8,6 +8,98 @@ import { getEffectiveUid, cn } from '../lib/utils';
 import { UserSettings } from '../types';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { dbService } from '../services/databaseService';
+import { MLAnalyzer } from '../services/mlSugarAnalyzer';
+
+export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
+  if (!user) return false;
+  try {
+    const lsData: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && !key.startsWith('firebase')) {
+        lsData[key] = localStorage.getItem(key) || '';
+      }
+    }
+    
+    // Pobierz WSZYSTKIE logi glikemii z nowej natywnej bazy SQLite (do 15000), nie z przestarzałego IndexedDB
+    const sqliteLogs = await dbService.getLogs(15000);
+    
+    // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
+    const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
+        console.warn("Could not export ML model during cloud sync", e);
+        return null;
+    });
+
+    const exportData = {
+      timestamp: Date.now(),
+      localStorage: lsData,
+      logs: sqliteLogs,
+      mlModel: mlModelBackup,
+      settings: settings
+    };
+
+    const jsonStr = JSON.stringify(exportData);
+    await setDoc(
+      doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest"),
+      { payload: jsonStr, timestamp: Date.now() }
+    );
+    localStorage.setItem('last_cloud_package_sync', Date.now().toString());
+    return true;
+  } catch (e) {
+    console.error("Cloud package upload failed:", e);
+    return false;
+  }
+};
+
+export const downloadCloudPackage = async (user: any) => {
+  if (!user) return false;
+  try {
+    const snap = await getDoc(
+      doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest")
+    );
+    if (!snap.exists()) return false;
+    
+    const data = snap.data();
+    if (!data.payload) return false;
+    
+    const parsed = JSON.parse(data.payload);
+    
+    // Przywróć ustawienia localStorage
+    if (parsed.localStorage) {
+      Object.keys(parsed.localStorage).forEach(key => {
+        localStorage.setItem(key, parsed.localStorage[key]);
+      });
+    }
+    
+    // Przywróć model sieci neuronowej
+    if (parsed.mlModel && parsed.mlModel.weightDataB64) {
+      console.log("Restoring ML Model from Cloud Package...");
+      await MLAnalyzer.importModelFromBackup(parsed.mlModel).catch(console.error);
+    }
+    
+    // Przywróć pełne logi do bazy natywnej SQLite i do IndexedDB (fallback)
+    if (parsed.logs && Array.isArray(parsed.logs)) {
+      console.log(`Restoring ${parsed.logs.length} logs from Cloud Package...`);
+      await saveLocalLogs(parsed.logs).catch(console.error);
+      await dbService.saveMultipleLogs(parsed.logs).catch(console.error);
+    }
+    
+    // Przywróć ustawienia profilu w Firebase
+    if (parsed.settings) {
+      await setDoc(
+        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+        parsed.settings,
+        { merge: true }
+      );
+    }
+    localStorage.setItem('last_cloud_package_sync', Date.now().toString());
+    return true;
+  } catch (e) {
+    console.error("Cloud package download failed:", e);
+    return false;
+  }
+};
 
 export default function CloudPackageSync({ 
   settings,
@@ -30,92 +122,28 @@ export default function CloudPackageSync({
   const handleUpload = async () => {
     if (!user) return;
     setLoading(true);
-    try {
-      const lsData: Record<string, string> = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && !key.startsWith('firebase')) {
-          lsData[key] = localStorage.getItem(key) || '';
-        }
-      }
-      
-      const logs = await loadLocalLogs();
-      const recentLogs = logs.slice(0, 500); // Prevent size exceeding Firestore limits
-
-      const exportData = {
-        timestamp: Date.now(),
-        localStorage: lsData,
-        logs: recentLogs,
-        settings: settings
-      };
-
-      const jsonStr = JSON.stringify(exportData);
-      
-      await setDoc(
-        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest"),
-        { payload: jsonStr, timestamp: Date.now() }
-      );
-      
+    const ok = await uploadCloudPackage(user, settings);
+    if (ok) {
       setLastSync(Date.now());
-      localStorage.setItem('last_cloud_package_sync', Date.now().toString());
       toast.success(i18n.t('auto.dane_wyslane_do_paczki_w_chmur', { defaultValue: i18n.t('auto.dane_wyslane_do_paczki_w', { defaultValue: "Dane wysłane do paczki w chmurze" }) }));
-    } catch (e) {
-      console.error(e);
+    } else {
       toast.error(i18n.t('auto.blad_zapisu_zbyt_duzo_danych', { defaultValue: i18n.t('auto.blad_zapisu_zbyt_duzo_dan', { defaultValue: "Błąd zapisu (zbyt dużo danych?)." }) }));
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const handleDownload = async () => {
     if (!user) return;
     setLoading(true);
-    try {
-      const snap = await getDoc(
-        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest")
-      );
-      
-      if (!snap.exists()) {
-        toast.error("Brak zapisanej paczki w chmurze");
-        return;
-      }
-      
-      const data = snap.data();
-      if (!data.payload) throw new Error("Empty payload");
-      
-      const parsed = JSON.parse(data.payload);
-
-      if (parsed.localStorage) {
-        Object.keys(parsed.localStorage).forEach(key => {
-          localStorage.setItem(key, parsed.localStorage[key]);
-        });
-      }
-
-      if (parsed.logs && Array.isArray(parsed.logs)) {
-        await saveLocalLogs(parsed.logs);
-      }
-
-      if (parsed.settings && user) {
-        await setDoc(
-          doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
-          parsed.settings,
-          { merge: true }
-        );
-      }
-
+    const ok = await downloadCloudPackage(user);
+    if (ok) {
       setLastSync(Date.now());
-      localStorage.setItem('last_cloud_package_sync', Date.now().toString());
-
       toast.success(i18n.t('auto.pobrano_paczke_chmurowa_przela', { defaultValue: i18n.t('auto.pobrano_paczke_chmurowa_p', { defaultValue: "Pobrano paczkę chmurową. Przeładowuję..." }) }));
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (e) {
-      console.error(e);
-      toast.error(i18n.t('auto.blad_podczas_pobierania_paczki', { defaultValue: i18n.t('auto.blad_podczas_pobierania_p', { defaultValue: "Błąd podczas pobierania paczki" }) }));
-    } finally {
-      setLoading(false);
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      toast.error(i18n.t('auto.blad_podczas_pobierania_paczki', { defaultValue: i18n.t('auto.blad_podczas_pobierania_p', { defaultValue: "Błąd podczas pobierania paczki lub brak kopii" }) }));
     }
+    setLoading(false);
   };
 
   return (
