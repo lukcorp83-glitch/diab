@@ -86,7 +86,7 @@ export const MLAnalyzer = {
     try {
       let model;
       try {
-        model = await tf.loadLayersModel('indexeddb://glikosense-lstm-v4');
+        model = await tf.loadLayersModel('indexeddb://glikosense-lstm-v5');
       } catch (e) {
         return null;
       }
@@ -134,7 +134,7 @@ export const MLAnalyzer = {
       };
 
       const loadedModel = await tf.loadLayersModel({ load: async () => artifacts });
-      await loadedModel.save('indexeddb://glikosense-lstm-v4');
+      await loadedModel.save('indexeddb://glikosense-lstm-v5');
       
       if (backup.datasetSize) localStorage.setItem('glikosense_dataset_size', backup.datasetSize.toString());
       localStorage.setItem('glikosense_last_train_time', Date.now().toString());
@@ -161,8 +161,8 @@ export const MLAnalyzer = {
       }
       
       if (mode === 'full') {
-        const persistentCache = localStorage.getItem('glikosense_last_result_v4_lstm');
-        const persistentFingerprint = localStorage.getItem('glikosense_last_fingerprint_v4');
+        const persistentCache = localStorage.getItem('glikosense_last_result_v5_lstm');
+        const persistentFingerprint = localStorage.getItem('glikosense_last_fingerprint_v5');
         if (persistentCache && persistentFingerprint === logsFingerprint) {
           try {
             const parsed = JSON.parse(persistentCache);
@@ -234,8 +234,8 @@ export const MLAnalyzer = {
       
       if (mode === 'full') {
         try {
-          localStorage.setItem('glikosense_last_result_v4_lstm', JSON.stringify(res));
-          localStorage.setItem('glikosense_last_fingerprint_v4', logsFingerprint);
+          localStorage.setItem('glikosense_last_result_v5_lstm', JSON.stringify(res));
+          localStorage.setItem('glikosense_last_fingerprint_v5', logsFingerprint);
         } catch (e) {
           console.warn(i18n.t('auto.blad_zapisu_do_localstorage_gl', { defaultValue: i18n.t('auto.blad_zapisu_do_localstora', { defaultValue: "Błąd zapisu do LocalStorage GlikoSense" }) }), e);
         }
@@ -276,7 +276,7 @@ if (typeof window !== 'undefined') {
   };
   window.glikosenseHasModel = async () => {
     try {
-      const loaded = await tf.loadLayersModel('indexeddb://glikosense-lstm-v4');
+      const loaded = await tf.loadLayersModel('indexeddb://glikosense-lstm-v5');
       return !!loaded;
     } catch (e) { return false; }
   };

@@ -412,7 +412,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
             isModelLoaded = true;
         } else {
             model = await Promise.race([
-                tf.loadLayersModel('indexeddb://glikosense-lstm-v4'),
+                tf.loadLayersModel('indexeddb://glikosense-lstm-v5'),
                 new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout loading model")), 1500))
             ]) as tf.LayersModel;
             _cachedModel = model;
@@ -446,7 +446,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
         inputsTensor.dispose(); outputTensor.dispose();
         self.postMessage({ type: 'storage_update', payload: { key: 'glikosense_last_train_time', value: Date.now().toString() } });
-        if (mode === 'full') { try { await model.save('indexeddb://glikosense-lstm-v4'); } catch(err) {} }
+        if (mode === 'full') { try { await model.save('indexeddb://glikosense-lstm-v5'); } catch(err) {} }
     }
 
     let avgErrorInMgDl = 50;
@@ -731,7 +731,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     if (error && error.message && (error.message.includes('dimension') || error.message.includes('shape'))) {
       // Shape mismatch due to old model version restore from backup. 
       // Delete the corrupted model from IndexedDB.
-      try { tf.io.removeModel('indexeddb://glikosense-lstm-v4'); } catch(e) {}
+      try { tf.io.removeModel('indexeddb://glikosense-lstm-v5'); } catch(e) {}
     }
     self.postMessage({ type: 'error', error: error.message });
   }

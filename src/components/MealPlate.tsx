@@ -2598,22 +2598,17 @@ export default function MealPlate({
                       strokeDasharray="138.2"
                       strokeDashoffset={
                         138.2 *
-                        (activeMeal && activeChartData?.length
-                          ? Math.max(
-                              0,
-                              Math.min(
-                                1,
-                                (currentTime - (activeMeal.timestamp || 0)) /
-                                  (getMealAbsorptionTime(
-                                    activeChartData[0]?.WW || 0,
-                                    activeChartData[0]?.WBT || 0,
-                                  ) *
-                                    60 *
-                                    60 *
-                                    1000),
-                              ),
-                            )
-                          : 0)
+                        (() => {
+                          if (!activeMeal) return 0;
+                          const mSrc = activeMeal.type === "meal" ? activeMeal : activeMeal.linkedMeal;
+                          if (!mSrc) return 0;
+                          const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
+                          const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+                          const durationH = getMealAbsorptionTime(mWW, mWBT);
+                          if (durationH <= 0) return 1;
+                          const ageH = (currentTime - (activeMeal.timestamp || 0)) / (1000 * 60 * 60);
+                          return Math.max(0, Math.min(1, ageH / durationH));
+                        })()
                       }
                       className="text-emerald-500 transition-all duration-1000"
                     />
