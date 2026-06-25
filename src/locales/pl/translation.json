@@ -5838,12 +5838,12 @@
   "auto.aplikacja_native_wersja": "Aplikacja Native • Wersja",
   "auto.pobierz_najnowsza_wersje": "Pobierz najnowszą wersję oficjalnej aplikacji na system Android (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia i mniejsze zużycie baterii.",
   "auto.co_nowego_w_wersji_5_3_5": "Co nowego w wersji 5.3.5?",
-    "auto.powiadomienia_popup": "Powiadomienia & Pop-up",
-    "auto.synchronizacja_chmura": "Synchronizacja & Chmura",
-    "auto.wersja_apk_mobilna": "Wersja APK & mobilna",
-    "auto.aktualizacje": "Aktualizacje",
-    "auto.design_ui": "Design & UI",
-    "auto.nowosci_funkcje": "Nowości & Funkcje",
+    "kategoria_powiadomienia_popup": "Powiadomienia & Pop-up",
+    "kategoria_synchronizacja_chmura": "Synchronizacja & Chmura",
+    "kategoria_wersja_apk_mobilna": "Wersja APK & mobilna",
+    "kategoria_aktualizacje": "Aktualizacje",
+    "kategoria_design_ui": "Design & UI",
+    "kategoria_nowosci_funkcje": "Nowości & Funkcje",
   "auto.calkiem_nowa_integracja_z": "Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto",
   "auto.nowe_szczegolowe_raporty": "Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu",
   "auto.optymalizacja_animacji_we_wszystkic": "Optymalizacja animacji we wszystkich widokach",
@@ -6460,13 +6460,14 @@
   "auto.jak_wejsc_w_ukryte_ustawienia": "Jak wejść w ukryte ustawienia profilu?",
   "auto.skad_pobierane_dane_zywnosc": "Skąd pobierane są dane o żywności?",
   "auto.efekt_brzasku_somogyi": "Efekt Brzasku i Zjawisko Somogyi"
-  ,"auto.powiadomienia_popup": "Powiadomienia & Pop-up",
-  "auto.synchronizacja_chmura": "Synchronizacja & Chmura",
-  "auto.wersja_apk_mobilna": "Wersja APK & mobilna",
-  "auto.aktualizacje": "Aktualizacje",
-  "auto.design_ui": "Design & UI",
-  "auto.nowosci_funkcje": "Nowości & Funkcje"
+  ,"kategoria_powiadomienia_popup": "Powiadomienia & Pop-up",
+  "kategoria_synchronizacja_chmura": "Synchronizacja & Chmura",
+  "kategoria_wersja_apk_mobilna": "Wersja APK & mobilna",
+  "kategoria_aktualizacje": "Aktualizacje",
+  "kategoria_design_ui": "Design & UI",
+  "kategoria_nowosci_funkcje": "Nowości & Funkcje"
 }
+
 
 
 

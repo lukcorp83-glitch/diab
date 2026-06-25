@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { motion } from 'motion/react';
 import { 
   Sparkles, 
@@ -191,5 +191,6 @@ function getChangeIconAndColor(text: string): ChangeMeta {
     desc: text
   };
 }
+
 
 

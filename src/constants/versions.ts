@@ -13,12 +13,12 @@ export const PWA_VERSIONS: VersionEntry[] = [
   {
     version: "5.3.5",
     date: "2026-06-25",
-    title: 'co_nowego_w_wersji_5_3_5',
+    title: 'auto.co_nowego_w_wersji_5_3_5',
     changes: [
-      'nowosc_ota_system',
-      'naprawa_mechanizmu_apk',
-      'naprawa_przycisk_apk',
-      'ulepszenie_wersje_ujednolicone'
+      'auto.nowosc_ota_system',
+      'auto.naprawa_mechanizmu_apk',
+      'auto.naprawa_przycisk_apk',
+      'auto.ulepszenie_wersje_ujednolicone'
     ]
   },
   {
@@ -282,12 +282,12 @@ export const APK_VERSIONS: VersionEntry[] = [
   {
     version: "5.3.5",
     date: "2026-06-25",
-    title: 'co_nowego_w_wersji_5_3_5',
+    title: 'auto.co_nowego_w_wersji_5_3_5',
     changes: [
-      'nowosc_ota_system',
-      'naprawa_mechanizmu_apk',
-      'naprawa_przycisk_apk',
-      'ulepszenie_wersje_ujednolicone'
+      'auto.nowosc_ota_system',
+      'auto.naprawa_mechanizmu_apk',
+      'auto.naprawa_przycisk_apk',
+      'auto.ulepszenie_wersje_ujednolicone'
     ]
   },
   {
@@ -359,6 +359,8 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   }
 ];
+
+
 
 
 
