@@ -13,12 +13,12 @@ export const PWA_VERSIONS: VersionEntry[] = [
   {
     version: "5.3.5",
     date: "2026-06-25",
-    title: i18n.t('auto.co_nowego_w_wersji_5_3_5', { defaultValue: "Co nowego w wersji 5.3.5?" }),
+    title: 'co_nowego_w_wersji_5_3_5',
     changes: [
-      i18n.t('nowosc_ota_system', { defaultValue: "Nowość: Wdrożono system aktualizacji OTA (Over-The-Air) przez Capgo – zmiany w aplikacji bez reinstalacji APK." }),
-      i18n.t('naprawa_mechanizmu_apk', { defaultValue: "Naprawa: Uproszczono i ujednolicono system aktualizacji – usunięto stary mechanizm pobierania paczek dist.zip." }),
-      i18n.t('naprawa_przycisk_apk', { defaultValue: "Naprawa: Przycisk pobierania APK jest teraz zawsze dostępny niezależnie od platformy." }),
-      i18n.t('ulepszenie_wersje_ujednolicone', { defaultValue: "Ulepszenie: Zaktualizowano numery wersji i porządek plików projektu." })
+      'nowosc_ota_system',
+      'naprawa_mechanizmu_apk',
+      'naprawa_przycisk_apk',
+      'ulepszenie_wersje_ujednolicone'
     ]
   },
   {
@@ -282,12 +282,12 @@ export const APK_VERSIONS: VersionEntry[] = [
   {
     version: "5.3.5",
     date: "2026-06-25",
-    title: i18n.t('auto.co_nowego_w_wersji_5_3_5', { defaultValue: "Co nowego w wersji 5.3.5?" }),
+    title: 'co_nowego_w_wersji_5_3_5',
     changes: [
-      i18n.t('nowosc_ota_system', { defaultValue: "Nowość: Wdrożono system aktualizacji OTA (Over-The-Air) przez Capgo – zmiany w aplikacji bez reinstalacji APK." }),
-      i18n.t('naprawa_mechanizmu_apk', { defaultValue: "Naprawa: Uproszczono i ujednolicono system aktualizacji – usunięto stary mechanizm pobierania paczek dist.zip." }),
-      i18n.t('naprawa_przycisk_apk', { defaultValue: "Naprawa: Przycisk pobierania APK jest teraz zawsze dostępny niezależnie od platformy." }),
-      i18n.t('ulepszenie_wersje_ujednolicone', { defaultValue: "Ulepszenie: Zaktualizowano numery wersji i porządek plików projektu." })
+      'nowosc_ota_system',
+      'naprawa_mechanizmu_apk',
+      'naprawa_przycisk_apk',
+      'ulepszenie_wersje_ujednolicone'
     ]
   },
   {
@@ -359,4 +359,6 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   }
 ];
+
+
 

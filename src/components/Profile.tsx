@@ -5817,7 +5817,7 @@ export default function Profile({
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-accent-500 mb-2 truncate">
-                      {v.title}
+                      {t(v.title, { defaultValue: v.title })}
                     </p>
                     <ul className="space-y-2">
                       {v.changes.map((change, idx) => (
@@ -5825,7 +5825,7 @@ export default function Profile({
                           key={idx}
                           className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed"
                         >
-                          • {change}
+                          • {t(change, { defaultValue: change })}
                         </li>
                       ))}
                     </ul>
@@ -6851,7 +6851,7 @@ export default function Profile({
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-accent-500 mb-2 truncate">
-                      {v.title}
+                      {t(v.title, { defaultValue: v.title })}
                     </p>
                     <ul className="space-y-1">
                       {v.changes.slice(0, 2).map((change, idx) => (
@@ -6958,6 +6958,7 @@ function SettingInput({
     </div>
   );
 }
+
 
 
 

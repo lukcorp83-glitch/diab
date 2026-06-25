@@ -63,7 +63,7 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
           </div>
 
           <h2 className="text-2xl font-black text-slate-950 dark:text-white tracking-tight leading-snug">
-            {current.title}
+            {t(current.title, { defaultValue: current.title })}
           </h2>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">
             
@@ -74,7 +74,8 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
         {/* List of changes */}
         <div className="px-5 sm:px-8 py-6 max-h-[50vh] overflow-y-auto space-y-3 no-scrollbar relative">
           {current.changes.map((change, idx) => {
-            const iconInfo = getChangeIconAndColor(change);
+            const translatedChange = t(change, { defaultValue: change });
+          const iconInfo = getChangeIconAndColor(translatedChange, t);
             return (
               <motion.div
                 key={`change-${idx}`}
@@ -190,4 +191,5 @@ function getChangeIconAndColor(text: string): ChangeMeta {
     desc: text
   };
 }
+
 

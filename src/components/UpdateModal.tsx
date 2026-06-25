@@ -6,6 +6,8 @@ import { CURRENT_VERSION } from '../constants/versions';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
+import localVersionData from '../../version.json';
+
 export default function UpdateModal() {
     const { t } = useTranslation();
   const [show, setShow] = useState(false);
@@ -14,8 +16,14 @@ export default function UpdateModal() {
   useEffect(() => {
     const checkUpdate = async () => {
       try {
-        const res = await fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now());
-        const data = await res.json();
+        let data;
+        if (import.meta.env.DEV) {
+          data = localVersionData;
+        } else {
+          const res = await fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now());
+          data = await res.json();
+        }
+
         
         const dismissed = localStorage.getItem("dismissedApkVersion");
         // Pokaż modal tylko jeśli nowy APK jest dostępny i użytkownik go nie odrzucił
