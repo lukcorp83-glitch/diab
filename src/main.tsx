@@ -7,6 +7,9 @@ import {ErrorBoundary} from './components/ErrorBoundary';
 import './i18n';
 
 import { defineCustomElements as jeepSqlite } from 'jeep-sqlite/loader';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+
+CapacitorUpdater.notifyAppReady();
 let basePath = import.meta.env.BASE_URL;
 if (basePath === './') {
     basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';

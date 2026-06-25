@@ -7,14 +7,22 @@ const config: CapacitorConfig = {
   backgroundColor: '#00000000',
   plugins: {
     PushNotifications: {
-      presentationOptions: ["badge", "sound", "alert"]
+      presentationOptions: [
+        'badge',
+        'sound',
+        'alert'
+      ]
     },
     FirebaseAuthentication: {
       skipNativeAuth: false,
-      providers: ["google.com"],
+      providers: [
+        'google.com'
+      ]
     },
     CapacitorUpdater: {
-      autoUpdate: false
+      autoUpdate: 'atBackground',
+      appId: 'com.glikocontrol.app',
+      version: '0.0.0'
     }
   }
 };
