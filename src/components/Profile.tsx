@@ -1,4 +1,4 @@
-﻿import { dbService } from '../services/databaseService';
+import { dbService } from '../services/databaseService';
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
 import { Haptics } from "../lib/haptics";
@@ -5820,14 +5820,16 @@ export default function Profile({
                       {t(v.title, { defaultValue: v.title })}
                     </p>
                     <ul className="space-y-2">
-                      {v.changes.map((change, idx) => (
+                      {v.changes.map((change: any, idx) => {
+                        const text = typeof change === 'string' ? change : change.descriptionKey;
+                        return (
                         <li
                           key={idx}
                           className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed"
                         >
-                          • {t(change, { defaultValue: change })}
+                          • {t(text, { defaultValue: text })}
                         </li>
-                      ))}
+                      )})}
                     </ul>
                   </div>
                 ))}
@@ -6854,15 +6856,17 @@ export default function Profile({
                       {t(v.title, { defaultValue: v.title })}
                     </p>
                     <ul className="space-y-1">
-                      {v.changes.slice(0, 2).map((change, idx) => (
+                      {v.changes.slice(0, 2).map((change: any, idx) => {
+                        const text = typeof change === 'string' ? change : change.descriptionKey;
+                        return (
                         <li
                           key={`v-change-${v.version}-${idx}`}
                           className="text-[9px] text-slate-500 dark:text-slate-400 flex items-start gap-2"
                         >
                           <span className="mt-1 w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
-                          {change}
+                          {t(text, { defaultValue: text })}
                         </li>
-                      ))}
+                      )})}
                     </ul>
                   </div>
                 ))}

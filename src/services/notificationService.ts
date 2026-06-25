@@ -1,4 +1,4 @@
-import { toast } from "react-hot-toast";
+﻿import { toast } from "react-hot-toast";
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -14,7 +14,7 @@ export const notificationService = {
     if (Capacitor.isNativePlatform()) {
       try {
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v5',
+          id: 'glucose_alerts_v6',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
           importance: 5,
@@ -199,7 +199,7 @@ export const notificationService = {
             body: body,
             id: Math.floor(Math.random() * 100000),
             schedule: { at: scheduleDate },
-            channelId: 'glucose_alerts_v5',
+            channelId: 'glucose_alerts_v6',
             sound: 'critical_alarm.wav',
             attachments: null,
             actionTypeId: "",
@@ -341,7 +341,7 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v5',
+            channelId: 'glucose_alerts_v6',
             sound: 'critical_alarm.wav',
             attachments: null,
             actionTypeId: "",
@@ -372,4 +372,5 @@ export const notificationService = {
     }
   }
 };
+
 
