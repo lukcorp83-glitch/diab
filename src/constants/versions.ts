@@ -7,9 +7,20 @@ export interface VersionEntry {
   changes: string[];
 }
 
-export const CURRENT_VERSION = '5.3.1';
+export const CURRENT_VERSION = '5.3.5';
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.5",
+    date: "2026-06-25",
+    title: "Naprawa błędów i aktualizacje OTA",
+    changes: [
+      "Nowość: Wdrożono system aktualizacji OTA (Over-The-Air) przez Capgo – zmiany w aplikacji bez reinstalacji APK.",
+      "Naprawa: Uproszczono i ujednolicono system aktualizacji – usunięto stary mechanizm pobierania paczek dist.zip.",
+      "Naprawa: Przycisk pobierania APK jest teraz zawsze dostępny niezależnie od platformy.",
+      "Ulepszenie: Zaktualizowano numery wersji i porządek plików projektu."
+    ]
+  },
   {
     version: "5.3.1",
     date: "2026-06-10",
@@ -268,6 +279,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.5",
+    date: "2026-06-25",
+    title: "Naprawa błędów i aktualizacje OTA",
+    changes: [
+      "Nowość: Wdrożono system aktualizacji OTA (Over-The-Air) przez Capgo – zmiany w aplikacji bez reinstalacji APK.",
+      "Naprawa: Uproszczono i ujednolicono system aktualizacji – usunięto stary mechanizm pobierania paczek dist.zip.",
+      "Naprawa: Przycisk pobierania APK jest teraz zawsze dostępny niezależnie od platformy.",
+      "Ulepszenie: Zaktualizowano numery wersji i porządek plików projektu."
+    ]
+  },
   {
     version: "5.3.2",
     date: "2026-06-16",

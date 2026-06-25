@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, X, Star, Loader2 } from 'lucide-react';
+import { Download, X, Star } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
 import { CURRENT_VERSION } from '../constants/versions';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
-import { Capacitor } from '@capacitor/core';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -13,8 +11,6 @@ export default function UpdateModal() {
   const [show, setShow] = useState(false);
   const [versionData, setVersionData] = useState<any>(null);
 
-  const [isUpdating, setIsUpdating] = useState(false);
-
   useEffect(() => {
     const checkUpdate = async () => {
       try {
@@ -22,6 +18,7 @@ export default function UpdateModal() {
         const data = await res.json();
         
         const dismissed = localStorage.getItem("dismissedApkVersion");
+        // Pokaż modal tylko jeśli nowy APK jest dostępny i użytkownik go nie odrzucił
         if (data && data.version > CURRENT_VERSION && dismissed !== data.version) {
           setVersionData(data);
           setShow(true);
@@ -35,6 +32,8 @@ export default function UpdateModal() {
   }, []);
 
   if (!show || !versionData) return null;
+
+  const apkDownloadUrl = versionData.apkUrl || versionData.url;
 
   return (
     <AnimatePresence>
@@ -81,57 +80,26 @@ export default function UpdateModal() {
 
           <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border border-slate-100 dark:border-slate-700">
             <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              {versionData.whatsNew}
+              {i18n.language?.startsWith('en') && versionData.whatsNewEn ? versionData.whatsNewEn : versionData.whatsNew}
             </p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-bold">
-              
-                                        {t('auto.zalecamy_instalację_tej_wersji_dla_', { defaultValue: i18n.t('auto.zalecamy_instalacje_tej_w', { defaultValue: "Zalecamy instalację tej wersji dla wszystkich użytkowników (również wersji 1.1) dla poprawnego działania widżetów." }) })}
-                                      </p>
           </div>
 
           <div className="flex flex-col gap-3">
-            {Capacitor.isNativePlatform() ? (
-              <button
-                disabled={isUpdating}
-                onClick={async () => {
-                  Haptics.light();
-                  try {
-                    setIsUpdating(true);
-                    const version = await CapacitorUpdater.download({
-                      url: versionData.url,
-                      version: versionData.version
-                    });
-                    await CapacitorUpdater.set(version);
-                    alert(i18n.t('auto.aktualizacja_zakonczona_sukces', { defaultValue: i18n.t('auto.aktualizacja_zakonczona_s', { defaultValue: "Aktualizacja zakończona sukcesem! Aplikacja zostanie teraz zrestartowana." }) }));
-                    window.location.reload();
-                  } catch (e: any) {
-                    console.error("Failed to update", e);
-                    alert(i18n.t('auto.blad_aktualizacji_sprawdz_czy', { defaultValue: i18n.t('auto.blad_aktualizacji_sprawdz', { defaultValue: "Błąd aktualizacji (sprawdź czy podano poprawny link do pliku ZIP w polu 'url'):" }) }) + e?.message);
-                    setIsUpdating(false);
-                  }
-                }}
-                className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isUpdating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                {isUpdating ? "Pobieranie i instalacja..." : "Zaktualizuj teraz"}
-              </button>
-            ) : (
-              <a
-                href={versionData.apkUrl || versionData.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  Haptics.light();
-                  localStorage.setItem("dismissedApkVersion", versionData.version);
-                  setShow(false);
-                }}
-                className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all"
-              >
-                <Download size={18} />
-                
-                                                  {t('auto.pobierz_aplikację_android_apk', { defaultValue: i18n.t('auto.pobierz_aplikacje_android', { defaultValue: "Pobierz aplikację Android (APK)" }) })}
-                                                </a>
-            )}
+            {/* Zawsze pokazujemy przycisk pobierania APK – przez link */}
+            <a
+              href={apkDownloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                Haptics.light();
+                localStorage.setItem("dismissedApkVersion", versionData.version);
+                setShow(false);
+              }}
+              className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all"
+            >
+              <Download size={18} />
+              {t('auto.pobierz_aplikację_android_apk', { defaultValue: i18n.t('auto.pobierz_aplikacje_android', { defaultValue: "Pobierz aplikację Android (APK)" }) })}
+            </a>
             <button
               onClick={() => {
                 Haptics.light();
@@ -140,13 +108,11 @@ export default function UpdateModal() {
               }}
               className="w-full py-3.5 font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition-all text-sm"
             >
-              
-                                        {t('auto.przypomnij_później', { defaultValue: i18n.t('auto.przypomnij_pozniej', { defaultValue: "Przypomnij później" }) })}
-                                      </button>
+              {t('auto.przypomnij_później', { defaultValue: i18n.t('auto.przypomnij_pozniej', { defaultValue: "Przypomnij później" }) })}
+            </button>
           </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
   );
 }
-

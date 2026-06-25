@@ -1,7 +1,7 @@
 import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '5.3.2';
+export const APP_VERSION = '5.3.5';
 export const FACEBOOK_GROUP_URL = 'https://www.facebook.com/groups/4442689766059238/';
 
 export const CATEGORIES = [

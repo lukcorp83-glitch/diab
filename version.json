@@ -1,6 +1,7 @@
-{
-  "version": "5.3.2",
-  "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/dist.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.3.2_OTA_FINISH.apk",
-  "whatsNew": "🚗 Android Auto! Szybki i bezpieczny podgląd glikemii podczas jazdy. Plus profesjonalny standard raportowania AGP z wykresami."
+﻿{
+    "version":  "5.3.5",
+    "url":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/dist.zip",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.3.5_OTA.apk",
+    "whatsNew":  "🔧 Naprawa błędów i OTA: Wdrożono system aktualizacji OTA, naprawiono mechanizm pobierania APK, poprawki interfejsu.",
+    "whatsNewEn":  "🔧 Bug fixes and OTA: Implemented OTA update system, fixed APK download mechanism, UI improvements."
 }

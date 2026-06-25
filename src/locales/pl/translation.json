@@ -1,4 +1,4 @@
-{
+﻿{
   "sidebar": {
     "items": {
       "profile_settings": "Ustawienia Profilu",
@@ -1270,7 +1270,11 @@
     "aizasy": "AIzaSy...",
     "instalacja_android": "Instalacja Android",
     "aplikacja_native_wersja": "Aplikacja Native • Wersja",
-    "co_nowego_w_wersji_5_3_0": "Co nowego w wersji 5.3.0?",
+    "co_nowego_w_wersji_5_3_5": "Co nowego w wersji 5.3.5?",
+    "nowosc_ota_system": "Nowość: Wdrożono system aktualizacji OTA (Over-The-Air) przez Capgo – zmiany bez reinstalacji APK.",
+    "naprawa_mechanizmu_apk": "Naprawa: Uproszczono system aktualizacji – usunięto stary mechanizm dist.zip.",
+    "naprawa_przycisk_apk": "Naprawa: Przycisk pobierania APK jest teraz zawsze dostępny niezależnie od platformy.",
+    "ulepszenie_wersje_ujednolicone": "Ulepszenie: Ujednolicono numery wersji we wszystkich plikach projektu.",
     "całkiem_nowa_integracja_z_natywnym_": "Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto",
     "nowe_szczegółowe_raporty_agp_z_wyko": "Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu",
     "optymalizacja_animacji_we_wszystkic": "Optymalizacja animacji we wszystkich widokach",
@@ -5833,7 +5837,7 @@
   "auto.instalacja_android": "Instalacja Android",
   "auto.aplikacja_native_wersja": "Aplikacja Native • Wersja",
   "auto.pobierz_najnowsza_wersje": "Pobierz najnowszą wersję oficjalnej aplikacji na system Android (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia i mniejsze zużycie baterii.",
-  "auto.co_nowego_w_wersji_5_3_0": "Co nowego w wersji 5.3.0?",
+  "auto.co_nowego_w_wersji_5_3_5": "Co nowego w wersji 5.3.5?",
   "auto.calkiem_nowa_integracja_z": "Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto",
   "auto.nowe_szczegolowe_raporty": "Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu",
   "auto.optymalizacja_animacji_we_wszystkic": "Optymalizacja animacji we wszystkich widokach",
@@ -6451,3 +6455,4 @@
   "auto.skad_pobierane_dane_zywnosc": "Skąd pobierane są dane o żywności?",
   "auto.efekt_brzasku_somogyi": "Efekt Brzasku i Zjawisko Somogyi"
 }
+

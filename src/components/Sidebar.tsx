@@ -177,9 +177,8 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                  <Logo className="w-10 h-10 rounded-2xl shadow-lg shadow-accent-600/20" />
                  <div>
                    <h2 className={cn("text-xl font-black tracking-tighter leading-none uppercase font-display", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                     
-                                                           {t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}
-                                                         </h2>
+                     {t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}
+                   </h2>
                  </div>
               </div>
               <button 

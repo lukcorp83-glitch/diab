@@ -11,7 +11,7 @@ import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import RemoteAlertsListener from "./components/RemoteAlertsListener";
-import UpdateModal from "./components/UpdateModal";
+
 import GlikoControlLogo from "./components/LogoAnimation";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -2822,10 +2822,6 @@ export default function App() {
               >
                 <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
                 <div>
-                  <h1 className="text-lg font-black tracking-tighter leading-none dark:text-white uppercase font-display">
-                    
-                                                              {t('auto.glikocontrol_v', { defaultValue: 'GlikoControl v' })}{CURRENT_VERSION}
-                  </h1>
                   <p
                     onClick={(e) => {
                       e.stopPropagation();
@@ -3097,7 +3093,7 @@ export default function App() {
         lastGlucose={lastGlucoseValue}
         iob={getEffectiveIOB(logs, pumpStatus, userSettings?.dia || 4)}
       />
-      {!isOffline && <UpdateModal />}
+
     </div>
     </MotionConfig>
   );

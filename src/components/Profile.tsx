@@ -1,4 +1,4 @@
-import { dbService } from '../services/databaseService';
+﻿import { dbService } from '../services/databaseService';
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
 import { Haptics } from "../lib/haptics";
@@ -5709,51 +5709,20 @@ export default function Profile({
               </ul>
             </div>
 
-              {!Capacitor.isNativePlatform() ? (
-                <a
-                  href={apkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors"
-                  onClick={() => {
-                    Haptics.success();
-                    localStorage.setItem("dismissedApkVersion", apkVersion);
-                  }}
-                >
-                  <Download size={20} />
-                  
-                                                {t('auto.pobierz_apk', { defaultValue: 'Pobierz APK' })}
-                                              </a>
-              ) : (
-                <div className="w-full flex flex-col gap-2">
-                  <div className="w-full text-center p-4 rounded-2xl bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 font-bold border border-green-200 dark:border-green-900/30 flex items-center justify-center gap-2">
-                    <Smartphone size={20} />
-                    
-                                                          {t('auto.używasz_natywnej_aplikacji', { defaultValue: i18n.t('auto.uzywasz_natywnej_aplikacj', { defaultValue: "Używasz Natywnej Aplikacji" }) })}
-                                                        </div>
-                  <button
-                    onClick={async () => {
-                      Haptics.impact();
-                      try {
-                        const res = await fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now());
-                        const data = await res.json();
-                        if (data && data.version !== CURRENT_VERSION) {
-                          localStorage.removeItem("dismissedApkVersion");
-                          window.location.reload();
-                        } else {
-                          alert(i18n.t('auto.twoja_aplikacja_jest_w_pelni_a', { defaultValue: i18n.t('auto.twoja_aplikacja_jest_w_pe', { defaultValue: "Twoja aplikacja jest w pełni aktualna! (Wersja" }) }) + CURRENT_VERSION + ")");
-                        }
-                      } catch(e) {
-                        alert(i18n.t('auto.blad_polaczenia_podczas_sprawd', { defaultValue: i18n.t('auto.blad_polaczenia_podczas_s', { defaultValue: "Błąd połączenia podczas sprawdzania aktualizacji." }) }));
-                      }
-                    }}
-                    className="w-full flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-3 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    
-                                                          {t('auto.sprawdź_dostępność_aktualizacji', { defaultValue: i18n.t('auto.sprawdz_dostepnosc_aktual', { defaultValue: "Sprawdź dostępność aktualizacji" }) })}
-                                                        </button>
-                </div>
-              )}
+              {/* Przycisk pobierania APK - zawsze dostepny niezaleznie od platformy */}
+              <a
+                href={apkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors active:scale-95"
+                onClick={() => {
+                  Haptics.success();
+                  localStorage.setItem("dismissedApkVersion", apkVersion);
+                }}
+              >
+                <Download size={20} />
+                {t('auto.pobierz_apk', { defaultValue: 'Pobierz APK' })} ({apkVersion})
+              </a>
 
             <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
               <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
@@ -6989,6 +6958,7 @@ function SettingInput({
     </div>
   );
 }
+
 
 
 

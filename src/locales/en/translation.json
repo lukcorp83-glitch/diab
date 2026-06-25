@@ -1,4 +1,4 @@
-{
+﻿{
   "sidebar": {
     "items": {
       "profile_settings": "Profile Settings",
@@ -1270,7 +1270,11 @@
     "aizasy": "AIzaSy...",
     "instalacja_android": "Android installation",
     "aplikacja_native_wersja": "Native App • Version",
-    "co_nowego_w_wersji_5_3_0": "What's new in version 5.3.0?",
+    "co_nowego_w_wersji_5_3_5": "What's new in version 5.3.5?",
+    "nowosc_ota_system": "New: Implemented OTA (Over-The-Air) update system via Capgo – changes without APK reinstallation.",
+    "naprawa_mechanizmu_apk": "Fix: Simplified the update system – removed the old dist.zip package download mechanism.",
+    "naprawa_przycisk_apk": "Fix: The APK download button is now always available regardless of the platform.",
+    "ulepszenie_wersje_ujednolicone": "Improvement: Unified version numbers across all project files.",
     "całkiem_nowa_integracja_z_natywnym_": "Brand new integration with the native Android Auto car display",
     "nowe_szczegółowe_raporty_agp_z_wyko": "New, detailed AGP reports using glassmorphism",
     "optymalizacja_animacji_we_wszystkic": "Optimization of animation in all views",
@@ -4742,3 +4746,4 @@
   "auto.skad_pobierane_dane_zywnosc": "Where is the food data from?",
   "auto.efekt_brzasku_somogyi": "Dawn Phenomenon and Somogyi Effect"
 }
+
