@@ -326,6 +326,50 @@ export const notificationService = {
         }
       }
     });
+  },
+
+  async triggerGlucoseAlarm(isHigh: boolean, value: number) {
+    const title = isHigh ? i18n.t('auto.wysoki_cukier', { defaultValue: 'Wysoki Cukier!' }) : i18n.t('auto.niski_cukier', { defaultValue: 'Niski Cukier!' });
+    const body = `${i18n.t('auto.twoj_aktualny_poziom_cukru_to', { defaultValue: 'Twój aktualny poziom cukru to' })} ${value} mg/dL.`;
+
+    if (Capacitor.isNativePlatform()) {
+      await this.initChannels();
+      await LocalNotifications.requestPermissions();
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title,
+            body,
+            id: isHigh ? 888 : 889,
+            channelId: 'glucose_alerts_v5',
+            sound: 'critical_alarm.wav',
+            attachments: null,
+            actionTypeId: "",
+            extra: null
+          }
+        ]
+      });
+    } else {
+      // Wersja web/PWA
+      const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');
+      if (apkPref !== 'false' && window.Notification && window.Notification.permission === 'granted') {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration) {
+            registration.showNotification(title, {
+              body,
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+              vibrate: [500, 250, 500, 250, 500],
+              tag: 'glikosense-critical-alert'
+            } as any);
+          } else {
+            new window.Notification(title, { body });
+          }
+        } catch(e) {
+          try { new window.Notification(title, { body }) } catch(err) {}
+        }
+      }
+    }
   }
 };
 

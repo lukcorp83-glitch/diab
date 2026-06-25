@@ -2,6 +2,7 @@ import { Haptics } from '../lib/haptics';
 import { SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground, ITEMS, PetItem } from '../constants';
 import { getEffectiveUid, cn, calculateIOB, getEffectiveIOB } from '../lib/utils';
 import { playPetSound, playFeedSound, playLowGlucoseSound, playHighGlucoseSound, playNormalGlucoseSound, playLevelUpSound, playBuySound } from '../lib/audioUtils';
+import { notificationService } from '../services/notificationService';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Sparkles, AlertCircle, ShoppingBag, Store, X, Coins, Gamepad2, Target, Trophy, CheckCircle2, Utensils, Mountain, Book, HelpCircle, Activity, Flower2 } from 'lucide-react';
@@ -227,8 +228,10 @@ export default function VirtualPet({ user, logs, glucose, setTab, embedded = fal
     if (prevGlucoseZone.current !== null && prevGlucoseZone.current !== currentZone) {
       if (currentZone === 'low') {
          playLowGlucoseSound();
+         notificationService.triggerGlucoseAlarm(false, glucose);
       } else if (currentZone === 'high') {
          playHighGlucoseSound();
+         notificationService.triggerGlucoseAlarm(true, glucose);
       } else if (currentZone === 'normal') {
          playNormalGlucoseSound();
       }
