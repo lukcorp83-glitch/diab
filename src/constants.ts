@@ -323,6 +323,8 @@ export const LIB_BASE: Product[] = [
 export interface PetSkin {
   id: string;
   name: string;
+  namePl?: string;
+  nameEn?: string;
   icon: string;
   price: number;
   unlockedBy?: string; // id of achievement
@@ -348,6 +350,8 @@ export const SKINS: PetSkin[] = [
 export interface PetAccessory {
   id: string;
   name: string;
+  namePl?: string;
+  nameEn?: string;
   icon: string;
   imageUrl: string;
   price: number;
@@ -368,6 +372,8 @@ export const ACCESSORIES: PetAccessory[] = [
 export interface PetBackground {
   id: string;
   name: string;
+  namePl?: string;
+  nameEn?: string;
   icon: string;
   gradient: string;
   price: number;
@@ -386,6 +392,8 @@ export const BACKGROUNDS: PetBackground[] = [
 export interface PetItem {
   id: string;
   name: string;
+  namePl?: string;
+  nameEn?: string;
   type: 'food' | 'toy' | 'medicine';
   price: number;
   icon: string;
@@ -404,7 +412,7 @@ export const ITEMS: PetItem[] = [
   { id: 'ball', name: i18n.t('auto.pileczka', { defaultValue: i18n.t('auto.pileczka', { defaultValue: "Piłeczka" }) }), type: 'toy', price: 20, icon: '🎾', effect: { happiness: 30, xp: 15 } },
   { id: 'cake', name: "Pyszne Ciastko", namePl: "Pyszne Ciastko", nameEn: "Delicious Cookie", type: 'food', price: 25, icon: '🍰', effect: { hunger: 50, happiness: 20, xp: 20 } },
 ];
-export const MEDICAL_DICTIONARY: Record<string, { name: string; category: "insulin" | "sensors" | "infusion_sets" | "reservoirs" | "strips" | "other" }> = {
+export const MEDICAL_DICTIONARY: Record<string, { name: string; namePl?: string; nameEn?: string; category: "insulin" | "sensors" | "infusion_sets" | "reservoirs" | "strips" | "other" }> = {
   // Insuliny
   "5909990451814": { name: "NovoRapid Penfill", namePl: "NovoRapid Penfill", nameEn: "NovoRapid Penfill", category: "insulin" },
   "5712249127619": { name: "NovoRapid FlexPen", namePl: "NovoRapid FlexPen", nameEn: "NovoRapid FlexPen", category: "insulin" },
