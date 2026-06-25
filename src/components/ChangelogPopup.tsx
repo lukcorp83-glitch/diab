@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
-    const { t } = useTranslation();
+  const { t } = useTranslation();
   const current = PWA_VERSIONS[0]; // Active top release (ver 4.1)
 
   return (
@@ -54,9 +54,8 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
           <div className="flex items-center gap-2.5 mb-2">
             <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40">
               <Sparkles size={11} className="animate-pulse" />
-              
-                                        {t('auto.aktualizacja', { defaultValue: 'Aktualizacja' })}
-                                      </span>
+              {t('auto.aktualizacja', { defaultValue: 'Aktualizacja' })}
+            </span>
             <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400">
               v{current.version}
             </span>
@@ -66,16 +65,44 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
             {t(current.title, { defaultValue: current.title })}
           </h2>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">
-            
-                                  {t('auto.odkryj_najnowsze_inteligentne_funkc', { defaultValue: 'Odkryj najnowsze inteligentne funkcje i ulepszenia w wersji mobilnej.' })}
-                                </p>
+            {t('auto.odkryj_najnowsze_inteligentne_funkc', { defaultValue: 'Odkryj najnowsze inteligentne funkcje i ulepszenia w wersji mobilnej.' })}
+          </p>
         </div>
 
         {/* List of changes */}
         <div className="px-5 sm:px-8 py-6 max-h-[50vh] overflow-y-auto space-y-3 no-scrollbar relative">
-          {current.changes.map((change, idx) => {
-            const translatedChange = t(change, { defaultValue: change });
-          const iconInfo = getChangeIconAndColor(translatedChange, t);
+          {current.changes.map((change: any, idx: number) => {
+            let iconInfo: ChangeMeta;
+            if (typeof change === 'string') {
+              const translatedChange = t(change, { defaultValue: change });
+              iconInfo = getChangeIconAndColor(translatedChange, t);
+            } else {
+              let IconComponent = Sparkles;
+              if (change.icon === 'CloudCog') IconComponent = CloudCog;
+              if (change.icon === 'Smartphone') IconComponent = Smartphone;
+              if (change.icon === 'Brain') IconComponent = Brain;
+              if (change.icon === 'Utensils') IconComponent = Utensils;
+              if (change.icon === 'Layout') IconComponent = Layout;
+              if (change.icon === 'Wrench') IconComponent = Wrench;
+              if (change.icon === 'Bell') IconComponent = Bell;
+              
+              let extractedColor = 'text-slate-500';
+              const colorParts = change.colorClass.split(' ');
+              for (const part of colorParts) {
+                if (part.startsWith('text-') && !part.startsWith('text-[')) {
+                  extractedColor = part;
+                  break;
+                }
+              }
+
+              iconInfo = {
+                icon: <IconComponent size={16} className={extractedColor} />,
+                bgColor: change.colorClass,
+                title: t(change.categoryKey, { defaultValue: change.categoryKey }),
+                desc: t(change.descriptionKey, { defaultValue: change.descriptionKey })
+              };
+            }
+
             return (
               <motion.div
                 key={`change-${idx}`}
@@ -110,8 +137,7 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
             className="w-full flex items-center justify-center gap-2 py-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-black rounded-2xl text-[11px] uppercase tracking-widest shadow-lg shadow-black/10 dark:shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer font-display"
             id="changelog-start-btn"
           >
-            
-                                  {t('auto.przejdź_do_aplikacji', { defaultValue: i18n.t('auto.przejdz_do_aplikacji', { defaultValue: "Przejdź do aplikacji" }) })} <ArrowRight size={16} />
+            {t('auto.przejdź_do_aplikacji', { defaultValue: i18n.t('auto.przejdz_do_aplikacji', { defaultValue: "Przejdź do aplikacji" }) })} <ArrowRight size={16} />
           </button>
         </div>
       </motion.div>
@@ -126,7 +152,7 @@ interface ChangeMeta {
   desc: string;
 }
 
-function getChangeIconAndColor(text: string): ChangeMeta {
+function getChangeIconAndColor(text: string, tFunc: any): ChangeMeta {
   const t = text.toLowerCase();
   
   if (t.includes('pop-up') || t.includes('powiadomie')) {
@@ -165,33 +191,28 @@ function getChangeIconAndColor(text: string): ChangeMeta {
     };
   }
   
-  if (t.includes('ai') || t.includes('glikosense') || t.includes('model')) {
+  if (t.includes(i18n.t('auto.interfejs', { defaultValue: i18n.t('auto.interfejs', { defaultValue: "interfejs" }) })) || t.includes('ui') || t.includes('design') || t.includes('layout')) {
     return {
-      icon: <Brain size={16} className="text-indigo-500 dark:text-indigo-400" />,
-      bgColor: "bg-indigo-50 dark:bg-indigo-950/40",
-      title: "GlikoSense AI & Analityka",
+      icon: <Layout size={16} className="text-blue-500 dark:text-blue-400" />,
+      bgColor: "bg-blue-50 dark:bg-blue-950/40",
+      title: "Design & UI",
       desc: text
     };
   }
-  
-  if (t.includes('poprawki') || t.includes('interfejs') || t.includes('ui') || t.includes('widget') || t.includes(i18n.t('auto.uklad', { defaultValue: i18n.t('auto.uklad', { defaultValue: "układ" }) }))) {
+
+  if (t.includes(i18n.t('auto.poprawka', { defaultValue: i18n.t('auto.poprawka', { defaultValue: "poprawka" }) })) || t.includes('fix') || t.includes(i18n.t('auto.stabilnosc', { defaultValue: i18n.t('auto.stabilnosc', { defaultValue: "stabilność" }) }))) {
     return {
-      icon: <Layout size={16} className="text-sky-500 dark:text-sky-400" />,
-      bgColor: "bg-sky-50 dark:bg-sky-950/40",
-      title: "UI & Widgety",
+      icon: <Wrench size={16} className="text-slate-500 dark:text-slate-400" />,
+      bgColor: "bg-slate-100 dark:bg-slate-800/50",
+      title: "Naprawy & Stabilność",
       desc: text
     };
   }
-  
-  // Bug fixes / standard
+
   return {
-    icon: <Wrench size={16} className="text-slate-500 dark:text-slate-400" />,
-    bgColor: "bg-slate-100 dark:bg-slate-900",
-    title: "Aktualizacje",
+    icon: <Sparkles size={16} className="text-emerald-500 dark:text-emerald-400" />,
+    bgColor: "bg-emerald-50 dark:bg-emerald-950/40",
+    title: "Nowości & Funkcje",
     desc: text
   };
 }
-
-
-
-
