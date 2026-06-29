@@ -14,10 +14,19 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.3.6';
+export const CURRENT_VERSION = '5.3.7';
 export const CURRENT_OTA_REVISION = 1;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.7",
+    date: "2026-06-29",
+    title: 'Zmiana kolorystyki i nowy system OTA',
+    changes: [
+      "Nowy system dystrybucji OTA i APK bazujący na GitHub Actions",
+      "Poprawka kolorystyki widgetów na Dashboardzie (Violet i Cyan)"
+    ]
+  },
   {
     version: "5.3.5",
     date: "2026-06-25",
@@ -307,6 +316,25 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.7",
+    date: "2026-06-29",
+    title: 'Zmiana kolorystyki i nowy system OTA',
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Nowy, w pełni automatyczny system dystrybucji OTA przez GitHub Actions"
+      },
+      {
+        categoryKey: "kategoria_interfejs",
+        icon: "Paintbrush",
+        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
+        descriptionKey: "Poprawka kolorystyki widgetów: Sensor -> Violet, Wkłucie -> Cyan"
+      }
+    ]
+  },
   {
     version: "5.3.5",
     date: "2026-06-25",
