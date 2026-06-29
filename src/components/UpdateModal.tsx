@@ -38,9 +38,11 @@ export default function UpdateModal() {
         
         const dismissed = localStorage.getItem("dismissedApkVersion");
         const dismissedOta = localStorage.getItem("dismissedOtaRevision");
+        const appliedOta = localStorage.getItem("appliedOtaRevision");
         
         const isNewApkVersion = data && data.version > CURRENT_VERSION;
-        const isNewOtaRevision = data && data.version === CURRENT_VERSION && data.otaRevision && data.otaRevision > CURRENT_OTA_REVISION;
+        const currentOtaToCompare = appliedOta ? parseInt(appliedOta, 10) : CURRENT_OTA_REVISION;
+        const isNewOtaRevision = data && data.version === CURRENT_VERSION && data.otaRevision && data.otaRevision > currentOtaToCompare;
 
         if ((isNewApkVersion && dismissed !== data.version) || (isNewOtaRevision && dismissedOta !== String(data.otaRevision))) {
           setVersionData(data);
@@ -65,11 +67,14 @@ export default function UpdateModal() {
       toast.loading(i18n.t('auto.pobieranie_aktualizacji', { defaultValue: 'Pobieranie aktualizacji...' }), { id: 'ota-update' });
       
       const versionInfo = await CapacitorUpdater.download({
-        url: 'https://lukcorp83-glitch.github.io/diab/dist.zip',
+        url: versionData.url || 'https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/dist.zip',
         version: versionData.version + (versionData.otaRevision ? "-ota" + versionData.otaRevision : ""),
       });
       
       toast.success(i18n.t('auto.pobrano_instaluje', { defaultValue: 'Pobrano, instalacja...' }), { id: 'ota-update' });
+      if (versionData.otaRevision) {
+        localStorage.setItem("appliedOtaRevision", String(versionData.otaRevision));
+      }
       await CapacitorUpdater.set({ id: versionInfo.id });
     } catch (e: any) {
       setIsUpdating(false);
