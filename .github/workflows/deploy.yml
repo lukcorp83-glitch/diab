@@ -50,8 +50,7 @@ jobs:
       - name: 📝 Generuj version.json z package.json
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          TAG_NAME="v${VERSION}"
-          APK_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/GlikoControl_${VERSION}.apk"
+          APK_URL="https://github.com/${{ github.repository }}/releases/download/aktualizacja/GlikoControl_${VERSION}_OTA.apk"
           BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           cat > dist/version.json << EOF
           {
@@ -71,6 +70,7 @@ jobs:
           cd dist
           zip -r ../dist.zip .
           cp ../dist.zip ../update.zip
+          cp ../update.zip ./update.zip
           echo "✅ dist.zip i update.zip gotowe"
 
       - name: 📤 Upload dist.zip jako artifact
