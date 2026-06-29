@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, X, Star, CloudDownload, Loader2 } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
-import { CURRENT_VERSION } from '../constants/versions';
+import { CURRENT_VERSION, CURRENT_OTA_REVISION } from '../constants/versions';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { Capacitor } from '@capacitor/core';
@@ -35,8 +35,12 @@ export default function UpdateModal() {
 
         
         const dismissed = localStorage.getItem("dismissedApkVersion");
-        // Pokaż modal tylko jeśli nowy APK jest dostępny i użytkownik go nie odrzucił
-        if (data && data.version > CURRENT_VERSION && dismissed !== data.version) {
+        const dismissedOta = localStorage.getItem("dismissedOtaRevision");
+        
+        const isNewApkVersion = data && data.version > CURRENT_VERSION;
+        const isNewOtaRevision = data && data.version === CURRENT_VERSION && data.otaRevision && data.otaRevision > CURRENT_OTA_REVISION;
+
+        if ((isNewApkVersion && dismissed !== data.version) || (isNewOtaRevision && dismissedOta !== String(data.otaRevision))) {
           setVersionData(data);
           setShow(true);
         }
@@ -98,6 +102,9 @@ export default function UpdateModal() {
               if (isUpdating) return;
               Haptics.light();
               localStorage.setItem("dismissedApkVersion", versionData.version);
+              if (versionData.otaRevision) {
+                localStorage.setItem("dismissedOtaRevision", String(versionData.otaRevision));
+              }
               setShow(false);
             }}
             disabled={isUpdating}
@@ -142,6 +149,9 @@ export default function UpdateModal() {
               onClick={() => {
                 Haptics.light();
                 localStorage.setItem("dismissedApkVersion", versionData.version);
+                if (versionData.otaRevision) {
+                  localStorage.setItem("dismissedOtaRevision", String(versionData.otaRevision));
+                }
               }}
               className="flex items-center justify-center gap-2 w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white py-3.5 rounded-2xl font-bold transition-all"
             >
@@ -152,6 +162,9 @@ export default function UpdateModal() {
               onClick={() => {
                 Haptics.light();
                 localStorage.setItem("dismissedApkVersion", versionData.version);
+                if (versionData.otaRevision) {
+                  localStorage.setItem("dismissedOtaRevision", String(versionData.otaRevision));
+                }
                 setShow(false);
               }}
               className="w-full py-3.5 font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition-all text-sm"
