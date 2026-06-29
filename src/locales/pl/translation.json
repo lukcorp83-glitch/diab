@@ -6474,5 +6474,9 @@
   "auto.czy_dziala_bez_internetu": "Czy aplikacja działa bez internetu?",
   "auto.jak_wejsc_w_ukryte_ustawienia": "Jak wejść w ukryte ustawienia profilu?",
   "auto.skad_pobierane_dane_zywnosc": "Skąd pobierane są dane o żywności?",
-  "auto.efekt_brzasku_somogyi": "Efekt Brzasku i Zjawisko Somogyi"
+  "auto.efekt_brzasku_somogyi": "Efekt Brzasku i Zjawisko Somogyi",
+  "changelog.v539_title": "Wymuszenie ręcznej aktualizacji",
+  "changelog.v539_change_1": "Nowość: Dodano przycisk ręcznego wymuszenia aktualizacji OTA w zakładce Ustawienia/Profil",
+  "changelog.v539_change_2": "Naprawa: Usunięto błąd permanentnego ukrywania aktualizacji po kliknięciu \"Pobierz APK\"",
+  "changelog.v539_apk_change_1": "Dodano możliwość ręcznego wywołania OTA. Naprawiono blokadę okienka aktualizacji."
 }

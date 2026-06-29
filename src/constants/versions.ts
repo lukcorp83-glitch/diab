@@ -21,10 +21,10 @@ export const PWA_VERSIONS: VersionEntry[] = [
   {
     version: "5.3.9",
     date: "2026-06-29",
-    title: 'Wymuszenie ręcznej aktualizacji',
+    title: 'changelog.v539_title',
     changes: [
-      "Nowość: Dodano przycisk ręcznego wymuszenia aktualizacji OTA w zakładce Ustawienia/Profil",
-      "Naprawa: Usunięto błąd permanentnego ukrywania aktualizacji po kliknięciu 'Pobierz APK'"
+      "changelog.v539_change_1",
+      "changelog.v539_change_2"
     ]
   },
   {
@@ -338,13 +338,13 @@ export const APK_VERSIONS: VersionEntry[] = [
   {
     version: "5.3.9",
     date: "2026-06-29",
-    title: 'Wymuszenie ręcznej aktualizacji',
+    title: 'changelog.v539_title',
     changes: [
       {
         categoryKey: "kategoria_aktualizacje",
         icon: "CloudCog",
         colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
-        descriptionKey: "Dodano możliwość ręcznego wywołania OTA. Naprawiono blokadę okienka aktualizacji."
+        descriptionKey: "changelog.v539_apk_change_1"
       }
     ]
   },
