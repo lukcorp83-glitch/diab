@@ -68,7 +68,7 @@ jobs:
       - name: 🗜️ Utwórz dist.zip i update.zip (OTA bundle)
         run: |
           cd dist
-          zip -r ../dist.zip .
+          zip -r ../dist.zip . -x "*.apk"
           cp ../dist.zip ../update.zip
           cp ../update.zip ./update.zip
           echo "✅ dist.zip i update.zip gotowe"

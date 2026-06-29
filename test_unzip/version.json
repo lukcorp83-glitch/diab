@@ -1,0 +1,8 @@
+{
+  "version": "5.4.0",
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.0_OTA.apk",
+  "whatsNew": "✅ Wersja 5.4.0 — automatyczna aktualizacja przez GitHub.",
+  "whatsNewEn": "✅ Version 5.4.0 — auto-updated via GitHub Actions.",
+  "otaRevision": 260,
+  "buildTime": "2026-06-29T11:42:34Z"
+}
