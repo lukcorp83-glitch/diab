@@ -78,11 +78,28 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
 
   const toggleListening = () => {
     if (isListening) {
-      recognitionRef.current?.stop();
+      try {
+        recognitionRef.current?.stop();
+      } catch (e) {}
+      setIsListening(false);
     } else {
-      setInput('');
-      recognitionRef.current?.start();
-      setIsListening(true);
+      if (!recognitionRef.current) {
+        import('react-hot-toast').then(({ toast }) => {
+          toast.error(i18n.t('auto.rozpoznawanie_mowy_nieobsługiwane', { defaultValue: "Rozpoznawanie mowy nie jest obsługiwane przez Twój system lub przeglądarkę." }));
+        });
+        return;
+      }
+      try {
+        setInput('');
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error(e);
+        import('react-hot-toast').then(({ toast }) => {
+          toast.error(i18n.t('auto.blad_mikrofonu_uprawnienia', { defaultValue: "Błąd mikrofonu. Upewnij się, że masz włączone uprawnienia." }));
+        });
+        setIsListening(false);
+      }
     }
   };
 
