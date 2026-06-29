@@ -6,7 +6,8 @@ $VERSION = "5.3.7"
 # Aktualizuj version w package.json
 $json = Get-Content "package.json" -Raw | ConvertFrom-Json
 $json.version = $VERSION
-$json | ConvertTo-Json -Depth 10 | Set-Content "package.json" -Encoding UTF8
+$jsonText = $json | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText("$PWD\package.json", $jsonText, [System.Text.UTF8Encoding]::new($false))
 
 # Zatwierdz i wypchnij + tag
 git add .
