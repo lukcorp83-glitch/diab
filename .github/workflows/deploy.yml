@@ -55,6 +55,7 @@ jobs:
           cat > dist/version.json << EOF
           {
             "version": "${VERSION}",
+            "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
             "apkUrl": "${APK_URL}",
             "whatsNew": "✅ Wersja ${VERSION} — automatyczna aktualizacja przez GitHub.",
             "whatsNewEn": "✅ Version ${VERSION} — auto-updated via GitHub Actions.",
