@@ -255,7 +255,16 @@ export default function App() {
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      CapacitorUpdater.notifyAppReady();
+      import("@capacitor/app").then(({ App: CapacitorApp }) => {
+        CapacitorApp.getInfo().then((info) => {
+          if (info.version && info.version !== CURRENT_VERSION) {
+            console.log(`Version mismatch: Native(${info.version}) vs JS(${CURRENT_VERSION}). Resetting OTA...`);
+            CapacitorUpdater.reset();
+          } else {
+            CapacitorUpdater.notifyAppReady();
+          }
+        }).catch(() => CapacitorUpdater.notifyAppReady());
+      }).catch(() => CapacitorUpdater.notifyAppReady());
       
       // Setup Android notification channels for custom sounds
       if (Capacitor.getPlatform() === 'android') {
