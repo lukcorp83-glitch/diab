@@ -1,4 +1,4 @@
-import { getEffectiveUid } from '../lib/utils';
+﻿import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
@@ -1123,10 +1123,10 @@ export default function Dashboard({
             }}
             className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isSensCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
           >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
             <div className="flex justify-between items-start w-full">
-              <div className="p-1.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-500"><Signal size={14} /></div>
-              <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-500/5 py-1 px-2 rounded-full border border-indigo-500/10">{t('auto.sensor', { defaultValue: 'Sensor' })}</span>
+              <div className="p-1.5 bg-violet-500/10 rounded-xl border border-violet-500/20 text-violet-500"><Signal size={14} /></div>
+              <span className="text-[8px] font-black text-violet-500 uppercase tracking-widest bg-violet-500/5 py-1 px-2 rounded-full border border-violet-500/10">{t('auto.sensor', { defaultValue: 'Sensor' })}</span>
             </div>
             <div className={isSensCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
@@ -1147,7 +1147,7 @@ export default function Dashboard({
                       )}
                     </div>
                     <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
-                      <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-indigo-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                      <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
                     </div>
                   </div>
                 );
@@ -1184,10 +1184,10 @@ export default function Dashboard({
             }}
             className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isInfCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
           >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
             <div className="flex justify-between items-start w-full">
-              <div className="p-1.5 bg-teal-500/10 rounded-xl border border-teal-500/20 text-teal-500"><Droplets size={14} /></div>
-              <span className="text-[8px] font-black text-teal-500 uppercase tracking-widest bg-teal-500/5 py-1 px-2 rounded-full border border-teal-500/10">{t('auto.wkłucie', { defaultValue: i18n.t('auto.wklucie', { defaultValue: "Wkłucie" }) })}</span>
+              <div className="p-1.5 bg-cyan-500/10 rounded-xl border border-cyan-500/20 text-cyan-500"><Droplets size={14} /></div>
+              <span className="text-[8px] font-black text-cyan-600 uppercase tracking-widest bg-cyan-500/5 py-1 px-2 rounded-full border border-cyan-500/10">{t('auto.wkłucie', { defaultValue: i18n.t('auto.wklucie', { defaultValue: "Wkłucie" }) })}</span>
             </div>
             <div className={isInfCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
@@ -1208,7 +1208,7 @@ export default function Dashboard({
                       )}
                     </div>
                     <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
-                      <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-teal-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                      <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
                     </div>
                   </div>
                 );
@@ -2517,10 +2517,10 @@ export default function Dashboard({
                }}
                className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden cursor-pointer"
              >
-               <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
+               <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
                <div className="flex justify-between items-start">
-                 <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-500"><Signal size={16} /></div>
-                 <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-500/5 py-1 px-2.5 rounded-full border border-indigo-500/10">{t('auto.sensor', { defaultValue: 'Sensor' })}</span>
+                 <div className="p-2 bg-violet-500/10 rounded-xl border border-violet-500/20 text-violet-500"><Signal size={16} /></div>
+                 <span className="text-[8px] font-black text-violet-500 uppercase tracking-widest bg-violet-500/5 py-1 px-2.5 rounded-full border border-violet-500/10">{t('auto.sensor', { defaultValue: 'Sensor' })}</span>
                </div>
                <div className="mt-4">
                  {(() => {
@@ -2541,7 +2541,7 @@ export default function Dashboard({
                          )}
                        </div>
                        <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-indigo-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
                        </div>
                      </div>
                    );
@@ -2558,10 +2558,10 @@ export default function Dashboard({
                }}
                className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden cursor-pointer"
              >
-               <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
+               <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
                <div className="flex justify-between items-start">
-                 <div className="p-2 bg-teal-500/10 rounded-xl border border-teal-500/20 text-teal-500"><Droplets size={16} /></div>
-                 <span className="text-[8px] font-black text-teal-500 uppercase tracking-widest bg-teal-500/5 py-1 px-2.5 rounded-full border border-teal-500/10">{t('auto.wkłucie', { defaultValue: i18n.t('auto.wklucie', { defaultValue: "Wkłucie" }) })}</span>
+                 <div className="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 text-cyan-500"><Droplets size={16} /></div>
+                 <span className="text-[8px] font-black text-cyan-600 uppercase tracking-widest bg-cyan-500/5 py-1 px-2.5 rounded-full border border-cyan-500/10">{t('auto.wkłucie', { defaultValue: i18n.t('auto.wklucie', { defaultValue: "Wkłucie" }) })}</span>
                </div>
                <div className="mt-4">
                  {(() => {
@@ -2582,7 +2582,7 @@ export default function Dashboard({
                          )}
                        </div>
                        <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-teal-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
                        </div>
                      </div>
                    );
@@ -2867,4 +2867,5 @@ export default function Dashboard({
     </div>
   );
 }
+
 

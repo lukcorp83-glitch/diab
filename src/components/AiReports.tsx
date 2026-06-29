@@ -129,10 +129,8 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
     return Object.entries(grouped)
       .map(([date, values]) => ({
         date: new Date(date).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }),
-        avg: Math.round(values.reduce((a, b) => a + b, 0) / values.length),
-        min: Math.round(Math.min(...values)),
-        max: Math.round(Math.max(...values)),
-        range: [Math.round(Math.min(...values)), Math.round(Math.max(...values))],
+        srednia: Math.round(values.reduce((a, b) => a + b, 0) / values.length),
+        zakres: [Math.round(Math.min(...values)), Math.round(Math.max(...values))],
         rawDate: date
       }))
       .sort((a, b) => a.rawDate.localeCompare(b.rawDate));
@@ -191,7 +189,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                 <Area 
                   name={t('auto.zakres', { defaultValue: 'Zakres (Min - Max)' })}
                   type="monotone" 
-                  dataKey="range" 
+                  dataKey="zakres" 
                   stroke="none" 
                   fill="#4f46e5" 
                   fillOpacity={0.15} 
@@ -200,7 +198,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                 <Area 
                   name={t('auto.srednia_dobowa', { defaultValue: 'Średnia dobowa' })}
                   type="monotone" 
-                  dataKey="avg" 
+                  dataKey="srednia" 
                   stroke="#4f46e5" 
                   strokeWidth={3}
                   fillOpacity={0} 
