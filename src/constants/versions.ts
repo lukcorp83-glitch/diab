@@ -14,10 +14,19 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.3.9';
+export const CURRENT_VERSION = '5.4.0';
 export const CURRENT_OTA_REVISION = 1;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.0",
+    date: "2026-06-29",
+    title: 'auto.wersja_5_4_0',
+    changes: [
+      "auto.poprawki_asystenta_glosowego",
+      "auto.przebudowa_systemu_ota"
+    ]
+  },
   {
     version: "5.3.9",
     date: "2026-06-29",
@@ -335,6 +344,25 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.0",
+    date: "2026-06-29",
+    title: 'auto.wersja_5_4_0',
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "auto.nowy_silnik_ota"
+      },
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "auto.poprawki_asystenta_glosowego"
+      }
+    ]
+  },
   {
     version: "5.3.9",
     date: "2026-06-29",

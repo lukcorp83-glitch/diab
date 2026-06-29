@@ -1,8 +1,8 @@
 {
-    "version":  "5.3.9",
+    "version":  "5.4.0",
     "url":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/dist.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.3.8_OTA.apk",
-    "whatsNew":  "🔧 Naprawa błędu przewidywań: GlikoSense znów poprawnie wyświetla przewidywany poziom cukru za 60 minut.",
-    "whatsNewEn":  "🔧 Prediction bug fix: GlikoSense now properly displays predicted glucose levels.",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.0_OTA.apk",
+    "whatsNew":  "🚀 Wersja 5.4.0: Przebudowa mechanizmu OTA, poprawki w asystencie głosowym oraz nowa stabilna iteracja aplikacji.",
+    "whatsNewEn":  "🚀 Version 5.4.0: Rebuilt OTA mechanism, voice assistant fixes, and a new stable iteration.",
     "otaRevision":  254
 }
