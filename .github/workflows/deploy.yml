@@ -3,7 +3,6 @@ name: 🚀 Build & Deploy GlikoControl
 on:
   push:
     branches: ["main", "master"]
-  push:
     tags:
       - 'v*'
   workflow_dispatch:
