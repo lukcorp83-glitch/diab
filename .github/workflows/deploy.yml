@@ -66,11 +66,12 @@ jobs:
           echo "📋 version.json:"
           cat dist/version.json
 
-      - name: 🗜️ Utwórz dist.zip (OTA bundle)
+      - name: 🗜️ Utwórz dist.zip i update.zip (OTA bundle)
         run: |
           cd dist
           zip -r ../dist.zip .
-          echo "✅ dist.zip: $(du -sh ../dist.zip | cut -f1)"
+          cp ../dist.zip ../update.zip
+          echo "✅ dist.zip i update.zip gotowe"
 
       - name: 📤 Upload dist.zip jako artifact
         uses: actions/upload-artifact@v4

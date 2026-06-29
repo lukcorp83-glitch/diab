@@ -65,7 +65,7 @@ export default function UpdateModal() {
       toast.loading(i18n.t('auto.pobieranie_aktualizacji', { defaultValue: 'Pobieranie aktualizacji...' }), { id: 'ota-update' });
       
       const versionInfo = await CapacitorUpdater.download({
-        url: 'https://lukcorp83-glitch.github.io/diab/update.zip',
+        url: 'https://lukcorp83-glitch.github.io/diab/dist.zip',
         version: versionData.version + (versionData.otaRevision ? "-ota" + versionData.otaRevision : ""),
       });
       
