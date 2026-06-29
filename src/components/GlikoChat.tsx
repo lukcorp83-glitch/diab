@@ -23,8 +23,8 @@ import { Virtuoso } from 'react-virtuoso';
 import { SKINS, ACCESSORIES } from '../constants';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
-import { Capacitor } from '@capacitor/core';
-import { SpeechRecognition } from '@capacitor-community/speech-recognition';
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 interface Message {
   id: string;
@@ -47,94 +47,59 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
 
   useEffect(() => {
     localStorage.setItem('gliko_voice_enabled', JSON.stringify(voiceEnabled));
-    if (!Capacitor.isNativePlatform()) {
-      if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-        const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        recognitionRef.current = new SpeechRec();
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.lang = 'pl-PL';
-        
-        recognitionRef.current.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setInput(transcript);
-          setIsListening(false);
-          // Automatically send after voice input
-          setTimeout(() => {
-             handleSend(transcript);
-          }, 500);
-        };
+  useEffect(() => {
+    localStorage.setItem('gliko_voice_enabled', JSON.stringify(voiceEnabled));
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRec();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.lang = 'pl-PL';
+      
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        setIsListening(false);
+        setTimeout(() => {
+           handleSend(transcript);
+        }, 500);
+      };
 
-        recognitionRef.current.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
-        };
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        if (event.error === 'not-allowed') {
+          import('react-hot-toast').then(({ toast }) => {
+            toast.error(i18n.t('auto.blad_mikrofonu_uprawnienia', { defaultValue: "Brak uprawnień. Zezwól na użycie mikrofonu." }));
+          });
+        }
+      };
 
-        recognitionRef.current.onend = () => {
-          setIsListening(false);
-        };
-      }
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
     }
   }, [voiceEnabled]);
 
-  const toggleListening = async () => {
+  const toggleListening = () => {
     if (isListening) {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await SpeechRecognition.stop();
-        } catch(e){}
-      } else {
-        try {
-          recognitionRef.current?.stop();
-        } catch (e) {}
-      }
+      try {
+        recognitionRef.current?.stop();
+      } catch (e) {}
       setIsListening(false);
     } else {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const hasPerms = await SpeechRecognition.checkPermissions();
-          if (hasPerms.speechRecognition !== 'granted') {
-             await SpeechRecognition.requestPermissions();
-          }
-          
-          setIsListening(true);
-          const result = await SpeechRecognition.start({
-             language: "pl-PL",
-             maxResults: 1,
-             popup: false,
-             partialResults: false
-          });
-          
-          if (result.matches && result.matches.length > 0) {
-             const transcript = result.matches[0];
-             setInput(transcript);
-             setTimeout(() => { handleSend(transcript); }, 500);
-          }
-        } catch (e) {
-           console.error(e);
-           import('react-hot-toast').then(({ toast }) => {
-             toast.error(i18n.t('auto.blad_mikrofonu_uprawnienia', { defaultValue: "Błąd mikrofonu. Upewnij się, że masz włączone uprawnienia." }));
-           });
-        } finally {
-           setIsListening(false);
-        }
-      } else {
-        if (!recognitionRef.current) {
-          import('react-hot-toast').then(({ toast }) => {
-            toast.error(i18n.t('auto.rozpoznawanie_mowy_nieobsługiwane', { defaultValue: "Rozpoznawanie mowy nie jest obsługiwane przez Twój system lub przeglądarkę." }));
-          });
-          return;
-        }
-        try {
-          setInput('');
-          recognitionRef.current?.start();
-          setIsListening(true);
-        } catch (e) {
-          console.error(e);
-          import('react-hot-toast').then(({ toast }) => {
-            toast.error(i18n.t('auto.blad_mikrofonu_uprawnienia', { defaultValue: "Błąd mikrofonu. Upewnij się, że masz włączone uprawnienia." }));
-          });
-          setIsListening(false);
-        }
+      if (!recognitionRef.current) {
+        import('react-hot-toast').then(({ toast }) => {
+          toast.error(i18n.t('auto.rozpoznawanie_mowy_nieobsługiwane', { defaultValue: "Rozpoznawanie mowy nie jest obsługiwane." }));
+        });
+        return;
+      }
+      try {
+        setInput('');
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error(e);
+        setIsListening(false);
       }
     }
   };
