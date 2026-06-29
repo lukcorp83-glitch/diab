@@ -6655,6 +6655,38 @@ export default function Profile({
                   </div>
                 </div>
 
+                <button
+                  onClick={() => {
+                    Haptics.light();
+                    localStorage.removeItem("appliedOtaRevision");
+                    localStorage.removeItem("dismissedOtaRevision");
+                    localStorage.removeItem("dismissedApkVersion");
+                    toast.success(i18n.t('auto.wyszukiwanie_aktualizacji', { defaultValue: 'Wyszukiwanie aktualizacji...' }));
+                    setTimeout(() => window.location.reload(), 1000);
+                  }}
+                  className={cn(
+                    "w-full p-4 rounded-2xl flex items-center justify-between text-left transition-all active:scale-95 group",
+                    settings.glassmorphismEnabled
+                      ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                      : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-2xl bg-indigo-500/10 text-indigo-500">
+                      <RefreshCw size={16} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black dark:text-white uppercase tracking-tight">
+                        {t('auto.wymus_aktualizacje_ota', { defaultValue: 'Wymuś Aktualizację OTA' })}
+                      </p>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium mt-1">
+                        {t('auto.wyszukuje_nowe_poprawki_i_restartuje', { defaultValue: 'Wyszukuje nowe poprawki na serwerze i restartuje aplikację' })}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 transition-colors" />
+                </button>
+
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-2 p-2">
                     <button
