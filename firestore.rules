@@ -1,14 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // PUBLIC connection test paths (at the very top for precedence)
-    match /connection_tests/{docId} {
-      allow read, write: if true;
-    }
-    match /artifacts/diacontrolapp/tests/{testId} {
-      allow read, write: if true;
-    }
-
     // Authentication helpers
     function isSignedIn() {
       return request.auth != null;
@@ -39,16 +31,34 @@ service cloud.firestore {
       }
 
       match /communityProducts/{productId} {
-        allow read, write: if isSignedIn();
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
       }
 
       match /apiSecrets/{apiSecretHash} {
-        allow read, write: if isSignedIn();
+        // Prevent list queries, only get by known hash. Allow write only for current user's data.
+        allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+        allow create, update: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
       }
 
       match /glikosense_training/{docId} {
         allow create: if isSignedIn();
         allow read: if false;
+      }
+
+      // Public connection tests (restricted to prevent abuse)
+      match /connection_tests/{docId} {
+        allow get: if true;
+        allow create: if true && docId == "test"; // only allow one specific test document
+        allow update, delete: if false;
+      }
+
+      match /tests/{testId} {
+        allow get: if true;
+        allow create: if true && testId == "test";
+        allow update, delete: if false;
       }
 
       // User-specific data

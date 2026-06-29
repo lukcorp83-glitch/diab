@@ -14,8 +14,8 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.3.5';
-export const CURRENT_OTA_REVISION = 8;
+export const CURRENT_VERSION = '5.3.6';
+export const CURRENT_OTA_REVISION = 1;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
