@@ -1,4 +1,7 @@
 ﻿import { getEffectiveUid } from '../lib/utils';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
+import { arrayMove, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
+import { SortableWidget } from './SortableWidget';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
@@ -326,63 +329,40 @@ export default function Dashboard({
 
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [movingWidgetId, setMovingWidgetId] = useState<string | null>(null);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const lastSwapTimeRef = useRef<number>(0);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  
 
-  const handleDragStart = (e: any, index: number) => {
-    if (!isEditingLayout) return;
-    setDraggedIndex(index);
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = "move";
-    }
-  };
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } })
+  );
 
-  const handleDragEnter = (e: any, targetIndex: number) => {
-    if (!isEditingLayout || draggedIndex === null || draggedIndex === targetIndex) return;
-    const now = Date.now();
-    if (now - lastSwapTimeRef.current < 150) return; // lower cooldown for more responsive dragging
-    lastSwapTimeRef.current = now;
-
+  const handleDragStart = (event: any) => {
+    setActiveId(event.active.id);
     Haptics.light();
-    const newWidgets = [...widgets];
-    const [draggedItem] = newWidgets.splice(draggedIndex, 1);
-    const clampIndex = Math.min(targetIndex, newWidgets.length);
-    newWidgets.splice(clampIndex, 0, draggedItem);
-    setWidgets(newWidgets);
-    setDraggedIndex(clampIndex);
   };
 
-  const handleDragOver = (e: any) => {
-    e.preventDefault();
-    
-    // Auto-scroll when dragging near top/bottom edges
-    if (e.clientY && isEditingLayout) {
-      const scrollThreshold = 120;
-      const maxSpeed = 20;
-      
-      if (e.clientY < scrollThreshold) {
-        // Scroll up
-        const speed = Math.max(1, maxSpeed * (1 - e.clientY / scrollThreshold));
-        window.scrollBy(0, -speed);
-      } else if (window.innerHeight - e.clientY < scrollThreshold) {
-        // Scroll down
-        const distanceToBottom = window.innerHeight - e.clientY;
-        const speed = Math.max(1, maxSpeed * (1 - distanceToBottom / scrollThreshold));
-        window.scrollBy(0, speed);
-      }
+  const handleDragEnd = (event: any) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setWidgets((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newWidgets = arrayMove(items, oldIndex, newIndex);
+        if (user) {
+           setDoc(
+             doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "dashboard_layout"),
+             { widgets: newWidgets, updatedAt: serverTimestamp() },
+             { merge: true }
+           ).catch(console.error);
+        }
+        return newWidgets;
+      });
+      Haptics.light();
     }
-  };
-
-  const handleDrop = (e: any, targetIndex: number) => {
-    if (!isEditingLayout || draggedIndex === null) return;
-    e.preventDefault();
-    setDraggedIndex(null);
-    Haptics.medium();
-    toast.success(t('dashboard.messages.tile_placed'));
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
   };
 
   const handlePlaceWidget = (targetIndex: number) => {
@@ -2339,7 +2319,7 @@ export default function Dashboard({
       {/* 1. Main Stats Widget */}
       <div className={cn(
         "grid grid-cols-2 grid-flow-row-dense gap-4 md:gap-6 min-h-[100px] px-1 pb-6 transition-transform duration-300 transform-gpu origin-top",
-        (isEditingLayout && (movingWidgetId !== null || draggedIndex !== null)) ? "scale-[0.45] sm:scale-[0.5] translate-y-6 mb-32" : ""
+        ""
       )}
       onDragOver={isEditingLayout ? handleDragOver : undefined}
       >
@@ -2394,38 +2374,18 @@ export default function Dashboard({
              const isCurrentlyMovingTarget = movingWidgetId !== null && movingWidgetId !== w.id;
              
              return (
-                 <motion.div 
-                 key={w.id} 
-                 layout
-                 draggable={isEditingLayout && layoutMode === "grid"}
-                 onDragStart={(e: any) => handleDragStart(e, index)}
-                 onDrag={(e: any) => {
-                   if (e.clientY) {
-                     const scrollThreshold = 120;
-                     const maxSpeed = 15;
-                     if (e.clientY < scrollThreshold) {
-                       const speed = Math.max(1, maxSpeed * (1 - e.clientY / scrollThreshold));
-                       window.scrollBy(0, -speed);
-                     } else if (window.innerHeight - e.clientY < scrollThreshold) {
-                       const distanceToBottom = window.innerHeight - e.clientY;
-                       const speed = Math.max(1, maxSpeed * (1 - distanceToBottom / scrollThreshold));
-                       window.scrollBy(0, speed);
-                     }
-                   }
-                 }}
-                 onDragOver={handleDragOver}
-                 onDragEnter={(e: any) => handleDragEnter(e, index)}
-                 onDrop={(e: any) => handleDrop(e, index)}
-                 onDragEnd={handleDragEnd as any}
-                 onClick={isCurrentlyMovingTarget ? () => handlePlaceWidget(index) : undefined}
-                 className={cn(
+                 <SortableWidget
+                   key={w.id}
+                   id={w.id}
+                   isEditing={isEditingLayout && layoutMode === "grid"}
+                   className={cn(
                    "relative transition-all overflow-hidden flex flex-col", widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
                    widgetSize.startsWith('2') ? "col-span-2" : "col-span-1",
                    "rounded-[2.6rem]",
                    (isEditingLayout && layoutMode === "grid") ? "border-2 border-dashed border-indigo-500/40 p-2.5 dark:bg-indigo-950/20 bg-indigo-50/20 min-h-[140px] flex flex-col cursor-grab active:cursor-grabbing hover:border-indigo-500/60" : "",
                    (isEditingLayout && layoutMode === "classic") ? "border-2 border-dashed border-slate-500/20 p-2.5 dark:bg-slate-950/20 bg-slate-50/10 min-h-[110px] flex flex-col" : "",
                    isCurrentlyMovingTarget ? "cursor-pointer scale-[0.98] border-2 border-dashed border-amber-500/50 bg-amber-500/5 animate-pulse" : "",
-                   draggedIndex === index ? "opacity-30 border-indigo-400 scale-[0.98] blur-[0.5px]" : "",
+                   "" /* no draggedIndex */,
                    movingWidgetId === w.id ? "ring-4 ring-amber-500/60 border-amber-500 shadow-2xl scale-[1.01]" : ""
                  )}
                >
@@ -2479,7 +2439,7 @@ export default function Dashboard({
                   )}>
                    {renderWidget(w.id, widgetSize)}
                  </div>
-               </motion.div>
+               </SortableWidget>
              );
           })
         )}
