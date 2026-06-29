@@ -11,6 +11,7 @@ import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import RemoteAlertsListener from "./components/RemoteAlertsListener";
+import UpdateModal from "./components/UpdateModal";
 
 import GlikoControlLogo from "./components/LogoAnimation";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
@@ -3081,6 +3082,7 @@ export default function App() {
       )}
 
       {/* Modals & Popups */}
+      <UpdateModal />
       <Toaster
         position="top-center"
         containerStyle={{ top: 'max(env(safe-area-inset-top), 50px)' }}
