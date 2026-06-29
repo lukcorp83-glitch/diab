@@ -3681,7 +3681,14 @@
     "czy_wymieniasz_rowniez_zbiornicze": "Are you also replacing the insulin reservoir?",
     "glikosense_czuwa": "GlikoSense is monitoring",
     "zakres": "Range (Min - Max)",
-    "srednia_dobowa": "Daily Average"
+    "srednia_dobowa": "Daily Average",
+    "wersja_5_4_0": "Version 5.4.0",
+    "wersja_5_4_2": "Version 5.4.2 (Latest)",
+    "poprawki_asystenta_glosowego": "GlikoChat voice assistant fixes and stabilization.",
+    "przebudowa_systemu_ota": "OTA system rebuilt and freezing download links fixed.",
+    "nowy_silnik_ota": "New update download engine, resolving timeout errors on large files.",
+    "natywny_silnik_rozpoznawania_mowy": "Native, stable speech recognition engine for Android devices.",
+    "poprawki_plynnosci_przesuwania_widzetow": "Fixed widget dragging smoothness on the dashboard."
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {

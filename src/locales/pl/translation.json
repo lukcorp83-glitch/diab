@@ -3644,7 +3644,14 @@
     "czy_wymieniasz_rowniez_zbiornicze": "Czy wymieniasz również zbiorniczek na insulinę?",
     "glikosense_czuwa": "GlikoSense czuwa",
     "zakres": "Zakres (Min - Max)",
-    "srednia_dobowa": "Średnia dobowa"
+    "srednia_dobowa": "Średnia dobowa",
+    "wersja_5_4_0": "Wersja 5.4.0",
+    "wersja_5_4_2": "Wersja 5.4.2 (Najnowsza)",
+    "poprawki_asystenta_glosowego": "Poprawki i stabilizacja asystenta głosowego GlikoChat.",
+    "przebudowa_systemu_ota": "Przebudowa systemu OTA i naprawa blokujących się linków pobierania.",
+    "nowy_silnik_ota": "Nowy silnik pobierania aktualizacji, rozwiązujący błędy timeoutów przy dużych plikach.",
+    "natywny_silnik_rozpoznawania_mowy": "Natywny, stabilny silnik rozpoznawania mowy dla urządzeń Android.",
+    "poprawki_plynnosci_przesuwania_widzetow": "Poprawki płynności przesuwania widżetów na ekranie głównym."
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {
