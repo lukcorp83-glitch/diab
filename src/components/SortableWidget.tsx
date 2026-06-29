@@ -20,7 +20,7 @@ export function SortableWidget({ id, children, isEditing, className }: SortableW
   } = useSortable({ id, disabled: !isEditing });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 1,
     opacity: isDragging ? 0.4 : 1,

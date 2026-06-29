@@ -2454,7 +2454,7 @@ export default function Dashboard({
       </SortableContext>
       <DragOverlay>
         {activeId ? (
-          <div className="rounded-[2.6rem] border-2 border-dashed border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/80 shadow-2xl scale-[1.05] p-2.5 min-h-[140px] flex flex-col items-center justify-center opacity-90 backdrop-blur-sm z-50">
+          <div className="rounded-[2.6rem] border-2 border-dashed border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/90 shadow-2xl scale-[1.05] p-2.5 min-h-[140px] flex flex-col items-center justify-center opacity-90 z-50">
              <span className="text-[12px] font-black uppercase text-indigo-500">
                {widgets.find(w => w.id === activeId)?.name || 'Przenoszenie...'}
              </span>
