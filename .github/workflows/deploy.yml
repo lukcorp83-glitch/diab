@@ -34,6 +34,14 @@ jobs:
         run: npm run build
         env:
           CI: false
+      - name: Copy version.json
+        run: cp version.json dist/version.json
+      - name: Create OTA zip
+        run: |
+          cd dist
+          zip -r update.zip .
+        env:
+          CI: false
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact

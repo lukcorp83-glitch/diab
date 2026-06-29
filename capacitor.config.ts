@@ -20,7 +20,7 @@ const config: CapacitorConfig = {
       ]
     },
     CapacitorUpdater: {
-      autoUpdate: 'atBackground',
+      autoUpdate: 'none',
       appId: 'com.glikocontrol.app',
       version: '0.0.0'
     }
