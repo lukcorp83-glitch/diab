@@ -14,10 +14,20 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.3.7';
+export const CURRENT_VERSION = '5.3.8';
 export const CURRENT_OTA_REVISION = 1;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.8",
+    date: "2026-06-29",
+    title: 'Pełna automatyzacja aktualizacji i powiadomień',
+    changes: [
+      "Rozwiązano błędy z zapętlaniem się okienka aktualizacji",
+      "Wdrożono system wydawniczy oparty na stałej paczce aktualizacji",
+      "Dodano dodatkowe poprawki kompatybilności OTA"
+    ]
+  },
   {
     version: "5.3.7",
     date: "2026-06-29",
@@ -316,6 +326,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.8",
+    date: "2026-06-29",
+    title: 'Pełna automatyzacja aktualizacji i powiadomień',
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Rozwiązano błędy z zapętlaniem i ignorowaniem okienka OTA, wdrożono stałą paczkę 'aktualizacja'."
+      }
+    ]
+  },
   {
     version: "5.3.7",
     date: "2026-06-29",

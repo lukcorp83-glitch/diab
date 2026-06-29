@@ -99,7 +99,9 @@ jobs:
   build-apk:
     name: 📱 APK Release
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: deploy-web # poczekaj az OTA bedzie gotowe
+    # Uruchamiamy na ten sam push co deploy-web
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
 
     steps:
       - name: 📥 Checkout
@@ -128,21 +130,6 @@ jobs:
         env:
           CI: false
 
-      - name: 📝 Generuj version.json
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          APK_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/GlikoControl_${VERSION}.apk"
-          cat > dist/version.json << EOF
-          {
-            "version": "${VERSION}",
-            "apkUrl": "${APK_URL}",
-            "whatsNew": "✅ Wersja ${VERSION} — pobierz nowy APK z zakładki 'Pobierz APK'.",
-            "whatsNewEn": "✅ Version ${VERSION} — download new APK from 'Download APK' tab.",
-            "otaRevision": ${{ github.run_number }},
-            "buildTime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          }
-          EOF
-
       - name: 🔄 Synchronizacja z Android
         run: npx cap sync android
 
@@ -162,20 +149,32 @@ jobs:
       - name: 📋 Przygotuj APK
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          cp android/app/build/outputs/apk/release/GlikoControl.apk "GlikoControl_${VERSION}.apk"
-          echo "APK_NAME=GlikoControl_${VERSION}.apk" >> $GITHUB_ENV
+          cp android/app/build/outputs/apk/release/GlikoControl.apk "GlikoControl_${VERSION}_OTA.apk"
+          echo "APK_NAME=GlikoControl_${VERSION}_OTA.apk" >> $GITHUB_ENV
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "✅ APK: $(du -sh GlikoControl_${VERSION}.apk | cut -f1)"
 
-      - name: 🗜️ Utwórz dist.zip
+      - name: 📦 Pobierz dist.zip z poprzedniego joba
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-zip-${{ github.run_number }}
+          path: .
+        continue-on-error: true
+
+      - name: 🗜️ Kopia dla starszych wersji OTA
+        run: cp dist.zip update.zip || true
+
+      - name: 🗑️ Usuń stary Release (aktualizacja)
         run: |
-          cd dist && zip -r ../dist.zip .
+          gh release delete aktualizacja -y || true
+          gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/aktualizacja || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🎉 Utwórz GitHub Release
+      - name: 🎉 Utwórz na nowo Release 'aktualizacja'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "GlikoControl ${{ env.VERSION }}"
+          tag_name: aktualizacja
+          name: "GlikoControl Zawsze Najnowsza"
           body: |
             ## 🩺 GlikoControl v${{ env.VERSION }}
 
@@ -185,13 +184,13 @@ jobs:
 
             ### 🔄 Automatyczna aktualizacja OTA
             Jeśli masz już aplikację — zostaniesz powiadomiony automatycznie.
-            Aktualizacja webowa (JS/CSS) działa przez GitHub Pages bez reinstalacji APK.
-
+            
             ---
-            Build: `${{ github.sha }}` | Run: `#${{ github.run_number }}`
+            Build: `${{ github.sha }}`
           files: |
             ${{ env.APK_NAME }}
             dist.zip
+            update.zip
           draft: false
           prerelease: false
         env:
