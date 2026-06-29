@@ -14,10 +14,19 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.3.8';
+export const CURRENT_VERSION = '5.3.9';
 export const CURRENT_OTA_REVISION = 1;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.9",
+    date: "2026-06-29",
+    title: 'Wymuszenie ręcznej aktualizacji',
+    changes: [
+      "Nowość: Dodano przycisk ręcznego wymuszenia aktualizacji OTA w zakładce Ustawienia/Profil",
+      "Naprawa: Usunięto błąd permanentnego ukrywania aktualizacji po kliknięciu 'Pobierz APK'"
+    ]
+  },
   {
     version: "5.3.8",
     date: "2026-06-29",
@@ -326,6 +335,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.3.9",
+    date: "2026-06-29",
+    title: 'Wymuszenie ręcznej aktualizacji',
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Dodano możliwość ręcznego wywołania OTA. Naprawiono blokadę okienka aktualizacji."
+      }
+    ]
+  },
   {
     version: "5.3.8",
     date: "2026-06-29",
