@@ -610,7 +610,7 @@ export default function Dashboard({
     setWidgets(clonedDefault);
     setLayoutMode('grid');
     setMovingWidgetId(null);
-    setDraggedIndex(null);
+    
     
     if (user) {
       try {
@@ -2321,7 +2321,7 @@ export default function Dashboard({
         "grid grid-cols-2 grid-flow-row-dense gap-4 md:gap-6 min-h-[100px] px-1 pb-6 transition-transform duration-300 transform-gpu origin-top",
         ""
       )}
-      onDragOver={isEditingLayout ? handleDragOver : undefined}
+      
       >
         {widgets.filter(w => w.visible).length === 0 ? (
           <div className="col-span-2 py-12 px-6 text-center bg-slate-500/5 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-white/5 flex flex-col items-center justify-center min-h-[220px]">
@@ -2443,22 +2443,7 @@ export default function Dashboard({
              );
           })
         )}
-        {isEditingLayout && layoutMode === "grid" && (
-           <div
-             onDragOver={handleDragOver}
-             onDragEnter={(e: any) => handleDragEnter(e, widgets.length)}
-             onDrop={(e: any) => handleDrop(e, widgets.length)}
-             onClick={movingWidgetId ? () => handlePlaceWidget(widgets.length) : undefined}
-             className={cn(
-               "relative rounded-[2.6rem] border-2 border-dashed border-slate-500/30 p-2.5 dark:bg-slate-950/20 bg-slate-50/10 min-h-[140px] flex flex-col items-center justify-center opacity-50 hover:opacity-100 transition-all cursor-pointer col-span-1",
-               draggedIndex === widgets.length ? "border-indigo-400 bg-indigo-500/5 ring-4 ring-indigo-500/20 opacity-100 scale-95" : "",
-               movingWidgetId ? "ring-4 ring-amber-500/60 border-amber-500/50 bg-amber-500/5 animate-pulse" : ""
-             )}
-           >
-             <Plus size={24} className="text-slate-400 mb-2 opacity-50" />
-             <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 text-center leading-tight">{t('auto.wolne', { defaultValue: 'Wolne' })}<br/>{t('auto.miejsce', { defaultValue: 'miejsce' })}</span>
-           </div>
-        )}
+        
       </div>
 
       {/* Dynamic Grid replaced all static elements below. We keep the overlay modals. */}
