@@ -1,8 +1,8 @@
 {
-    "version":  "5.4.0",
+    "version":  "5.4.1",
     "url":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/dist.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.0_OTA.apk",
-    "whatsNew":  "🚀 Wersja 5.4.0: Przebudowa mechanizmu OTA, poprawki w asystencie głosowym oraz nowa stabilna iteracja aplikacji.",
-    "whatsNewEn":  "🚀 Version 5.4.0: Rebuilt OTA mechanism, voice assistant fixes, and a new stable iteration.",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.1_OTA.apk",
+    "whatsNew":  "🎙️ Wersja 5.4.1: Wdrożono nowy, natywny silnik rozpoznawania mowy dla systemu Android.",
+    "whatsNewEn":  "🎙️ Version 5.4.1: Native speech recognition engine for Android devices.",
     "otaRevision":  254
 }
