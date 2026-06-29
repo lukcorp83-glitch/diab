@@ -580,7 +580,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const predictedNextHour = predictionCurve[12]?.value || latestBg;
     const predictedNext2Hours = predictionCurve[24]?.value || latestBg;
     // We only trigger heuristic hypo alert if the ML prediction DOES NOT firmly predict a safe rise above 95
-    const riskOfHypo = predictedNextHour < 80 || predictedNext2Hours < 80 || (latestBg < 100 && lastTrendNum < -3 && predictedNextHour < 95);
+    const riskOfHypo = latestBg > 75 && (predictedNextHour < 80 || predictedNext2Hours < 80 || (latestBg < 100 && lastTrendNum < -3 && predictedNextHour < 95));
     
     // HEURISTIC: Calculate GMI & Avg Bias
     let sumGlucose = 0;

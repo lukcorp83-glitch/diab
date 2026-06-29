@@ -50,6 +50,10 @@ export default function UpdateModal() {
     };
     // Opóźniamy wyświetlenie, aby nie blokować UI na starcie
     setTimeout(checkUpdate, 2000);
+    
+    // Sprawdzaj dostępność aktualizacji co 5 minut w tle, by aplikacja nie musiała być restartowana
+    const intervalId = setInterval(checkUpdate, 5 * 60 * 1000);
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleOTAUpdate = async () => {
