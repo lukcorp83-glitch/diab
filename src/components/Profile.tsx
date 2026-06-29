@@ -6578,7 +6578,6 @@ export default function Profile({
                 />
 
                 <LocalSync settings={settings} user={user} />
-                <CloudPackageSync settings={settings} user={user} />
 
                 <a
                   href="mailto:GlikoControl@proton.me"
