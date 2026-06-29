@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_glucose"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_glucose_short"
+        android:shortcutLongLabel="@string/shortcut_glucose_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.glikocontrol.app"
+            android:targetClass="com.glikocontrol.app.MainActivity"
+            android:data="glikocontrol://action=add_glucose" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="add_bolus"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_bolus_short"
+        android:shortcutLongLabel="@string/shortcut_bolus_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.glikocontrol.app"
+            android:targetClass="com.glikocontrol.app.MainActivity"
+            android:data="glikocontrol://action=add_bolus" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="add_meal"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_meal_short"
+        android:shortcutLongLabel="@string/shortcut_meal_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.glikocontrol.app"
+            android:targetClass="com.glikocontrol.app.MainActivity"
+            android:data="glikocontrol://action=add_meal" />
+    </shortcut>
+</shortcuts>

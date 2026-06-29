@@ -8,5 +8,4 @@ coverage/
 !.env.example
 
 *.apk
-android/
 android.keystore

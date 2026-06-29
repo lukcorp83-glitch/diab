@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:fillColor="#EE0F172A"
+        android:strokeColor="#2D3748"
+        android:strokeWidth="1"
+        android:pathData="M 93.00 50.00 Q 96.42 57.35 90.90 63.29 Q 91.88 71.34 84.79 75.27 Q 83.23 83.23 75.27 84.79 Q 71.34 91.88 63.29 90.90 Q 57.35 96.42 50.00 93.00 Q 42.65 96.42 36.71 90.90 Q 28.66 91.88 24.73 84.79 Q 16.77 83.23 15.21 75.27 Q 8.12 71.34 9.10 63.29 Q 3.58 57.35 7.00 50.00 Q 3.58 42.65 9.10 36.71 Q 8.12 28.66 15.21 24.73 Q 16.77 16.77 24.73 15.21 Q 28.66 8.12 36.71 9.10 Q 42.65 3.58 50.00 7.00 Q 57.35 3.58 63.29 9.10 Q 71.34 8.12 75.27 15.21 Q 83.23 16.77 84.79 24.73 Q 91.88 28.66 90.90 36.71 Q 96.42 42.65 93.00 50.00 Z"/>
+</vector>

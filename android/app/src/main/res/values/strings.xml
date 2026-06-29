@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GlikoControl</string>
+    <string name="title_activity_main">GlikoControl</string>
+    <string name="package_name">com.glikocontrol.app</string>
+    <string name="custom_url_scheme">com.glikocontrol.app</string>
+    <string name="server_client_id">259157952763-ka3qmvj6entqcemlv1hbbvnk0nh2q0vq.apps.googleusercontent.com</string>
+    <string name="default_web_client_id">259157952763-ka3qmvj6entqcemlv1hbbvnk0nh2q0vq.apps.googleusercontent.com</string>
+    <string name="shortcut_glucose_short">Cukier</string>
+    <string name="shortcut_glucose_long">Dodaj Cukier</string>
+    <string name="shortcut_bolus_short">Bolus</string>
+    <string name="shortcut_bolus_long">Dodaj Bolus</string>
+    <string name="shortcut_meal_short">Posiłek</string>
+    <string name="shortcut_meal_long">Dodaj Posiłek</string>
+</resources>

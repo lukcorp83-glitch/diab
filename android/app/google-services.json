@@ -1,0 +1,56 @@
+{
+  "project_info": {
+    "project_number": "259157952763",
+    "firebase_url": "https://diacontrolapp-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "diacontrolapp",
+    "storage_bucket": "diacontrolapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:259157952763:android:3bedad7274341613ad885e",
+        "android_client_info": {
+          "package_name": "com.glikocontrol.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "259157952763-e2v3kkspth0b3ngemqdam5bdncbvgkm4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.glikocontrol.app",
+            "certificate_hash": "230cadbd33d4e802ef1623d2f7a5c4b4648e5515"
+          }
+        },
+        {
+          "client_id": "259157952763-vbra928l9n6dopsft36vdaf7f7sgirvp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.glikocontrol.app",
+            "certificate_hash": "ca7bf865ade565def0ab809a361184cc40eb2ce6"
+          }
+        },
+        {
+          "client_id": "259157952763-ka3qmvj6entqcemlv1hbbvnk0nh2q0vq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0h6EFXd30V91IIhKPKxSQYk3Dmd_vRDI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "259157952763-ka3qmvj6entqcemlv1hbbvnk0nh2q0vq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
