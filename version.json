@@ -1,8 +1,8 @@
 {
-    "version":  "5.4.1",
+    "version":  "5.4.2",
     "url":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/dist.zip",
     "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.1_OTA.apk",
-    "whatsNew":  "🎙️ Wersja 5.4.1: Wdrożono nowy, natywny silnik rozpoznawania mowy dla systemu Android.",
-    "whatsNewEn":  "🎙️ Version 5.4.1: Native speech recognition engine for Android devices.",
+    "whatsNew":  "🛠️ Wersja 5.4.2: Poprawki płynności przesuwania widżetów na Pulpicie.",
+    "whatsNewEn":  "🛠️ Version 5.4.2: Fixed stuttering and DragOverlay position during Dashboard editing on mobile.",
     "otaRevision":  254
 }

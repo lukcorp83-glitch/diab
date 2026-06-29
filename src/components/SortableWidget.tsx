@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { cn } from '../lib/utils';
 
 interface SortableWidgetProps {
   id: string;
@@ -30,7 +31,7 @@ export function SortableWidget({ id, children, isEditing, className }: SortableW
     <div
       ref={setNodeRef}
       style={style}
-      className={className}
+      className={cn(className, isEditing ? "touch-none" : "")}
       {...(isEditing ? attributes : {})}
       {...(isEditing ? listeners : {})}
     >
