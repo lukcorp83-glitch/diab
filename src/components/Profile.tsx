@@ -69,6 +69,7 @@ import {
   Bot,
   MessageCircle,
   Camera,
+  Pizza,
 } from "lucide-react";
 import { db, auth, onConnectionChange } from "../lib/firebase";
 import { deleteUser } from "firebase/auth";
@@ -150,6 +151,13 @@ export default function Profile({
 }: ProfileProps) {
     const { t } = useTranslation();
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
+  const [learnedRules, setLearnedRules] = useState<any>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+    } catch {
+      return {};
+    }
+  });
   const [confirmReservoirModalOpen, setConfirmReservoirModalOpen] = useState(false);
   const [isProcessingReplacement, setIsProcessingReplacement] = useState(false);
 
@@ -3320,6 +3328,83 @@ export default function Profile({
                             </span>
                             <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
                               {isActive ? i18n.t('auto.glikosense_czuwa', { defaultValue: 'GlikoSense czuwa' }) : i18n.t('auto.regula_wylaczona', { defaultValue: i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) })}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {settings.notificationsEnabled && Object.keys(learnedRules).length > 0 && (
+                <div className="pl-12 mt-6 border-t border-slate-100 dark:border-slate-800 pt-6">
+                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <Bot size={12} />  {t('auto.odkryte_wzorce_wyuczone_przez', { defaultValue: "Odkryte Wzorce (Wyuczone przez GlikoSense)" })}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      {
+                        id: "dawnPhenomenonEnabled",
+                        label: t('auto.zjawisko_brzasku', { defaultValue: "Zjawisko Brzasku" }),
+                        desc: t('auto.wzrosty_poranne_opis', { defaultValue: "Poranne skoki glikemii" }),
+                        icon: <Sun size={14} className="text-orange-400" />,
+                        type: "boolean"
+                      },
+                      {
+                        id: "somogyiEnabled",
+                        label: t('auto.efekt_somogyi', { defaultValue: "Efekt Somogyi" }),
+                        desc: t('auto.odbicie_po_hipo_opis', { defaultValue: "Odbicie po hipoglikemii" }),
+                        icon: <Activity size={14} className="text-rose-400" />,
+                        type: "boolean"
+                      },
+                      {
+                        id: "insulinResistanceMultiplier",
+                        label: t('auto.zmienna_insulinoopornosc', { defaultValue: "Zmienna Insulinooporność" }),
+                        desc: t('auto.modyfikator_wrazliwosci_opis', { defaultValue: "Modyfikator wrażliwości" }),
+                        icon: <Shield size={14} className="text-purple-400" />,
+                        type: "multiplier"
+                      },
+                      {
+                        id: "pizzaEffectMultiplier",
+                        label: t('auto.efekt_pizzy', { defaultValue: "Efekt Pizzy" }),
+                        desc: t('auto.przedluzone_wchlanianie_opis', { defaultValue: "Przedłużone wchłanianie" }),
+                        icon: <Pizza size={14} className="text-yellow-500" />,
+                        type: "multiplier"
+                      }
+                    ].filter(pattern => {
+                      if (pattern.type === "boolean") return learnedRules[pattern.id] === true;
+                      if (pattern.type === "multiplier") return learnedRules[pattern.id] && learnedRules[pattern.id] !== 1.0;
+                      return false;
+                    }).map((pref) => {
+                      return (
+                        <button
+                          key={pref.id}
+                          onClick={() => {
+                            const newRules = { ...learnedRules };
+                            if (pref.type === "boolean") {
+                              delete newRules[pref.id];
+                            } else {
+                              newRules[pref.id] = 1.0;
+                            }
+                            setLearnedRules(newRules);
+                            localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
+                            toast.success(t('auto.regula_wylaczona', { defaultValue: "Zjawisko usunięte z pamięci GlikoSense" }));
+                          }}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
+                            "bg-amber-50/50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 shadow-sm hover:opacity-80 active:scale-95"
+                          )}
+                        >
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-amber-500/20 shadow-sm">
+                            {pref.icon}
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-tight block text-amber-700 dark:text-amber-300">
+                              {pref.label}
+                            </span>
+                            <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
+                              {pref.desc} (Kliknij by zresetować)
                             </span>
                           </div>
                         </button>
