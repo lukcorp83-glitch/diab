@@ -3642,7 +3642,9 @@
     "nie": "Nie",
     "wymiana_zbiorniczka_tytul": "Wymiana zbiorniczka",
     "czy_wymieniasz_rowniez_zbiornicze": "Czy wymieniasz również zbiorniczek na insulinę?",
-    "glikosense_czuwa": "GlikoSense czuwa"
+    "glikosense_czuwa": "GlikoSense czuwa",
+    "zakres": "Zakres (Min - Max)",
+    "srednia_dobowa": "Średnia dobowa"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {

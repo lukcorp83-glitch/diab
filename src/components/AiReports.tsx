@@ -189,6 +189,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                 <ReferenceLine y={140} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'right', value: '140', fill: '#94a3b8', fontSize: 8, fontWeight: 700 }} />
                 <ReferenceLine y={70} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'right', value: '70', fill: '#94a3b8', fontSize: 8, fontWeight: 700 }} />
                 <Area 
+                  name={t('auto.zakres', { defaultValue: 'Zakres (Min - Max)' })}
                   type="monotone" 
                   dataKey="range" 
                   stroke="none" 
@@ -197,6 +198,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                   animationDuration={2000}
                 />
                 <Area 
+                  name={t('auto.srednia_dobowa', { defaultValue: 'Średnia dobowa' })}
                   type="monotone" 
                   dataKey="avg" 
                   stroke="#4f46e5" 
