@@ -150,6 +150,56 @@ export default function Profile({
 }: ProfileProps) {
     const { t } = useTranslation();
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
+  const [confirmReservoirModalOpen, setConfirmReservoirModalOpen] = useState(false);
+  const [isProcessingReplacement, setIsProcessingReplacement] = useState(false);
+
+  const handleInfusionReplacement = async (alsoReplaceReservoir: boolean) => {
+    setIsProcessingReplacement(true);
+    setConfirmReservoirModalOpen(false);
+    try {
+      const now = Date.now();
+      const currentInv = settings.inventory || [];
+      const setIndex = currentInv.findIndex(i => i.category === "infusion_sets" && i.quantity > 0);
+      let updatedInv = [...currentInv];
+      if (setIndex !== -1) {
+        updatedInv[setIndex] = { ...updatedInv[setIndex], quantity: Math.max(0, updatedInv[setIndex].quantity - 1) };
+      }
+      const updates = { infusionSetChangeDate: now, infusionSetSite: insertionSite } as any;
+      
+      if (alsoReplaceReservoir) {
+        // @ts-ignore
+        const resIndex = currentInv.findIndex(i => i.category === "reservoirs" && i.quantity > 0);
+        if (resIndex !== -1) {
+          updatedInv[resIndex] = { ...updatedInv[resIndex], quantity: Math.max(0, updatedInv[resIndex].quantity - 1) };
+        }
+        updates.reservoirChangeDate = now;
+      }
+      
+      updates.inventory = updatedInv;
+      setSettings((prev) => ({ ...prev, ...updates }));
+      if (user) {
+        await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+        const siteLog = { type: "site_change", value: 1, timestamp: now, createdAt: new Date().toISOString(), notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }), source: "system" };
+        const docRef = await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), siteLog);
+        const addedSiteLog = { ...siteLog, id: docRef.id };
+        await dbService.saveLog(addedSiteLog);
+        window.dispatchEvent(new CustomEvent("localLogAdd", { detail: addedSiteLog }));
+        
+        if (alsoReplaceReservoir) {
+          const resLog = { type: "site_change", value: 1, timestamp: now, createdAt: new Date().toISOString(), notes: i18n.t('auto.wymiana_zbiorniczka', { defaultValue: "Wymiana zbiorniczka" }), source: "system" };
+          const resDocRef = await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), resLog);
+          const addedResLog = { ...resLog, id: resDocRef.id };
+          await dbService.saveLog(addedResLog);
+          window.dispatchEvent(new CustomEvent("localLogAdd", { detail: addedResLog }));
+        }
+      }
+      toast.success(
+        `Zapisano wymianę wkłucia (${insertionSite})${alsoReplaceReservoir ? ' i zbiorniczka' : ''}!`
+      );
+    } finally {
+      setIsProcessingReplacement(false);
+    }
+  };
   const [widgetDebug, setWidgetDebug] = useState<any>(null);
 
   const fetchWidgetDebug = async () => {
@@ -3269,7 +3319,7 @@ export default function Profile({
                               {pref.label}
                             </span>
                             <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-                              {isActive ? "GlikoSense czuwa" : i18n.t('auto.regula_wylaczona', { defaultValue: i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) })}
+                              {isActive ? i18n.t('auto.glikosense_czuwa', { defaultValue: 'GlikoSense czuwa' }) : i18n.t('auto.regula_wylaczona', { defaultValue: i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) })}
                             </span>
                           </div>
                         </button>
@@ -3669,95 +3719,8 @@ export default function Profile({
 
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   <button
-                    onClick={async () => {
-                      const now = Date.now();
-                      const currentInv = settings.inventory || [];
-                      const setIndex = currentInv.findIndex(i => i.category === "infusion_sets" && i.quantity > 0);
-                      const alsoReplaceReservoir = window.confirm(i18n.t('auto.czy_wymieniasz_rowniez_zbiornicze', { defaultValue: "Czy wymieniasz również zbiorniczek na insulinę?" }));
-                      let updatedInv = [...currentInv];
-                      if (setIndex !== -1) {
-                        updatedInv[setIndex] = { ...updatedInv[setIndex], quantity: Math.max(0, updatedInv[setIndex].quantity - 1) };
-                      }
-                      const updates = { infusionSetChangeDate: now, infusionSetSite: insertionSite } as any;
-                      
-                      if (alsoReplaceReservoir) {
-                        // @ts-ignore
-                        const resIndex = currentInv.findIndex(i => i.category === "reservoirs" && i.quantity > 0);
-                        if (resIndex !== -1) {
-                          updatedInv[resIndex] = { ...updatedInv[resIndex], quantity: Math.max(0, updatedInv[resIndex].quantity - 1) };
-                        }
-                        updates.reservoirChangeDate = now;
-                      }
-                      
-                      updates.inventory = updatedInv;
-                      
-                      setSettings((prev) => ({ ...prev, ...updates }));
-                      if (user) {
-                        await setDoc(
-                          doc(
-                            db,
-                            "artifacts",
-                            "diacontrolapp",
-                            "users",
-                            getEffectiveUid(user),
-                            "settings",
-                            "profile",
-                          ),
-                          updates,
-                          { merge: true },
-                        );
-                        const siteLog = {
-                          type: "site_change",
-                          value: 1,
-                          timestamp: now,
-                          createdAt: new Date().toISOString(),
-                          notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }),
-                          source: "system",
-                        };
-                        const docRef = await addDoc(
-                          collection(
-                            db,
-                            "artifacts",
-                            "diacontrolapp",
-                            "users",
-                            getEffectiveUid(user),
-                            "logs",
-                          ),
-                          siteLog
-                        );
-                        const addedSiteLog = { ...siteLog, id: docRef.id };
-                        await dbService.saveLog(addedSiteLog);
-                        window.dispatchEvent(new CustomEvent("localLogAdd", { detail: addedSiteLog }));
-                        
-                        if (alsoReplaceReservoir) {
-                          const resLog = {
-                            type: "site_change",
-                            value: 1,
-                            timestamp: now,
-                            createdAt: new Date().toISOString(),
-                            notes: i18n.t('auto.wymiana_zbiorniczka', { defaultValue: "Wymiana zbiorniczka" }),
-                            source: "system",
-                          };
-                          const resDocRef = await addDoc(
-                            collection(
-                              db,
-                              "artifacts",
-                              "diacontrolapp",
-                              "users",
-                              getEffectiveUid(user),
-                              "logs",
-                            ),
-                            resLog
-                          );
-                          const addedResLog = { ...resLog, id: resDocRef.id };
-                          await dbService.saveLog(addedResLog);
-                          window.dispatchEvent(new CustomEvent("localLogAdd", { detail: addedResLog }));
-                        }
-                      }
-                      toast.success(
-                        `Zapisano wymianę wkłucia (${insertionSite})${alsoReplaceReservoir ? ' i zbiorniczka' : ''}!`,
-                      );
-                    }}
+                    onClick={() => setConfirmReservoirModalOpen(true)}
+                    disabled={isProcessingReplacement}
                     className="bg-teal-600 hover:bg-teal-500 text-white p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-teal-600/20 flex items-center justify-center gap-1.5 group/btn"
                   >
                     <Sparkles
@@ -3767,6 +3730,29 @@ export default function Profile({
                     
                                                           {t('auto.wymiana_teraz', { defaultValue: 'Wymiana teraz' })}
                                                         </button>
+                  {confirmReservoirModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+                      <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700 relative">
+                         <div className="w-16 h-16 bg-teal-100 dark:bg-teal-500/20 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                             <Droplets size={32} />
+                         </div>
+                         <h3 className="text-xl font-black text-center mb-2 dark:text-slate-100">
+                            {t('auto.wymiana_zbiorniczka_tytul', { defaultValue: 'Wymiana zbiorniczka' })}
+                         </h3>
+                         <p className="text-center text-slate-500 dark:text-slate-400 mb-6 text-sm font-medium">
+                            {t('auto.czy_wymieniasz_rowniez_zbiornicze', { defaultValue: 'Czy wymieniasz również zbiorniczek na insulinę?' })}
+                         </p>
+                         <div className="flex gap-3">
+                           <button onClick={() => handleInfusionReplacement(false)} disabled={isProcessingReplacement} className="flex-1 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                              {t('auto.nie', { defaultValue: 'Nie' })}
+                           </button>
+                           <button onClick={() => handleInfusionReplacement(true)} disabled={isProcessingReplacement} className="flex-1 py-3.5 rounded-2xl bg-teal-600 text-white font-bold shadow-lg shadow-teal-600/30 hover:bg-teal-500 transition-colors">
+                              {t('auto.tak', { defaultValue: 'Tak' })}
+                           </button>
+                         </div>
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     onClick={async () => {
@@ -3796,24 +3782,20 @@ export default function Profile({
                         );
 
                         if (updates.infusionSetChangeDate) {
-                          const latestSiteLog = logs
+                          const sortedSiteLogs = logs
                             .filter((l) => l.type === "site_change")
-                            .sort((a, b) => b.timestamp - a.timestamp)[0];
+                            .sort((a, b) => b.timestamp - a.timestamp);
+                          const latestSiteLog = sortedSiteLogs[0];
                           if (latestSiteLog && latestSiteLog.id) {
-                            await updateDoc(
-                              doc(
-                                db,
-                                "artifacts",
-                                "diacontrolapp",
-                                "users",
-                                getEffectiveUid(user),
-                                "logs",
-                                latestSiteLog.id
-                              ),
-                              { timestamp: updates.infusionSetChangeDate }
-                            );
-                              await dbService.saveLog({ ...latestSiteLog, timestamp: updates.infusionSetChangeDate });
-                              window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSiteLog.id, updates: { timestamp: updates.infusionSetChangeDate } } }));
+                            const logsToUpdate = sortedSiteLogs.filter(l => l.timestamp === latestSiteLog.timestamp);
+                            for (const logToUpdate of logsToUpdate) {
+                               await updateDoc(
+                                 doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", logToUpdate.id),
+                                 { timestamp: updates.infusionSetChangeDate }
+                               );
+                               await dbService.saveLog({ ...logToUpdate, timestamp: updates.infusionSetChangeDate });
+                               window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: logToUpdate.id, updates: { timestamp: updates.infusionSetChangeDate } } }));
+                            }
                           }
                         }
                       }

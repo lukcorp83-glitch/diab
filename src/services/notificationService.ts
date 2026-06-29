@@ -131,31 +131,7 @@ export const notificationService = {
   },
 
 
-  async scheduleSensorCheck() {
-    if (!Capacitor.isNativePlatform()) return;
-    try {
-      const perms = await LocalNotifications.checkPermissions();
-      if (perms.display !== 'granted') return;
-      
-      // Cancel previous sensor check (ID 777)
-      await LocalNotifications.cancel({ notifications: [{ id: 777 }] }).catch(() => {});
-      
-      const timeoutDate = new Date(Date.now() + 30 * 60 * 1000);
-      
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: 777,
-          title: i18n.t('auto.awaria_sensora_30min', { defaultValue: "Awaria sensora (30 min)" }),
-          body: i18n.t('auto.sprawdz_sensor_brak_odczytow', { defaultValue: "Brak odczytów! Sprawdź pozycję sensora." }),
-          schedule: { at: timeoutDate },
-          channelId: 'glucose_alerts_v6',
-          sound: 'critical_alarm.wav'
-        }]
-      });
-    } catch (e) {
-      console.error('Failed to schedule sensor check', e);
-    }
-  },
+
 
   async sendHypoProtectionAlert() {
     const title = i18n.t('auto.ochrona_przed_hipo', { defaultValue: "Ochrona przed hipo (AI)" });

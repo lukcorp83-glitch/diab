@@ -521,10 +521,36 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     const nextPredNormal = predictValue(model, sequenceForPrediction);
+    const stepsArr = [3,6,9,12,18,24,30,36];
+    const maxDeltaPerStep = 12; // Max realistic change: 12 mg/dL per 5 min
+
+    let previousVal = latestBg;
+    let previousStep = 0;
+
     const predValues = nextPredNormal.map((val, idx) => {
       let actualVal = val * 400;
-      if (isNaN(actualVal) || !isFinite(actualVal)) actualVal = latestBg + lastTrendNum * [3,6,9,12,18,24,30,36][idx];
-      return Math.max(40, Math.min(450, actualVal));
+      const currentStep = stepsArr[idx];
+      
+      if (isNaN(actualVal) || !isFinite(actualVal)) actualVal = latestBg + lastTrendNum * currentStep;
+      
+      // Smooth initial prediction by blending heavily with the physical trend for the first 30 minutes
+      if (currentStep <= 6) {
+         const trendPrediction = latestBg + (lastTrendNum * currentStep);
+         const weight = currentStep / 6; // step 3 -> 50% model, step 6 -> 100% model
+         actualVal = (actualVal * weight) + (trendPrediction * (1 - weight));
+      }
+
+      // Clamp physiologically impossible jumps
+      const maxJump = (currentStep - previousStep) * maxDeltaPerStep;
+      if (actualVal > previousVal + maxJump) actualVal = previousVal + maxJump;
+      if (actualVal < previousVal - maxJump) actualVal = previousVal - maxJump;
+
+      actualVal = Math.max(40, Math.min(450, actualVal));
+      
+      previousVal = actualVal;
+      previousStep = currentStep;
+
+      return actualVal;
     });
 
     const predictionCurve = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg }];
@@ -553,7 +579,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     const predictedNextHour = predictionCurve[12]?.value || latestBg;
     const predictedNext2Hours = predictionCurve[24]?.value || latestBg;
-    const riskOfHypo = predictedNextHour < 80 || predictedNext2Hours < 80 || (latestBg < 100 && lastTrendNum < -3);
+    // We only trigger heuristic hypo alert if the ML prediction DOES NOT firmly predict a safe rise above 95
+    const riskOfHypo = predictedNextHour < 80 || predictedNext2Hours < 80 || (latestBg < 100 && lastTrendNum < -3 && predictedNextHour < 95);
     
     // HEURISTIC: Calculate GMI & Avg Bias
     let sumGlucose = 0;

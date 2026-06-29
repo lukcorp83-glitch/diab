@@ -2019,10 +2019,7 @@ export default function App() {
         if (entries.length > 0) {
           const latest = entries[0];
           if (latest.type === "glucose" && userSettingsRef.current?.notificationPrefs?.sensorCheck !== false) {
-             // schedule the 30 min dead man's switch
-             import("./services/notificationService").then(mod => {
-                 mod.notificationService.scheduleSensorCheck();
-             });
+             // Removed dead man's switch as background execution is suspended by OS
           }
           setNsLogs((prev) => {
             const hasLatest = prev.some((p) => p.id === latest.id || p.nsId === latest.id);
@@ -2143,7 +2140,7 @@ export default function App() {
           
           setNsLogs((prev) => {
              const all = [...prev, ...newLogsToSync];
-             return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 500);
+             return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 15000);
           });
         }
         
@@ -2156,7 +2153,7 @@ export default function App() {
       }
     };
 
-    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000 } });
+    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
     setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
 
     const handleForceSync = () => {
@@ -2164,12 +2161,13 @@ export default function App() {
       setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
       // Stopping and starting again forces an immediate wipe/sync in worker
       worker.postMessage({ type: 'STOP_SYNC' });
-      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
     };
 
     window.addEventListener("force-nightscout-sync", handleForceSync);
     
     const handleHypoAlert = (e: any) => {
+      if (userSettingsRef.current?.notificationsEnabled === false) return;
       const prefs = userSettingsRef.current?.notificationPrefs;
       if (prefs?.hypoProtection !== false) {
         // debounce check (e.g. 1 hour)

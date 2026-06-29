@@ -193,19 +193,19 @@ self.onmessage = async (e: MessageEvent) => {
   if (type === 'START_SYNC') {
     const { url, secret, intervalMs = 5 * 60 * 1000, count = 150 } = payload;
     
-    const runSync = async () => {
+    const runSync = async (fetchCount: number) => {
       try {
-        const { entries, treatments, deviceStatus } = await fetchNightscoutData(url, secret, count);
+        const { entries, treatments, deviceStatus } = await fetchNightscoutData(url, secret, fetchCount);
         self.postMessage({ type: 'SYNC_SUCCESS', payload: { entries, treatments, deviceStatus } });
       } catch (err: any) {
         self.postMessage({ type: 'SYNC_ERROR', payload: err.message });
       }
     };
 
-    runSync();
+    runSync(count); // Initial fetch can be large
 
     if (syncInterval) clearInterval(syncInterval);
-    syncInterval = setInterval(runSync, intervalMs);
+    syncInterval = setInterval(() => runSync(150), intervalMs); // Subsequent fetches are small
   }
 
   if (type === 'STOP_SYNC') {

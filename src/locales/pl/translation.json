@@ -3638,7 +3638,11 @@
     "ochrona_przed_hipo": "Ochrona przed hipo (AI)",
     "awaria_sensora_30min": "Awaria sensora (30 min)",
     "sprawdz_sensor_brak_odczytow": "Brak odczytów! Sprawdź pozycję sensora.",
-    "uwaga_glikosense_przewiduje_hipo": "Ostrzeżenie: GlikoSense przewiduje spadek poniżej normy (hipoglikemia)!"
+    "uwaga_glikosense_przewiduje_hipo": "Ostrzeżenie: GlikoSense przewiduje spadek poniżej normy (hipoglikemia)!",
+    "nie": "Nie",
+    "wymiana_zbiorniczka_tytul": "Wymiana zbiorniczka",
+    "czy_wymieniasz_rowniez_zbiornicze": "Czy wymieniasz również zbiorniczek na insulinę?",
+    "glikosense_czuwa": "GlikoSense czuwa"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {

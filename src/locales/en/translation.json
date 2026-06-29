@@ -3675,7 +3675,11 @@
     "ochrona_przed_hipo": "Hypo Protection (AI)",
     "awaria_sensora_30min": "Sensor Failure (30 min)",
     "sprawdz_sensor_brak_odczytow": "No readings! Please check your sensor.",
-    "uwaga_glikosense_przewiduje_hipo": "Warning: GlikoSense predicts a drop below target (hypoglycemia)!"
+    "uwaga_glikosense_przewiduje_hipo": "Warning: GlikoSense predicts a drop below target (hypoglycemia)!",
+    "nie": "No",
+    "wymiana_zbiorniczka_tytul": "Reservoir change",
+    "czy_wymieniasz_rowniez_zbiornicze": "Are you also replacing the insulin reservoir?",
+    "glikosense_czuwa": "GlikoSense is monitoring"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {
