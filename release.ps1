@@ -9,6 +9,13 @@ $json.version = $VERSION
 $jsonText = $json | ConvertTo-Json -Depth 10
 [System.IO.File]::WriteAllText("$PWD\package.json", $jsonText, [System.Text.UTF8Encoding]::new($false))
 
+# Aktualizuj version.json (fallback dla CORS)
+$vjson = Get-Content "version.json" -Raw | ConvertFrom-Json
+$vjson.version = $VERSION
+$vjson.apkUrl = "https://github.com/lukcorp83-glitch/diab/releases/download/v$VERSION/GlikoControl_$VERSION.apk"
+$vjsonText = $vjson | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText("$PWD\version.json", $vjsonText, [System.Text.UTF8Encoding]::new($false))
+
 # Zatwierdz i wypchnij + tag
 git add .
 git commit -m "release: v$VERSION"
