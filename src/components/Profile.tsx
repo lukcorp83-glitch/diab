@@ -5698,9 +5698,16 @@ export default function Profile({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors active:scale-95"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   Haptics.success();
                   localStorage.setItem("dismissedApkVersion", apkVersion);
+                  // Otwórz w systemowej przeglądarce by uniknąć problemów z pobieraniem plików w WebView
+                  import('@capacitor/browser').then(({ Browser }) => {
+                    Browser.open({ url: apkUrl }).catch(() => {
+                      window.open(apkUrl, '_system');
+                    });
+                  }).catch(() => window.open(apkUrl, '_system'));
                 }}
               >
                 <Download size={20} />

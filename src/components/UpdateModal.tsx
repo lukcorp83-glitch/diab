@@ -64,7 +64,7 @@ export default function UpdateModal() {
       
       const versionInfo = await CapacitorUpdater.download({
         url: 'https://lukcorp83-glitch.github.io/diab/update.zip',
-        version: versionData.version,
+        version: versionData.version + (versionData.otaRevision ? "-ota" + versionData.otaRevision : ""),
       });
       
       toast.success(i18n.t('auto.pobrano_instaluje', { defaultValue: 'Pobrano, instalacja...' }), { id: 'ota-update' });
