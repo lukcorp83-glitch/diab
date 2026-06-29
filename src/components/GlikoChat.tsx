@@ -23,8 +23,6 @@ import { Virtuoso } from 'react-virtuoso';
 import { SKINS, ACCESSORIES } from '../constants';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
-import { useTranslation } from "react-i18next";
-import i18n from "../i18n";
 
 interface Message {
   id: string;
@@ -45,8 +43,6 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
   const [imageError, setImageError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  useEffect(() => {
-    localStorage.setItem('gliko_voice_enabled', JSON.stringify(voiceEnabled));
   useEffect(() => {
     localStorage.setItem('gliko_voice_enabled', JSON.stringify(voiceEnabled));
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
