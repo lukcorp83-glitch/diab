@@ -24,12 +24,14 @@ export default function UpdateModal() {
         if (import.meta.env.DEV) {
           data = localVersionData;
         } else {
-          const res = await fetch('https://lukcorp83-glitch.github.io/diab/version.json?t=' + Date.now());
-          if (!res.ok) {
+          try {
+            const res = await fetch('https://lukcorp83-glitch.github.io/diab/version.json?t=' + Date.now());
+            if (!res.ok) throw new Error("HTTP error");
+            data = await res.json();
+          } catch (fetchError) {
+             console.log("CORS/Fetch error on Pages, falling back to raw...", fetchError);
              const resOld = await fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now());
              data = await resOld.json();
-          } else {
-             data = await res.json();
           }
         }
 
