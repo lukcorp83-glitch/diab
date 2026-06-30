@@ -150,7 +150,14 @@ export default function UpdateModal() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {Capacitor.isNativePlatform() && (
+            {versionData.version > CURRENT_VERSION && Capacitor.isNativePlatform() && (
+              <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-xs font-bold flex items-start gap-2 border border-red-100 dark:border-red-800/50">
+                <span className="mt-0.5">⚠️</span>
+                <p>Ta aktualizacja zawiera zmiany systemowe. Szybka aktualizacja (OTA) jest niedostępna – musisz pobrać i zainstalować nowy plik APK.</p>
+              </div>
+            )}
+
+            {Capacitor.isNativePlatform() && versionData.version <= CURRENT_VERSION && (
                <button
                  onClick={handleOTAUpdate}
                  disabled={isUpdating}

@@ -14,10 +14,19 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.5';
+export const CURRENT_VERSION = '5.4.6';
 export const CURRENT_OTA_REVISION = 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.6",
+    date: "2026-06-30",
+    title: "Naprawa mikrofonu i przeciągania na pulpicie",
+    changes: [
+      "Poprawka: Wymuszenie systemowych uprawnień do mikrofonu dla WebView (Capacitor), przywracając działanie GlikoChat.",
+      "Poprawka: Naprawiono błąd układu powodujący spowolnienie lub zamrożenie aplikacji podczas przeciągania widżetów na pulpicie."
+    ]
+  },
   {
     version: "5.4.5",
     date: "2026-06-30",
@@ -362,6 +371,25 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.6",
+    date: "2026-06-30",
+    title: "Naprawa mikrofonu i przeciągania na pulpicie",
+    changes: [
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "Poprawka: Wymuszenie uprawnień do mikrofonu (WebRTC) dla GlikoChat pod Android WebView."
+      },
+      {
+        categoryKey: "kategoria_interfejs",
+        icon: "Paintbrush",
+        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
+        descriptionKey: "Poprawka: Naprawa problemu z cieniem przeciąganych elementów (layout thrashing) zwieszających ekran."
+      }
+    ]
+  },
   {
     version: "5.4.5",
     date: "2026-06-30",

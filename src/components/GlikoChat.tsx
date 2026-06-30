@@ -18,6 +18,7 @@ import {
   VolumeX
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
+import { Capacitor } from '@capacitor/core';
 import { cn } from '../lib/utils';
 import { Virtuoso } from 'react-virtuoso';
 import { SKINS, ACCESSORIES } from '../constants';
@@ -76,7 +77,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
     }
   }, [voiceEnabled]);
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (isListening) {
       try {
         recognitionRef.current?.stop();
@@ -89,7 +90,22 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
         });
         return;
       }
+      
       try {
+        // HACK: Wymuszamy zapytanie o uprawnienia systemowe na Android WebView (Capacitor)
+        if (Capacitor.isNativePlatform() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+           try {
+             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+             stream.getTracks().forEach(track => track.stop()); // natychmiast zamykamy strumień, chcieliśmy tylko uzyskać uprawnienia od systemu
+           } catch (micError) {
+             console.error("Brak dostępu do mikrofonu", micError);
+             import('react-hot-toast').then(({ toast }) => {
+               toast.error("Brak dostępu do mikrofonu. Nadaj uprawnienia w Ustawieniach Androida.");
+             });
+             return; // przerywamy nasłuch
+           }
+        }
+
         setInput('');
         recognitionRef.current.start();
         setIsListening(true);

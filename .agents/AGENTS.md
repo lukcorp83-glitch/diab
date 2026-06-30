@@ -1,7 +1,7 @@
 # Projekt GlikoControl - Reguły i Wnioski z Błędów (Pamięć Agenta)
 
 - **Mechanizm aktualizacji OTA (Capgo / dist.zip)**:
-  - Nigdy nie ładuj wielkich plików instalacyjnych (np. .apk) do wnętrza paczki OTA (dist.zip lub update.zip). Powoduje to, że paczka ma ~100MB, co zrywa połączenie na telefonach przy użyciu CapacitorUpdater (błąd: ailed download). Pakowanie w Github Actions (np. zip -r ../dist.zip .) musi wykluczać pliki .apk (-x "*.apk").
+  - Nigdy nie ładuj wielkich plików instalacyjnych (np. .apk) do wnętrza paczki OTA (dist.zip lub update.zip). Powoduje to, że paczka ma ~80-100MB, co zrywa połączenie na telefonach przy użyciu CapacitorUpdater (błąd: failed download). Pakowanie w Github Actions (np. zip -r ../dist.zip .) musi BEZWZGLĘDNIE wykluczać pliki .apk w głównym folderze i we wszystkich podfolderach (`-x "*.apk" "**/*.apk"`).
   - Skrypty aktualizacji OTA (np. w UpdateModal.tsx) nie mogą korzystać z zadeklarowanych "na sztywno" ścieżek URL dla starych paczek OTA. Link do nowej paczki OTA zawsze powinien być pobierany dynamicznie z weryfikowanego źródła (np.  ersionData.url), aby uniknąć nieskończonych pętli tzw. "OTA downgrade".
   
 - **System WebSpeech API na Android WebView**:
@@ -27,3 +27,6 @@
   - Prace nad nowymi, niestabilnymi funkcjami lub prośbami użytkownika o zmiany w kodzie muszą być prowadzone **WYŁĄCZNIE na gałęzi `beta`** (użyj `git checkout beta` jeśli jesteś na main).
   - Po wypchnięciu zmian (push) na gałąź `beta`, GitHub wygeneruje wydanie `aktualizacja-beta` zawierające pliki `beta.json` oraz `update-beta.zip`. Trafią one w formie OTA do użytkowników z włączoną opcją "Program testów Beta" w ustawieniach.
   - Dopiero po uzyskaniu potwierdzenia od użytkownika, że nowa funkcja działa poprawnie, kod z gałęzi `beta` może zostać zmergowany (merge) do głównej gałęzi `main`. Nigdy nie wrzucaj eksperymentów bezpośrednio na `main`!
+
+- **Przejrzystość Aktualizacji (OTA vs APK)**:
+  - W `UpdateModal.tsx`, jeśli nowa wersja różni się głównym numerem (wymaga nowego instalatora APK ze względu np. na nowe wtyczki natywne), przycisk szybkiej aktualizacji OTA MUSI być ukryty. Zamiast niego wyświetlaj wyraźny komunikat ostrzegawczy o konieczności pobrania pliku APK, aby uniknąć pomyłek i uszkodzenia aplikacji u użytkowników.

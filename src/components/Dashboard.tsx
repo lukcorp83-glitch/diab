@@ -3,6 +3,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, 
 import { arrayMove, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { SortableWidget } from './SortableWidget';
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
 import { notificationService } from "../services/notificationService";
@@ -2452,15 +2453,18 @@ export default function Dashboard({
         )}
       </div>
       </SortableContext>
-      <DragOverlay>
-        {activeId ? (
-          <div className="rounded-[2.6rem] border-2 border-dashed border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/90 shadow-2xl scale-[1.05] p-2.5 min-h-[140px] flex flex-col items-center justify-center opacity-90 z-50">
-             <span className="text-[12px] font-black uppercase text-indigo-500">
-               {widgets.find(w => w.id === activeId)?.name || 'Przenoszenie...'}
-             </span>
-          </div>
-        ) : null}
-      </DragOverlay>
+      {createPortal(
+        <DragOverlay zIndex={9999}>
+          {activeId ? (
+            <div className="rounded-[2.6rem] border-2 border-dashed border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/90 shadow-2xl scale-[1.05] p-2.5 min-h-[140px] flex flex-col items-center justify-center opacity-90 z-[9999]">
+               <span className="text-[12px] font-black uppercase text-indigo-500">
+                 {widgets.find(w => w.id === activeId)?.name || 'Przenoszenie...'}
+               </span>
+            </div>
+          ) : null}
+        </DragOverlay>,
+        document.body
+      )}
       </DndContext>
 
       {/* Dynamic Grid replaced all static elements below. We keep the overlay modals. */}
