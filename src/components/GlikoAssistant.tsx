@@ -18,6 +18,9 @@ import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
 import { LogEntry, UserSettings, AssistantMessage } from '../types';
 import { SKINS, ACCESSORIES } from '../constants';
+import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
+import toast from 'react-hot-toast';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -104,13 +107,33 @@ export default function GlikoAssistant({
     }
   }, []);
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const permStatus = await SpeechRecognition.checkPermissions();
+          if (permStatus.speechRecognition !== 'granted') {
+            const reqStatus = await SpeechRecognition.requestPermissions();
+            if (reqStatus.speechRecognition !== 'granted') {
+              toast.error('Brak uprawnień do mikrofonu! Zezwól na nagrywanie w ustawieniach Androida.');
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Error requesting microphone permissions:', e);
+        }
+      }
+      
       setInput('');
-      recognitionRef.current?.start();
-      setIsListening(true);
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error('Speech recognition start error:', e);
+        toast.error('Nie udało się uruchomić mikrofonu.');
+      }
     }
   };
 

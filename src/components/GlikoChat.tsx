@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
+import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Virtuoso } from 'react-virtuoso';
 import { SKINS, ACCESSORIES } from '../constants';
 import { useTranslation } from "react-i18next";
@@ -76,7 +78,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
     }
   }, [voiceEnabled]);
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (isListening) {
       try {
         recognitionRef.current?.stop();
@@ -88,6 +90,22 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
           toast.error(i18n.t('auto.rozpoznawanie_mowy_nieobsługiwane', { defaultValue: "Rozpoznawanie mowy nie jest obsługiwane." }));
         });
         return;
+      }
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const permStatus = await SpeechRecognition.checkPermissions();
+          if (permStatus.speechRecognition !== 'granted') {
+            const reqStatus = await SpeechRecognition.requestPermissions();
+            if (reqStatus.speechRecognition !== 'granted') {
+              import('react-hot-toast').then(({ toast }) => {
+                toast.error('Brak uprawnień do mikrofonu! Zezwól w ustawieniach Androida.');
+              });
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Error requesting microphone permissions:', e);
+        }
       }
       try {
         setInput('');

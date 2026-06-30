@@ -1,8 +1,8 @@
 {
-    "version":  "5.4.8",
-    "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.8_OTA.apk",
-    "whatsNew":  "🛠️ Wersja 5.4.8 (BETA): Pełna naprawa asystenta głosowego Google (usunięcie krytycznego błędu Android 11+).",
-    "whatsNewEn":  "🛠️ Version 5.4.8 (BETA): Fully fixed native microphone crash for Android 11+.",
-    "otaRevision":  254
+    "version":  "5.4.9",
+    "url":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/update.zip",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.9_OTA.apk",
+    "whatsNew":  "🛠️ Wersja 5.4.9: Poprawka wyzwalania mikrofonu na Androidzie. Ostateczne odchudzenie paczek OTA.",
+    "whatsNewEn":  "🛠️ Version 5.4.9: Microphone trigger fix for Android. Final OTA package optimization.",
+    "otaRevision":  255
 }

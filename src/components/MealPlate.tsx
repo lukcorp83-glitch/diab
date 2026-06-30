@@ -1131,22 +1131,44 @@ export default function MealPlate({
     } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + e.message); Haptics.error(); }
   };
 
-  const startVoiceSearch = () => {
+  const startVoiceSearch = async () => {
     // @ts-ignore
-    const SpeechRecognition =
+    const SpeechRec =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    if (!SpeechRec) {
       toast.error(i18n.t('auto.twoja_przegladarka_nie_obslugu', { defaultValue: i18n.t('auto.twoja_przegladarka_nie_ob', { defaultValue: "Twoja przeglądarka nie obsługuje wyszukiwania głosowego." }) }));
       return;
     }
-    const recognition = new SpeechRecognition();
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const permStatus = await SpeechRecognition.checkPermissions();
+        if (permStatus.speechRecognition !== 'granted') {
+          const reqStatus = await SpeechRecognition.requestPermissions();
+          if (reqStatus.speechRecognition !== 'granted') {
+            toast.error('Brak uprawnień do mikrofonu! Zezwól w ustawieniach Androida.');
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Error requesting microphone permissions:', e);
+      }
+    }
+
+    const recognition = new SpeechRec();
     recognition.lang = "pl-PL";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
     setIsListening(true);
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+      setIsListening(false);
+      toast.error('Nie udało się uruchomić mikrofonu.');
+    }
 
     recognition.onresult = async (event: any) => {
       const speechResult = event.results[0][0].transcript;
