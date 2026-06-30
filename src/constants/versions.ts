@@ -14,13 +14,6 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-<<<<<<< Updated upstream
-export const CURRENT_VERSION = '5.4.4';
-export const CURRENT_OTA_REVISION = 1;
-
-export const PWA_VERSIONS: VersionEntry[] = [
-  {
-=======
 export const CURRENT_VERSION = '5.4.8';
 export const CURRENT_OTA_REVISION = 0;
 
@@ -63,7 +56,6 @@ export const PWA_VERSIONS: VersionEntry[] = [
     ]
   },
   {
->>>>>>> Stashed changes
     version: "5.4.2",
     date: "2026-06-29",
     title: 'auto.wersja_5_4_2',
@@ -399,8 +391,6 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-<<<<<<< Updated upstream
-=======
     version: "5.4.8",
     date: "2026-06-30",
     title: "Łatki dla mikrofonu (Android 11+)",
@@ -452,7 +442,6 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   },
   {
->>>>>>> Stashed changes
     version: "5.4.2",
     date: "2026-06-29",
     title: 'auto.wersja_5_4_2',

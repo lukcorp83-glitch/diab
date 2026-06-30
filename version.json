@@ -1,16 +1,8 @@
 {
-<<<<<<< Updated upstream
-    "version":  "5.4.3",
-    "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.4_OTA.apk",
-    "whatsNew":  "🛠️ Wersja 5.4.3: Przywrócenie pierwotnego silnika asystenta głosowego ze względu na problemy z kompatybilnością modułu natywnego na części urządzeń.",
-    "whatsNewEn":  "🛠️ Version 5.4.3: Restored original web speech engine due to native plugin compatibility issues.",
-=======
     "version":  "5.4.8",
     "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
     "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.8_OTA.apk",
     "whatsNew":  "🛠️ Wersja 5.4.8 (BETA): Pełna naprawa asystenta głosowego Google (usunięcie krytycznego błędu Android 11+).",
     "whatsNewEn":  "🛠️ Version 5.4.8 (BETA): Fully fixed native microphone crash for Android 11+.",
->>>>>>> Stashed changes
     "otaRevision":  254
 }
