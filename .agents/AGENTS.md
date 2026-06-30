@@ -17,7 +17,10 @@
     1. `package.json` (klucz "version")
     2. `version.json` (klucz "version", opcjonalnie zaktualizuj nazwę pliku w "apkUrl")
     3. `src/constants.ts` (zmienna `APP_VERSION`)
-    4. `src/constants/versions.ts` (zmienna `CURRENT_VERSION`) - **BRAK ZMIANY TUTAJ ZEPSUJE APLIKACJĘ!**
+    4. `src/constants/versions.ts` (zmienna `CURRENT_VERSION`)
+    
+  > [!CAUTION]
+  > **KRYTYCZNY PUNKT (ZAPISANE NA CZERWONO):** W pliku `src/constants/versions.ts` musisz zaktualizować NIE TYLKO zmienną `CURRENT_VERSION`, ale również dodać nowy wpis do OBU tablic: `PWA_VERSIONS` oraz `APK_VERSIONS`. Jeśli zapomnisz o tablicy `APK_VERSIONS`, aplikacja mobilna i jej mechanizm OTA całkowicie się posypią! BRAK ZMIANY TUTAJ ZEPSUJE APLIKACJĘ!
 
 - **Kanał Beta i Bezpieczne Aktualizacje (OTA)**:
   - Wdrożono system dwóch gałęzi: `main` oraz `beta`.

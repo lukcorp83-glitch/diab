@@ -14,10 +14,19 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.4';
-export const CURRENT_OTA_REVISION = 1;
+export const CURRENT_VERSION = '5.4.5';
+export const CURRENT_OTA_REVISION = 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.5",
+    date: "2026-06-30",
+    title: "Kanał Testowy Beta (OTA)",
+    changes: [
+      "Nowość: Wprowadzono w ustawieniach nowy przełącznik \"Program testów Beta\". Pozwala na instalowanie eksperymentalnych aktualizacji OTA.",
+      "Poprawka: Aplikacja pobiera z osobnej puli testowej, by uchronić stabilne wydanie przed błędami."
+    ]
+  },
   {
     version: "5.4.2",
     date: "2026-06-29",
@@ -353,6 +362,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.5",
+    date: "2026-06-30",
+    title: "Kanał Testowy Beta (OTA)",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Nowość: Wprowadzono w ustawieniach nowy przełącznik Program testów Beta, omijający stabilne usterki."
+      }
+    ]
+  },
   {
     version: "5.4.2",
     date: "2026-06-29",

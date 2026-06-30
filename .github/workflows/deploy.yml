@@ -19,15 +19,12 @@ concurrency:
 jobs:
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 1: Build web assets + OTA na GitHub Pages
-  # Uruchamiany przy każdym push do main
+  # JOB 1: Build web assets + Prepare OTA
+  # Uruchamiany przy każdym push do main i beta
   # ─────────────────────────────────────────────────────────────
-  deploy-web:
-    name: 🌐 OTA – GitHub Pages
+  build-web:
+    name: 🌐 Build OTA Assets
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: 📥 Checkout
@@ -111,6 +108,18 @@ jobs:
         with:
           path: './dist'
 
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1.5: Deploy na GitHub Pages (Tylko MAIN)
+  # ─────────────────────────────────────────────────────────────
+  deploy-pages:
+    name: 🌐 Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build-web
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: 🌐 Deploy na GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
@@ -122,8 +131,8 @@ jobs:
   build-apk:
     name: 📱 APK Release
     runs-on: ubuntu-latest
-    needs: deploy-web # poczekaj az OTA bedzie gotowe
-    # Uruchamiamy na ten sam push co deploy-web
+    needs: build-web # poczekaj az OTA bedzie gotowe
+    # Uruchamiamy na ten sam push co build-web
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/beta'
 
     steps:
