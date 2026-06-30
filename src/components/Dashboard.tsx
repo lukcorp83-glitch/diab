@@ -2335,7 +2335,7 @@ export default function Dashboard({
              const visibleIndices = widgets.map((item, idx) => item.visible ? idx : -1).filter(idx => idx !== -1);
              const isFirstActive = index === visibleIndices[0];
              const isLastActive = index === visibleIndices[visibleIndices.length - 1];
-             const isCurrentlyMovingTarget = movingWidgetId !== null && movingWidgetId !== w.id;
+             
              
              return (
                  <div key={w.id} className={cn(
@@ -2344,9 +2344,9 @@ export default function Dashboard({
                    "rounded-[2.6rem]",
                    (isEditingLayout && layoutMode === "grid") ? "border-2 border-dashed border-indigo-500/40 p-2.5 dark:bg-indigo-950/20 bg-indigo-50/20 min-h-[140px] flex flex-col cursor-grab active:cursor-grabbing hover:border-indigo-500/60" : "",
                    (isEditingLayout && layoutMode === "classic") ? "border-2 border-dashed border-slate-500/20 p-2.5 dark:bg-slate-950/20 bg-slate-50/10 min-h-[110px] flex flex-col" : "",
-                   isCurrentlyMovingTarget ? "cursor-pointer scale-[0.98] border-2 border-dashed border-amber-500/50 bg-amber-500/5 animate-pulse" : "",
+                   
                    "" /* no draggedIndex */,
-                   movingWidgetId === w.id ? "ring-4 ring-amber-500/60 border-amber-500 shadow-2xl scale-[1.01]" : ""
+                   ""
                  )}
                >
                  {isEditingLayout && (
