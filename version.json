@@ -1,8 +1,8 @@
 {
-    "version":  "5.4.9",
+    "version":  "5.4.10",
     "url":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.9_OTA.apk",
-    "whatsNew":  "🛠️ Wersja 5.4.9: Poprawka wyzwalania mikrofonu na Androidzie. Ostateczne odchudzenie paczek OTA.",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.10_OTA.apk",
+    "whatsNew":  "🛠️ Wersja 5.4.10: Finalna naprawa wielkości paczki OTA. Usunięto błąd buforowania starego zipa.",
     "whatsNewEn":  "🛠️ Version 5.4.9: Microphone trigger fix for Android. Final OTA package optimization.",
     "otaRevision":  255
 }

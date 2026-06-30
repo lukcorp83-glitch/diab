@@ -1,0 +1,5 @@
+{
+    "version": "1.4.7",
+    "url": "https://glikocontrol.pl/pobierz/GlikoControl_v1.4.7.apk",
+    "releaseNotes": "- POPRAWKA INTERFEJSU: Naprawiono błąd polegający na tym, że duże okienka (np. okno aktualizacji, nowości) nachodziły na górny pasek telefonu (bateria, zasięg), co uniemożliwiało kliknięcie przycisku zamykania na niektórych mniejszych telefonach.\n- HOTFIX: Naprawiono wczorajszy błąd białego ekranu (isGuest is not defined).\n- KRYTYCZNA POPRAWKA DLA ANDROID 14+: Naprawiono błąd systemu Android polegający na blokowaniu przesyłu cukrów między działającym w tle widgetem a otwartą aplikacją."
+}

@@ -83,6 +83,7 @@ jobs:
 
       - name: 🗜️ Utwórz dist.zip i update.zip (OTA bundle)
         run: |
+          rm -f dist.zip
           cd dist
           find . -name "*.apk" -type f -delete || true
           find . -name "*.zip" -type f -delete || true
