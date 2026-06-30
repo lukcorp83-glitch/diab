@@ -1,8 +1,8 @@
 {
-    "version":  "5.4.11",
-    "url":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.11_OTA.apk",
-    "whatsNew":  "🤖 Wersja 5.4.11: Nowy natywny silnik mikrofonu oparty w całości na Androidzie.",
-    "whatsNewEn":  "🛠️ Version 5.4.9: Microphone trigger fix for Android. Final OTA package optimization.",
-    "otaRevision":  255
+    "version": "5.4.12",
+    "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/update.zip",
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.12_OTA.apk",
+    "whatsNew": "🚀 Wersja 5.4.12: Naprawa importu mikrofonu w bazie produktów oraz weryfikacja poprawności filtrowania wyszukiwania.",
+    "whatsNewEn": "🚀 Version 5.4.12: Microphone import fix in the product database and search filtering verification.",
+    "otaRevision": 255
 }

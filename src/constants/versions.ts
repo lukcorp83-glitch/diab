@@ -14,10 +14,20 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.11';
+export const CURRENT_VERSION = '5.4.12';
 export const CURRENT_OTA_REVISION = 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+
+  {
+    version: "5.4.12",
+    date: "2026-06-30",
+    title: "Poprawki bazy produktów",
+    changes: [
+      "Naprawa importu mikrofonu w bazie produktów oraz weryfikacja poprawności filtrowania wyszukiwania."
+    ]
+  },
+
   {
     version: "5.4.11",
     date: "2026-06-30",
@@ -400,6 +410,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+
+  {
+    version: "5.4.12",
+    date: "2026-06-30",
+    title: "Poprawki bazy produktów",
+    changes: [
+      "Naprawa importu mikrofonu w bazie produktów oraz weryfikacja poprawności filtrowania wyszukiwania."
+    ]
+  },
+
   {
     version: "5.4.11",
     date: "2026-06-30",

@@ -1,6 +1,7 @@
 import i18n from '../i18n';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";

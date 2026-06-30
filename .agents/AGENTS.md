@@ -13,13 +13,13 @@
   - Wszelkie klucze tłumaczeń należy zawsze dodawać symultanicznie do obu słowników, które znajdują się odpowiednio w folderach: `src/locales/pl/translation.json` oraz `src/locales/en/translation.json`. Nigdy nie dodawaj kluczy typu `auto.xxx` do kodu bez ich jednoczesnego zdefiniowania w plikach JSON.
 
 - **Synchronizacja Wersji Aplikacji (Krytyczne dla OTA)**:
-  - Zmiana wersji aplikacji MUSI odbywać się symultanicznie w czterech miejscach, aby uniknąć błędu nieskończonej pętli przeładowywania (CapacitorUpdater.reset() loop), co skutkuje "białym ekranem" na telefonach użytkowników po wgraniu nowego APK.
+  - Zmiana wersji aplikacji MUSI odbywać się symultanicznie w pięciu miejscach, aby uniknąć błędu nieskończonej pętli przeładowywania (CapacitorUpdater.reset() loop), co skutkuje "białym ekranem" na telefonach użytkowników po wgraniu nowego APK.
   - Zawsze upewnij się, że zaktualizowałeś dokładnie te miejsca do tego samego numeru:
     1. `package.json` (klucz "version")
-    2. `version.json` (klucz "version", opcjonalnie zaktualizuj nazwę pliku w "apkUrl")
-    3. `src/constants.ts` (zmienna `APP_VERSION`)
-    4. `src/constants/versions.ts` (zmienna `CURRENT_VERSION`) - **BRAK ZMIANY TUTAJ ZEPSUJE APLIKACJĘ!**
-
+    2. `package-lock.json` (odpal komendę `npm install --package-lock-only` po zmianie w package.json)
+    3. `version.json` (klucz "version", opcjonalnie zaktualizuj nazwę pliku w "apkUrl")
+    4. `src/constants.ts` (zmienna `APP_VERSION`)
+    5. `src/constants/versions.ts` (zmienna `CURRENT_VERSION` oraz **OBOWIĄZKOWO** dodaj wpis o nowej wersji (Changelog) do obu tablic: `PWA_VERSIONS` i `APK_VERSIONS`) - **BRAK ZMIANY TUTAJ ZEPSUJE APLIKACJĘ!**
 - **Kanał Beta i Bezpieczne Aktualizacje (OTA)**:
   - Wdrożono system dwóch gałęzi: `main` oraz `beta`.
   - Prace nad nowymi, niestabilnymi funkcjami lub prośbami użytkownika o zmiany w kodzie muszą być prowadzone **WYŁĄCZNIE na gałęzi `beta`** (użyj `git checkout beta` jeśli jesteś na main).
