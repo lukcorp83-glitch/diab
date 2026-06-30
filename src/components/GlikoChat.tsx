@@ -18,6 +18,7 @@ import {
   VolumeX
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Capacitor } from '@capacitor/core';
 import { cn } from '../lib/utils';
 import { Virtuoso } from 'react-virtuoso';
@@ -80,10 +81,51 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
   const toggleListening = async () => {
     if (isListening) {
       try {
-        recognitionRef.current?.stop();
+        if (Capacitor.isNativePlatform()) {
+           await SpeechRecognition.stop();
+        } else {
+           recognitionRef.current?.stop();
+        }
       } catch (e) {}
       setIsListening(false);
     } else {
+      // 1. Próba użycia natywnego modułu Androida (SpeechRecognition plugin)
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const available = await SpeechRecognition.available();
+          if (available.available) {
+            const permission = await SpeechRecognition.checkPermissions();
+            if (permission.speechRecognition !== 'granted') {
+               await SpeechRecognition.requestPermissions();
+            }
+            
+            // Rejestracja nasłuchiwania wtyczki
+            SpeechRecognition.removeAllListeners();
+            SpeechRecognition.addListener('partialResults', (data) => {
+              if (data.matches && data.matches.length > 0) {
+                 setInput(data.matches[0]);
+                 setIsListening(false);
+                 setTimeout(() => handleSend(data.matches[0]), 500);
+              }
+            });
+            
+            await SpeechRecognition.start({
+              language: 'pl-PL',
+              maxResults: 1,
+              prompt: 'Słucham Cię...',
+              partialResults: true,
+              popup: false
+            });
+            setIsListening(true);
+            return; // Sukces natywnego modułu, wychodzimy!
+          }
+        } catch (nativeError) {
+          console.error("Natywny moduł głosu zablokowany/zepsuty. Fallback do WebSpeech API...", nativeError);
+          // Jeśli poleci błąd, ignorujemy i lecimy dalej do Web API!
+        }
+      }
+
+      // 2. FALLBACK - WebSpeech API
       if (!recognitionRef.current) {
         import('react-hot-toast').then(({ toast }) => {
           toast.error(i18n.t('auto.rozpoznawanie_mowy_nieobsługiwane', { defaultValue: "Rozpoznawanie mowy nie jest obsługiwane." }));
@@ -92,20 +134,12 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
       }
       
       try {
-        // HACK: Wymuszamy zapytanie o uprawnienia systemowe na Android WebView (Capacitor)
         if (Capacitor.isNativePlatform() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
            try {
              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-             stream.getTracks().forEach(track => track.stop()); // natychmiast zamykamy strumień, chcieliśmy tylko uzyskać uprawnienia od systemu
-           } catch (micError) {
-             console.error("Brak dostępu do mikrofonu", micError);
-             import('react-hot-toast').then(({ toast }) => {
-               toast.error("Brak dostępu do mikrofonu. Nadaj uprawnienia w Ustawieniach Androida.");
-             });
-             return; // przerywamy nasłuch
-           }
+             stream.getTracks().forEach(track => track.stop()); 
+           } catch (micError) {}
         }
-
         setInput('');
         recognitionRef.current.start();
         setIsListening(true);

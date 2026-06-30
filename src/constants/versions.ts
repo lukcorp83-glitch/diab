@@ -14,10 +14,19 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.6';
+export const CURRENT_VERSION = '5.4.7';
 export const CURRENT_OTA_REVISION = 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.7",
+    date: "2026-06-30",
+    title: "Stabilizacja pulpitu i integracja natywna",
+    changes: [
+      "Nowość: Eleganckie strzałki do zmiany kolejności kafelków – eliminuje zawieszanie się starszych smartfonów.",
+      "Poprawka: Ponowna instalacja natywnego asystenta głosowego Google (mikrofon) wraz z zabezpieczeniem awaryjnym (fallback)."
+    ]
+  },
   {
     version: "5.4.6",
     date: "2026-06-30",
@@ -371,6 +380,15 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.7",
+    date: "2026-06-30",
+    title: "Stabilizacja pulpitu i integracja natywna",
+    changes: [
+      "Nowość: Eleganckie strzałki do zmiany kolejności kafelków – eliminuje zawieszanie się starszych smartfonów.",
+      "Poprawka: Ponowna instalacja natywnego asystenta głosowego Google (mikrofon) wraz z zabezpieczeniem awaryjnym (fallback)."
+    ]
+  },
   {
     version: "5.4.6",
     date: "2026-06-30",

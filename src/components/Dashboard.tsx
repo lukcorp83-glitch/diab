@@ -1,9 +1,5 @@
-import { getEffectiveUid } from '../lib/utils';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { arrayMove, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
-import { SortableWidget } from './SortableWidget';
+﻿import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
 import { notificationService } from "../services/notificationService";
@@ -329,48 +325,16 @@ export default function Dashboard({
   }, [layoutMode]);
 
   const [isEditingLayout, setIsEditingLayout] = useState(false);
-  const [movingWidgetId, setMovingWidgetId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   
 
   
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
-  );
-
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
-    Haptics.light();
-  };
-
-  const handleDragEnd = (event: any) => {
-    setActiveId(null);
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setWidgets((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        const newWidgets = arrayMove(items, oldIndex, newIndex);
-        if (user) {
-           setDoc(
-             doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "dashboard_layout"),
-             { widgets: newWidgets, updatedAt: serverTimestamp() },
-             { merge: true }
-           ).catch(console.error);
-        }
-        return newWidgets;
-      });
-      Haptics.light();
-    }
-  };
-
   const handlePlaceWidget = (targetIndex: number) => {
     if (movingWidgetId === null) return;
     const sourceIndex = widgets.findIndex(w => w.id === movingWidgetId);
     if (sourceIndex === -1) return;
     if (sourceIndex === targetIndex) {
-      setMovingWidgetId(null);
+      
       return;
     }
     Haptics.medium();
@@ -379,7 +343,7 @@ export default function Dashboard({
     const clampIndex = Math.min(targetIndex, newWidgets.length);
     newWidgets.splice(clampIndex, 0, draggedItem);
     setWidgets(newWidgets);
-    setMovingWidgetId(null);
+    
     toast.success(t('dashboard.messages.tile_moved'));
   };
 
@@ -609,7 +573,7 @@ export default function Dashboard({
     localStorage.setItem('glikosfera_layout_mode_v6', 'grid');
     setWidgets(clonedDefault);
     setLayoutMode('grid');
-    setMovingWidgetId(null);
+    
     
     
     if (user) {
@@ -2317,20 +2281,12 @@ export default function Dashboard({
       )}
 
       {/* 1. Main Stats Widget */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <SortableContext items={widgets.filter(w => w.visible).map(w => w.id)} strategy={rectSortingStrategy}>
-        <div 
-          onPointerDownCapture={(e) => {
-            if (isEditingLayout) {
-              e.stopPropagation();
-            }
-          }}
-          className={cn(
-          "grid grid-cols-2 grid-flow-row-dense gap-4 md:gap-6 min-h-[100px] px-1 pb-6 transition-transform duration-300 transform-gpu origin-top",
-          ""
-        )}
-        >
-
+      <div className={cn(
+        "grid grid-cols-2 grid-flow-row-dense gap-4 md:gap-6 min-h-[100px] px-1 pb-6 transition-transform duration-300 transform-gpu origin-top",
+        ""
+      )}
+      
+      >
         {widgets.filter(w => w.visible).length === 0 ? (
           <div className="col-span-2 py-12 px-6 text-center bg-slate-500/5 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-white/5 flex flex-col items-center justify-center min-h-[220px]">
             <span className="text-3xl block mb-2">📭</span>
@@ -2382,11 +2338,7 @@ export default function Dashboard({
              const isCurrentlyMovingTarget = movingWidgetId !== null && movingWidgetId !== w.id;
              
              return (
-                 <SortableWidget
-                   key={w.id}
-                   id={w.id}
-                   isEditing={isEditingLayout && layoutMode === "grid"}
-                   className={cn(
+                 <div key={w.id} className={cn(
                    "relative transition-all overflow-hidden flex flex-col", widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
                    widgetSize.startsWith('2') ? "col-span-2" : "col-span-1",
                    "rounded-[2.6rem]",
@@ -2401,7 +2353,22 @@ export default function Dashboard({
                    <div className="flex flex-col gap-1.5 p-2 bg-slate-900 dark:bg-slate-950 text-white rounded-[1.8rem] mb-3 shadow-lg z-10 shrink-0 select-none">
                      <div className="flex items-center justify-between gap-1.5 border-b border-white/5 pb-1 w-full">
                        <div className="flex items-center gap-1.5 shrink-0 min-w-0">
-                         {layoutMode === "grid" && <GripVertical size={11} className="text-white/40 cursor-grab active:cursor-grabbing hover:text-white transition-colors" />}
+                         {layoutMode === "grid" && (
+                             <div className="flex items-center gap-1">
+                               <button 
+                                 onClick={() => moveWidget(index, 'up')}
+                                 className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white active:scale-95 transition-all"
+                               >
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                               </button>
+                               <button 
+                                 onClick={() => moveWidget(index, 'down')}
+                                 className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white active:scale-95 transition-all"
+                               >
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                               </button>
+                             </div>
+                           )}
                          <span className="text-[9px] font-black uppercase tracking-wider truncate max-w-[120px]" title={t(`dashboard.widgets.${w.id}`, { defaultValue: w.name })}>
                            {t(`dashboard.widgets.${w.id}`, { defaultValue: w.name })}
                          </span>
@@ -2447,25 +2414,12 @@ export default function Dashboard({
                   )}>
                    {renderWidget(w.id, widgetSize)}
                  </div>
-               </SortableWidget>
+               </div>
              );
           })
         )}
+        
       </div>
-      </SortableContext>
-      {createPortal(
-        <DragOverlay zIndex={9999}>
-          {activeId ? (
-            <div className="rounded-[2.6rem] border-2 border-dashed border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/90 shadow-2xl scale-[1.05] p-2.5 min-h-[140px] flex flex-col items-center justify-center opacity-90 z-[9999]">
-               <span className="text-[12px] font-black uppercase text-indigo-500">
-                 {widgets.find(w => w.id === activeId)?.name || 'Przenoszenie...'}
-               </span>
-            </div>
-          ) : null}
-        </DragOverlay>,
-        document.body
-      )}
-      </DndContext>
 
       {/* Dynamic Grid replaced all static elements below. We keep the overlay modals. */}
       {false && (
