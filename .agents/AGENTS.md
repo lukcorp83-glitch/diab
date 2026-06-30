@@ -10,3 +10,17 @@
 - **Wielojęzyczność (i18n)**:
   - Aplikacja obsługuje dwa języki (Polski i Angielski). 
   - Wszelkie klucze tłumaczeń należy zawsze dodawać symultanicznie do obu słowników, które znajdują się odpowiednio w folderach: `src/locales/pl/translation.json` oraz `src/locales/en/translation.json`. Nigdy nie dodawaj kluczy typu `auto.xxx` do kodu bez ich jednoczesnego zdefiniowania w plikach JSON.
+
+- **Synchronizacja Wersji Aplikacji (Krytyczne dla OTA)**:
+  - Zmiana wersji aplikacji MUSI odbywać się symultanicznie w czterech miejscach, aby uniknąć błędu nieskończonej pętli przeładowywania (CapacitorUpdater.reset() loop), co skutkuje "białym ekranem" na telefonach użytkowników po wgraniu nowego APK.
+  - Zawsze upewnij się, że zaktualizowałeś dokładnie te miejsca do tego samego numeru:
+    1. `package.json` (klucz "version")
+    2. `version.json` (klucz "version", opcjonalnie zaktualizuj nazwę pliku w "apkUrl")
+    3. `src/constants.ts` (zmienna `APP_VERSION`)
+    4. `src/constants/versions.ts` (zmienna `CURRENT_VERSION`) - **BRAK ZMIANY TUTAJ ZEPSUJE APLIKACJĘ!**
+
+- **Kanał Beta i Bezpieczne Aktualizacje (OTA)**:
+  - Wdrożono system dwóch gałęzi: `main` oraz `beta`.
+  - Prace nad nowymi, niestabilnymi funkcjami lub prośbami użytkownika o zmiany w kodzie muszą być prowadzone **WYŁĄCZNIE na gałęzi `beta`** (użyj `git checkout beta` jeśli jesteś na main).
+  - Po wypchnięciu zmian (push) na gałąź `beta`, GitHub wygeneruje wydanie `aktualizacja-beta` zawierające pliki `beta.json` oraz `update-beta.zip`. Trafią one w formie OTA do użytkowników z włączoną opcją "Program testów Beta" w ustawieniach.
+  - Dopiero po uzyskaniu potwierdzenia od użytkownika, że nowa funkcja działa poprawnie, kod z gałęzi `beta` może zostać zmergowany (merge) do głównej gałęzi `main`. Nigdy nie wrzucaj eksperymentów bezpośrednio na `main`!

@@ -2,7 +2,7 @@ name: 🚀 Build & Deploy GlikoControl
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: ["main", "master", "beta"]
     tags:
       - 'v*'
   workflow_dispatch:
@@ -47,32 +47,54 @@ jobs:
         env:
           CI: false
 
-      - name: 📝 Generuj version.json z package.json
+      - name: 📝 Generuj plik wersji (version.json lub beta.json)
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          APK_URL="https://github.com/${{ github.repository }}/releases/download/aktualizacja/GlikoControl_${VERSION}_OTA.apk"
           BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          cat > dist/version.json << EOF
+          BRANCH_NAME="${{ github.ref_name }}"
+          
+          if [ "$BRANCH_NAME" = "beta" ]; then
+            JSON_NAME="beta.json"
+            ZIP_URL="https://github.com/${{ github.repository }}/releases/download/aktualizacja-beta/update-beta.zip"
+            APK_URL="https://github.com/${{ github.repository }}/releases/download/aktualizacja-beta/GlikoControl_${VERSION}-beta_OTA.apk"
+            WHATS_NEW="🧪 Wersja BETA ${VERSION} — testowa paczka OTA."
+            WHATS_NEW_EN="🧪 BETA Version ${VERSION} — experimental OTA."
+          else
+            JSON_NAME="version.json"
+            ZIP_URL="https://lukcorp83-glitch.github.io/diab/update.zip"
+            APK_URL="https://github.com/${{ github.repository }}/releases/download/aktualizacja/GlikoControl_${VERSION}_OTA.apk"
+            WHATS_NEW="✅ Wersja ${VERSION} — automatyczna aktualizacja przez GitHub."
+            WHATS_NEW_EN="✅ Version ${VERSION} — auto-updated via GitHub Actions."
+          fi
+          
+          cat > dist/${JSON_NAME} << EOF
           {
             "version": "${VERSION}",
-            "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
+            "url": "${ZIP_URL}",
             "apkUrl": "${APK_URL}",
-            "whatsNew": "✅ Wersja ${VERSION} — automatyczna aktualizacja przez GitHub.",
-            "whatsNewEn": "✅ Version ${VERSION} — auto-updated via GitHub Actions.",
+            "whatsNew": "${WHATS_NEW}",
+            "whatsNewEn": "${WHATS_NEW_EN}",
             "otaRevision": ${{ github.run_number }},
             "buildTime": "${BUILD_TIME}"
           }
           EOF
-          echo "📋 version.json:"
-          cat dist/version.json
+          echo "📋 ${JSON_NAME}:"
+          cat dist/${JSON_NAME}
 
       - name: 🗜️ Utwórz dist.zip i update.zip (OTA bundle)
         run: |
           cd dist
           zip -r ../dist.zip . -x "*.apk"
-          cp ../dist.zip ../update.zip
-          cp ../update.zip ./update.zip
-          echo "✅ dist.zip i update.zip gotowe"
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [ "$BRANCH_NAME" = "beta" ]; then
+            cp ../dist.zip ../update-beta.zip
+            cp ../update-beta.zip ./update-beta.zip
+            echo "✅ dist.zip i update-beta.zip gotowe"
+          else
+            cp ../dist.zip ../update.zip
+            cp ../update.zip ./update.zip
+            echo "✅ dist.zip i update.zip gotowe"
+          fi
 
       - name: 📤 Upload dist.zip jako artifact
         uses: actions/upload-artifact@v4
@@ -102,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: deploy-web # poczekaj az OTA bedzie gotowe
     # Uruchamiamy na ten sam push co deploy-web
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/beta'
 
     steps:
       - name: 📥 Checkout
@@ -150,8 +172,14 @@ jobs:
       - name: 📋 Przygotuj APK
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          cp android/app/build/outputs/apk/release/GlikoControl.apk "GlikoControl_${VERSION}_OTA.apk"
-          echo "APK_NAME=GlikoControl_${VERSION}_OTA.apk" >> $GITHUB_ENV
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [ "$BRANCH_NAME" = "beta" ]; then
+            APK_NAME="GlikoControl_${VERSION}-beta_OTA.apk"
+          else
+            APK_NAME="GlikoControl_${VERSION}_OTA.apk"
+          fi
+          cp android/app/build/outputs/apk/release/GlikoControl.apk "${APK_NAME}"
+          echo "APK_NAME=${APK_NAME}" >> $GITHUB_ENV
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: 📦 Pobierz dist.zip z poprzedniego joba
@@ -162,22 +190,34 @@ jobs:
         continue-on-error: true
 
       - name: 🗜️ Kopia dla starszych wersji OTA
-        run: cp dist.zip update.zip || true
-
-      - name: 🗑️ Usuń stary Release (aktualizacja)
         run: |
-          gh release delete aktualizacja -y || true
-          gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/aktualizacja || true
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [ "$BRANCH_NAME" = "beta" ]; then
+            cp dist.zip update-beta.zip || true
+          else
+            cp dist.zip update.zip || true
+          fi
+
+      - name: 🗑️ Usuń stary Release
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [ "$BRANCH_NAME" = "beta" ]; then
+            gh release delete aktualizacja-beta -y || true
+            gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/aktualizacja-beta || true
+          else
+            gh release delete aktualizacja -y || true
+            gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/aktualizacja || true
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🎉 Utwórz na nowo Release 'aktualizacja'
+      - name: 🎉 Utwórz na nowo Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: aktualizacja
-          name: "GlikoControl Zawsze Najnowsza"
+          tag_name: ${{ github.ref_name == 'beta' && 'aktualizacja-beta' || 'aktualizacja' }}
+          name: ${{ github.ref_name == 'beta' && 'GlikoControl Wersja Testowa (BETA)' || 'GlikoControl Zawsze Najnowsza' }}
           body: |
-            ## 🩺 GlikoControl v${{ env.VERSION }}
+            ## 🩺 GlikoControl v${{ env.VERSION }} ${{ github.ref_name == 'beta' && '(BETA)' || '' }}
 
             ### 📱 Jak zainstalować
             1. Pobierz **${{ env.APK_NAME }}** poniżej
@@ -191,8 +231,9 @@ jobs:
           files: |
             ${{ env.APK_NAME }}
             dist.zip
-            update.zip
+            ${{ github.ref_name == 'beta' && 'update-beta.zip' || 'update.zip' }}
+            dist/${{ github.ref_name == 'beta' && 'beta.json' || 'version.json' }}
           draft: false
-          prerelease: false
+          prerelease: ${{ github.ref_name == 'beta' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

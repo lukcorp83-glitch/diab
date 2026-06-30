@@ -105,6 +105,7 @@ export interface UserSettings {
   targetMax: number;
   healthConnectSyncSteps?: boolean;
   healthConnectSyncGlucose?: boolean;
+  betaProgram?: boolean; // Enable Beta OTA channel
   followerMode?: boolean;  // Add follower mode for read-only view
   dia?: number; // Duration of Insulin Action in hours
   hourlyProfiles?: HourlyProfile[];

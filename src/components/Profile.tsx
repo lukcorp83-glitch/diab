@@ -5489,7 +5489,45 @@ export default function Profile({
             </div>
           )}
 
-            <CgmImport
+          {/* Kanał Beta OTA */}
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-left">
+                <p className="text-[10px] font-black uppercase dark:text-white flex items-center gap-1.5">
+                  <span className="text-pink-500">🧪</span> Program testów Beta
+                </p>
+                <p className="text-[9px] text-slate-400 mt-1 max-w-[200px] leading-tight">
+                  {t('auto.otrzymuj_eksperymentalne_aktualiza', { defaultValue: 'Otrzymuj eksperymentalne aktualizacje szybciej. Wymaga restartu aplikacji.' })}
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  const isBeta = !settings.betaProgram;
+                  const updated = { ...settings, betaProgram: isBeta };
+                  setSettings(updated);
+                  localStorage.setItem("betaProgramEnabled", String(isBeta));
+                  await setDoc(
+                    doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+                    { betaProgram: isBeta },
+                    { merge: true }
+                  );
+                }}
+                className={cn(
+                  "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
+                  settings.betaProgram ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-700"
+                )}
+              >
+                <div
+                  className={cn(
+                    "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                    settings.betaProgram ? "translate-x-6" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+          </div>
+
+          <CgmImport
               user={user}
               onComplete={() =>
                 window.dispatchEvent(new Event("force-nightscout-sync"))
