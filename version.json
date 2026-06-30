@@ -1,8 +1,8 @@
 {
-    "version":  "5.4.7",
-    "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.7_OTA.apk",
-    "whatsNew":  "🛠️ Wersja 5.4.7: Powrót stabilnego pulpitu i naprawa natywnego mikrofonu z fallbackiem.",
-    "whatsNewEn":  "🛠️ Version 5.4.7: Restored stable dashboard layout and fixed native microphone with fallback.",
-    "otaRevision":  254
+    "version": "5.4.8",
+    "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.8_OTA.apk",
+    "whatsNew": "🚀 Wersja 5.4.8: Naprawa importu wtyczki mikrofonu w bazie produktów, usunięcie crashu telemetrii w Profilu oraz optymalizacja pamięci podręcznej Vite.",
+    "whatsNewEn": "🚀 Version 5.4.8: Fixed microphone plugin import in the product database, removed telemetry crash in Profile, and optimized Vite cache.",
+    "otaRevision": 254
 }
