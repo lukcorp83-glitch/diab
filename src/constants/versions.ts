@@ -14,11 +14,56 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
+<<<<<<< Updated upstream
 export const CURRENT_VERSION = '5.4.4';
 export const CURRENT_OTA_REVISION = 1;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+=======
+export const CURRENT_VERSION = '5.4.8';
+export const CURRENT_OTA_REVISION = 0;
+
+export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.8",
+    date: "2026-06-30",
+    title: "Łatki dla mikrofonu (Android 11+)",
+    changes: [
+      "Nowość: Dodano regułę 'queries' do AndroidManifest, przez którą asystent głosowy ubijał aplikację.",
+      "Poprawka: Downgrade wtyczki Capacitor z v7 do v6 dla uniknięcia błędów mostka Java na starszych smartfonach.",
+      "Usunięcie: Całkowicie wycięto sekcję telemetrii GlikoSense z kodu, aplikacja działa teraz szybciej i uczy się w 100% lokalnie!"
+    ]
+  },
+  {
+    version: "5.4.7",
+    date: "2026-06-30",
+    title: "Stabilizacja pulpitu i integracja natywna",
+    changes: [
+      "Nowość: Eleganckie strzałki do zmiany kolejności kafelków – eliminuje zawieszanie się starszych smartfonów.",
+      "Poprawka: Ponowna instalacja natywnego asystenta głosowego Google (mikrofon) wraz z zabezpieczeniem awaryjnym (fallback)."
+    ]
+  },
+  {
+    version: "5.4.6",
+    date: "2026-06-30",
+    title: "Naprawa mikrofonu i przeciągania na pulpicie",
+    changes: [
+      "Poprawka: Wymuszenie systemowych uprawnień do mikrofonu dla WebView (Capacitor), przywracając działanie GlikoChat.",
+      "Poprawka: Naprawiono błąd układu powodujący spowolnienie lub zamrożenie aplikacji podczas przeciągania widżetów na pulpicie."
+    ]
+  },
+  {
+    version: "5.4.5",
+    date: "2026-06-30",
+    title: "Kanał Testowy Beta (OTA)",
+    changes: [
+      "Nowość: Wprowadzono w ustawieniach nowy przełącznik \"Program testów Beta\". Pozwala na instalowanie eksperymentalnych aktualizacji OTA.",
+      "Poprawka: Aplikacja pobiera z osobnej puli testowej, by uchronić stabilne wydanie przed błędami."
+    ]
+  },
+  {
+>>>>>>> Stashed changes
     version: "5.4.2",
     date: "2026-06-29",
     title: 'auto.wersja_5_4_2',
@@ -354,6 +399,60 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+<<<<<<< Updated upstream
+=======
+    version: "5.4.8",
+    date: "2026-06-30",
+    title: "Łatki dla mikrofonu (Android 11+)",
+    changes: [
+      "Nowość: Dodano regułę 'queries' do AndroidManifest, przez którą asystent głosowy ubijał aplikację.",
+      "Poprawka: Downgrade wtyczki Capacitor z v7 do v6 dla uniknięcia błędów mostka Java na starszych smartfonach.",
+      "Usunięcie: Całkowicie wycięto sekcję telemetrii GlikoSense z kodu, aplikacja działa teraz szybciej i uczy się w 100% lokalnie!"
+    ]
+  },
+  {
+    version: "5.4.7",
+    date: "2026-06-30",
+    title: "Stabilizacja pulpitu i integracja natywna",
+    changes: [
+      "Nowość: Eleganckie strzałki do zmiany kolejności kafelków – eliminuje zawieszanie się starszych smartfonów.",
+      "Poprawka: Ponowna instalacja natywnego asystenta głosowego Google (mikrofon) wraz z zabezpieczeniem awaryjnym (fallback)."
+    ]
+  },
+  {
+    version: "5.4.6",
+    date: "2026-06-30",
+    title: "Naprawa mikrofonu i przeciągania na pulpicie",
+    changes: [
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "Poprawka: Wymuszenie uprawnień do mikrofonu (WebRTC) dla GlikoChat pod Android WebView."
+      },
+      {
+        categoryKey: "kategoria_interfejs",
+        icon: "Paintbrush",
+        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
+        descriptionKey: "Poprawka: Naprawa problemu z cieniem przeciąganych elementów (layout thrashing) zwieszających ekran."
+      }
+    ]
+  },
+  {
+    version: "5.4.5",
+    date: "2026-06-30",
+    title: "Kanał Testowy Beta (OTA)",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Nowość: Wprowadzono w ustawieniach nowy przełącznik Program testów Beta, omijający stabilne usterki."
+      }
+    ]
+  },
+  {
+>>>>>>> Stashed changes
     version: "5.4.2",
     date: "2026-06-29",
     title: 'auto.wersja_5_4_2',

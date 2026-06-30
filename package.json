@@ -1,7 +1,11 @@
 {
     "name": "diacontrolapp",
     "private": true,
+<<<<<<< Updated upstream
     "version": "5.4.4",
+=======
+    "version": "5.4.8",
+>>>>>>> Stashed changes
     "type": "module",
     "scripts": {
         "dev": "tsx server.ts",
@@ -15,6 +19,10 @@
         "build:android": "npm run build && npx cap sync"
     },
     "dependencies": {
+<<<<<<< Updated upstream
+=======
+        "@capacitor-community/speech-recognition": "^6.0.1",
+>>>>>>> Stashed changes
         "@capacitor-community/sqlite": "^8.1.0",
         "@capacitor-firebase/authentication": "^6.3.1",
         "@capacitor-mlkit/barcode-scanning": "^6.2.0",

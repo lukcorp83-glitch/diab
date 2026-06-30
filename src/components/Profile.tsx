@@ -334,9 +334,7 @@ export default function Profile({
     }
   };
 
-  const [telemetryEnabled, setTelemetryEnabled] = useState(
-    () => localStorage.getItem("glikosense_telemetry") === "true",
-  );
+
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [newShortcut, setNewShortcut] = useState({
     id: "",
