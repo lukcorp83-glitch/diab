@@ -80,17 +80,13 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
 
   const toggleListening = async () => {
     if (isListening) {
-      try {
-        recognitionRef.current?.stop();
-      } catch (e) {}
+      if (!Capacitor.isNativePlatform()) {
+        try {
+          recognitionRef.current?.stop();
+        } catch (e) {}
+      }
       setIsListening(false);
     } else {
-      if (!recognitionRef.current) {
-        import('react-hot-toast').then(({ toast }) => {
-          toast.error(i18n.t('auto.rozpoznawanie_mowy_nieobsługiwane', { defaultValue: "Rozpoznawanie mowy nie jest obsługiwane." }));
-        });
-        return;
-      }
       if (Capacitor.isNativePlatform()) {
         try {
           const permStatus = await SpeechRecognition.checkPermissions();
@@ -103,10 +99,38 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
               return;
             }
           }
+          setIsListening(true);
+          const { matches } = await SpeechRecognition.start({
+            language: 'pl-PL',
+            maxResults: 1,
+            prompt: i18n.t('auto.mow_teraz', { defaultValue: 'Mów teraz...' }),
+            partialResults: false,
+            popup: true
+          });
+          if (matches && matches.length > 0) {
+            const transcript = matches[0];
+            setInput(transcript);
+            handleSend(transcript);
+          }
+          setIsListening(false);
+          return;
         } catch (e) {
-          console.error('Error requesting microphone permissions:', e);
+          console.error('Native speech recognition error:', e);
+          setIsListening(false);
+          import('react-hot-toast').then(({ toast }) => {
+            toast.error('Nie udało się uruchomić mikrofonu natywnego.');
+          });
+          return;
         }
       }
+      
+      if (!recognitionRef.current) {
+        import('react-hot-toast').then(({ toast }) => {
+          toast.error(i18n.t('auto.rozpoznawanie_mowy_nieobsługiwane', { defaultValue: "Rozpoznawanie mowy nie jest obsługiwane." }));
+        });
+        return;
+      }
+      
       try {
         setInput('');
         recognitionRef.current.start();

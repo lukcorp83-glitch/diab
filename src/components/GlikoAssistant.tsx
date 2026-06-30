@@ -109,7 +109,10 @@ export default function GlikoAssistant({
 
   const toggleListening = async () => {
     if (isListening) {
-      recognitionRef.current?.stop();
+      if (!Capacitor.isNativePlatform()) {
+        recognitionRef.current?.stop();
+      }
+      setIsListening(false);
     } else {
       if (Capacitor.isNativePlatform()) {
         try {
@@ -121,8 +124,26 @@ export default function GlikoAssistant({
               return;
             }
           }
+          setIsListening(true);
+          const { matches } = await SpeechRecognition.start({
+            language: 'pl-PL',
+            maxResults: 1,
+            prompt: i18n.t('auto.mow_teraz', { defaultValue: 'Mów teraz...' }),
+            partialResults: false,
+            popup: true
+          });
+          if (matches && matches.length > 0) {
+            const transcript = matches[0];
+            setInput(transcript);
+            handleSend(transcript);
+          }
+          setIsListening(false);
+          return;
         } catch (e) {
-          console.error('Error requesting microphone permissions:', e);
+          console.error('Native speech recognition error:', e);
+          setIsListening(false);
+          toast.error('Nie udało się uruchomić mikrofonu natywnego.');
+          return;
         }
       }
       

@@ -14,10 +14,20 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.10';
+export const CURRENT_VERSION = '5.4.11';
 export const CURRENT_OTA_REVISION = 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.11",
+    date: "2026-06-30",
+    title: "Natywny mikrofon Android",
+    changes: [
+      "Nowość: Oparto wyszukiwanie głosowe w 100% na usługach natywnych systemu Android w celu optymalizacji i naprawy błędu odmowy dostępu.",
+      "Naprawa: Zredukowano finalny rozmiar aktualizacji OTA."
+    ]
+  },
+
   {
     version: "5.4.8",
     date: "2026-06-30",
@@ -390,6 +400,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.11",
+    date: "2026-06-30",
+    title: "Natywny mikrofon Android",
+    changes: [
+      "Nowość: Oparto wyszukiwanie głosowe w 100% na usługach natywnych systemu Android w celu optymalizacji i naprawy błędu odmowy dostępu.",
+      "Naprawa: Zredukowano finalny rozmiar aktualizacji OTA."
+    ]
+  },
+
   {
     version: "5.4.8",
     date: "2026-06-30",

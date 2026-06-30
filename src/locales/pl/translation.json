@@ -6485,5 +6485,6 @@
   "changelog.v539_title": "Wymuszenie ręcznej aktualizacji",
   "changelog.v539_change_1": "Nowość: Dodano przycisk ręcznego wymuszenia aktualizacji OTA w zakładce Ustawienia/Profil",
   "changelog.v539_change_2": "Naprawa: Usunięto błąd permanentnego ukrywania aktualizacji po kliknięciu \"Pobierz APK\"",
-  "changelog.v539_apk_change_1": "Dodano możliwość ręcznego wywołania OTA. Naprawiono blokadę okienka aktualizacji."
+  "changelog.v539_apk_change_1": "Dodano możliwość ręcznego wywołania OTA. Naprawiono blokadę okienka aktualizacji.",
+  "auto.mow_teraz": "Mów teraz..."
 }

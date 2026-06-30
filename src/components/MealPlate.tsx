@@ -1132,15 +1132,6 @@ export default function MealPlate({
   };
 
   const startVoiceSearch = async () => {
-    // @ts-ignore
-    const SpeechRec =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-    if (!SpeechRec) {
-      toast.error(i18n.t('auto.twoja_przegladarka_nie_obslugu', { defaultValue: i18n.t('auto.twoja_przegladarka_nie_ob', { defaultValue: "Twoja przeglądarka nie obsługuje wyszukiwania głosowego." }) }));
-      return;
-    }
-
     if (Capacitor.isNativePlatform()) {
       try {
         const permStatus = await SpeechRecognition.checkPermissions();
@@ -1151,9 +1142,43 @@ export default function MealPlate({
             return;
           }
         }
+        setIsListening(true);
+        const { matches } = await SpeechRecognition.start({
+          language: 'pl-PL',
+          maxResults: 1,
+          prompt: i18n.t('auto.mow_teraz', { defaultValue: 'Mów teraz...' }),
+          partialResults: false,
+          popup: true
+        });
+        if (matches && matches.length > 0) {
+          const speechResult = matches[0];
+          setSearchTerm(speechResult);
+          
+          const localMatches = allLocal.filter((p) =>
+            getProductName(p, i18n.language).toLowerCase().includes(speechResult.toLowerCase()),
+          );
+          if (localMatches.length === 0) {
+            await performOnlineSearch(speechResult);
+          }
+        }
+        setIsListening(false);
+        return;
       } catch (e) {
-        console.error('Error requesting microphone permissions:', e);
+        console.error('Native speech recognition error:', e);
+        setIsListening(false);
+        toast.error('Nie udało się uruchomić mikrofonu natywnego.');
+        return;
       }
+    }
+
+    // Fallback for Web
+    // @ts-ignore
+    const SpeechRec =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    if (!SpeechRec) {
+      toast.error(i18n.t('auto.twoja_przegladarka_nie_obslugu', { defaultValue: i18n.t('auto.twoja_przegladarka_nie_ob', { defaultValue: "Twoja przeglądarka nie obsługuje wyszukiwania głosowego." }) }));
+      return;
     }
 
     const recognition = new SpeechRec();

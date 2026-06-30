@@ -4776,5 +4776,6 @@
   "changelog.v539_title": "Manual update override",
   "changelog.v539_change_1": "New: Added manual OTA update force button in Settings/Profile tab",
   "changelog.v539_change_2": "Fix: Removed permanent update hiding bug after clicking \"Download APK\"",
-  "changelog.v539_apk_change_1": "Added manual OTA trigger. Fixed update modal block."
+  "changelog.v539_apk_change_1": "Added manual OTA trigger. Fixed update modal block.",
+  "auto.mow_teraz": "Speak now..."
 }

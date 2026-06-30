@@ -1,7 +1,7 @@
 import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '5.4.10';
+export const APP_VERSION = '5.4.11';
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';
 export const FACEBOOK_GROUP_URL = 'https://www.facebook.com/groups/4442689766059238/';
