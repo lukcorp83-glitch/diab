@@ -84,7 +84,7 @@ jobs:
       - name: 🗜️ Utwórz dist.zip i update.zip (OTA bundle)
         run: |
           cd dist
-          zip -r ../dist.zip . -x "*.apk"
+          zip -r ../dist.zip . -x "*.apk" "**/*.apk"
           BRANCH_NAME="${{ github.ref_name }}"
           if [ "$BRANCH_NAME" = "beta" ]; then
             cp ../dist.zip ../update-beta.zip
@@ -195,8 +195,10 @@ jobs:
           BRANCH_NAME="${{ github.ref_name }}"
           if [ "$BRANCH_NAME" = "beta" ]; then
             cp dist.zip update-beta.zip || true
+            unzip -o dist.zip -d dist/ || true
           else
             cp dist.zip update.zip || true
+            unzip -o dist.zip -d dist/ || true
           fi
 
       - name: 🗑️ Usuń stary Release
