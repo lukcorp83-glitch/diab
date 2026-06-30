@@ -14,10 +14,19 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.12';
+export const CURRENT_VERSION = '5.4.13';
 export const CURRENT_OTA_REVISION = 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.13",
+    date: "2026-06-30",
+    title: "Optymalizacja pamięci podręcznej",
+    changes: [
+      "Poprawki i usunięcie błędu z pamięcią podręczną Vite (usunięto stary folder testowy) oraz wyczyszczenie przycisków telemetrii."
+    ]
+  },
+
 
   {
     version: "5.4.12",
@@ -410,6 +419,15 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.13",
+    date: "2026-06-30",
+    title: "Optymalizacja pamięci podręcznej",
+    changes: [
+      "Poprawki i usunięcie błędu z pamięcią podręczną Vite (usunięto stary folder testowy) oraz wyczyszczenie przycisków telemetrii."
+    ]
+  },
+
 
   {
     version: "5.4.12",

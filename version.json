@@ -1,8 +1,8 @@
 {
-    "version": "5.4.12",
+    "version": "5.4.13",
     "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.12_OTA.apk",
-    "whatsNew": "🚀 Wersja 5.4.12: Naprawa importu mikrofonu w bazie produktów oraz weryfikacja poprawności filtrowania wyszukiwania.",
-    "whatsNewEn": "🚀 Version 5.4.12: Microphone import fix in the product database and search filtering verification.",
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.13_OTA.apk",
+    "whatsNew": "🚀 Wersja 5.4.13: Poprawki i usunięcie błędu z pamięcią podręczną Vite (usunięto stary folder testowy) oraz wyczyszczenie przycisków telemetrii.",
+    "whatsNewEn": "🚀 Version 5.4.13: Cache optimization and removal of outdated telemetry buttons.",
     "otaRevision": 255
 }

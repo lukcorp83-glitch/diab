@@ -1986,41 +1986,6 @@ export default function Profile({
                                                         </span>
                 </button>
               </div>
-
-              <motion.div
-                whileHover={{ y: -1 }}
-                className="flex flex-col gap-2 p-4 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/20 dark:border-slate-800/50 mt-6 text-left shadow-xl"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="p-1.5 bg-purple-500/10 rounded-lg">
-                      <Brain size={12} />
-                    </div>
-                    
-                                                          {t('auto.program_badawczy_glikosense', { defaultValue: 'Program Badawczy GlikoSense' })}
-                                                        </h4>
-                  <button
-                    onClick={() => {
-                      const val = !telemetryEnabled;
-                      setTelemetryEnabled(val);
-                      localStorage.setItem(
-                        "glikosense_telemetry",
-                        val ? "true" : "false",
-                      );
-                    }}
-                    className={cn(
-                      "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
-                      telemetryEnabled && "bg-purple-500 pl-5",
-                    )}
-                  >
-                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                  </button>
-                </div>
-                <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-snug font-bold">
-                  
-                                                    {t('auto.pomóż_społeczności_włącz_anonimowe_', { defaultValue: i18n.t('auto.pomoz_spolecznosci_wlacz', { defaultValue: "Pomóż społeczności. Włącz anonimowe udostępnianie wiedzy wyuczonej przez Twój model AI (GlikoSense)." }) })}
-                                                  </p>
-              </motion.div>
             </div>
           </div>
 
