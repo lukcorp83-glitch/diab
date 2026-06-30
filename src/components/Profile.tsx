@@ -5721,14 +5721,7 @@ export default function Profile({
                                         {t('auto.pobierz_najnowszą_wersję_oficjalnej', { defaultValue: i18n.t('auto.pobierz_najnowsza_wersje', { defaultValue: "Pobierz najnowszą wersję oficjalnej aplikacji na system Android (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia i mniejsze zużycie baterii." }) })}
                                       </p>
             
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4 border border-blue-100 dark:border-blue-800/30 border-l-4 border-l-blue-500">
-              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">{t('auto.co_nowego_w_wersji_5_3_0', { defaultValue: 'Co nowego w wersji 5.3.0?' })}</h4>
-              <ul className="text-[10px] text-blue-700 dark:text-blue-300 list-disc pl-4 space-y-0.5">
-                 <li>{t('auto.całkiem_nowa_integracja_z_natywnym_', { defaultValue: i18n.t('auto.calkiem_nowa_integracja_z', { defaultValue: "Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto" }) })}</li>
-                 <li>{t('auto.nowe_szczegółowe_raporty_agp_z_wyko', { defaultValue: i18n.t('auto.nowe_szczegolowe_raporty', { defaultValue: "Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu" }) })}</li>
-                 <li>{t('auto.optymalizacja_animacji_we_wszystkic', { defaultValue: 'Optymalizacja animacji we wszystkich widokach' })}</li>
-              </ul>
-            </div>
+
 
               {/* Przycisk pobierania APK - zawsze dostepny niezaleznie od platformy */}
               <a
@@ -5791,18 +5784,7 @@ export default function Profile({
                                                   </li>
               </ol>
 
-              <h4 className="text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 mt-4">
-                
-                                              {t('auto.instrukcja_podgląd_glikemii_w_andro', { defaultValue: i18n.t('auto.instrukcja_podglad_glikem', { defaultValue: "🚗 Instrukcja: Podgląd Glikemii w Android Auto" }) })}
-                                            </h4>
-              <ol className="list-decimal pl-4 text-[10px] space-y-1 text-indigo-700 dark:text-indigo-300/80 mb-3">
-                <li>{t('auto.otwórz', { defaultValue: i18n.t('auto.otworz', { defaultValue: "Otwórz" }) })} <span className="font-bold">{t('auto.ustawienia_android_auto', { defaultValue: 'Ustawienia Android Auto' })}</span>  {t('auto.na_telefonie', { defaultValue: 'na telefonie.' })}</li>
-                <li>{t('auto.zjedź_na_sam_dół_do_sekcji', { defaultValue: i18n.t('auto.zjedz_na_sam_dol_do_sekcj', { defaultValue: "Zjedź na sam dół do sekcji" }) })} <span className="font-bold">{t('auto.wersja', { defaultValue: 'Wersja' })}</span>.</li>
-                <li>{t('auto.kliknij_w_pole_quot_wersja_quot', { defaultValue: 'Kliknij w pole &quot;Wersja&quot;' })} <b>{t('auto.szybko_10_razy_z_rzędu', { defaultValue: i18n.t('auto.szybko_10_razy_z_rzedu', { defaultValue: "szybko 10 razy z rzędu" }) })}</b>{t('auto.by_odblokować_tryb_dewelopera', { defaultValue: i18n.t('auto.by_odblokowac_tryb_dewelo', { defaultValue: ", by odblokować Tryb Dewelopera." }) })}</li>
-                <li>{t('auto.kliknij_w_trzy_kropki_prawy_górny_r', { defaultValue: i18n.t('auto.kliknij_w_trzy_kropki_pra', { defaultValue: "Kliknij w trzy kropki (prawy górny róg) i otwórz" }) })} <b>{t('auto.ustawienia_programisty', { defaultValue: 'Ustawienia programisty' })}</b>.</li>
-                <li>{t('auto.zaznacz_ptaszek_przy', { defaultValue: 'Zaznacz ptaszek przy' })} <b>{t('auto.nieznane_źródła', { defaultValue: i18n.t('auto.nieznane_zrodla', { defaultValue: "Nieznane źródła" }) })}</b>  {t('auto.zezwalaj_na_używanie_aplikacji', { defaultValue: i18n.t('auto.zezwalaj_na_uzywanie_apli', { defaultValue: "(Zezwalaj na używanie aplikacji)." }) })}</li>
-                <li>{t('auto.po_podłączeniu_do_samochodu', { defaultValue: i18n.t('auto.po_podlaczeniu_do_samocho', { defaultValue: "Po podłączeniu do samochodu," }) })} <b>{t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}</b>  {t('auto.pojawi_się_w_menu_android_auto_a_na', { defaultValue: i18n.t('auto.pojawi_sie_w_menu_android', { defaultValue: "pojawi się w menu Android Auto, a na wyświetlaczu zobaczysz aktualny poziom cukru odświeżany co 30 sekund!" }) })}</li>
-              </ol>
+
             </div>
             
             {/* APK Version History */}
