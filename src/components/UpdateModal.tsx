@@ -28,7 +28,7 @@ export default function UpdateModal() {
         } else {
           try {
             const url = isBeta 
-              ? 'https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/beta.json?t=' + Date.now()
+              ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
               : 'https://lukcorp83-glitch.github.io/diab/version.json?t=' + Date.now();
               
             const res = await fetch(url);
@@ -37,7 +37,7 @@ export default function UpdateModal() {
           } catch (fetchError) {
              console.log("CORS/Fetch error, falling back...", fetchError);
              const fallbackUrl = isBeta
-               ? 'https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/beta.json?t=' + Date.now()
+               ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
                : 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now();
              const resOld = await fetch(fallbackUrl);
              data = await resOld.json();

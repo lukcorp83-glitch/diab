@@ -1,8 +1,8 @@
 {
-  "version": "5.4.14",
+  "version": "5.4.15",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.14_OTA.apk",
-  "whatsNew": "🚀 Wersja 5.4.14: Inteligentny widget kalkulatora posiłków oraz trwale przełączalne Wzorce GlikoSense.",
-  "whatsNewEn": "🚀 Version 5.4.14: Smart meal calculator widget and toggleable GlikoSense patterns.",
-  "otaRevision": 255
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.15_OTA.apk",
+  "whatsNew": "🚀 Wersja 5.4.15: Bezpieczeństwo AI i poprawki UI",
+  "whatsNewEn": "🚀 Version 5.4.15: AI Security and UI fixes",
+  "otaRevision": 256
 }

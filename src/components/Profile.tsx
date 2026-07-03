@@ -1,6 +1,7 @@
 import { dbService } from '../services/databaseService';
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { Haptics } from "../lib/haptics";
 import { healthService } from "../services/healthService";
 import { toast } from "react-hot-toast";
@@ -261,9 +262,24 @@ export default function Profile({
     "skins" | "accessories" | "backgrounds"
   >("skins");
   const [saveStatus, setSaveStatus] = useState<string>("");
-  const [geminiApiKey, setGeminiApiKey] = useState(
-    () => localStorage.getItem("gemini_api_key") || "",
-  );
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [aiStatus, setAiStatus] = useState({ label: '', color: '', type: '' });
+
+  useEffect(() => {
+    const loadAiData = async () => {
+      try {
+        const result = await SecureStoragePlugin.get({ key: "gemini_api_key" });
+        if (result && result.value) {
+          setGeminiApiKey(result.value);
+        }
+      } catch(e) {}
+    };
+    loadAiData();
+  }, []);
+
+  useEffect(() => {
+    geminiService.getAiStatus().then(setAiStatus);
+  }, [geminiApiKey]);
   const [geminiSaveStatus, setGeminiSaveStatus] = useState("");
   const [isTestingKey, setIsTestingKey] = useState(false);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
@@ -713,11 +729,20 @@ export default function Profile({
   const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.4_OTA_FINISH.apk");
 
   useEffect(() => {
-    fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now())
+    const isBeta = localStorage.getItem("betaProgramEnabled") === "true";
+    const url = isBeta
+      ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
+      : 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now();
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         if (data.version) setApkVersion(data.version);
-        if (data.apkUrl) setApkUrl(data.apkUrl);
+        if (data.apkUrl) {
+          const finalApkUrl = isBeta 
+            ? data.apkUrl.replace('aktualizacja', 'aktualizacja-beta').replace('_OTA.apk', '-beta_OTA.apk')
+            : data.apkUrl;
+          setApkUrl(finalApkUrl);
+        }
       })
       .catch(() => {});
   }, []);
@@ -5541,11 +5566,11 @@ export default function Profile({
                     <p
                       className={cn(
                         "text-[9px] font-black uppercase tracking-widest leading-none",
-                        geminiService.getAiStatus().color,
+                        aiStatus.color,
                       )}
                     >
                       
-                                                                {t('auto.status', { defaultValue: 'Status:' })} {geminiService.getAiStatus().label}
+                                                                {t('auto.status', { defaultValue: 'Status:' })} {aiStatus.label}
                     </p>
                   </div>
                 </div>
@@ -5561,7 +5586,7 @@ export default function Profile({
               >
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed font-medium">
                   
-                                                    {t('auto.aby_uniknąć_limitów_serwerowych_moż', { defaultValue: i18n.t('auto.aby_uniknac_limitow_serwe', { defaultValue: "Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z" }) })}{" "}
+                                                    {t('auto.aby_uniknąć_limitów_serwerowych_moż', { defaultValue: i18n.t('auto.aby_uniknac_limit_serwe', { defaultValue: "Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z" }) })}{" "}
                   <a
                     href="https://aistudio.google.com/app/apikey"
                     target="_blank"
@@ -5601,19 +5626,25 @@ export default function Profile({
                       const val = e.target.value;
                       setGeminiApiKey(val);
                       if (val) {
-                        localStorage.setItem("gemini_api_key", val.trim());
+                        SecureStoragePlugin.set({ key: "gemini_api_key", value: val.trim() }).catch(()=>{});
                       } else {
-                        localStorage.removeItem("gemini_api_key");
+                        SecureStoragePlugin.remove({ key: "gemini_api_key" }).catch(()=>{});
                       }
                     }}
-                    onBlur={() => {
+                    onBlur={async () => {
                       const val = geminiApiKey.trim();
                       setGeminiApiKey(val);
                       if (val) {
-                        localStorage.setItem("gemini_api_key", val);
-                        setGeminiSaveStatus(i18n.t('auto.zapisano_pomyslnie', { defaultValue: i18n.t('auto.zapisano_pomyslnie', { defaultValue: "Zapisano pomyślnie ✓" }) }));
+                        try {
+                          await SecureStoragePlugin.set({ key: "gemini_api_key", value: val });
+                          setGeminiSaveStatus(i18n.t('auto.zapisano_pomyslnie', { defaultValue: i18n.t('auto.zapisano_pomyslnie', { defaultValue: "Zapisano pomyślnie ✓" }) }));
+                        } catch(e) {
+                          setGeminiSaveStatus("Błąd zapisu");
+                        }
                       } else {
-                        localStorage.removeItem("gemini_api_key");
+                        try {
+                          await SecureStoragePlugin.remove({ key: "gemini_api_key" });
+                        } catch(e) {}
                         setGeminiSaveStatus(i18n.t('auto.usunieto_klucz', { defaultValue: i18n.t('auto.usunieto_klucz', { defaultValue: "Usunięto klucz ✓" }) }));
                       }
                       setTimeout(() => setGeminiSaveStatus(""), 2000);

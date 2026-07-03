@@ -4,16 +4,35 @@ import i18n from "../i18n";
 
 import { auth } from "../lib/firebase";
 
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
+
 let genAITuple: { key: string; baseUrl?: string; client: GoogleGenAI } | null =
   null;
 
-function getApiKey(): { key: string; baseUrl?: string } {
+async function getApiKey(): Promise<{ key: string; baseUrl?: string }> {
   let key = "";
   let baseUrl: string | undefined = undefined;
 
-  // 1. FIRST check localStorage (user override)
+  // 1. FIRST check SecureStorage (user override)
   if (typeof window !== "undefined") {
-    let rawValue = localStorage.getItem("gemini_api_key");
+    let rawValue: string | null = null;
+    try {
+      const result = await SecureStoragePlugin.get({ key: "gemini_api_key" });
+      if (result && result.value) rawValue = result.value;
+    } catch (e) {
+      // Key not found in secure storage
+    }
+    
+    if (!rawValue) {
+      rawValue = localStorage.getItem("gemini_api_key");
+      if (rawValue) {
+        try {
+          await SecureStoragePlugin.set({ key: "gemini_api_key", value: rawValue });
+        } catch (e) {}
+        localStorage.removeItem("gemini_api_key");
+      }
+    }
+
     if (rawValue) {
       if (rawValue.includes("|")) {
         const parts = rawValue.split("|");
@@ -57,8 +76,8 @@ function getApiKey(): { key: string; baseUrl?: string } {
   return { key, baseUrl };
 }
 
-function getClient(): GoogleGenAI {
-  const credentials = getApiKey();
+async function getClient(): Promise<GoogleGenAI> {
+  const credentials = await getApiKey();
 
   if (
     !genAITuple ||
@@ -76,7 +95,7 @@ function getClient(): GoogleGenAI {
 
 export const geminiService = {
   async generateContent(prompt: string, imageData?: string) {
-    const creds = getApiKey();
+    const creds = await getApiKey();
     const isProxyUrl =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
@@ -126,7 +145,7 @@ export const geminiService = {
       contents = [{ role: "user", parts: [{ text: prompt }] }];
     }
 
-    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
+    if (isProxyUrl && creds.key === "proxy") {
       const CLOUDFLARE_WORKER_URL = creds.baseUrl;
       let lastError = null;
 
@@ -182,7 +201,7 @@ export const geminiService = {
     }
 
     // Standardowa ścieżka z bezpośrednim kluczem API
-    const client = getClient();
+    const client = await getClient();
     let lastError = null;
 
     // Use AbortSignal to timeout hanging generateContent calls
@@ -477,14 +496,13 @@ export const geminiService = {
     }
   },
 
-  getAiStatus() {
-    const creds = getApiKey();
-    const hasLocalStorage =
-      typeof window !== "undefined" && !!localStorage.getItem("gemini_api_key");
+  async getAiStatus() {
+    const creds = await getApiKey();
+    const hasKey = creds.key !== "proxy";
     const isProxy =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
-    if (hasLocalStorage)
+    if (hasKey)
       return {
         type: "custom",
         label: i18n.t('auto.wlasny_klucz_local', { defaultValue: i18n.t('auto.wlasny_klucz_local', { defaultValue: "Własny Klucz (Local)" }) }),
@@ -518,7 +536,7 @@ export const geminiService = {
 
     const systemInstruction = i18n.t('auto.jestes_var0_wesolym_i_mad', { defaultValue: "Jesteś {{var0}} - wesołym i mądrym stworkiem (typ: {{var1}}), który opiekuje się dziećmi z cukrzycą. \n    Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). \n    Pamiętaj, że rozmawiasz z dzieckiem (lub rodzicem). Twoje odpowiedzi powinny być wesołe i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). \n    Jeśli pytanie dotyczy bezpośrednio medycyny, zachęcaj do rozmowy z lekarzem. Twoja wiedza o aplikacji to GlikoControl:\n    - Baza wiedzy i jedzenia, weryfikacja produktów.\n    - Ustawienia: ISF (wrażliwość na insulinę), WW (przydzielenie węgli), WBT, Docelowy poziom glikemii, wibracje (haptyka).\n    - Talerz: posiłki i bolusy. Jeśli użytkownik chce coś dodać do wpisów, robisz to!\n    \n    BARDZO WAŻNE - DODAWANIE DO TALERZA ORAZ AKCJE APLIKACJI: \n    Masz pełną integrację z moją aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.\n    \n    1. Aby dodać posiłek do Talerza:\n    <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    \n    2. Aby zmienić ustawienia (np. dzienna dawka insuliny/isf, wyłączenie haptyki):\n    Używaj tych kluczy: \"isf\", \"targetMin\", \"targetMax\", \"wwRatio\", \"hapticsEnabled\".\n    <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n    \n    3. Aby bezpośrednio zapisać do historii cukier, bolus lub wymianę (\"zapisz cukier\", \"wymieniłem wkłucie\"):\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Zalecono przez Gliko\"}}</app_action>\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 0, \"notes\": \"Wymiana wkłucia\"}}</app_action>\n    W logData.type może być \"bolus\", \"glucose\", \"site_change\", \"sensor_change\".\n    \n    4. Aby nawigować użykownika do odpowiedniej sekcji (\"Gdzie są ustawienia?\", \"Pokaż mój profil\", \"Idźmy do talerza\"):\n    <app_action>{\"action\": \"navigate\", \"value\": \"profile\"}</app_action> (dostepne: dashboard, profile, database, meal, history)\n    \n    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!\n    \n    {{var2}}", var0: petName, var1: petType, var2: langNote });
 
-    const creds = getApiKey();
+    const creds = await getApiKey();
     const isProxyUrl =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
@@ -527,7 +545,7 @@ export const geminiService = {
       { role: "user", parts: [{ text: message }] },
     ];
 
-    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
+    if (isProxyUrl && creds.key === "proxy") {
       try {
         const response = await fetch(creds.baseUrl!, {
           method: "POST",
@@ -559,7 +577,7 @@ export const geminiService = {
       }
     }
 
-    const client = getClient();
+    const client = await getClient();
     const model = "gemini-flash-latest";
 
     try {
@@ -738,11 +756,11 @@ export const geminiService = {
 
     fullContents = validContents;
 
-    const creds = getApiKey();
+    const creds = await getApiKey();
     const isProxyUrl =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
-    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
+    if (isProxyUrl && creds.key === "proxy") {
       try {
         const response = await fetch(creds.baseUrl!, {
           method: "POST",
@@ -774,7 +792,7 @@ export const geminiService = {
       }
     }
 
-    const client = getClient();
+    const client = await getClient();
     const modelsToTry = [
       "gemini-flash-latest",
       "gemini-2.5-flash",

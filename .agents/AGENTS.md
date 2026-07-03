@@ -25,3 +25,8 @@
   - Prace nad nowymi, niestabilnymi funkcjami lub prośbami użytkownika o zmiany w kodzie muszą być prowadzone **WYŁĄCZNIE na gałęzi `beta`** (użyj `git checkout beta` jeśli jesteś na main).
   - Po wypchnięciu zmian (push) na gałąź `beta`, GitHub wygeneruje wydanie `aktualizacja-beta` zawierające pliki `beta.json` oraz `update-beta.zip`. Trafią one w formie OTA do użytkowników z włączoną opcją "Program testów Beta" w ustawieniach.
   - Dopiero po uzyskaniu potwierdzenia od użytkownika, że nowa funkcja działa poprawnie, kod z gałęzi `beta` może zostać zmergowany (merge) do głównej gałęzi `main`. Nigdy nie wrzucaj eksperymentów bezpośrednio na `main`!
+
+- **Uwaga na konflikty łączenia (Merge Conflicts)**:
+  - Przechodząc z gałęzi main na eta przy użyciu opcji "Bring my changes to beta" w Git Desktop (co działa jak git stash & pop), aplikacja nakłada niezapisane modyfikacje na pliki z gałęzi docelowej.
+  - Najczęściej powoduje to konflikty (oznaczone jako <<<<<<< Updated upstream) w plikach zarządzających wersjami (np. \ersion.json\, \package.json\, \src/constants/versions.ts\) oraz w głównych komponentach, jeśli obie gałęzie dodawały nowe importy (np. \Dashboard.tsx\).
+  - Przed wykonaniem buildu po przełączeniu gałęzi ZAWSZE sprawdź, czy w kodzie nie zostały śmieci z konfliktów (użyj wyszukiwania \<<<<<<<\) i precyzyjnie je rozwiąż, zachowując zaktualizowane importy oraz spójną wersję.

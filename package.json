@@ -1,7 +1,7 @@
 {
   "name": "diacontrolapp",
   "private": true,
-  "version": "5.4.14",
+  "version": "5.4.15",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -40,6 +40,7 @@
     "axios-cookiejar-support": "^6.0.5",
     "bing-translate-api": "^4.2.0",
     "canvas-confetti": "^1.9.4",
+    "capacitor-secure-storage-plugin": "^0.13.0",
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
     "chartjs-plugin-annotation": "^3.1.0",
