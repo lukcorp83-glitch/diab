@@ -3336,41 +3336,66 @@ export default function Profile({
                         type: "multiplier"
                       }
                     ].filter(pattern => {
-                      if (pattern.type === "boolean") return learnedRules[pattern.id] === true;
-                      if (pattern.type === "multiplier") return learnedRules[pattern.id] && learnedRules[pattern.id] !== 1.0;
-                      return false;
+                      return Object.keys(learnedRules).includes(pattern.id);
                     }).map((pref) => {
+                      const isActive = pref.type === "boolean" 
+                        ? learnedRules[pref.id] === true 
+                        : learnedRules[pref.id] !== 1.0 && learnedRules[pref.id] !== undefined;
+
                       return (
-                        <button
+                        <div
                           key={pref.id}
-                          onClick={() => {
-                            const newRules = { ...learnedRules };
-                            if (pref.type === "boolean") {
-                              delete newRules[pref.id];
-                            } else {
-                              newRules[pref.id] = 1.0;
-                            }
-                            setLearnedRules(newRules);
-                            localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
-                            toast.success(t('auto.regula_wylaczona', { defaultValue: "Zjawisko usunięte z pamięci GlikoSense" }));
-                          }}
                           className={cn(
-                            "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
-                            "bg-amber-50/50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 shadow-sm hover:opacity-80 active:scale-95"
+                            "flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all text-left",
+                            "bg-amber-50/50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 shadow-sm"
                           )}
                         >
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-amber-500/20 shadow-sm">
-                            {pref.icon}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-amber-500/20 shadow-sm">
+                              {pref.icon}
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-black uppercase tracking-tight block text-amber-700 dark:text-amber-300">
+                                {pref.label}
+                              </span>
+                              <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
+                                {pref.desc}
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-[10px] font-black uppercase tracking-tight block text-amber-700 dark:text-amber-300">
-                              {pref.label}
-                            </span>
-                            <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-                              {pref.desc} (Kliknij by zresetować)
-                            </span>
-                          </div>
-                        </button>
+                          
+                          <button
+                            onClick={() => {
+                              const newRules = { ...learnedRules };
+                              
+                              if (pref.type === "boolean") {
+                                newRules[pref.id] = !isActive;
+                              } else {
+                                // Modyfikatory (np. insulinooporność 1.2x)
+                                if (isActive) {
+                                  newRules[pref.id] = 1.0;
+                                } else {
+                                  newRules[pref.id] = 1.2; // Domyślna wartość włączenia
+                                }
+                              }
+                              
+                              setLearnedRules(newRules);
+                              localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
+                              toast.success(isActive ? t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) : t('auto.regula_wlaczona', { defaultValue: "Reguła włączona" }));
+                            }}
+                            className={cn(
+                              "w-10 h-5 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
+                              isActive ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "bg-white w-3 h-3 rounded-full shadow-md transform transition-transform duration-200",
+                                isActive ? "translate-x-5" : "translate-x-0"
+                              )}
+                            />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

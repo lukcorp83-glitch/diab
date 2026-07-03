@@ -1,8 +1,8 @@
 {
-    "version": "5.4.13",
-    "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.13_OTA.apk",
-    "whatsNew": "🚀 Wersja 5.4.13: Poprawki i usunięcie błędu z pamięcią podręczną Vite (usunięto stary folder testowy) oraz wyczyszczenie przycisków telemetrii.",
-    "whatsNewEn": "🚀 Version 5.4.13: Cache optimization and removal of outdated telemetry buttons.",
-    "otaRevision": 255
+  "version": "5.4.14",
+  "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.14_OTA.apk",
+  "whatsNew": "🚀 Wersja 5.4.14: Inteligentny widget kalkulatora posiłków oraz trwale przełączalne Wzorce GlikoSense.",
+  "whatsNewEn": "🚀 Version 5.4.14: Smart meal calculator widget and toggleable GlikoSense patterns.",
+  "otaRevision": 255
 }
