@@ -4,7 +4,7 @@ import { LogEntry, UserSettings } from "../types";
 import GlucoseChart from "./GlucoseChart";
 import { Haptics } from "../lib/haptics";
 import GlikoSenseIcon from "./GlikoSenseIcon";
-import { Activity, Clock, Droplet, Apple, Droplets, RefreshCw, Zap, Signal } from "lucide-react";
+import { Activity, Clock, Droplet, Apple, Droplets, RefreshCw, Zap, Signal, Syringe } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
@@ -133,13 +133,13 @@ export default function ChartFullView({
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-pink-500">
            <div className="p-1 max-w-fit rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
-             <span className="text-[10px] leading-none mb-0.5">💉</span>
+             <Syringe size={10} strokeWidth={2.5} />
            </div>
            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.bolus_iob', { defaultValue: 'Bolus / IOB' })}</span>
         </div>
         <div className="flex items-center gap-1.5 snap-start shrink-0 text-amber-500">
            <div className="p-1 max-w-fit rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-             <span className="text-[10px] leading-none mb-0.5">🍽️</span>
+             <Apple size={10} strokeWidth={2.5} />
            </div>
            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.węgle_ww', { defaultValue: i18n.t('auto.wegle_ww', { defaultValue: "Węgle (WW)" }) })}</span>
         </div>

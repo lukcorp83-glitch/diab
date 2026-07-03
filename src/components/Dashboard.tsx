@@ -21,6 +21,7 @@ import {
   Droplets,
   Syringe,
   Utensils,
+  Apple,
   Plus,
   Shield,
   Trash2,
@@ -2055,7 +2056,7 @@ export default function Dashboard({
                     return (
                       <div key={log.id} className="flex justify-between items-center text-[10px] bg-slate-500/5 p-1.5 rounded-lg border border-slate-100 dark:border-white/5">
                         <span className="font-black dark:text-white flex items-center gap-1">
-                          {lIsMeal ? "🍎" : "💉"} {typeof log.value === 'number' ? Number(log.value.toFixed(1)) : Number(Number(log.value).toFixed(1))} {lIsMeal ? "g" : "j."}
+                          {lIsMeal ? <Apple size={12} className="text-amber-500" /> : <Syringe size={12} className="text-indigo-400" />} {typeof log.value === 'number' ? Number(log.value.toFixed(1)) : Number(Number(log.value).toFixed(1))} {lIsMeal ? "g" : "j."}
                         </span>
                         <span className="text-[8px] text-slate-400 font-bold">{new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                       </div>

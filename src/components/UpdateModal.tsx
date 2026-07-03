@@ -39,12 +39,22 @@ export default function UpdateModal() {
              const fallbackUrl = isBeta
                ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
                : 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now();
-             const resOld = await fetch(fallbackUrl);
-             data = await resOld.json();
+            const resOld = await fetch(fallbackUrl);
+            data = await resOld.json();
           }
         }
 
-        
+        // Enforce correct URLs based on channel to prevent 404s
+        if (data) {
+          if (isBeta) {
+            data.apkUrl = `https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_${data.version}-beta_OTA.apk`;
+            data.url = `https://lukcorp83-glitch.github.io/diab/update-beta.zip`;
+          } else {
+            data.apkUrl = `https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_${data.version}_OTA.apk`;
+            data.url = `https://lukcorp83-glitch.github.io/diab/update.zip`;
+          }
+        }
+
         const dismissed = localStorage.getItem("dismissedApkVersion");
         const dismissedOta = localStorage.getItem("dismissedOtaRevision");
         const appliedOta = localStorage.getItem("appliedOtaRevision");

@@ -467,9 +467,9 @@ body {
   border-radius: 1rem !important;
 }
 
-:root[data-material3="true"] button {
-  border-radius: 9999px !important; /* Pill shaped buttons */
-}
+  :root[data-material3="true"] button:not(.rounded-2xl):not(.rounded-3xl):not(.rounded-xl):not(.rounded-lg) {
+    border-radius: 9999px !important; /* Pill shaped buttons */
+  }
 :root[data-material3="true"] .rounded-2xl {
   border-radius: 1rem !important;
 }

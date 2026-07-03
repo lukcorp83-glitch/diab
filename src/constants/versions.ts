@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.16';
+export const CURRENT_VERSION = '5.4.17';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.17",
+    date: "2026-07-03",
+    title: "Aktualizacja Wizualna Premium (BETA)",
+    changes: [
+      "Nowość: Wektorowe, wysokiej rozdzielczości ikony posiłków (Apple) i insuliny (Syringe) na głównym wykresie.",
+      "Ulepszenie: Implementacja matematycznych krzywych (Cubic Splines) do idealnego wygładzenia linii glikemii.",
+      "Ulepszenie: Dodano efekt Neon Glow (świecenia) dla głównego wykresu w trybie ciemnym.",
+      "Nowość: Responsywne wibracje haptyczne przy przeglądaniu historii (Scrubbing)."
+    ]
+  },
   {
     version: "5.4.16",
     date: "2026-07-03",
@@ -431,6 +442,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.17",
+    date: "2026-07-03",
+    title: "Aktualizacja Wizualna Premium (BETA)",
+    changes: [
+      "Nowość: Wektorowe, wysokiej rozdzielczości ikony posiłków (Apple) i insuliny (Syringe) na głównym wykresie.",
+      "Ulepszenie: Implementacja matematycznych krzywych (Cubic Splines) do idealnego wygładzenia linii glikemii.",
+      "Ulepszenie: Dodano efekt Neon Glow (świecenia) dla głównego wykresu w trybie ciemnym.",
+      "Nowość: Responsywne wibracje haptyczne przy przeglądaniu historii (Scrubbing)."
+    ]
+  },
   {
     version: "5.4.16",
     date: "2026-07-03",
