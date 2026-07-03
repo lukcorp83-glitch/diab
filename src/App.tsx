@@ -2209,6 +2209,49 @@ export default function App() {
     };
   }, [user, nsUrl]);
 
+  // Globalna obsługa sprzętowego przycisku Back (Android) i gestu "Wstecz"
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    
+    const backListener = CapacitorApp.addListener('backButton', () => {
+      // 1. Sprawdź, czy na ekranie wisi jakiekolwiek okno modalne, popup lub otwarte menu z tłem
+      // .fixed.inset-0 to wspólny mianownik dla wszystkich okien modalnych i popupów
+      const modals = document.querySelectorAll('.fixed.inset-0, [role="dialog"]');
+      
+      if (modals.length > 0) {
+        // Pobieramy najwyższe okno (ostatnie w DOM)
+        const topModal = modals[modals.length - 1];
+        
+        // Szukamy w tym oknie przycisku do zamykania/anulowania
+        const closeBtn = topModal.querySelector('button[aria-label="Zamknij"], button[aria-label="Close"], button[title="Zamknij"], button[aria-label="Cofnij"]') 
+                         || Array.from(topModal.querySelectorAll('button')).find(b => 
+                              b.textContent?.toLowerCase().includes('zamknij') || 
+                              b.textContent?.toLowerCase().includes('anuluj') ||
+                              b.textContent?.toLowerCase().includes('close')
+                            );
+
+        if (closeBtn && typeof (closeBtn as HTMLElement).click === 'function') {
+          (closeBtn as HTMLElement).click();
+        } else {
+          // Fallback: kliknij w samo ciemne tło (często ma przypisane zamknięcie)
+          (topModal as HTMLElement).click();
+        }
+      } else {
+        // Brak okien modalnych - obsługujemy nawigację w zakładkach
+        if (activeTab !== 'dashboard') {
+          changeTab('dashboard');
+        } else {
+          // Jeśli już jesteśmy na pulpicie domyślnym, wyjście z aplikacji schowa ją do tła
+          CapacitorApp.exitApp();
+        }
+      }
+    });
+
+    return () => {
+      backListener.then(listener => listener.remove());
+    };
+  }, [activeTab, changeTab]);
+
   const toggleTheme = async () => {
     const newTheme: "light" | "dark" = theme === "light" ? "dark" : "light";
     setTheme(newTheme);

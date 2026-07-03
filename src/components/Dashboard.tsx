@@ -144,8 +144,8 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "shortcuts", name: i18n.t('auto.szybkie_akcje_i_ulubione_posiłki', { defaultValue: i18n.t('auto.szybkie_akcje_i_ulubione', { defaultValue: "Szybkie akcje i ulubione posiłki" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "quick_measurement", name: i18n.t('auto.szybki_pomiar_glikemii_przycisk', { defaultValue: 'Szybki pomiar glikemii (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
   { id: "health_connect", name: i18n.t('auto.aktywność_health_connect', { defaultValue: i18n.t('auto.aktywnosc_health_connect', { defaultValue: "Aktywność (Health Connect)" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
-  { id: "history_measurements", name: i18n.t('auto.historia_ostatnich_pomiarów', { defaultValue: i18n.t('auto.historia_ostatnich_pomiar', { defaultValue: "Historia ostatnich pomiarów" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
-  { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "history_measurements", name: i18n.t('auto.historia_ostatnich_pomiarów', { defaultValue: i18n.t('auto.historia_ostatnich_pomiar', { defaultValue: "Historia ostatnich pomiarów" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
+  { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
   { id: "pump", name: i18n.t('auto.status_pompy_insulinowej_xdrip', { defaultValue: 'Status pompy insulinowej / xDrip' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "daily_tir", name: i18n.t('auto.dzienny_tir_wykres', { defaultValue: 'Dzienny TIR (Wykres)' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
   { id: "quick_correction", name: i18n.t('auto.sugerowana_szybka_korekta_alerty', { defaultValue: 'Sugerowana szybka korekta (Alerty)' }), visible: false, size: "2x2", canResize: true, canChangeShape: false },
@@ -2362,8 +2362,7 @@ export default function Dashboard({
              if (!isInsulinMode && ["pump", "site_rotation", "infusion_reminder", "quick_bolus", "sensor_reminder"].includes(w.id)) return null;
              if (settings.followerMode && !["main_stats", "history_measurements", "history_treatments"].includes(w.id)) return null;
              
-             const widgetSize = layoutMode === "classic"
-               ? (
+             const widgetSize = (
                    w.id === "weather" || 
                    w.id === "sensor_reminder" || 
                    w.id === "infusion_reminder" || 
@@ -2376,14 +2375,14 @@ export default function Dashboard({
                          w.id === "glikosense_suggestions" || 
                          w.id === "tips" || 
                          w.id === "shortcuts" || 
-                         w.id === "history_measurements" || 
-                         w.id === "history_treatments" ||
                          w.id === "training_widget"
                            ? "2x1" 
+                           : w.id === "history_measurements" || 
+                             w.id === "history_treatments"
+                           ? "1x2"
                            : "2x2"
                        )
-                 )
-               : w.size;
+                 );
 
              const isCurrentlyMovingTarget = movingWidgetId !== null && movingWidgetId !== w.id;
              
@@ -2403,12 +2402,7 @@ export default function Dashboard({
                >
                   {/* Usunięto nakładkę trybu edycji i przyciski do sterowania rozmiarem z samych kafelków */}
                  
-                 <div className={cn("flex-1 w-full flex flex-col justify-center transition-all duration-500 h-full",
-                      w.shape === "circle" && "[&>div:first-child]:!rounded-[200px] [&>button:first-child]:!rounded-[200px] [&>button:first-child]:aspect-square [&>div:first-child]:aspect-square px-1",
-                      w.shape === "leaf" && "[&>div:first-child]:!rounded-tl-[3.5rem] [&>div:first-child]:!rounded-br-[3.5rem] [&>div:first-child]:!rounded-tr-[1.2rem] [&>div:first-child]:!rounded-bl-[1.2rem] [&>button:first-child]:!rounded-tl-[3.5rem] [&>button:first-child]:!rounded-br-[3.5rem] [&>button:first-child]:!rounded-tr-[1.2rem] [&>button:first-child]:!rounded-bl-[1.2rem] [&>button:first-child]:aspect-square [&>div:first-child]:aspect-square px-1",
-                      w.shape === "leaf-mirror" && "[&>div:first-child]:!rounded-tr-[3.5rem] [&>div:first-child]:!rounded-bl-[3.5rem] [&>div:first-child]:!rounded-tl-[1.2rem] [&>div:first-child]:!rounded-br-[1.2rem] [&>button:first-child]:!rounded-tr-[3.5rem] [&>button:first-child]:!rounded-bl-[3.5rem] [&>button:first-child]:!rounded-tl-[1.2rem] [&>button:first-child]:!rounded-br-[1.2rem] [&>button:first-child]:aspect-square [&>div:first-child]:aspect-square px-1",
-                      w.shape === "diamond" && "[&>div:first-child]:!rounded-[2.4rem] [&>button:first-child]:!rounded-[2.4rem] scale-[0.98] rotate-[0.5deg]"
-                  )}>
+                 <div className="flex-1 w-full flex flex-col justify-center transition-all duration-500 h-full">
                    {renderWidget(w.id, widgetSize)}
                  </div>
                </motion.div>

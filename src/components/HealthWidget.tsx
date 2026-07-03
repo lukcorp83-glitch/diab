@@ -17,8 +17,8 @@ export default function HealthWidget() {
         if (hasAccess) {
           const count = await healthService.getStepsLast24h();
           if (mounted) {
-            // Zawsze aktualizuj jeśli dostaniemy liczbę >= 0
-            if (count >= 0) {
+            // Zawsze aktualizuj jeśli dostaniemy poprawną liczbę kroków
+            if (count !== null && count >= 0) {
               setSteps(count);
             }
           }

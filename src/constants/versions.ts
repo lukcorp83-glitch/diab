@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.18';
+export const CURRENT_VERSION = '5.6.19';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.19",
+    date: "2026-07-03",
+    title: "Zablokowanie Proporcji Kafelków (Aktualizacja UI)",
+    changes: [
+      "Nowość: Domyślny pulpit działa teraz w trybie twardym (Classic) dla wszystkich – aplikacja ignoruje wszelkie stare kształty i rozmiary z pamięci telefonu.",
+      "Ulepszenie: Historia leczenia oraz historia pomiarów wymuszone w równych, smukłych proporcjach 1x2 obok siebie.",
+      "Naprawa: Usunięto błąd powodujący przypadkowe gubienie kroków, gdy usługa Google Health Connect zgłaszała błąd odczytu w tle."
+    ]
+  },
   {
     version: "5.4.17",
     date: "2026-07-03",
@@ -442,6 +452,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.19",
+    date: "2026-07-03",
+    title: "Zablokowanie Proporcji Kafelków (Aktualizacja UI)",
+    changes: [
+      "Nowość: Domyślny pulpit działa teraz w trybie twardym (Classic) dla wszystkich – aplikacja ignoruje wszelkie stare kształty i rozmiary z pamięci telefonu.",
+      "Ulepszenie: Historia leczenia oraz historia pomiarów wymuszone w równych, smukłych proporcjach 1x2 obok siebie.",
+      "Naprawa: Usunięto błąd powodujący przypadkowe gubienie kroków, gdy usługa Google Health Connect zgłaszała błąd odczytu w tle."
+    ]
+  },
   {
     version: "5.4.17",
     date: "2026-07-03",

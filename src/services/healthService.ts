@@ -42,8 +42,8 @@ export const healthService = {
     });
   },
 
-  async getStepsLast24h(): Promise<number> {
-    if (!this.isAvailable()) return 0;
+  async getStepsLast24h(): Promise<number | null> {
+    if (!this.isAvailable()) return null;
 
     return new Promise((resolve) => {
       
@@ -78,7 +78,7 @@ export const healthService = {
         },
         (err: any) => {
           console.warn('[HealthConnect] Error querying steps:', err);
-          resolve(0);
+          resolve(null);
         }
       );
     });
