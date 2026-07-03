@@ -240,7 +240,7 @@ export default function GlikoWidget({ logs, setTab, iob, todayStats, trend, tir,
                 <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_węglowodany', { defaultValue: i18n.t('auto.dzis_weglowodany', { defaultValue: "Dziś Węglowodany" }) })}</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-slate-800 dark:text-white">{todayStats.carbs}</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-white">{typeof todayStats.carbs === 'number' ? Number(todayStats.carbs.toFixed(1)) : todayStats.carbs}</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">g</span>
               </div>
             </div>

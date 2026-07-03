@@ -3651,7 +3651,15 @@
     "przebudowa_systemu_ota": "Przebudowa systemu OTA i naprawa blokujących się linków pobierania.",
     "nowy_silnik_ota": "Nowy silnik pobierania aktualizacji, rozwiązujący błędy timeoutów przy dużych plikach.",
     "natywny_silnik_rozpoznawania_mowy": "Natywny, stabilny silnik rozpoznawania mowy dla urządzeń Android.",
-    "poprawki_plynnosci_przesuwania_widzetow": "Poprawki płynności przesuwania widżetów na ekranie głównym."
+    "poprawki_plynnosci_przesuwania_widzetow": "Poprawki płynności przesuwania widżetów na ekranie głównym.",
+    "treatment_mode_title": "Typ leczenia",
+    "treatment_mode_desc": "Dostosuj interfejs do swoich potrzeb",
+    "treatment_mode_diet": "Dieta i tabletki",
+    "treatment_mode_diet_desc": "Ukrywa funkcje insulinowe",
+    "treatment_mode_insulin": "Insulina",
+    "treatment_mode_insulin_desc": "Peny lub strzykawki",
+    "treatment_mode_pump": "Pompa",
+    "treatment_mode_pump_desc": "Zamknięta pętla / AID"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {

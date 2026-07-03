@@ -1,7 +1,4 @@
 import { getEffectiveUid } from '../lib/utils';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { arrayMove, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
-import { SortableWidget } from './SortableWidget';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
@@ -140,13 +137,13 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "weather", name: i18n.t('auto.wpływ_pogody_na_insulinę', { defaultValue: i18n.t('auto.wplyw_pogody_na_insuline', { defaultValue: "Wpływ pogody na insulinę" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: true },
   { id: "sensor_reminder", name: i18n.t('auto.wymiana_sensora_urządzenie', { defaultValue: i18n.t('auto.wymiana_sensora_urzadzeni', { defaultValue: "Wymiana sensora (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
   { id: "infusion_reminder", name: i18n.t('auto.wymiana_wkłucia_urządzenie', { defaultValue: i18n.t('auto.wymiana_wklucia_urzadzeni', { defaultValue: "Wymiana wkłucia (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
-  { id: "health_connect", name: i18n.t('auto.aktywność_health_connect', { defaultValue: i18n.t('auto.aktywnosc_health_connect', { defaultValue: "Aktywność (Health Connect)" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
+  { id: "quick_bolus", name: i18n.t('auto.zapis_bolusa_kalkulator_przycisk', { defaultValue: 'Zapis bolusa / kalkulator (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
   { id: "assistant", name: i18n.t('auto.skrót_do_asystenta_ai', { defaultValue: i18n.t('auto.skrot_do_asystenta_ai', { defaultValue: "Skrót do Asystenta AI" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "tips", name: i18n.t('auto.porady_i_ciekawostki_didyouknow', { defaultValue: 'Porady i ciekawostki (DidYouKnow)' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "glikosense_suggestions", name: i18n.t('auto.sugestie_i_analizy_glikosense', { defaultValue: 'Sugestie i analizy GlikoSense' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "shortcuts", name: i18n.t('auto.szybkie_akcje_i_ulubione_posiłki', { defaultValue: i18n.t('auto.szybkie_akcje_i_ulubione', { defaultValue: "Szybkie akcje i ulubione posiłki" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "quick_measurement", name: i18n.t('auto.szybki_pomiar_glikemii_przycisk', { defaultValue: 'Szybki pomiar glikemii (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
-  { id: "quick_bolus", name: i18n.t('auto.zapis_bolusa_kalkulator_przycisk', { defaultValue: 'Zapis bolusa / kalkulator (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
+  { id: "health_connect", name: i18n.t('auto.aktywność_health_connect', { defaultValue: i18n.t('auto.aktywnosc_health_connect', { defaultValue: "Aktywność (Health Connect)" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
   { id: "history_measurements", name: i18n.t('auto.historia_ostatnich_pomiarów', { defaultValue: i18n.t('auto.historia_ostatnich_pomiar', { defaultValue: "Historia ostatnich pomiarów" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "pump", name: i18n.t('auto.status_pompy_insulinowej_xdrip', { defaultValue: 'Status pompy insulinowej / xDrip' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
@@ -176,6 +173,46 @@ interface DashboardProps {
   isShortcutMode?: boolean;
 }
 
+function TopPillHydration() {
+  const [glasses, setGlasses] = useState(0);
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    const syncHydration = () => {
+      const saved = localStorage.getItem(`glikosense_hydration_${todayStr}`);
+      if (saved) {
+        try { setGlasses(parseInt(saved, 10)); } catch(e){}
+      }
+    };
+    syncHydration();
+    window.addEventListener('storage', syncHydration);
+    window.addEventListener('hydration_updated', syncHydration);
+    return () => {
+      window.removeEventListener('storage', syncHydration);
+      window.removeEventListener('hydration_updated', syncHydration);
+    };
+  }, [todayStr]);
+
+  const addGlass = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    Haptics.success();
+    const newAmount = glasses + 1;
+    setGlasses(newAmount);
+    localStorage.setItem(`glikosense_hydration_${todayStr}`, newAmount.toString());
+    window.dispatchEvent(new Event('hydration_updated'));
+  };
+
+  return (
+    <div 
+      onClick={addGlass}
+      className="shrink-0 flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest cursor-pointer active:scale-95 transition-all shadow-sm"
+    >
+      <Droplet size={12} className={glasses > 0 ? "fill-blue-500/80" : ""} />
+      {glasses}/8
+    </div>
+  );
+}
+
 export default function Dashboard({
   logs,
   user,
@@ -193,6 +230,10 @@ export default function Dashboard({
   isShortcutMode
 }: DashboardProps) {
   const { t } = useTranslation();
+  // Tryb leczenia: domyślnie 'insulin' dla wstecznej kompatybilności
+  const treatmentMode = settings.treatmentMode ?? 'insulin';
+  const isInsulinMode = treatmentMode === 'insulin' || treatmentMode === 'pump';
+  const isPumpMode = treatmentMode === 'pump';
   const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(!!initialAction);
 
@@ -331,39 +372,6 @@ export default function Dashboard({
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [movingWidgetId, setMovingWidgetId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  
-
-  
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
-  );
-
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
-    Haptics.light();
-  };
-
-  const handleDragEnd = (event: any) => {
-    setActiveId(null);
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setWidgets((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        const newWidgets = arrayMove(items, oldIndex, newIndex);
-        if (user) {
-           setDoc(
-             doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "dashboard_layout"),
-             { widgets: newWidgets, updatedAt: serverTimestamp() },
-             { merge: true }
-           ).catch(console.error);
-        }
-        return newWidgets;
-      });
-      Haptics.light();
-    }
-  };
 
   const handlePlaceWidget = (targetIndex: number) => {
     if (movingWidgetId === null) return;
@@ -1485,6 +1493,7 @@ export default function Dashboard({
         return <HealthWidget />;
 
       case "site_rotation":
+        if (!isInsulinMode) return null;
         return <SiteRotationWidget logs={logs} settings={settings} size={size} setTab={setTab} onAction={onAction} />;
 
       case "training_widget":
@@ -1727,6 +1736,17 @@ export default function Dashboard({
       }
 
       case "quick_bolus": {
+        // Ukryj widget bolusa dla pacjentów tylko na diecie/tabletkach
+        if (!isInsulinMode) {
+          return (
+            <div className="glass-card w-full h-full flex flex-col items-center justify-center gap-2 min-h-[120px] opacity-60 cursor-default select-none">
+              <Apple size={20} className="text-amber-500" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">
+                {t('auto.tryb_diety', { defaultValue: 'Tryb diety' })}
+              </span>
+            </div>
+          );
+        }
         const isB1x1 = size === "1x1";
         const isB1x2 = size === "1x2";
 
@@ -2112,6 +2132,7 @@ export default function Dashboard({
         );
 
       case "pump":
+        if (!isInsulinMode) return null;
         if (!pumpStatus) {
           if (isEditingLayout) {
             return (
@@ -2142,6 +2163,32 @@ export default function Dashboard({
     >
       <LowGlucoseMealAlert logs={logs} lastGlucose={lastG ? Math.round(lastG.value) : null} onAddCarbs={() => setTab("meal")} shortcuts={shortcuts} onQuickAdd={quickAdd} />
       <UnlinkedCarbsWidget user={user} logs={logs} onAddCarbs={() => setTab("meal")} />
+
+      {/* Pasek Pigułek (Top Pill Bar) */}
+      <div className="px-2 flex gap-2 overflow-x-auto scrollbar-none pb-1 mt-2">
+         {widgets.find(w => w.id === 'hydration')?.visible && (
+            <TopPillHydration />
+         )}
+         {widgets.find(w => w.id === 'weather')?.visible && (
+            <WeatherWidget pill={true} />
+         )}
+         {isPumpMode && pumpStatus && widgets.find(w => w.id === 'pump')?.visible && (
+            <>
+               {pumpStatus.battery !== undefined && (
+                 <div className="shrink-0 flex items-center gap-1.5 bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest shadow-sm">
+                   <Zap size={12} className="text-amber-500" />
+                   {pumpStatus.battery}%
+                 </div>
+               )}
+               {pumpStatus.reservoir !== undefined && (
+                 <div className="shrink-0 flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest shadow-sm">
+                   <Cpu size={12} />
+                   {pumpStatus.reservoir} J.
+                 </div>
+               )}
+            </>
+         )}
+      </div>
 
       <div className="flex items-center justify-between px-2">
         <div className="flex items-baseline gap-2">
@@ -2224,65 +2271,27 @@ export default function Dashboard({
                                             </button>
             </div>
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 bg-white/70 dark:bg-slate-900/60 rounded-[1.8rem] border border-slate-200/55 dark:border-white/5 font-display select-none">
-            <div>
-              <h4 className="text-[10px] font-black uppercase tracking-wider dark:text-white leading-none mb-1">{t('auto.układ_pulpitu', { defaultValue: i18n.t('auto.uklad_pulpitu', { defaultValue: "Układ Pulpitu" }) })}</h4>
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{t('auto.wybierz_główny_szkielet_i_reguły_ro', { defaultValue: i18n.t('auto.wybierz_glowny_szkielet_i', { defaultValue: "Wybierz główny szkielet i reguły rozkładu ekranu" }) })}</span>
-            </div>
-            <div className="bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl flex gap-1 self-stretch sm:self-auto shrink-0 font-display">
-              <button
-                onClick={() => { Haptics.light(); setLayoutMode('classic'); }}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all select-none cursor-pointer",
-                  layoutMode === 'classic'
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                )}
-              >
-                
-                                              {t('auto.klasyczny_diacontrol_4_0', { defaultValue: '🏛️ Klasyczny (Diacontrol 4.0)' })}
-                                            </button>
-              <button
-                onClick={() => { Haptics.light(); setLayoutMode('grid'); }}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all select-none cursor-pointer",
-                  layoutMode === 'grid'
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                )}
-              >
-                
-                                              {t('auto.kafelki_dynamiczne', { defaultValue: '📐 Kafelki Dynamiczne' })}
-                                            </button>
+
+          <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-white/5">
+            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">{t('auto.dostępne_informacje', { defaultValue: 'Dostępne informacje (kliknij, aby pokazać lub ukryć):' })}</span>
+            <div className="flex flex-wrap gap-1.5">
+              {widgets.filter(w => isInsulinMode || !["pump", "site_rotation", "infusion_reminder", "quick_bolus", "sensor_reminder"].includes(w.id)).map(w => (
+                <button
+                  key={`toggle-${w.id}`}
+                  onClick={() => toggleWidgetVisibility(w.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer active:scale-95 shrink-0",
+                    w.visible 
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                      : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
+                  )}
+                >
+                  {w.visible ? <Eye size={10} /> : <EyeOff size={10} />}
+                  {t(`dashboard.widgets.${w.id}`, { defaultValue: w.name })}
+                </button>
+              ))}
             </div>
           </div>
-
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-normal">
-            {layoutMode === "classic" 
-              ? i18n.t('auto.uzywasz_klasycznego_i_czytelne', { defaultValue: i18n.t('auto.uzywasz_klasycznego_i_czy', { defaultValue: "🏛️ Używasz klasycznego i czytelnego układu bez ucięć z optymalnymi rozmiarami. Aby móc dowolnie powiększać lub pomniejszać kafelki własnoręcznie, przełącz na tryb „📐 Kafelki Dynamiczne” poniżej, a przy każdym kafelku pojawi się przycisk zmiany rozmiaru 📐!" }) })
-              : i18n.t('auto.korzystasz_z_ukladu_kafelkoweg', { defaultValue: i18n.t('auto.korzystasz_z_ukladu_kafel', { defaultValue: "📐 Korzystasz z układu kafelkowego. Możesz układać kafelki przeciągając je za ikonę uchwytu lub używając strzałek! Kliknij przycisk „📐 [rozmiar]” przy kafelku, aby cyklicznie powiększyć lub pomniejszyć go (1x1 ➡️ 2x1 ➡️ 1x2 ➡️ 2x2)." }) })}
-          </p>
-
-
-
-          {widgets.some(w => !w.visible) && (
-            <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-white/5">
-              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">{t('auto.ukryte_kafelki_kliknij_aby_przywróc', { defaultValue: i18n.t('auto.ukryte_kafelki_kliknij_ab', { defaultValue: "Ukryte kafelki (kliknij, aby przywrócić):" }) })}</span>
-              <div className="flex flex-wrap gap-1.5">
-                {widgets.filter(w => !w.visible).map(w => (
-                  <button
-                    key={`hidden-${w.id}`}
-                    onClick={() => toggleWidgetVisibility(w.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-white/5 hover:bg-emerald-500/10 hover:text-emerald-500 text-slate-700 dark:text-slate-300 text-[10px] font-bold border border-slate-200 dark:border-white/10 hover:border-emerald-500/25 transition-all cursor-pointer active:scale-95 shrink-0"
-                  >
-                    <Plus size={10} />
-                    {t(`dashboard.widgets.${w.id}`, { defaultValue: w.name })}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </motion.div>
       )}
 
@@ -2317,8 +2326,6 @@ export default function Dashboard({
       )}
 
       {/* 1. Main Stats Widget */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <SortableContext items={widgets.filter(w => w.visible).map(w => w.id)} strategy={rectSortingStrategy}>
         <div 
           onPointerDownCapture={(e) => {
             if (isEditingLayout) {
@@ -2351,16 +2358,18 @@ export default function Dashboard({
         ) : (
           widgets.map((w, index) => {
              if (!w.visible) return null;
+             if (["hydration", "weather"].includes(w.id)) return null;
+             if (!isInsulinMode && ["pump", "site_rotation", "infusion_reminder", "quick_bolus", "sensor_reminder"].includes(w.id)) return null;
              if (settings.followerMode && !["main_stats", "history_measurements", "history_treatments"].includes(w.id)) return null;
-
+             
              const widgetSize = layoutMode === "classic"
                ? (
                    w.id === "weather" || 
                    w.id === "sensor_reminder" || 
                    w.id === "infusion_reminder" || 
-                   w.id === "pump" || 
-                   w.id === "quick_measurement" || 
-                   w.id === "quick_bolus" 
+                   w.id === "pump" ||
+                   w.id === "quick_measurement" ||
+                   w.id === "quick_bolus"
                      ? "1x1" 
                      : (
                          w.id === "assistant" || 
@@ -2376,68 +2385,23 @@ export default function Dashboard({
                  )
                : w.size;
 
-             const visibleIndices = widgets.map((item, idx) => item.visible ? idx : -1).filter(idx => idx !== -1);
-             const isFirstActive = index === visibleIndices[0];
-             const isLastActive = index === visibleIndices[visibleIndices.length - 1];
              const isCurrentlyMovingTarget = movingWidgetId !== null && movingWidgetId !== w.id;
              
              return (
-                 <SortableWidget
+                 <motion.div
+                   layout
                    key={w.id}
                    id={w.id}
-                   isEditing={isEditingLayout && layoutMode === "grid"}
                    className={cn(
-                   "relative transition-all overflow-hidden flex flex-col", widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
+                   "relative transition-all overflow-hidden flex flex-col p-2.5", 
+                   widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
                    widgetSize.startsWith('2') ? "col-span-2" : "col-span-1",
                    "rounded-[2.6rem]",
-                   (isEditingLayout && layoutMode === "grid") ? "border-2 border-dashed border-indigo-500/40 p-2.5 dark:bg-indigo-950/20 bg-indigo-50/20 min-h-[140px] flex flex-col cursor-grab active:cursor-grabbing hover:border-indigo-500/60" : "",
-                   (isEditingLayout && layoutMode === "classic") ? "border-2 border-dashed border-slate-500/20 p-2.5 dark:bg-slate-950/20 bg-slate-50/10 min-h-[110px] flex flex-col" : "",
                    isCurrentlyMovingTarget ? "cursor-pointer scale-[0.98] border-2 border-dashed border-amber-500/50 bg-amber-500/5 animate-pulse" : "",
-                   "" /* no draggedIndex */,
                    movingWidgetId === w.id ? "ring-4 ring-amber-500/60 border-amber-500 shadow-2xl scale-[1.01]" : ""
                  )}
                >
-                 {isEditingLayout && (
-                   <div className="flex flex-col gap-1.5 p-2 bg-slate-900 dark:bg-slate-950 text-white rounded-[1.8rem] mb-3 shadow-lg z-10 shrink-0 select-none">
-                     <div className="flex items-center justify-between gap-1.5 border-b border-white/5 pb-1 w-full">
-                       <div className="flex items-center gap-1.5 shrink-0 min-w-0">
-                         {layoutMode === "grid" && <GripVertical size={11} className="text-white/40 cursor-grab active:cursor-grabbing hover:text-white transition-colors" />}
-                         <span className="text-[9px] font-black uppercase tracking-wider truncate max-w-[120px]" title={t(`dashboard.widgets.${w.id}`, { defaultValue: w.name })}>
-                           {t(`dashboard.widgets.${w.id}`, { defaultValue: w.name })}
-                         </span>
-                       </div>
-                       <button
-                         onClick={() => toggleWidgetVisibility(w.id)}
-                         className="p-1 bg-rose-500/25 hover:bg-rose-500/40 rounded-lg text-rose-400 active:scale-90 shrink-0"
-                         title={t('auto.ukryj_kafel', { defaultValue: 'Ukryj kafel' })}
-                       >
-                         <Plus size={10} className="rotate-45" />
-                       </button>
-                     </div>
-                     <div className={cn("flex flex-wrap items-center justify-between gap-1.5 w-full mt-1.5", layoutMode !== "grid" && "hidden")}>
-                       <div className="flex items-center gap-1 w-full justify-between">
-                         {w.canResize && (
-                           <button
-                             onClick={() => cycleWidgetSize(w.id)}
-                             className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-[8px] font-black uppercase tracking-wider active:scale-90 flex items-center gap-1 text-white shadow-sm shrink-0"
-                             title={t('auto.zmień_rozmiar', { defaultValue: i18n.t('auto.zmien_rozmiar', { defaultValue: "Zmień rozmiar" }) })}
-                           >
-                             📐 {w.size}
-                           </button>
-                         )}
-                         {w.canChangeShape && (
-                           <button
-                             onClick={() => cycleWidgetShape(w.id)}
-                             className="px-2 py-1 bg-pink-500 hover:bg-pink-600 rounded-lg text-[8px] font-black uppercase tracking-wider active:scale-90 flex items-center gap-1 text-white shadow-sm shrink-0"
-                             title={t('auto.zmień_kształt', { defaultValue: i18n.t('auto.zmien_ksztalt', { defaultValue: "Zmień kształt" }) })}
-                           >
-                             ✨ {(!w.shape || w.shape === "default") ? "standardowy" : w.shape === "circle" ? i18n.t('auto.pigulka', { defaultValue: i18n.t('auto.pigulka', { defaultValue: "pigułka" }) }) : w.shape === "leaf" ? i18n.t('auto.lisc', { defaultValue: i18n.t('auto.lisc', { defaultValue: "liść" }) }) : w.shape === "leaf-mirror" ? i18n.t('auto.lisc_odbity', { defaultValue: i18n.t('auto.lisc_odbity', { defaultValue: "liść (odbity)" }) }) : "dysk"}
-                           </button>
-                         )}
-                       </div>
-                     </div>
-                   </div>
-                 )}
+                  {/* Usunięto nakładkę trybu edycji i przyciski do sterowania rozmiarem z samych kafelków */}
                  
                  <div className={cn("flex-1 w-full flex flex-col justify-center transition-all duration-500 h-full",
                       w.shape === "circle" && "[&>div:first-child]:!rounded-[200px] [&>button:first-child]:!rounded-[200px] [&>button:first-child]:aspect-square [&>div:first-child]:aspect-square px-1",
@@ -2447,22 +2411,11 @@ export default function Dashboard({
                   )}>
                    {renderWidget(w.id, widgetSize)}
                  </div>
-               </SortableWidget>
+               </motion.div>
              );
           })
         )}
       </div>
-      </SortableContext>
-      <DragOverlay>
-        {activeId ? (
-          <div className="rounded-[2.6rem] border-2 border-dashed border-indigo-500 bg-indigo-50/90 dark:bg-indigo-950/90 shadow-2xl scale-[1.05] p-2.5 min-h-[140px] flex flex-col items-center justify-center opacity-90 z-50">
-             <span className="text-[12px] font-black uppercase text-indigo-500">
-               {widgets.find(w => w.id === activeId)?.name || 'Przenoszenie...'}
-             </span>
-          </div>
-        ) : null}
-      </DragOverlay>
-      </DndContext>
 
       {/* Dynamic Grid replaced all static elements below. We keep the overlay modals. */}
       {false && (

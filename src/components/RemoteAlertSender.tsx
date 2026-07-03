@@ -81,6 +81,7 @@ export default function RemoteAlertSender({ user }: { user: any }) {
           type="text" 
           value={customMessage}
           onChange={e => setCustomMessage(e.target.value)}
+          maxLength={150}
           placeholder={t('auto.własna_wiadomość', { defaultValue: i18n.t('auto.wlasna_wiadomosc', { defaultValue: "Własna wiadomość..." }) })}
           className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-white outline-none focus:border-indigo-500 transition-all"
         />

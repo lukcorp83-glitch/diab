@@ -152,23 +152,36 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
              
              <div className="relative w-full mb-2">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-300" />
-                <input
+                 <input
                    type="text"
                    value={searchQuery}
                    onChange={e => setSearchQuery(e.target.value)}
+                   onKeyDown={e => {
+                     if (e.key === 'Enter' && searchQuery.trim().length > 0) {
+                       const customProduct = {
+                         id: "custom_" + Date.now(),
+                         namePl: searchQuery.trim(),
+                         name: searchQuery.trim(),
+                         carbs: 100, // Proporcja 1:1 dla węglowodanów
+                         fat: 0,
+                         protein: 0
+                       };
+                       handleQuickAdd(customProduct, carbs);
+                     }
+                   }}
                    placeholder={t('auto.co_zjadles', { defaultValue: "Wpisz co zjadłeś (np. Kebab)..." })}
                    className="w-full bg-indigo-900/40 text-white placeholder-indigo-300/60 rounded-xl py-2.5 pl-9 pr-3 text-[12px] font-bold outline-none focus:ring-2 focus:ring-white/30 transition-all"
                 />
              </div>
              
-             {searchResults.length > 0 && (
+             {(searchResults.length > 0 || searchQuery.trim().length > 0) && (
                 <div className="flex flex-col gap-1 w-full mb-3">
-                   {searchResults.map(p => {
+                   {searchResults.length > 0 && searchResults.map(p => {
                       const amount = Math.round((carbs / (p.carbs || 1)) * 100);
                       return (
                          <button
                             key={p.id}
-                            disabled={isSaving}
+                            disabled={isSaving || isAiEstimating}
                             onClick={() => handleQuickAdd(p, carbs)}
                             className="flex items-center justify-between bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl transition-colors text-left"
                          >
@@ -179,6 +192,77 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
                          </button>
                       );
                    })}
+                   
+                   {/* Custom entry button */}
+                   {searchQuery.trim().length > 0 && (
+                     <button
+                        disabled={isSaving || isAiEstimating}
+                        onClick={async () => {
+                          const mealName = searchQuery.trim();
+                          setIsAiEstimating(true);
+                          
+                          try {
+                            const { geminiService } = await import('../services/gemini');
+                            const prompt = `Pacjent zjadł "${mealName}". Wiemy, że porcja ta zawiera DOKŁADNIE ${carbs}g węglowodanów.
+Na podstawie typowych proporcji makroskładników dla "${mealName}", oszacuj ile gramów białka i tłuszczu zjadł w tej porcji, oraz podaj Indeks Glikemiczny (IG).
+Odpowiedz WYŁĄCZNIE czystym formatem JSON (bez \`\`\`json):
+{"protein": <liczba>, "fat": <liczba>, "ig": <liczba>}`;
+
+                            const response = await geminiService.generateContent(prompt);
+                            const match = response.match(/\{[\s\S]*\}/);
+                            let estimatedProtein = 0;
+                            let estimatedFat = 0;
+                            let estimatedIg = 50;
+                            
+                            if (match) {
+                              const json = JSON.parse(match[0]);
+                              estimatedProtein = Number(json.protein) || 0;
+                              estimatedFat = Number(json.fat) || 0;
+                              estimatedIg = Number(json.ig) || 50;
+                            }
+                            
+                            // Proporcje na 100g, aby amount = 100 i calculations in handleQuickAdd worked correctly
+                            // handleQuickAdd robi: amount = Math.round((targetCarbs / product.carbs) * 100)
+                            // czyli dla targetCarbs=carbs i product.carbs=carbs, amount=100.
+                            // Wtedy computedFat = (product.fat * amount)/100 = product.fat.
+                            const customProduct = {
+                              id: "custom_" + Date.now(),
+                              namePl: mealName + " (AI)",
+                              name: mealName + " (AI)",
+                              carbs: carbs,
+                              fat: estimatedFat,
+                              protein: estimatedProtein,
+                              ig: estimatedIg
+                            };
+                            
+                            handleQuickAdd(customProduct, carbs);
+                          } catch(err) {
+                            console.error(err);
+                            toast.error("Błąd AI. Zapisano tylko węglowodany.");
+                            const fallbackProduct = {
+                              id: "custom_" + Date.now(),
+                              namePl: mealName,
+                              name: mealName,
+                              carbs: carbs,
+                              fat: 0,
+                              protein: 0
+                            };
+                            handleQuickAdd(fallbackProduct, carbs);
+                          } finally {
+                            setIsAiEstimating(false);
+                          }
+                        }}
+                        className="flex items-center justify-between bg-emerald-500/20 hover:bg-emerald-500/30 px-3 py-2 rounded-xl transition-colors text-left mt-1 border border-emerald-500/30"
+                     >
+                        <span className="text-[11px] font-bold text-emerald-100 truncate flex items-center gap-1.5">
+                           {isAiEstimating ? <Loader2 size={12} className="animate-spin text-emerald-400" /> : <Sparkles size={12} className="text-emerald-400" />}
+                           {isAiEstimating ? t('auto.ai_analizuje', { defaultValue: 'AI Analizuje...' }) : t('auto.wygeneruj_z_ai', { defaultValue: 'Wygeneruj makro (AI):' })} "{searchQuery.trim()}"
+                        </span>
+                        <span className="text-[10px] font-black text-emerald-200 bg-emerald-900/40 px-2 py-1 rounded-lg shrink-0">
+                           {carbs}g W
+                        </span>
+                     </button>
+                   )}
                 </div>
              )}
           </div>

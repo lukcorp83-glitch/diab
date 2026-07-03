@@ -3688,7 +3688,15 @@
     "przebudowa_systemu_ota": "OTA system rebuilt and freezing download links fixed.",
     "nowy_silnik_ota": "New update download engine, resolving timeout errors on large files.",
     "natywny_silnik_rozpoznawania_mowy": "Native, stable speech recognition engine for Android devices.",
-    "poprawki_plynnosci_przesuwania_widzetow": "Fixed widget dragging smoothness on the dashboard."
+    "poprawki_plynnosci_przesuwania_widzetow": "Fixed widget dragging smoothness on the dashboard.",
+    "treatment_mode_title": "Treatment Type",
+    "treatment_mode_desc": "Customize interface to your needs",
+    "treatment_mode_diet": "Diet & Pills",
+    "treatment_mode_diet_desc": "Hides insulin features",
+    "treatment_mode_insulin": "Insulin",
+    "treatment_mode_insulin_desc": "Pens or syringes",
+    "treatment_mode_pump": "Pump",
+    "treatment_mode_pump_desc": "Closed loop / AID"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {

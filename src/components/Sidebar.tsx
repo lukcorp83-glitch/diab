@@ -39,6 +39,7 @@ import {
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION, FACEBOOK_GROUP_URL } from '../constants';
 import GlikoSenseIcon from './GlikoSenseIcon';
+import { UserSettings } from '../types';
 
 import Logo from './Logo';
 import { Haptics } from '../lib/haptics';
@@ -51,12 +52,14 @@ interface SidebarProps {
   onAction?: (action: string) => void;
   theme: 'light' | 'dark';
   isChildMode?: boolean;
+  settings?: UserSettings;
 }
 
 import { useTranslation } from 'react-i18next';
 
-export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onAction, theme, isChildMode }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onAction, theme, isChildMode, settings }: SidebarProps) {
   const { t } = useTranslation();
+  const isInsulinMode = (settings?.treatmentMode ?? 'insulin') !== 'diet_only';
   const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({});
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -72,7 +75,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
        subItems: [
          { id: 'dash_home', label: t('sidebar.items.dash_home'), tab: 'dashboard', icon: <LayoutGrid size={14} /> },
          { id: 'dash_chart', label: t('sidebar.items.dash_chart'), tab: 'chart', icon: <Activity size={14} /> },
-         { id: 'bolus_calc', label: t('sidebar.items.bolus_calc'), tab: 'bolus', icon: <Calculator size={14} /> },
+         ...(isInsulinMode ? [{ id: 'bolus_calc', label: t('sidebar.items.bolus_calc'), tab: 'bolus', icon: <Calculator size={14} /> }] : []),
          { id: 'add_glucose', label: t('sidebar.items.add_glucose'), tab: 'dashboard', action: 'add_glucose', icon: <Plus size={14} /> },
          { id: 'profile_training', label: t('sidebar.items.profile_training'), tab: 'profile', action: 'training', icon: <Activity size={14} /> },
          { id: 'dash_travel', label: t('sidebar.items.dash_travel'), tab: 'travel', icon: <Plane size={14} /> }
@@ -131,7 +134,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
          { id: 'profile_meds', label: t('sidebar.items.profile_meds'), tab: 'profile', action: 'meds', icon: <Pill size={14} /> },
          { id: 'profile_tutorial', label: t('sidebar.items.profile_tutorial'), tab: 'profile', action: 'tutorial', icon: <BookOpen size={14} /> },
          { id: 'profile_api', label: t('sidebar.items.profile_api'), tab: 'profile', action: 'api', icon: <Globe size={14} /> }, 
-         { id: 'profile_simulator', label: t('sidebar.items.profile_simulator'), tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }
+         ...(isInsulinMode ? [{ id: 'profile_simulator', label: t('sidebar.items.profile_simulator'), tab: 'profile', action: 'simulator', icon: <Beaker size={14} /> }] : [])
        ]
     },
     { 

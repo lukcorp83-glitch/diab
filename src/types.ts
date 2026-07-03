@@ -159,6 +159,7 @@ export interface UserSettings {
     duration: number; // minutes
     intensity: "low" | "medium" | "high";
   } | null;
+  treatmentMode?: 'diet_only' | 'insulin' | 'pump'; // Typ leczenia: dieta/tabletki, insulina, pompa
 }
 
 export interface AssistantMessage {

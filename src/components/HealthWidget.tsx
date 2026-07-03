@@ -16,13 +16,23 @@ export default function HealthWidget() {
         const hasAccess = await healthService.requestAuthorization();
         if (hasAccess) {
           const count = await healthService.getStepsLast24h();
-          if (mounted) setSteps(count);
+          if (mounted) {
+            // Zawsze aktualizuj jeśli dostaniemy liczbę >= 0
+            if (count >= 0) {
+              setSteps(count);
+            }
+          }
         } else {
-          if (mounted) setSteps(null);
+          // Brak dostępu: wyczyść tylko jeśli to pierwsze ładowanie i nie mamy starych danych
+          if (mounted) {
+            setSteps((prev) => prev !== null ? prev : null);
+          }
         }
       } catch (err) {
         console.error("HealthWidget steps error", err);
-        if (mounted) setSteps(null);
+        if (mounted) {
+          setSteps((prev) => prev !== null ? prev : null);
+        }
       } finally {
         if (mounted) setLoading(false);
       }

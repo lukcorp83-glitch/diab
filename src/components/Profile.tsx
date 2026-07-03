@@ -58,6 +58,7 @@ import {
   Calculator,
   BarChart2,
   AlertTriangle,
+  Apple,
   Dumbbell,
   Box,
   Minus,
@@ -5740,14 +5741,7 @@ export default function Profile({
                                         {t('auto.pobierz_najnowszą_wersję_oficjalnej', { defaultValue: i18n.t('auto.pobierz_najnowsza_wersje', { defaultValue: "Pobierz najnowszą wersję oficjalnej aplikacji na system Android (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia i mniejsze zużycie baterii." }) })}
                                       </p>
             
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4 border border-blue-100 dark:border-blue-800/30 border-l-4 border-l-blue-500">
-              <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1">{t('auto.co_nowego_w_wersji_5_3_0', { defaultValue: 'Co nowego w wersji 5.3.0?' })}</h4>
-              <ul className="text-[10px] text-blue-700 dark:text-blue-300 list-disc pl-4 space-y-0.5">
-                 <li>{t('auto.całkiem_nowa_integracja_z_natywnym_', { defaultValue: i18n.t('auto.calkiem_nowa_integracja_z', { defaultValue: "Całkiem nowa integracja z natywnym wyświetlaczem samochodowym Android Auto" }) })}</li>
-                 <li>{t('auto.nowe_szczegółowe_raporty_agp_z_wyko', { defaultValue: i18n.t('auto.nowe_szczegolowe_raporty', { defaultValue: "Nowe, szczegółowe raporty AGP z wykorzystaniem glassmorphismu" }) })}</li>
-                 <li>{t('auto.optymalizacja_animacji_we_wszystkic', { defaultValue: 'Optymalizacja animacji we wszystkich widokach' })}</li>
-              </ul>
-            </div>
+
 
               {/* Przycisk pobierania APK - zawsze dostepny niezaleznie od platformy */}
               <a
@@ -5810,18 +5804,7 @@ export default function Profile({
                                                   </li>
               </ol>
 
-              <h4 className="text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 mt-4">
-                
-                                              {t('auto.instrukcja_podgląd_glikemii_w_andro', { defaultValue: i18n.t('auto.instrukcja_podglad_glikem', { defaultValue: "🚗 Instrukcja: Podgląd Glikemii w Android Auto" }) })}
-                                            </h4>
-              <ol className="list-decimal pl-4 text-[10px] space-y-1 text-indigo-700 dark:text-indigo-300/80 mb-3">
-                <li>{t('auto.otwórz', { defaultValue: i18n.t('auto.otworz', { defaultValue: "Otwórz" }) })} <span className="font-bold">{t('auto.ustawienia_android_auto', { defaultValue: 'Ustawienia Android Auto' })}</span>  {t('auto.na_telefonie', { defaultValue: 'na telefonie.' })}</li>
-                <li>{t('auto.zjedź_na_sam_dół_do_sekcji', { defaultValue: i18n.t('auto.zjedz_na_sam_dol_do_sekcj', { defaultValue: "Zjedź na sam dół do sekcji" }) })} <span className="font-bold">{t('auto.wersja', { defaultValue: 'Wersja' })}</span>.</li>
-                <li>{t('auto.kliknij_w_pole_quot_wersja_quot', { defaultValue: 'Kliknij w pole &quot;Wersja&quot;' })} <b>{t('auto.szybko_10_razy_z_rzędu', { defaultValue: i18n.t('auto.szybko_10_razy_z_rzedu', { defaultValue: "szybko 10 razy z rzędu" }) })}</b>{t('auto.by_odblokować_tryb_dewelopera', { defaultValue: i18n.t('auto.by_odblokowac_tryb_dewelo', { defaultValue: ", by odblokować Tryb Dewelopera." }) })}</li>
-                <li>{t('auto.kliknij_w_trzy_kropki_prawy_górny_r', { defaultValue: i18n.t('auto.kliknij_w_trzy_kropki_pra', { defaultValue: "Kliknij w trzy kropki (prawy górny róg) i otwórz" }) })} <b>{t('auto.ustawienia_programisty', { defaultValue: 'Ustawienia programisty' })}</b>.</li>
-                <li>{t('auto.zaznacz_ptaszek_przy', { defaultValue: 'Zaznacz ptaszek przy' })} <b>{t('auto.nieznane_źródła', { defaultValue: i18n.t('auto.nieznane_zrodla', { defaultValue: "Nieznane źródła" }) })}</b>  {t('auto.zezwalaj_na_używanie_aplikacji', { defaultValue: i18n.t('auto.zezwalaj_na_uzywanie_apli', { defaultValue: "(Zezwalaj na używanie aplikacji)." }) })}</li>
-                <li>{t('auto.po_podłączeniu_do_samochodu', { defaultValue: i18n.t('auto.po_podlaczeniu_do_samocho', { defaultValue: "Po podłączeniu do samochodu," }) })} <b>{t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}</b>  {t('auto.pojawi_się_w_menu_android_auto_a_na', { defaultValue: i18n.t('auto.pojawi_sie_w_menu_android', { defaultValue: "pojawi się w menu Android Auto, a na wyświetlaczu zobaczysz aktualny poziom cukru odświeżany co 30 sekund!" }) })}</li>
-              </ol>
+
             </div>
             
             {/* APK Version History */}
@@ -6022,6 +6005,67 @@ export default function Profile({
                   </button>
                 </div>
               </div>
+              {/* Treatment Mode Selector */}
+              <div className={cn(
+                "p-5 rounded-[2.5rem] border transition-all hover:shadow-md space-y-4",
+                settings.glassmorphismEnabled
+                  ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                  : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
+              )}>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner">
+                    <Activity size={22} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-black dark:text-white leading-tight">
+                      {t('auto.treatment_mode_title', { defaultValue: 'Typ leczenia' })}
+                    </p>
+                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
+                      {t('auto.treatment_mode_desc', { defaultValue: 'Dostosuj interfejs do swoich potrzeb' })}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {[
+                    { id: 'diet_only', icon: <Apple size={16} />, label: t('auto.treatment_mode_diet', { defaultValue: 'Dieta i tabletki' }), desc: t('auto.treatment_mode_diet_desc', { defaultValue: 'Ukrywa funkcje insulinowe' }) },
+                    { id: 'insulin', icon: <Zap size={16} />, label: t('auto.treatment_mode_insulin', { defaultValue: 'Insulina' }), desc: t('auto.treatment_mode_insulin_desc', { defaultValue: 'Peny lub strzykawki' }) },
+                    { id: 'pump', icon: <Signal size={16} />, label: t('auto.treatment_mode_pump', { defaultValue: 'Pompa' }), desc: t('auto.treatment_mode_pump_desc', { defaultValue: 'Zamknięta pętla / AID' }) }
+                  ].map(mode => (
+                    <button
+                      key={mode.id}
+                      onClick={async () => {
+                        const newVal = mode.id as 'diet_only' | 'insulin' | 'pump';
+                        setSettings((prev) => ({ ...prev, treatmentMode: newVal }));
+                        
+                        if (user) {
+                          await setDoc(
+                            doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+                            { treatmentMode: newVal },
+                            { merge: true }
+                          );
+                          toast.success(t('auto.zapisano_tryb', { defaultValue: 'Zapisano: ' }) + mode.label);
+                        } else {
+                          toast.success(mode.label + ' ' + t('auto.wymaga_odswiezenia_w_trybie_goscia', { defaultValue: '(Tryb Gościa: odśwież stronę, by zobaczyć efekt)' }));
+                        }
+                      }}
+                      className={cn(
+                        "p-3 rounded-2xl border transition-all text-left flex flex-col gap-1 items-start justify-center",
+                        (settings.treatmentMode === mode.id || (!settings.treatmentMode && mode.id === 'insulin'))
+                          ? "bg-indigo-500 border-indigo-500 text-white shadow-lg"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        {mode.icon}
+                        <span className="text-xs font-bold">{mode.label}</span>
+                      </div>
+                      <span className="text-[9px] opacity-80">{mode.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Toggles */}
               <div className="grid grid-cols-1 gap-3">
                 <div className="group flex items-center justify-between p-5 bg-amber-50 dark:bg-amber-500/5 rounded-[2rem] border border-amber-100 dark:border-amber-900/20 transition-all hover:shadow-md">

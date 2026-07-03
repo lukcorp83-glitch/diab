@@ -2192,11 +2192,20 @@ export default function App() {
     };
     window.addEventListener("glikosense_hypo_alert", handleHypoAlert);
 
+    // Wymuś odświeżenie Nightscouta gdy wracamy z tła (rozwiązuje problem zacinania na Androidzie)
+    const appStateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        console.log("App resumed to foreground, forcing Nightscout worker sync");
+        handleForceSync();
+      }
+    });
+
     return () => {
       worker.postMessage({ type: 'STOP_SYNC' });
       worker.terminate();
       window.removeEventListener("force-nightscout-sync", handleForceSync);
       window.removeEventListener("glikosense_hypo_alert", handleHypoAlert);
+      appStateListener.then(listener => listener.remove());
     };
   }, [user, nsUrl]);
 
@@ -2938,6 +2947,7 @@ export default function App() {
         }}
         theme={theme}
         isChildMode={userSettings?.childMode}
+        settings={userSettings}
       />
 
       {/* Main Content with Swipe Navigation */}
