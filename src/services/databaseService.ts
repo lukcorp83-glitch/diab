@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
 export class DatabaseService {
   private sqlite: SQLiteConnection;
@@ -32,17 +33,56 @@ export class DatabaseService {
         await this.sqlite.initWebStore();
       }
 
-      // Połączenie z bazą "glikocontrol_db"
-      const ret = await this.sqlite.checkConnectionsConsistency();
-      const isConn = (await this.sqlite.isConnection('glikocontrol_db', false)).result;
+      const dbName = 'glikocontrol_db';
+      const isEncrypted = !this.isWeb;
+      const mode = isEncrypted ? 'encryption' : 'no-encryption';
 
-      if (ret.result && isConn) {
-        this.db = await this.sqlite.retrieveConnection('glikocontrol_db', false);
-      } else {
-        this.db = await this.sqlite.createConnection('glikocontrol_db', false, 'no-encryption', 1, false);
+      if (isEncrypted) {
+        let dbSecret = "";
+        try {
+          const result = await SecureStoragePlugin.get({ key: "db_encryption_key" });
+          if (result && result.value) {
+            dbSecret = result.value;
+          } else {
+            dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+            await SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret });
+          }
+        } catch(e) {
+          dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+          await SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret }).catch(() => {});
+        }
+
+        try {
+          // Setting the secret globally for CapacitorSQLite
+          await CapacitorSQLite.setEncryptionSecret({ passphrase: dbSecret });
+        } catch(e) {
+          console.error("Set encryption secret failed", e);
+        }
       }
 
-      await this.db.open();
+      // Połączenie z bazą
+      const ret = await this.sqlite.checkConnectionsConsistency();
+      const isConn = (await this.sqlite.isConnection(dbName, false)).result;
+
+      try {
+        if (ret.result && isConn) {
+          this.db = await this.sqlite.retrieveConnection(dbName, false);
+        } else {
+          this.db = await this.sqlite.createConnection(dbName, isEncrypted, mode, 1, false);
+        }
+        await this.db.open();
+      } catch (openError) {
+        console.warn("DB Open failed (likely migration from unencrypted). Wiping old database.", openError);
+        try {
+          await CapacitorSQLite.deleteDatabase({ database: dbName });
+        } catch (delError) {
+          console.error("Failed to delete database", delError);
+        }
+        
+        // Re-create the connection after wipe
+        this.db = await this.sqlite.createConnection(dbName, isEncrypted, mode, 1, false);
+        await this.db.open();
+      }
 
       // Utworzenie tabel dla logów glikemii (jeśli nie istnieją)
       await this.createTables();

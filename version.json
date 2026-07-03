@@ -1,8 +1,8 @@
 {
-  "version": "5.4.15",
+  "version": "5.4.16",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.15_OTA.apk",
-  "whatsNew": "🚀 Wersja 5.4.15: Bezpieczeństwo AI i poprawki UI",
-  "whatsNewEn": "🚀 Version 5.4.15: AI Security and UI fixes",
-  "otaRevision": 256
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.16_OTA.apk",
+  "whatsNew": "🚀 Wersja 5.4.16: Szyfrowanie bazy danych i poprawki aktualizacji",
+  "whatsNewEn": "🚀 Version 5.4.16: Database encryption and update fixes",
+  "otaRevision": 257
 }

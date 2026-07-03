@@ -28,7 +28,7 @@ export default function UpdateModal() {
         } else {
           try {
             const url = isBeta 
-              ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
+              ? 'https://lukcorp83-glitch.github.io/diab/beta.json?t=' + Date.now()
               : 'https://lukcorp83-glitch.github.io/diab/version.json?t=' + Date.now();
               
             const res = await fetch(url);

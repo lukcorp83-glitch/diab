@@ -14,11 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.15';
+export const CURRENT_VERSION = '5.4.16';
 
-export const CURRENT_OTA_REVISION = 0;
+import versionData from '../../version.json';
+export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.16",
+    date: "2026-07-03",
+    title: "Szyfrowanie bazy danych i poprawki aktualizacji",
+    changes: [
+      "Bezpieczeństwo: Pełne sprzętowe szyfrowanie lokalnej bazy danych SQLite dla bezpieczeństwa wrażliwych danych medycznych.",
+      "Naprawa: Rozwiązano problem fałszywych komunikatów o aktualizacji OTA po świeżej instalacji aplikacji.",
+      "Logika: Automatyczna migracja starej bazy poprzez bezpieczne zaciągnięcie historii z chmury Firebase."
+    ]
+  },
   {
     version: "5.4.13",
     date: "2026-06-30",
@@ -420,6 +431,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.4.16",
+    date: "2026-07-03",
+    title: "Szyfrowanie bazy danych i poprawki aktualizacji",
+    changes: [
+      "Bezpieczeństwo: Pełne sprzętowe szyfrowanie lokalnej bazy danych SQLite dla bezpieczeństwa wrażliwych danych medycznych.",
+      "Naprawa: Rozwiązano problem fałszywych komunikatów o aktualizacji OTA po świeżej instalacji aplikacji.",
+      "Logika: Automatyczna migracja starej bazy poprzez bezpieczne zaciągnięcie historii z chmury Firebase."
+    ]
+  },
   {
     version: "5.4.13",
     date: "2026-06-30",
