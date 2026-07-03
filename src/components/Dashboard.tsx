@@ -1,10 +1,7 @@
 import { getEffectiveUid } from '../lib/utils';
-<<<<<<< Updated upstream
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { SortableWidget } from './SortableWidget';
-=======
->>>>>>> Stashed changes
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
