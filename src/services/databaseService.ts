@@ -13,6 +13,17 @@ export class DatabaseService {
   }
 
   async init(): Promise<void> {
+    // Guard: if already initialized, skip to avoid double-init on hot reload / OTA
+    if (this.db) {
+      try {
+        // Check if the connection is still alive
+        const isOpen = await this.db.isDBOpen();
+        if (isOpen.result) return;
+      } catch {
+        this.db = null;
+      }
+    }
+
     try {
       if (this.isWeb) {
         // Inicjalizacja dla przeglądarki (PWA) z jeep-sqlite
@@ -53,10 +64,13 @@ export class DatabaseService {
         }
 
         try {
-          // Setting the secret globally for CapacitorSQLite
+          // setEncryptionSecret() can only be called once per process lifetime.
+          // On hot-reload or OTA restarts it throws "passphrase already set" – that's fine, ignore it.
           await CapacitorSQLite.setEncryptionSecret({ passphrase: dbSecret });
-        } catch(e) {
-          console.error("Set encryption secret failed", e);
+        } catch(e: any) {
+          if (!String(e?.message || e).includes('passphrase')) {
+            console.error("Set encryption secret failed", e);
+          }
         }
       }
 
@@ -66,22 +80,46 @@ export class DatabaseService {
 
       try {
         if (ret.result && isConn) {
+          // Reuse existing connection (e.g. after hot-reload)
           this.db = await this.sqlite.retrieveConnection(dbName, false);
         } else {
+          // Close any stale connection that exists without consistency
+          if (isConn) {
+            try { await this.sqlite.closeConnection(dbName, false); } catch { /* ignore */ }
+          }
           this.db = await this.sqlite.createConnection(dbName, isEncrypted, mode, 1, false);
         }
         await this.db.open();
-      } catch (openError) {
-        console.warn("DB Open failed (likely migration from unencrypted). Wiping old database.", openError);
-        try {
-          await CapacitorSQLite.deleteDatabase({ database: dbName });
-        } catch (delError) {
-          console.error("Failed to delete database", delError);
+      } catch (openError: any) {
+        const msg = String(openError?.message || openError);
+
+        if (msg.includes('already exists')) {
+          // Connection object exists but is stale – retrieve it and try to open
+          try {
+            this.db = await this.sqlite.retrieveConnection(dbName, false);
+            await this.db.open();
+          } catch (retrieveErr) {
+            console.error("Could not retrieve stale connection", retrieveErr);
+          }
+        } else {
+          // Likely migration from unencrypted DB – wipe and recreate
+          console.warn("DB Open failed – attempting recovery by wiping old database.", openError);
+          try {
+            await CapacitorSQLite.deleteDatabase({ database: dbName });
+          } catch (delError) {
+            console.error("Failed to delete database", delError);
+          }
+          try {
+            this.db = await this.sqlite.createConnection(dbName, isEncrypted, mode, 1, false);
+            await this.db.open();
+          } catch (recreateErr) {
+            console.error("Failed to recreate database after wipe", recreateErr);
+          }
         }
-        
-        // Re-create the connection after wipe
-        this.db = await this.sqlite.createConnection(dbName, isEncrypted, mode, 1, false);
-        await this.db.open();
+      }
+
+      if (!this.db) {
+        throw new Error("Database connection could not be established after all recovery attempts.");
       }
 
       // Utworzenie tabel dla logów glikemii (jeśli nie istnieją)
