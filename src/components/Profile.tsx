@@ -2723,44 +2723,6 @@ export default function Profile({
                                               {t('auto.zmiana_tdi_automatycznie_aktualizuj', { defaultValue: 'Zmiana TDI automatycznie aktualizuje ISF i Ratio WW.' })}
                                             </p>
             </div>
-
-            {/* Advanced Profiles Preview Card */}
-            <div
-              onClick={() => {
-                /* scroll to next card maybe? */
-              }}
-              className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-indigo-500/20 flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center gap-2.5 mb-2">
-                  <div className="p-2 bg-white/20 rounded-2xl">
-                    <History size={18} />
-                  </div>
-                  <h3 className="text-[11px] font-black uppercase tracking-tight">
-                    
-                                                          {t('auto.profile_dobowe', { defaultValue: 'Profile dobowe' })}
-                                                        </h3>
-                </div>
-                <p className="text-[9px] text-white/80 leading-snug font-bold">
-                  
-                                                    {t('auto.ustaw_parametry_dla_pór_dnia', { defaultValue: i18n.t('auto.ustaw_parametry_dla_por_d', { defaultValue: "Ustaw parametry dla pór dnia." }) })}
-                                                  </p>
-              </div>
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="w-6 h-6 rounded-full border-2 border-indigo-500 bg-white/20"
-                    ></div>
-                  ))}
-                </div>
-                <span className="text-[8px] font-black bg-white/20 px-2 py-1 rounded-full uppercase tracking-widest">
-                  
-                                                    {t('auto.konfiguruj_poniżej', { defaultValue: i18n.t('auto.konfiguruj_ponizej', { defaultValue: "Konfiguruj poniżej" }) })}
-                                                  </span>
-              </div>
-            </div>
           </div>
 
           <div
@@ -2871,11 +2833,10 @@ export default function Profile({
                     />
                   </div>
                   <div className="flex-1 grid grid-cols-2 gap-2">
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">
-                        
-                                                          {t('auto.isf', { defaultValue: 'ISF' })}
-                                                        </span>
+                    <div className="relative flex flex-col gap-1.5">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                        {t('auto.wrazliwosc_isf', { defaultValue: 'Wrażliwość (ISF)' })}
+                      </span>
                       <input
                         type="number"
                         step="0.1"
@@ -2906,14 +2867,13 @@ export default function Profile({
                             hourlyProfiles: newProfiles,
                           });
                         }}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-2xl font-black text-xs text-center dark:text-white"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-2xl font-black text-xs text-center dark:text-white"
                       />
                     </div>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">
-                        
-                                                          {t('auto.ww', { defaultValue: 'WW' })}
-                                                        </span>
+                    <div className="relative flex flex-col gap-1.5">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                        {t('auto.przelicznik_ww', { defaultValue: 'Przelicznik (WW)' })}
+                      </span>
                       <input
                         type="number"
                         step="0.1"
@@ -2944,7 +2904,7 @@ export default function Profile({
                             hourlyProfiles: newProfiles,
                           });
                         }}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-2xl font-black text-xs text-center dark:text-white"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-2xl font-black text-xs text-center dark:text-white"
                       />
                     </div>
                   </div>

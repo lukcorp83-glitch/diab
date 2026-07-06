@@ -64,8 +64,15 @@ export default function UpdateModal() {
         const isNewOtaRevision = data && data.version === CURRENT_VERSION && data.otaRevision && data.otaRevision > currentOtaToCompare;
 
         if ((isNewApkVersion && dismissed !== data.version) || (isNewOtaRevision && dismissedOta !== String(data.otaRevision))) {
-          setVersionData(data);
-          setShow(true);
+          const updateKey = `updateDetectedAt_${data.version}_${data.otaRevision || 0}`;
+          const detectedAt = localStorage.getItem(updateKey);
+          
+          if (!detectedAt) {
+            localStorage.setItem(updateKey, String(Date.now()));
+          } else if (Date.now() - parseInt(detectedAt, 10) > 10 * 60 * 1000) {
+            setVersionData(data);
+            setShow(true);
+          }
         }
       } catch (e) {
         console.error("Failed to check version", e);
