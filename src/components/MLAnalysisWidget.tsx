@@ -892,7 +892,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                                     
                                     {/* Pagination dots */}
                                     <div className="flex gap-1.5 mt-3 mb-1 justify-start items-center">
-                                        {analysisParams.insights.map((_, dotIdx) => (
+                                        {mlResult.insights.map((_, dotIdx) => (
                                             <div 
                                                 key={`dot-${idx}-${dotIdx}`} 
                                                 className={`h-1.5 rounded-full transition-all duration-300 ${dotIdx === idx ? 'w-4 bg-indigo-500 dark:bg-indigo-400' : 'w-1.5 bg-slate-200 dark:bg-slate-700'}`} 
