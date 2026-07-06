@@ -516,6 +516,12 @@ export default function App() {
   }, [userSettings?.sensorChangeDate, userSettings?.infusionSetChangeDate, userSettings?.sensorDurationDays, userSettings?.infusionSetDurationDays]);
 
   useEffect(() => {
+    if (userSettings?.medications) {
+      notificationService.scheduleMedicationReminders(userSettings.medications);
+    }
+  }, [userSettings?.medications]);
+
+  useEffect(() => {
     if (logs.length > 0 && Capacitor.isNativePlatform()) {
       const latest = logs[0];
       const WidgetUpdater = registerPlugin<any>('WidgetUpdater');

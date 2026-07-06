@@ -4821,5 +4821,17 @@
   "auto.brak_penow_alert": "Warning! Last pen is running out!",
   "auto.rozpoczal_sie_nowy_pen": "Started new pen ({{units}}U)",
   "auto.zostalo_jednostek_w_penie": "{{units}}U left",
-  "auto.dodaj_nowe_peny": "Add pens to inventory"
+  "auto.dodaj_nowe_peny": "Add pens to inventory",
+  "auto.czas_na_lek": "Time for medication",
+  "auto.pamietaj_o_dawce": "Remember your dose",
+  "auto.obniza_cukier": "LOWERS SUGAR",
+  "auto.podnosi_cukier": "RAISES SUGAR",
+  "auto.neutralny": "NEUTRAL",
+  "auto.glikemia": "Blood sugar:",
+  "auto.substancja": "Substance:",
+  "auto.opis": "Effect:",
+  "auto.ai_analizuje_lek": "AI analyzing medication...",
+  "auto.ai_analiza_zakonczona": "AI: Analysis complete!",
+  "auto.ai_nie_udalo_sie_przean": "AI: Analysis failed.",
+  "auto.ai_blad_komunikacji": "AI: Communication error."
 }

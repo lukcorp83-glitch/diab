@@ -6530,5 +6530,16 @@
   "auto.brak_penow_alert": "Uwaga! Kończy się ostatni pen!",
   "auto.rozpoczal_sie_nowy_pen": "Rozpoczęto nowego pena ({{units}}j)",
   "auto.zostalo_jednostek_w_penie": "Zostało {{units}}j",
-  "auto.dodaj_nowe_peny": "Dodaj peny do zapasu"
+  "auto.dodaj_nowe_peny": "Dodaj peny do zapasu",
+  "auto.czas_na_lek": "Czas na lek",
+  "auto.pamietaj_o_dawce": "Pamiętaj o dawce",
+  "auto.obniza_cukier": "OBNIŻA CUKIER",
+  "auto.podnosi_cukier": "PODNOSI CUKIER",
+  "auto.neutralny": "NEUTRALNY",
+  "auto.substancja": "Substancja:",
+  "auto.opis": "Wpływ:",
+  "auto.ai_analizuje_lek": "AI analizuje lek...",
+  "auto.ai_analiza_zakonczona": "AI: Analiza zakończona!",
+  "auto.ai_nie_udalo_sie_przean": "AI: Nie udało się przeanalizować.",
+  "auto.ai_blad_komunikacji": "AI: Błąd komunikacji."
 }

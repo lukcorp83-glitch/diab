@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { LogEntry, Product } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Merge, AlertCircle, Plus, X, Search, CheckCircle2 } from 'lucide-react';
+import { Merge, AlertCircle, Plus, X, Search, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { LIB_BASE } from "../constants";

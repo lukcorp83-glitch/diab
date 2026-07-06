@@ -890,16 +890,21 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                                         {insight}
                                     </div>
                                     
-                                    {/* Sparkline / Decorative progress line */}
-                                    <div className="w-full h-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-full overflow-hidden mt-3 mb-1">
-                                        <div className={`h-full rounded-full opacity-80 ${lineGlow}`} style={{ width: `${Math.random() * 40 + 40}%` }} />
+                                    {/* Pagination dots */}
+                                    <div className="flex gap-1.5 mt-3 mb-1 justify-start items-center">
+                                        {analysisParams.insights.map((_, dotIdx) => (
+                                            <div 
+                                                key={`dot-${idx}-${dotIdx}`} 
+                                                className={`h-1.5 rounded-full transition-all duration-300 ${dotIdx === idx ? 'w-4 bg-indigo-500 dark:bg-indigo-400' : 'w-1.5 bg-slate-200 dark:bg-slate-700'}`} 
+                                            />
+                                        ))}
                                     </div>
                                     
                                     {setTab && (
                                       <button 
                                           onClick={() => {
                                               sessionStorage.setItem('bot_initial_query', `Proszę, przeanalizuj ze mną ten wniosek i doradź mi: ${insight}`);
-                                              setTab('bot');
+                                              setTab('chat');
                                           }}
                                           className={`self-start mt-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95 ${glassmorphismEnabled ? 'bg-slate-900/5 hover:bg-slate-900/10 dark:bg-white/5 dark:hover:bg-white/10 backdrop-blur-sm' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'} z-10`}
                                       >
