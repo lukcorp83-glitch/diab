@@ -14,12 +14,21 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.6.20';
+export const CURRENT_VERSION = '5.6.21';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.21",
+    date: "2026-07-06",
+    title: "Słownik Leków AI",
+    changes: [
+      "Nowość: Dodano inteligentny system autouzupełniania słownika leków wspierany przez modele AI (Gemini).",
+      "Ulepszenie: Interakcje leków oraz ich wpływ na glikemię wyświetlają się bezpośrednio na kafelkach leków."
+    ]
+  },
   {
     version: "5.6.20",
     date: "2026-07-06",
@@ -462,6 +471,15 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.21",
+    date: "2026-07-06",
+    title: "Słownik Leków AI",
+    changes: [
+      "Nowość: Dodano inteligentny system autouzupełniania słownika leków wspierany przez modele AI (Gemini).",
+      "Ulepszenie: Interakcje leków oraz ich wpływ na glikemię wyświetlają się bezpośrednio na kafelkach leków."
+    ]
+  },
   {
     version: "5.6.20",
     date: "2026-07-06",

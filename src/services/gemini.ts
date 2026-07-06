@@ -839,5 +839,29 @@ export const geminiService = {
     }
     // Fallback to original name
     return { namePl: name, nameEn: name };
+  },
+
+  async analyzeMedication(medName: string): Promise<any> {
+    const prompt = `Act as an expert clinical pharmacologist. Analyze the medication/supplement named "${medName}". 
+Return ONLY a valid JSON object with the exact following schema:
+{
+  "activeIngredient": "String. The primary active substance (INN). If combination, state main active components.",
+  "sugarImpact": "String. Must be exactly one of: 'lowers', 'raises', 'neutral', 'unknown'.",
+  "interactions": "String. A short, concise sentence about major interactions with diabetes medications or insulin.",
+  "description": "String. 1-2 concise sentences explaining what it is and its primary effect on blood sugar or insulin resistance."
+}
+IMPORTANT: Translate 'activeIngredient', 'interactions', and 'description' to Polish. KEEP 'sugarImpact' strictly in English as one of the 4 allowed keywords.
+Respond ONLY with the JSON object. Do not include markdown code blocks or any other text.`;
+
+    const result = await this.generateContent(prompt);
+    try {
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.warn("Failed to parse medication analysis", e);
+    }
+    return null;
   }
 };

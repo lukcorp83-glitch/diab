@@ -74,6 +74,13 @@ export interface HourlyProfile {
   wwRatio: number;
 }
 
+export interface DrugKnowledge {
+  activeIngredient: string;
+  sugarImpact: "lowers" | "raises" | "neutral" | "unknown";
+  interactions: string;
+  description: string;
+}
+
 export interface Medication {
   id: string;
   name: string;
@@ -81,6 +88,7 @@ export interface Medication {
   reminders: string[]; // "HH:mm"
   active: boolean;
   expiryDate?: string; // "YYYY-MM-DD"
+  aiData?: DrugKnowledge; // Zapamiętana wiedza AI o danym przypisanym leku
 }
 
 export interface InventoryItem {
@@ -113,6 +121,7 @@ export interface UserSettings {
   isLinkedAdmin?: boolean; // Zapamiętuje na twardo w chmurze uprawnienia administratora
   dia?: number; // Duration of Insulin Action in hours
   hourlyProfiles?: HourlyProfile[];
+  customDrugDictionary?: Record<string, DrugKnowledge>; // Globalny słownik wiedzy wygenerowany przez AI
   medications?: Medication[];
   inventory?: InventoryItem[];
   cgmCalibration?: number; // Calibration offset in mg/dL

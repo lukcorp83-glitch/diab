@@ -401,6 +401,7 @@ export default function Profile({
   const therapyLocked = isFollower && settings.groupTherapyLock;
 
   const [medLoading, setMedLoading] = useState(false);
+  const [isAnalyzingDrug, setIsAnalyzingDrug] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [cleaningResult, setCleaningResult] = useState<string | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -1378,6 +1379,34 @@ export default function Profile({
       console.error(e);
     }
   };
+  const analyzeDrug = async () => {
+    if (!newMedication?.name || !user) return;
+    setIsAnalyzingDrug(true);
+    const toastId = toast.loading(i18n.t('auto.ai_analizuje_lek', { defaultValue: "AI analizuje lek..." }));
+    try {
+      const data = await geminiService.analyzeMedication(newMedication.name);
+      if (data) {
+        setNewMedication(prev => prev ? { ...prev, aiData: data } : null);
+        const updatedDict = { ...(settings.customDrugDictionary || {}) };
+        updatedDict[newMedication.name] = data;
+        const newSettings = { ...settings, customDrugDictionary: updatedDict };
+        setSettings(newSettings);
+        await setDoc(
+          doc(db, "users", getEffectiveUid(user, settings)),
+          { customDrugDictionary: updatedDict },
+          { merge: true }
+        );
+        toast.success(i18n.t('auto.ai_analiza_zakonczona', { defaultValue: "AI: Analiza zakończona!" }), { id: toastId });
+      } else {
+        toast.error(i18n.t('auto.ai_nie_udalo_sie_przean', { defaultValue: "AI: Nie udało się przeanalizować." }), { id: toastId });
+      }
+    } catch (error) {
+      toast.error(i18n.t('auto.ai_blad_komunikacji', { defaultValue: "AI: Błąd komunikacji." }), { id: toastId });
+    } finally {
+      setIsAnalyzingDrug(false);
+    }
+  };
+
 
   const saveMedication = async () => {
     if (!newMedication?.name || !user) return;
@@ -4479,6 +4508,22 @@ export default function Profile({
                             </span>
                           ))}
                         </div>
+                        {med.aiData && (
+                          <div className="mt-3 bg-white/50 dark:bg-slate-900/50 p-2.5 rounded-2xl border border-teal-500/10">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Sparkles size={12} className="text-teal-500" />
+                              <span className="text-[10px] font-black text-slate-700 dark:text-slate-300">
+                                {med.aiData.activeIngredient}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                              <strong className={med.aiData.sugarImpact === 'lowers' ? 'text-blue-500 uppercase' : med.aiData.sugarImpact === 'raises' ? 'text-rose-500 uppercase' : 'text-slate-500 uppercase'}>
+                                {med.aiData.sugarImpact === 'lowers' ? t('auto.obniza_cukier', { defaultValue: 'OBNIŻA CUKIER' }) : med.aiData.sugarImpact === 'raises' ? t('auto.podnosi_cukier', { defaultValue: 'PODNOSI CUKIER' }) : t('auto.neutralny', { defaultValue: 'NEUTRALNY' })}
+                              </strong>
+                              {' • '}{med.aiData.interactions}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -4609,16 +4654,35 @@ export default function Profile({
                                                               </label>
                     <input
                       type="text"
+                      list="medication-dict"
                       placeholder={t('auto.np_metformina', { defaultValue: 'np. Metformina' })}
                       value={newMedication.name}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const existingAi = settings.customDrugDictionary?.[val];
                         setNewMedication({
                           ...newMedication,
-                          name: e.target.value,
-                        })
-                      }
+                          name: val,
+                          aiData: existingAi || newMedication.aiData
+                        });
+                      }}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
                     />
+                    <datalist id="medication-dict">
+                      {Object.keys(settings.customDrugDictionary || {}).map(k => <option key={k} value={k} />)}
+                    </datalist>
+                    {newMedication.name && !settings.customDrugDictionary?.[newMedication.name] && (
+                       <button onClick={analyzeDrug} disabled={isAnalyzingDrug} className="mt-2 text-[10px] bg-teal-500/10 text-teal-600 dark:text-teal-400 p-2 rounded-xl font-bold flex items-center gap-1">
+                          {isAnalyzingDrug ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} {t('auto.przeanalizuj_lek_z_ai', { defaultValue: "Przeanalizuj lek z AI" })}
+                       </button>
+                    )}
+                    {newMedication.aiData && (
+                       <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                         <strong>{t('auto.substancja', { defaultValue: "Substancja:" })}</strong> {newMedication.aiData.activeIngredient}<br/>
+                         <strong>{t('auto.glikemia', { defaultValue: "Glikemia:" })}</strong> <span className={newMedication.aiData.sugarImpact === 'lowers' ? 'text-blue-500 font-bold uppercase' : newMedication.aiData.sugarImpact === 'raises' ? 'text-rose-500 font-bold uppercase' : 'text-slate-500 font-bold uppercase'}>{newMedication.aiData.sugarImpact === 'lowers' ? t('auto.obniza_cukier', { defaultValue: 'OBNIŻA CUKIER' }) : newMedication.aiData.sugarImpact === 'raises' ? t('auto.podnosi_cukier', { defaultValue: 'PODNOSI CUKIER' }) : t('auto.neutralny', { defaultValue: 'NEUTRALNY' })}</span><br/>
+                         <strong>{t('auto.opis', { defaultValue: "Wpływ:" })}</strong> {newMedication.aiData.description}
+                       </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, CheckCircle2 } from 'lucide-react';
+import { Pill, CheckCircle2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Medication } from '../types';
 import { cn } from '../lib/utils';
@@ -101,14 +101,26 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
                 : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800/50"
             )}>
               <div className="flex flex-col min-w-0 pr-2">
-                <span className={cn(
-                  "font-bold truncate",
-                  isCompact ? "text-xs" : "text-sm",
-                  highlight ? "text-indigo-900 dark:text-indigo-100" : "text-slate-700 dark:text-slate-300",
-                  isTakenToday && "line-through opacity-50"
-                )}>
-                  {med.name}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    "font-bold truncate",
+                    isCompact ? "text-xs" : "text-sm",
+                    highlight ? "text-indigo-900 dark:text-indigo-100" : "text-slate-700 dark:text-slate-300",
+                    isTakenToday && "line-through opacity-50"
+                  )}>
+                    {med.name}
+                  </span>
+                  {med.aiData && (
+                    <Sparkles 
+                      size={isCompact ? 10 : 12} 
+                      className={cn(
+                        "shrink-0",
+                        med.aiData.sugarImpact === 'lowers' ? 'text-blue-500' : 
+                        med.aiData.sugarImpact === 'raises' ? 'text-rose-500' : 'text-slate-400'
+                      )} 
+                    />
+                  )}
+                </div>
                 {!isCompact && (
                   <span className={cn(
                     "text-[10px] font-bold uppercase tracking-wider",
