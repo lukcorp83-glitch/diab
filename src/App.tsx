@@ -335,6 +335,42 @@ export default function App() {
       const newLog = e.detail;
       setCachedLogs((prev) => [newLog, ...prev]);
       setFbLogs((prev) => [newLog, ...prev]);
+
+      if (newLog.type === 'insulin' && newLog.dose) {
+         setUserSettings((prev) => {
+            if (!prev || prev.treatmentMode !== 'insulin') return prev;
+            let newCurrent = prev.currentPenUnits ?? prev.penCapacity ?? 300;
+            let newCount = prev.penCount ?? 0;
+            
+            newCurrent -= newLog.dose;
+            
+            // Alert o niskim stanie pena, np. 20 jednostek
+            if (newCurrent <= 20 && prev.currentPenUnits && prev.currentPenUnits > 20) {
+              import("./services/notificationService").then(mod => {
+                 mod.notificationService.scheduleLocalNotification(
+                    "Kończy się insulina! 💉",
+                    `W Twoim penie zostało tylko ${newCurrent} jednostek.`,
+                    0
+                 );
+              });
+            }
+
+            if (newCurrent <= 0) {
+               newCount = Math.max(0, newCount - 1);
+               newCurrent = prev.penCapacity ?? 300;
+            }
+            
+            const updatedSettings = { ...prev, currentPenUnits: newCurrent, penCount: newCount };
+            
+            if (auth.currentUser) {
+              import("firebase/firestore").then(({ setDoc, doc }) => {
+                setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(auth.currentUser), "settings", "profile"), updatedSettings, { merge: true }).catch(console.error);
+              });
+            }
+            
+            return updatedSettings;
+         });
+      }
     };
     window.addEventListener("localLogUpdate", handleLogUpdate);
     window.addEventListener("localLogDelete", handleLogDelete);
@@ -402,13 +438,42 @@ export default function App() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
 
-  const linkedUid = localStorage.getItem("diacontrol_linked_uid");
+  const linkedUid = localStorage.getItem("diacontrol_linked_uid") || userSettings?.linkedUid || null;
   const isMasterToken = localStorage.getItem("diacontrol_is_master") === "true";
-  const isAdminToken = localStorage.getItem("diacontrol_is_admin") === "true";
+  const isAdminToken = localStorage.getItem("diacontrol_is_admin") === "true" || userSettings?.isLinkedAdmin === true;
   
   const role = isMasterToken ? 'master' : (isAdminToken ? 'admin' : 'follower');
   const isAdmin = role === 'master' || role === 'admin';
   
+  // Automatycznie odtwórz pamięć lokalną jeśli odzyskaliśmy klucz z Firebase!
+  useEffect(() => {
+     if (userSettings?.linkedUid && !localStorage.getItem("diacontrol_linked_uid")) {
+         localStorage.setItem("diacontrol_linked_uid", userSettings.linkedUid);
+     }
+     if (userSettings?.isLinkedAdmin && !localStorage.getItem("diacontrol_is_admin")) {
+         localStorage.setItem("diacontrol_is_admin", "true");
+     }
+  }, [userSettings?.linkedUid, userSettings?.isLinkedAdmin]);
+
+  // Wymuś kompaktowy rozmiar 1x1 dla widgetów aktywności i TIR u starych użytkowników
+  useEffect(() => {
+    if (userSettings?.dashboardWidgets && user) {
+      let changed = false;
+      const newWidgets = userSettings.dashboardWidgets.map((w: any) => {
+        if ((w.id === "daily_tir" || w.id === "health_connect") && w.size !== "1x1") {
+          changed = true;
+          return { ...w, size: "1x1" };
+        }
+        return w;
+      });
+      if (changed) {
+        setUserSettings((prev: any) => prev ? { ...prev, dashboardWidgets: newWidgets } : null);
+        import("firebase/firestore").then(({ setDoc, doc }) => {
+          setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { dashboardWidgets: newWidgets }, { merge: true }).catch(console.error);
+        });
+      }
+    }
+  }, [userSettings?.dashboardWidgets, user]);
   let localDeviceId = localStorage.getItem("glikocontrol_device_id");
   if (!localDeviceId) {
      localDeviceId = `device-${Date.now()}-${Math.floor(Math.random()*1000)}`;
@@ -756,7 +821,7 @@ export default function App() {
         lastGlucose = pumpBg || lastGlucose;
       }
 
-      const staticInsights = getGlikoSenseInsights(logs);
+      const staticInsights = getGlikoSenseInsights(logs, userSettings?.treatmentMode);
       const combinedInsights = [...staticInsights, ...aiInsights];
 
       const response = await geminiService.getAssistantResponse(
@@ -1273,16 +1338,35 @@ export default function App() {
 
         if (d.exists()) {
           const data = d.data() as UserSettings;
+          const localTreatmentMode = localStorage.getItem("treatmentMode") as any;
+          
           if (localNotificationsEnabled !== null) {
             data.notificationsEnabled = localNotificationsEnabled === "true";
           }
+          
+          if (localTreatmentMode !== null) {
+            data.treatmentMode = localTreatmentMode;
+            // Wymuszamy nadpisanie starego stanu w bazie chmurowej
+            setDoc(settingsRef, { treatmentMode: localTreatmentMode }, { merge: true }).catch(console.error);
+            localStorage.removeItem("treatmentMode"); // Pożeramy flagę
+          }
+          
           setUserSettings(data);
         } else {
           const defaultSettings = { ...DEFAULT_SETTINGS };
+          const localTreatmentMode = localStorage.getItem("treatmentMode") as any;
+          
           if (localNotificationsEnabled !== null) {
             defaultSettings.notificationsEnabled =
               localNotificationsEnabled === "true";
           }
+          
+          if (localTreatmentMode !== null) {
+            defaultSettings.treatmentMode = localTreatmentMode;
+            setDoc(settingsRef, { treatmentMode: localTreatmentMode }, { merge: true }).catch(console.error);
+            localStorage.removeItem("treatmentMode");
+          }
+          
           setUserSettings(defaultSettings);
         }
       },
@@ -1614,7 +1698,7 @@ export default function App() {
       if (Date.now() - lastInsightCheck > 24 * 60 * 60 * 1000) {
          localStorage.setItem('glikosense_last_insight_check', Date.now().toString());
          import('./lib/insightGenerator').then(({ getGlikoSenseInsights }) => {
-             const insights = getGlikoSenseInsights(logs);
+             const insights = getGlikoSenseInsights(logs, userSettings?.treatmentMode);
              const nightLowsMsg = insights.find((i: string) => i.includes('nocne hipoglikemie'));
              if (nightLowsMsg && !localStorage.getItem('glikosense_asked_night_lows')) {
                  localStorage.setItem('glikosense_asked_night_lows', 'true');
@@ -2227,7 +2311,8 @@ export default function App() {
                          || Array.from(topModal.querySelectorAll('button')).find(b => 
                               b.textContent?.toLowerCase().includes('zamknij') || 
                               b.textContent?.toLowerCase().includes('anuluj') ||
-                              b.textContent?.toLowerCase().includes('close')
+                              b.textContent?.toLowerCase().includes('close') ||
+                              b.querySelector('.lucide-x, .lucide-chevron-left')
                             );
 
         if (closeBtn && typeof (closeBtn as HTMLElement).click === 'function') {
@@ -3191,9 +3276,35 @@ export default function App() {
       <AnimatePresence>
         {showTutorial && (
           <OnboardingTutorial
-            onComplete={() => {
+            onComplete={async (mode) => {
               setShowTutorial(false);
               localStorage.setItem("hasSeenTutorial", "true");
+              localStorage.setItem("treatmentMode", mode); // Fallback offline
+              
+              setUserSettings((prev: any) => ({ 
+                ...(prev || {}), 
+                treatmentMode: mode 
+              }));
+
+              if (user) {
+                try {
+                  await setDoc(
+                    doc(
+                      db,
+                      "artifacts",
+                      "diacontrolapp",
+                      "users",
+                      getEffectiveUid(user),
+                      "settings",
+                      "profile",
+                    ),
+                    { treatmentMode: mode },
+                    { merge: true },
+                  );
+                } catch (e) {
+                  console.error("Failed to save treatmentMode", e);
+                }
+              }
             }}
           />
         )}

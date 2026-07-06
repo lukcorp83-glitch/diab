@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.6.19';
+export const CURRENT_VERSION = '5.6.20';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.20",
+    date: "2026-07-06",
+    title: "Szybkie poprawki (Hotfix)",
+    changes: [
+      "Naprawa: Zlikwidowano błąd 'isAIEstimating' uniemożliwiający wygenerowanie szacunkowych wartości posiłku przez AI.",
+      "Poprawka: Poprawiono gramatykę i zły szyk zdań we wnioskach generowanych przez asystenta GlikoSense.",
+      "Poprawka: Usunięto błędy formatowania znaków specjalnych w instrukcji instalatora na system Android."
+    ]
+  },
   {
     version: "5.6.19",
     date: "2026-07-03",
@@ -452,6 +462,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.20",
+    date: "2026-07-06",
+    title: "Szybkie poprawki (Hotfix)",
+    changes: [
+      "Naprawa: Zlikwidowano błąd 'isAIEstimating' uniemożliwiający wygenerowanie szacunkowych wartości posiłku przez AI.",
+      "Poprawka: Poprawiono gramatykę i zły szyk zdań we wnioskach generowanych przez asystenta GlikoSense.",
+      "Poprawka: Usunięto błędy formatowania znaków specjalnych w instrukcji instalatora na system Android."
+    ]
+  },
   {
     version: "5.6.19",
     date: "2026-07-03",

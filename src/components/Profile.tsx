@@ -35,6 +35,7 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Cloud,
   ShoppingBag,
   Coins,
@@ -153,6 +154,9 @@ export default function Profile({
 }: ProfileProps) {
     const { t } = useTranslation();
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
+  useEffect(() => {
+    setSettings(initialSettings);
+  }, [initialSettings]);
   const [learnedRules, setLearnedRules] = useState<any>(() => {
     try {
       return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
@@ -228,9 +232,7 @@ export default function Profile({
     fetchWidgetDebug();
   }, []);
 
-  useEffect(() => {
-    setSettings(initialSettings);
-  }, [initialSettings]);
+
   const [petData, setPetData] = useState<{
     coins: number;
     skin: string;
@@ -1445,7 +1447,11 @@ export default function Profile({
   };
 
   const saveInventoryItem = async () => {
-    if (!newInventoryItem?.name || !user) return;
+    if (!newInventoryItem?.name) {
+      toast.error(t('auto.podaj_nazwe_sprzetu', { defaultValue: 'Podaj nazwę zapasu!' }));
+      return;
+    }
+    if (!user) return;
     try {
       const updatedInventory = [...(settings.inventory || [])];
 
@@ -3667,6 +3673,10 @@ export default function Profile({
               </div>
             </div>
 
+
+
+          {(!settings.treatmentMode || settings.treatmentMode === 'pump') && (
+            <>
             <div
               className={cn(
                 "group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden",
@@ -3907,6 +3917,8 @@ export default function Profile({
                                                           {t('auto.aktualizuj_dane', { defaultValue: 'Aktualizuj dane' })}
                                                         </button>
                 </div>
+              </div>
+            </div>
             <div
               className={cn(
                 "group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden",
@@ -4118,10 +4130,10 @@ export default function Profile({
                 </div>
               </div>
             </div>
+            </>
+          )}
 
-              </div>
             </div>
-          </div>
           <button
             onClick={saveSettings}
             disabled={settingsLoading}
@@ -4756,6 +4768,8 @@ export default function Profile({
             </div>
 
             <div className="space-y-4">
+
+
               {(settings.inventory || []).map((item) => (
                 <motion.div
                   layout
@@ -4787,6 +4801,11 @@ export default function Profile({
                           
                                                                 {t('auto.kategoria', { defaultValue: 'Kategoria:' })} {item.category}
                         </p>
+                        {item.category === "pens" && item.penCapacity && (
+                          <p className="text-[10px] font-bold mt-0.5 uppercase tracking-widest text-indigo-500">
+                            {t('auto.pojemnosc', { defaultValue: 'Pojemność:' })} {item.penCapacity} j.
+                          </p>
+                        )}
                         {item.expiryDate && (
                           <p className="text-[9px] font-bold mt-1 uppercase tracking-widest flex items-center gap-1 text-amber-600 dark:text-amber-500">
                             <Calendar size={10} />  {t('auto.data_ważn', { defaultValue: i18n.t('auto.data_wazn', { defaultValue: "Data ważn:" }) })} {item.expiryDate}
@@ -5011,28 +5030,36 @@ export default function Profile({
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
+                    <div className="space-y-1 relative">
                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
                         
                                                                       {t('auto.kategoria', { defaultValue: 'Kategoria' })}
                                                                     </label>
-                      <select
-                        value={newInventoryItem.category}
-                        onChange={(e) =>
-                          setNewInventoryItem({
-                            ...newInventoryItem,
-                            category: e.target.value as any,
-                          })
-                        }
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all appearance-none"
-                      >
-                        <option value="sensors">{t('auto.sensory', { defaultValue: 'Sensory' })}</option>
-                        <option value="insulin">{t('auto.insulina', { defaultValue: 'Insulina' })}</option>
-                        <option value="reservoirs">{t('auto.zbiorniczki', { defaultValue: 'Zbiorniczki' })}</option>
-                        <option value="infusion_sets">{t('auto.wkłucia', { defaultValue: i18n.t('auto.wklucia', { defaultValue: "Wkłucia" }) })}</option>
-                        <option value="strips">{t('auto.paski', { defaultValue: 'Paski' })}</option>
-                        <option value="other">{t('auto.inne', { defaultValue: 'Inne' })}</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={newInventoryItem.category}
+                          onChange={(e) =>
+                            setNewInventoryItem({
+                              ...newInventoryItem,
+                              category: e.target.value as any,
+                            })
+                          }
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-3 pr-10 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="sensors">{t('auto.sensory', { defaultValue: 'Sensory' })}</option>
+                          <option value="insulin">{t('auto.insulina', { defaultValue: 'Insulina' })}</option>
+                          <option value="pens">{t('auto.peny', { defaultValue: 'Wstrzykiwacze (Peny)' })}</option>
+                          {(!settings.treatmentMode || settings.treatmentMode === 'pump') && (
+                            <>
+                              <option value="reservoirs">{t('auto.zbiorniczki', { defaultValue: 'Zbiorniczki' })}</option>
+                              <option value="infusion_sets">{t('auto.wkłucia', { defaultValue: i18n.t('auto.wklucia', { defaultValue: "Wkłucia" }) })}</option>
+                            </>
+                          )}
+                          <option value="strips">{t('auto.paski', { defaultValue: 'Paski' })}</option>
+                          <option value="other">{t('auto.inne', { defaultValue: 'Inne' })}</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -5093,6 +5120,26 @@ export default function Profile({
                      </div>
                   )}
 
+                  {newInventoryItem.category === "pens" && (
+                     <div className="space-y-1">
+                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                         {t('auto.pojemnosc_pena_w_jednostkach', { defaultValue: 'Pojemność pojedynczego pena (w jednostkach)' })}
+                       </label>
+                       <input
+                         type="number"
+                         placeholder={t('auto.np_300', { defaultValue: 'np. 300' })}
+                         value={newInventoryItem.penCapacity || ""}
+                         onChange={(e) =>
+                           setNewInventoryItem({
+                             ...newInventoryItem,
+                             penCapacity: e.target.value ? Number(e.target.value) : undefined,
+                           })
+                         }
+                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                       />
+                     </div>
+                  )}
+
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
                       
@@ -5136,7 +5183,17 @@ export default function Profile({
       {activeCategory === "simulator" && <PumpSimulator settings={settings} />}
 
       {activeCategory === "tutorial" && (
-        <TutorialView setTab={() => setActiveCategory(null)} />
+        <TutorialView 
+          setTab={() => setActiveCategory(null)} 
+          onComplete={async (mode) => {
+            const newVal = mode as 'diet_only' | 'insulin' | 'pump';
+            setSettings((prev) => ({ ...prev, treatmentMode: newVal }));
+            localStorage.setItem("treatmentMode", newVal);
+            if (user) {
+              await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { treatmentMode: newVal }, { merge: true });
+            }
+          }}
+        />
       )}
 
       {activeCategory === "training" && (
@@ -5800,7 +5857,7 @@ export default function Profile({
                                                   </li>
                 <li>
                   
-                                                    {t('auto.jeśli_system_zapyta_zezwól_na_quot_', { defaultValue: i18n.t('auto.jesli_system_zapyta_zezwo', { defaultValue: "Jeśli system zapyta, zezwól na &quot;Instalację z nieznanych źródeł&quot;." }) })}
+                                                    {t('auto.jeśli_system_zapyta_zezwól_na_quot_', { defaultValue: i18n.t('auto.jesli_system_zapyta_zezwo', { defaultValue: "Jeśli system zapyta, zezwól na \"Instalację z nieznanych źródeł\"." }) })}
                                                   </li>
               </ol>
 

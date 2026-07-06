@@ -1,8 +1,8 @@
 {
-  "version": "5.6.19",
+  "version": "5.6.21",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.6.19_OTA.apk",
-  "whatsNew": "🚀 Wersja 5.6.19: Zablokowanie proporcji kafelków, naprawa gubienia kroków w Health Connect",
-  "whatsNewEn": "🚀 Version 5.6.19: Fixed layout proportions, resolved step loss issue in Health Connect widget",
-  "otaRevision": 258
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.6.21_OTA.apk",
+  "whatsNew": "🚀 Wersja 5.6.21: Nowoczesna karuzela powitalna (Onboarding), uszczelnienie akceptacji RODO i logowania urządzeń offline.",
+  "whatsNewEn": "🚀 Version 5.6.21: Modern Onboarding carousel, GDPR acceptance enforcement, and offline device pairing.",
+  "otaRevision": 260
 }

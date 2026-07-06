@@ -305,7 +305,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
         parts: [{ text: m.text }]
       }));
 
-      const response = await geminiService.getGlikoChatResponse(messageText, history, petData);
+      const response = await geminiService.getGlikoChatResponse(messageText, history, petData, userSettings?.treatmentMode);
       
       let cleanResponse = response;
       const plateActionMatches = Array.from(response.matchAll(/<plate_action>([\s\S]*?)<\/plate_action>/g));

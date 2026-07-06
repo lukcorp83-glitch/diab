@@ -23,6 +23,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isAiEstimating, setIsAiEstimating] = useState(false);
 
   const handleDismiss = (id: string) => {
     setDismissedId(id);

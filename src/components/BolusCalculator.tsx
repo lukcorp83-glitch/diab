@@ -444,6 +444,28 @@ export default function BolusCalculator({
         batch.set(bolusDoc, payload);
         window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { id: bolusDoc.id, ...payload } }));
         ops++;
+
+        // Deduct from active pen in inventory
+        if (!settings.treatmentMode || settings.treatmentMode === 'insulin') {
+          const penItem = settings.inventory?.find(item => item.category === 'pens');
+          if (penItem) {
+            const currentUnits = penItem.currentPenUnits !== undefined ? penItem.currentPenUnits : (penItem.penCapacity || 300);
+            const updatedInventory = [...(settings.inventory || [])];
+            const penIndex = updatedInventory.findIndex(i => i.id === penItem.id);
+            if (penIndex >= 0) {
+              const newUnits = Math.max(0, currentUnits - finalDose);
+              updatedInventory[penIndex] = {
+                ...updatedInventory[penIndex],
+                currentPenUnits: Number(newUnits.toFixed(1))
+              };
+              
+              const updates = { inventory: updatedInventory };
+              const settingsDocRef = doc(db, "artifacts", "diacontrolapp", "users", effectiveUid, "settings", "profile");
+              batch.set(settingsDocRef, updates, { merge: true });
+              window.dispatchEvent(new CustomEvent('localSettingsUpdate', { detail: updates }));
+            }
+          }
+        }
       }
 
       // 2. Glucose
@@ -1299,7 +1321,7 @@ export default function BolusCalculator({
 
           <button
             onClick={handleAskAi}
-            disabled={loadingAi || (dose === 0 && !bg && !carbs)}
+            disabled={loadingAi || ((manualDose !== null ? parseFloat(manualDose) || 0 : dose) === 0 && !bg && !carbs)}
             className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-accent-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loadingAi ? (
@@ -1312,7 +1334,7 @@ export default function BolusCalculator({
 
         <button
           onClick={handleSave}
-          disabled={saving || (dose === 0 && !bg && !carbs)}
+          disabled={saving || ((manualDose !== null ? parseFloat(manualDose) || 0 : dose) === 0 && !bg && !carbs)}
           className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {saving && <Loader2 size={18} className="animate-spin" />}

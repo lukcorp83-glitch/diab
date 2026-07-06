@@ -1,7 +1,7 @@
 import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '5.6.19';
+export const APP_VERSION = '5.6.21';
 
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';

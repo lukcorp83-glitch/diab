@@ -89,10 +89,12 @@ export interface InventoryItem {
   quantity: number;
   unit: string;
   lowStockThreshold: number;
-  category: "sensors" | "insulin" | "infusion_sets" | "strips" | "other";
+  category: "sensors" | "insulin" | "infusion_sets" | "reservoirs" | "pens" | "strips" | "other";
   expiryDate?: string;
   dailyDose?: number; // Added daily dose for estimation
   barcode?: string;
+  penCapacity?: number; // Pojemność pojedynczego pena (dla category === 'pens')
+  currentPenUnits?: number; // Jednostki w aktualnie rozpoczętym penie
 }
 
 export interface UserSettings {
@@ -107,6 +109,8 @@ export interface UserSettings {
   healthConnectSyncGlucose?: boolean;
   betaProgram?: boolean; // Enable Beta OTA channel
   followerMode?: boolean;  // Add follower mode for read-only view
+  linkedUid?: string;      // Zapamiętuje na twardo w chmurze klucz sparowanego Głównego konta
+  isLinkedAdmin?: boolean; // Zapamiętuje na twardo w chmurze uprawnienia administratora
   dia?: number; // Duration of Insulin Action in hours
   hourlyProfiles?: HourlyProfile[];
   medications?: Medication[];
@@ -136,6 +140,9 @@ export interface UserSettings {
   accentColor?: string;
   theme?: "light" | "dark" | "system";
   bgOption?: "default" | "true-black";
+  penCount?: number; // How many physical pens are available
+  currentPenUnits?: number; // How many units are currently remaining in the active pen
+  penCapacity?: number; // The max capacity of a pen (default 300)
   glassmorphismEnabled?: boolean;
   material3Enabled?: boolean;
   dynamicColorsEnabled?: boolean;

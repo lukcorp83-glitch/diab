@@ -12,6 +12,7 @@ import CarbsBalanceWidget from "./CarbsBalanceWidget";
 import HydrationWidget from "./HydrationWidget";
 import SiteRotationWidget from "./SiteRotationWidget";
 import { PumpStatusCard } from "./PumpStatusCard";
+import { PenTrackerWidget } from "./PenTrackerWidget";
 import {
   Activity,
   Clock,
@@ -102,9 +103,10 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
     case "quick_correction":
       return ["2x2", "2x1"];
     case "weather":
-      return ["1x1", "2x1"];
+    case "quick_bolus":
     case "sensor_reminder":
     case "infusion_reminder":
+    case "pen_tracker":
       return ["1x1", "2x1"];
     case "assistant":
       return ["2x1", "1x1"];
@@ -137,6 +139,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "weather", name: i18n.t('auto.wpływ_pogody_na_insulinę', { defaultValue: i18n.t('auto.wplyw_pogody_na_insuline', { defaultValue: "Wpływ pogody na insulinę" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: true },
   { id: "sensor_reminder", name: i18n.t('auto.wymiana_sensora_urządzenie', { defaultValue: i18n.t('auto.wymiana_sensora_urzadzeni', { defaultValue: "Wymiana sensora (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
   { id: "infusion_reminder", name: i18n.t('auto.wymiana_wkłucia_urządzenie', { defaultValue: i18n.t('auto.wymiana_wklucia_urzadzeni', { defaultValue: "Wymiana wkłucia (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
+  { id: "pen_tracker", name: i18n.t('auto.widzet_peny', { defaultValue: "Zasoby Insuliny (Peny)" }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
   { id: "quick_bolus", name: i18n.t('auto.zapis_bolusa_kalkulator_przycisk', { defaultValue: 'Zapis bolusa / kalkulator (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
   { id: "assistant", name: i18n.t('auto.skrót_do_asystenta_ai', { defaultValue: i18n.t('auto.skrot_do_asystenta_ai', { defaultValue: "Skrót do Asystenta AI" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "tips", name: i18n.t('auto.porady_i_ciekawostki_didyouknow', { defaultValue: 'Porady i ciekawostki (DidYouKnow)' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
@@ -148,8 +151,8 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
   { id: "pump", name: i18n.t('auto.status_pompy_insulinowej_xdrip', { defaultValue: 'Status pompy insulinowej / xDrip' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "daily_tir", name: i18n.t('auto.dzienny_tir_wykres', { defaultValue: 'Dzienny TIR (Wykres)' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
-  { id: "quick_correction", name: i18n.t('auto.sugerowana_szybka_korekta_alerty', { defaultValue: 'Sugerowana szybka korekta (Alerty)' }), visible: false, size: "2x2", canResize: true, canChangeShape: false },
-  { id: "training_widget", name: i18n.t('auto.trening_i_aktywność_fizyczna', { defaultValue: i18n.t('auto.trening_i_aktywnosc_fizyc', { defaultValue: "Trening i Aktywność fizyczna" }) }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "quick_correction", name: i18n.t('auto.sugerowana_szybka_korekta_alerty', { defaultValue: 'Sugerowana szybka korekta (Alerty)' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "training_widget", name: i18n.t('auto.trening_i_aktywność_fizyczna', { defaultValue: i18n.t('auto.trening_i_aktywnosc_fizyc', { defaultValue: "Trening i Aktywność fizyczna" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
   { id: "medications", name: i18n.t('auto.leki_przypomnienia', { defaultValue: 'Leki (Przypomnienia)' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
   { id: "carbs_balance", name: i18n.t('auto.dzienny_bilans_węglowodanów', { defaultValue: i18n.t('auto.dzienny_bilans_weglowodan', { defaultValue: "Dzienny bilans węglowodanów" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
   { id: "hydration", name: i18n.t('auto.nawodnienie_woda', { defaultValue: 'Nawodnienie (Woda)' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
@@ -910,7 +913,7 @@ export default function Dashboard({
     const timeString = new Date(lastG.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     return (
-      <div className="mx-2 p-6 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-[2.5rem] border border-indigo-100/70 dark:border-indigo-900/30 space-y-4 shadow-xl shadow-indigo-500/5 font-display">
+      <div className="mx-2 p-6 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-[2.5rem] border border-indigo-100/70 dark:border-indigo-900/30 space-y-4 shadow-xl shadow-indigo-500/5">
         <div className="flex justify-between items-start gap-4">
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
             <span className="text-xl">⚡</span>
@@ -977,7 +980,7 @@ export default function Dashboard({
         if (!showCorrection) {
           if (isEditingLayout) {
             return (
-              <div className="mx-2 p-6 bg-slate-500/5 dark:bg-slate-950/10 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-xs text-slate-400 dark:text-slate-500 font-bold font-display flex flex-col justify-center items-center min-h-[140px] w-full">
+              <div className="mx-2 p-6 bg-slate-500/5 dark:bg-slate-950/10 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-xs text-slate-400 dark:text-slate-500 font-bold flex flex-col justify-center items-center min-h-[140px] w-full">
                 
                                     {t('auto.sugerowana_szybka_korekta_nieaktywn', { defaultValue: '⚡ Sugerowana Szybka Korekta [Nieaktywna]' })}
                                     <p className="text-[10px] text-slate-400 dark:text-slate-600 font-normal mt-1">
@@ -1495,6 +1498,10 @@ export default function Dashboard({
       case "site_rotation":
         if (!isInsulinMode) return null;
         return <SiteRotationWidget logs={logs} settings={settings} size={size} setTab={setTab} onAction={onAction} />;
+
+      case "pen_tracker":
+        if (settings.treatmentMode !== 'insulin') return null;
+        return <PenTrackerWidget settings={settings} />;
 
       case "training_widget":
         const isTrCompact = size === "1x1";
@@ -2359,7 +2366,9 @@ export default function Dashboard({
           widgets.map((w, index) => {
              if (!w.visible) return null;
              if (["hydration", "weather"].includes(w.id)) return null;
-             if (!isInsulinMode && ["pump", "site_rotation", "infusion_reminder", "quick_bolus", "sensor_reminder"].includes(w.id)) return null;
+             if (!isInsulinMode && ["pump", "site_rotation", "infusion_reminder", "quick_bolus", "sensor_reminder", "pen_tracker"].includes(w.id)) return null;
+             if (settings.treatmentMode === 'insulin' && ["pump", "infusion_reminder"].includes(w.id)) return null;
+             if (settings.treatmentMode === 'pump' && w.id === "pen_tracker") return null;
              if (settings.followerMode && !["main_stats", "history_measurements", "history_treatments"].includes(w.id)) return null;
              
              const widgetSize = (
@@ -2627,7 +2636,7 @@ export default function Dashboard({
         )}
 
         {/* Big Action Buttons */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className={`grid gap-4 ${isInsulinMode ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <button
             onClick={() => {
               Haptics.light();
@@ -2642,19 +2651,21 @@ export default function Dashboard({
             <span className="font-black text-[11px] uppercase tracking-widest font-display">{t('auto.pomiar', { defaultValue: 'Pomiar' })}</span>
           </button>
 
-          <button
-            onClick={() => {
-              Haptics.light();
-              setTab("bolus");
-            }}
-            className="bg-accent-600 h-32 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-2xl shadow-accent-600/40 active:scale-95 group transition-all text-white overflow-hidden relative"
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all"></div>
-            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-              <Zap size={32} />
-            </div>
-            <span className="font-black text-[11px] uppercase tracking-widest font-display">{t('auto.bolus', { defaultValue: 'Bolus' })}</span>
-          </button>
+          {isInsulinMode && (
+            <button
+              onClick={() => {
+                Haptics.light();
+                setTab("bolus");
+              }}
+              className="bg-accent-600 h-32 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-2xl shadow-accent-600/40 active:scale-95 group transition-all text-white overflow-hidden relative"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all"></div>
+              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                <Zap size={32} />
+              </div>
+              <span className="font-black text-[11px] uppercase tracking-widest font-display">{t('auto.bolus', { defaultValue: 'Bolus' })}</span>
+            </button>
+          )}
         </div>
       </motion.div>
 

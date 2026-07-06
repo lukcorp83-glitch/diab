@@ -189,12 +189,12 @@ export default function GlikoAssistant({
     }
   };
 
-  const suggestions = isChild ? [
-    "Jak rano?",
-    "Oblicz jedzenie",
-    i18n.t('auto.cos_do_zabawy', { defaultValue: i18n.t('auto.cos_do_zabawy', { defaultValue: "Coś do zabawy" }) }),
-    i18n.t('auto.czuje_sie_zle', { defaultValue: i18n.t('auto.czuje_sie_zle', { defaultValue: "Czuję się źle" }) }),
-    i18n.t('auto.glodny', { defaultValue: i18n.t('auto.glodny', { defaultValue: "Głodny!" }) })
+  const adultSuggestions = settings?.treatmentMode === 'diet_only' ? [
+    i18n.t('auto.ocena_zbilansowania_diety', { defaultValue: 'Ocena zbilansowania diety' }),
+    i18n.t('auto.korelacja_posilkow', { defaultValue: i18n.t('auto.korelacja_posilkow', { defaultValue: "Korelacja posiłków" }) }),
+    i18n.t('auto.sprawdz_wartosci_odzywcze', { defaultValue: 'Sprawdź wartości odżywcze' }),
+    i18n.t('auto.zamienniki_produktow', { defaultValue: 'Zamienniki produktów' }),
+    i18n.t('auto.przepisy_niskoglikemiczne', { defaultValue: 'Przepisy niskoglikemiczne' })
   ] : [
     i18n.t('auto.analiza_tir', { defaultValue: 'Analiza TIR' }),
     i18n.t('auto.korelacja_posilkow', { defaultValue: i18n.t('auto.korelacja_posilkow', { defaultValue: "Korelacja posiłków" }) }),
@@ -202,6 +202,14 @@ export default function GlikoAssistant({
     i18n.t('auto.odczyty_nocne', { defaultValue: 'Odczyty Nocne' }),
     i18n.t('auto.model_bazalny', { defaultValue: 'Model Bazalny' })
   ];
+
+  const suggestions = isChild ? [
+    "Jak rano?",
+    "Oblicz jedzenie",
+    i18n.t('auto.cos_do_zabawy', { defaultValue: i18n.t('auto.cos_do_zabawy', { defaultValue: "Coś do zabawy" }) }),
+    i18n.t('auto.czuje_sie_zle', { defaultValue: i18n.t('auto.czuje_sie_zle', { defaultValue: "Czuję się źle" }) }),
+    i18n.t('auto.glodny', { defaultValue: i18n.t('auto.glodny', { defaultValue: "Głodny!" }) })
+  ] : adultSuggestions;
 
   const renderAvatar = (size: 'sm' | 'md' | 'lg' = 'md') => {
     if (!isChild) {
