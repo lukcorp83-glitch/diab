@@ -14,12 +14,12 @@ export const notificationService = {
     if (Capacitor.isNativePlatform()) {
       try {
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v6',
+          id: 'glucose_alerts_v7',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
           importance: 5,
           visibility: 1,
-          sound: 'critical_alarm.wav',
+          sound: 'status_clear.mp3',
           vibration: true
         });
       } catch (err) {
@@ -143,8 +143,8 @@ export const notificationService = {
             body,
             id: 888,
             schedule: { at: new Date(Date.now() + 1000) },
-            channelId: 'glucose_alerts_v6',
-            sound: 'critical_alarm.wav',
+            channelId: 'glucose_alerts_v7',
+            sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -184,7 +184,7 @@ export const notificationService = {
             title: 'Wymiana sensora',
             body: i18n.t('auto.twoj_sensor_wygasa_za_12_godzi', { defaultValue: i18n.t('auto.twoj_sensor_wygasa_za_12', { defaultValue: "Twój sensor wygasa za 12 godzin!" }) }),
             schedule: { at: reminderDate },
-            sound: 'critical_alarm.wav',
+            sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -202,7 +202,7 @@ export const notificationService = {
             title: i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia" }) }),
             body: i18n.t('auto.twoje_wklucie_wygasa_za_12_god', { defaultValue: i18n.t('auto.twoje_wklucie_wygasa_za_1', { defaultValue: "Twoje wkłucie wygasa za 12 godzin!" }) }),
             schedule: { at: reminderDate },
-            sound: 'critical_alarm.wav',
+            sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -290,8 +290,8 @@ export const notificationService = {
           body,
           id: Math.floor(Math.random() * 100000),
           schedule: { at: scheduleDate },
-          channelId: 'glucose_alerts_v6',
-          sound: 'critical_alarm.wav',
+          channelId: 'glucose_alerts_v7',
+          sound: 'status_clear.mp3',
           attachments: null,
           actionTypeId: '',
           extra: null
@@ -425,8 +425,8 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v6',
-            sound: 'critical_alarm.wav',
+            channelId: 'glucose_alerts_v7',
+            sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: "",
             extra: null
