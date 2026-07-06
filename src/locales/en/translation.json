@@ -4833,5 +4833,9 @@
   "auto.ai_analizuje_lek": "AI analyzing medication...",
   "auto.ai_analiza_zakonczona": "AI: Analysis complete!",
   "auto.ai_nie_udalo_sie_przean": "AI: Analysis failed.",
-  "auto.ai_blad_komunikacji": "AI: Communication error."
+  "auto.ai_blad_komunikacji": "AI: Communication error.",
+  "auto.polaczono_z_nightscout": "Connected to Nightscout successfully!",
+  "auto.blad_polaczenia_z_nightscout": "Error: Make sure the URL is correct.",
+  "auto.timeout_nightscout": "Nightscout connection timed out.",
+  "auto.cgm_uploader": "CGM / Uploader"
 }

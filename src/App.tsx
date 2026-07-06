@@ -2245,11 +2245,13 @@ export default function App() {
         }
         
         setSyncStatus({ status: "success", lastSync: Date.now() });
+        window.dispatchEvent(new CustomEvent("nightscout-sync-result", { detail: { success: true } }));
       }
 
       if (type === 'SYNC_ERROR') {
         console.error("Worker sync error:", payload);
         setSyncStatus({ status: "error", lastSync: Date.now() });
+        window.dispatchEvent(new CustomEvent("nightscout-sync-result", { detail: { success: false, payload } }));
       }
     };
 
@@ -2332,8 +2334,8 @@ export default function App() {
         if (activeTab !== 'dashboard') {
           changeTab('dashboard');
         } else {
-          // Jeśli już jesteśmy na pulpicie domyślnym, wyjście z aplikacji schowa ją do tła
-          CapacitorApp.exitApp();
+          // Jeśli już jesteśmy na pulpicie domyślnym, wyjście z aplikacji schowa ją do tła (minimalizacja)
+          CapacitorApp.minimizeApp();
         }
       }
     });

@@ -6541,5 +6541,9 @@
   "auto.ai_analizuje_lek": "AI analizuje lek...",
   "auto.ai_analiza_zakonczona": "AI: Analiza zakończona!",
   "auto.ai_nie_udalo_sie_przean": "AI: Nie udało się przeanalizować.",
-  "auto.ai_blad_komunikacji": "AI: Błąd komunikacji."
+  "auto.ai_blad_komunikacji": "AI: Błąd komunikacji.",
+  "auto.polaczono_z_nightscout": "Połączono z Nightscout pomyślnie!",
+  "auto.blad_polaczenia_z_nightscout": "Błąd: Upewnij się, że adres URL jest poprawny.",
+  "auto.timeout_nightscout": "Przekroczono czas oczekiwania na połączenie z Nightscout.",
+  "auto.cgm_uploader": "CGM / Uploader"
 }

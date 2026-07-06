@@ -1,7 +1,7 @@
 {
-  "version": "5.6.22",
+  "version": "5.6.23",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.6.22_OTA.apk",
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.6.23_OTA.apk",
   "whatsNew": "🚀 Wersja 5.6.21: Nowoczesna karuzela powitalna (Onboarding), uszczelnienie akceptacji RODO i logowania urządzeń offline.",
   "whatsNewEn": "🚀 Version 5.6.21: Modern Onboarding carousel, GDPR acceptance enforcement, and offline device pairing.",
   "otaRevision": 260

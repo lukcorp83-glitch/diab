@@ -43,8 +43,12 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
   // Determine what device we are actually showing
   // If we have reservoir or active insulin, it's likely a pump. Otherwise, maybe just CGM/Uploader.
   const isPump = data.reservoir > 0 || data.basal?.rate > 0 || data.activeInsulin > 0;
-  const deviceName = isPump ? "MiniMed 780G / Pompa" : (data.uploader?.type || "xDrip / Uploader");
-  const deviceSource = isPump ? "CareLink Live" : "Nightscout";
+  
+  const serverPumpName = (data.uploader as any)?.name || data.uploader?.type;
+  const fallbackPumpName = serverPumpName || t('auto.pompa_insulinowa', { defaultValue: 'Pompa Insulinowa' });
+  
+  const deviceName = isPump ? fallbackPumpName : (data.uploader?.type || t('auto.cgm_uploader', { defaultValue: 'CGM / Uploader' }));
+  const deviceSource = isPump ? (serverPumpName ? "Nightscout / AID" : "CareLink / Nightscout") : "Nightscout";
 
   return (
     <motion.div 

@@ -5408,8 +5408,28 @@ export default function Profile({
                       if (!nsUrl) return;
                       setNsSyncLoading(true);
                       await saveNsUrl();
+
+                      const handleResult = (e: any) => {
+                        window.removeEventListener("nightscout-sync-result", handleResult);
+                        setNsSyncLoading(false);
+                        if (e.detail.success) {
+                          toast.success(t('auto.polaczono_z_nightscout', { defaultValue: 'Połączono z Nightscout pomyślnie!' }));
+                        } else {
+                          toast.error(t('auto.blad_polaczenia_z_nightscout', { defaultValue: 'Błąd: Upewnij się, że adres URL jest poprawny.' }));
+                        }
+                      };
+                      window.addEventListener("nightscout-sync-result", handleResult);
+
                       window.dispatchEvent(new Event("force-nightscout-sync"));
-                      setTimeout(() => setNsSyncLoading(false), 2000);
+                      
+                      // Fallback: Timeout 15s in case worker hangs
+                      setTimeout(() => {
+                        window.removeEventListener("nightscout-sync-result", handleResult);
+                        setNsSyncLoading((prev) => {
+                          if (prev) toast.error(t('auto.timeout_nightscout', { defaultValue: 'Przekroczono czas oczekiwania na połączenie z Nightscout.' }));
+                          return false;
+                        });
+                      }, 15000);
                     }}
                     disabled={nsSyncLoading}
                     className="flex items-center gap-2 text-[10px] font-black text-accent-500 uppercase tracking-widest hover:text-accent-600 active:scale-95 transition-all"
