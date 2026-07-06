@@ -2308,7 +2308,8 @@ export default function App() {
     const backListener = CapacitorApp.addListener('backButton', () => {
       // 1. Sprawdź, czy na ekranie wisi jakiekolwiek okno modalne, popup lub otwarte menu z tłem
       // .fixed.inset-0 to wspólny mianownik dla wszystkich okien modalnych i popupów
-      const modals = document.querySelectorAll('.fixed.inset-0, [role="dialog"]');
+      const allModals = document.querySelectorAll('.fixed.inset-0, [role="dialog"]');
+      const modals = Array.from(allModals).filter(m => !m.classList.contains('-z-10') && !m.classList.contains('pointer-events-none'));
       
       if (modals.length > 0) {
         // Pobieramy najwyższe okno (ostatnie w DOM)

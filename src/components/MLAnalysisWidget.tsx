@@ -904,7 +904,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                                       <button 
                                           onClick={() => {
                                               sessionStorage.setItem('bot_initial_query', `Proszę, przeanalizuj ze mną ten wniosek i doradź mi: ${insight}`);
-                                              setTab('chat');
+                                              setTab('assistant');
                                           }}
                                           className={`self-start mt-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95 ${glassmorphismEnabled ? 'bg-slate-900/5 hover:bg-slate-900/10 dark:bg-white/5 dark:hover:bg-white/10 backdrop-blur-sm' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'} z-10`}
                                       >

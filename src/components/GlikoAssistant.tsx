@@ -62,6 +62,16 @@ export default function GlikoAssistant({
     }
   }, [messages.length, isChild]);
 
+  useEffect(() => {
+    const query = sessionStorage.getItem('bot_initial_query');
+    if (query) {
+      sessionStorage.removeItem('bot_initial_query');
+      setTimeout(() => {
+        onSend(query);
+      }, 500);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
