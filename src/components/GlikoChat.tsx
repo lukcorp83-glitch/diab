@@ -470,6 +470,14 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
                         message.appAction.action === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
                         message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
                         message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
+                        message.appAction.action === 'navigate' ? (
+                          message.appAction.target === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
+                          message.appAction.target === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
+                          message.appAction.target === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
+                          message.appAction.target === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
+                          message.appAction.target === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
+                          message.appAction.target
+                        ) :
                         message.appAction.action
                       }
                     </span>
