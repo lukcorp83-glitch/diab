@@ -60,10 +60,10 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
     setIsSaving(true);
     
     try {
-      const carbsPer100 = product.carbs;
-      const amount = Math.round((targetCarbs / carbsPer100) * 100);
-      const computedFat = Math.round(((product.fat || 0) * amount) / 100 * 10) / 10;
-      const computedProtein = Math.round(((product.protein || 0) * amount) / 100 * 10) / 10;
+      const carbsPer100 = product.carbs || 1;
+      const amount = Math.round((targetCarbs / carbsPer100) * 100) || 0;
+      const computedFat = Math.round(((product.fat || 0) * amount) / 100 * 10) / 10 || 0;
+      const computedProtein = Math.round(((product.protein || 0) * amount) / 100 * 10) / 10 || 0;
       
       const newItems = JSON.parse(JSON.stringify([{
          product: product,
@@ -111,9 +111,9 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
       
       toast.success(t('auto.zapisano_posilek', { defaultValue: `Obliczono i zapisano ${amount}g - ${product.name || product.namePl}` }));
       handleDismiss(latestUnlinked.id);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error("Wystąpił błąd podczas zapisywania");
+      toast.error(`Błąd: ${e?.message || e || 'Nieznany błąd zapisu'}`);
     } finally {
       setIsSaving(false);
     }
