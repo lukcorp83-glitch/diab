@@ -15,7 +15,8 @@ import {
   Mic,
   MicOff,
   Volume2,
-  VolumeX
+  VolumeX,
+  ArrowRight
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
@@ -31,6 +32,7 @@ interface Message {
   role: 'user' | 'model';
   text: string;
   timestamp: number;
+  appAction?: any;
 }
 
 export default function GlikoChat({ petData, settings }: { petData: any, settings?: any }) {
@@ -322,10 +324,10 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
       }
       
       const appActionMatches = Array.from(response.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g));
+      let parsedAppAction = null;
       for (const match of appActionMatches) {
         try {
-          const actionData = JSON.parse(match[1]);
-          window.dispatchEvent(new CustomEvent('ai_app_action', { detail: actionData }));
+          parsedAppAction = JSON.parse(match[1]);
         } catch (e) {
           console.error("GlikoChat App Action Error:", e);
         }
@@ -342,7 +344,8 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
         id: (Date.now() + 1).toString(),
         role: 'model',
         text: cleanResponse,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        appAction: parsedAppAction
       };
 
       setMessages(prev => [...prev, modelMessage]);
@@ -452,6 +455,27 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
                   : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-purple-100 dark:border-slate-700 rounded-tl-none font-medium"
               )}>
                 <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                {message.appAction && message.appAction.action && (
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('ai_app_action', { detail: message.appAction }))}
+                    className={cn(
+                        "mt-3 flex items-center justify-between w-full px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                        "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md active:scale-95"
+                    )}
+                  >
+                    <span>
+                      {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })} {
+                        message.appAction.action === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
+                        message.appAction.action === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
+                        message.appAction.action === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
+                        message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
+                        message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
+                        message.appAction.action
+                      }
+                    </span>
+                    <ArrowRight size={14} />
+                  </button>
+                )}
                 <div className={cn(
                   "flex items-center gap-2 mt-2",
                   message.role === 'user' ? "justify-end" : "justify-start"

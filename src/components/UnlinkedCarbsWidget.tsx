@@ -66,13 +66,13 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
       const computedFat = Math.round(((product.fat || 0) * amount) / 100 * 10) / 10;
       const computedProtein = Math.round(((product.protein || 0) * amount) / 100 * 10) / 10;
       
-      const newItems = [{
+      const newItems = JSON.parse(JSON.stringify([{
          product: product,
          amount: amount,
          unit: "g",
          manualFat: null,
          manualProtein: null
-      }];
+      }]));
 
       if (latestUnlinked.type === "meal") {
          await updateDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", latestUnlinked.id), {

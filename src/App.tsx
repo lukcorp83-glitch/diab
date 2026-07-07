@@ -867,12 +867,10 @@ export default function App() {
       const appActionMatches = Array.from(
         response.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g),
       );
+      let parsedAppAction = null;
       for (const match of appActionMatches) {
         try {
-          const actionData = JSON.parse(match[1]);
-          window.dispatchEvent(
-            new CustomEvent("ai_app_action", { detail: actionData }),
-          );
+          parsedAppAction = JSON.parse(match[1]);
         } catch (e) {
           console.error("AI App Action Error:", e);
         }
@@ -888,6 +886,7 @@ export default function App() {
         role: "model",
         text: cleanResponse,
         timestamp: Date.now(),
+        appAction: parsedAppAction
       };
 
       setAssistantMessages((prev) => [...prev, modelMessage]);

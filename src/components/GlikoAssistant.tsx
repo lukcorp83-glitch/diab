@@ -12,7 +12,8 @@ import {
   Brain,
   Mic,
   Activity,
-  Zap
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
@@ -383,6 +384,28 @@ export default function GlikoAssistant({
                   )}
                   dangerouslySetInnerHTML={{ __html: message.text }}
                 />
+                
+                {message.appAction && message.appAction.action && (
+                  <button
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('ai_app_action', { detail: message.appAction }));
+                    }}
+                    className={cn(
+                        "mt-3 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                        "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md active:scale-95"
+                    )}
+                  >
+                    {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })} {
+                      message.appAction.action === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
+                      message.appAction.action === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
+                      message.appAction.action === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
+                      message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
+                      message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
+                      message.appAction.action
+                    }
+                    <ArrowRight size={14} />
+                  </button>
+                )}
                 <div className={cn(
                   "flex items-center gap-2 mt-4",
                   message.role === 'user' ? "justify-end" : "justify-start"

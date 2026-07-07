@@ -183,4 +183,5 @@ export interface AssistantMessage {
   role: "user" | "model";
   text: string;
   timestamp: number;
+  appAction?: any;
 }
