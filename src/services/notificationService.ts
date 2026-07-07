@@ -22,6 +22,15 @@ export const notificationService = {
           sound: 'status_clear.mp3',
           vibration: true
         });
+
+        await LocalNotifications.createChannel({
+          id: 'glikocontrol_reminders_v1',
+          name: 'Przypomnienia GlikoControl',
+          description: 'Powiadomienia o lekach, wymianach osprzętu i prognozach',
+          importance: 4,
+          visibility: 1,
+          vibration: true
+        });
       } catch (err) {
         console.warn('Failed to create notification channel:', err);
       }
@@ -143,8 +152,7 @@ export const notificationService = {
             body,
             id: 888,
             schedule: { at: new Date(Date.now() + 1000) },
-            channelId: 'glucose_alerts_v7',
-            sound: 'status_clear.mp3',
+            channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -184,7 +192,7 @@ export const notificationService = {
             title: 'Wymiana sensora',
             body: i18n.t('auto.twoj_sensor_wygasa_za_12_godzi', { defaultValue: i18n.t('auto.twoj_sensor_wygasa_za_12', { defaultValue: "Twój sensor wygasa za 12 godzin!" }) }),
             schedule: { at: reminderDate },
-            sound: 'status_clear.mp3',
+            channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -202,7 +210,7 @@ export const notificationService = {
             title: i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia" }) }),
             body: i18n.t('auto.twoje_wklucie_wygasa_za_12_god', { defaultValue: i18n.t('auto.twoje_wklucie_wygasa_za_1', { defaultValue: "Twoje wkłucie wygasa za 12 godzin!" }) }),
             schedule: { at: reminderDate },
-            sound: 'status_clear.mp3',
+            channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -256,7 +264,7 @@ export const notificationService = {
             title: `💊 ${i18n.t('auto.czas_na_lek', { defaultValue: 'Czas na lek' })}: ${med.name}`,
             body: `${i18n.t('auto.pamietaj_o_dawce', { defaultValue: 'Pamiętaj o dawce' })}${dosageInfo}`,
             schedule: { at: scheduleDate, repeats: true, every: 'day' },
-            sound: undefined,
+            channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: { medId: med.id },

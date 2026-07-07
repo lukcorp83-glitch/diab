@@ -8,6 +8,7 @@ import { LIB_BASE } from "../constants";
 import { db } from "../lib/firebase";
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { toast } from "react-hot-toast";
+import { getEffectiveUid } from "../lib/utils";
 
 interface Props {
   user?: any;
@@ -74,13 +75,13 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
       }];
 
       if (latestUnlinked.type === "meal") {
-         await updateDoc(doc(db, "users", user.uid, "logs", latestUnlinked.id), {
+         await updateDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", latestUnlinked.id), {
             items: newItems,
             fat: computedFat,
             protein: computedProtein
          });
       } else {
-         await addDoc(collection(db, "users", user.uid, "logs"), {
+         await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), {
             type: "meal",
             value: targetCarbs,
             carbs: targetCarbs,
@@ -90,7 +91,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
             timestamp: latestUnlinked.timestamp,
             createdAt: Date.now()
          });
-         await updateDoc(doc(db, "users", user.uid, "logs", latestUnlinked.id), {
+         await updateDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", latestUnlinked.id), {
             linkedMeal: {
                carbs: targetCarbs,
                fat: computedFat,
