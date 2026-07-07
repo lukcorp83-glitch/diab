@@ -21,6 +21,35 @@ export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "5.6.24",
+    date: "2026-07-07",
+    title: "Rozpoznawanie Pompy & Poprawki UI",
+    changes: [
+      "Nowość: Automatyczna detekcja rodzaju pompy na podstawie danych z Nightscout (np. Medtronic 780G, AndroidAPS, CamAPS).",
+      "Ulepszenie: Precyzyjna nazwa sprzętu na głównym pulpicie oraz udostępnienie modelu AI w celu optymalizacji porad.",
+      "Ulepszenie: Dynamiczne linkowanie do odpowiedniej grupy wsparcia na Facebooku (PL/EN) w zależności od języka.",
+      "Naprawa: Wyeliminowano błąd 'i18n is not defined' w komponencie paska bocznego."
+    ]
+  },
+  {
+    version: "5.6.23",
+    date: "2026-07-06",
+    title: "Tłumaczenia i poprawki",
+    changes: [
+      "Poprawka: Usunięto błędy formatowania HTML oraz zły szyk w tłumaczeniach we wbudowanym panelu GlikoControl.",
+      "Ulepszenie: Rozszerzenie zakresu i czytelności powiadomień Nightscout w menu."
+    ]
+  },
+  {
+    version: "5.6.22",
+    date: "2026-07-06",
+    title: "Optymalizacja GlikoTraining",
+    changes: [
+      "Ulepszenie: Sekcja treningowa (GlikoTraining) została przeniesiona z kafelka domowego na pasek boczny dla lepszej przejrzystości.",
+      "Poprawka: Poprawki literówek i drobne zmiany estetyczne."
+    ]
+  },
+  {
     version: "5.6.21",
     date: "2026-07-06",
     title: "Słownik Leków AI",
@@ -471,6 +500,35 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.24",
+    date: "2026-07-07",
+    title: "Rozpoznawanie Pompy & Poprawki UI",
+    changes: [
+      "Nowość: Automatyczna detekcja rodzaju pompy na podstawie danych z Nightscout (np. Medtronic 780G, AndroidAPS, CamAPS).",
+      "Ulepszenie: Precyzyjna nazwa sprzętu na głównym pulpicie oraz udostępnienie modelu AI w celu optymalizacji porad.",
+      "Ulepszenie: Dynamiczne linkowanie do odpowiedniej grupy wsparcia na Facebooku (PL/EN) w zależności od języka.",
+      "Naprawa: Wyeliminowano błąd 'i18n is not defined' w komponencie paska bocznego."
+    ]
+  },
+  {
+    version: "5.6.23",
+    date: "2026-07-06",
+    title: "Tłumaczenia i poprawki",
+    changes: [
+      "Poprawka: Usunięto błędy formatowania HTML oraz zły szyk w tłumaczeniach we wbudowanym panelu GlikoControl.",
+      "Ulepszenie: Rozszerzenie zakresu i czytelności powiadomień Nightscout w menu."
+    ]
+  },
+  {
+    version: "5.6.22",
+    date: "2026-07-06",
+    title: "Optymalizacja GlikoTraining",
+    changes: [
+      "Ulepszenie: Sekcja treningowa (GlikoTraining) została przeniesiona z kafelka domowego na pasek boczny dla lepszej przejrzystości.",
+      "Poprawka: Poprawki literówek i drobne zmiany estetyczne."
+    ]
+  },
   {
     version: "5.6.21",
     date: "2026-07-06",

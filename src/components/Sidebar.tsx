@@ -37,7 +37,7 @@ import {
   Plane
 } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
-import { APP_VERSION, FACEBOOK_GROUP_URL } from '../constants';
+import { APP_VERSION, FACEBOOK_GROUP_URL, FACEBOOK_GROUP_URL_EN } from '../constants';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { UserSettings } from '../types';
 
@@ -58,7 +58,7 @@ interface SidebarProps {
 import { useTranslation } from 'react-i18next';
 
 export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onAction, theme, isChildMode, settings }: SidebarProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isInsulinMode = (settings?.treatmentMode ?? 'insulin') !== 'diet_only';
   const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({});
 
@@ -248,7 +248,8 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                                   onClick={() => {
                                     Haptics.light();
                                     if (sub.id === 'fb_group') {
-                                      window.open(FACEBOOK_GROUP_URL, '_blank');
+                                      const fbGroupUrl = i18n.language.startsWith('en') ? FACEBOOK_GROUP_URL_EN : FACEBOOK_GROUP_URL;
+                                      window.open(fbGroupUrl, '_blank');
                                     } else {
                                       changeTab(sub.tab || item.id);
                                       onAction && onAction(sub.action || sub.id);
@@ -279,7 +280,10 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
                     {t('sidebar.fb_desc')}
                  </p>
                  <button 
-                   onClick={() => window.open(FACEBOOK_GROUP_URL, '_blank')}
+                   onClick={() => {
+                     const fbGroupUrl = i18n.language.startsWith('en') ? FACEBOOK_GROUP_URL_EN : FACEBOOK_GROUP_URL;
+                     window.open(fbGroupUrl, '_blank');
+                   }}
                    className="mt-2 text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 hover:underline"
                  >
                    {t('sidebar.open_group')}
