@@ -5688,31 +5688,33 @@ export default function Profile({
               >
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed font-medium">
                   
-                                                    {t('auto.aby_uniknąć_limitów_serwerowych_moż', { defaultValue: i18n.t('auto.aby_uniknac_limit_serwe', { defaultValue: "Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z" }) })}{" "}
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent-500 font-black hover:underline underline-offset-2 transition-all"
-                  >
-                    
-                                                          {t('auto.google_ai_studio', { defaultValue: 'Google AI Studio' })}
-                                                        </a>
-                  
-                                                    {t('auto.klucz_zostanie_zapisany', { defaultValue: '. Klucz zostanie zapisany' })} <b>{t('auto.wyłącznie_lokalnie', { defaultValue: i18n.t('auto.wylacznie_lokalnie', { defaultValue: "wyłącznie lokalnie" }) })}</b>  {t('auto.w_twojej_przeglądarce', { defaultValue: i18n.t('auto.w_twojej_przegladarce', { defaultValue: "w Twojej przeglądarce." }) })}
+                                                    {i18n.language.startsWith('pl') ? (
+                                                      <>
+                                                        Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z{" "}
+                                                        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-accent-500 font-black hover:underline underline-offset-2 transition-all">Google AI Studio</a>.
+                                                        Klucz zostanie zapisany <b>wyłącznie lokalnie</b> w Twojej przeglądarce.
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        To avoid server limits, you can add your free key from{" "}
+                                                        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-accent-500 font-black hover:underline underline-offset-2 transition-all">Google AI Studio</a>.
+                                                        The key will be saved <b>locally only</b> in your browser.
+                                                      </>
+                                                    )}
                                                   </p>
                 <div className="flex items-start gap-2 mb-4 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
                   <AlertTriangle size={14} className="mt-0.5 shrink-0" />
                   <p className="text-[10px] font-bold leading-relaxed">
-                    
-                                                          {t('auto.ze_względów_bezpieczeństwa_dodawaj_', { defaultValue: i18n.t('auto.ze_wzgledow_bezpieczenstw', { defaultValue: "Ze względów bezpieczeństwa dodawaj swój klucz API" }) })}{" "}
-                    <b className="font-black">
-                      
-                                                                {t('auto.tylko_na_własnych_zaufanych_urządze', { defaultValue: i18n.t('auto.tylko_na_wlasnych_zaufany', { defaultValue: "tylko na własnych, zaufanych urządzeniach" }) })}
-                                                              </b>
-                    
-                                                          {t('auto.nie_wprowadzaj_go_na_urządzeniach_p', { defaultValue: i18n.t('auto.nie_wprowadzaj_go_na_urza', { defaultValue: ". Nie wprowadzaj go na urządzeniach publicznych." }) })}
-                                                        </p>
+                    {i18n.language.startsWith('pl') ? (
+                      <>
+                        Ze względów bezpieczeństwa dodawaj swój klucz API <b className="font-black">tylko na własnych, zaufanych urządzeniach</b>. Nie wprowadzaj go na urządzeniach publicznych.
+                      </>
+                    ) : (
+                      <>
+                        For security reasons, add your API key <b className="font-black">only on your own trusted devices</b>. Do not enter it on public devices.
+                      </>
+                    )}
+                  </p>
                 </div>
 
                 <div className="relative group">
@@ -5775,6 +5777,28 @@ export default function Profile({
                                                           {t('auto.testuj_połączenie', { defaultValue: i18n.t('auto.testuj_polaczenie', { defaultValue: "Testuj Połączenie" }) })}
                                                         </button>
                 </div>
+
+                <details className="mt-4 group bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden text-left shadow-sm">
+                  <summary className="p-4 cursor-pointer text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex justify-between items-center outline-none select-none list-none [&::-webkit-details-marker]:hidden">
+                    <span>{i18n.language.startsWith('pl') ? 'Jak uzyskać darmowy klucz API?' : 'How to get a free API key?'}</span>
+                    <ChevronRight size={16} className="transition-transform group-open:rotate-90 text-slate-400" />
+                  </summary>
+                  <div className="px-4 pb-4 text-[11px] text-slate-600 dark:text-slate-400 space-y-3 font-medium">
+                    {i18n.language.startsWith('pl') ? (
+                      <p>
+                        1. Wejdź na stronę <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer" className="text-indigo-500 font-bold hover:underline">Google AI Studio</a> i zaloguj się swoim kontem Google.<br />
+                        2. Kliknij niebieski przycisk &quot;Create API key&quot; i wybierz projekt.<br />
+                        3. Skopiuj wygenerowany ciąg znaków i wklej go w polu powyżej.
+                      </p>
+                    ) : (
+                      <p>
+                        1. Go to <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer" className="text-indigo-500 font-bold hover:underline">Google AI Studio</a> and log in with your Google account.<br />
+                        2. Click the blue &quot;Create API key&quot; button and select a project.<br />
+                        3. Copy the generated string and paste it in the field above.
+                      </p>
+                    )}
+                  </div>
+                </details>
               </div>
             </div>
           </div>
