@@ -5293,7 +5293,7 @@ export default function Profile({
               <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                 
                                               {t('auto.glikocontrol_obsługuje_te_sensory_p', { defaultValue: i18n.t('auto.glikocontrol_obsluguje_te', { defaultValue: "GlikoControl obsługuje te sensory poprzez darmowy mostek" }) })}{" "}
-                <b>{t('auto.nightscout', { defaultValue: 'Nightscout' })}</b>  {t('auto.np_nightscoutpro_t1pal_podłącz_swoj', { defaultValue: i18n.t('auto.np_nightscoutpro_t1pal_po', { defaultValue: "(np. NightscoutPro / T1Pal). Podłącz swoje konto CGM do Nightscouta, a my pobierzemy dane automatycznie co 5 minut." }) })}
+                <b>{t('auto.nightscout', { defaultValue: 'Nightscout' })}</b> {t('auto.np_nightscoutpro_t1pal_po', { defaultValue: "(np. NightscoutPro / T1Pal). Podłącz swoje konto CGM do Nightscouta, a my pobierzemy dane automatycznie co 5 minut." })}
                                             </p>
             </div>
 

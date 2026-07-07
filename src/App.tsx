@@ -835,7 +835,7 @@ export default function App() {
         history,
         logs,
         userSettings || { targetMin: 70, targetMax: 140 },
-        { iob, cob, glucose: lastGlucose },
+        { iob, cob, glucose: lastGlucose, pumpModel: pumpStatus?.model },
         combinedInsights,
       );
 

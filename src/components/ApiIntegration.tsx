@@ -183,7 +183,7 @@ export default function ApiIntegration({ user }: { user: any }) {
 
         <div className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium bg-white/50 dark:bg-slate-900/50 p-4 rounded-2xl">
           
-                            {t('auto.aplikacja_glikocontrol_służy_teraz_', { defaultValue: i18n.t('auto.aplikacja_glikocontrol_sl', { defaultValue: "Aplikacja GlikoControl służy teraz jako Twój własny Nightscout serwer API! Skopiuj poniższe dane do źródła odczytów (np." }) })} <b>{t('auto.xdrip_rarr_ustawienia_rarr_cloud_up', { defaultValue: 'xDrip+ &rarr; Ustawienia &rarr; Cloud Upload &rarr; Nightscout Sync' })}</b>):
+                            {t('auto.aplikacja_glikocontrol_służy_teraz_', { defaultValue: i18n.t('auto.aplikacja_glikocontrol_sl', { defaultValue: "Aplikacja GlikoControl służy teraz jako Twój własny Nightscout serwer API! Skopiuj poniższe dane do źródła odczytów (np." }) })} <b>{t('auto.xdrip_rarr_ustawienia_rarr_cloud_up', { defaultValue: 'xDrip+ → Ustawienia → Cloud Upload → Nightscout Sync' })}</b>):
         </div>
 
         {localSecret ? (

@@ -73,6 +73,7 @@ function processTreatments(data: any[]): any[] {
     const carbs = Number(t.carbs || 0);
     const rawNotes = t.notes || t.eventType || "";
     const cleanNotes = rawNotes === "<none>" ? "" : rawNotes;
+    const nsSource = t.enteredBy ? `nightscout (${t.enteredBy})` : 'nightscout';
     
     if (insulin > 0) {
       const payload: any = {
@@ -82,7 +83,7 @@ function processTreatments(data: any[]): any[] {
         value: insulin,
         timestamp,
         notes: cleanNotes,
-        source: 'nightscout'
+        source: nsSource
       };
       if (carbs > 0) {
         payload.linkedMeal = { carbs, protein: 0, fat: 0 };
@@ -96,7 +97,7 @@ function processTreatments(data: any[]): any[] {
         value: carbs,
         timestamp,
         notes: cleanNotes,
-        source: 'nightscout'
+        source: nsSource
       });
     }
 
@@ -109,7 +110,7 @@ function processTreatments(data: any[]): any[] {
         value: 1,
         timestamp,
         notes: cleanNotes,
-        source: 'nightscout'
+        source: nsSource
       });
     }
     if (lowerEventType === 'sensor change' || lowerEventType === 'sensor start') {
@@ -120,7 +121,7 @@ function processTreatments(data: any[]): any[] {
         value: 1,
         timestamp,
         notes: cleanNotes,
-        source: 'nightscout'
+        source: nsSource
       });
     }
   });
@@ -142,6 +143,7 @@ function processDeviceStatus(data: any[]): any {
     battery: batteryPercent,
     reservoir: pumpInfo?.reservoir ?? 0,
     activeInsulin: pumpInfo?.iob?.iob ?? 0,
+    model: pumpInfo?.model ?? pumpInfo?.name ?? null,
     basal: {
        rate: pumpInfo?.status?.currentbasal ?? 0,
        isTemp: !!pumpInfo?.status?.tempbasal

@@ -666,7 +666,7 @@ export const geminiService = {
     history: any[],
     logs: any[],
     settings: any,
-    currentStatus?: { iob: number; cob: number; glucose: number },
+    currentStatus?: { iob: number; cob: number; glucose: number; pumpModel?: string | null },
     insights?: string[],
   ) {
     const now = new Date();
@@ -713,10 +713,12 @@ export const geminiService = {
     const activeDietStr = settings?.activeDiet
       ? i18n.t('auto.uwaga_uzytkownik_ma_aktyw', { defaultValue: "\nUWAGA! Użytkownik ma aktywną dietę: {{var0}}. WSZYSTKIE TWOJE ANALIZY I SUGESTIE POSIŁKOWE (i GlikoSense) MUSZĄ JĄ UWZGLĘDNIAĆ!", var0: settings.activeDiet })
       : "";
+      
+    const pumpModelInfo = currentStatus?.pumpModel ? `\n    - Używana Pompa/Sprzęt (dane z Nightscout): ${currentStatus.pumpModel}` : "";
 
     const currentDataStr = currentStatus
-      ? i18n.t('auto.aktualny_status_urzadzen', { defaultValue: "\n    AKTUALNY STATUS URZĄDZEŃ (Stan na: {{var0}}):\n    - Bieżąca glikemia: {{var1}} mg/dL (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): {{var2}} j.\n    - Aktywne węglowodany (COB): {{var3}} g\n    {{var4}}{{var5}}\n    ", var0: now.toLocaleString("pl-PL"), var1: currentStatus.glucose, var2: currentStatus.iob.toFixed(2), var3: currentStatus.cob.toFixed(0), var4: insightsStr, var5: activeDietStr })
-      : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}`;
+      ? i18n.t('auto.aktualny_status_urzadzen', { defaultValue: "\n    AKTUALNY STATUS URZĄDZEŃ (Stan na: {{var0}}):\n    - Bieżąca glikemia: {{var1}} mg/dL (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): {{var2}} j.\n    - Aktywne węglowodany (COB): {{var3}} g\n    {{var4}}{{var5}}\n    ", var0: now.toLocaleString("pl-PL"), var1: currentStatus.glucose, var2: currentStatus.iob.toFixed(2), var3: currentStatus.cob.toFixed(0), var4: insightsStr, var5: activeDietStr }) + pumpModelInfo
+      : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}${pumpModelInfo}`;
 
     let medicalRulesStr = "";
     if (typeof window !== "undefined") {

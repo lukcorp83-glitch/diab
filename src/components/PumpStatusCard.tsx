@@ -10,6 +10,7 @@ interface PumpStatusProps {
     battery: number;
     reservoir: number;
     activeInsulin: number;
+    model?: string | null;
     basal: {
       rate: number;
       isTemp: boolean;
@@ -44,11 +45,11 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
   // If we have reservoir or active insulin, it's likely a pump. Otherwise, maybe just CGM/Uploader.
   const isPump = data.reservoir > 0 || data.basal?.rate > 0 || data.activeInsulin > 0;
   
-  const serverPumpName = (data.uploader as any)?.name || data.uploader?.type;
+  const serverPumpName = data.model || (data.uploader as any)?.name || data.uploader?.type;
   const fallbackPumpName = serverPumpName || t('auto.pompa_insulinowa', { defaultValue: 'Pompa Insulinowa' });
   
   const deviceName = isPump ? fallbackPumpName : (data.uploader?.type || t('auto.cgm_uploader', { defaultValue: 'CGM / Uploader' }));
-  const deviceSource = isPump ? (serverPumpName ? "Nightscout / AID" : "CareLink / Nightscout") : "Nightscout";
+  const deviceSource = isPump ? (serverPumpName ? "Nightscout / AID" : "Nightscout") : "Nightscout";
 
   return (
     <motion.div 
