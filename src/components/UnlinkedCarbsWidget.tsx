@@ -5,8 +5,7 @@ import { Merge, AlertCircle, Plus, X, Search, CheckCircle2, Sparkles, Loader2 } 
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { LIB_BASE } from "../constants";
-import { db } from "../lib/firebase";
-import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
+import { dbService } from "../services/databaseService";
 import { toast } from "react-hot-toast";
 import { getEffectiveUid } from "../lib/utils";
 
@@ -75,13 +74,17 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
       }]));
 
       if (latestUnlinked.type === "meal") {
-         await updateDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", latestUnlinked.id), {
+         const updatedLog = {
+            ...latestUnlinked,
             items: newItems,
             fat: computedFat,
             protein: computedProtein
-         });
+         };
+         await dbService.saveLog(updatedLog);
+         window.dispatchEvent(new CustomEvent('localLogAdd', { detail: updatedLog }));
       } else {
-         await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), {
+         const newMealLog = {
+            id: "meal_" + Date.now().toString(),
             type: "meal",
             value: targetCarbs,
             carbs: targetCarbs,
@@ -90,14 +93,20 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
             items: newItems,
             timestamp: latestUnlinked.timestamp,
             createdAt: Date.now()
-         });
-         await updateDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", latestUnlinked.id), {
+         };
+         await dbService.saveLog(newMealLog);
+         window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newMealLog }));
+
+         const updatedBolus = {
+            ...latestUnlinked,
             linkedMeal: {
                carbs: targetCarbs,
                fat: computedFat,
                protein: computedProtein
             }
-         });
+         };
+         await dbService.saveLog(updatedBolus);
+         window.dispatchEvent(new CustomEvent('localLogAdd', { detail: updatedBolus }));
       }
       
       toast.success(t('auto.zapisano_posilek', { defaultValue: `Obliczono i zapisano ${amount}g - ${product.name || product.namePl}` }));
