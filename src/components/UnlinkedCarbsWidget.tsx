@@ -81,7 +81,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
             protein: computedProtein
          };
          await dbService.saveLog(updatedLog);
-         window.dispatchEvent(new CustomEvent('localLogAdd', { detail: updatedLog }));
+         window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: updatedLog.id, updates: updatedLog } }));
       } else {
          const newMealLog = {
             id: "meal_" + Date.now().toString(),
@@ -106,7 +106,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
             }
          };
          await dbService.saveLog(updatedBolus);
-         window.dispatchEvent(new CustomEvent('localLogAdd', { detail: updatedBolus }));
+         window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: updatedBolus.id, updates: updatedBolus } }));
       }
       
       toast.success(t('auto.zapisano_posilek', { defaultValue: `Obliczono i zapisano ${amount}g - ${product.name || product.namePl}` }));

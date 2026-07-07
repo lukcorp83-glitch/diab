@@ -15,13 +15,7 @@ export class DatabaseService {
   async init(): Promise<void> {
     // Guard: if already initialized, skip to avoid double-init on hot reload / OTA
     if (this.db) {
-      try {
-        // Check if the connection is still alive
-        const isOpen = await this.db.isDBOpen();
-        if (isOpen.result) return;
-      } catch {
-        this.db = null;
-      }
+      return;
     }
 
     try {
@@ -145,22 +139,22 @@ export class DatabaseService {
   }
 
   async saveLog(log: any) {
-    if (!this.db) {
-      await this.init();
-    }
-    try {
-      const isOpen = await this.db?.isDBOpen();
-      if (!isOpen?.result) await this.db?.open();
-    } catch (e) {
-      console.warn("Reopening DB in saveLog", e);
-      await this.db?.open();
-    }
-    
     if (!this.db) return;
     const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
     const payloadStr = JSON.stringify(log);
     const query = `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES (?, ?, ?, ?, 0)`;
-    await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
+    
+    try {
+      await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
+    } catch (e: any) {
+      if (e?.message?.includes("not opened") || e?.message?.includes("closed")) {
+        console.warn("DB not opened, attempting to open and retry", e);
+        await this.db.open();
+        await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
+      } else {
+        throw e;
+      }
+    }
     
     if (this.isWeb) {
       await this.sqlite.saveToStore('glikocontrol_db');
@@ -168,16 +162,6 @@ export class DatabaseService {
   }
 
   async saveMultipleLogs(logs: any[]) {
-    if (!this.db) {
-      await this.init();
-    }
-    try {
-      const isOpen = await this.db?.isDBOpen();
-      if (!isOpen?.result) await this.db?.open();
-    } catch (e) {
-      await this.db?.open();
-    }
-    
     if (!this.db || logs.length === 0) return;
     try {
       const BATCH_SIZE = 500;
@@ -192,7 +176,17 @@ export class DatabaseService {
           };
         });
         
-        await this.db.executeSet(statements);
+        try {
+          await this.db.executeSet(statements);
+        } catch(innerE: any) {
+          if (innerE?.message?.includes("not opened") || innerE?.message?.includes("closed")) {
+             console.warn("DB not opened in batch save, attempting to open and retry", innerE);
+             await this.db.open();
+             await this.db.executeSet(statements);
+          } else {
+             throw innerE;
+          }
+        }
       }
       
       if (this.isWeb) {
@@ -204,42 +198,47 @@ export class DatabaseService {
   }
 
   async getLogs(limit: number = 15000): Promise<any[]> {
-    if (!this.db) {
-      await this.init();
-    }
-    try {
-      const isOpen = await this.db?.isDBOpen();
-      if (!isOpen?.result) await this.db?.open();
-    } catch (e) {
-      await this.db?.open();
-    }
-    
     if (!this.db) return [];
     try {
       const res = await this.db.query(`SELECT payload FROM application_logs ORDER BY timestamp DESC LIMIT ?`, [limit]);
       if (res.values) {
         return res.values.map((row: any) => JSON.parse(row.payload));
       }
-    } catch (e) {
-      console.error("Get logs error", e);
+    } catch (e: any) {
+      if (e?.message?.includes("not opened") || e?.message?.includes("closed")) {
+         console.warn("DB not opened in getLogs, attempting to open and retry", e);
+         try {
+           await this.db.open();
+           const res = await this.db.query(`SELECT payload FROM application_logs ORDER BY timestamp DESC LIMIT ?`, [limit]);
+           if (res.values) {
+             return res.values.map((row: any) => JSON.parse(row.payload));
+           }
+         } catch(innerE) {
+           console.error("Get logs retry error", innerE);
+         }
+      } else {
+        console.error("Get logs error", e);
+      }
     }
     return [];
   }
   
   async deleteLog(id: string) {
-    if (!this.db) {
-      await this.init();
-    }
-    try {
-      const isOpen = await this.db?.isDBOpen();
-      if (!isOpen?.result) await this.db?.open();
-    } catch (e) {
-      await this.db?.open();
-    }
-    
     if (!this.db) return;
     const query = `DELETE FROM application_logs WHERE id = ? OR payload LIKE ?`;
-    await this.db.run(query, [id, `%"nsId":"${id}"%`]);
+    
+    try {
+      await this.db.run(query, [id, `%"nsId":"${id}"%`]);
+    } catch(e: any) {
+      if (e?.message?.includes("not opened") || e?.message?.includes("closed")) {
+         console.warn("DB not opened in deleteLog, attempting to open and retry", e);
+         await this.db.open();
+         await this.db.run(query, [id, `%"nsId":"${id}"%`]);
+      } else {
+         throw e;
+      }
+    }
+    
     if (this.isWeb) {
       await this.sqlite.saveToStore('glikocontrol_db');
     }
