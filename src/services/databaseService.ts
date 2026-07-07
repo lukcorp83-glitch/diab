@@ -145,6 +145,17 @@ export class DatabaseService {
   }
 
   async saveLog(log: any) {
+    if (!this.db) {
+      await this.init();
+    }
+    try {
+      const isOpen = await this.db?.isDBOpen();
+      if (!isOpen?.result) await this.db?.open();
+    } catch (e) {
+      console.warn("Reopening DB in saveLog", e);
+      await this.db?.open();
+    }
+    
     if (!this.db) return;
     const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
     const payloadStr = JSON.stringify(log);
@@ -157,6 +168,16 @@ export class DatabaseService {
   }
 
   async saveMultipleLogs(logs: any[]) {
+    if (!this.db) {
+      await this.init();
+    }
+    try {
+      const isOpen = await this.db?.isDBOpen();
+      if (!isOpen?.result) await this.db?.open();
+    } catch (e) {
+      await this.db?.open();
+    }
+    
     if (!this.db || logs.length === 0) return;
     try {
       const BATCH_SIZE = 500;
@@ -183,6 +204,16 @@ export class DatabaseService {
   }
 
   async getLogs(limit: number = 15000): Promise<any[]> {
+    if (!this.db) {
+      await this.init();
+    }
+    try {
+      const isOpen = await this.db?.isDBOpen();
+      if (!isOpen?.result) await this.db?.open();
+    } catch (e) {
+      await this.db?.open();
+    }
+    
     if (!this.db) return [];
     try {
       const res = await this.db.query(`SELECT payload FROM application_logs ORDER BY timestamp DESC LIMIT ?`, [limit]);
@@ -196,6 +227,16 @@ export class DatabaseService {
   }
   
   async deleteLog(id: string) {
+    if (!this.db) {
+      await this.init();
+    }
+    try {
+      const isOpen = await this.db?.isDBOpen();
+      if (!isOpen?.result) await this.db?.open();
+    } catch (e) {
+      await this.db?.open();
+    }
+    
     if (!this.db) return;
     const query = `DELETE FROM application_logs WHERE id = ? OR payload LIKE ?`;
     await this.db.run(query, [id, `%"nsId":"${id}"%`]);
