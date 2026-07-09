@@ -14,12 +14,20 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.6.25';
+export const CURRENT_VERSION = '5.7.01';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.01",
+    date: "2026-07-09",
+    title: "Aktualizacja Beta",
+    changes: [
+      "Nowe wydanie w kanale Beta (5.7.01)."
+    ]
+  },
   {
     version: "5.6.25",
     date: "2026-07-09",
@@ -510,6 +518,14 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.01",
+    date: "2026-07-09",
+    title: "Aktualizacja Beta",
+    changes: [
+      "Nowe wydanie w kanale Beta (5.7.01)."
+    ]
+  },
   {
     version: "5.6.25",
     date: "2026-07-09",

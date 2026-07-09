@@ -231,6 +231,7 @@ export const MLAnalyzer = {
       worker.postMessage({
         logs,
         force,
+        language: i18n.language || 'pl',
         mode,
         rules,
         lastTrainTime: lastTrainTimeStr ? parseInt(lastTrainTimeStr, 10) : 0,

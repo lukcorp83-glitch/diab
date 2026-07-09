@@ -1,10 +1,10 @@
 {
-  "version": "5.6.25",
+  "version": "5.7.01",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.6.25_OTA.apk",
-  "buildNumber": 105,
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.01_OTA.apk",
+  "buildNumber": 106,
   "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.6.25: Poprawki stabilności i optymalizacja.",
-  "whatsNewEn": "🚀 Version 5.6.25: Stability improvements and optimization.",
-  "otaRevision": 260
+  "whatsNew": "🚀 Wersja 5.7.01: Nowa aktualizacja Beta.",
+  "whatsNewEn": "🚀 Version 5.7.01: New Beta update.",
+  "otaRevision": 261
 }

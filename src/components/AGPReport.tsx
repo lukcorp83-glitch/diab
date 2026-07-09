@@ -40,13 +40,14 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
     const glucoseLogs = logs.filter(l => l.type === 'glucose' || l.bg);
     if (glucoseLogs.length === 0) return [7];
     
-    let minTime = Infinity;
+    const uniqueDays = new Set();
     glucoseLogs.forEach(l => {
-      if (l.timestamp < minTime) minTime = l.timestamp;
+      uniqueDays.add(new Date(l.timestamp).toLocaleDateString());
     });
-    const daysSpan = Math.ceil((Date.now() - minTime) / (1000 * 60 * 60 * 24));
+    const activeDays = uniqueDays.size;
     
-    const options = [7, 14, 30, 90].filter(d => daysSpan >= (d - 2));
+    // Opcje pokazują się jeśli mamy zebrane dane przynajmniej z połowy danego przedziału
+    const options = [7, 14, 30, 90].filter(d => activeDays >= (d * 0.5));
     return options.length > 0 ? options : [7];
   }, [logs]);
 
@@ -174,11 +175,11 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
     const actualDaysSpan = Math.max(1, Math.ceil((Date.now() - (glucoseLogs[0]?.timestamp || Date.now())) / (1000 * 60 * 60 * 24)));
     const effectiveDays = Math.min(daysBack, actualDaysSpan);
 
-    const avgHyposPerWeek = ((hypos / effectiveDays) * 7).toFixed(1);
-    const avgHypersPerWeek = ((hypers / effectiveDays) * 7).toFixed(1);
+    const avgHyposPerWeek = Math.round((hypos / effectiveDays) * 7);
+    const avgHypersPerWeek = Math.round((hypers / effectiveDays) * 7);
 
     return {
-      hypos, hypers, avgHyposPerWeek, avgHypersPerWeek, peakHypo, peakHyper
+      hypos, hypers, avgHyposPerWeek, avgHypersPerWeek, peakHypo, peakHyper, effectiveDays
     };
   }, [logs, daysBack, targetMin, targetMax]);
 
@@ -370,7 +371,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
               </div>
               
               <p className="text-sm font-medium text-rose-800/80 dark:text-rose-300/80 mb-4">
-                Średnio <strong className="text-rose-600 dark:text-rose-400 font-black">{incidentStats.avgHyposPerWeek}</strong> incydentów na tydzień.
+                {incidentStats.effectiveDays < 7 ? 'Szacunkowo ' : 'Średnio '} <strong className="text-rose-600 dark:text-rose-400 font-black">{incidentStats.avgHyposPerWeek}</strong> incydentów na tydzień.
               </p>
               
               {incidentStats.peakHypo && (
@@ -399,7 +400,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
               </div>
               
               <p className="text-sm font-medium text-orange-800/80 dark:text-orange-300/80 mb-4">
-                Średnio <strong className="text-orange-600 dark:text-orange-400 font-black">{incidentStats.avgHypersPerWeek}</strong> incydentów na tydzień.
+                {incidentStats.effectiveDays < 7 ? 'Szacunkowo ' : 'Średnio '} <strong className="text-orange-600 dark:text-orange-400 font-black">{incidentStats.avgHypersPerWeek}</strong> incydentów na tydzień.
               </p>
               
               {incidentStats.peakHyper && (

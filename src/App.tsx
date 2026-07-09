@@ -423,7 +423,7 @@ export default function App() {
   // Zapisy do DB za każdym razem gdy zmieni się docelowy useMemo logs
   useEffect(() => {
     if (logs.length > 0 && cachedLogsLoaded) {
-      dbService.saveMultipleLogs(logs.slice(0, 15000)).catch(console.error);
+      dbService.saveMultipleLogs(logs.slice(0, 45000)).catch(console.error);
     }
   }, [logs, cachedLogsLoaded]);
 
@@ -1942,7 +1942,7 @@ export default function App() {
         limit(150),
       );
     } else {
-      q = query(logsCollection, orderBy("timestamp", "desc"), limit(300));
+      q = query(logsCollection, orderBy("timestamp", "desc"), limit(20000));
     }
 
     const unsubscribe = onSnapshot(
@@ -2239,7 +2239,7 @@ export default function App() {
           
           setNsLogs((prev) => {
              const all = [...prev, ...newLogsToSync];
-             return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 15000);
+             return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 45000);
           });
         }
         
@@ -2254,7 +2254,7 @@ export default function App() {
       }
     };
 
-    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
+    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 20000 } });
     setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
 
     const handleForceSync = () => {
@@ -2262,7 +2262,7 @@ export default function App() {
       setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
       // Stopping and starting again forces an immediate wipe/sync in worker
       worker.postMessage({ type: 'STOP_SYNC' });
-      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 20000 } });
     };
 
     window.addEventListener("force-nightscout-sync", handleForceSync);

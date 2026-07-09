@@ -216,6 +216,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
                         onClick={async () => {
                           const mealName = searchQuery.trim();
                           setIsAiEstimating(true);
+                          const toastId = toast.loading(t('auto.ai_szuka_informacji_o_posilku', { defaultValue: 'AI analizuje posiłek i wylicza makroskładniki...' }));
                           
                           try {
                             const { geminiService } = await import('../services/gemini');
@@ -251,9 +252,11 @@ Odpowiedz WYŁĄCZNIE czystym formatem JSON (bez \`\`\`json):
                               ig: estimatedIg
                             };
                             
+                            toast.dismiss(toastId);
                             handleQuickAdd(customProduct, carbs);
                           } catch(err) {
                             console.error(err);
+                            toast.dismiss(toastId);
                             toast.error("Błąd AI. Zapisano tylko węglowodany.");
                             const fallbackProduct = {
                               id: "custom_" + Date.now(),

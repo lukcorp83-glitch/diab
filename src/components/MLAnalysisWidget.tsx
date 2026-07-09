@@ -456,6 +456,100 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
     });
   }, [logs, settings]);
 
+  // --- Analiza GlikoSense (Nowa sekcja) ---
+  const glikosenseAnalysis = useMemo(() => {
+    let cv = 0;
+    let sd = 0;
+    let mean = 0;
+    
+    const cutoff14 = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const recentGlucose = logs.filter(l => (l.type === 'glucose' || l.bg) && l.timestamp >= cutoff14);
+    
+    if (recentGlucose.length > 0) {
+      const sum = recentGlucose.reduce((acc, l) => acc + (l.value || l.bg || 0), 0);
+      mean = sum / recentGlucose.length;
+      
+      const sumSqDiff = recentGlucose.reduce((acc, l) => {
+        const diff = (l.value || l.bg || 0) - mean;
+        return acc + (diff * diff);
+      }, 0);
+      
+      sd = Math.sqrt(sumSqDiff / recentGlucose.length);
+      cv = mean > 0 ? (sd / mean) * 100 : 0;
+    }
+
+    const mealBlocks = {
+      breakfast: { name: i18n.t('auto.sniadanie', { defaultValue: 'Śniadanie' }), icon: '🌅', hours: [6, 11], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+      lunch: { name: i18n.t('auto.obiad', { defaultValue: 'Obiad' }), icon: '☀️', hours: [11, 16], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+      dinner: { name: i18n.t('auto.kolacja', { defaultValue: 'Kolacja' }), icon: '🌙', hours: [16, 22], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+      night: { name: i18n.t('auto.noc', { defaultValue: 'Noc' }), icon: '🌌', hours: [22, 6], carbs: 0, bolus: 0, count: 0, totalDelta: 0 }
+    };
+
+    const recentMeals = logs.filter(l => l.type === 'meal' && l.timestamp >= cutoff14);
+    
+    recentMeals.forEach(meal => {
+      const date = new Date(meal.timestamp);
+      const hour = date.getHours();
+      
+      let blockKey: keyof typeof mealBlocks = 'night';
+      if (hour >= 6 && hour < 11) blockKey = 'breakfast';
+      else if (hour >= 11 && hour < 16) blockKey = 'lunch';
+      else if (hour >= 16 && hour < 22) blockKey = 'dinner';
+      
+      const block = mealBlocks[blockKey];
+      
+      block.count += 1;
+      block.carbs += meal.value || 0;
+      
+      const relatedBoluses = logs.filter(l => 
+        l.type === 'bolus' && 
+        l.timestamp >= meal.timestamp - 15 * 60000 && 
+        l.timestamp <= meal.timestamp + 60 * 60000
+      );
+      block.bolus += relatedBoluses.reduce((acc, b) => acc + (b.value || 0), 0);
+      
+      const glucoseAroundMeal = logs.filter(l => 
+        (l.type === 'glucose' || l.bg) && 
+        Math.abs(l.timestamp - meal.timestamp) <= 15 * 60000
+      );
+      const startGlucose = glucoseAroundMeal.length > 0 ? (glucoseAroundMeal[0].value || glucoseAroundMeal[0].bg || 0) : mean || 100;
+      
+      const glucoseAfterMeal = logs.filter(l => 
+        (l.type === 'glucose' || l.bg) && 
+        l.timestamp > meal.timestamp && 
+        l.timestamp <= meal.timestamp + 2 * 60 * 60 * 1000
+      );
+      
+      let maxGlucose = startGlucose;
+      glucoseAfterMeal.forEach(g => {
+        const val = g.value || g.bg || 0;
+        if (val > maxGlucose) maxGlucose = val;
+      });
+      
+      block.totalDelta += (maxGlucose - startGlucose);
+    });
+
+    const mealStats = Object.values(mealBlocks).map(b => ({
+      name: b.name,
+      icon: b.icon,
+      avgCarbs: b.count > 0 ? (b.carbs / b.count).toFixed(1) : '0',
+      avgBolus: b.count > 0 ? (b.bolus / b.count).toFixed(1) : '0',
+      avgDelta: b.count > 0 ? Math.round(b.totalDelta / b.count) : 0,
+      count: b.count
+    }));
+
+    const hasBasalData = settings?.hourlyProfiles && settings.hourlyProfiles.length > 0 && settings?.treatmentMode === 'pump';
+    let totalBasal = 0;
+    let totalBolus = 0;
+    
+    // Użytkownik: "jesli nie mamy danych o bazie nie mozemy pokazywac sekcji bolus i baza"
+    // Obecnie w logs nie mamy "basal" rate, więc ustawiam totalBasal = 0 by ukryć tę sekcję.
+    
+    totalBolus = logs.filter(l => l.type === 'bolus' && l.timestamp >= cutoff14).reduce((acc, l) => acc + (l.value || 0), 0);
+
+    return { cv, sd, mean, mealStats, totalBasal, totalBolus };
+  }, [logs, settings]);
+
   return (
     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 md:p-8 rounded-[2.5rem] shadow-2xl border border-accent-100 dark:border-accent-900/40 relative overflow-hidden group">
       {/* Background decoration */}
@@ -975,6 +1069,119 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
             </motion.div>
           )}
       </AnimatePresence>
+
+      {/* --- Nowa sekcja: Analiza GlikoSense --- */}
+      {mlResult && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 pt-8 border-t border-slate-200/50 dark:border-slate-800/50 relative z-20"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md shadow-blue-500/20">
+              <Activity size={20} className="text-white" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
+              {t('auto.zaawansowana_analiza_glikosense', { defaultValue: 'Zaawansowana Analiza GlikoSense' })}
+            </h3>
+          </div>
+
+          <div className={`grid grid-cols-1 ${glikosenseAnalysis.totalBasal > 0 ? 'md:grid-cols-2' : ''} gap-6`}>
+            {/* 1. CV i SD */}
+            <div className={`p-6 rounded-[2rem] flex flex-col items-center justify-center relative overflow-hidden group transition-all duration-500 hover:shadow-xl ${
+              glikosenseAnalysis.cv > 36 
+                ? 'bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-800/30 hover:shadow-rose-500/10' 
+                : 'bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 hover:shadow-emerald-500/10'
+            }`}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 opacity-50"></div>
+              
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <h4 className={`text-xs font-black uppercase tracking-widest mb-1 ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/80' : 'text-emerald-500/80'}`}>
+                  {t('auto.wspolczynnik_zmiennosci', { defaultValue: 'Współczynnik Zmienności (CV)' })}
+                </h4>
+                
+                <div className="flex items-baseline gap-1 my-2">
+                  <span className={`text-6xl font-black tracking-tighter ${glikosenseAnalysis.cv > 36 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {glikosenseAnalysis.cv.toFixed(1)}
+                  </span>
+                  <span className={`text-xl font-bold ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/60' : 'text-emerald-500/60'}`}>%</span>
+                </div>
+                
+                <div className={`text-[10px] font-bold px-4 py-1.5 rounded-full mt-2 ${
+                  glikosenseAnalysis.cv > 36 
+                    ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300' 
+                    : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                }`}>
+                  {glikosenseAnalysis.cv > 36 
+                    ? t('auto.wysokie_ryzyko_rollercoastera_c', { defaultValue: 'WYSOKIE RYZYKO ROLLERCOASTERA (Cel: <36%)' })
+                    : t('auto.stabilna_glikemia_cel_osiagnie', { defaultValue: 'STABILNA GLIKEMIA (Cel osiągnięty)' })
+                  }
+                </div>
+                
+                <p className={`mt-4 text-xs font-medium ${glikosenseAnalysis.cv > 36 ? 'text-rose-800/70 dark:text-rose-200/60' : 'text-emerald-800/70 dark:text-emerald-200/60'}`}>
+                  {t('auto.odchylenie_standardowe_sd', { defaultValue: 'Odchylenie standardowe (SD):' })} <strong className="font-black">{glikosenseAnalysis.sd.toFixed(1)} mg/dL</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Proporcja Baza vs Bolus (Tylko jeśli totalBasal > 0) */}
+            {glikosenseAnalysis.totalBasal > 0 && (
+              <div className="bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/50 p-6 rounded-[2rem] relative overflow-hidden">
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 text-center">
+                  {t('auto.proporcja_baza_vs_bolus', { defaultValue: 'Proporcja Baza vs Bolus (TDD)' })}
+                </h4>
+                {/* Tutaj byłby wykres */}
+              </div>
+            )}
+          </div>
+
+          {/* 3. Analiza Posiłków */}
+          <div className="mt-6">
+            <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 ml-2">
+              {t('auto.reakcja_na_posilki_w_porach_dn', { defaultValue: 'Reakcja na posiłki w porach dnia (Ostatnie 14 dni)' })}
+            </h4>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              {glikosenseAnalysis.mealStats.map((meal, idx) => (
+                <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 p-4 rounded-3xl flex flex-col transition-all hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-500/5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xl">{meal.icon}</span>
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-200">{meal.name}</span>
+                  </div>
+                  
+                  {meal.count > 0 ? (
+                    <div className="space-y-3 mt-auto">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('auto.sredni_skok', { defaultValue: 'Średni skok' })}</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className={`text-xl font-black ${meal.avgDelta > 50 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                            {meal.avgDelta > 0 ? '+' : ''}{meal.avgDelta}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500">mg/dL</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-700/50">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">{t('auto.weglowodany', { defaultValue: 'Węglowodany' })}</span>
+                          <span className="text-xs font-black text-slate-700 dark:text-slate-300">{meal.avgCarbs} g</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">{t('auto.bolus', { defaultValue: 'Bolus' })}</span>
+                          <span className="text-xs font-black text-slate-700 dark:text-slate-300">{meal.avgBolus} U</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center mt-auto min-h-[60px]">
+                      <span className="text-xs font-bold text-slate-400/70">{t('auto.brak_wpisow', { defaultValue: 'Brak wpisów' })}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
