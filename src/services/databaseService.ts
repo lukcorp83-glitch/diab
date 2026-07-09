@@ -6,6 +6,7 @@ export class DatabaseService {
   private sqlite: SQLiteConnection;
   private db: SQLiteDBConnection | null = null;
   private isWeb: boolean;
+  private savePromise: Promise<void> | null = null;
 
   constructor() {
     this.sqlite = new SQLiteConnection(CapacitorSQLite);
@@ -163,6 +164,15 @@ export class DatabaseService {
 
   async saveMultipleLogs(logs: any[]) {
     if (!this.db || logs.length === 0) return;
+    
+    // Zapobiegamy równoległemu zapisowi (mutex), co mogłoby wywołać błąd "database is locked" w SQLite na Androidzie
+    while (this.savePromise) {
+      await this.savePromise;
+    }
+    
+    let resolveSave: () => void;
+    this.savePromise = new Promise(resolve => { resolveSave = resolve; });
+
     try {
       const BATCH_SIZE = 500;
       for (let i = 0; i < logs.length; i += BATCH_SIZE) {
@@ -194,6 +204,11 @@ export class DatabaseService {
       }
     } catch (e) {
       console.error("Batch save error", e);
+    } finally {
+      if (resolveSave!) {
+        resolveSave();
+      }
+      this.savePromise = null;
     }
   }
 

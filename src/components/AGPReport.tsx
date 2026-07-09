@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   ComposedChart,
   Area,
@@ -11,7 +11,7 @@ import {
   ReferenceLine
 } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
-import { ChevronLeft, Info, Calendar } from 'lucide-react';
+import { ChevronLeft, Info, Calendar, AlertTriangle, ActivitySquare } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -35,6 +35,26 @@ const getPercentile = (sortedData: number[], p: number) => {
 export default function AGPReport({ logs, settings, onClose, theme }: AGPReportProps) {
     const { t } = useTranslation();
   const [daysBack, setDaysBack] = useState(14);
+
+  const availableDays = useMemo(() => {
+    const glucoseLogs = logs.filter(l => l.type === 'glucose' || l.bg);
+    if (glucoseLogs.length === 0) return [7];
+    
+    let minTime = Infinity;
+    glucoseLogs.forEach(l => {
+      if (l.timestamp < minTime) minTime = l.timestamp;
+    });
+    const daysSpan = Math.ceil((Date.now() - minTime) / (1000 * 60 * 60 * 24));
+    
+    const options = [7, 14, 30, 90].filter(d => daysSpan >= (d - 2));
+    return options.length > 0 ? options : [7];
+  }, [logs]);
+
+  useEffect(() => {
+    if (!availableDays.includes(daysBack)) {
+      setDaysBack(availableDays[0]);
+    }
+  }, [availableDays, daysBack]);
 
   const agpData = useMemo(() => {
     const cutoffTime = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
@@ -93,6 +113,74 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
 
   const targetMin = settings.targetMin || 70;
   const targetMax = settings.targetMax || 140;
+
+  const incidentStats = useMemo(() => {
+    const cutoffTime = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
+    const glucoseLogs = logs
+      .filter((l) => (l.type === 'glucose' || l.bg) && l.timestamp >= cutoffTime)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    let hypos = 0;
+    let hypers = 0;
+    
+    const hypoHours = new Array(24).fill(0);
+    const hyperHours = new Array(24).fill(0);
+    
+    let currentState: 'normal' | 'hypo' | 'hyper' = 'normal';
+    let lastTimestamp = 0;
+
+    glucoseLogs.forEach(log => {
+      if (lastTimestamp > 0 && (log.timestamp - lastTimestamp) > 2 * 60 * 60 * 1000) {
+        currentState = 'normal';
+      }
+      lastTimestamp = log.timestamp;
+      
+      const val = log.value || log.bg;
+      if (!val) return;
+      
+      let newState: 'normal' | 'hypo' | 'hyper' = 'normal';
+      if (val < targetMin) newState = 'hypo';
+      else if (val > targetMax) newState = 'hyper';
+      
+      const hour = new Date(log.timestamp).getHours();
+
+      if (newState === 'hypo' && currentState !== 'hypo') {
+        hypos++;
+        hypoHours[hour]++;
+      } else if (newState === 'hyper' && currentState !== 'hyper') {
+        hypers++;
+        hyperHours[hour]++;
+      }
+      
+      currentState = newState;
+    });
+
+    const findPeakHour = (hoursArr: number[]) => {
+      let maxIdx = -1;
+      let maxVal = 0;
+      for (let i = 0; i < 24; i++) {
+        if (hoursArr[i] > maxVal) {
+          maxVal = hoursArr[i];
+          maxIdx = i;
+        }
+      }
+      if (maxIdx === -1 || maxVal === 0) return null;
+      return { hour: maxIdx, count: maxVal };
+    };
+
+    const peakHypo = findPeakHour(hypoHours);
+    const peakHyper = findPeakHour(hyperHours);
+
+    const actualDaysSpan = Math.max(1, Math.ceil((Date.now() - (glucoseLogs[0]?.timestamp || Date.now())) / (1000 * 60 * 60 * 24)));
+    const effectiveDays = Math.min(daysBack, actualDaysSpan);
+
+    const avgHyposPerWeek = ((hypos / effectiveDays) * 7).toFixed(1);
+    const avgHypersPerWeek = ((hypers / effectiveDays) * 7).toFixed(1);
+
+    return {
+      hypos, hypers, avgHyposPerWeek, avgHypersPerWeek, peakHypo, peakHyper
+    };
+  }, [logs, daysBack, targetMin, targetMax]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -158,7 +246,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
                                   {t('auto.zakres_analizy', { defaultValue: 'Zakres analizy:' })}
                                 </div>
           <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
-            {[7, 14, 30, 90].map(d => (
+            {availableDays.map(d => (
               <button
                 key={d}
                 onClick={() => setDaysBack(d)}
@@ -261,6 +349,69 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
           </ResponsiveContainer>
           )}
         </div>
+
+        {/* Statystyki Incydentów */}
+        {agpData.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
+            <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-800/30 rounded-3xl p-5 flex flex-col relative overflow-hidden group shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold">
+                  <AlertTriangle size={20} />
+                  <span>{t('auto.niedocukrzenia_hipo', { defaultValue: 'Niedocukrzenia (Hipo)' })}</span>
+                </div>
+                <div className="bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  {daysBack} {t('auto.dni', { defaultValue: 'Dni' })}
+                </div>
+              </div>
+              
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-4xl font-black text-rose-700 dark:text-rose-500 leading-none tracking-tighter">{incidentStats.hypos}</span>
+                <span className="text-xs font-bold text-rose-600/70 uppercase tracking-widest">{t('auto.incydentów', { defaultValue: 'Incydentów' })}</span>
+              </div>
+              
+              <p className="text-sm font-medium text-rose-800/80 dark:text-rose-300/80 mb-4">
+                Średnio <strong className="text-rose-600 dark:text-rose-400 font-black">{incidentStats.avgHyposPerWeek}</strong> incydentów na tydzień.
+              </p>
+              
+              {incidentStats.peakHypo && (
+                <div className="mt-auto bg-white/60 dark:bg-slate-900/60 rounded-2xl p-4 text-xs font-medium text-rose-900 dark:text-rose-200 border border-rose-100 dark:border-rose-800/30">
+                  <span className="block text-[10px] uppercase font-black tracking-wider text-rose-500/80 mb-1">Największe Ryzyko</span>
+                  Najczęstsze spadki w godzinach: <strong className="text-rose-600 dark:text-rose-400 font-black">{String(incidentStats.peakHypo.hour).padStart(2, '0')}:00 - {String(incidentStats.peakHypo.hour + 1).padStart(2, '0')}:00</strong> 
+                  <span className="block mt-1 opacity-70">({incidentStats.peakHypo.count} incydentów w tym przedziale)</span>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/30 rounded-3xl p-5 flex flex-col relative overflow-hidden group shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 font-bold">
+                  <ActivitySquare size={20} />
+                  <span>{t('auto.przecukrzenia_hiper', { defaultValue: 'Przecukrzenia (Hiper)' })}</span>
+                </div>
+                <div className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  {daysBack} {t('auto.dni', { defaultValue: 'Dni' })}
+                </div>
+              </div>
+              
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-4xl font-black text-orange-700 dark:text-orange-500 leading-none tracking-tighter">{incidentStats.hypers}</span>
+                <span className="text-xs font-bold text-orange-600/70 uppercase tracking-widest">{t('auto.incydentów', { defaultValue: 'Incydentów' })}</span>
+              </div>
+              
+              <p className="text-sm font-medium text-orange-800/80 dark:text-orange-300/80 mb-4">
+                Średnio <strong className="text-orange-600 dark:text-orange-400 font-black">{incidentStats.avgHypersPerWeek}</strong> incydentów na tydzień.
+              </p>
+              
+              {incidentStats.peakHyper && (
+                <div className="mt-auto bg-white/60 dark:bg-slate-900/60 rounded-2xl p-4 text-xs font-medium text-orange-900 dark:text-orange-200 border border-orange-100 dark:border-orange-800/30">
+                  <span className="block text-[10px] uppercase font-black tracking-wider text-orange-500/80 mb-1">Największe Ryzyko</span>
+                  Najczęstsze wzrosty w godzinach: <strong className="text-orange-600 dark:text-orange-400 font-black">{String(incidentStats.peakHyper.hour).padStart(2, '0')}:00 - {String(incidentStats.peakHyper.hour + 1).padStart(2, '0')}:00</strong> 
+                  <span className="block mt-1 opacity-70">({incidentStats.peakHyper.count} incydentów w tym przedziale)</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

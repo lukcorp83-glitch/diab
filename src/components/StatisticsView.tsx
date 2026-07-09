@@ -67,18 +67,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
         data[monthKey].days[dayKey] = { dateStr: dayKey, carbs: 0, insulin: 0, hypos: 0, hypers: 0, siteChange: false, sensorChange: false };
       }
 
-      if (log.type === 'glucose') {
-        const val = Number(log.value) || 0;
-        if (val > 0) {
-          if (val < targetMin) {
-            data[monthKey].hypos += 1;
-            data[monthKey].days[dayKey].hypos += 1;
-          } else if (val > targetMax) {
-            data[monthKey].hypers += 1;
-            data[monthKey].days[dayKey].hypers += 1;
-          }
-        }
-      }
+      // Glucose events will be processed separately for accurate episode calculation
 
       if (log.type === 'meal') {
         data[monthKey].totalCarbs += Number(log.value) || 0;
@@ -106,6 +95,45 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
           data[monthKey].sensorChanges += 1;
         }
         data[monthKey].days[dayKey].sensorChange = true;
+      }
+    });
+
+    // 2. Process glucose logs in chronological order to detect episodes (incidents)
+    const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => a.timestamp - b.timestamp);
+    
+    let currentState: 'normal' | 'hypo' | 'hyper' = 'normal';
+    let lastTimestamp = 0;
+
+    glucoseLogs.forEach(log => {
+      const date = new Date(log.timestamp);
+      if (isNaN(date.getTime())) return;
+      
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      
+      if (!data[monthKey]) return; // Should already be initialized
+
+      // Reset state if there's a gap larger than 2 hours
+      if (lastTimestamp > 0 && (log.timestamp - lastTimestamp) > 2 * 60 * 60 * 1000) {
+        currentState = 'normal';
+      }
+      lastTimestamp = log.timestamp;
+
+      const val = Number(log.value) || 0;
+      if (val > 0) {
+        let newState: 'normal' | 'hypo' | 'hyper' = 'normal';
+        if (val < targetMin) newState = 'hypo';
+        else if (val > targetMax) newState = 'hyper';
+
+        if (newState === 'hypo' && currentState !== 'hypo') {
+          data[monthKey].hypos += 1;
+          if (data[monthKey].days[dayKey]) data[monthKey].days[dayKey].hypos += 1;
+        } else if (newState === 'hyper' && currentState !== 'hyper') {
+          data[monthKey].hypers += 1;
+          if (data[monthKey].days[dayKey]) data[monthKey].days[dayKey].hypers += 1;
+        }
+
+        currentState = newState;
       }
     });
 
