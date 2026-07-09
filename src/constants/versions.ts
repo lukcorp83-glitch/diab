@@ -14,11 +14,143 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.4.8';
-export const CURRENT_OTA_REVISION = 0;
+export const CURRENT_VERSION = '5.7.0';
+
+import versionData from '../../version.json';
+export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "5.7.0",
+    date: "2026-07-09",
+    title: "Szybkie dodawanie, MDI & Stabilność",
+    changes: [
+      "Nowość: Dodano szybkie dodawanie posiłków w widżecie pominiętego posiłku.",
+      "Nowość: Analiza składów leków.",
+      "Nowość: Wsparcie dla terapii na samej diecie i penach.",
+      "Naprawa: Poprawki błędów i stabilności."
+    ]
+  },
+  {
+    version: "5.6.25",
+    date: "2026-07-09",
+    title: "Poprawki i stabilizacja",
+    changes: [
+      "Naprawa: Zmodyfikowano metodę zapisu widgetu Oczekujący Posiłek by uniknąć błędu 'failed in encryption'.",
+      "Ulepszenie: Widget po zapisaniu posiłku poprawnie przekazuje nazwę własną, dzięki czemu widnieje w Historii i Aktywnym Posiłku.",
+      "Ulepszenie: Poprawiono mechanizm wykrywania źródła wpisów Nightscout (uwzględnia dokładne modele pompy, m.in. AndroidAPS)."
+    ]
+  },
+  {
+    version: "5.6.24",
+    date: "2026-07-07",
+    title: "Rozpoznawanie Pompy & Poprawki UI",
+    changes: [
+      "Nowość: Automatyczna detekcja rodzaju pompy na podstawie danych z Nightscout (np. Medtronic 780G, AndroidAPS, CamAPS).",
+      "Ulepszenie: Precyzyjna nazwa sprzętu na głównym pulpicie oraz udostępnienie modelu AI w celu optymalizacji porad.",
+      "Ulepszenie: Dynamiczne linkowanie do odpowiedniej grupy wsparcia na Facebooku (PL/EN) w zależności od języka.",
+      "Naprawa: Wyeliminowano błąd 'i18n is not defined' w komponencie paska bocznego."
+    ]
+  },
+  {
+    version: "5.6.23",
+    date: "2026-07-06",
+    title: "Tłumaczenia i poprawki",
+    changes: [
+      "Poprawka: Usunięto błędy formatowania HTML oraz zły szyk w tłumaczeniach we wbudowanym panelu GlikoControl.",
+      "Ulepszenie: Rozszerzenie zakresu i czytelności powiadomień Nightscout w menu."
+    ]
+  },
+  {
+    version: "5.6.22",
+    date: "2026-07-06",
+    title: "Optymalizacja GlikoTraining",
+    changes: [
+      "Ulepszenie: Sekcja treningowa (GlikoTraining) została przeniesiona z kafelka domowego na pasek boczny dla lepszej przejrzystości.",
+      "Poprawka: Poprawki literówek i drobne zmiany estetyczne."
+    ]
+  },
+  {
+    version: "5.6.21",
+    date: "2026-07-06",
+    title: "Słownik Leków AI",
+    changes: [
+      "Nowość: Dodano inteligentny system autouzupełniania słownika leków wspierany przez modele AI (Gemini).",
+      "Ulepszenie: Interakcje leków oraz ich wpływ na glikemię wyświetlają się bezpośrednio na kafelkach leków."
+    ]
+  },
+  {
+    version: "5.6.20",
+    date: "2026-07-06",
+    title: "Szybkie poprawki (Hotfix)",
+    changes: [
+      "Naprawa: Zlikwidowano błąd 'isAIEstimating' uniemożliwiający wygenerowanie szacunkowych wartości posiłku przez AI.",
+      "Poprawka: Poprawiono gramatykę i zły szyk zdań we wnioskach generowanych przez asystenta GlikoSense.",
+      "Poprawka: Usunięto błędy formatowania znaków specjalnych w instrukcji instalatora na system Android."
+    ]
+  },
+  {
+    version: "5.6.19",
+    date: "2026-07-03",
+    title: "Zablokowanie Proporcji Kafelków (Aktualizacja UI)",
+    changes: [
+      "Nowość: Domyślny pulpit działa teraz w trybie twardym (Classic) dla wszystkich – aplikacja ignoruje wszelkie stare kształty i rozmiary z pamięci telefonu.",
+      "Ulepszenie: Historia leczenia oraz historia pomiarów wymuszone w równych, smukłych proporcjach 1x2 obok siebie.",
+      "Naprawa: Usunięto błąd powodujący przypadkowe gubienie kroków, gdy usługa Google Health Connect zgłaszała błąd odczytu w tle."
+    ]
+  },
+  {
+    version: "5.4.17",
+    date: "2026-07-03",
+    title: "Aktualizacja Wizualna Premium (BETA)",
+    changes: [
+      "Nowość: Wektorowe, wysokiej rozdzielczości ikony posiłków (Apple) i insuliny (Syringe) na głównym wykresie.",
+      "Ulepszenie: Implementacja matematycznych krzywych (Cubic Splines) do idealnego wygładzenia linii glikemii.",
+      "Ulepszenie: Dodano efekt Neon Glow (świecenia) dla głównego wykresu w trybie ciemnym.",
+      "Nowość: Responsywne wibracje haptyczne przy przeglądaniu historii (Scrubbing)."
+    ]
+  },
+  {
+    version: "5.4.16",
+    date: "2026-07-03",
+    title: "Szyfrowanie bazy danych i poprawki aktualizacji",
+    changes: [
+      "Bezpieczeństwo: Pełne sprzętowe szyfrowanie lokalnej bazy danych SQLite dla bezpieczeństwa wrażliwych danych medycznych.",
+      "Naprawa: Rozwiązano problem fałszywych komunikatów o aktualizacji OTA po świeżej instalacji aplikacji.",
+      "Logika: Automatyczna migracja starej bazy poprzez bezpieczne zaciągnięcie historii z chmury Firebase."
+    ]
+  },
+  {
+    version: "5.4.13",
+    date: "2026-06-30",
+    title: "Optymalizacja pamięci podręcznej",
+    changes: [
+      "Poprawki i usunięcie błędu z pamięcią podręczną Vite (usunięto stary folder testowy) oraz wyczyszczenie przycisków telemetrii."
+    ]
+  },
+
+
+  {
+    version: "5.4.12",
+    date: "2026-06-30",
+    title: "Poprawki bazy produktów",
+    changes: [
+      "Naprawa importu mikrofonu w bazie produktów oraz weryfikacja poprawności filtrowania wyszukiwania."
+    ]
+  },
+
+  {
+    version: "5.4.11",
+    date: "2026-06-30",
+    title: "Natywny mikrofon Android",
+    changes: [
+      "Nowość: Oparto wyszukiwanie głosowe w 100% na usługach natywnych systemu Android w celu optymalizacji i naprawy błędu odmowy dostępu.",
+      "Naprawa: Zredukowano finalny rozmiar aktualizacji OTA."
+    ]
+  },
+
+  {
+
     version: "5.4.8",
     date: "2026-06-30",
     title: "Naprawa mikrofonu i stabilizacja",
@@ -390,6 +522,137 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+
+    version: "5.7.0",
+    date: "2026-07-09",
+    title: "Szybkie dodawanie, MDI & Stabilność",
+    changes: [
+      "Nowość: Dodano szybkie dodawanie posiłków w widżecie pominiętego posiłku.",
+      "Nowość: Analiza składów leków.",
+      "Nowość: Wsparcie dla terapii na samej diecie i penach.",
+      "Naprawa: Poprawki błędów i stabilności."
+    ]
+  },
+  {
+    version: "5.6.25",
+    date: "2026-07-09",
+    title: "Poprawki i stabilizacja",
+    changes: [
+      "Naprawa: Zmodyfikowano metodę zapisu widgetu Oczekujący Posiłek by uniknąć błędu 'failed in encryption'.",
+      "Ulepszenie: Widget po zapisaniu posiłku poprawnie przekazuje nazwę własną, dzięki czemu widnieje w Historii i Aktywnym Posiłku.",
+      "Ulepszenie: Poprawiono mechanizm wykrywania źródła wpisów Nightscout (uwzględnia dokładne modele pompy, m.in. AndroidAPS)."
+    ]
+  },
+  {
+    version: "5.6.24",
+    date: "2026-07-07",
+    title: "Rozpoznawanie Pompy & Poprawki UI",
+    changes: [
+      "Nowość: Automatyczna detekcja rodzaju pompy na podstawie danych z Nightscout (np. Medtronic 780G, AndroidAPS, CamAPS).",
+      "Ulepszenie: Precyzyjna nazwa sprzętu na głównym pulpicie oraz udostępnienie modelu AI w celu optymalizacji porad.",
+      "Ulepszenie: Dynamiczne linkowanie do odpowiedniej grupy wsparcia na Facebooku (PL/EN) w zależności od języka.",
+      "Naprawa: Wyeliminowano błąd 'i18n is not defined' w komponencie paska bocznego."
+    ]
+  },
+  {
+    version: "5.6.23",
+    date: "2026-07-06",
+    title: "Tłumaczenia i poprawki",
+    changes: [
+      "Poprawka: Usunięto błędy formatowania HTML oraz zły szyk w tłumaczeniach we wbudowanym panelu GlikoControl.",
+      "Ulepszenie: Rozszerzenie zakresu i czytelności powiadomień Nightscout w menu."
+    ]
+  },
+  {
+    version: "5.6.22",
+    date: "2026-07-06",
+    title: "Optymalizacja GlikoTraining",
+    changes: [
+      "Ulepszenie: Sekcja treningowa (GlikoTraining) została przeniesiona z kafelka domowego na pasek boczny dla lepszej przejrzystości.",
+      "Poprawka: Poprawki literówek i drobne zmiany estetyczne."
+    ]
+  },
+  {
+    version: "5.6.21",
+    date: "2026-07-06",
+    title: "Słownik Leków AI",
+    changes: [
+      "Nowość: Dodano inteligentny system autouzupełniania słownika leków wspierany przez modele AI (Gemini).",
+      "Ulepszenie: Interakcje leków oraz ich wpływ na glikemię wyświetlają się bezpośrednio na kafelkach leków."
+    ]
+  },
+  {
+    version: "5.6.20",
+    date: "2026-07-06",
+    title: "Szybkie poprawki (Hotfix)",
+    changes: [
+      "Naprawa: Zlikwidowano błąd 'isAIEstimating' uniemożliwiający wygenerowanie szacunkowych wartości posiłku przez AI.",
+      "Poprawka: Poprawiono gramatykę i zły szyk zdań we wnioskach generowanych przez asystenta GlikoSense.",
+      "Poprawka: Usunięto błędy formatowania znaków specjalnych w instrukcji instalatora na system Android."
+    ]
+  },
+  {
+    version: "5.6.19",
+    date: "2026-07-03",
+    title: "Zablokowanie Proporcji Kafelków (Aktualizacja UI)",
+    changes: [
+      "Nowość: Domyślny pulpit działa teraz w trybie twardym (Classic) dla wszystkich – aplikacja ignoruje wszelkie stare kształty i rozmiary z pamięci telefonu.",
+      "Ulepszenie: Historia leczenia oraz historia pomiarów wymuszone w równych, smukłych proporcjach 1x2 obok siebie.",
+      "Naprawa: Usunięto błąd powodujący przypadkowe gubienie kroków, gdy usługa Google Health Connect zgłaszała błąd odczytu w tle."
+    ]
+  },
+  {
+    version: "5.4.17",
+    date: "2026-07-03",
+    title: "Aktualizacja Wizualna Premium (BETA)",
+    changes: [
+      "Nowość: Wektorowe, wysokiej rozdzielczości ikony posiłków (Apple) i insuliny (Syringe) na głównym wykresie.",
+      "Ulepszenie: Implementacja matematycznych krzywych (Cubic Splines) do idealnego wygładzenia linii glikemii.",
+      "Ulepszenie: Dodano efekt Neon Glow (świecenia) dla głównego wykresu w trybie ciemnym.",
+      "Nowość: Responsywne wibracje haptyczne przy przeglądaniu historii (Scrubbing)."
+    ]
+  },
+  {
+    version: "5.4.16",
+    date: "2026-07-03",
+    title: "Szyfrowanie bazy danych i poprawki aktualizacji",
+    changes: [
+      "Bezpieczeństwo: Pełne sprzętowe szyfrowanie lokalnej bazy danych SQLite dla bezpieczeństwa wrażliwych danych medycznych.",
+      "Naprawa: Rozwiązano problem fałszywych komunikatów o aktualizacji OTA po świeżej instalacji aplikacji.",
+      "Logika: Automatyczna migracja starej bazy poprzez bezpieczne zaciągnięcie historii z chmury Firebase."
+    ]
+  },
+  {
+    version: "5.4.13",
+    date: "2026-06-30",
+    title: "Optymalizacja pamięci podręcznej",
+    changes: [
+      "Poprawki i usunięcie błędu z pamięcią podręczną Vite (usunięto stary folder testowy) oraz wyczyszczenie przycisków telemetrii."
+    ]
+  },
+
+
+  {
+    version: "5.4.12",
+    date: "2026-06-30",
+    title: "Poprawki bazy produktów",
+    changes: [
+      "Naprawa importu mikrofonu w bazie produktów oraz weryfikacja poprawności filtrowania wyszukiwania."
+    ]
+  },
+
+  {
+    version: "5.4.11",
+    date: "2026-06-30",
+    title: "Natywny mikrofon Android",
+    changes: [
+      "Nowość: Oparto wyszukiwanie głosowe w 100% na usługach natywnych systemu Android w celu optymalizacji i naprawy błędu odmowy dostępu.",
+      "Naprawa: Zredukowano finalny rozmiar aktualizacji OTA."
+    ]
+  },
+
+  {
+
     version: "5.4.8",
     date: "2026-06-30",
     title: "Naprawa mikrofonu i stabilizacja",

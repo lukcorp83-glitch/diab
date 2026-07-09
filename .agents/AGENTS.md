@@ -1,3 +1,7 @@
+# Custom Agent Instructions
+
+- Zawsze komunikuj się z użytkownikiem w języku polskim.
+
 # Projekt GlikoControl - Reguły i Wnioski z Błędów (Pamięć Agenta)
 
 - **Mechanizm aktualizacji OTA (Capgo / dist.zip)**:

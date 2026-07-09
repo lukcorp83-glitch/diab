@@ -1,8 +1,10 @@
 {
-    "version": "5.4.8",
-    "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.4.8_OTA.apk",
-    "whatsNew": "🚀 Wersja 5.4.8: Naprawa importu wtyczki mikrofonu w bazie produktów, usunięcie crashu telemetrii w Profilu oraz optymalizacja pamięci podręcznej Vite.",
-    "whatsNewEn": "🚀 Version 5.4.8: Fixed microphone plugin import in the product database, removed telemetry crash in Profile, and optimized Vite cache.",
-    "otaRevision": 254
+  "version": "5.7.0",
+  "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.0_OTA.apk",
+  "buildNumber": 105,
+  "forceUpdate": false,
+  "whatsNew": "🚀 Wersja 5.7.0: Szybkie dodawanie pominiętych posiłków, analiza składów leków, wsparcie dla diety/penów oraz poprawki stabilności!",
+  "whatsNewEn": "🚀 Version 5.7.0: Quick add for missed meals, medication analysis, diet/pens therapy support and stability fixes!",
+  "otaRevision": 260
 }
