@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.6.24';
+export const CURRENT_VERSION = '5.6.25';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.25",
+    date: "2026-07-09",
+    title: "Poprawki i stabilizacja",
+    changes: [
+      "Naprawa: Zmodyfikowano metodę zapisu widgetu Oczekujący Posiłek by uniknąć błędu 'failed in encryption'.",
+      "Ulepszenie: Widget po zapisaniu posiłku poprawnie przekazuje nazwę własną, dzięki czemu widnieje w Historii i Aktywnym Posiłku.",
+      "Ulepszenie: Poprawiono mechanizm wykrywania źródła wpisów Nightscout (uwzględnia dokładne modele pompy, m.in. AndroidAPS)."
+    ]
+  },
   {
     version: "5.6.24",
     date: "2026-07-07",
@@ -500,6 +510,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.6.25",
+    date: "2026-07-09",
+    title: "Poprawki i stabilizacja",
+    changes: [
+      "Naprawa: Zmodyfikowano metodę zapisu widgetu Oczekujący Posiłek by uniknąć błędu 'failed in encryption'.",
+      "Ulepszenie: Widget po zapisaniu posiłku poprawnie przekazuje nazwę własną, dzięki czemu widnieje w Historii i Aktywnym Posiłku.",
+      "Ulepszenie: Poprawiono mechanizm wykrywania źródła wpisów Nightscout (uwzględnia dokładne modele pompy, m.in. AndroidAPS)."
+    ]
+  },
   {
     version: "5.6.24",
     date: "2026-07-07",

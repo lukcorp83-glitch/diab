@@ -8,6 +8,8 @@ import { LIB_BASE } from "../constants";
 import { dbService } from "../services/databaseService";
 import { toast } from "react-hot-toast";
 import { getEffectiveUid } from "../lib/utils";
+import { db } from "../lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 interface Props {
   user?: any;
@@ -78,9 +80,10 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
             ...latestUnlinked,
             items: newItems,
             fat: computedFat,
-            protein: computedProtein
+            protein: computedProtein,
+            notes: product.name || product.namePl || "Własny posiłek"
          };
-         await dbService.saveLog(updatedLog);
+         await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", updatedLog.id), { ...updatedLog, userModified: true }, { merge: true });
          window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: updatedLog.id, updates: updatedLog } }));
       } else {
          const newMealLog = {
@@ -91,10 +94,11 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
             fat: computedFat,
             protein: computedProtein,
             items: newItems,
+            notes: product.name || product.namePl || "Własny posiłek",
             timestamp: latestUnlinked.timestamp,
             createdAt: Date.now()
          };
-         await dbService.saveLog(newMealLog);
+         await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", newMealLog.id), { ...newMealLog, userModified: true }, { merge: true });
          window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newMealLog }));
 
          const updatedBolus = {
@@ -102,10 +106,11 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
             linkedMeal: {
                carbs: targetCarbs,
                fat: computedFat,
-               protein: computedProtein
+               protein: computedProtein,
+               name: product.name || product.namePl || "Własny posiłek"
             }
          };
-         await dbService.saveLog(updatedBolus);
+         await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", updatedBolus.id), { ...updatedBolus, userModified: true }, { merge: true });
          window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: updatedBolus.id, updates: updatedBolus } }));
       }
       
@@ -180,7 +185,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
                        handleQuickAdd(customProduct, carbs);
                      }
                    }}
-                   placeholder={t('auto.co_zjadles', { defaultValue: "Wpisz co zjadłeś (np. Kebab)..." })}
+                   placeholder={t('auto.co_zjadles', { defaultValue: "Wpisz co zjadłeś..." })}
                    className="w-full bg-indigo-900/40 text-white placeholder-indigo-300/60 rounded-xl py-2.5 pl-9 pr-3 text-[12px] font-bold outline-none focus:ring-2 focus:ring-white/30 transition-all"
                 />
              </div>
