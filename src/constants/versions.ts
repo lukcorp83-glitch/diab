@@ -14,14 +14,14 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.6.25';
+export const CURRENT_VERSION = '5.7.0';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "5.6.25",
+    version: "5.7.0",
     date: "2026-07-09",
     title: "Poprawki i stabilizacja",
     changes: [
@@ -511,7 +511,7 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-    version: "5.6.25",
+    version: "5.7.0",
     date: "2026-07-09",
     title: "Poprawki i stabilizacja",
     changes: [
