@@ -235,50 +235,18 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             </div>
             <div>
               <h3 className="text-sm font-black dark:text-white leading-tight">{t('auto.glikosense', { defaultValue: 'GlikoSense' })}</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {isChildMode ? i18n.t('auto.opiekun', { defaultValue: 'Opiekun ' }) + petName : i18n.t('auto.analiza_systemowa_ai', { defaultValue: 'Analiza Systemowa AI' })}
-              </p>
             </div>
           </div>
-          {/* Neural Pulse Insight */}
-          {!isChildMode && (
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="hidden md:flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-xl"
-            >
-              <Sparkles size={10} className="text-indigo-500 animate-pulse" />
-              <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-300 uppercase tracking-wider">
-                
-                                              {t('auto.system_analizuje_trendy', { defaultValue: 'System analizuje trendy...' })}
-                                            </span>
-            </motion.div>
-          )}
-          <div className="flex items-center gap-2">
-            <div className="flex -space-x-1">
-               {[1, 2, 3].map(i => (
-                 <motion.div 
-                   key={`link-${i}`}
-                   animate={{ opacity: [0.3, 1, 0.3] }}
-                   transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.4 }}
-                   className={`w-1 h-3 rounded-full ${statusColor} opacity-40`}
-                 />
-               ))}
-            </div>
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{t('auto.live', { defaultValue: 'Live' })}</span>
-              {datasetSize !== undefined && datasetSize < 300 && (
-                <div className="flex items-center gap-1">
-                  <motion.div 
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    className="w-1 h-1 rounded-full bg-indigo-500"
-                  />
-                  <span className="text-[7px] font-black text-indigo-500 uppercase tracking-widest">{t('auto.training', { defaultValue: 'Training...' })}</span>
-                </div>
-              )}
-            </div>
+          
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <TrendingUp size={12} />
+            <span>{t('auto.predykcja_30m', { defaultValue: 'Predykcja 30m' })}: </span>
+            <span className="text-indigo-700 dark:text-indigo-300 text-xs">
+              {glucose ? Math.round(glucose + (trend?.includes('UP') ? 18 : trend?.includes('DOWN') ? -12 : 0)) : '--'}
+            </span>
           </div>
+
+
         </div>
 
         {isChildMode ? (
@@ -322,8 +290,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Key Functions Indicators */}
-            <div className="flex flex-wrap gap-2 mb-2">
+            <div className="flex flex-wrap gap-2 mb-2 items-center">
               {[
                 { label: i18n.t('auto.analiza_trendu', { defaultValue: 'Analiza Trendu' }), active: trend !== 'STABLE' && trend !== null },
                 { label: i18n.t('auto.detekcja_anomalii', { defaultValue: 'Detekcja Anomalii' }), active: (glucose !== null && (glucose < 70 || glucose > 200)) || (trend?.includes('FAST')) },
@@ -341,82 +308,6 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                   {fn.label}
                 </div>
               ))}
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('auto.stabilność_systemu', { defaultValue: i18n.t('auto.stabilnosc_systemu', { defaultValue: "Stabilność Systemu" }) })}</div>
-                <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: glucose && (glucose > 180 || glucose < 70) ? '60%' : '94%' }}
-                    className={`absolute inset-y-0 ${statusColor}`}
-                  />
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('auto.pewność', { defaultValue: i18n.t('auto.pewnosc', { defaultValue: "Pewność" }) })}</div>
-                <div className="text-sm font-black dark:text-white">{accuracy !== undefined ? `${accuracy}%` : '---'}</div>
-              </div>
-            </div>
-
-            {datasetSize !== undefined && (
-              <div className="space-y-2 px-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <motion.div 
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                      className="text-indigo-500"
-                    >
-                      <Sparkles size={10} />
-                    </motion.div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.postęp_nauki', { defaultValue: i18n.t('auto.postep_nauki', { defaultValue: "Postęp Nauki:" }) })}</span>
-                  </div>
-                  <span className="text-[9px] font-black text-indigo-500">{datasetSize}  {t('auto.pkt', { defaultValue: 'pkt /' })} {nextTarget}  {t('auto.pkt', { defaultValue: 'pkt' })}</span>
-                </div>
-                <div className="relative h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (datasetSize / nextTarget) * 100)}%` }}
-                    className="absolute inset-y-0 bg-gradient-to-r from-indigo-500 to-purple-500"
-                  />
-                  {/* Learning Waves */}
-                  <motion.div 
-                    animate={{ x: ['-100%', '100%'] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
-                  />
-                </div>
-                <p className="text-[8px] font-bold text-slate-400 leading-tight">
-                  {datasetSize < 300 ? i18n.t('auto.model_w_fazie_bazowej_gromadze', { defaultValue: i18n.t('auto.model_w_fazie_bazowej_gro', { defaultValue: "Model w fazie bazowej. Gromadzę dane..." }) }) : 
-                   datasetSize < 1000 ? i18n.t('auto.model_uczy_sie_twoich_nawykow', { defaultValue: i18n.t('auto.model_uczy_sie_twoich_naw', { defaultValue: "Model uczy się Twoich nawyków. Coraz wyższa precyzja." }) }) :
-                   datasetSize < 3000 ? i18n.t('auto.model_wysoko_wyuczony_rozpozna', { defaultValue: i18n.t('auto.model_wysoko_wyuczony_roz', { defaultValue: "Model wysoko wyuczony. Rozpoznaję subtelne wzorce biologiczne." }) }) :
-                   "Model klasy mistrzowskiej. Ekstremalna precyzja analityczna."}
-                </p>
-              </div>
-            )}
-
-            <div className="p-4 rounded-3xl bg-white/40 dark:bg-slate-900/30 border border-white/60 dark:border-slate-800/40 backdrop-blur-sm grid grid-cols-2 gap-4 glass-target">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-slate-400">
-                  <TrendingUp size={12} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">{t('auto.predykcja_30m', { defaultValue: 'Predykcja 30m' })}</span>
-                </div>
-                <div className="text-lg font-black dark:text-white">
-                  {glucose ? Math.round(glucose + (trend?.includes('UP') ? 18 : trend?.includes('DOWN') ? -12 : 0)) : '--'} 
-                  <span className="text-[10px] text-slate-400 ml-1">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
-                </div>
-              </div>
-              <div className="space-y-1 border-l border-slate-200 dark:border-slate-700 pl-4">
-                <div className="flex items-center gap-1.5 text-slate-400">
-                  <AlertCircle size={12} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">{t('auto.status_rdzenia', { defaultValue: 'Status Rdzenia' })}</span>
-                </div>
-                <div className="text-lg font-black dark:text-white">
-                  {glucose && (glucose > 250 || glucose < 60) ? 'RYZYKO' : 'NOMINALNY'}
-                </div>
-              </div>
             </div>
           </div>
         )}

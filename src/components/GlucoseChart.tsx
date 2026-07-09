@@ -6,7 +6,7 @@ import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 import { getTs } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 
-import { Plus, Minus, Maximize2, Move, Droplets, Signal } from 'lucide-react';
+import { Plus, Minus, Maximize2, Move, Droplets, Signal, Apple, Syringe, Activity } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -577,14 +577,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       // ML Prediction
       if (showMLPrediction) {
          ctx.beginPath();
-         let first = true;
-         for (const d of chartData) {
-            if (d.mlPrediction !== undefined) {
-               const x = getX(d.timestamp);
-               const y = getY(d.mlPrediction);
-               if (first) { ctx.moveTo(x, y); first = false; }
-               else ctx.lineTo(x, y);
-            }
+         const mPts = chartData.filter(d => d.mlPrediction !== undefined).map(d => ({ x: getX(d.timestamp), y: getY(d.mlPrediction) }));
+         if (mPts.length > 0) {
+           ctx.moveTo(mPts[0].x, mPts[0].y);
+           for (let i = 1; i < mPts.length - 1; i++) {
+             const xc = (mPts[i].x + mPts[i + 1].x) / 2;
+             const yc = (mPts[i].y + mPts[i + 1].y) / 2;
+             ctx.quadraticCurveTo(mPts[i].x, mPts[i].y, xc, yc);
+           }
+           if (mPts.length > 1) ctx.lineTo(mPts[mPts.length - 1].x, mPts[mPts.length - 1].y);
          }
          ctx.strokeStyle = '#fbbf24';
          ctx.lineWidth = 3;
@@ -610,14 +611,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       // Loop
       if (showLoopSimulation) {
          ctx.beginPath();
-         let first = true;
-         for (const d of chartData) {
-            if (d.loopPrediction !== undefined) {
-               const x = getX(d.timestamp);
-               const y = getY(d.loopPrediction);
-               if (first) { ctx.moveTo(x, y); first = false; }
-               else ctx.lineTo(x, y);
-            }
+         const lPts = chartData.filter(d => d.loopPrediction !== undefined).map(d => ({ x: getX(d.timestamp), y: getY(d.loopPrediction) }));
+         if (lPts.length > 0) {
+           ctx.moveTo(lPts[0].x, lPts[0].y);
+           for (let i = 1; i < lPts.length - 1; i++) {
+             const xc = (lPts[i].x + lPts[i + 1].x) / 2;
+             const yc = (lPts[i].y + lPts[i + 1].y) / 2;
+             ctx.quadraticCurveTo(lPts[i].x, lPts[i].y, xc, yc);
+           }
+           if (lPts.length > 1) ctx.lineTo(lPts[lPts.length - 1].x, lPts[lPts.length - 1].y);
          }
          ctx.strokeStyle = '#10b981';
          ctx.lineWidth = 2.5;
@@ -667,18 +669,26 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
 
       ctx.beginPath();
-      let firstG = true;
-      for (const d of chartData) {
-         if (d.glucose !== undefined && !isNaN(d.glucose)) {
-            const x = getX(d.timestamp);
-            const y = getY(d.glucose);
-            if (firstG) { ctx.moveTo(x, y); firstG = false; }
-            else ctx.lineTo(x, y);
-         }
+      const gPts = chartData.filter(d => d.glucose !== undefined && !isNaN(d.glucose)).map(d => ({ x: getX(d.timestamp), y: getY(d.glucose) }));
+      if (gPts.length > 0) {
+        ctx.moveTo(gPts[0].x, gPts[0].y);
+        for (let i = 1; i < gPts.length - 1; i++) {
+          const xc = (gPts[i].x + gPts[i + 1].x) / 2;
+          const yc = (gPts[i].y + gPts[i + 1].y) / 2;
+          ctx.quadraticCurveTo(gPts[i].x, gPts[i].y, xc, yc);
+        }
+        if (gPts.length > 1) {
+          ctx.lineTo(gPts[gPts.length - 1].x, gPts[gPts.length - 1].y);
+        }
       }
       ctx.strokeStyle = lineGrad;
       ctx.lineWidth = 3;
+      if (isDark) {
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = 'rgba(129, 140, 248, 0.6)';
+      }
       ctx.stroke();
+      ctx.shadowBlur = 0;
       
       // Glucose dots
       ctx.textBaseline = 'middle';
@@ -740,6 +750,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         "M17 20V8",
         "M22 4v16"
       ];
+      
+      const syringePathStrings = [
+        "m18 2 4 4", "m17 7 3-3", "M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5", "m9 11 4 4", "m5 19-3 3", "m14 4 6 6"
+      ];
+      
+      const applePathStrings = [
+        "M12 6.528V3a1 1 0 0 1 1-1h0",
+        "M18.237 21A15 15 0 0 0 22 11a6 6 0 0 0-10-4.472A6 6 0 0 0 2 11a15.1 15.1 0 0 0 3.763 10 3 3 0 0 0 3.648.648 5.5 5.5 0 0 1 5.178 0A3 3 0 0 0 18.237 21"
+      ];
 
       for (const d of chartData) {
          const x = Math.round(getX(d.timestamp));
@@ -748,15 +767,21 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
              const bh = Math.round(Math.min(40, (d.originalB.value || 0) * 5));
              ctx.fillStyle = 'rgba(79, 70, 229, 0.4)';
              ctx.fillRect(x - 2, yObj - bh, 4, bh);
-             ctx.font = '16px serif';
-             ctx.textAlign = 'center';
-             ctx.fillText('💉', x, yObj - bh - 10);
+             
+             ctx.save();
+             ctx.translate(x - 8, yObj - bh - 18);
+             ctx.scale(0.66, 0.66);
+             ctx.strokeStyle = '#818cf8';
+             ctx.lineWidth = 2 / 0.66;
+             ctx.lineCap = 'round';
+             ctx.lineJoin = 'round';
+             syringePathStrings.forEach(s => ctx.stroke(new Path2D(s)));
+             ctx.restore();
+             
              if (d.stackingWarning) {
                  ctx.font = '12px serif';
-                 ctx.fillText('⚠️', x, yObj - bh - 24);
+                 ctx.fillText('⚠️', x, yObj - bh - 26);
              }
-             ctx.font = '14px serif';
-             ctx.textAlign = 'start';
          }
          if (d.mealVal) {
              let baseCy = Math.round(getY(chartMinY)) - 10;
@@ -771,12 +796,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
              ctx.lineWidth = 1.5;
              ctx.stroke();
 
-             ctx.font = '16px serif';
-             ctx.textAlign = 'center';
-             // Używamy natywnego emoji
-             ctx.fillText('🍽️', x, baseCy);
-             ctx.font = '14px serif';
-             ctx.textAlign = 'start';
+             ctx.save();
+             ctx.translate(x - 8, baseCy - 13);
+             ctx.scale(0.66, 0.66);
+             ctx.strokeStyle = '#fbbf24';
+             ctx.lineWidth = 2 / 0.66;
+             ctx.lineCap = 'round';
+             ctx.lineJoin = 'round';
+             applePathStrings.forEach(s => ctx.stroke(new Path2D(s)));
+             ctx.restore();
          }
          if (d.siteVal) {
              const cy = Math.round(getY(chartMaxY) + 15);
@@ -884,7 +912,12 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     }
     
     if (closestData) {
-       Haptics.selection();
+       // Haptic feedback when scrubbing over an event
+       if (!crosshair || crosshair.data.timestamp !== closestData.timestamp) {
+          if (closestData.bolusVal || closestData.mealVal || closestData.siteVal || closestData.sensorVal) {
+             Haptics.selectionStart();
+          }
+       }
        setCrosshair({ x: clickX, data: closestData, tClick });
     } else {
        setCrosshair(null);
@@ -978,13 +1011,15 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
                 )}
                 {crosshair.data.originalB && (
                   <div className="flex items-center justify-center gap-2 mt-1">
-                    <span className="text-indigo-400 font-bold text-xs">{t('auto.bolus', { defaultValue: '💉 Bolus:' })}</span>
+                    <Syringe size={14} className="text-indigo-400" />
+                    <span className="text-indigo-400 font-bold text-xs">{t('auto.bolus', { defaultValue: 'Bolus:' })}</span>
                     <span className="text-sm font-black">{Number(crosshair.data.originalB.value).toFixed(2).replace(/\.?0+$/, '') || '0'}  {t('auto.j', { defaultValue: 'j.' })}</span>
                   </div>
                 )}
                 {crosshair.data.originalM && (
                   <div className="flex items-center justify-center gap-2 mt-1">
-                    <span className="text-amber-400 font-bold text-xs">{t('auto.węgle', { defaultValue: i18n.t('auto.wegle', { defaultValue: "🍽️ Węgle:" }) })}</span>
+                    <Apple size={14} className="text-amber-400" />
+                    <span className="text-amber-400 font-bold text-xs">{t('auto.węgle', { defaultValue: i18n.t('auto.wegle', { defaultValue: "Węgle:" }) })}</span>
                     <span className="text-sm font-black">{Number(crosshair.data.originalM.value).toFixed(1).replace(/\.0$/, '')} g</span>
                   </div>
                 )}

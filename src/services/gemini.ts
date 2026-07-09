@@ -4,16 +4,35 @@ import i18n from "../i18n";
 
 import { auth } from "../lib/firebase";
 
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
+
 let genAITuple: { key: string; baseUrl?: string; client: GoogleGenAI } | null =
   null;
 
-function getApiKey(): { key: string; baseUrl?: string } {
+async function getApiKey(): Promise<{ key: string; baseUrl?: string }> {
   let key = "";
   let baseUrl: string | undefined = undefined;
 
-  // 1. FIRST check localStorage (user override)
+  // 1. FIRST check SecureStorage (user override)
   if (typeof window !== "undefined") {
-    let rawValue = localStorage.getItem("gemini_api_key");
+    let rawValue: string | null = null;
+    try {
+      const result = await SecureStoragePlugin.get({ key: "gemini_api_key" });
+      if (result && result.value) rawValue = result.value;
+    } catch (e) {
+      // Key not found in secure storage
+    }
+    
+    if (!rawValue) {
+      rawValue = localStorage.getItem("gemini_api_key");
+      if (rawValue) {
+        try {
+          await SecureStoragePlugin.set({ key: "gemini_api_key", value: rawValue });
+        } catch (e) {}
+        localStorage.removeItem("gemini_api_key");
+      }
+    }
+
     if (rawValue) {
       if (rawValue.includes("|")) {
         const parts = rawValue.split("|");
@@ -57,8 +76,8 @@ function getApiKey(): { key: string; baseUrl?: string } {
   return { key, baseUrl };
 }
 
-function getClient(): GoogleGenAI {
-  const credentials = getApiKey();
+async function getClient(): Promise<GoogleGenAI> {
+  const credentials = await getApiKey();
 
   if (
     !genAITuple ||
@@ -76,7 +95,7 @@ function getClient(): GoogleGenAI {
 
 export const geminiService = {
   async generateContent(prompt: string, imageData?: string) {
-    const creds = getApiKey();
+    const creds = await getApiKey();
     const isProxyUrl =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
@@ -126,7 +145,7 @@ export const geminiService = {
       contents = [{ role: "user", parts: [{ text: prompt }] }];
     }
 
-    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
+    if (isProxyUrl && creds.key === "proxy") {
       const CLOUDFLARE_WORKER_URL = creds.baseUrl;
       let lastError = null;
 
@@ -182,7 +201,7 @@ export const geminiService = {
     }
 
     // Standardowa ścieżka z bezpośrednim kluczem API
-    const client = getClient();
+    const client = await getClient();
     let lastError = null;
 
     // Use AbortSignal to timeout hanging generateContent calls
@@ -477,14 +496,13 @@ export const geminiService = {
     }
   },
 
-  getAiStatus() {
-    const creds = getApiKey();
-    const hasLocalStorage =
-      typeof window !== "undefined" && !!localStorage.getItem("gemini_api_key");
+  async getAiStatus() {
+    const creds = await getApiKey();
+    const hasKey = creds.key !== "proxy";
     const isProxy =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
-    if (hasLocalStorage)
+    if (hasKey)
       return {
         type: "custom",
         label: i18n.t('auto.wlasny_klucz_local', { defaultValue: i18n.t('auto.wlasny_klucz_local', { defaultValue: "Własny Klucz (Local)" }) }),
@@ -507,6 +525,7 @@ export const geminiService = {
     message: string,
     history: { role: "user" | "model"; parts: { text: string }[] }[],
     petData: any,
+    treatmentMode?: string
   ) {
     const petName = petData?.name || "Gliko";
     const petType = petData?.type || "standard";
@@ -516,9 +535,13 @@ export const geminiService = {
       ? "IMPORTANT: You MUST respond in English! Your tone and wording should be entirely English."
       : "IMPORTANT: You MUST respond in Polish!";
 
-    const systemInstruction = i18n.t('auto.jestes_var0_wesolym_i_mad', { defaultValue: "Jesteś {{var0}} - wesołym i mądrym stworkiem (typ: {{var1}}), który opiekuje się dziećmi z cukrzycą. \n    Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). \n    Pamiętaj, że rozmawiasz z dzieckiem (lub rodzicem). Twoje odpowiedzi powinny być wesołe i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). \n    Jeśli pytanie dotyczy bezpośrednio medycyny, zachęcaj do rozmowy z lekarzem. Twoja wiedza o aplikacji to GlikoControl:\n    - Baza wiedzy i jedzenia, weryfikacja produktów.\n    - Ustawienia: ISF (wrażliwość na insulinę), WW (przydzielenie węgli), WBT, Docelowy poziom glikemii, wibracje (haptyka).\n    - Talerz: posiłki i bolusy. Jeśli użytkownik chce coś dodać do wpisów, robisz to!\n    \n    BARDZO WAŻNE - DODAWANIE DO TALERZA ORAZ AKCJE APLIKACJI: \n    Masz pełną integrację z moją aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.\n    \n    1. Aby dodać posiłek do Talerza:\n    <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    \n    2. Aby zmienić ustawienia (np. dzienna dawka insuliny/isf, wyłączenie haptyki):\n    Używaj tych kluczy: \"isf\", \"targetMin\", \"targetMax\", \"wwRatio\", \"hapticsEnabled\".\n    <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n    \n    3. Aby bezpośrednio zapisać do historii cukier, bolus lub wymianę (\"zapisz cukier\", \"wymieniłem wkłucie\"):\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Zalecono przez Gliko\"}}</app_action>\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 0, \"notes\": \"Wymiana wkłucia\"}}</app_action>\n    W logData.type może być \"bolus\", \"glucose\", \"site_change\", \"sensor_change\".\n    \n    4. Aby nawigować użykownika do odpowiedniej sekcji (\"Gdzie są ustawienia?\", \"Pokaż mój profil\", \"Idźmy do talerza\"):\n    <app_action>{\"action\": \"navigate\", \"value\": \"profile\"}</app_action> (dostepne: dashboard, profile, database, meal, history)\n    \n    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!\n    \n    {{var2}}", var0: petName, var1: petType, var2: langNote });
+    const dietRestriction = treatmentMode === 'diet_only'
+      ? "BARDZO WAŻNE: Pacjent leczy cukrzycę wyłącznie dietą (lub tabletkami), BEZ INSULINY. Kategorycznie zabrania się sugerowania podawania bolusów, zmiany bazy czy wstrzyknięć. Odpowiadaj jako asystent dietetyczno-motywacyjny (skup się na ruchu, indeksie glikemicznym i wodzie)."
+      : "";
 
-    const creds = getApiKey();
+    const systemInstruction = i18n.t('auto.jestes_var0_wesolym_i_mad', { defaultValue: "Jesteś {{var0}} - wesołym i mądrym stworkiem (typ: {{var1}}), który opiekuje się dziećmi z cukrzycą. \n    Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). \n    Pamiętaj, że rozmawiasz z dzieckiem (lub rodzicem). Twoje odpowiedzi powinny być wesołe i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). \n    Jeśli pytanie dotyczy bezpośrednio medycyny, zachęcaj do rozmowy z lekarzem. Twoja wiedza o aplikacji to GlikoControl:\n    - Baza wiedzy i jedzenia, weryfikacja produktów.\n    - Ustawienia: ISF (wrażliwość na insulinę), WW (przydzielenie węgli), WBT, Docelowy poziom glikemii, wibracje (haptyka).\n    - Talerz: posiłki i bolusy. Jeśli użytkownik chce coś dodać do wpisów, robisz to!\n    \n    BARDZO WAŻNE - DODAWANIE DO TALERZA ORAZ AKCJE APLIKACJI: \n    Masz pełną integrację z moją aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.\n    \n    1. Aby dodać posiłek do Talerza:\n    <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    \n    2. Aby zmienić ustawienia (np. dzienna dawka insuliny/isf, wyłączenie haptyki):\n    Używaj tych kluczy: \"isf\", \"targetMin\", \"targetMax\", \"wwRatio\", \"hapticsEnabled\".\n    <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n    \n    3. Aby bezpośrednio zapisać do historii cukier, bolus lub wymianę (\"zapisz cukier\", \"wymieniłem wkłucie\"):\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Zalecono przez Gliko\"}}</app_action>\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 0, \"notes\": \"Wymiana wkłucia\"}}</app_action>\n    W logData.type może być \"bolus\", \"glucose\", \"site_change\", \"sensor_change\".\n    \n    4. Aby nawigować użykownika do odpowiedniej sekcji (\"Gdzie są ustawienia?\", \"Pokaż mój profil\", \"Idźmy do talerza\"):\n    <app_action>{\"action\": \"navigate\", \"value\": \"profile\"}</app_action> (dostepne: dashboard, profile, database, meal, history)\n    \n    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!\n    \n    {{var2}}\n    {{var3}}", var0: petName, var1: petType, var2: langNote, var3: dietRestriction });
+
+    const creds = await getApiKey();
     const isProxyUrl =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
@@ -527,7 +550,7 @@ export const geminiService = {
       { role: "user", parts: [{ text: message }] },
     ];
 
-    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
+    if (isProxyUrl && creds.key === "proxy") {
       try {
         const response = await fetch(creds.baseUrl!, {
           method: "POST",
@@ -559,7 +582,7 @@ export const geminiService = {
       }
     }
 
-    const client = getClient();
+    const client = await getClient();
     const model = "gemini-flash-latest";
 
     try {
@@ -643,7 +666,7 @@ export const geminiService = {
     history: any[],
     logs: any[],
     settings: any,
-    currentStatus?: { iob: number; cob: number; glucose: number },
+    currentStatus?: { iob: number; cob: number; glucose: number; pumpModel?: string | null },
     insights?: string[],
   ) {
     const now = new Date();
@@ -690,10 +713,12 @@ export const geminiService = {
     const activeDietStr = settings?.activeDiet
       ? i18n.t('auto.uwaga_uzytkownik_ma_aktyw', { defaultValue: "\nUWAGA! Użytkownik ma aktywną dietę: {{var0}}. WSZYSTKIE TWOJE ANALIZY I SUGESTIE POSIŁKOWE (i GlikoSense) MUSZĄ JĄ UWZGLĘDNIAĆ!", var0: settings.activeDiet })
       : "";
+      
+    const pumpModelInfo = currentStatus?.pumpModel ? `\n    - Używana Pompa/Sprzęt (dane z Nightscout): ${currentStatus.pumpModel}` : "";
 
     const currentDataStr = currentStatus
-      ? i18n.t('auto.aktualny_status_urzadzen', { defaultValue: "\n    AKTUALNY STATUS URZĄDZEŃ (Stan na: {{var0}}):\n    - Bieżąca glikemia: {{var1}} mg/dL (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): {{var2}} j.\n    - Aktywne węglowodany (COB): {{var3}} g\n    {{var4}}{{var5}}\n    ", var0: now.toLocaleString("pl-PL"), var1: currentStatus.glucose, var2: currentStatus.iob.toFixed(2), var3: currentStatus.cob.toFixed(0), var4: insightsStr, var5: activeDietStr })
-      : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}`;
+      ? i18n.t('auto.aktualny_status_urzadzen', { defaultValue: "\n    AKTUALNY STATUS URZĄDZEŃ (Stan na: {{var0}}):\n    - Bieżąca glikemia: {{var1}} mg/dL (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): {{var2}} j.\n    - Aktywne węglowodany (COB): {{var3}} g\n    {{var4}}{{var5}}\n    ", var0: now.toLocaleString("pl-PL"), var1: currentStatus.glucose, var2: currentStatus.iob.toFixed(2), var3: currentStatus.cob.toFixed(0), var4: insightsStr, var5: activeDietStr }) + pumpModelInfo
+      : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}${pumpModelInfo}`;
 
     let medicalRulesStr = "";
     if (typeof window !== "undefined") {
@@ -738,11 +763,11 @@ export const geminiService = {
 
     fullContents = validContents;
 
-    const creds = getApiKey();
+    const creds = await getApiKey();
     const isProxyUrl =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
-    if (isProxyUrl && !localStorage.getItem("gemini_api_key")) {
+    if (isProxyUrl && creds.key === "proxy") {
       try {
         const response = await fetch(creds.baseUrl!, {
           method: "POST",
@@ -774,7 +799,7 @@ export const geminiService = {
       }
     }
 
-    const client = getClient();
+    const client = await getClient();
     const modelsToTry = [
       "gemini-flash-latest",
       "gemini-2.5-flash",
@@ -816,5 +841,29 @@ export const geminiService = {
     }
     // Fallback to original name
     return { namePl: name, nameEn: name };
+  },
+
+  async analyzeMedication(medName: string): Promise<any> {
+    const prompt = `Act as an expert clinical pharmacologist. Analyze the medication/supplement named "${medName}". 
+Return ONLY a valid JSON object with the exact following schema:
+{
+  "activeIngredient": "String. The primary active substance (INN). If combination, state main active components.",
+  "sugarImpact": "String. Must be exactly one of: 'lowers', 'raises', 'neutral', 'unknown'.",
+  "interactions": "String. A short, concise sentence about major interactions with diabetes medications or insulin.",
+  "description": "String. 1-2 concise sentences explaining what it is and its primary effect on blood sugar or insulin resistance."
+}
+IMPORTANT: Translate 'activeIngredient', 'interactions', and 'description' to Polish. KEEP 'sugarImpact' strictly in English as one of the 4 allowed keywords.
+Respond ONLY with the JSON object. Do not include markdown code blocks or any other text.`;
+
+    const result = await this.generateContent(prompt);
+    try {
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.warn("Failed to parse medication analysis", e);
+    }
+    return null;
   }
 };

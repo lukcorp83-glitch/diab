@@ -42,8 +42,8 @@ export const healthService = {
     });
   },
 
-  async getStepsLast24h(): Promise<number> {
-    if (!this.isAvailable()) return 0;
+  async getStepsLast24h(): Promise<number | null> {
+    if (!this.isAvailable()) return null;
 
     return new Promise((resolve) => {
       
@@ -67,13 +67,18 @@ export const healthService = {
             resolve(0);
             return;
           }
-          // queryAggregated zwraca obiekt z polem value, czasami w data.value, czasami po prostu value
-          const totalSteps = Number(data.value) || 0;
+          // queryAggregated może zwrócić tablicę obiektów lub pojedynczy obiekt
+          let totalSteps = 0;
+          if (Array.isArray(data)) {
+            totalSteps = data.reduce((acc, curr) => acc + (Number(curr?.value) || 0), 0);
+          } else {
+            totalSteps = Number(data.value) || Number(data) || 0;
+          }
           resolve(Math.round(totalSteps));
         },
         (err: any) => {
           console.warn('[HealthConnect] Error querying steps:', err);
-          resolve(0);
+          resolve(null);
         }
       );
     });

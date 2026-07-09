@@ -1,6 +1,6 @@
 import i18n from '../i18n';
 import { getEffectiveUid } from "../lib/utils";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { LogEntry } from "../types";
 import {
@@ -34,6 +34,10 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
   const [listFilter, setListFilter] = useState<"all" | "glucose" | "treatment">(
     "treatment",
   );
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <motion.div
@@ -350,7 +354,7 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                         })()}
                       </span>
                       <div className="flex items-center gap-1 ml-auto">
-                        {log.source === "nightscout" ? (
+                        {log.source?.startsWith("nightscout") ? (
                           <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
                             
                                                                           {t('auto.ns', { defaultValue: 'NS' })}

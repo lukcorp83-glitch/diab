@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2 } from 'lucide-react';
+import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
@@ -16,6 +16,7 @@ interface MLAnalysisWidgetProps {
   logs: LogEntry[];
   settings?: UserSettings;
   user?: any;
+  setTab?: (tab: string) => void;
 }
 
 enum OperationType {
@@ -27,8 +28,9 @@ enum OperationType {
   WRITE = 'write',
 }
 
-export default function MLAnalysisWidget({ logs, settings, user }: MLAnalysisWidgetProps) {
+export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAnalysisWidgetProps) {
     const { t } = useTranslation();
+    const glassmorphismEnabled = settings?.glassmorphismEnabled || false;
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mlResult, setMlResult] = useState<{
@@ -840,22 +842,81 @@ export default function MLAnalysisWidget({ logs, settings, user }: MLAnalysisWid
                       <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                         <Sparkles size={14} className="text-amber-500" />  {t('auto.wnioski_systemu', { defaultValue: 'Wnioski Systemu' })}
                                                                 </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-2 px-2 scrollbar-hide">
                         {mlResult.insights.map((insight, idx) => {
-                            const isWarning = insight.includes('⚠️') || insight.includes('🚨') || insight.includes('🎯');
+                            const isWarning = insight.includes('⚠️') || insight.includes('🎯');
+                            const isCritical = insight.includes('🚨') || insight.includes('❗');
+                            const isSuccess = insight.includes('✅') || insight.includes('🌟') || insight.includes('✨') || insight.includes('👌');
+                            
+                            // Determine style based on priority and glassmorphism setting
+                            let cardStyle = '';
+                            let glowColor = '';
+                            let lineGlow = '';
+                            if (isCritical) {
+                                cardStyle = glassmorphismEnabled
+                                    ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200/50 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 backdrop-blur-md'
+                                    : 'bg-rose-50 dark:bg-rose-950/80 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300';
+                                glowColor = 'bg-rose-500';
+                                lineGlow = 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]';
+                            } else if (isWarning) {
+                                cardStyle = glassmorphismEnabled
+                                    ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200/50 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 backdrop-blur-md'
+                                    : 'bg-amber-50 dark:bg-amber-950/80 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300';
+                                glowColor = 'bg-amber-500';
+                                lineGlow = 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]';
+                            } else if (isSuccess) {
+                                cardStyle = glassmorphismEnabled
+                                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200/50 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300 backdrop-blur-md'
+                                    : 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300';
+                                glowColor = 'bg-emerald-500';
+                                lineGlow = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
+                            } else {
+                                cardStyle = glassmorphismEnabled
+                                    ? 'bg-white/80 dark:bg-slate-800/80 border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 backdrop-blur-md'
+                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300';
+                                glowColor = 'bg-indigo-500';
+                                lineGlow = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]';
+                            }
+
                             return (
                                 <motion.div 
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: 0.3 + (idx * 0.1) }}
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: 0.2 + (idx * 0.1), type: 'spring' }}
                                   key={`insight-text-${idx}`} 
-                                  className={`p-4 rounded-3xl flex gap-3 text-sm font-medium leading-relaxed shadow-sm ${
-                                    isWarning 
-                                    ? 'bg-gradient-to-br from-amber-50 to-amber-100/50 text-amber-800 border-amber-200 dark:from-amber-950/40 dark:to-amber-900/20 dark:text-amber-300 dark:border-amber-900/50' 
-                                    : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-700/50'
-                                  } border`}
+                                  className={`min-w-[280px] max-w-[320px] snap-center p-5 rounded-[2rem] flex flex-col justify-between gap-4 text-sm font-medium leading-relaxed shadow-sm border relative overflow-hidden ${cardStyle} ${glassmorphismEnabled ? 'glass-target' : ''}`}
                                 >
-                                    {insight}
+                                    <div className="flex-1 relative z-10 pt-1">
+                                        {insight}
+                                    </div>
+                                    
+                                    {/* Pagination dots */}
+                                    <div className="flex gap-1.5 mt-3 mb-1 justify-start items-center">
+                                        {mlResult.insights.map((_, dotIdx) => (
+                                            <div 
+                                                key={`dot-${idx}-${dotIdx}`} 
+                                                className={`h-1.5 rounded-full transition-all duration-300 ${dotIdx === idx ? 'w-4 bg-indigo-500 dark:bg-indigo-400' : 'w-1.5 bg-slate-200 dark:bg-slate-700'}`} 
+                                            />
+                                        ))}
+                                    </div>
+                                    
+                                    {setTab && (
+                                      <button 
+                                          onClick={() => {
+                                              sessionStorage.setItem('bot_initial_query', `Proszę, przeanalizuj ze mną ten wniosek i doradź mi: ${insight}`);
+                                              setTab('assistant');
+                                          }}
+                                          className={`self-start mt-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95 ${glassmorphismEnabled ? 'bg-slate-900/5 hover:bg-slate-900/10 dark:bg-white/5 dark:hover:bg-white/10 backdrop-blur-sm' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'} z-10`}
+                                      >
+                                          <Bot size={14} className="opacity-70" />
+                                          {t('auto.zapytaj_ai', { defaultValue: 'Zapytaj AI' })}
+                                      </button>
+                                    )}
+                                    
+                                    {/* Subtle background glow depending on theme */}
+                                    {glassmorphismEnabled && (
+                                        <div className={`absolute -bottom-10 -right-10 w-32 h-32 blur-[40px] opacity-20 rounded-full ${glowColor}`} pointerEvents="none" />
+                                    )}
                                 </motion.div>
                             );
                         })}

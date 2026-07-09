@@ -15,12 +15,13 @@ import {
   Mic,
   MicOff,
   Volume2,
-  VolumeX
+  VolumeX,
+  ArrowRight
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
-import { SpeechRecognition } from '@capacitor-community/speech-recognition';
-import { Capacitor } from '@capacitor/core';
 import { cn } from '../lib/utils';
+import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Virtuoso } from 'react-virtuoso';
 import { SKINS, ACCESSORIES } from '../constants';
 import { useTranslation } from "react-i18next";
@@ -31,6 +32,7 @@ interface Message {
   role: 'user' | 'model';
   text: string;
   timestamp: number;
+  appAction?: any;
 }
 
 export default function GlikoChat({ petData, settings }: { petData: any, settings?: any }) {
@@ -80,52 +82,50 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
 
   const toggleListening = async () => {
     if (isListening) {
-      try {
-        if (Capacitor.isNativePlatform()) {
-           await SpeechRecognition.stop();
-        } else {
-           recognitionRef.current?.stop();
-        }
-      } catch (e) {}
+      if (!Capacitor.isNativePlatform()) {
+        try {
+          recognitionRef.current?.stop();
+        } catch (e) {}
+      }
       setIsListening(false);
     } else {
-      // 1. Próba użycia natywnego modułu Androida (SpeechRecognition plugin)
       if (Capacitor.isNativePlatform()) {
         try {
-          const available = await SpeechRecognition.available();
-          if (available.available) {
-            const permission = await SpeechRecognition.checkPermissions();
-            if (permission.speechRecognition !== 'granted') {
-               await SpeechRecognition.requestPermissions();
+          const permStatus = await SpeechRecognition.checkPermissions();
+          if (permStatus.speechRecognition !== 'granted') {
+            const reqStatus = await SpeechRecognition.requestPermissions();
+            if (reqStatus.speechRecognition !== 'granted') {
+              import('react-hot-toast').then(({ toast }) => {
+                toast.error('Brak uprawnień do mikrofonu! Zezwól w ustawieniach Androida.');
+              });
+              return;
             }
-            
-            // Rejestracja nasłuchiwania wtyczki
-            SpeechRecognition.removeAllListeners();
-            SpeechRecognition.addListener('partialResults', (data) => {
-              if (data.matches && data.matches.length > 0) {
-                 setInput(data.matches[0]);
-                 setIsListening(false);
-                 setTimeout(() => handleSend(data.matches[0]), 500);
-              }
-            });
-            
-            await SpeechRecognition.start({
-              language: 'pl-PL',
-              maxResults: 1,
-              prompt: 'Słucham Cię...',
-              partialResults: true,
-              popup: false
-            });
-            setIsListening(true);
-            return; // Sukces natywnego modułu, wychodzimy!
           }
-        } catch (nativeError) {
-          console.error("Natywny moduł głosu zablokowany/zepsuty. Fallback do WebSpeech API...", nativeError);
-          // Jeśli poleci błąd, ignorujemy i lecimy dalej do Web API!
+          setIsListening(true);
+          const { matches } = await SpeechRecognition.start({
+            language: 'pl-PL',
+            maxResults: 1,
+            prompt: i18n.t('auto.mow_teraz', { defaultValue: 'Mów teraz...' }),
+            partialResults: false,
+            popup: true
+          });
+          if (matches && matches.length > 0) {
+            const transcript = matches[0];
+            setInput(transcript);
+            handleSend(transcript);
+          }
+          setIsListening(false);
+          return;
+        } catch (e) {
+          console.error('Native speech recognition error:', e);
+          setIsListening(false);
+          import('react-hot-toast').then(({ toast }) => {
+            toast.error('Nie udało się uruchomić mikrofonu natywnego.');
+          });
+          return;
         }
       }
-
-      // 2. FALLBACK - WebSpeech API
+      
       if (!recognitionRef.current) {
         import('react-hot-toast').then(({ toast }) => {
           toast.error(i18n.t('auto.rozpoznawanie_mowy_nieobsługiwane', { defaultValue: "Rozpoznawanie mowy nie jest obsługiwane." }));
@@ -134,12 +134,6 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
       }
       
       try {
-        if (Capacitor.isNativePlatform() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-           try {
-             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-             stream.getTracks().forEach(track => track.stop()); 
-           } catch (micError) {}
-        }
         setInput('');
         recognitionRef.current.start();
         setIsListening(true);
@@ -313,7 +307,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
         parts: [{ text: m.text }]
       }));
 
-      const response = await geminiService.getGlikoChatResponse(messageText, history, petData);
+      const response = await geminiService.getGlikoChatResponse(messageText, history, petData, userSettings?.treatmentMode);
       
       let cleanResponse = response;
       const plateActionMatches = Array.from(response.matchAll(/<plate_action>([\s\S]*?)<\/plate_action>/g));
@@ -330,10 +324,10 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
       }
       
       const appActionMatches = Array.from(response.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g));
+      let parsedAppAction = null;
       for (const match of appActionMatches) {
         try {
-          const actionData = JSON.parse(match[1]);
-          window.dispatchEvent(new CustomEvent('ai_app_action', { detail: actionData }));
+          parsedAppAction = JSON.parse(match[1]);
         } catch (e) {
           console.error("GlikoChat App Action Error:", e);
         }
@@ -350,7 +344,8 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
         id: (Date.now() + 1).toString(),
         role: 'model',
         text: cleanResponse,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        appAction: parsedAppAction
       };
 
       setMessages(prev => [...prev, modelMessage]);
@@ -460,6 +455,35 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
                   : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-purple-100 dark:border-slate-700 rounded-tl-none font-medium"
               )}>
                 <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                {message.appAction && message.appAction.action && (
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('ai_app_action', { detail: message.appAction }))}
+                    className={cn(
+                        "mt-3 flex items-center justify-between w-full px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                        "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md active:scale-95"
+                    )}
+                  >
+                    <span>
+                      {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })} {
+                        message.appAction.action === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
+                        message.appAction.action === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
+                        message.appAction.action === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
+                        message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
+                        message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
+                        message.appAction.action === 'navigate' ? (
+                          message.appAction.target === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
+                          message.appAction.target === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
+                          message.appAction.target === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
+                          message.appAction.target === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
+                          message.appAction.target === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
+                          message.appAction.target
+                        ) :
+                        message.appAction.action
+                      }
+                    </span>
+                    <ArrowRight size={14} />
+                  </button>
+                )}
                 <div className={cn(
                   "flex items-center gap-2 mt-2",
                   message.role === 'user' ? "justify-end" : "justify-start"

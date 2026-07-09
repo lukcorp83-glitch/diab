@@ -1,6 +1,7 @@
 import { dbService } from '../services/databaseService';
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { Haptics } from "../lib/haptics";
 import { healthService } from "../services/healthService";
 import { toast } from "react-hot-toast";
@@ -34,6 +35,7 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Cloud,
   ShoppingBag,
   Coins,
@@ -57,6 +59,7 @@ import {
   Calculator,
   BarChart2,
   AlertTriangle,
+  Apple,
   Dumbbell,
   Box,
   Minus,
@@ -151,6 +154,9 @@ export default function Profile({
 }: ProfileProps) {
     const { t } = useTranslation();
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
+  useEffect(() => {
+    setSettings(initialSettings);
+  }, [initialSettings]);
   const [learnedRules, setLearnedRules] = useState<any>(() => {
     try {
       return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
@@ -226,9 +232,7 @@ export default function Profile({
     fetchWidgetDebug();
   }, []);
 
-  useEffect(() => {
-    setSettings(initialSettings);
-  }, [initialSettings]);
+
   const [petData, setPetData] = useState<{
     coins: number;
     skin: string;
@@ -261,9 +265,24 @@ export default function Profile({
     "skins" | "accessories" | "backgrounds"
   >("skins");
   const [saveStatus, setSaveStatus] = useState<string>("");
-  const [geminiApiKey, setGeminiApiKey] = useState(
-    () => localStorage.getItem("gemini_api_key") || "",
-  );
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [aiStatus, setAiStatus] = useState({ label: '', color: '', type: '' });
+
+  useEffect(() => {
+    const loadAiData = async () => {
+      try {
+        const result = await SecureStoragePlugin.get({ key: "gemini_api_key" });
+        if (result && result.value) {
+          setGeminiApiKey(result.value);
+        }
+      } catch(e) {}
+    };
+    loadAiData();
+  }, []);
+
+  useEffect(() => {
+    geminiService.getAiStatus().then(setAiStatus);
+  }, [geminiApiKey]);
   const [geminiSaveStatus, setGeminiSaveStatus] = useState("");
   const [isTestingKey, setIsTestingKey] = useState(false);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
@@ -334,9 +353,7 @@ export default function Profile({
     }
   };
 
-  const [telemetryEnabled, setTelemetryEnabled] = useState(
-    () => localStorage.getItem("glikosense_telemetry") === "true",
-  );
+
   const [shortcuts, setShortcuts] = useState<any[]>([]);
   const [newShortcut, setNewShortcut] = useState({
     id: "",
@@ -384,6 +401,7 @@ export default function Profile({
   const therapyLocked = isFollower && settings.groupTherapyLock;
 
   const [medLoading, setMedLoading] = useState(false);
+  const [isAnalyzingDrug, setIsAnalyzingDrug] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [cleaningResult, setCleaningResult] = useState<string | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -715,11 +733,20 @@ export default function Profile({
   const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.4_OTA_FINISH.apk");
 
   useEffect(() => {
-    fetch('https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now())
+    const isBeta = localStorage.getItem("betaProgramEnabled") === "true";
+    const url = isBeta
+      ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
+      : 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now();
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         if (data.version) setApkVersion(data.version);
-        if (data.apkUrl) setApkUrl(data.apkUrl);
+        if (data.apkUrl) {
+          const finalApkUrl = isBeta 
+            ? data.apkUrl.replace('aktualizacja', 'aktualizacja-beta').replace('_OTA.apk', '-beta_OTA.apk')
+            : data.apkUrl;
+          setApkUrl(finalApkUrl);
+        }
       })
       .catch(() => {});
   }, []);
@@ -1352,6 +1379,34 @@ export default function Profile({
       console.error(e);
     }
   };
+  const analyzeDrug = async () => {
+    if (!newMedication?.name || !user) return;
+    setIsAnalyzingDrug(true);
+    const toastId = toast.loading(i18n.t('auto.ai_analizuje_lek', { defaultValue: "AI analizuje lek..." }));
+    try {
+      const data = await geminiService.analyzeMedication(newMedication.name);
+      if (data) {
+        setNewMedication(prev => prev ? { ...prev, aiData: data } : null);
+        const updatedDict = { ...(settings.customDrugDictionary || {}) };
+        updatedDict[newMedication.name] = data;
+        const newSettings = { ...settings, customDrugDictionary: updatedDict };
+        setSettings(newSettings);
+        await setDoc(
+          doc(db, "users", getEffectiveUid(user, settings)),
+          { customDrugDictionary: updatedDict },
+          { merge: true }
+        );
+        toast.success(i18n.t('auto.ai_analiza_zakonczona', { defaultValue: "AI: Analiza zakończona!" }), { id: toastId });
+      } else {
+        toast.error(i18n.t('auto.ai_nie_udalo_sie_przean', { defaultValue: "AI: Nie udało się przeanalizować." }), { id: toastId });
+      }
+    } catch (error) {
+      toast.error(i18n.t('auto.ai_blad_komunikacji', { defaultValue: "AI: Błąd komunikacji." }), { id: toastId });
+    } finally {
+      setIsAnalyzingDrug(false);
+    }
+  };
+
 
   const saveMedication = async () => {
     if (!newMedication?.name || !user) return;
@@ -1421,7 +1476,11 @@ export default function Profile({
   };
 
   const saveInventoryItem = async () => {
-    if (!newInventoryItem?.name || !user) return;
+    if (!newInventoryItem?.name) {
+      toast.error(t('auto.podaj_nazwe_sprzetu', { defaultValue: 'Podaj nazwę zapasu!' }));
+      return;
+    }
+    if (!user) return;
     try {
       const updatedInventory = [...(settings.inventory || [])];
 
@@ -1988,41 +2047,6 @@ export default function Profile({
                                                         </span>
                 </button>
               </div>
-
-              <motion.div
-                whileHover={{ y: -1 }}
-                className="flex flex-col gap-2 p-4 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/20 dark:border-slate-800/50 mt-6 text-left shadow-xl"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="p-1.5 bg-purple-500/10 rounded-lg">
-                      <Brain size={12} />
-                    </div>
-                    
-                                                          {t('auto.program_badawczy_glikosense', { defaultValue: 'Program Badawczy GlikoSense' })}
-                                                        </h4>
-                  <button
-                    onClick={() => {
-                      const val = !telemetryEnabled;
-                      setTelemetryEnabled(val);
-                      localStorage.setItem(
-                        "glikosense_telemetry",
-                        val ? "true" : "false",
-                      );
-                    }}
-                    className={cn(
-                      "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
-                      telemetryEnabled && "bg-purple-500 pl-5",
-                    )}
-                  >
-                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                  </button>
-                </div>
-                <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-snug font-bold">
-                  
-                                                    {t('auto.pomóż_społeczności_włącz_anonimowe_', { defaultValue: i18n.t('auto.pomoz_spolecznosci_wlacz', { defaultValue: "Pomóż społeczności. Włącz anonimowe udostępnianie wiedzy wyuczonej przez Twój model AI (GlikoSense)." }) })}
-                                                  </p>
-              </motion.div>
             </div>
           </div>
 
@@ -2699,44 +2723,6 @@ export default function Profile({
                                               {t('auto.zmiana_tdi_automatycznie_aktualizuj', { defaultValue: 'Zmiana TDI automatycznie aktualizuje ISF i Ratio WW.' })}
                                             </p>
             </div>
-
-            {/* Advanced Profiles Preview Card */}
-            <div
-              onClick={() => {
-                /* scroll to next card maybe? */
-              }}
-              className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-indigo-500/20 flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center gap-2.5 mb-2">
-                  <div className="p-2 bg-white/20 rounded-2xl">
-                    <History size={18} />
-                  </div>
-                  <h3 className="text-[11px] font-black uppercase tracking-tight">
-                    
-                                                          {t('auto.profile_dobowe', { defaultValue: 'Profile dobowe' })}
-                                                        </h3>
-                </div>
-                <p className="text-[9px] text-white/80 leading-snug font-bold">
-                  
-                                                    {t('auto.ustaw_parametry_dla_pór_dnia', { defaultValue: i18n.t('auto.ustaw_parametry_dla_por_d', { defaultValue: "Ustaw parametry dla pór dnia." }) })}
-                                                  </p>
-              </div>
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="w-6 h-6 rounded-full border-2 border-indigo-500 bg-white/20"
-                    ></div>
-                  ))}
-                </div>
-                <span className="text-[8px] font-black bg-white/20 px-2 py-1 rounded-full uppercase tracking-widest">
-                  
-                                                    {t('auto.konfiguruj_poniżej', { defaultValue: i18n.t('auto.konfiguruj_ponizej', { defaultValue: "Konfiguruj poniżej" }) })}
-                                                  </span>
-              </div>
-            </div>
           </div>
 
           <div
@@ -2847,11 +2833,10 @@ export default function Profile({
                     />
                   </div>
                   <div className="flex-1 grid grid-cols-2 gap-2">
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">
-                        
-                                                          {t('auto.isf', { defaultValue: 'ISF' })}
-                                                        </span>
+                    <div className="relative flex flex-col gap-1.5">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                        {t('auto.wrazliwosc_isf', { defaultValue: 'Wrażliwość (ISF)' })}
+                      </span>
                       <input
                         type="number"
                         step="0.1"
@@ -2882,14 +2867,13 @@ export default function Profile({
                             hourlyProfiles: newProfiles,
                           });
                         }}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-2xl font-black text-xs text-center dark:text-white"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-2xl font-black text-xs text-center dark:text-white"
                       />
                     </div>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[7px] font-black text-slate-400 uppercase">
-                        
-                                                          {t('auto.ww', { defaultValue: 'WW' })}
-                                                        </span>
+                    <div className="relative flex flex-col gap-1.5">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                        {t('auto.przelicznik_ww', { defaultValue: 'Przelicznik (WW)' })}
+                      </span>
                       <input
                         type="number"
                         step="0.1"
@@ -2920,7 +2904,7 @@ export default function Profile({
                             hourlyProfiles: newProfiles,
                           });
                         }}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 pl-8 pr-2 py-2 rounded-2xl font-black text-xs text-center dark:text-white"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-2xl font-black text-xs text-center dark:text-white"
                       />
                     </div>
                   </div>
@@ -3373,41 +3357,66 @@ export default function Profile({
                         type: "multiplier"
                       }
                     ].filter(pattern => {
-                      if (pattern.type === "boolean") return learnedRules[pattern.id] === true;
-                      if (pattern.type === "multiplier") return learnedRules[pattern.id] && learnedRules[pattern.id] !== 1.0;
-                      return false;
+                      return Object.keys(learnedRules).includes(pattern.id);
                     }).map((pref) => {
+                      const isActive = pref.type === "boolean" 
+                        ? learnedRules[pref.id] === true 
+                        : learnedRules[pref.id] !== 1.0 && learnedRules[pref.id] !== undefined;
+
                       return (
-                        <button
+                        <div
                           key={pref.id}
-                          onClick={() => {
-                            const newRules = { ...learnedRules };
-                            if (pref.type === "boolean") {
-                              delete newRules[pref.id];
-                            } else {
-                              newRules[pref.id] = 1.0;
-                            }
-                            setLearnedRules(newRules);
-                            localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
-                            toast.success(t('auto.regula_wylaczona', { defaultValue: "Zjawisko usunięte z pamięci GlikoSense" }));
-                          }}
                           className={cn(
-                            "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
-                            "bg-amber-50/50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 shadow-sm hover:opacity-80 active:scale-95"
+                            "flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all text-left",
+                            "bg-amber-50/50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 shadow-sm"
                           )}
                         >
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-amber-500/20 shadow-sm">
-                            {pref.icon}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-amber-500/20 shadow-sm">
+                              {pref.icon}
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-black uppercase tracking-tight block text-amber-700 dark:text-amber-300">
+                                {pref.label}
+                              </span>
+                              <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
+                                {pref.desc}
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-[10px] font-black uppercase tracking-tight block text-amber-700 dark:text-amber-300">
-                              {pref.label}
-                            </span>
-                            <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-                              {pref.desc} (Kliknij by zresetować)
-                            </span>
-                          </div>
-                        </button>
+                          
+                          <button
+                            onClick={() => {
+                              const newRules = { ...learnedRules };
+                              
+                              if (pref.type === "boolean") {
+                                newRules[pref.id] = !isActive;
+                              } else {
+                                // Modyfikatory (np. insulinooporność 1.2x)
+                                if (isActive) {
+                                  newRules[pref.id] = 1.0;
+                                } else {
+                                  newRules[pref.id] = 1.2; // Domyślna wartość włączenia
+                                }
+                              }
+                              
+                              setLearnedRules(newRules);
+                              localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
+                              toast.success(isActive ? t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) : t('auto.regula_wlaczona', { defaultValue: "Reguła włączona" }));
+                            }}
+                            className={cn(
+                              "w-10 h-5 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
+                              isActive ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "bg-white w-3 h-3 rounded-full shadow-md transform transition-transform duration-200",
+                                isActive ? "translate-x-5" : "translate-x-0"
+                              )}
+                            />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -3653,6 +3662,10 @@ export default function Profile({
               </div>
             </div>
 
+
+
+          {(!settings.treatmentMode || settings.treatmentMode === 'pump') && (
+            <>
             <div
               className={cn(
                 "group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden",
@@ -3893,6 +3906,8 @@ export default function Profile({
                                                           {t('auto.aktualizuj_dane', { defaultValue: 'Aktualizuj dane' })}
                                                         </button>
                 </div>
+              </div>
+            </div>
             <div
               className={cn(
                 "group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden",
@@ -4104,10 +4119,10 @@ export default function Profile({
                 </div>
               </div>
             </div>
+            </>
+          )}
 
-              </div>
             </div>
-          </div>
           <button
             onClick={saveSettings}
             disabled={settingsLoading}
@@ -4453,6 +4468,22 @@ export default function Profile({
                             </span>
                           ))}
                         </div>
+                        {med.aiData && (
+                          <div className="mt-3 bg-white/50 dark:bg-slate-900/50 p-2.5 rounded-2xl border border-teal-500/10">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Sparkles size={12} className="text-teal-500" />
+                              <span className="text-[10px] font-black text-slate-700 dark:text-slate-300">
+                                {med.aiData.activeIngredient}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                              <strong className={med.aiData.sugarImpact === 'lowers' ? 'text-blue-500 uppercase' : med.aiData.sugarImpact === 'raises' ? 'text-rose-500 uppercase' : 'text-slate-500 uppercase'}>
+                                {med.aiData.sugarImpact === 'lowers' ? t('auto.obniza_cukier', { defaultValue: 'OBNIŻA CUKIER' }) : med.aiData.sugarImpact === 'raises' ? t('auto.podnosi_cukier', { defaultValue: 'PODNOSI CUKIER' }) : t('auto.neutralny', { defaultValue: 'NEUTRALNY' })}
+                              </strong>
+                              {' • '}{med.aiData.interactions}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -4583,16 +4614,35 @@ export default function Profile({
                                                               </label>
                     <input
                       type="text"
+                      list="medication-dict"
                       placeholder={t('auto.np_metformina', { defaultValue: 'np. Metformina' })}
                       value={newMedication.name}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const existingAi = settings.customDrugDictionary?.[val];
                         setNewMedication({
                           ...newMedication,
-                          name: e.target.value,
-                        })
-                      }
+                          name: val,
+                          aiData: existingAi || newMedication.aiData
+                        });
+                      }}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
                     />
+                    <datalist id="medication-dict">
+                      {Object.keys(settings.customDrugDictionary || {}).map(k => <option key={k} value={k} />)}
+                    </datalist>
+                    {newMedication.name && !settings.customDrugDictionary?.[newMedication.name] && (
+                       <button onClick={analyzeDrug} disabled={isAnalyzingDrug} className="mt-2 text-[10px] bg-teal-500/10 text-teal-600 dark:text-teal-400 p-2 rounded-xl font-bold flex items-center gap-1">
+                          {isAnalyzingDrug ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} {t('auto.przeanalizuj_lek_z_ai', { defaultValue: "Przeanalizuj lek z AI" })}
+                       </button>
+                    )}
+                    {newMedication.aiData && (
+                       <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                         <strong>{t('auto.substancja', { defaultValue: "Substancja:" })}</strong> {newMedication.aiData.activeIngredient}<br/>
+                         <strong>{t('auto.glikemia', { defaultValue: "Glikemia:" })}</strong> <span className={newMedication.aiData.sugarImpact === 'lowers' ? 'text-blue-500 font-bold uppercase' : newMedication.aiData.sugarImpact === 'raises' ? 'text-rose-500 font-bold uppercase' : 'text-slate-500 font-bold uppercase'}>{newMedication.aiData.sugarImpact === 'lowers' ? t('auto.obniza_cukier', { defaultValue: 'OBNIŻA CUKIER' }) : newMedication.aiData.sugarImpact === 'raises' ? t('auto.podnosi_cukier', { defaultValue: 'PODNOSI CUKIER' }) : t('auto.neutralny', { defaultValue: 'NEUTRALNY' })}</span><br/>
+                         <strong>{t('auto.opis', { defaultValue: "Wpływ:" })}</strong> {newMedication.aiData.description}
+                       </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -4742,6 +4792,8 @@ export default function Profile({
             </div>
 
             <div className="space-y-4">
+
+
               {(settings.inventory || []).map((item) => (
                 <motion.div
                   layout
@@ -4773,6 +4825,11 @@ export default function Profile({
                           
                                                                 {t('auto.kategoria', { defaultValue: 'Kategoria:' })} {item.category}
                         </p>
+                        {item.category === "pens" && item.penCapacity && (
+                          <p className="text-[10px] font-bold mt-0.5 uppercase tracking-widest text-indigo-500">
+                            {t('auto.pojemnosc', { defaultValue: 'Pojemność:' })} {item.penCapacity} j.
+                          </p>
+                        )}
                         {item.expiryDate && (
                           <p className="text-[9px] font-bold mt-1 uppercase tracking-widest flex items-center gap-1 text-amber-600 dark:text-amber-500">
                             <Calendar size={10} />  {t('auto.data_ważn', { defaultValue: i18n.t('auto.data_wazn', { defaultValue: "Data ważn:" }) })} {item.expiryDate}
@@ -4997,28 +5054,36 @@ export default function Profile({
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
+                    <div className="space-y-1 relative">
                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
                         
                                                                       {t('auto.kategoria', { defaultValue: 'Kategoria' })}
                                                                     </label>
-                      <select
-                        value={newInventoryItem.category}
-                        onChange={(e) =>
-                          setNewInventoryItem({
-                            ...newInventoryItem,
-                            category: e.target.value as any,
-                          })
-                        }
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all appearance-none"
-                      >
-                        <option value="sensors">{t('auto.sensory', { defaultValue: 'Sensory' })}</option>
-                        <option value="insulin">{t('auto.insulina', { defaultValue: 'Insulina' })}</option>
-                        <option value="reservoirs">{t('auto.zbiorniczki', { defaultValue: 'Zbiorniczki' })}</option>
-                        <option value="infusion_sets">{t('auto.wkłucia', { defaultValue: i18n.t('auto.wklucia', { defaultValue: "Wkłucia" }) })}</option>
-                        <option value="strips">{t('auto.paski', { defaultValue: 'Paski' })}</option>
-                        <option value="other">{t('auto.inne', { defaultValue: 'Inne' })}</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={newInventoryItem.category}
+                          onChange={(e) =>
+                            setNewInventoryItem({
+                              ...newInventoryItem,
+                              category: e.target.value as any,
+                            })
+                          }
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-3 pr-10 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="sensors">{t('auto.sensory', { defaultValue: 'Sensory' })}</option>
+                          <option value="insulin">{t('auto.insulina', { defaultValue: 'Insulina' })}</option>
+                          <option value="pens">{t('auto.peny', { defaultValue: 'Wstrzykiwacze (Peny)' })}</option>
+                          {(!settings.treatmentMode || settings.treatmentMode === 'pump') && (
+                            <>
+                              <option value="reservoirs">{t('auto.zbiorniczki', { defaultValue: 'Zbiorniczki' })}</option>
+                              <option value="infusion_sets">{t('auto.wkłucia', { defaultValue: i18n.t('auto.wklucia', { defaultValue: "Wkłucia" }) })}</option>
+                            </>
+                          )}
+                          <option value="strips">{t('auto.paski', { defaultValue: 'Paski' })}</option>
+                          <option value="other">{t('auto.inne', { defaultValue: 'Inne' })}</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -5079,6 +5144,26 @@ export default function Profile({
                      </div>
                   )}
 
+                  {newInventoryItem.category === "pens" && (
+                     <div className="space-y-1">
+                       <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                         {t('auto.pojemnosc_pena_w_jednostkach', { defaultValue: 'Pojemność pojedynczego pena (w jednostkach)' })}
+                       </label>
+                       <input
+                         type="number"
+                         placeholder={t('auto.np_300', { defaultValue: 'np. 300' })}
+                         value={newInventoryItem.penCapacity || ""}
+                         onChange={(e) =>
+                           setNewInventoryItem({
+                             ...newInventoryItem,
+                             penCapacity: e.target.value ? Number(e.target.value) : undefined,
+                           })
+                         }
+                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+                       />
+                     </div>
+                  )}
+
                   <div className="space-y-1">
                     <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
                       
@@ -5122,7 +5207,17 @@ export default function Profile({
       {activeCategory === "simulator" && <PumpSimulator settings={settings} />}
 
       {activeCategory === "tutorial" && (
-        <TutorialView setTab={() => setActiveCategory(null)} />
+        <TutorialView 
+          setTab={() => setActiveCategory(null)} 
+          onComplete={async (mode) => {
+            const newVal = mode as 'diet_only' | 'insulin' | 'pump';
+            setSettings((prev) => ({ ...prev, treatmentMode: newVal }));
+            localStorage.setItem("treatmentMode", newVal);
+            if (user) {
+              await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { treatmentMode: newVal }, { merge: true });
+            }
+          }}
+        />
       )}
 
       {activeCategory === "training" && (
@@ -5198,7 +5293,7 @@ export default function Profile({
               <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                 
                                               {t('auto.glikocontrol_obsługuje_te_sensory_p', { defaultValue: i18n.t('auto.glikocontrol_obsluguje_te', { defaultValue: "GlikoControl obsługuje te sensory poprzez darmowy mostek" }) })}{" "}
-                <b>{t('auto.nightscout', { defaultValue: 'Nightscout' })}</b>  {t('auto.np_nightscoutpro_t1pal_podłącz_swoj', { defaultValue: i18n.t('auto.np_nightscoutpro_t1pal_po', { defaultValue: "(np. NightscoutPro / T1Pal). Podłącz swoje konto CGM do Nightscouta, a my pobierzemy dane automatycznie co 5 minut." }) })}
+                <b>{t('auto.nightscout', { defaultValue: 'Nightscout' })}</b> {t('auto.np_nightscoutpro_t1pal_po', { defaultValue: "(np. NightscoutPro / T1Pal). Podłącz swoje konto CGM do Nightscouta, a my pobierzemy dane automatycznie co 5 minut." })}
                                             </p>
             </div>
 
@@ -5273,8 +5368,28 @@ export default function Profile({
                       if (!nsUrl) return;
                       setNsSyncLoading(true);
                       await saveNsUrl();
+
+                      const handleResult = (e: any) => {
+                        window.removeEventListener("nightscout-sync-result", handleResult);
+                        setNsSyncLoading(false);
+                        if (e.detail.success) {
+                          toast.success(t('auto.polaczono_z_nightscout', { defaultValue: 'Połączono z Nightscout pomyślnie!' }));
+                        } else {
+                          toast.error(t('auto.blad_polaczenia_z_nightscout', { defaultValue: 'Błąd: Upewnij się, że adres URL jest poprawny.' }));
+                        }
+                      };
+                      window.addEventListener("nightscout-sync-result", handleResult);
+
                       window.dispatchEvent(new Event("force-nightscout-sync"));
-                      setTimeout(() => setNsSyncLoading(false), 2000);
+                      
+                      // Fallback: Timeout 15s in case worker hangs
+                      setTimeout(() => {
+                        window.removeEventListener("nightscout-sync-result", handleResult);
+                        setNsSyncLoading((prev) => {
+                          if (prev) toast.error(t('auto.timeout_nightscout', { defaultValue: 'Przekroczono czas oczekiwania na połączenie z Nightscout.' }));
+                          return false;
+                        });
+                      }, 15000);
                     }}
                     disabled={nsSyncLoading}
                     className="flex items-center gap-2 text-[10px] font-black text-accent-500 uppercase tracking-widest hover:text-accent-600 active:scale-95 transition-all"
@@ -5553,11 +5668,11 @@ export default function Profile({
                     <p
                       className={cn(
                         "text-[9px] font-black uppercase tracking-widest leading-none",
-                        geminiService.getAiStatus().color,
+                        aiStatus.color,
                       )}
                     >
                       
-                                                                {t('auto.status', { defaultValue: 'Status:' })} {geminiService.getAiStatus().label}
+                                                                {t('auto.status', { defaultValue: 'Status:' })} {aiStatus.label}
                     </p>
                   </div>
                 </div>
@@ -5573,31 +5688,33 @@ export default function Profile({
               >
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed font-medium">
                   
-                                                    {t('auto.aby_uniknąć_limitów_serwerowych_moż', { defaultValue: i18n.t('auto.aby_uniknac_limitow_serwe', { defaultValue: "Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z" }) })}{" "}
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent-500 font-black hover:underline underline-offset-2 transition-all"
-                  >
-                    
-                                                          {t('auto.google_ai_studio', { defaultValue: 'Google AI Studio' })}
-                                                        </a>
-                  
-                                                    {t('auto.klucz_zostanie_zapisany', { defaultValue: '. Klucz zostanie zapisany' })} <b>{t('auto.wyłącznie_lokalnie', { defaultValue: i18n.t('auto.wylacznie_lokalnie', { defaultValue: "wyłącznie lokalnie" }) })}</b>  {t('auto.w_twojej_przeglądarce', { defaultValue: i18n.t('auto.w_twojej_przegladarce', { defaultValue: "w Twojej przeglądarce." }) })}
+                                                    {i18n.language.startsWith('pl') ? (
+                                                      <>
+                                                        Aby uniknąć limitów serwerowych, możesz dodać swój darmowy klucz z{" "}
+                                                        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-accent-500 font-black hover:underline underline-offset-2 transition-all">Google AI Studio</a>.
+                                                        Klucz zostanie zapisany <b>wyłącznie lokalnie</b> w Twojej przeglądarce.
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        To avoid server limits, you can add your free key from{" "}
+                                                        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-accent-500 font-black hover:underline underline-offset-2 transition-all">Google AI Studio</a>.
+                                                        The key will be saved <b>locally only</b> in your browser.
+                                                      </>
+                                                    )}
                                                   </p>
                 <div className="flex items-start gap-2 mb-4 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
                   <AlertTriangle size={14} className="mt-0.5 shrink-0" />
                   <p className="text-[10px] font-bold leading-relaxed">
-                    
-                                                          {t('auto.ze_względów_bezpieczeństwa_dodawaj_', { defaultValue: i18n.t('auto.ze_wzgledow_bezpieczenstw', { defaultValue: "Ze względów bezpieczeństwa dodawaj swój klucz API" }) })}{" "}
-                    <b className="font-black">
-                      
-                                                                {t('auto.tylko_na_własnych_zaufanych_urządze', { defaultValue: i18n.t('auto.tylko_na_wlasnych_zaufany', { defaultValue: "tylko na własnych, zaufanych urządzeniach" }) })}
-                                                              </b>
-                    
-                                                          {t('auto.nie_wprowadzaj_go_na_urządzeniach_p', { defaultValue: i18n.t('auto.nie_wprowadzaj_go_na_urza', { defaultValue: ". Nie wprowadzaj go na urządzeniach publicznych." }) })}
-                                                        </p>
+                    {i18n.language.startsWith('pl') ? (
+                      <>
+                        Ze względów bezpieczeństwa dodawaj swój klucz API <b className="font-black">tylko na własnych, zaufanych urządzeniach</b>. Nie wprowadzaj go na urządzeniach publicznych.
+                      </>
+                    ) : (
+                      <>
+                        For security reasons, add your API key <b className="font-black">only on your own trusted devices</b>. Do not enter it on public devices.
+                      </>
+                    )}
+                  </p>
                 </div>
 
                 <div className="relative group">
@@ -5613,19 +5730,25 @@ export default function Profile({
                       const val = e.target.value;
                       setGeminiApiKey(val);
                       if (val) {
-                        localStorage.setItem("gemini_api_key", val.trim());
+                        SecureStoragePlugin.set({ key: "gemini_api_key", value: val.trim() }).catch(()=>{});
                       } else {
-                        localStorage.removeItem("gemini_api_key");
+                        SecureStoragePlugin.remove({ key: "gemini_api_key" }).catch(()=>{});
                       }
                     }}
-                    onBlur={() => {
+                    onBlur={async () => {
                       const val = geminiApiKey.trim();
                       setGeminiApiKey(val);
                       if (val) {
-                        localStorage.setItem("gemini_api_key", val);
-                        setGeminiSaveStatus(i18n.t('auto.zapisano_pomyslnie', { defaultValue: i18n.t('auto.zapisano_pomyslnie', { defaultValue: "Zapisano pomyślnie ✓" }) }));
+                        try {
+                          await SecureStoragePlugin.set({ key: "gemini_api_key", value: val });
+                          setGeminiSaveStatus(i18n.t('auto.zapisano_pomyslnie', { defaultValue: i18n.t('auto.zapisano_pomyslnie', { defaultValue: "Zapisano pomyślnie ✓" }) }));
+                        } catch(e) {
+                          setGeminiSaveStatus("Błąd zapisu");
+                        }
                       } else {
-                        localStorage.removeItem("gemini_api_key");
+                        try {
+                          await SecureStoragePlugin.remove({ key: "gemini_api_key" });
+                        } catch(e) {}
                         setGeminiSaveStatus(i18n.t('auto.usunieto_klucz', { defaultValue: i18n.t('auto.usunieto_klucz', { defaultValue: "Usunięto klucz ✓" }) }));
                       }
                       setTimeout(() => setGeminiSaveStatus(""), 2000);
@@ -5654,6 +5777,28 @@ export default function Profile({
                                                           {t('auto.testuj_połączenie', { defaultValue: i18n.t('auto.testuj_polaczenie', { defaultValue: "Testuj Połączenie" }) })}
                                                         </button>
                 </div>
+
+                <details className="mt-4 group bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden text-left shadow-sm">
+                  <summary className="p-4 cursor-pointer text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex justify-between items-center outline-none select-none list-none [&::-webkit-details-marker]:hidden">
+                    <span>{i18n.language.startsWith('pl') ? 'Jak uzyskać darmowy klucz API?' : 'How to get a free API key?'}</span>
+                    <ChevronRight size={16} className="transition-transform group-open:rotate-90 text-slate-400" />
+                  </summary>
+                  <div className="px-4 pb-4 text-[11px] text-slate-600 dark:text-slate-400 space-y-3 font-medium">
+                    {i18n.language.startsWith('pl') ? (
+                      <p>
+                        1. Wejdź na stronę <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer" className="text-indigo-500 font-bold hover:underline">Google AI Studio</a> i zaloguj się swoim kontem Google.<br />
+                        2. Kliknij niebieski przycisk &quot;Create API key&quot; i wybierz projekt.<br />
+                        3. Skopiuj wygenerowany ciąg znaków i wklej go w polu powyżej.
+                      </p>
+                    ) : (
+                      <p>
+                        1. Go to <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer" className="text-indigo-500 font-bold hover:underline">Google AI Studio</a> and log in with your Google account.<br />
+                        2. Click the blue &quot;Create API key&quot; button and select a project.<br />
+                        3. Copy the generated string and paste it in the field above.
+                      </p>
+                    )}
+                  </div>
+                </details>
               </div>
             </div>
           </div>
@@ -5780,7 +5925,7 @@ export default function Profile({
                                                   </li>
                 <li>
                   
-                                                    {t('auto.jeśli_system_zapyta_zezwól_na_quot_', { defaultValue: i18n.t('auto.jesli_system_zapyta_zezwo', { defaultValue: "Jeśli system zapyta, zezwól na &quot;Instalację z nieznanych źródeł&quot;." }) })}
+                                                    {t('auto.jeśli_system_zapyta_zezwól_na_quot_', { defaultValue: i18n.t('auto.jesli_system_zapyta_zezwo', { defaultValue: "Jeśli system zapyta, zezwól na \"Instalację z nieznanych źródeł\"." }) })}
                                                   </li>
               </ol>
 
@@ -5985,6 +6130,67 @@ export default function Profile({
                   </button>
                 </div>
               </div>
+              {/* Treatment Mode Selector */}
+              <div className={cn(
+                "p-5 rounded-[2.5rem] border transition-all hover:shadow-md space-y-4",
+                settings.glassmorphismEnabled
+                  ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                  : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
+              )}>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner">
+                    <Activity size={22} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-black dark:text-white leading-tight">
+                      {t('auto.treatment_mode_title', { defaultValue: 'Typ leczenia' })}
+                    </p>
+                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
+                      {t('auto.treatment_mode_desc', { defaultValue: 'Dostosuj interfejs do swoich potrzeb' })}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {[
+                    { id: 'diet_only', icon: <Apple size={16} />, label: t('auto.treatment_mode_diet', { defaultValue: 'Dieta i tabletki' }), desc: t('auto.treatment_mode_diet_desc', { defaultValue: 'Ukrywa funkcje insulinowe' }) },
+                    { id: 'insulin', icon: <Zap size={16} />, label: t('auto.treatment_mode_insulin', { defaultValue: 'Insulina' }), desc: t('auto.treatment_mode_insulin_desc', { defaultValue: 'Peny lub strzykawki' }) },
+                    { id: 'pump', icon: <Signal size={16} />, label: t('auto.treatment_mode_pump', { defaultValue: 'Pompa' }), desc: t('auto.treatment_mode_pump_desc', { defaultValue: 'Zamknięta pętla / AID' }) }
+                  ].map(mode => (
+                    <button
+                      key={mode.id}
+                      onClick={async () => {
+                        const newVal = mode.id as 'diet_only' | 'insulin' | 'pump';
+                        setSettings((prev) => ({ ...prev, treatmentMode: newVal }));
+                        
+                        if (user) {
+                          await setDoc(
+                            doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+                            { treatmentMode: newVal },
+                            { merge: true }
+                          );
+                          toast.success(t('auto.zapisano_tryb', { defaultValue: 'Zapisano: ' }) + mode.label);
+                        } else {
+                          toast.success(mode.label + ' ' + t('auto.wymaga_odswiezenia_w_trybie_goscia', { defaultValue: '(Tryb Gościa: odśwież stronę, by zobaczyć efekt)' }));
+                        }
+                      }}
+                      className={cn(
+                        "p-3 rounded-2xl border transition-all text-left flex flex-col gap-1 items-start justify-center",
+                        (settings.treatmentMode === mode.id || (!settings.treatmentMode && mode.id === 'insulin'))
+                          ? "bg-indigo-500 border-indigo-500 text-white shadow-lg"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        {mode.icon}
+                        <span className="text-xs font-bold">{mode.label}</span>
+                      </div>
+                      <span className="text-[9px] opacity-80">{mode.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Toggles */}
               <div className="grid grid-cols-1 gap-3">
                 <div className="group flex items-center justify-between p-5 bg-amber-50 dark:bg-amber-500/5 rounded-[2rem] border border-amber-100 dark:border-amber-900/20 transition-all hover:shadow-md">

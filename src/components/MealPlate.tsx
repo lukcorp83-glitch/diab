@@ -1,6 +1,7 @@
 import i18n from '../i18n';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";
@@ -1131,22 +1132,69 @@ export default function MealPlate({
     } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + e.message); Haptics.error(); }
   };
 
-  const startVoiceSearch = () => {
+  const startVoiceSearch = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const permStatus = await SpeechRecognition.checkPermissions();
+        if (permStatus.speechRecognition !== 'granted') {
+          const reqStatus = await SpeechRecognition.requestPermissions();
+          if (reqStatus.speechRecognition !== 'granted') {
+            toast.error('Brak uprawnień do mikrofonu! Zezwól w ustawieniach Androida.');
+            return;
+          }
+        }
+        setIsListening(true);
+        const { matches } = await SpeechRecognition.start({
+          language: 'pl-PL',
+          maxResults: 1,
+          prompt: i18n.t('auto.mow_teraz', { defaultValue: 'Mów teraz...' }),
+          partialResults: false,
+          popup: true
+        });
+        if (matches && matches.length > 0) {
+          const speechResult = matches[0];
+          setSearchTerm(speechResult);
+          
+          const localMatches = allLocal.filter((p) =>
+            getProductName(p, i18n.language).toLowerCase().includes(speechResult.toLowerCase()),
+          );
+          if (localMatches.length === 0) {
+            await performOnlineSearch(speechResult);
+          }
+        }
+        setIsListening(false);
+        return;
+      } catch (e) {
+        console.error('Native speech recognition error:', e);
+        setIsListening(false);
+        toast.error('Nie udało się uruchomić mikrofonu natywnego.');
+        return;
+      }
+    }
+
+    // Fallback for Web
     // @ts-ignore
-    const SpeechRecognition =
+    const SpeechRec =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    if (!SpeechRec) {
       toast.error(i18n.t('auto.twoja_przegladarka_nie_obslugu', { defaultValue: i18n.t('auto.twoja_przegladarka_nie_ob', { defaultValue: "Twoja przeglądarka nie obsługuje wyszukiwania głosowego." }) }));
       return;
     }
-    const recognition = new SpeechRecognition();
+
+    const recognition = new SpeechRec();
     recognition.lang = "pl-PL";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
     setIsListening(true);
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+      setIsListening(false);
+      toast.error('Nie udało się uruchomić mikrofonu.');
+    }
 
     recognition.onresult = async (event: any) => {
       const speechResult = event.results[0][0].transcript;
@@ -3263,24 +3311,53 @@ export default function MealPlate({
             />
           )}
 
-          <button
-            onClick={() => {
-              sessionStorage.setItem(
-                "pending_meal",
-                JSON.stringify({
-                  carbs: Math.round(totalCarbs * 10) / 10,
-                  protein: Math.round(totalProtein * 10) / 10,
-                  fat: Math.round(totalFat * 10) / 10,
-                  name: plate.map((i) => i.name).join(", ") || t('meal.custom_meal', { defaultValue: i18n.t('auto.wlasny_posilek', { defaultValue: "Własny posiłek" }) }),
-                  items: plate,
-                }),
-              );
-              setTab("bolus");
-            }}
-            className="w-full bg-slate-800 py-3 rounded-xl mt-3 font-black text-[9px] uppercase tracking-widest text-slate-400 active:scale-95 transition-all"
-          >
-            {t('meal.go_to_calculator', { defaultValue: i18n.t('auto.przejdz_do_kalkulatora', { defaultValue: "Przejdź do Kalkulatora" }) })}
-          </button>
+          {settings?.treatmentMode === 'diet_only' ? (
+            <button
+              onClick={async () => {
+                import('@capacitor/haptics').then(({ Haptics }) => Haptics.medium());
+                toast.loading(i18n.t('auto.zapisywanie_posilku', { defaultValue: 'Zapisywanie posiłku...' }), { id: "meal-save" });
+                try {
+                  await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), {
+                    type: "meal",
+                    value: 0,
+                    carbs: Math.round(totalCarbs * 10) / 10,
+                    protein: Math.round(totalProtein * 10) / 10,
+                    fat: Math.round(totalFat * 10) / 10,
+                    notes: plate.map((i) => i.name).join(", ") || t('meal.custom_meal', { defaultValue: 'Własny posiłek' }),
+                    timestamp: Date.now(),
+                    createdAt: Date.now()
+                  });
+                  setPlate([]);
+                  toast.success(i18n.t('auto.posilek_zostal_zapisany', { defaultValue: 'Posiłek został zapisany w dzienniku!' }), { id: "meal-save" });
+                  setTab("dashboard");
+                } catch (e) {
+                  toast.error("Błąd zapisu", { id: "meal-save" });
+                }
+              }}
+              className="w-full bg-emerald-600/20 text-emerald-500 hover:bg-emerald-600/30 py-3 rounded-xl mt-3 font-black text-[9px] uppercase tracking-widest active:scale-95 transition-all"
+            >
+              {t('auto.zapisz_posilek_w_dzienni', { defaultValue: 'Zapisz posiłek w dzienniku' })}
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                sessionStorage.setItem(
+                  "pending_meal",
+                  JSON.stringify({
+                    carbs: Math.round(totalCarbs * 10) / 10,
+                    protein: Math.round(totalProtein * 10) / 10,
+                    fat: Math.round(totalFat * 10) / 10,
+                    name: plate.map((i) => i.name).join(", ") || t('meal.custom_meal', { defaultValue: i18n.t('auto.wlasny_posilek', { defaultValue: "Własny posiłek" }) }),
+                    items: plate,
+                  }),
+                );
+                setTab("bolus");
+              }}
+              className="w-full bg-slate-800 py-3 rounded-xl mt-3 font-black text-[9px] uppercase tracking-widest text-slate-400 active:scale-95 transition-all"
+            >
+              {t('meal.go_to_calculator', { defaultValue: i18n.t('auto.przejdz_do_kalkulatora', { defaultValue: "Przejdź do Kalkulatora" }) })}
+            </button>
+          )}
 
           {/* Dynamic absorption wizard for composing food - ALWAYS at the bottom as requested */}
           <div className="mt-6 border-t border-white/10 pt-6">

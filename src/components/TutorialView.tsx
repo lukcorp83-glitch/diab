@@ -13,9 +13,10 @@ import i18n from "../i18n";
 
 interface TutorialViewProps {
   setTab: (t: string) => void;
+  onComplete?: (mode: string) => void;
 }
 
-export default function TutorialView({ setTab }: TutorialViewProps) {
+export default function TutorialView({ setTab, onComplete }: TutorialViewProps) {
     const { t } = useTranslation();
   const [activeList, setActiveList] = useState<'faq' | 'compendium' | 'tutorial'>('tutorial');
   const [showTutorial, setShowTutorial] = useState(false);
@@ -317,7 +318,10 @@ export default function TutorialView({ setTab }: TutorialViewProps) {
       </div>
 
       <AnimatePresence>
-        {showTutorial && <OnboardingTutorial onComplete={() => setShowTutorial(false)} />}
+        {showTutorial && <OnboardingTutorial onComplete={(mode) => {
+          setShowTutorial(false);
+          if (onComplete) onComplete(mode);
+        }} />}
       </AnimatePresence>
     </motion.div>
   );

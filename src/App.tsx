@@ -270,7 +270,7 @@ export default function App() {
       if (Capacitor.getPlatform() === 'android') {
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
           LocalNotifications.createChannel({
-            id: 'glucose_alerts_v5',
+            id: 'glucose_alerts_v7',
             name: 'Alarmy Glikemii',
             description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
             importance: 5, // MAX importance
@@ -335,6 +335,42 @@ export default function App() {
       const newLog = e.detail;
       setCachedLogs((prev) => [newLog, ...prev]);
       setFbLogs((prev) => [newLog, ...prev]);
+
+      if (newLog.type === 'insulin' && newLog.dose) {
+         setUserSettings((prev) => {
+            if (!prev || prev.treatmentMode !== 'insulin') return prev;
+            let newCurrent = prev.currentPenUnits ?? prev.penCapacity ?? 300;
+            let newCount = prev.penCount ?? 0;
+            
+            newCurrent -= newLog.dose;
+            
+            // Alert o niskim stanie pena, np. 20 jednostek
+            if (newCurrent <= 20 && prev.currentPenUnits && prev.currentPenUnits > 20) {
+              import("./services/notificationService").then(mod => {
+                 mod.notificationService.scheduleLocalNotification(
+                    "Kończy się insulina! 💉",
+                    `W Twoim penie zostało tylko ${newCurrent} jednostek.`,
+                    0
+                 );
+              });
+            }
+
+            if (newCurrent <= 0) {
+               newCount = Math.max(0, newCount - 1);
+               newCurrent = prev.penCapacity ?? 300;
+            }
+            
+            const updatedSettings = { ...prev, currentPenUnits: newCurrent, penCount: newCount };
+            
+            if (auth.currentUser) {
+              import("firebase/firestore").then(({ setDoc, doc }) => {
+                setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(auth.currentUser), "settings", "profile"), updatedSettings, { merge: true }).catch(console.error);
+              });
+            }
+            
+            return updatedSettings;
+         });
+      }
     };
     window.addEventListener("localLogUpdate", handleLogUpdate);
     window.addEventListener("localLogDelete", handleLogDelete);
@@ -402,13 +438,42 @@ export default function App() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
 
-  const linkedUid = localStorage.getItem("diacontrol_linked_uid");
+  const linkedUid = localStorage.getItem("diacontrol_linked_uid") || userSettings?.linkedUid || null;
   const isMasterToken = localStorage.getItem("diacontrol_is_master") === "true";
-  const isAdminToken = localStorage.getItem("diacontrol_is_admin") === "true";
+  const isAdminToken = localStorage.getItem("diacontrol_is_admin") === "true" || userSettings?.isLinkedAdmin === true;
   
   const role = isMasterToken ? 'master' : (isAdminToken ? 'admin' : 'follower');
   const isAdmin = role === 'master' || role === 'admin';
   
+  // Automatycznie odtwórz pamięć lokalną jeśli odzyskaliśmy klucz z Firebase!
+  useEffect(() => {
+     if (userSettings?.linkedUid && !localStorage.getItem("diacontrol_linked_uid")) {
+         localStorage.setItem("diacontrol_linked_uid", userSettings.linkedUid);
+     }
+     if (userSettings?.isLinkedAdmin && !localStorage.getItem("diacontrol_is_admin")) {
+         localStorage.setItem("diacontrol_is_admin", "true");
+     }
+  }, [userSettings?.linkedUid, userSettings?.isLinkedAdmin]);
+
+  // Wymuś kompaktowy rozmiar 1x1 dla widgetów aktywności i TIR u starych użytkowników
+  useEffect(() => {
+    if (userSettings?.dashboardWidgets && user) {
+      let changed = false;
+      const newWidgets = userSettings.dashboardWidgets.map((w: any) => {
+        if ((w.id === "daily_tir" || w.id === "health_connect") && w.size !== "1x1") {
+          changed = true;
+          return { ...w, size: "1x1" };
+        }
+        return w;
+      });
+      if (changed) {
+        setUserSettings((prev: any) => prev ? { ...prev, dashboardWidgets: newWidgets } : null);
+        import("firebase/firestore").then(({ setDoc, doc }) => {
+          setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { dashboardWidgets: newWidgets }, { merge: true }).catch(console.error);
+        });
+      }
+    }
+  }, [userSettings?.dashboardWidgets, user]);
   let localDeviceId = localStorage.getItem("glikocontrol_device_id");
   if (!localDeviceId) {
      localDeviceId = `device-${Date.now()}-${Math.floor(Math.random()*1000)}`;
@@ -449,6 +514,12 @@ export default function App() {
       notificationService.updateDeviceReminders(userSettings);
     }
   }, [userSettings?.sensorChangeDate, userSettings?.infusionSetChangeDate, userSettings?.sensorDurationDays, userSettings?.infusionSetDurationDays]);
+
+  useEffect(() => {
+    if (userSettings?.medications) {
+      notificationService.scheduleMedicationReminders(userSettings.medications);
+    }
+  }, [userSettings?.medications]);
 
   useEffect(() => {
     if (logs.length > 0 && Capacitor.isNativePlatform()) {
@@ -756,7 +827,7 @@ export default function App() {
         lastGlucose = pumpBg || lastGlucose;
       }
 
-      const staticInsights = getGlikoSenseInsights(logs);
+      const staticInsights = getGlikoSenseInsights(logs, userSettings?.treatmentMode);
       const combinedInsights = [...staticInsights, ...aiInsights];
 
       const response = await geminiService.getAssistantResponse(
@@ -764,7 +835,7 @@ export default function App() {
         history,
         logs,
         userSettings || { targetMin: 70, targetMax: 140 },
-        { iob, cob, glucose: lastGlucose },
+        { iob, cob, glucose: lastGlucose, pumpModel: pumpStatus?.model },
         combinedInsights,
       );
 
@@ -796,12 +867,10 @@ export default function App() {
       const appActionMatches = Array.from(
         response.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g),
       );
+      let parsedAppAction = null;
       for (const match of appActionMatches) {
         try {
-          const actionData = JSON.parse(match[1]);
-          window.dispatchEvent(
-            new CustomEvent("ai_app_action", { detail: actionData }),
-          );
+          parsedAppAction = JSON.parse(match[1]);
         } catch (e) {
           console.error("AI App Action Error:", e);
         }
@@ -817,6 +886,7 @@ export default function App() {
         role: "model",
         text: cleanResponse,
         timestamp: Date.now(),
+        appAction: parsedAppAction
       };
 
       setAssistantMessages((prev) => [...prev, modelMessage]);
@@ -1273,16 +1343,35 @@ export default function App() {
 
         if (d.exists()) {
           const data = d.data() as UserSettings;
+          const localTreatmentMode = localStorage.getItem("treatmentMode") as any;
+          
           if (localNotificationsEnabled !== null) {
             data.notificationsEnabled = localNotificationsEnabled === "true";
           }
+          
+          if (localTreatmentMode !== null) {
+            data.treatmentMode = localTreatmentMode;
+            // Wymuszamy nadpisanie starego stanu w bazie chmurowej
+            setDoc(settingsRef, { treatmentMode: localTreatmentMode }, { merge: true }).catch(console.error);
+            localStorage.removeItem("treatmentMode"); // Pożeramy flagę
+          }
+          
           setUserSettings(data);
         } else {
           const defaultSettings = { ...DEFAULT_SETTINGS };
+          const localTreatmentMode = localStorage.getItem("treatmentMode") as any;
+          
           if (localNotificationsEnabled !== null) {
             defaultSettings.notificationsEnabled =
               localNotificationsEnabled === "true";
           }
+          
+          if (localTreatmentMode !== null) {
+            defaultSettings.treatmentMode = localTreatmentMode;
+            setDoc(settingsRef, { treatmentMode: localTreatmentMode }, { merge: true }).catch(console.error);
+            localStorage.removeItem("treatmentMode");
+          }
+          
           setUserSettings(defaultSettings);
         }
       },
@@ -1579,8 +1668,8 @@ export default function App() {
                   body: alertBody,
                   id: Math.floor(Math.random() * 100000),
                   schedule: { at: new Date() },
-                  channelId: "glucose_alerts_v5",
-                  sound: "critical_alarm.wav",
+                  channelId: "glucose_alerts_v7",
+                  sound: "status_clear.mp3",
                   attachments: null,
                   actionTypeId: "",
                   extra: null
@@ -1614,7 +1703,7 @@ export default function App() {
       if (Date.now() - lastInsightCheck > 24 * 60 * 60 * 1000) {
          localStorage.setItem('glikosense_last_insight_check', Date.now().toString());
          import('./lib/insightGenerator').then(({ getGlikoSenseInsights }) => {
-             const insights = getGlikoSenseInsights(logs);
+             const insights = getGlikoSenseInsights(logs, userSettings?.treatmentMode);
              const nightLowsMsg = insights.find((i: string) => i.includes('nocne hipoglikemie'));
              if (nightLowsMsg && !localStorage.getItem('glikosense_asked_night_lows')) {
                  localStorage.setItem('glikosense_asked_night_lows', 'true');
@@ -2155,11 +2244,13 @@ export default function App() {
         }
         
         setSyncStatus({ status: "success", lastSync: Date.now() });
+        window.dispatchEvent(new CustomEvent("nightscout-sync-result", { detail: { success: true } }));
       }
 
       if (type === 'SYNC_ERROR') {
         console.error("Worker sync error:", payload);
         setSyncStatus({ status: "error", lastSync: Date.now() });
+        window.dispatchEvent(new CustomEvent("nightscout-sync-result", { detail: { success: false, payload } }));
       }
     };
 
@@ -2192,13 +2283,67 @@ export default function App() {
     };
     window.addEventListener("glikosense_hypo_alert", handleHypoAlert);
 
+    // Wymuś odświeżenie Nightscouta gdy wracamy z tła (rozwiązuje problem zacinania na Androidzie)
+    const appStateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        console.log("App resumed to foreground, forcing Nightscout worker sync");
+        handleForceSync();
+      }
+    });
+
     return () => {
       worker.postMessage({ type: 'STOP_SYNC' });
       worker.terminate();
       window.removeEventListener("force-nightscout-sync", handleForceSync);
       window.removeEventListener("glikosense_hypo_alert", handleHypoAlert);
+      appStateListener.then(listener => listener.remove());
     };
   }, [user, nsUrl]);
+
+  // Globalna obsługa sprzętowego przycisku Back (Android) i gestu "Wstecz"
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    
+    const backListener = CapacitorApp.addListener('backButton', () => {
+      // 1. Sprawdź, czy na ekranie wisi jakiekolwiek okno modalne, popup lub otwarte menu z tłem
+      // .fixed.inset-0 to wspólny mianownik dla wszystkich okien modalnych i popupów
+      const allModals = document.querySelectorAll('.fixed.inset-0, [role="dialog"]');
+      const modals = Array.from(allModals).filter(m => !m.classList.contains('-z-10') && !m.classList.contains('pointer-events-none'));
+      
+      if (modals.length > 0) {
+        // Pobieramy najwyższe okno (ostatnie w DOM)
+        const topModal = modals[modals.length - 1];
+        
+        // Szukamy w tym oknie przycisku do zamykania/anulowania
+        const closeBtn = topModal.querySelector('button[aria-label="Zamknij"], button[aria-label="Close"], button[title="Zamknij"], button[aria-label="Cofnij"]') 
+                         || Array.from(topModal.querySelectorAll('button')).find(b => 
+                              b.textContent?.toLowerCase().includes('zamknij') || 
+                              b.textContent?.toLowerCase().includes('anuluj') ||
+                              b.textContent?.toLowerCase().includes('close') ||
+                              b.querySelector('.lucide-x, .lucide-chevron-left')
+                            );
+
+        if (closeBtn && typeof (closeBtn as HTMLElement).click === 'function') {
+          (closeBtn as HTMLElement).click();
+        } else {
+          // Fallback: kliknij w samo ciemne tło (często ma przypisane zamknięcie)
+          (topModal as HTMLElement).click();
+        }
+      } else {
+        // Brak okien modalnych - obsługujemy nawigację w zakładkach
+        if (activeTab !== 'dashboard') {
+          changeTab('dashboard');
+        } else {
+          // Jeśli już jesteśmy na pulpicie domyślnym, wyjście z aplikacji schowa ją do tła (minimalizacja)
+          CapacitorApp.minimizeApp();
+        }
+      }
+    });
+
+    return () => {
+      backListener.then(listener => listener.remove());
+    };
+  }, [activeTab, changeTab]);
 
   const toggleTheme = async () => {
     const newTheme: "light" | "dark" = theme === "light" ? "dark" : "light";
@@ -2938,6 +3083,7 @@ export default function App() {
         }}
         theme={theme}
         isChildMode={userSettings?.childMode}
+        settings={userSettings}
       />
 
       {/* Main Content with Swipe Navigation */}
@@ -3138,9 +3284,35 @@ export default function App() {
       <AnimatePresence>
         {showTutorial && (
           <OnboardingTutorial
-            onComplete={() => {
+            onComplete={async (mode) => {
               setShowTutorial(false);
               localStorage.setItem("hasSeenTutorial", "true");
+              localStorage.setItem("treatmentMode", mode); // Fallback offline
+              
+              setUserSettings((prev: any) => ({ 
+                ...(prev || {}), 
+                treatmentMode: mode 
+              }));
+
+              if (user) {
+                try {
+                  await setDoc(
+                    doc(
+                      db,
+                      "artifacts",
+                      "diacontrolapp",
+                      "users",
+                      getEffectiveUid(user),
+                      "settings",
+                      "profile",
+                    ),
+                    { treatmentMode: mode },
+                    { merge: true },
+                  );
+                } catch (e) {
+                  console.error("Failed to save treatmentMode", e);
+                }
+              }
             }}
           />
         )}

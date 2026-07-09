@@ -140,7 +140,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
     <>
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <InsulinDetectiveAlert logs={logs} />
-      <MLAnalysisWidget logs={logs} settings={settings} user={user} />
+      <MLAnalysisWidget logs={logs} settings={settings} user={user} setTab={setTab} />
       
       {/* Glucose Trend Chart */}
       {chartData.length > 0 && (

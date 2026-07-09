@@ -73,12 +73,13 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
     }
 
     // Sport / Pattern Detection
+    const isTuesday = new Date().getDay() === 2;
     const tuesdayLows = logs.filter(l => {
       const d = new Date(l.timestamp);
       return d.getDay() === 2 && d.getHours() >= 17 && d.getHours() <= 20 && l.type === 'glucose' && l.value < 80;
     });
     
-    if (tuesdayLows.length >= 2) {
+    if (isTuesday && tuesdayLows.length >= 2) {
       results.push({
         id: 'sport_detected',
         type: 'activity',
@@ -104,7 +105,8 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
 
     // Meal regularity
     const mealCount = todayLogs.filter(l => l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs)).length;
-    if (mealCount > 0 && mealCount < 3) {
+    const currentHour = new Date().getHours();
+    if (currentHour >= 18 && mealCount > 0 && mealCount < 3) {
       results.push({
         id: 'meal_regularity',
         type: 'habit',
@@ -174,7 +176,7 @@ export default function GlikoSenseTips({ logs, pumpStatus, compact = false }: { 
           >
             <button 
               onClick={() => handleDismiss(tip.id)}
-              className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100/50 dark:bg-white/5 rounded-full transition-all opacity-0 group-hover:opacity-100"
+              className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100/50 dark:bg-white/5 rounded-full transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
               aria-label={t('auto.dismiss_tip', { defaultValue: 'Dismiss tip' })}
             >
               <X size={12} />

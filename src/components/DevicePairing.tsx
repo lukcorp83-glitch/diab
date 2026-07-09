@@ -155,6 +155,7 @@ export default function DevicePairing({
       )
     ) {
       localStorage.removeItem("diacontrol_linked_uid");
+      onUpdateSettings({ linkedUid: "", isLinkedAdmin: false });
       window.location.reload();
     }
   };
@@ -212,10 +213,18 @@ export default function DevicePairing({
         localStorage.removeItem("pairing_block_until");
         localStorage.setItem("diacontrol_linked_uid", parsed.uid);
         
+        // ZAPIS DO CHMURY (Firebase Fallback)
+        const settingsToUpdate: any = { 
+            linkedUid: parsed.uid,
+            isLinkedAdmin: parsed.role === 'admin'
+        };
+        
         // Kopiujemy też websocketUrl z mastera jeśli jest
         if (parsed.settings?.websocketUrl) {
-           onUpdateSettings({ websocketUrl: parsed.settings.websocketUrl });
+           settingsToUpdate.websocketUrl = parsed.settings.websocketUrl;
         }
+        
+        onUpdateSettings(settingsToUpdate);
         
         alert(i18n.t('auto.polaczono_pomyslnie_aplikacja', { defaultValue: i18n.t('auto.polaczono_pomyslnie_aplik', { defaultValue: "Połączono pomyślnie! Aplikacja zostanie przeładowana." }) }));
         window.location.reload();

@@ -12,12 +12,16 @@ import {
   Brain,
   Mic,
   Activity,
-  Zap
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
 import { LogEntry, UserSettings, AssistantMessage } from '../types';
 import { SKINS, ACCESSORIES } from '../constants';
+import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
+import toast from 'react-hot-toast';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -58,6 +62,16 @@ export default function GlikoAssistant({
       ]);
     }
   }, [messages.length, isChild]);
+
+  useEffect(() => {
+    const query = sessionStorage.getItem('bot_initial_query');
+    if (query) {
+      sessionStorage.removeItem('bot_initial_query');
+      setTimeout(() => {
+        onSend(query);
+      }, 500);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -104,13 +118,54 @@ export default function GlikoAssistant({
     }
   }, []);
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (isListening) {
-      recognitionRef.current?.stop();
+      if (!Capacitor.isNativePlatform()) {
+        recognitionRef.current?.stop();
+      }
+      setIsListening(false);
     } else {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const permStatus = await SpeechRecognition.checkPermissions();
+          if (permStatus.speechRecognition !== 'granted') {
+            const reqStatus = await SpeechRecognition.requestPermissions();
+            if (reqStatus.speechRecognition !== 'granted') {
+              toast.error('Brak uprawnień do mikrofonu! Zezwól na nagrywanie w ustawieniach Androida.');
+              return;
+            }
+          }
+          setIsListening(true);
+          const { matches } = await SpeechRecognition.start({
+            language: 'pl-PL',
+            maxResults: 1,
+            prompt: i18n.t('auto.mow_teraz', { defaultValue: 'Mów teraz...' }),
+            partialResults: false,
+            popup: true
+          });
+          if (matches && matches.length > 0) {
+            const transcript = matches[0];
+            setInput(transcript);
+            handleSend(transcript);
+          }
+          setIsListening(false);
+          return;
+        } catch (e) {
+          console.error('Native speech recognition error:', e);
+          setIsListening(false);
+          toast.error('Nie udało się uruchomić mikrofonu natywnego.');
+          return;
+        }
+      }
+      
       setInput('');
-      recognitionRef.current?.start();
-      setIsListening(true);
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error('Speech recognition start error:', e);
+        toast.error('Nie udało się uruchomić mikrofonu.');
+      }
     }
   };
 
@@ -145,12 +200,12 @@ export default function GlikoAssistant({
     }
   };
 
-  const suggestions = isChild ? [
-    "Jak rano?",
-    "Oblicz jedzenie",
-    i18n.t('auto.cos_do_zabawy', { defaultValue: i18n.t('auto.cos_do_zabawy', { defaultValue: "Coś do zabawy" }) }),
-    i18n.t('auto.czuje_sie_zle', { defaultValue: i18n.t('auto.czuje_sie_zle', { defaultValue: "Czuję się źle" }) }),
-    i18n.t('auto.glodny', { defaultValue: i18n.t('auto.glodny', { defaultValue: "Głodny!" }) })
+  const adultSuggestions = settings?.treatmentMode === 'diet_only' ? [
+    i18n.t('auto.ocena_zbilansowania_diety', { defaultValue: 'Ocena zbilansowania diety' }),
+    i18n.t('auto.korelacja_posilkow', { defaultValue: i18n.t('auto.korelacja_posilkow', { defaultValue: "Korelacja posiłków" }) }),
+    i18n.t('auto.sprawdz_wartosci_odzywcze', { defaultValue: 'Sprawdź wartości odżywcze' }),
+    i18n.t('auto.zamienniki_produktow', { defaultValue: 'Zamienniki produktów' }),
+    i18n.t('auto.przepisy_niskoglikemiczne', { defaultValue: 'Przepisy niskoglikemiczne' })
   ] : [
     i18n.t('auto.analiza_tir', { defaultValue: 'Analiza TIR' }),
     i18n.t('auto.korelacja_posilkow', { defaultValue: i18n.t('auto.korelacja_posilkow', { defaultValue: "Korelacja posiłków" }) }),
@@ -158,6 +213,14 @@ export default function GlikoAssistant({
     i18n.t('auto.odczyty_nocne', { defaultValue: 'Odczyty Nocne' }),
     i18n.t('auto.model_bazalny', { defaultValue: 'Model Bazalny' })
   ];
+
+  const suggestions = isChild ? [
+    "Jak rano?",
+    "Oblicz jedzenie",
+    i18n.t('auto.cos_do_zabawy', { defaultValue: i18n.t('auto.cos_do_zabawy', { defaultValue: "Coś do zabawy" }) }),
+    i18n.t('auto.czuje_sie_zle', { defaultValue: i18n.t('auto.czuje_sie_zle', { defaultValue: "Czuję się źle" }) }),
+    i18n.t('auto.glodny', { defaultValue: i18n.t('auto.glodny', { defaultValue: "Głodny!" }) })
+  ] : adultSuggestions;
 
   const renderAvatar = (size: 'sm' | 'md' | 'lg' = 'md') => {
     if (!isChild) {
@@ -321,6 +384,28 @@ export default function GlikoAssistant({
                   )}
                   dangerouslySetInnerHTML={{ __html: message.text }}
                 />
+                
+                {message.appAction && message.appAction.action && (
+                  <button
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('ai_app_action', { detail: message.appAction }));
+                    }}
+                    className={cn(
+                        "mt-3 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                        "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md active:scale-95"
+                    )}
+                  >
+                    {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })} {
+                      message.appAction.action === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
+                      message.appAction.action === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
+                      message.appAction.action === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
+                      message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
+                      message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
+                      message.appAction.action
+                    }
+                    <ArrowRight size={14} />
+                  </button>
+                )}
                 <div className={cn(
                   "flex items-center gap-2 mt-4",
                   message.role === 'user' ? "justify-end" : "justify-start"

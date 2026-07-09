@@ -1,10 +1,10 @@
 {
-  "version": "5.7.0",
+  "version": "5.6.25",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.0_OTA.apk",
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.6.25_OTA.apk",
   "buildNumber": 105,
   "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.7.0: Szybkie dodawanie pominiętych posiłków, analiza składów leków, wsparcie dla diety/penów oraz poprawki stabilności!",
-  "whatsNewEn": "🚀 Version 5.7.0: Quick add for missed meals, medication analysis, diet/pens therapy support and stability fixes!",
+  "whatsNew": "🚀 Wersja 5.6.25: Poprawki stabilności i optymalizacja.",
+  "whatsNewEn": "🚀 Version 5.6.25: Stability improvements and optimization.",
   "otaRevision": 260
 }

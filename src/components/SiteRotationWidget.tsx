@@ -110,7 +110,7 @@ export default function SiteRotationWidget({ logs, settings, size, onAction, set
         {!isCompact && (
           <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none drop-shadow-sm">
             
-                                  {t('auto.rotacja', { defaultValue: 'Rotacja' })}<br/>{t('auto.wkłuć', { defaultValue: i18n.t('auto.wkluc', { defaultValue: "Wkłuć" }) })}
+                                  {t('auto.rotacja', { defaultValue: 'Rotacja' })}<br/>{t('auto.wkluc', { defaultValue: "Wkłuć" })}
                                 </span>
         )}
       </div>

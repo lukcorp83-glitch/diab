@@ -577,7 +577,7 @@ export default function MealEditModal({
                 </label>
               )}
 
-              {!isBolus && log.source === "nightscout" && (
+              {!isBolus && log.source?.startsWith("nightscout") && (
                 <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors glass-target">
                   <input
                     type="checkbox"

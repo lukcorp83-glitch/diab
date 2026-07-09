@@ -14,23 +14,12 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.0';
+export const CURRENT_VERSION = '5.6.25';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
-  {
-    version: "5.7.0",
-    date: "2026-07-09",
-    title: "Szybkie dodawanie, MDI & Stabilność",
-    changes: [
-      "Nowość: Dodano szybkie dodawanie posiłków w widżecie pominiętego posiłku.",
-      "Nowość: Analiza składów leków.",
-      "Nowość: Wsparcie dla terapii na samej diecie i penach.",
-      "Naprawa: Poprawki błędów i stabilności."
-    ]
-  },
   {
     version: "5.6.25",
     date: "2026-07-09",
@@ -150,15 +139,15 @@ export const PWA_VERSIONS: VersionEntry[] = [
   },
 
   {
-
     version: "5.4.8",
     date: "2026-06-30",
-    title: "Naprawa mikrofonu i stabilizacja",
+    title: "Łatki dla mikrofonu (Android 11+)",
     changes: [
-      "Naprawa importu wtyczki mikrofonu w bazie produktów, usunięcie crashu telemetrii w Profilu oraz optymalizacja pamięci podręcznej Vite."
+      "Nowość: Dodano regułę 'queries' do AndroidManifest, przez którą asystent głosowy ubijał aplikację.",
+      "Poprawka: Downgrade wtyczki Capacitor z v7 do v6 dla uniknięcia błędów mostka Java na starszych smartfonach.",
+      "Usunięcie: Całkowicie wycięto sekcję telemetrii GlikoSense z kodu, aplikacja działa teraz szybciej i uczy się w 100% lokalnie!"
     ]
   },
-
   {
     version: "5.4.7",
     date: "2026-06-30",
@@ -522,18 +511,6 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-
-    version: "5.7.0",
-    date: "2026-07-09",
-    title: "Szybkie dodawanie, MDI & Stabilność",
-    changes: [
-      "Nowość: Dodano szybkie dodawanie posiłków w widżecie pominiętego posiłku.",
-      "Nowość: Analiza składów leków.",
-      "Nowość: Wsparcie dla terapii na samej diecie i penach.",
-      "Naprawa: Poprawki błędów i stabilności."
-    ]
-  },
-  {
     version: "5.6.25",
     date: "2026-07-09",
     title: "Poprawki i stabilizacja",
@@ -652,15 +629,15 @@ export const APK_VERSIONS: VersionEntry[] = [
   },
 
   {
-
     version: "5.4.8",
     date: "2026-06-30",
-    title: "Naprawa mikrofonu i stabilizacja",
+    title: "Łatki dla mikrofonu (Android 11+)",
     changes: [
-      "Naprawa importu wtyczki mikrofonu w bazie produktów, usunięcie crashu telemetrii w Profilu oraz optymalizacja pamięci podręcznej Vite."
+      "Nowość: Dodano regułę 'queries' do AndroidManifest, przez którą asystent głosowy ubijał aplikację.",
+      "Poprawka: Downgrade wtyczki Capacitor z v7 do v6 dla uniknięcia błędów mostka Java na starszych smartfonach.",
+      "Usunięcie: Całkowicie wycięto sekcję telemetrii GlikoSense z kodu, aplikacja działa teraz szybciej i uczy się w 100% lokalnie!"
     ]
   },
-
   {
     version: "5.4.7",
     date: "2026-06-30",

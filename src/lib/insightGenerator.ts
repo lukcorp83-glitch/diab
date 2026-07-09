@@ -2,14 +2,14 @@ import { LogEntry } from '../types';
 import { calculateIOB, calculateCOB } from './utils';
 import i18n from "../i18n";
 
-export function getGlikoSenseInsights(logs: LogEntry[]): string[] {
+export function getGlikoSenseInsights(logs: LogEntry[], treatmentMode?: 'diet_only' | 'insulin' | 'pump'): string[] {
   const iob = calculateIOB(logs);
   const cob = calculateCOB(logs);
   const recentGlucose = logs.filter(l => l.type === 'glucose').slice(0, 10);
   
   const insights: string[] = [];
 
-  if (iob > 0.5) {
+  if (treatmentMode !== 'diet_only' && iob > 0.5) {
     insights.push(`Aktywna insulina: ok. ${iob.toFixed(1)} j.`);
   }
 

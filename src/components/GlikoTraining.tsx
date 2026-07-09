@@ -762,7 +762,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
                         </div>
                         <div className="mt-2 text-slate-300 dark:text-slate-600 transition-transform group-hover:translate-x-1">
                           
-                                                            {t('auto.rarr', { defaultValue: '&rarr;' })}
+                                                            {t('auto.rarr', { defaultValue: '→' })}
                                                           </div>
                       </div>
                     </div>

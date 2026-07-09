@@ -48,12 +48,26 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
       
       const newAlert = alerts[0];
       
-      // Jeśli pojawił się nowy alert, odtwórz dźwięk/wibrację
+      // Jeśli pojawił się nowy alert, odtwórz dźwięk/wibrację i wyskocz z powiadomieniem Android
       if (!activeAlert || activeAlert.id !== newAlert.id) {
         if ('vibrate' in navigator) {
           navigator.vibrate([200, 100, 200, 100, 500]);
         }
         playHighGlucoseSound(); // Używamy głośnego dźwięku alarmu
+        
+        // Android Push Notification
+        import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+          LocalNotifications.schedule({
+            notifications: [
+              {
+                title: i18n.t('auto.wiadomosc_od', { defaultValue: 'Wiadomość od: ' }) + newAlert.senderDevice,
+                body: newAlert.message,
+                id: new Date().getTime(),
+                schedule: { at: new Date(Date.now() + 1000) },
+              }
+            ]
+          }).catch(e => console.warn('Push not supported', e));
+        });
       }
 
       setActiveAlert(newAlert);

@@ -174,6 +174,7 @@ export const nightscoutService = {
 
           const rawNotes = t.notes || t.eventType || "";
           const cleanNotes = rawNotes === "<none>" ? "" : rawNotes;
+          const nsSource = t.enteredBy ? `nightscout (${t.enteredBy})` : 'nightscout';
           
           if (insulin > 0) {
             const payload: any = {
@@ -182,7 +183,7 @@ export const nightscoutService = {
               value: insulin,
               timestamp,
               notes: cleanNotes,
-              source: 'nightscout'
+              source: nsSource
             };
 
             if (carbs > 0) {
@@ -201,7 +202,7 @@ export const nightscoutService = {
               value: carbs,
               timestamp,
               notes: cleanNotes,
-              source: 'nightscout'
+              source: nsSource
             });
           }
 
@@ -214,7 +215,7 @@ export const nightscoutService = {
               value: 1,
               timestamp,
               notes: cleanNotes,
-              source: 'nightscout'
+              source: nsSource
             });
           }
 
@@ -225,7 +226,7 @@ export const nightscoutService = {
               value: 1,
               timestamp,
               notes: cleanNotes,
-              source: 'nightscout'
+              source: nsSource
             });
           }
       });
@@ -285,6 +286,7 @@ export const nightscoutService = {
         battery: batteryPercent,
         reservoir: pumpInfo?.reservoir ?? 0,
         activeInsulin: pumpInfo?.iob?.iob ?? 0,
+        model: pumpInfo?.model ?? pumpInfo?.name ?? null,
         basal: {
            rate: pumpInfo?.status?.currentbasal ?? 0,
            isTemp: !!pumpInfo?.status?.tempbasal

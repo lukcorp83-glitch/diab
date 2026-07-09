@@ -14,12 +14,21 @@ export const notificationService = {
     if (Capacitor.isNativePlatform()) {
       try {
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v6',
+          id: 'glucose_alerts_v7',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
           importance: 5,
           visibility: 1,
-          sound: 'critical_alarm.wav',
+          sound: 'status_clear.mp3',
+          vibration: true
+        });
+
+        await LocalNotifications.createChannel({
+          id: 'glikocontrol_reminders_v1',
+          name: 'Przypomnienia GlikoControl',
+          description: 'Powiadomienia o lekach, wymianach osprzętu i prognozach',
+          importance: 4,
+          visibility: 1,
           vibration: true
         });
       } catch (err) {
@@ -76,9 +85,9 @@ export const notificationService = {
                 }).catch(() => {
                     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
                 });
-                toast(body, { 
-                  icon: '⚠️', 
-                  duration: 20000, 
+                toast(body, {
+                  icon: '⚠️',
+                  duration: 20000,
                   position: 'top-center',
                   style: { border: '2px solid #f43f5e', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
                 });
@@ -117,7 +126,6 @@ export const notificationService = {
       return null;
     } catch (error) {
       console.error('Token registration failed:', error);
-      // More descriptive error for common issues
       const errMsg = error instanceof Error ? error.message : String(error);
       if (errMsg.includes('Permission denied')) {
         alert(i18n.t('auto.dostep_do_powiadomien_zostal_z', { defaultValue: i18n.t('auto.dostep_do_powiadomien_zos', { defaultValue: "Dostęp do powiadomień został zablokowany. Zresetuj uprawnienia w ustawieniach przeglądarki." }) }));
@@ -129,9 +137,6 @@ export const notificationService = {
       return null;
     }
   },
-
-
-
 
   async sendHypoProtectionAlert() {
     const title = i18n.t('auto.ochrona_przed_hipo', { defaultValue: "Ochrona przed hipo (AI)" });
@@ -147,8 +152,7 @@ export const notificationService = {
             body,
             id: 888,
             schedule: { at: new Date(Date.now() + 1000) },
-            channelId: 'glucose_alerts_v6',
-            sound: 'critical_alarm.wav',
+            channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -176,7 +180,7 @@ export const notificationService = {
       const perms = await LocalNotifications.checkPermissions();
       if (perms.display !== 'granted') return;
 
-      const notificationsToSchedule = [];
+      const notificationsToSchedule: any[] = [];
 
       if (settings.sensorChangeDate && settings.sensorDurationDays) {
         const expiryDate = settings.sensorChangeDate + (settings.sensorDurationDays * 24 * 60 * 60 * 1000);
@@ -188,7 +192,7 @@ export const notificationService = {
             title: 'Wymiana sensora',
             body: i18n.t('auto.twoj_sensor_wygasa_za_12_godzi', { defaultValue: i18n.t('auto.twoj_sensor_wygasa_za_12', { defaultValue: "Twój sensor wygasa za 12 godzin!" }) }),
             schedule: { at: reminderDate },
-            sound: 'critical_alarm.wav',
+            channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -206,7 +210,7 @@ export const notificationService = {
             title: i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia" }) }),
             body: i18n.t('auto.twoje_wklucie_wygasa_za_12_god', { defaultValue: i18n.t('auto.twoje_wklucie_wygasa_za_1', { defaultValue: "Twoje wkłucie wygasa za 12 godzin!" }) }),
             schedule: { at: reminderDate },
-            sound: 'critical_alarm.wav',
+            channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: null
@@ -215,12 +219,68 @@ export const notificationService = {
       }
 
       await LocalNotifications.cancel({ notifications: [{ id: 998 }, { id: 999 }] }).catch(() => {});
-      
+
       if (notificationsToSchedule.length > 0) {
         await LocalNotifications.schedule({ notifications: notificationsToSchedule });
       }
     } catch (e) {
       console.error('Failed to schedule device reminders', e);
+    }
+  },
+
+  async scheduleMedicationReminders(medications: any[]) {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      const perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') return;
+
+      // Anuluj poprzednie powiadomienia leków (IDs 2000-2099)
+      const idsToCancel = Array.from({ length: 100 }, (_, i) => ({ id: 2000 + i }));
+      await LocalNotifications.cancel({ notifications: idsToCancel }).catch(() => {});
+
+      const notificationsToSchedule: any[] = [];
+      let notifId = 2000;
+
+      const activeMeds = (medications || []).filter((m: any) => m.active && m.reminders?.length > 0);
+
+      for (const med of activeMeds) {
+        for (const reminderTime of med.reminders) {
+          const [hours, minutes] = reminderTime.split(':').map(Number);
+          if (isNaN(hours) || isNaN(minutes)) continue;
+
+          const now = new Date();
+          const scheduleDate = new Date();
+          scheduleDate.setHours(hours, minutes, 0, 0);
+
+          // Jeśli godzina już minęła dziś, zaplanuj na jutro
+          if (scheduleDate <= now) {
+            scheduleDate.setDate(scheduleDate.getDate() + 1);
+          }
+
+          const dosageInfo = med.dosage ? ` (${med.dosage})` : '';
+
+          notificationsToSchedule.push({
+            id: notifId++,
+            title: `💊 ${i18n.t('auto.czas_na_lek', { defaultValue: 'Czas na lek' })}: ${med.name}`,
+            body: `${i18n.t('auto.pamietaj_o_dawce', { defaultValue: 'Pamiętaj o dawce' })}${dosageInfo}`,
+            schedule: { at: scheduleDate, repeats: true, every: 'day' },
+            channelId: 'glikocontrol_reminders_v1',
+            attachments: null,
+            actionTypeId: '',
+            extra: { medId: med.id },
+          });
+
+          if (notifId >= 2100) break;
+        }
+        if (notifId >= 2100) break;
+      }
+
+      if (notificationsToSchedule.length > 0) {
+        await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+        console.log(`[Notifications] Zaplanowano ${notificationsToSchedule.length} przypomnienie(ń) leków.`);
+      }
+    } catch (e) {
+      console.error('Failed to schedule medication reminders', e);
     }
   },
 
@@ -233,19 +293,17 @@ export const notificationService = {
       await this.initChannels();
       await LocalNotifications.requestPermissions();
       await LocalNotifications.schedule({
-        notifications: [
-          {
-            title: title,
-            body: body,
-            id: Math.floor(Math.random() * 100000),
-            schedule: { at: scheduleDate },
-            channelId: 'glucose_alerts_v6',
-            sound: 'critical_alarm.wav',
-            attachments: null,
-            actionTypeId: "",
-            extra: null
-          }
-        ]
+        notifications: [{
+          title,
+          body,
+          id: Math.floor(Math.random() * 100000),
+          schedule: { at: scheduleDate },
+          channelId: 'glucose_alerts_v7',
+          sound: 'status_clear.mp3',
+          attachments: null,
+          actionTypeId: '',
+          extra: null
+        }]
       });
       return;
     }
@@ -264,15 +322,11 @@ export const notificationService = {
     }
 
     setTimeout(async () => {
-      // Wibracje fallback
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200, 100, 200]);
-      }
-      
-      // Pokazujemy zawsze wyraźny toast w aplikacji
-      toast(body, { 
-        icon: '🍽️', 
-        duration: 20000, 
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+
+      toast(body, {
+        icon: '🍽️',
+        duration: 20000,
         position: 'top-center',
         style: { border: '2px solid #6366f1', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
       });
@@ -282,7 +336,7 @@ export const notificationService = {
         try {
           const registration = await navigator.serviceWorker.ready;
           if (registration) {
-             registration.showNotification(title, {
+            registration.showNotification(title, {
               body,
               icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
               vibrate: [200, 100, 200, 100, 200],
@@ -290,13 +344,11 @@ export const notificationService = {
               requireInteraction: true
             } as any);
           } else {
-             new window.Notification(title, { body });
+            new window.Notification(title, { body });
           }
         } catch (e) {
           console.log("Fallback powiadomienia", e);
-          try {
-             new window.Notification(title, { body });
-          } catch(err) {}
+          try { new window.Notification(title, { body }); } catch(err) {}
         }
       }
     }, delayMs);
@@ -310,9 +362,9 @@ export const notificationService = {
     const user = auth.currentUser;
     if (!user) return;
 
-      try {
-        await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'fcm_token'), {
-          token,
+    try {
+      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'fcm_token'), {
+        token,
         updatedAt: serverTimestamp(),
         userId: user.uid,
         email: user.email,
@@ -381,8 +433,8 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v6',
-            sound: 'critical_alarm.wav',
+            channelId: 'glucose_alerts_v7',
+            sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: "",
             extra: null
@@ -412,5 +464,3 @@ export const notificationService = {
     }
   }
 };
-
-

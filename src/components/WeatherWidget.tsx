@@ -6,7 +6,7 @@ import { fetchCurrentWeather } from '../services/weatherService';
 import { Haptics } from '../lib/haptics';
 import { useTranslation } from "react-i18next";
 
-export default function WeatherWidget({ compact = false }: { compact?: boolean }) {
+export default function WeatherWidget({ compact = false, pill = false }: { compact?: boolean, pill?: boolean }) {
     const { t } = useTranslation();
   const [weather, setWeather] = useState<any>(null);
   const [loadingLoc, setLoadingLoc] = useState(false);
@@ -144,6 +144,19 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
     if (weather.temp < 5) return <Snowflake size={24} className="text-sky-300" />;
     return <Sun size={24} className="text-amber-500" />;
   };
+
+  if (pill) {
+    if (!weather) return null;
+    return (
+      <div 
+        onClick={handleRefreshLoc}
+        className="shrink-0 flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest cursor-pointer active:scale-95 transition-all shadow-sm"
+      >
+        <span className="scale-75 origin-center">{renderWeatherIcon()}</span>
+        {Math.round(weather.temp)}°
+      </div>
+    );
+  }
 
   return (
     <div className="glass-card mb-0 overflow-hidden relative">
