@@ -286,7 +286,7 @@ export default function App() {
     dbService.init().then(async () => {
       console.log(i18n.t('auto.baza_danych_zainicjowana_prawi', { defaultValue: i18n.t('auto.baza_danych_zainicjowana', { defaultValue: "Baza danych zainicjowana prawidłowo!" }) }));
       try {
-        const localData = await dbService.getLogs(15000);
+        const localData = await dbService.getLogs(45000);
         setCachedLogs(localData);
       } catch (err) {
         console.error(i18n.t('auto.blad_pobierania_danych_startow', { defaultValue: i18n.t('auto.blad_pobierania_danych_st', { defaultValue: "Błąd pobierania danych startowych" }) }), err);

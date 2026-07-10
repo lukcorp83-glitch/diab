@@ -212,7 +212,7 @@ export class DatabaseService {
     }
   }
 
-  async getLogs(limit: number = 15000): Promise<any[]> {
+  async getLogs(limit: number = 45000): Promise<any[]> {
     if (!this.db) return [];
     try {
       const res = await this.db.query(`SELECT payload FROM application_logs ORDER BY timestamp DESC LIMIT ?`, [limit]);

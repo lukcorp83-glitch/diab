@@ -18,7 +18,7 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `dev-dist/sw.js` - Wygenerowany Service Worker używany przez Vite PWA. Nie modyfikować ręcznie.
 
 ## Synchronizacja Danych i Firebase (Limity bazy)
-- `src/components/CloudPackageSync.tsx` - Narzędzie, które archiwizuje wszystkie tabele SQLite (do 15000) i model ML w jeden spakowany dokument na Firebase.
-- **Odczyty Bazy:** `App.tsx` samodzielnie puszcza w tle paczki co 24h. Aplikacja unika zapytań o tysiące rekordów poprzez `onSnapshot` w Firebase (rygorystyczny limit `1500`, zapobiegający błędowi "Quota Exceeded"). W przypadku zresetowanej / świeżej pamięci z automatu uruchamia import pojedynczej wielkiej paczki (Cloud Package), dzięki czemu historia z powrotem ma 15 000 wyników (i statystyki działają dla minionych dni) przy obciążeniu zaledwie jednego odczytu Firebase.
+- `src/components/CloudPackageSync.tsx` - Narzędzie, które archiwizuje wszystkie tabele SQLite (do 45000) i model ML w jeden spakowany dokument na Firebase.
+- **Odczyty Bazy:** `App.tsx` samodzielnie puszcza w tle paczki co 24h. Aplikacja unika zapytań o tysiące rekordów poprzez `onSnapshot` w Firebase (rygorystyczny limit `1500`, zapobiegający błędowi "Quota Exceeded"). W przypadku zresetowanej / świeżej pamięci z automatu uruchamia import pojedynczej wielkiej paczki (Cloud Package), dzięki czemu historia z powrotem ma 45 000 wyników (i statystyki działają dla minionych miesięcy) przy obciążeniu zaledwie jednego odczytu Firebase.
 
 *(Aktualizuj ten plik za każdym razem, gdy badasz nową część starego kodu lub tworzysz coś nowego!)*
