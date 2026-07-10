@@ -30,3 +30,6 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
   - Implementując rozpoznawanie głosu, zawsze upewnij się że masz try/catch przy operacjach związanych z mikrofonem. Android WebView lubi zablokować API po cichu, gdy brakuje uprawnień.
 
 - **Zasada ogólna**: Zawsze komunikuj się z użytkownikiem w języku polskim.
+
+- **Optymalizacja Kontekstu (Oszczędzanie Tokenów)**:
+  - Zawsze opieraj się na pliku `.agents/docs/architecture.md`, w którym znajduje się mapa starego i nowego kodu. Zamiast w ciemno skanować cały projekt czy wielkie pliki (jak `App.tsx`), najpierw zajrzyj do mapy architektury. Gdy tylko odkryjesz lub zmodyfikujesz coś ważnego (niezależnie czy to nowy, czy stary kod), **od razu aktualizuj plik `architecture.md`**, aby nie zapomnieć jak działa aplikacja między rozmowami.

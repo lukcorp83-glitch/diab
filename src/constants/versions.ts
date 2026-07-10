@@ -14,12 +14,21 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.01';
+export const CURRENT_VERSION = '5.7.02';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.02",
+    date: "2026-07-10",
+    title: "Optymalizacja Firebase",
+    changes: [
+      "Rozwiązano błąd przekraczania darmowego limitu Firebase po nowej instalacji aplikacji.",
+      "Dodano auto-przywracanie pełnych statystyk (do 15000) z dziennej paczki chmurowej."
+    ]
+  },
   {
     version: "5.7.01",
     date: "2026-07-09",
@@ -518,6 +527,15 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.02",
+    date: "2026-07-10",
+    title: "Optymalizacja Firebase",
+    changes: [
+      "Rozwiązano błąd przekraczania darmowego limitu Firebase po nowej instalacji aplikacji.",
+      "Dodano auto-przywracanie pełnych statystyk (do 15000) z dziennej paczki chmurowej."
+    ]
+  },
   {
     version: "5.7.01",
     date: "2026-07-09",

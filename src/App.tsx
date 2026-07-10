@@ -1889,10 +1889,10 @@ export default function App() {
     if (!user || !cachedLogsLoaded) return;
 
     let q;
-    // Auto-Restore logic: if local DB was wiped (logs = 0) but we had them before (flag)
-    if (cachedLogs.length === 0 && localStorage.getItem('glikocontrol_has_local_data') === 'true') {
-      console.log("SQLite wipe detected, attempting auto-restore...");
-      localStorage.setItem('glikocontrol_has_local_data', 'false'); // prevent loop
+    // Auto-Restore logic: always attempt on fresh install/wipe to fetch the full 15k history without hitting quota
+    if (cachedLogs.length === 0 && localStorage.getItem('has_attempted_cloud_restore') !== 'true') {
+      console.log("No local data, attempting auto-restore from cloud package...");
+      localStorage.setItem('has_attempted_cloud_restore', 'true'); // prevent loop
       downloadCloudPackage(user).then(ok => {
         if (ok) {
           console.log("Auto-restore successful, reloading...");
@@ -1934,15 +1934,15 @@ export default function App() {
 
     if (newestLocalTs > 0) {
       // Fetch only what's new since our last sync/cache (+ mały zapas - 2 dni)
-      const safeTs = newestLocalTs - 2 * 24 * 3600 * 1000;
+      const safeTs = newestLocalTs - 5 * 24 * 3600 * 1000; // Zapas 5 dni na synchronizację offline
       q = query(
         logsCollection,
         where("timestamp", ">", safeTs),
         orderBy("timestamp", "desc"),
-        limit(150),
+        limit(1500),
       );
     } else {
-      q = query(logsCollection, orderBy("timestamp", "desc"), limit(20000));
+      q = query(logsCollection, orderBy("timestamp", "desc"), limit(1500));
     }
 
     const unsubscribe = onSnapshot(

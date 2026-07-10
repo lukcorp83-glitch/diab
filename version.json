@@ -1,10 +1,10 @@
 {
-  "version": "5.7.01",
+  "version": "5.7.02",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.01_OTA.apk",
-  "buildNumber": 106,
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.02_OTA.apk",
+  "buildNumber": 107,
   "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.7.01: Nowa aktualizacja Beta.",
-  "whatsNewEn": "🚀 Version 5.7.01: New Beta update.",
-  "otaRevision": 261
+  "whatsNew": "🚀 Wersja 5.7.02: Optymalizacja limitów bazy Firebase i automatyczne przywracanie brakujących statystyk z chmury.",
+  "whatsNewEn": "🚀 Version 5.7.02: Firebase DB optimization and automatic recovery of missing stats from the cloud.",
+  "otaRevision": 262
 }
