@@ -8,28 +8,127 @@ import { Activity, Award, TrendingUp } from 'lucide-react';
 import { UserSettings } from '../types';
 import { useTranslation } from "react-i18next";
 
-export default function DietScoreWidget({ user, activeDiet }: { user: User, activeDiet: string }) {
-    const { t } = useTranslation();
+export default function DietScoreWidget({ user, activeDiet, settings }: { user: User, activeDiet: string, settings?: UserSettings }) {
+  const { t } = useTranslation();
   const [score, setScore] = useState(85);
-  const [fiber, setFiber] = useState(24); // mock
-  const [sodium, setSodium] = useState(1800); // mock
+  const [fiber, setFiber] = useState(24);
+  const [sodium, setSodium] = useState(1800);
   const [loading, setLoading] = useState(true);
+  const [yesterdayKcal, setYesterdayKcal] = useState(0);
+  const [recommendationStr, setRecommendationStr] = useState("");
 
-  // In a real app we would compute this from the "logs" meals. 
-  // Let's do a simple UI for now.
   useEffect(() => {
-    setTimeout(() => setLoading(false), 800);
-  }, []);
+    const fetchYesterdayLogs = async () => {
+      try {
+        const startOfYesterday = new Date();
+        startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+        startOfYesterday.setHours(0, 0, 0, 0);
 
-  const getRecommendations = () => {
-    switch (activeDiet) {
-      case 'keto': return i18n.t('auto.utrzymujesz_swietnie_weglowoda', { defaultValue: i18n.t('auto.utrzymujesz_swietnie_wegl', { defaultValue: "Utrzymujesz świetnie węglowodany, zjedz nieco więcej zdrowych tłuszczy np. awokado." }) });
-      case 'dash': return i18n.t('auto.uwaga_na_sod_wczorajsze_posilk', { defaultValue: i18n.t('auto.uwaga_na_sod_wczorajsze_p', { defaultValue: "Uwaga na sód! Wczorajsze posiłki zawierały sporo soli. Zwiększ potas." }) });
-      case 'gluten': return i18n.t('auto.doskonale_wyniki_bezglutenowe', { defaultValue: i18n.t('auto.doskonale_wyniki_bezglute', { defaultValue: "Doskonałe wyniki bezglutenowe. Uważaj na niedobory błonnika." }) });
-      case 'plate': return i18n.t('auto.2_3_twoich_posilkow_w_tym_tygo', { defaultValue: i18n.t('auto.2_3_twoich_posilkow_w_tym', { defaultValue: "2/3 Twoich posiłków w tym tygodniu miało idealne proporcje 50/25/25!" }) });
-      default: return i18n.t('auto.trzymasz_sie_planu_tak_trzymaj', { defaultValue: i18n.t('auto.trzymasz_sie_planu_tak_tr', { defaultValue: "Trzymasz się planu. Tak trzymaj!" }) });
-    }
-  };
+        const endOfYesterday = new Date();
+        endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+        endOfYesterday.setHours(23, 59, 59, 999);
+
+        const logsRef = collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs");
+        const q = query(
+          logsRef,
+          where("timestamp", ">=", startOfYesterday.getTime()),
+          where("timestamp", "<=", endOfYesterday.getTime())
+        );
+        const snapshot = await getDocs(q);
+
+        let totalCals = 0;
+        let totalCarbs = 0;
+        let totalProtein = 0;
+        let totalFat = 0;
+
+        snapshot.forEach(docSnap => {
+           const data = docSnap.data();
+           if (data.type === "meal" || data.type === "bolus") {
+               const mealData = data.type === "bolus" ? data.linkedMeal : data;
+               if (mealData) {
+                   totalCals += mealData.calories || 0;
+                   totalCarbs += (mealData.value || mealData.carbs) || 0;
+                   totalProtein += mealData.protein || 0;
+                   totalFat += mealData.fat || 0;
+               }
+           }
+        });
+
+        setYesterdayKcal(totalCals);
+        
+        let targetScore = 85;
+        if (totalCals > 0 && settings?.tdee) {
+           const diff = Math.abs(totalCals - settings.tdee);
+           targetScore = Math.max(10, 100 - Math.round((diff / settings.tdee) * 100));
+        } else if (totalCals === 0) {
+           targetScore = 0;
+        }
+        setScore(targetScore);
+
+        // Convert macros to estimated calories if totalCals is too low but macros exist
+        if (totalCals < (totalCarbs * 4 + totalProtein * 4 + totalFat * 9) * 0.8) {
+             totalCals = (totalCarbs * 4) + (totalProtein * 4) + (totalFat * 9);
+        }
+
+        const tdee = settings?.tdee || 2000;
+        const carbPct = totalCals > 0 ? (totalCarbs * 4) / totalCals : 0;
+        const proteinPct = totalCals > 0 ? (totalProtein * 4) / totalCals : 0;
+        const fatPct = totalCals > 0 ? (totalFat * 9) / totalCals : 0;
+
+        let recommendation = "";
+
+        if (totalCals === 0) {
+           recommendation = i18n.t('diet.no_data', { defaultValue: "Brak danych z wczoraj. Zapisuj posiłki, by uzyskać analizę!" });
+        } else if (totalCals < tdee - 300) {
+           recommendation = i18n.t('diet.too_few_calories', { defaultValue: "Zbyt niska podaż kalorii wczoraj. Uważaj na spadki wagi i niedobory energii!" });
+           targetScore = Math.max(10, targetScore - 20);
+        } else if (totalCals > tdee + 300) {
+           recommendation = i18n.t('diet.too_many_calories', { defaultValue: "Wczoraj przekroczyłeś swój limit kalorii. Zwróć uwagę na wielkość porcji." });
+           targetScore = Math.max(10, targetScore - 20);
+        } else {
+           // Dynamic macro check based on activeDiet
+           switch (activeDiet) {
+              case 'keto': 
+                 if (totalCarbs > 40) {
+                    recommendation = i18n.t('auto.zbyt_duzo_wegli_w_keto', { defaultValue: "Przekroczono limit węglowodanów dla diety Keto. Zmniejsz ich ilość!" });
+                    targetScore = Math.max(10, targetScore - 30);
+                 } else {
+                    recommendation = i18n.t('auto.utrzymujesz_swietnie_weglowoda', { defaultValue: "Utrzymujesz świetnie węglowodany, zjedz nieco więcej zdrowych tłuszczy np. awokado." });
+                 }
+                 break;
+              case 'dash': 
+                 recommendation = i18n.t('auto.uwaga_na_sod_wczorajsze_posilk', { defaultValue: "Pamiętaj o sodzie! Wczorajsze posiłki mogły zawierać sól. Zwiększ potas." });
+                 break;
+              case 'plate': 
+                 if (carbPct > 0.45) {
+                    recommendation = i18n.t('auto.za_duzo_wegli_plate', { defaultValue: "Zbyt duży udział węglowodanów we wczorajszych posiłkach. Pamiętaj o warzywach!" });
+                    targetScore = Math.max(10, targetScore - 15);
+                 } else if (proteinPct < 0.15) {
+                    recommendation = i18n.t('auto.za_malo_bialka_plate', { defaultValue: "Wczorajsze posiłki miały za mało białka. Dodaj chude mięso lub strączkowe." });
+                    targetScore = Math.max(10, targetScore - 15);
+                 } else if (fatPct > 0.40) {
+                    recommendation = i18n.t('auto.za_duzo_tluszczu_plate', { defaultValue: "Wczorajsze posiłki były zbyt tłuste względem zaleceń zdrowego talerza." });
+                    targetScore = Math.max(10, targetScore - 15);
+                 } else {
+                    recommendation = i18n.t('diet.macros_perfect', { defaultValue: "Wczorajsze proporcje makroskładników i kalorii są wzorowe!" });
+                 }
+                 break;
+              default: 
+                 recommendation = i18n.t('auto.trzymasz_sie_planu_tak_trzymaj', { defaultValue: "Trzymasz się planu. Tak trzymaj!" });
+                 break;
+           }
+        }
+        
+        setRecommendationStr(recommendation);
+        setScore(Math.round(targetScore));
+        setLoading(false);
+      } catch (err) {
+        console.error("DietScoreWidget err:", err);
+        setLoading(false);
+      }
+    };
+    fetchYesterdayLogs();
+  }, [user, activeDiet, settings]);
 
   if (loading) {
     return <div className="animate-pulse bg-slate-100 dark:bg-slate-800 h-32 rounded-2xl"></div>;
@@ -51,20 +150,18 @@ export default function DietScoreWidget({ user, activeDiet }: { user: User, acti
          <div className="flex-1">
            <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-1.5 mb-1">
              <Award size={14} className="text-indigo-500" />
-             
-                                   {t('auto.zgodność_compliance', { defaultValue: i18n.t('auto.zgodnosc_compliance', { defaultValue: "Zgodność (Compliance)" }) })}
-                                 </h3>
+             {t('auto.zgodność_compliance', { defaultValue: i18n.t('auto.zgodnosc_compliance', { defaultValue: "Zgodność (Compliance)" }) })}
+           </h3>
            <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-             
-                                   {t('auto.tygodniowy_wskaźnik_adherencji', { defaultValue: i18n.t('auto.tygodniowy_wskaznik_adher', { defaultValue: "Tygodniowy wskaźnik adherencji" }) })}
-                                 </p>
+             {t('auto.tygodniowy_wskaźnik_adherencji', { defaultValue: i18n.t('auto.tygodniowy_wskaznik_adher', { defaultValue: "Tygodniowy wskaźnik adherencji" }) })}
+           </p>
          </div>
        </div>
 
        <div className="bg-white/50 dark:bg-slate-900/50 rounded-xl p-3 mb-4">
          <p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 leading-relaxed">
             <span className="font-black">{t('auto.glikosense', { defaultValue: 'GlikoSense:' })} </span> 
-            {getRecommendations()}
+            {recommendationStr}
          </p>
        </div>
 

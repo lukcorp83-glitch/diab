@@ -147,6 +147,13 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
     }
   }, [monthsData, expandedMonth]);
 
+  const daysOfData = useMemo(() => {
+    if (logs.length === 0) return 0;
+    const earliest = logs[logs.length - 1].timestamp;
+    const latest = logs[0].timestamp;
+    return Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24)));
+  }, [logs]);
+
   if (monthsData.length === 0) {
     return (
       <div className="text-center text-slate-500 mt-10">{t('auto.brak_danych_do_wyświetlenia_statyst', { defaultValue: i18n.t('auto.brak_danych_do_wyswietlen', { defaultValue: "Brak danych do wyświetlenia statystyk." }) })}</div>
@@ -155,6 +162,12 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
 
   return (
     <div className="space-y-4">
+      {daysOfData > 0 && (
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 p-3 rounded-2xl text-xs font-medium text-center flex items-center justify-center gap-2">
+          <Calendar size={14} />
+          {t('auto.statystyki_wygenerowane_na_podstaw', { defaultValue: "Statystyki wygenerowane na podstawie" })} <span className="font-black">{daysOfData}</span> {t('auto.ostatnich_dni', { defaultValue: "ostatnich dni logów." })}
+        </div>
+      )}
       {monthsData.map((month) => {
         const isExpanded = expandedMonth === month.monthKey;
         

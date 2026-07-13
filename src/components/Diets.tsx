@@ -205,7 +205,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                
                <HydrationWidget user={user} tdee={settings.tdee} />
                
-               <DietScoreWidget user={user} activeDiet={settings.activeDiet} />
+               <DietScoreWidget user={user} activeDiet={settings.activeDiet} settings={settings} />
 
                <DietManager user={user} settings={settings} activeDietData={activeDietData} />
                

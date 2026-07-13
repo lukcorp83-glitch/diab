@@ -6563,5 +6563,9 @@
   "auto.kolacja": "Kolacja",
   "auto.noc": "Noc",
   "auto.dzis_ml": "Dziś",
-  "auto.wczoraj_ml": "Wczoraj"
+  "auto.wczoraj_ml": "Wczoraj",
+  "diet.too_few_calories": "Zbyt niska podaż kalorii wczoraj. Uważaj na spadki wagi i niedobory energii!",
+  "diet.too_many_calories": "Wczoraj przekroczyłeś swój limit kalorii. Zwróć uwagę na wielkość porcji.",
+  "diet.no_data": "Brak danych z wczoraj. Zapisuj posiłki, by uzyskać analizę!",
+  "diet.macros_perfect": "Wczorajsze proporcje makroskładników i kalorii są wzorowe!"
 }

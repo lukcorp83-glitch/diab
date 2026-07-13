@@ -4860,5 +4860,9 @@
   "auto.historia": "History",
   "auto.pobrano_z_kalkulatora": "From calculator",
   "auto.kalkulator_bolusa": "Bolus calculator",
-  "auto.talerz": "Meal Plate"
+  "auto.talerz": "Meal Plate",
+  "diet.too_few_calories": "Calorie intake was too low yesterday. Watch out for weight loss and energy drops!",
+  "diet.too_many_calories": "You exceeded your calorie limit yesterday. Pay attention to portion sizes.",
+  "diet.no_data": "No data from yesterday. Log your meals to get an analysis!",
+  "diet.macros_perfect": "Yesterday's macronutrients and calories proportions are perfect!"
 }

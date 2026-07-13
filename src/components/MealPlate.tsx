@@ -1059,12 +1059,12 @@ export default function MealPlate({
     }
   };
 
-  const handleMergeMeal = async (logId: string) => {
+  const handleMergeMeal = async (logIdOrNsId: string) => {
     if (!user || plate.length === 0) return;
     Haptics.medium();
     
     try {
-      const logToMerge = logs.find(l => l.id === logId);
+      const logToMerge = logs.find(l => (l.id && l.id === logIdOrNsId) || (l.nsId && l.nsId === logIdOrNsId));
       if (!logToMerge) {
          handleLogMeal();
          return;
@@ -1074,6 +1074,11 @@ export default function MealPlate({
       const updates: any = {
         description: plate.map((i) => i.name).join(", "),
         items: plate,
+        polyols: rawPolyols,
+        protein: totalProtein,
+        fat: totalFat,
+        calories: Math.round(totalCalsFromMacros),
+        timestamp: new Date(entryTime).getTime(),
       };
       
       if (isBolus) {
@@ -1084,6 +1089,7 @@ export default function MealPlate({
             fat: totalFat,
             name: plate.map((i) => i.name).join(", "),
             items: plate,
+            calories: Math.round(totalCalsFromMacros),
          };
          // Override carbs with plate exact carbs
          updates.linkedMeal.carbs = totalCarbs;
@@ -1095,16 +1101,19 @@ export default function MealPlate({
          updates.type = "meal"; // Safety
       }
 
-      const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", logId);
-      await setDoc(logRef, { ...logToMerge, ...updates, userModified: true }, { merge: true });
+      const effectiveLogId = logToMerge.id || logToMerge.nsId;
+      if (!effectiveLogId) throw new Error("Brak prawidłowego ID wpisu.");
+
+      const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", effectiveLogId);
+      await setDoc(logRef, { ...logToMerge, id: effectiveLogId, ...updates, userModified: true }, { merge: true });
       
-      window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: logId, updates: { ...logToMerge, ...updates, userModified: true } } }));
+      window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: effectiveLogId, updates: { ...logToMerge, id: effectiveLogId, ...updates, userModified: true } } }));
       
       setPlate([]);
       setMergeCandidates(null);
       Haptics.success();
       toast.success(i18n.t('auto.polaczono_z_wpisem_z_pompy', { defaultValue: i18n.t('auto.polaczono_z_wpisem_z_pomp', { defaultValue: "Połączono z wpisem z pompy!" }) }));
-    } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + e.message); Haptics.error(); }
+    } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + " " + e.message); Haptics.error(); }
   };
 
   const handleLogMeal = async () => {

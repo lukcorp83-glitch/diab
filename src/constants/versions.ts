@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.03';
+export const CURRENT_VERSION = '5.7.04';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.04",
+    date: "2026-07-13",
+    title: "Rozszerzenie Pamięci GlikoSense i Kompresja",
+    changes: [
+      "GlikoSense zyskuje stałą pamięć wniosków niezależnie od dostępności pełnych logów (ochrona przed lukami w historii).",
+      "Nowy system potężnej kompresji ZIP (lz-string) omijający limity Firebase dla paczek chmurowych.",
+      "Od teraz można bezstratnie zapisać w chmurze nawet pełne 45 tysięcy rekordów (pół roku)."
+    ]
+  },
   {
     version: "5.7.03",
     date: "2026-07-13",
@@ -537,6 +547,25 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.04",
+    date: "2026-07-13",
+    title: "Rozszerzenie Pamięci GlikoSense i Kompresja",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Wbudowana bezstratna kompresja ZIP dla wielkich paczek chmurowych (obchodzi limity i utraty starszych wpisów)."
+      },
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "Trwała pamięć sztucznej inteligencji GlikoSense odporna na zaniki bazy danych."
+      }
+    ]
+  },
   {
     version: "5.7.03",
     date: "2026-07-13",
