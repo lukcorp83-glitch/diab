@@ -372,13 +372,53 @@ export default function App() {
          });
       }
     };
+
+    const handleLogAddBatch = (e: any) => {
+      const newLogs = e.detail;
+      if (!Array.isArray(newLogs) || newLogs.length === 0) return;
+      setCachedLogs((prev) => [...newLogs, ...prev]);
+      setFbLogs((prev) => [...newLogs, ...prev]);
+      
+      const insulinLogs = newLogs.filter((l: any) => l.type === 'insulin' && l.dose);
+      if (insulinLogs.length > 0) {
+         setUserSettings((prev) => {
+            if (!prev || prev.treatmentMode !== 'insulin') return prev;
+            let newCurrent = prev.currentPenUnits ?? prev.penCapacity ?? 300;
+            let newCount = prev.penCount ?? 0;
+            let totalDose = 0;
+            insulinLogs.forEach((l: any) => totalDose += l.dose);
+            
+            newCurrent -= totalDose;
+            
+            if (newCurrent <= 20 && prev.currentPenUnits && prev.currentPenUnits > 20) {
+              import("./services/notificationService").then(mod => {
+                 mod.notificationService.scheduleLocalNotification(
+                    "Kończy się insulina! 💉",
+                    `W Twoim penie zostało tylko ${newCurrent} jednostek.`,
+                    0
+                 );
+              });
+            }
+
+            if (newCurrent <= 0) {
+               newCount += 1;
+               newCurrent = prev.penCapacity ?? 300;
+            }
+            
+            return { ...prev, currentPenUnits: newCurrent, penCount: newCount };
+         });
+      }
+    };
+
     window.addEventListener("localLogUpdate", handleLogUpdate);
     window.addEventListener("localLogDelete", handleLogDelete);
     window.addEventListener("localLogAdd", handleLogAdd);
+    window.addEventListener("localLogAddBatch", handleLogAddBatch);
     return () => {
       window.removeEventListener("localLogUpdate", handleLogUpdate);
       window.removeEventListener("localLogDelete", handleLogDelete);
       window.removeEventListener("localLogAdd", handleLogAdd);
+      window.removeEventListener("localLogAddBatch", handleLogAddBatch);
     };
   }, []);
 
@@ -484,12 +524,14 @@ export default function App() {
     url: userSettings?.websocketUrl,
     roomId: userSettings?.websocketRoomId || (user ? getEffectiveUid(user) : undefined),
     deviceId: localDeviceId,
-    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : i18n.t('auto.przegladarka_www', { defaultValue: i18n.t('auto.przegladarka_www', { defaultValue: "Przeglądarka WWW" }) })),
+    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : i18n.t('auto.przegladarka_www', { defaultValue: i18n.t('auto.przegladarka_www', { defaultValue: "Przeglądaraka WWW" }) })),
     role,
     isAdmin,
     onDataReceived: (payload) => {
       // Przychodzi dane z innego telefonu po WebSocket - emulujemy że to nowy log z powiadomień
-      if (payload && payload.id) {
+      if (Array.isArray(payload)) {
+         window.dispatchEvent(new CustomEvent("localLogAddBatch", { detail: payload }));
+      } else if (payload && payload.id) {
          window.dispatchEvent(new CustomEvent("localLogAdd", { detail: payload }));
       }
     },
@@ -505,8 +547,15 @@ export default function App() {
      const handleWsSend = (e: any) => {
         wsSendData(e.detail);
      };
+     const handleWsSendBatch = (e: any) => {
+        wsSendData(e.detail);
+     };
      window.addEventListener("wsSendLog", handleWsSend);
-     return () => window.removeEventListener("wsSendLog", handleWsSend);
+     window.addEventListener("wsSendLogBatch", handleWsSendBatch);
+     return () => {
+        window.removeEventListener("wsSendLog", handleWsSend);
+        window.removeEventListener("wsSendLogBatch", handleWsSendBatch);
+     };
   }, [wsSendData]);
 
   useEffect(() => {
@@ -1487,6 +1536,40 @@ export default function App() {
         }
       }
 
+      // Inventory Notification Check (Low stock & Expiry)
+      if (userSettings.inventory) {
+        userSettings.inventory.forEach((item) => {
+          // 1. Sprawdzanie ilości
+          if (item.quantity <= (item.lowStockThreshold || 0)) {
+            const notifiedKeyStock = `notified_inventory_stock_${item.id}_${item.quantity}`;
+            if (!localStorage.getItem(notifiedKeyStock)) {
+              sendAppNotification(
+                i18n.t("auto.braki_w_apteczce", { defaultValue: "Braki w apteczce!" }),
+                `${item.name}: pozostało tylko ${item.quantity} szt.`
+              );
+              localStorage.setItem(notifiedKeyStock, "true");
+            }
+          }
+
+          // 2. Sprawdzanie daty ważności osprzętu/zapasów (7 dni przed)
+          if (item.expiryDate) {
+            const expiryTime = new Date(item.expiryDate).getTime();
+            const daysToExpiry = (expiryTime - now) / (1000 * 60 * 60 * 24);
+
+            if (daysToExpiry <= 7 && daysToExpiry > 0) {
+              const notifiedKeyExpiry = `notified_inventory_expiry_${item.id}_${item.expiryDate}`;
+              if (!localStorage.getItem(notifiedKeyExpiry)) {
+                sendAppNotification(
+                  i18n.t("auto.konczy_sie_waznosc_sprzetu", { defaultValue: "Wygasa osprzęt z apteczki!" }),
+                  `${item.name} straci ważność za ${Math.ceil(daysToExpiry)} dni.`
+                );
+                localStorage.setItem(notifiedKeyExpiry, "true");
+              }
+            }
+          }
+        });
+      }
+
       // Medication Expiry Notification Check
       if (userSettings.medications) {
         userSettings.medications.forEach((med) => {
@@ -2254,7 +2337,7 @@ export default function App() {
       }
     };
 
-    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 20000 } });
+    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 3000 } });
     setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
 
     const handleForceSync = () => {
@@ -2262,7 +2345,7 @@ export default function App() {
       setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
       // Stopping and starting again forces an immediate wipe/sync in worker
       worker.postMessage({ type: 'STOP_SYNC' });
-      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 20000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 3000 } });
     };
 
     window.addEventListener("force-nightscout-sync", handleForceSync);

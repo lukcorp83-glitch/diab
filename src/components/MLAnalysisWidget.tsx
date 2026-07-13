@@ -403,7 +403,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
     });
     
     return data;
-  }, [logs, mlResult]);
+  }, [logs, mlResult, i18n.language, t]);
 
   const dailyStats = useMemo(() => {
     const now = new Date();
@@ -413,7 +413,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
         d.setHours(0, 0, 0, 0);
         return {
             date: d.getTime(),
-            label: offset === 0 ? 'Dzis' : offset === 1 ? 'Wczor' : d.toLocaleDateString('pl-PL', { weekday: 'short' }),
+            label: offset === 0 ? t('auto.dzis_ml', { defaultValue: 'Dziś' }) : offset === 1 ? t('auto.wczoraj_ml', { defaultValue: 'Wczoraj' }) : d.toLocaleDateString(i18n.language || 'pl-PL', { weekday: 'short' }),
             glucoseLogs: [] as LogEntry[],
             bolusTotal: 0
         };

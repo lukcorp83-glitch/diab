@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.02';
+export const CURRENT_VERSION = '5.7.03';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.03",
+    date: "2026-07-13",
+    title: "Aktualizacja Wykresu i Parowania",
+    changes: [
+      "Naprawiono limitowanie wykresu wchłaniania do maksymalnie 4 godzin – od teraz obsługuje do 8h dla posiłków tłustych.",
+      "Dodano stan 'Offline' dla zapamiętanych urządzeń w widoku parowania.",
+      "Poprawiono płynność wykresu przy odświeżaniu danych."
+    ]
+  },
   {
     version: "5.7.02",
     date: "2026-07-10",
@@ -527,6 +537,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.03",
+    date: "2026-07-13",
+    title: "Aktualizacja Wykresu i Parowania",
+    changes: [
+      "Naprawiono limitowanie wykresu wchłaniania do maksymalnie 4 godzin – od teraz obsługuje do 8h dla posiłków tłustych.",
+      "Dodano stan 'Offline' dla zapamiętanych urządzeń w widoku parowania.",
+      "Poprawiono płynność wykresu przy odświeżaniu danych."
+    ]
+  },
   {
     version: "5.7.02",
     date: "2026-07-10",

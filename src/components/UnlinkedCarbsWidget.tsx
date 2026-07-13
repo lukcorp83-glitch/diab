@@ -86,27 +86,13 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
          await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", updatedLog.id), { ...updatedLog, userModified: true }, { merge: true });
          window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: updatedLog.id, updates: updatedLog } }));
       } else {
-         const newMealLog = {
-            id: "meal_" + Date.now().toString(),
-            type: "meal",
-            value: targetCarbs,
-            carbs: targetCarbs,
-            fat: computedFat,
-            protein: computedProtein,
-            items: newItems,
-            notes: product.name || product.namePl || "Własny posiłek",
-            timestamp: latestUnlinked.timestamp,
-            createdAt: Date.now()
-         };
-         await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", newMealLog.id), { ...newMealLog, userModified: true }, { merge: true });
-         window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newMealLog }));
-
          const updatedBolus = {
             ...latestUnlinked,
             linkedMeal: {
                carbs: targetCarbs,
                fat: computedFat,
                protein: computedProtein,
+               items: newItems,
                name: product.name || product.namePl || "Własny posiłek"
             }
          };

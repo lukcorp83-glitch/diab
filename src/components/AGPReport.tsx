@@ -371,7 +371,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
               </div>
               
               <p className="text-sm font-medium text-rose-800/80 dark:text-rose-300/80 mb-4">
-                {incidentStats.effectiveDays < 7 ? 'Szacunkowo ' : 'Średnio '} <strong className="text-rose-600 dark:text-rose-400 font-black">{incidentStats.avgHyposPerWeek}</strong> incydentów na tydzień.
+                {t('auto.srednio', { defaultValue: 'Średnio' })} <strong className="text-rose-600 dark:text-rose-400 font-black">{incidentStats.avgHyposPerWeek}</strong> {t('auto.incydentow_na_tydzien', { defaultValue: 'incydentów na tydzień.' })}
               </p>
               
               {incidentStats.peakHypo && (
@@ -400,7 +400,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
               </div>
               
               <p className="text-sm font-medium text-orange-800/80 dark:text-orange-300/80 mb-4">
-                {incidentStats.effectiveDays < 7 ? 'Szacunkowo ' : 'Średnio '} <strong className="text-orange-600 dark:text-orange-400 font-black">{incidentStats.avgHypersPerWeek}</strong> incydentów na tydzień.
+                {t('auto.srednio', { defaultValue: 'Średnio' })} <strong className="text-orange-600 dark:text-orange-400 font-black">{incidentStats.avgHypersPerWeek}</strong> {t('auto.incydentow_na_tydzien', { defaultValue: 'incydentów na tydzień.' })}
               </p>
               
               {incidentStats.peakHyper && (

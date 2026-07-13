@@ -38,7 +38,7 @@ const i18n = {
         let str = (options && options.defaultValue) ? options.defaultValue : key;
         
         // Match key starting with 'auto.' but maybe worker uses longer keys, so let's match the prefix.
-        if (i18n.language === 'en') {
+        if (i18n.language && i18n.language.startsWith('en')) {
             const matchKey = Object.keys(workerDictEN).find(k => key.startsWith(k));
             if (matchKey) {
                 str = workerDictEN[matchKey];
@@ -66,6 +66,7 @@ export interface GlikoWorkerInput {
     rules: any;
     datasetSizeFromStorage: number;
     lastTrainTime: number;
+    language?: string;
 }
 
 function calculateActiveAtTime(targetTime: number, pastLogs: any[], rules: any) {
@@ -705,7 +706,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     if (insulinSensitivity < -30) insights.push(i18n.t('auto.masz_w_tym_momencie_podwyzszon', { defaultValue: i18n.t('auto.masz_w_tym_momencie_podwy', { defaultValue: i18n.t('auto.masz_w_tym_momencie_podwy', { defaultValue: "💉 Masz w tym momencie podwyższoną wrażliwość na insulinę. Postaraj się delikatniej podejść do ewentualnych korekt." }) }) }));
 
-    if (avgBias < -15) insights.push(`🚨 Z moich szacunków wynika, że masz lekką oporność (byłem o ${Math.abs(Math.round(avgBias))} mg/dL w błędzie w dół). Jakieś emocje, stres?`);
+    if (avgBias < -15) insights.push(i18n.t('raw.opor', { bias: Math.abs(Math.round(avgBias)), defaultValue: `🚨 Z moich szacunków wynika, że masz lekką oporność (byłem o ${Math.abs(Math.round(avgBias))} mg/dL w błędzie w dół). Jakieś emocje, stres?` }));
     else if (avgBias > 15) insights.push(i18n.t('auto.cukier_trzyma_sie_nizej_niz_pr', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: "🏃‍♂️ Cukier trzyma się niżej niż przewidywałem! Miałeś ukryty wysiłek fizyczny, o którym mi nie powiedziałeś?" }) }) }));
 
     const latestDate = new Date(latestTimeMs);
@@ -725,7 +726,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(i18n.t('auto.miales_przed_chwila_gleboki_sp', { defaultValue: i18n.t('auto.miales_przed_chwila_glebo', { defaultValue: i18n.t('auto.miales_przed_chwila_glebo', { defaultValue: "🔄 Miałeś przed chwilą głęboki spadek. Ten gwałtowny wzrost to odbicie po-hipowe. Uważnie z potężną korektą, by znów nie spaść!" }) }) }));
     }
 
-    if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier > 1.1) insights.push(i18n.t('auto.w_moim_cenniku_twojego_uodporn', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: "💪 W moim cenniku Twojego uodpornienia, widnieje lekka blokada na insulinę. Licz się z trochę chłodniejszą reakcją organizmu." }) }) }));
+    if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier > 1.1) insights.push(i18n.t('auto.w_moim_cenniku_twojego_uodporn', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: "💪 Z moich analiz insulinooporności wynika, że występuje u Ciebie lekka blokada na insulinę. Licz się z trochę słabszą reakcją organizmu na dawki." }) }) }));
     else if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier < 0.9) insights.push(i18n.t('auto.moje_ukryte_wagi_mowia_ze_powi', { defaultValue: i18n.t('auto.moje_ukryte_wagi_mowia_ze', { defaultValue: i18n.t('auto.moje_ukryte_wagi_mowia_ze', { defaultValue: "📉 Moje ukryte wagi mówią, że powinieneś w najbliższym czasie być podwójnie ostrożny z dawkami. Będziesz zbijał cukier skuteczniej!" }) }) }));
 
     if (latestBg > 160 && currentIob > 1.5 && predictedNextHour > 160) {
@@ -757,7 +758,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     if (currentCob > 50 && latestBg > 150 && lastTrendNum > 4 && currentIob < Math.max(1, currentCob / 15)) {
-         insights.push(`🚀 Ostrzegam! Masz sporo węgli zgromadzonych do zjedzenia (${Math.round(currentCob)}g), ale brak ubezpieczenia insulinowego, i idzie do góry. Działaj!`);
+         insights.push(i18n.t('raw.wegle', { cob: Math.round(currentCob), defaultValue: `🚀 Ostrzegam! Masz sporo węgli zgromadzonych do zjedzenia (${Math.round(currentCob)}g), ale brak ubezpieczenia insulinowego, i idzie do góry. Działaj!` }));
     }
 
     const threeHoursAgoForBasal = latestTimeMs - (3 * 60 * 60 * 1000);
@@ -776,7 +777,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         const highCounts = last4h.filter(l => (l.type === 'glucose' || l.bg) && (l.value || l.bg) > 180).length;
         const totalCounts = last4h.filter(l => l.type === 'glucose' || l.bg).length;
         if (highCounts > 0 && highCounts / (totalCounts || 1) > 0.8) {
-            insights.push(`🚨 UWAGA! Cukier utknął wysoko i nie idzie w dół nawet przy podanych ${totalRecentBolus}j insuliny od 4 godzin. Istnieje powód by zerknąć na miejsce wkłucia, mogła wygiąć się kaniula!`);
+            insights.push(i18n.t('raw.utknal', { bolus: totalRecentBolus, defaultValue: `🚨 UWAGA! Cukier utknął wysoko i nie idzie w dół nawet przy podanych ${totalRecentBolus}j insuliny od 4 godzin. Istnieje powód by zerknąć na miejsce wkłucia, mogła wygiąć się kaniula!` }));
         }
     }
 

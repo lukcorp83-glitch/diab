@@ -22,3 +22,19 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - **Odczyty Bazy:** `App.tsx` samodzielnie puszcza w tle paczki co 24h. Aplikacja unika zapytań o tysiące rekordów poprzez `onSnapshot` w Firebase (rygorystyczny limit `1500`, zapobiegający błędowi "Quota Exceeded"). W przypadku zresetowanej / świeżej pamięci z automatu uruchamia import pojedynczej wielkiej paczki (Cloud Package), dzięki czemu historia z powrotem ma 45 000 wyników (i statystyki działają dla minionych miesięcy) przy obciążeniu zaledwie jednego odczytu Firebase.
 
 *(Aktualizuj ten plik za każdym razem, gdy badasz nową część starego kodu lub tworzysz coś nowego!)*
+
+## Widok Talerza i Historia Posiłków (Kompozytor)
+- src/components/MealPlate.tsx - Główny widok "Talerza" do wprowadzania posiłków. Zawiera logikę skanowania kodów, AI (GlikoSense) oraz zakładkę z historią dodanych posiłków.
+- src/components/MealHistoryView.tsx - Dedykowany widok dla rekordów typu meal. Tylko tu użytkownik przegląda i ewentualnie edytuje posiłki. Edycja historii posiłków w głównej osi czasu (HistoryView.tsx) została zubożona do samej zmiany dawki insuliny, by uniknąć nadpisywania logiki wejść posiłkowych z notatkami AI.
+
+## Zarządzanie Wpisami i Zdarzenia (Logs & Events)
+- System opiera się na trzech warstwach pamięci logów: \cachedLogs\ (do 45000 z IndexedDB), \
+sLogs\ (z NightscoutWorker) oraz \bLogs\ (z Firebase, sztywny limit 3000 zapytań dla uniknięcia Quota Exceeded).
+- **Zdarzenia Lokalne:** Aby aplikacja natychmiast reagowała na nowe wpisy (np. po dodaniu wymiany sensora lub wkłucia w \Profile.tsx\ czy po dodaniu posiłku), NIEZBĘDNE jest wywołanie \window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newLog }))\. Samo \ddDoc\ do Firebase odświeży widok z opóźnieniem (lub wcale w przypadku utraty połączenia). Pamiętaj też o \localLogUpdate\.
+- Widżety żywotności na Dashboardzie (Dashboard.tsx) bazują bezpośrednio na datach \sensorChangeDate\ oraz \infusionSetChangeDate\ z obiektu \settings\, a nie wyszukują z \logs\ (ponieważ stare logi mogą wypaść z 3000 limitu \bLogs\).
+
+## WebSockets, Parowanie (DevicePairing) i Wydajność
+- src/hooks/useGlikoServer.ts obsługuje WebSocket, jednak jest to połączenie NIETRWAŁE, usypiane w tle przez Android/iOS. Lista u urządzeń wsDevices służy TYLKO do wskaźnika online.
+- Główne połączenie (parowanie Master-Follower) zachowane jest w localStorage (jako diacontrol_linked_uid). Prawdziwe alarmy wysyłane są do Firebase, co wybudza drugie urządzenia niezależnie od WebSocketa.
+- Z tego powodu w DevicePairing.tsx dodaliśmy wpisy 'Offline' opierające się na linkedUid, by użytkownik nie bał się utraty parowania po wygaśnięciu ekranu.
+- **Optymalizacja (Hurtowe paczki):** Wrzucanie logów po kolei (pętla powiadomień) wymuszało n-krotne, niezwykle zasobożerne przeliczanie tablicy logs w App.tsx (ponad 45000 wyników z IndexedDB). Należy rygorystycznie stosować Event localLogAddBatch i wsSendLogBatch z tablicą obiektów zamiast pojedynczych wpisów przy wybudzaniu aplikacji, by uniknąć pętli zamrażających renderowanie ekranu (szalejące cukry).

@@ -339,35 +339,65 @@ export default function DevicePairing({
             className="w-full bg-rose-50 dark:bg-rose-500/10 text-rose-500 border border-rose-100 dark:border-rose-900/50 rounded-2xl p-4 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all mt-2 shadow-sm"
           >
             <Unlink size={16} />  {t('auto.odłącz_konto', { defaultValue: i18n.t('auto.odlacz_konto', { defaultValue: "Odłącz Konto" }) })}
-                                </button>
+          </button>
         ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowExport(true)}
-              className="flex-1 bg-accent-500 text-white rounded-2xl p-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-accent-600 active:scale-95 transition-all shadow-md shadow-accent-500/20"
-            >
-              <Share2 size={16} />  {t('auto.pokaż_qr', { defaultValue: i18n.t('auto.pokaz_qr', { defaultValue: "Pokaż QR" }) })}
-                                          </button>
-            <button
-              onClick={() => setShowImport(true)}
-              className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl p-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all"
-            >
-              <Download size={16} />  {t('auto.zeskanuj_qr', { defaultValue: 'Zeskanuj QR' })}
-                                          </button>
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-2 rounded-2xl mb-4 flex flex-col gap-1">
+            <div className="flex bg-white dark:bg-slate-900 rounded-xl p-1 shadow-sm">
+              <button
+                onClick={() => handleRoleChange('follower')}
+                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${localRole === 'follower' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                {t('auto.obserwator', { defaultValue: 'Obserwator' })}
+              </button>
+              <button
+                onClick={() => handleRoleChange('admin')}
+                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${localRole === 'admin' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                {t('auto.admin', { defaultValue: 'Admin' })}
+              </button>
+              <button
+                onClick={() => handleRoleChange('master')}
+                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${localRole === 'master' ? 'bg-sky-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                {t('auto.telefon_dziecka', { defaultValue: 'Telefon Dziecka' })}
+              </button>
+            </div>
+            <p className="text-[9px] text-slate-400 text-center px-2 py-1 leading-tight">
+              {localRole === 'follower' && t('auto.obserwator_tylko_odbiera_dane', { defaultValue: 'Obserwator: Może podglądać cukry i wysyłać alarmy.' })}
+              {localRole === 'admin' && t('auto.admin_odbiera_i_moze_zmieniac', { defaultValue: 'Admin: Może edytować ustawienia i wylogowywać urządzenia.' })}
+              {localRole === 'master' && t('auto.telefon_dziecka_udostepnia_dane', { defaultValue: 'Dziecko (Master): Główne źródło cukrów.' })}
+            </p>
           </div>
         )}
 
-        {wsDevices.length > 0 && (
+          {!linkedUid && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowExport(true)}
+                className="flex-1 bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white font-bold py-3 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2"
+              >
+                <Share2 size={16} /> {t('auto.udostępnij_qr', { defaultValue: i18n.t('auto.udostepnij_qr', { defaultValue: "Udostępnij QR" }) })}
+              </button>
+              <button
+                onClick={() => setShowImport(true)}
+                className="flex-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-2xl transition-all shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center gap-2"
+              >
+                <Download size={16} /> {t('auto.zeskanuj_qr', { defaultValue: i18n.t('auto.zeskanuj_qr', { defaultValue: "Zeskanuj QR" }) })}
+              </button>
+            </div>
+          )}
+
+        {(wsDevices.length > 0 || linkedUid || groupCount > 0) && (
           <div className="mt-4 border-t border-slate-100 dark:border-slate-800/50 pt-4">
             <h4 className="text-[10px] font-black uppercase text-slate-500 mb-3 pl-1">
-              
-                                        {t('auto.obecnie_w_pokoju', { defaultValue: 'Obecnie w pokoju' })}
-                                      </h4>
+              {t('auto.lista_urządzeń', { defaultValue: 'Lista Urządzeń' })}
+            </h4>
             <div className="flex flex-col gap-2">
               {wsDevices.map((d) => (
                 <div key={d.deviceId} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
                   <div className="flex flex-col text-left">
                     <span className="text-xs font-bold dark:text-white flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       {d.deviceName}
                       {d.deviceId === localDeviceId && <span className="text-[10px] text-slate-400 font-normal">{t('auto.ty', { defaultValue: '(Ty)' })}</span>}
                       {d.isAdmin && <span className="text-[9px] bg-rose-500/20 text-rose-500 px-1.5 py-0.5 rounded-md uppercase">{t('auto.admin', { defaultValue: 'Admin' })}</span>}
@@ -381,11 +411,38 @@ export default function DevicePairing({
                       className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
                       title={t('auto.odłącz_to_urządzenie', { defaultValue: i18n.t('auto.odlacz_to_urzadzenie', { defaultValue: "Odłącz to urządzenie" }) })}
                     >
-                      <Unlink size={14} />
+                      <Unlink size={16} />
                     </button>
                   )}
                 </div>
               ))}
+
+              {/* OFFLINE DEVICES */}
+              {linkedUid && !wsDevices.find(d => d.role === 'master') && (
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 opacity-60">
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold dark:text-white flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-slate-400" />
+                      {t('auto.telefon_dziecka', { defaultValue: 'Telefon Dziecka' })}
+                      <span className="text-[9px] bg-slate-500/20 text-slate-500 px-1.5 py-0.5 rounded-md uppercase">Offline</span>
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-medium">{t('auto.zapisane_urzadzenie', { defaultValue: 'Zapisane parowanie' })}</span>
+                  </div>
+                </div>
+              )}
+
+              {!linkedUid && groupCount > 0 && wsDevices.length <= groupCount && (
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 opacity-60">
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold dark:text-white flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-slate-400" />
+                      {t('auto.czlonkowie_gliko_family', { defaultValue: 'Członkowie Gliko Family' })}
+                      <span className="text-[9px] bg-slate-500/20 text-slate-500 px-1.5 py-0.5 rounded-md uppercase">Offline</span>
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-medium">{t('auto.zapisane_urzadzenie', { defaultValue: 'Zapisane parowanie' })}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

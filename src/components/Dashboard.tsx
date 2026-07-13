@@ -54,6 +54,7 @@ import { APP_VERSION } from "../constants";
 import GlucoseModal from "./GlucoseModal";
 import SwipeableItem from "./SwipeableItem";
 import MealEditModal from "./MealEditModal";
+import DoseEditModal from "./DoseEditModal";
 import HealthWidget from './HealthWidget';
 import GlikoWidget from "./GlikoWidget";
 import GlikoSenseTips from "./GlikoSenseTips";
@@ -2716,7 +2717,7 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').slice(0, 3).map((log, idx) => (
+               {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal' || log.type === 'carbs').slice(0, 3).map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                       <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">
@@ -2776,7 +2777,7 @@ export default function Dashboard({
          )}
       </div>
 
-      {editingLog && <MealEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} />}
+      {editingLog && (editingLog.type === "meal" ? <MealEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} /> : <DoseEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} />)}
       
       {/* Footer Info */}
       <div className="pt-8 pb-4 text-center space-y-2 opacity-30">

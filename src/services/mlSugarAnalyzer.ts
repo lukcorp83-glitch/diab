@@ -152,8 +152,8 @@ export const MLAnalyzer = {
 
   analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<any> {
     const logsFingerprint = logs && logs.length > 0 
-      ? `v4-lstm-${mode}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
-      : 'empty';
+      ? `v4-lstm-${mode}-${i18n.language}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
+      : `empty-${i18n.language}`;
 
     if (!force) {
       if (_cachedResult && _lastLogsFingerprint === logsFingerprint) {

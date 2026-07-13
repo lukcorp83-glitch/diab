@@ -19,6 +19,7 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
         if (histRet && histRet.history) {
           const parts = histRet.history.split('|');
           const localLogs = await loadLocalLogs();
+          const newLogsBatch: any[] = [];
           
           for (const part of parts) {
             if (!part.trim()) continue;
@@ -52,11 +53,15 @@ export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
                 source: 'NotificationListener',
                 createdAt: new Date(timestamp).toISOString()
               };
-              window.dispatchEvent(new CustomEvent('localLogAdd', { detail: logData }));
-              window.dispatchEvent(new CustomEvent('wsSendLog', { detail: logData }));
+              newLogsBatch.push(logData);
               // Dodajemy do localLogs w pamięci by deduplikować kolejne wpisy z historii
               localLogs.push(logData);
             }
+          }
+          
+          if (newLogsBatch.length > 0) {
+            window.dispatchEvent(new CustomEvent('localLogAddBatch', { detail: newLogsBatch }));
+            window.dispatchEvent(new CustomEvent('wsSendLogBatch', { detail: newLogsBatch }));
           }
         }
       } catch(e) {
