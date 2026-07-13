@@ -270,14 +270,23 @@ export default function App() {
       if (Capacitor.getPlatform() === 'android') {
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
           LocalNotifications.createChannel({
-            id: 'glucose_alerts_v7',
-            name: 'Alarmy Glikemii',
-            description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
-            importance: 5, // MAX importance
-            visibility: 1, // Public
-            sound: 'critical_alarm.wav',
-            vibration: true
-          }).catch(e => console.warn('Failed to create notification channel', e));
+              id: 'glucose_alerts_v8',
+              name: 'Alarmy Glikemii',
+              description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
+              importance: 5, // MAX importance
+              visibility: 1, // Public
+              sound: 'status_clear.mp3',
+              vibration: true
+            }).catch(e => console.warn('Failed to create notification channel', e));
+
+          LocalNotifications.createChannel({
+              id: 'system_alerts_v1',
+              name: 'Powiadomienia Systemowe',
+              description: 'Standardowe komunikaty (bez specjalnych dźwięków)',
+              importance: 4, 
+              visibility: 1,
+              vibration: true
+            }).catch(e => console.warn('Failed to create system notification channel', e));
         });
       }
     }
@@ -1645,7 +1654,7 @@ export default function App() {
                   body: alertBody,
                   id: Math.floor(Math.random() * 100000),
                   schedule: { at: new Date() },
-                  channelId: "glucose_alerts_v7",
+                  channelId: "glucose_alerts_v8",
                   sound: "status_clear.mp3",
                   attachments: null,
                   actionTypeId: "",

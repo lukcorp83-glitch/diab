@@ -44,15 +44,21 @@ export const playFeedSound = () => {
   setTimeout(() => playTone(300, 'triangle', 0.1, 0.1), 300);
 };
 
+const playMp3Alert = () => {
+  try {
+    const audio = new Audio('/status_clear.mp3');
+    audio.play().catch(e => console.error("Audio play blocked", e));
+  } catch (e) {
+    console.error("Audio error", e);
+  }
+};
+
 export const playLowGlucoseSound = () => {
-  playTone(900, 'square', 0.2, 0.1);
-  setTimeout(() => playTone(1200, 'square', 0.2, 0.1), 200);
-  setTimeout(() => playTone(900, 'square', 0.4, 0.1), 400);
+  playMp3Alert();
 };
 
 export const playHighGlucoseSound = () => {
-  playTone(200, 'sawtooth', 0.5, 0.1);
-  setTimeout(() => playTone(150, 'sawtooth', 0.6, 0.1), 500);
+  playMp3Alert();
 };
 
 export const playNormalGlucoseSound = () => {
