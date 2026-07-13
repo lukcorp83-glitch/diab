@@ -1413,10 +1413,15 @@ export default function App() {
             setDoc(settingsRef, { treatmentMode: localTreatmentMode }, { merge: true }).catch(console.error);
             localStorage.removeItem("treatmentMode"); // Pożeramy flagę
           }
+
+          if (data.appVersion !== CURRENT_VERSION) {
+            data.appVersion = CURRENT_VERSION;
+            setDoc(settingsRef, { appVersion: CURRENT_VERSION }, { merge: true }).catch(console.error);
+          }
           
           setUserSettings(data);
         } else {
-          const defaultSettings = { ...DEFAULT_SETTINGS };
+          const defaultSettings = { ...DEFAULT_SETTINGS, appVersion: CURRENT_VERSION };
           const localTreatmentMode = localStorage.getItem("treatmentMode") as any;
           
           if (localNotificationsEnabled !== null) {
