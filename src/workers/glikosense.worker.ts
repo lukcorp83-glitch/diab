@@ -1,5 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
 const workerDictEN: Record<string, string> = {
+  "auto.metabolizm_label_bardzo_szybki": "Very fast",
+  "auto.metabolizm_label_szybki": "Fast",
+  "auto.metabolizm_label_standardowy": "Standard",
+  "auto.metabolizm_label_wolny": "Slow",
+  "auto.metabolizm_label_bardzo_wolny": "Very slow",
+  "auto.glikosense_wykryl_ze_twoj_metabolizm": "🧬 GlikoSense detected that your carbohydrate and insulin metabolism matches the profile: \"{{label}}\". I have updated the digestion curve model!",
   "auto.wydaje_mi_sie_ze_weglowod": "💡 It seems to me that carbohydrates are now absorbed into your blood quite quickly. A portion of, for example, 50g can have a big impact!",
   "auto.to_co_zjadles_uwalnia_sie": "💡 What you ate, in my opinion, is released very calmly and without spikes. Good for us!",
   "auto.masz_w_tym_momencie_podwy": "💉 You currently have increased sensitivity to insulin. Try to approach any potential corrections more gently.",
@@ -411,7 +417,20 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         }
         rules.pkParams = bestParams; // Użyj wyuczonych wag do generowania wejść dla LSTM
         if (rules.pkParams.label !== "Standardowy") {
-             insights.push(`🧬 GlikoSense wykrył, że Twój metabolizm węglowodanów i insuliny wpisuje się w profil: "${rules.pkParams.label}". Zaktualizowałem model krzywych trawienia!`);
+             let labelKey = '';
+             switch(rules.pkParams.label) {
+               case 'Bardzo szybki': labelKey = 'auto.metabolizm_label_bardzo_szybki'; break;
+               case 'Szybki': labelKey = 'auto.metabolizm_label_szybki'; break;
+               case 'Standardowy': labelKey = 'auto.metabolizm_label_standardowy'; break;
+               case 'Wolny': labelKey = 'auto.metabolizm_label_wolny'; break;
+               case 'Bardzo wolny': labelKey = 'auto.metabolizm_label_bardzo_wolny'; break;
+               default: labelKey = rules.pkParams.label; break;
+             }
+             const translatedLabel = i18n.t(labelKey, { defaultValue: rules.pkParams.label });
+             insights.push(i18n.t('auto.glikosense_wykryl_ze_twoj_metabolizm', { 
+                 label: translatedLabel,
+                 defaultValue: `🧬 GlikoSense wykrył, że Twój metabolizm węglowodanów i insuliny wpisuje się w profil: "${rules.pkParams.label}". Zaktualizowałem model krzywych trawienia!` 
+             }));
         }
     }
     

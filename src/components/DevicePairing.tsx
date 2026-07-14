@@ -359,13 +359,13 @@ export default function DevicePairing({
                 onClick={() => handleRoleChange('master')}
                 className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${localRole === 'master' ? 'bg-sky-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               >
-                {t('auto.telefon_dziecka', { defaultValue: 'Telefon Dziecka' })}
+                {t('auto.telefon_glowny', { defaultValue: 'Telefon Główny' })}
               </button>
             </div>
             <p className="text-[9px] text-slate-400 text-center px-2 py-1 leading-tight">
               {localRole === 'follower' && t('auto.obserwator_tylko_odbiera_dane', { defaultValue: 'Obserwator: Może podglądać cukry i wysyłać alarmy.' })}
               {localRole === 'admin' && t('auto.admin_odbiera_i_moze_zmieniac', { defaultValue: 'Admin: Może edytować ustawienia i wylogowywać urządzenia.' })}
-              {localRole === 'master' && t('auto.telefon_dziecka_udostepnia_dane', { defaultValue: 'Dziecko (Master): Główne źródło cukrów.' })}
+              {localRole === 'master' && t('auto.master_glowne_zrodlo', { defaultValue: 'Master: Główne źródło odczytów glikemii.' })}
             </p>
           </div>
         )}
@@ -423,7 +423,7 @@ export default function DevicePairing({
                   <div className="flex flex-col text-left">
                     <span className="text-xs font-bold dark:text-white flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-slate-400" />
-                      {t('auto.telefon_dziecka', { defaultValue: 'Telefon Dziecka' })}
+                      {t('auto.telefon_glowny', { defaultValue: 'Telefon Główny' })}
                       <span className="text-[9px] bg-slate-500/20 text-slate-500 px-1.5 py-0.5 rounded-md uppercase">Offline</span>
                     </span>
                     <span className="text-[9px] text-slate-400 font-medium">{t('auto.zapisane_urzadzenie', { defaultValue: 'Zapisane parowanie' })}</span>

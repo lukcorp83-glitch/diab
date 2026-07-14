@@ -8,9 +8,10 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 export default function RemoteAlertSender({ user }: { user: any }) {
-    const { t } = useTranslation();
+  // HIDDEN FOR NOW: Remote alerts do not trigger background system notifications reliably without a backend
+  return null;
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [customMessage, setCustomMessage] = useState('');
 
   const sendAlert = async (message: string, type: 'insulin' | 'food' | 'urgent' | 'custom') => {
     const uid = getEffectiveUid(user);

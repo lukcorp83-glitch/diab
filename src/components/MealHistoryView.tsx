@@ -23,7 +23,7 @@ export default function MealHistoryView({ logs, user, onMergeToLog, hasItems }: 
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
 
   const mealLogs = useMemo(() => {
-    return logs.filter(log => log.type === "meal" || log.type === "bolus" || log.type === "carbs" || (log.type as any) === "insulin").sort((a, b) => {
+    return logs.filter(log => (log.type === "meal" || log.type === "carbs" || log.type === "bolus") && (log.carbs > 0 || log.protein > 0 || log.fat > 0 || log.type === "meal")).sort((a, b) => {
       const timeA = a.timestamp || a.createdAt;
       const timeB = b.timestamp || b.createdAt;
       return timeB - timeA;

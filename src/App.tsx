@@ -1128,6 +1128,18 @@ export default function App() {
             const updates: any = {};
             if (logData.type === "site_change") {
               updates.infusionSetChangeDate = nowTimestamp;
+              if (window.confirm(i18n.t('auto.czy_wymieniasz_rowniez_zbiornicze', { defaultValue: 'Czy wymieniasz również zbiorniczek na insulinę?' }))) {
+                  updates.reservoirChangeDate = nowTimestamp;
+                  const resLog = { 
+                     type: "site_change", 
+                     value: 1, 
+                     timestamp: nowTimestamp + 1, 
+                     createdAt: serverTimestamp(), 
+                     notes: i18n.t('auto.wymiana_zbiorniczka', { defaultValue: "Wymiana zbiorniczka" }), 
+                     source: "system" 
+                  };
+                  await setDoc(doc(logsRef), resLog);
+              }
             } else if (logData.type === "sensor_change") {
               updates.sensorChangeDate = nowTimestamp;
             }
@@ -2934,6 +2946,7 @@ export default function App() {
               user={user}
               setTab={changeTab}
               settings={userSettings || undefined}
+              logs={logs}
             />
           )}
           {activeTab === "travel" && (

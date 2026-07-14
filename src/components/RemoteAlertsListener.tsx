@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { getEffectiveUid, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, CheckCircle2, MessageCircle, AlertTriangle, Pill } from 'lucide-react';
-import { playHighGlucoseSound } from '../lib/audioUtils';
+import { playNormalGlucoseSound } from '../lib/audioUtils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -53,7 +53,7 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
         if ('vibrate' in navigator) {
           navigator.vibrate([200, 100, 200, 100, 500]);
         }
-        playHighGlucoseSound(); // Używamy głośnego dźwięku alarmu
+        playNormalGlucoseSound();
         
         // Android Push Notification
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {

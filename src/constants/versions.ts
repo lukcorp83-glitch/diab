@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.04';
+export const CURRENT_VERSION = '5.7.05';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.05",
+    date: "2026-07-14",
+    title: "Dynamiczne Wykresy i AI Wkłucia",
+    changes: [
+      "Wykres wchłaniania na Talerzu automatycznie ucina pustą przestrzeń po małych przekąskach (np. 2 godziny dla jabłka).",
+      "Asystent AI po wpisaniu 'wymieniłem wkłucie' poprosi również o ewentualne zapisanie zmiany zbiorniczka.",
+      "Poprawiono błędne komunikaty na przyciskach nawigacji sugerowanych przez AI.",
+      "Skorygowano liczenie Dziennego TIR (wykorzystanie właściwych celów ustawionych przez użytkownika)."
+    ]
+  },
   {
     version: "5.7.04",
     date: "2026-07-13",
@@ -547,8 +558,27 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
-  {
-    version: "5.7.04",
+    {
+      version: "5.7.05",
+      date: "2026-07-14",
+      title: "Dynamiczne Wykresy i AI Wkłucia",
+      changes: [
+        {
+          categoryKey: "kategoria_ulepszenia_algorytmów_ai",
+          icon: "Bot",
+          colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+          descriptionKey: "Asystent AI uwzględnia ewentualną zmianę zbiorniczka przy wymianie wkłucia."
+        },
+        {
+          categoryKey: "kategoria_drobne_poprawki",
+          icon: "LineChart",
+          colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+          descriptionKey: "Wykres wchłaniania ucina się dynamicznie przy mniejszych posiłkach oraz precyzyjniejsze liczenie Dziennego TIR."
+        }
+      ]
+    },
+    {
+      version: "5.7.04",
     date: "2026-07-13",
     title: "Rozszerzenie Pamięci GlikoSense i Kompresja",
     changes: [

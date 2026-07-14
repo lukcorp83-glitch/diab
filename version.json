@@ -1,10 +1,10 @@
 {
-  "version": "5.7.04",
+  "version": "5.7.05",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.04_OTA.apk",
-  "buildNumber": 109,
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.05_OTA.apk",
+  "buildNumber": 110,
   "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.7.04: GlikoSense zyskuje trwałą pamięć niezależnie od awarii bazy oraz wprowadzono potężną kompresję ZIP omijającą limit paczek chmurowych (odzyskiwanie starych statystyk).",
-  "whatsNewEn": "🚀 Version 5.7.04: GlikoSense gains persistent memory independent of db wipe, and introduced powerful ZIP compression bypassing cloud package limits (old stats recovery).",
-  "otaRevision": 264
+  "whatsNew": "🚀 Wersja 5.7.05: Dynamiczne wykresy wchłaniania dla małych przekąsek, pytanie o wymianę zbiorniczka przy wymianie wkłucia przez AI, poprawki nawigacji oraz precyzyjniejszy odczyt Dziennego TIR.",
+  "whatsNewEn": "🚀 Version 5.7.05: Dynamic absorption charts for small snacks, prompting for reservoir change during AI site replacements, navigation fixes, and more accurate Daily TIR calculation.",
+  "otaRevision": 265
 }

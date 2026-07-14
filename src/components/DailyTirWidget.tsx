@@ -23,8 +23,8 @@ export default function DailyTirWidget({ logs, settings }: DailyTirWidgetProps) 
       return { tir: null, metrics: { inRange: 0, high: 0, low: 0 } };
     }
 
-    const min = settings?.targetRangeMin || 70;
-    const max = settings?.targetRangeMax || 180;
+    const min = settings?.targetMin || 70;
+    const max = settings?.targetMax || 180;
 
     let inRange = 0;
     let high = 0;

@@ -66,6 +66,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
       const amount = Math.round((targetCarbs / carbsPer100) * 100) || 0;
       const computedFat = Math.round(((product.fat || 0) * amount) / 100 * 10) / 10 || 0;
       const computedProtein = Math.round(((product.protein || 0) * amount) / 100 * 10) / 10 || 0;
+      const computedCalories = Math.round((targetCarbs * 4) + (computedProtein * 4) + (computedFat * 9));
       
       const newItems = JSON.parse(JSON.stringify([{
          product: product,
@@ -79,8 +80,10 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
          const updatedLog = {
             ...latestUnlinked,
             items: newItems,
+            carbs: targetCarbs,
             fat: computedFat,
             protein: computedProtein,
+            calories: computedCalories,
             notes: product.name || product.namePl || "Własny posiłek"
          };
          await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", updatedLog.id), { ...updatedLog, userModified: true }, { merge: true });
@@ -92,6 +95,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
                carbs: targetCarbs,
                fat: computedFat,
                protein: computedProtein,
+               calories: computedCalories,
                items: newItems,
                name: product.name || product.namePl || "Własny posiłek"
             }

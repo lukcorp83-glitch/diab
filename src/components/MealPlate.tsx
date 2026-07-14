@@ -878,7 +878,17 @@ export default function MealPlate({
       .filter((l) => l.type === "glucose")
       .sort((a, b) => b.timestamp - a.timestamp);
 
-    for (let currentHr = -1; currentHr <= 8; currentHr += 0.5) {
+    let maxChartHoursActive = 2;
+    const maxCarbMultiplierActive = gI > 70 ? pkFast / 1.5 : gI < 50 ? pkSlow / 5.0 : pkNormal / 3.0;
+    const maxCarbPeakActive = gI > 70 ? 0.75 : gI < 50 ? 1.5 : 1.0;
+    const maxCarbTimeActive = WW > 0 ? (maxCarbPeakActive + 1.5) * maxCarbMultiplierActive : 0;
+    const maxWbtTimeActive = WBT > 0 ? 5 * (pkSlow / 5.0) : 0;
+    maxChartHoursActive = Math.max(maxCarbTimeActive, maxWbtTimeActive, 2);
+    if (recentBoluses.length > 0) maxChartHoursActive = Math.max(maxChartHoursActive, 4);
+    maxChartHoursActive = Math.ceil(maxChartHoursActive * 2) / 2;
+    if (maxChartHoursActive > 8) maxChartHoursActive = 8;
+
+    for (let currentHr = -1; currentHr <= maxChartHoursActive; currentHr += 0.5) {
       let totalMealImpact = 0;
       let totalInsImpact = 0;
 
@@ -1005,7 +1015,16 @@ export default function MealPlate({
 
     const startTime = new Date(entryTime).getTime();
 
-    for (let currentHr = 0; currentHr <= 8; currentHr += 0.5) {
+    let maxChartHoursPlate = 2;
+    const maxCarbMultiplierPlate = averageGi > 70 ? pkFast / 1.5 : averageGi < 50 ? pkSlow / 5.0 : pkNormal / 3.0;
+    const maxCarbPeakPlate = averageGi > 70 ? 0.75 : averageGi < 50 ? 1.5 : 1.0;
+    const maxCarbTimePlate = WW > 0 ? (maxCarbPeakPlate + 1.5) * maxCarbMultiplierPlate : 0;
+    const maxWbtTimePlate = WBT > 0 ? 5 * (pkSlow / 5.0) : 0;
+    maxChartHoursPlate = Math.max(maxCarbTimePlate, maxWbtTimePlate, 2);
+    maxChartHoursPlate = Math.ceil(maxChartHoursPlate * 2) / 2;
+    if (maxChartHoursPlate > 8) maxChartHoursPlate = 8;
+
+    for (let currentHr = 0; currentHr <= maxChartHoursPlate; currentHr += 0.5) {
       let tCarbProfile = 0;
       for (let step = 0; step <= 8; step += 0.5) {
         tCarbProfile += getCarbAbsorption(step, averageGi);
