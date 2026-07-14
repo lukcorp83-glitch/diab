@@ -18,6 +18,7 @@ interface DietsProps {
   user: User;
   setTab: (tab: string) => void;
   settings?: UserSettings;
+  logs?: any[];
 }
 
 const DIET_TYPES = [
@@ -98,7 +99,7 @@ const DIET_TYPES = [
   }
 ];
 
-export function Diets({ user, setTab, settings }: DietsProps) {
+export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
     const { t } = useTranslation();
   const [selectedDiet, setSelectedDiet] = useState<typeof DIET_TYPES[0] | null>(null);
 

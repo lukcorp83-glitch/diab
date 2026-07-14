@@ -492,7 +492,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         } else {
             model = await Promise.race([
                 tf.loadLayersModel('indexeddb://glikosense-lstm-v5'),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout loading model")), 1500))
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout loading model")), 5000))
             ]) as tf.LayersModel;
             _cachedModel = model;
             isModelLoaded = true;
@@ -510,7 +510,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
             const syntheticData = generateSyntheticPhysiologyLSTM();
             const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, 6, 15]);
             const synOutputsTensor = tf.tensor2d(syntheticData.map(d => d.output));
-            await model.fit(synInputsTensor, synOutputsTensor, { epochs: 10, shuffle: true, verbose: 0 });
+            await model.fit(synInputsTensor, synOutputsTensor, { epochs: mode === 'quick' ? 3 : 10, shuffle: true, verbose: 0 });
             synInputsTensor.dispose();
             synOutputsTensor.dispose();
         } catch (synErr) {}
@@ -842,6 +842,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     self.postMessage({ type: 'error', error: error.message });
   }
 };
+
 
 
 

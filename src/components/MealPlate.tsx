@@ -1114,10 +1114,10 @@ export default function MealPlate({
             items: plate,
             calories: Math.round(totalCalsFromMacros),
          };
-         // Override carbs with plate exact carbs
-         updates.linkedMeal.carbs = totalCarbs;
+         // Preserve pump carbs if available, otherwise use plate carbs
+         updates.linkedMeal.carbs = logToMerge.linkedMeal?.carbs || totalCarbs;
       } else {
-         updates.value = totalCarbs;
+         updates.value = logToMerge.value || totalCarbs;
          updates.polyols = rawPolyols;
          updates.protein = totalProtein;
          updates.fat = totalFat;
@@ -1402,6 +1402,100 @@ export default function MealPlate({
       {/* Weight Modal etc. */}
       {createPortal(
         <AnimatePresence>
+          {/* AI Label Scanner Input */}
+          <input
+            type="file"
+            accept="image/*"
+            ref={labelFileInputRef}
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              if (!e.target.files || e.target.files.length === 0) return;
+              const file = e.target.files[0];
+              
+              const reader = new FileReader();
+              reader.onload = async (ev) => {
+                const dataUrl = ev.target?.result as string;
+                setIsAnalyzingLabel(true);
+                try {
+                  const result = await geminiService.analyzeNutritionLabel(dataUrl);
+                  const product: Product = {
+                    id: `scan_${Date.now()}`,
+                    name: result.name || "Rozpoznany Produkt (AI)",
+                    carbs: result.carbs || 0,
+                    protein: result.protein || 0,
+                    fat: result.fat || 0,
+                    gi: result.gi || 50,
+                    category: "Skanowane",
+                    barcode: unrecognizedBarcode || ""
+                  };
+                  setUnrecognizedBarcode(null);
+                  openWeightModal(product);
+                } catch (err) {
+                  toast.error(t('auto.blad_ai_podczas_odczytu_etyk', { defaultValue: 'Błąd AI podczas odczytu etykiety' }));
+                } finally {
+                  setIsAnalyzingLabel(false);
+                }
+              };
+              reader.readAsDataURL(file);
+              e.target.value = '';
+            }}
+          />
+
+          {unrecognizedBarcode && !isAnalyzingLabel && (
+            <motion.div
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              className="fixed inset-0 pt-safe pb-safe z-[150] flex items-end sm:items-center justify-center p-4 bg-black/60"
+            >
+              <div className="bg-slate-50 dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl relative">
+                <h2 className="text-xl font-black mb-4 dark:text-white">Produkt nieznany</h2>
+                <p className="text-sm text-slate-500 mb-6">{t('barcode_not_found_use_ai')}</p>
+                
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => labelFileInputRef.current?.click()}
+                    className="bg-accent-500 text-white rounded-2xl p-4 font-black uppercase text-xs active:scale-95 transition-all flex justify-center items-center gap-2 shadow-lg shadow-accent-500/20"
+                  >
+                    <Camera size={18} />
+                    {t('auto.wczytaj_etykiete_ai', { defaultValue: 'Wczytaj etykietę AI' })}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const product: Product = {
+                        id: `scan_${Date.now()}`,
+                        name: "Własny produkt",
+                        carbs: 0, protein: 0, fat: 0, gi: 50,
+                        category: "Skanowane",
+                        barcode: unrecognizedBarcode
+                      };
+                      setUnrecognizedBarcode(null);
+                      openWeightModal(product);
+                    }}
+                    className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl p-4 font-black uppercase text-xs active:scale-95 transition-all"
+                  >
+                    {t('auto.wpisz_recznie_0g', { defaultValue: 'Wpisz ręcznie (0g)' })}
+                  </button>
+                  <button
+                    onClick={() => setUnrecognizedBarcode(null)}
+                    className="text-slate-400 font-bold uppercase text-[10px] mt-2 tracking-widest p-2"
+                  >
+                    {t('auto.anuluj', { defaultValue: 'Anuluj' })}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {isAnalyzingLabel && (
+            <div className="fixed inset-0 pt-safe pb-safe z-[150] flex items-center justify-center p-4 bg-black/80">
+              <div className="flex flex-col items-center">
+                <Loader2 size={48} className="text-accent-500 animate-spin mb-4" />
+                <p className="text-white font-black">{t('analyzing_label')}</p>
+              </div>
+            </div>
+          )}
+
           {isScannerOpen && (
             <motion.div
               initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -1446,7 +1540,7 @@ export default function MealPlate({
                         );
                         const data = await response.json();
 
-                        if (data.status === 1 && data.product) {
+                        if (data.status === 1 && data.product && (data.product.product_name_pl || data.product.product_name)) {
                           handleCloseScanner();
                           const p = data.product;
                           const product: Product = {
@@ -1454,7 +1548,7 @@ export default function MealPlate({
                             name:
                               p.product_name_pl ||
                               p.product_name ||
-                              "Produkt nieznany",
+                              "Produkt",
                             carbs: p.nutriments?.carbohydrates_100g || 0,
                             protein: p.nutriments?.proteins_100g || 0,
                             fat: p.nutriments?.fat_100g || 0,
@@ -1468,12 +1562,14 @@ export default function MealPlate({
                           if (scannerRef.current && scannerRef.current.stopScanner) {
                             await scannerRef.current.stopScanner();
                           }
+                          setIsScannerOpen(false);
                           setUnrecognizedBarcode(decodedText);
                         }
                       } catch (err) {
                         if (scannerRef.current && scannerRef.current.stopScanner) {
                            await scannerRef.current.stopScanner();
                         }
+                        setIsScannerOpen(false);
                         setUnrecognizedBarcode(decodedText);
                       } finally {
                         setIsSearching(false);
