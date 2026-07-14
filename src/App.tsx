@@ -438,8 +438,8 @@ export default function App() {
 
     const getKey = (a: LogEntry) => {
       let key = "";
-      if (a.id) key = a.id;
-      else if (a.nsId) key = a.nsId;
+      if (a.nsId) key = a.nsId; // nsId ma wyższy priorytet (zapobiega duplikatom z fbLogs)
+      else if (a.id) key = a.id;
       else key = `${a.type}_${Math.floor(a.timestamp / 60000)}_${a.value?.toFixed(1)}`;
       return key;
     };
@@ -3389,5 +3389,6 @@ function NavButton({
     </button>
   );
 }
+
 
 

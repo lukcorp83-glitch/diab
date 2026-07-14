@@ -175,6 +175,9 @@ export default function MealPlate({
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [unrecognizedBarcode, setUnrecognizedBarcode] = useState<string | null>(null);
+  const [isAnalyzingLabel, setIsAnalyzingLabel] = useState(false);
+  const labelFileInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<any>(null);
 
   const handleCloseScanner = async () => {
@@ -182,6 +185,7 @@ export default function MealPlate({
       await scannerRef.current.stopScanner();
     }
     setIsScannerOpen(false);
+    setUnrecognizedBarcode(null);
   };
   const [activeCategory, setActiveCategory] = useState("Wszystko");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1427,7 +1431,14 @@ export default function MealPlate({
                   <MealScanner
                     ref={scannerRef}
                     onResult={async (decodedText) => {
-                      handleCloseScanner();
+                      // 1. Sprawdź lokalną bazę customProducts
+                      const localMatch = customProducts.find(p => p.barcode === decodedText);
+                      if (localMatch) {
+                        handleCloseScanner();
+                        openWeightModal(localMatch);
+                        return;
+                      }
+
                       setIsSearching(true);
                       try {
                         const response = await fetch(
@@ -1436,6 +1447,7 @@ export default function MealPlate({
                         const data = await response.json();
 
                         if (data.status === 1 && data.product) {
+                          handleCloseScanner();
                           const p = data.product;
                           const product: Product = {
                             id: `scan_${Date.now()}`,
@@ -1448,15 +1460,21 @@ export default function MealPlate({
                             fat: p.nutriments?.fat_100g || 0,
                             gi: 50,
                             category: "Skanowane",
+                            barcode: decodedText
                           };
                           openWeightModal(product);
                         } else {
-                          setSearchTerm(decodedText);
-                          await performOnlineSearch(decodedText);
+                          // Zamiast szukać online, dajemy fallback AI
+                          if (scannerRef.current && scannerRef.current.stopScanner) {
+                            await scannerRef.current.stopScanner();
+                          }
+                          setUnrecognizedBarcode(decodedText);
                         }
                       } catch (err) {
-                        setSearchTerm(decodedText);
-                        await performOnlineSearch(decodedText);
+                        if (scannerRef.current && scannerRef.current.stopScanner) {
+                           await scannerRef.current.stopScanner();
+                        }
+                        setUnrecognizedBarcode(decodedText);
                       } finally {
                         setIsSearching(false);
                       }
@@ -3683,4 +3701,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
     </div>
   );
 });
+
+
+
 

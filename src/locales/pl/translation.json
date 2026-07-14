@@ -345,6 +345,12 @@
     "searching": "Szukam...",
     "search_btn": "Szukaj",
     "analyze_btn": "Analiza",
+      "camera_no_access": "Brak dostępu do aparatu",
+      "camera_loading": "Ładowanie...",
+      "chart_disclaimer": "*Wykres przedstawia dynamiczną krzywą metaboliczną na podstawie wskaźnika IG oraz WBT dodanych składników.",
+      "barcode_not_found_use_ai": "Nie znaleziono kodu. Zrób zdjęcie etykiety odżywczej, a AI odczyta makro!",
+      "analyzing_label": "Analizowanie etykiety...",
+      "product_saved_to_db": "Pomyślnie dodano do posiłku i zapisano w Bazie Produktów!",
     "scan_btn": "Kodów",
     "meal_base": "Baza Posiłków",
     "carbs_abbr": "Węg.",
@@ -2937,6 +2943,19 @@
     "dodaj_posilek": "Dodaj Posiłek",
     "szybkie_skroty": "Szybkie skróty:",
     "jestes_dietetykiem_podaj": "Jesteś dietetykiem. Podaj wartości odżywcze dla produktu: \"{{var0}}\" na 100g lub standardową porcję. \n      Zwróć format JSON (tylko JSON): [{\"name\": string, \"carbs\": number, \"protein\": number, \"fat\": number, \"gi\": number}]. \n      Dla pola \"gi\" (Indeks Glikemiczny) podaj konkretną liczbę (np. 50, 70), a nie tekst.",
+    "analyze_btn": "Analiza",
+      "camera_no_access": "Brak dostępu do aparatu",
+      "camera_loading": "Ładowanie...",
+      "chart_disclaimer": "*Wykres przedstawia dynamiczną krzywą metaboliczną na podstawie wskaźnika IG oraz WBT dodanych składników.",
+      "barcode_not_found_use_ai": "Nie znaleziono kodu. Zrób zdjęcie etykiety odżywczej, a AI odczyta makro!",
+      "analyzing_label": "Analizowanie etykiety...",
+      "product_saved_to_db": "Pomyślnie dodano do posiłku i zapisano w Bazie Produktów!",
+    "camera_no_access": "Brak dostępu do aparatu",
+    "camera_loading": "Ładowanie...",
+    "chart_disclaimer": "*Wykres przedstawia dynamiczną krzywą metaboliczną na podstawie wskaźnika IG oraz WBT dodanych składników.",
+    "barcode_not_found_use_ai": "Nie znaleziono kodu. Zrób zdjęcie etykiety odżywczej, a AI odczyta makro!",
+    "analyzing_label": "Analizowanie etykiety...",
+    "product_saved_to_db": "Pomyślnie dodano do posiłku i zapisano w Bazie Produktów!",
     "nie_mozna_edytowac_wpisu": "Nie można edytować wpisu (brak ID elementu).",
     "zaktualizowano_posilek_lo": "Zaktualizowano posiłek (lokalnie)!",
     "dodaj_produkty_do_posilku": "Dodaj produkty do posiłku",
@@ -6590,3 +6609,5 @@
   "auto.kompozytor": "Kompozytor",
   "auto.talerz": "Mój Talerz"
 }
+
+

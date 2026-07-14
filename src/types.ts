@@ -13,6 +13,7 @@ export interface Product {
   author?: string;
   isCommunity?: boolean;
   isCustom?: boolean;
+  barcode?: string;
 }
 
 export interface LogEntry {

@@ -12,7 +12,7 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
     5. `src/constants/versions.ts` (zmienna `CURRENT_VERSION` oraz dodanie wpisu do tablic `PWA_VERSIONS` i `APK_VERSIONS`)
 
 - **Aktualizacja tekstów w oknie nowości (Pop-up)**:
-  - Przy każdej zmianie wersji aplikacji, ZAWSZE zaktualizuj pola `whatsNew` i `whatsNewEn` w głównym pliku `version.json` w głównym katalogu projektu. To właśnie ten plik odpowiada za to, co zobaczy użytkownik po pobraniu aktualizacji OTA.
+  - Przy każdej zmianie wersji aplikacji, ZAWSZE zaktualizuj pola `whatsNew` i `whatsNewEn` w głównym pliku `version.json` w głównym katalogu projektu. To właśnie ten plik odpowiada za to, co zobaczy użytkownik po pobraniu aktualizacji OTA. LISTA ZMIAN ZAWSZE MUSI BYĆ W DWÓCH JĘZYKACH (PL i EN)!
 
 - **Mechanizm aktualizacji OTA (Capgo / dist.zip)**:
   - Nigdy nie ładuj plików instalacyjnych (np. .apk) do wnętrza paczki OTA (dist.zip lub update.zip). Powoduje to, że paczka zajmuje zbyt dużo miejsca i Capgo zwraca błąd.
@@ -33,3 +33,4 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
 
 - **Optymalizacja Kontekstu (Oszczędzanie Tokenów)**:
   - Zawsze opieraj się na pliku `.agents/docs/architecture.md`, w którym znajduje się mapa starego i nowego kodu. Zamiast w ciemno skanować cały projekt czy wielkie pliki (jak `App.tsx`), najpierw zajrzyj do mapy architektury. Gdy tylko odkryjesz lub zmodyfikujesz coś ważnego (niezależnie czy to nowy, czy stary kod), **od razu aktualizuj plik `architecture.md`**, aby nie zapomnieć jak działa aplikacja między rozmowami.
+

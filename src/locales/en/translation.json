@@ -345,6 +345,12 @@
     "searching": "I'm looking for...",
     "search_btn": "Search",
     "analyze_btn": "Analysis",
+      "camera_no_access": "No camera access",
+      "camera_loading": "Loading...",
+      "chart_disclaimer": "*The chart shows the dynamic metabolic curve based on the GI and FPU indices of the added ingredients.",
+      "barcode_not_found_use_ai": "Barcode not found. Take a picture of the nutrition label, and AI will read the macros!",
+      "analyzing_label": "Analyzing label...",
+      "product_saved_to_db": "Successfully added to meal and saved to Food Database!",
     "scan_btn": "Codes",
     "meal_base": "Meal Base",
     "carbs_abbr": "Hung.",
@@ -4885,3 +4891,4 @@
   "diet.no_data": "No data from yesterday. Log your meals to get an analysis!",
   "diet.macros_perfect": "Yesterday's macronutrients and calories proportions are perfect!"
 }
+
