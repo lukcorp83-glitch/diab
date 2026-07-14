@@ -134,16 +134,26 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
     // Obliczanie kalorii spożytych dzisiaj
     const today = new Date();
     today.setHours(0,0,0,0);
-    const todayLogs = (logs || []).filter(l => l.timestamp >= today.getTime());
+    const todayLogs = (logs || []).filter(l =>
+      l.timestamp >= today.getTime() &&
+      (l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs))
+    );
     let consumedCalories = 0;
     todayLogs.forEach(log => {
-      const carbs = log.carbs || log.linkedMeal?.carbs || 0;
-      const pro = log.protein || log.linkedMeal?.protein || 0;
-      const fat = log.fat || log.linkedMeal?.fat || 0;
+      // calories: bezpośrednio zapisane lub policzone z makroskładników
       const cal = log.calories || log.linkedMeal?.calories || 0;
-      if (cal > 0) consumedCalories += cal;
-      else if (carbs > 0 || pro > 0 || fat > 0) {
-        consumedCalories += (carbs * 4) + (pro * 4) + (fat * 9);
+      if (cal > 0) {
+        consumedCalories += cal;
+      } else {
+        // dla type=meal: carbs w polu 'value', protein i fat bezpośrednio
+        const carbs = log.type === 'meal'
+          ? (log.value || log.carbs || log.linkedMeal?.carbs || 0)
+          : (log.carbs || log.linkedMeal?.carbs || 0);
+        const pro = log.protein || log.linkedMeal?.protein || 0;
+        const fat = log.fat || log.linkedMeal?.fat || 0;
+        if (carbs > 0 || pro > 0 || fat > 0) {
+          consumedCalories += (carbs * 4) + (pro * 4) + (fat * 9);
+        }
       }
     });
     consumedCalories = Math.round(consumedCalories);

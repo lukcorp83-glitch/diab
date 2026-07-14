@@ -1149,6 +1149,7 @@ export default function MealPlate({
         polyols: rawPolyols,
         protein: totalProtein,
         fat: totalFat,
+        calories: Math.round(totalCalsFromMacros),
         timestamp: new Date(entryTime).getTime(),
         description: plate.map((i) => i.name).join(", "),
         items: plate,
