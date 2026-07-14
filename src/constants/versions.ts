@@ -14,12 +14,31 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.09';
+export const CURRENT_VERSION = '5.7.11';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.11",
+    date: "2026-07-14",
+    title: "Poprawki Skanera i Diety (BETA)",
+    changes: [
+      "Naprawa: Po wykryciu nieznanego kodu kreskowego pojawia się teraz opcja 'Wczytaj etykietę AI' zamiast pustego formularza.",
+      "Naprawa: Bolus Pizza włącza się automatycznie tylko przy dużej ilości tłuszczu/białka (min. 1 WBT = 100 kcal).",
+      "Naprawa: Scalenie posiłku z wpisem pompy nie nadpisuje już oryginalnej ilości węglowodanów z pompy.",
+      "Naprawa: Błąd 'logs is not defined' w sekcji Diety."
+    ]
+  },
+  {
+    version: "5.7.10",
+    date: "2026-07-14",
+    title: "Poprawka ML (BETA)",
+    changes: [
+      "Przyspieszono działanie szybkiej analizy AI (GlikoSense) w tle i wydłużono limity czasowe dla starszych telefonów."
+    ]
+  },
   {
     version: "5.7.09",
     date: "2026-07-14",
@@ -983,6 +1002,7 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   }
 ];
+
 
 
 

@@ -150,12 +150,18 @@ export default function BolusCalculator({
             ? (Math.round(parseFloat(parsed.carbs) * 10) / 10).toString()
             : "";
         setCarbs(pCarbs);
+        const pProt = parseFloat(parsed.protein) || 0;
+        const pFat = parseFloat(parsed.fat) || 0;
+        
         setProtein(parsed.protein?.toString() || "");
         setFat(parsed.fat?.toString() || "");
         if (parsed.name) setMealName(parsed.name);
-        if (parseFloat(parsed.protein) > 0 || parseFloat(parsed.fat) > 0) {
+        
+        const kcalFromWBT = pProt * 4 + pFat * 9;
+        if (kcalFromWBT >= 100) {
           setIsPizzaMode(true);
         }
+        
         if (parsed.items) {
           setItems(parsed.items);
         }
@@ -347,9 +353,14 @@ export default function BolusCalculator({
           if (result && result.carbs) {
             setCarbs(result.carbs.toString());
             if (result.protein || result.fat) {
-              setIsPizzaMode(true);
-              setProtein((result.protein || 0).toString());
-              setFat((result.fat || 0).toString());
+              const pProt = result.protein || 0;
+              const pFat = result.fat || 0;
+              const kcalFromWBT = pProt * 4 + pFat * 9;
+              if (kcalFromWBT >= 100) {
+                setIsPizzaMode(true);
+              }
+              setProtein(pProt.toString());
+              setFat(pFat.toString());
             }
             setScanResultMsg(t('bolus.scan_recognized', { name: result.mealName }));
             setTimeout(() => setScanResultMsg(null), 5000);
