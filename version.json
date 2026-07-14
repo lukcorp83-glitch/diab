@@ -1,10 +1,14 @@
 {
-  "version": "5.7.06",
+  "version": "5.7.08",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.06_OTA.apk",
-  "buildNumber": 111,
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.08_OTA.apk",
+  "buildNumber": 113,
   "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.7.06: Inteligentny analizator wizualny dla nieznanych kodów kreskowych (AI skaner tabel żywieniowych). Automatyczny zapis odczytanych produktów do bazy Moje. Rozwiązano problem z podwójnym naliczaniem wyników glukozy psującym dzienny wynik TIR.",
-  "whatsNewEn": "🚀 Version 5.7.06: Smart visual analyzer for unknown barcodes (AI nutrition label scanner). Auto-saves recognized products to your database. Resolved double-counting bug that was affecting Daily TIR metrics.",
-  "otaRevision": 266
+  "whatsNew": "🚀 Wersja 5.7.08: Zgodnie z prośbą, wycofano automatyczne pobieranie dużych pakietów z chmury (zmniejszono limit do 1500), aby w 100% zoptymalizować użycie Firebase dla wielu urządzeń. Prosimy o korzystanie z funkcji przesyłania ręcznych paczek ZIP w Ustawieniach."  ,
+  "whatsNewEn": "🚀 Version 5.7.08: As requested, rolled back automatic fetching of large cloud payloads (reduced limit to 1500) to 100% optimize Firebase usage for multiple devices. Please use the manual ZIP package transfer feature in Settings."  ,
+  "otaRevision": 268
 }
+
+
+
+

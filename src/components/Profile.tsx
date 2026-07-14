@@ -73,6 +73,7 @@ import {
   MessageCircle,
   Camera,
   Pizza,
+  FileJson,
 } from "lucide-react";
 import { db, auth, onConnectionChange } from "../lib/firebase";
 import { deleteUser } from "firebase/auth";
@@ -6855,6 +6856,33 @@ export default function Profile({
                   }}
                 />
 
+                {logs && logs.length > 0 && (
+                  <div className={cn(
+                    "p-4 rounded-2xl border flex flex-col gap-2",
+                    settings.glassmorphismEnabled
+                      ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                      : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
+                  )}>
+                    <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                      <FileJson size={12} />
+                      Baza Danych (Local DB)
+                    </h4>
+                    <div className="flex justify-between items-center text-sm dark:text-white font-medium">
+                      <span>Zapisane logi:</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">{logs.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm dark:text-white font-medium">
+                      <span>Okres danych:</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">
+                        {Math.max(1, Math.ceil((logs[0].timestamp - logs[logs.length - 1].timestamp) / (1000 * 60 * 60 * 24)))} dni
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight mt-1">
+                      Aplikacja przechowuje dane w pamięci przeglądarki. Po zalogowaniu na nowym urządzeniu pobiera 5 dni z chmury, a przy połączeniu z Nightscout pobiera historię do 34 dni.
+                    </p>
+                  </div>
+                )}
+
                 <LocalSync settings={settings} user={user} />
 
                 <a
@@ -7261,6 +7289,8 @@ function SettingInput({
     </div>
   );
 }
+
+
 
 
 

@@ -2257,7 +2257,7 @@ export default function App() {
       }
     };
 
-    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 3000 } });
+    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
     setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
 
     const handleForceSync = () => {
@@ -2265,7 +2265,7 @@ export default function App() {
       setSyncStatus((prev) => ({ ...prev, status: "syncing" }));
       // Stopping and starting again forces an immediate wipe/sync in worker
       worker.postMessage({ type: 'STOP_SYNC' });
-      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 3000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
     };
 
     window.addEventListener("force-nightscout-sync", handleForceSync);
@@ -3389,6 +3389,9 @@ function NavButton({
     </button>
   );
 }
+
+
+
 
 
 
