@@ -14,12 +14,20 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.1';
+export const CURRENT_VERSION = '5.7.09';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.09",
+    date: "2026-07-14",
+    title: "Poprawka Pętli (BETA)",
+    changes: [
+      "Naprawiono krytyczny błąd powodujący nieskończoną pętlę restartów aplikacji po instalacji paczki OTA."
+    ]
+  },
   {
     version: "5.7.1",
     date: "2026-07-14",
@@ -975,6 +983,7 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   }
 ];
+
 
 
 
