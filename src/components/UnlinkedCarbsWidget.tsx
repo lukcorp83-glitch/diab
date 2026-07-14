@@ -66,6 +66,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
       const amount = Math.round((targetCarbs / carbsPer100) * 100) || 0;
       const computedFat = Math.round(((product.fat || 0) * amount) / 100 * 10) / 10 || 0;
       const computedProtein = Math.round(((product.protein || 0) * amount) / 100 * 10) / 10 || 0;
+      const computedCalories = Math.round((targetCarbs * 4) + (computedProtein * 4) + (computedFat * 9));
       
       const newItems = JSON.parse(JSON.stringify([{
          product: product,
@@ -79,34 +80,23 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
          const updatedLog = {
             ...latestUnlinked,
             items: newItems,
+            carbs: targetCarbs,
             fat: computedFat,
             protein: computedProtein,
+            calories: computedCalories,
             notes: product.name || product.namePl || "Własny posiłek"
          };
          await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", updatedLog.id), { ...updatedLog, userModified: true }, { merge: true });
          window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: updatedLog.id, updates: updatedLog } }));
       } else {
-         const newMealLog = {
-            id: "meal_" + Date.now().toString(),
-            type: "meal",
-            value: targetCarbs,
-            carbs: targetCarbs,
-            fat: computedFat,
-            protein: computedProtein,
-            items: newItems,
-            notes: product.name || product.namePl || "Własny posiłek",
-            timestamp: latestUnlinked.timestamp,
-            createdAt: Date.now()
-         };
-         await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", newMealLog.id), { ...newMealLog, userModified: true }, { merge: true });
-         window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newMealLog }));
-
          const updatedBolus = {
             ...latestUnlinked,
             linkedMeal: {
                carbs: targetCarbs,
                fat: computedFat,
                protein: computedProtein,
+               calories: computedCalories,
+               items: newItems,
                name: product.name || product.namePl || "Własny posiłek"
             }
          };
@@ -216,6 +206,7 @@ export default function UnlinkedCarbsWidget({ user, logs, onAddCarbs }: Props) {
                         onClick={async () => {
                           const mealName = searchQuery.trim();
                           setIsAiEstimating(true);
+                          const toastId = toast.loading(t('auto.ai_szuka_informacji_o_posilku', { defaultValue: 'AI analizuje posiłek i wylicza makroskładniki...' }));
                           
                           try {
                             const { geminiService } = await import('../services/gemini');
@@ -251,9 +242,11 @@ Odpowiedz WYŁĄCZNIE czystym formatem JSON (bez \`\`\`json):
                               ig: estimatedIg
                             };
                             
+                            toast.dismiss(toastId);
                             handleQuickAdd(customProduct, carbs);
                           } catch(err) {
                             console.error(err);
+                            toast.dismiss(toastId);
                             toast.error("Błąd AI. Zapisano tylko węglowodany.");
                             const fallbackProduct = {
                               id: "custom_" + Date.now(),

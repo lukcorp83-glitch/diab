@@ -432,6 +432,7 @@ export default function BolusCalculator({
             polyols: parseFloat(polyols) || 0,
             protein: protNum,
             fat: fNum,
+            calories: Math.round(carbsNum * 4 + protNum * 4 + fNum * 9),
             name: mealName || null,
             items: items.length > 0 ? items : undefined,
           };
@@ -506,6 +507,7 @@ export default function BolusCalculator({
           value: Math.max(0, carbsNum - (parseFloat(polyols) || 0)),
           timestamp: timestamp - 5,
           description: mealName || "Pobrano z kalkulatora",
+          calories: Math.round(carbsNum * 4 + protNum * 4 + fNum * 9)
         };
         if (parseFloat(polyols) > 0) payload.polyols = parseFloat(polyols);
         if (protNum > 0) payload.protein = Math.round(protNum * 10) / 10;

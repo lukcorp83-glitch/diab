@@ -130,6 +130,23 @@ export function Diets({ user, setTab, settings }: DietsProps) {
     const startDate = settings.dietStartDate || Date.now();
     const daysActive = Math.floor((Date.now() - startDate) / (1000 * 60 * 60 * 24));
     
+    // Obliczanie kalorii spożytych dzisiaj
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const todayLogs = (logs || []).filter(l => l.timestamp >= today.getTime());
+    let consumedCalories = 0;
+    todayLogs.forEach(log => {
+      const carbs = log.carbs || log.linkedMeal?.carbs || 0;
+      const pro = log.protein || log.linkedMeal?.protein || 0;
+      const fat = log.fat || log.linkedMeal?.fat || 0;
+      const cal = log.calories || log.linkedMeal?.calories || 0;
+      if (cal > 0) consumedCalories += cal;
+      else if (carbs > 0 || pro > 0 || fat > 0) {
+        consumedCalories += (carbs * 4) + (pro * 4) + (fat * 9);
+      }
+    });
+    consumedCalories = Math.round(consumedCalories);
+    
     if (activeDietData) {
       return (
         <div className="w-full max-w-md mx-auto space-y-4 p-4 pb-32">
@@ -148,10 +165,14 @@ export function Diets({ user, setTab, settings }: DietsProps) {
             
             <div className="space-y-6 relative z-10">
                
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-3 gap-3">
                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center glass-target">
-                   <span className="text-3xl font-black text-slate-900 dark:text-white mb-1">{daysActive}</span>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('auto.dni_na_diecie', { defaultValue: 'Dni na diecie' })}</span>
+                   <span className="text-2xl font-black text-slate-900 dark:text-white mb-1">{daysActive}</span>
+                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('auto.dni_na_diecie', { defaultValue: 'Dni na diecie' })}</span>
+                 </div>
+                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center glass-target">
+                   <span className="text-2xl font-black text-slate-900 dark:text-white mb-1">{consumedCalories}</span>
+                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('auto.kcal_dzis', { defaultValue: 'Kcal dziś' })}</span>
                  </div>
                  <button 
                   onClick={() => {
@@ -160,8 +181,8 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                   }}
                   className="bg-sky-50 dark:bg-sky-900/20 hover:bg-sky-100 dark:hover:bg-sky-900/40 transition-colors rounded-2xl p-4 border border-sky-100 dark:border-sky-800/30 flex flex-col items-center justify-center text-center group cursor-pointer"
                  >
-                   <Utensils size={24} className="text-sky-500 mb-2 group-hover:scale-110 transition-transform" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-sky-600 dark:text-sky-400">{t('auto.talerz_i_baza', { defaultValue: 'Talerz i Baza' })}</span>
+                   <Utensils size={20} className="text-sky-500 mb-2 group-hover:scale-110 transition-transform" />
+                   <span className="text-[9px] font-black uppercase tracking-widest text-sky-600 dark:text-sky-400">{t('auto.talerz_i_baza', { defaultValue: 'Talerz i Baza' })}</span>
                  </button>
                </div>
 
@@ -205,7 +226,7 @@ export function Diets({ user, setTab, settings }: DietsProps) {
                
                <HydrationWidget user={user} tdee={settings.tdee} />
                
-               <DietScoreWidget user={user} activeDiet={settings.activeDiet} />
+               <DietScoreWidget user={user} activeDiet={settings.activeDiet} settings={settings} />
 
                <DietManager user={user} settings={settings} activeDietData={activeDietData} />
                

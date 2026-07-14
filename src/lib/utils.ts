@@ -123,7 +123,7 @@ export function calculateCOB(logs: LogEntry[], absorptionMinutes: number = 180) 
   return logs
     .filter(l => {
       const ts = getTs(l.timestamp);
-      return (l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal)) && now - ts < absMs;
+      return (l.type === 'meal' || l.linkedMeal) && now - ts < absMs;
     })
     .sort((a, b) => getTs(b.timestamp) - getTs(a.timestamp)) // processing newest first
     .reduce((sum, l) => {

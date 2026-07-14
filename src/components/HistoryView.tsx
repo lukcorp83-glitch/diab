@@ -17,7 +17,7 @@ import { cn } from "../lib/utils";
 import SwipeableItem from "./SwipeableItem";
 import { db } from "../lib/firebase";
 import { doc, deleteDoc } from "firebase/firestore";
-import MealEditModal from "./MealEditModal";
+import DoseEditModal from "./DoseEditModal";
 import { nightscoutService } from "../services/nightscout";
 import { useTranslation } from "react-i18next";
 
@@ -48,7 +48,7 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
     >
       <AnimatePresence>
         {editingLog && (
-          <MealEditModal
+          <DoseEditModal
             log={editingLog}
             user={user}
             onClose={() => setEditingLog(null)}
@@ -170,14 +170,15 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
               >
                 <div
                   onClick={() => {
-                    if (settings?.followerMode) return;
-                    if (
-                      log.type === "meal" ||
-                      log.type === "bolus" ||
-                      (log.type as any) === "insulin"
-                    ) {
-                      setEditingLog(log);
-                    }
+                      if (settings?.followerMode) return;
+                      if (
+                        log.type === "carbs" ||
+                        log.type === "glucose" ||
+                        log.type === "bolus" ||
+                        (log.type as any) === "insulin"
+                      ) {
+                        setEditingLog(log);
+                      }
                   }}
                   className={cn(
                     "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 group hover:border-slate-300 dark:hover:border-slate-700 transition-all mb-2 cursor-pointer",
@@ -280,12 +281,13 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                             </span>
                           )}
                       </p>
-                      {(log.type === "meal" ||
+                      {(log.type === "carbs" ||
+                        log.type === "glucose" ||
                         log.type === "bolus" ||
                         (log.type as any) === "insulin") && (
                         <Edit2
-                          size={12}
-                          className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                          size={14}
+                          className="text-slate-300 dark:text-slate-600 group-hover:text-amber-500 transition-colors shrink-0"
                         />
                       )}
                     </div>
@@ -310,7 +312,9 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                           if (n === "<none>") n = "";
                           if (
                             n === "Kalkulator bolusa" ||
-                            n === "Pobrano z kalkulatora"
+                            n === "Pobrano z kalkulatora" ||
+                            n === i18n.t('auto.pobrano_z_kalkulatora', { defaultValue: 'Pobrano z kalkulatora' }) ||
+                            n === i18n.t('auto.kalkulator_bolusa', { defaultValue: 'Kalkulator bolusa' })
                           ) {
                             if (
                               (log.type === "bolus" ||
@@ -323,6 +327,9 @@ export default function HistoryView({ logs, user, onBack, settings }: HistoryPro
                               log.linkedMeal?.name
                             ) {
                               n = log.linkedMeal.name;
+                            } else {
+                               if (n === "Kalkulator bolusa") n = i18n.t('auto.kalkulator_bolusa', { defaultValue: 'Kalkulator bolusa' });
+                               if (n === "Pobrano z kalkulatora") n = i18n.t('auto.pobrano_z_kalkulatora', { defaultValue: 'Pobrano z kalkulatora' });
                             }
                           }
                           if (n.toLowerCase() === "glucose") return "Glukoza";

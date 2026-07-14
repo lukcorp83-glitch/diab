@@ -152,8 +152,8 @@ export const MLAnalyzer = {
 
   analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<any> {
     const logsFingerprint = logs && logs.length > 0 
-      ? `v4-lstm-${mode}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
-      : 'empty';
+      ? `v4-lstm-${mode}-${i18n.language}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
+      : `empty-${i18n.language}`;
 
     if (!force) {
       if (_cachedResult && _lastLogsFingerprint === logsFingerprint) {
@@ -207,6 +207,22 @@ export const MLAnalyzer = {
             }
           }
           
+          // Persistent Brain: save valid insights, restore if missing data
+          const hasEnoughData = !(payload.insights || []).some((i: string) => i.includes('Zbyt mało'));
+          if (hasEnoughData && payload.insights?.length > 0) {
+             localStorage.setItem('glikosense_memorized_insights', JSON.stringify(payload.insights));
+          } else {
+             const memorized = localStorage.getItem('glikosense_memorized_insights');
+             if (memorized) {
+                try {
+                   const parsed = JSON.parse(memorized);
+                   if (Array.isArray(parsed) && parsed.length > 0) {
+                      payload.insights = [...(payload.insights || []), ...parsed];
+                   }
+                } catch(e) {}
+             }
+          }
+          
           resolve(payload);
         } else if (type === 'storage_update') {
           localStorage.setItem(key, value);
@@ -231,6 +247,7 @@ export const MLAnalyzer = {
       worker.postMessage({
         logs,
         force,
+        language: i18n.language || 'pl',
         mode,
         rules,
         lastTrainTime: lastTrainTimeStr ? parseInt(lastTrainTimeStr, 10) : 0,

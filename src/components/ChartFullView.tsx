@@ -23,7 +23,14 @@ export default function ChartFullView({
   setTab,
 }: ChartFullViewProps) {
     const { t } = useTranslation();
-  const [range, setRange] = useState<number>(6);
+  const [range, setRange] = useState<number>(() => {
+    const saved = localStorage.getItem('glikosfera_chart_range');
+    return saved ? parseInt(saved, 10) : 6;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('glikosfera_chart_range', range.toString());
+  }, [range]);
   
   const [showLoopSimulation, setShowLoopSimulation] = useState(() => {
     const saved = localStorage.getItem('glikosfera_loop_simulation');

@@ -42,6 +42,7 @@ import {
   Check,
 } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
+import MealHistoryView from "./MealHistoryView";
 import { cn } from "../lib/utils";
 import { db } from "../lib/firebase";
 import {
@@ -169,10 +170,14 @@ export default function MealPlate({
   const [searchTerm, setSearchTerm] = useState("");
   const [onlineResults, setOnlineResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [plateView, setPlateView] = useState<"composer" | "history">("composer");
   const [isListening, setIsListening] = useState(false);
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [communityProducts, setCommunityProducts] = useState<Product[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [unrecognizedBarcode, setUnrecognizedBarcode] = useState<string | null>(null);
+  const [isAnalyzingLabel, setIsAnalyzingLabel] = useState(false);
+  const labelFileInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<any>(null);
 
   const handleCloseScanner = async () => {
@@ -180,6 +185,7 @@ export default function MealPlate({
       await scannerRef.current.stopScanner();
     }
     setIsScannerOpen(false);
+    setUnrecognizedBarcode(null);
   };
   const [activeCategory, setActiveCategory] = useState("Wszystko");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -741,12 +747,12 @@ export default function MealPlate({
 
   const activeMeal = useMemo(() => {
     if (!logs) return null;
-    const meals = logs.filter((l) => l.type === "meal" || l.linkedMeal);
+    const meals = logs.filter((l) => l.type === "meal" || l.type === "carbs" || l.linkedMeal);
     if (meals.length === 0) return null;
 
     // Przetwarzamy wszystkie posiłki, obliczając ich czas zakończenia wchłaniania (end time)
     const mealsWithEndTime = meals.map((m) => {
-      const mSrc = m.type === "meal" ? m : m.linkedMeal;
+      const mSrc = m.linkedMeal ? m.linkedMeal : m;
       if (!mSrc) return { m, endTimeMs: 0, isCurrentlyAbsorbing: false };
 
       const mWW =
@@ -808,7 +814,7 @@ export default function MealPlate({
     if (!activeMeal) return [];
 
     const carbSrc =
-      activeMeal.type === "meal" ? activeMeal : activeMeal.linkedMeal;
+      activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
 
     // Default to WW and WBT from activeMeal
     const WW =
@@ -857,13 +863,13 @@ export default function MealPlate({
       let adjT = t / multiplier;
       if (adjT < 1) return 0;
       if (adjT < 3) return (adjT - 1) * 0.5;
-      return 1 - (adjT - 3) * 0.5;
+      return Math.max(0, 1 - (adjT - 3) * 0.5);
     };
 
     // Find all meals and boluses within 6h window before activeMeal
     const recentMeals = logs.filter(
       (l) =>
-        (l.type === "meal" || l.linkedMeal) &&
+        (l.type === "meal" || l.type === "carbs" || l.linkedMeal) &&
         (activeMeal.timestamp || 0) - (l.timestamp || 0) < 1000 * 60 * 60 * 6,
     );
     const recentBoluses = logs.filter(
@@ -876,7 +882,17 @@ export default function MealPlate({
       .filter((l) => l.type === "glucose")
       .sort((a, b) => b.timestamp - a.timestamp);
 
-    for (let currentHr = -1; currentHr <= 4; currentHr += 0.5) {
+    let maxChartHoursActive = 2;
+    const maxCarbMultiplierActive = gI > 70 ? pkFast / 1.5 : gI < 50 ? pkSlow / 5.0 : pkNormal / 3.0;
+    const maxCarbPeakActive = gI > 70 ? 0.75 : gI < 50 ? 1.5 : 1.0;
+    const maxCarbTimeActive = WW > 0 ? (maxCarbPeakActive + 1.5) * maxCarbMultiplierActive : 0;
+    const maxWbtTimeActive = WBT > 0 ? 5 * (pkSlow / 5.0) : 0;
+    maxChartHoursActive = Math.max(maxCarbTimeActive, maxWbtTimeActive, 2);
+    if (recentBoluses.length > 0) maxChartHoursActive = Math.max(maxChartHoursActive, 4);
+    maxChartHoursActive = Math.ceil(maxChartHoursActive * 2) / 2;
+    if (maxChartHoursActive > 8) maxChartHoursActive = 8;
+
+    for (let currentHr = -1; currentHr <= maxChartHoursActive; currentHr += 0.5) {
       let totalMealImpact = 0;
       let totalInsImpact = 0;
 
@@ -886,7 +902,7 @@ export default function MealPlate({
 
       // Meal Impacts
       for (const m of recentMeals) {
-        const mSrc = m.type === "meal" ? m : m.linkedMeal;
+        const mSrc = m.linkedMeal ? m.linkedMeal : m;
         if (!mSrc) continue;
         const mWW =
           mSrc.value !== undefined
@@ -900,12 +916,12 @@ export default function MealPlate({
         const relativeAgeHr =
           (chartTime.getTime() - (m.timestamp || 0)) / (1000 * 60 * 60);
 
-        if (relativeAgeHr >= 0 && relativeAgeHr <= 6) {
+        if (relativeAgeHr >= 0 && relativeAgeHr <= 10) {
           let tCarbProfile = 0;
-          for (let step = 0; step <= 4; step += 0.5)
+          for (let step = 0; step <= 8; step += 0.5)
             tCarbProfile += getCarbAbsorption(step, gI);
           let tWbtProfile = 0;
-          for (let step = 0; step <= 4; step += 0.5)
+          for (let step = 0; step <= 8; step += 0.5)
             tWbtProfile += getWbtAbsorption(step);
 
           let c =
@@ -998,18 +1014,27 @@ export default function MealPlate({
       let adjT = t / multiplier;
       if (adjT < 1) return 0;
       if (adjT < 3) return (adjT - 1) * 0.5;
-      return 1 - (adjT - 3) * 0.5;
+      return Math.max(0, 1 - (adjT - 3) * 0.5);
     };
 
     const startTime = new Date(entryTime).getTime();
 
-    for (let currentHr = 0; currentHr <= 4; currentHr += 0.5) {
+    let maxChartHoursPlate = 2;
+    const maxCarbMultiplierPlate = averageGi > 70 ? pkFast / 1.5 : averageGi < 50 ? pkSlow / 5.0 : pkNormal / 3.0;
+    const maxCarbPeakPlate = averageGi > 70 ? 0.75 : averageGi < 50 ? 1.5 : 1.0;
+    const maxCarbTimePlate = WW > 0 ? (maxCarbPeakPlate + 1.5) * maxCarbMultiplierPlate : 0;
+    const maxWbtTimePlate = WBT > 0 ? 5 * (pkSlow / 5.0) : 0;
+    maxChartHoursPlate = Math.max(maxCarbTimePlate, maxWbtTimePlate, 2);
+    maxChartHoursPlate = Math.ceil(maxChartHoursPlate * 2) / 2;
+    if (maxChartHoursPlate > 8) maxChartHoursPlate = 8;
+
+    for (let currentHr = 0; currentHr <= maxChartHoursPlate; currentHr += 0.5) {
       let tCarbProfile = 0;
-      for (let step = 0; step <= 4; step += 0.5) {
+      for (let step = 0; step <= 8; step += 0.5) {
         tCarbProfile += getCarbAbsorption(step, averageGi);
       }
       let tWbtProfile = 0;
-      for (let step = 0; step <= 4; step += 0.5) {
+      for (let step = 0; step <= 8; step += 0.5) {
         tWbtProfile += getWbtAbsorption(step);
       }
 
@@ -1039,7 +1064,7 @@ export default function MealPlate({
     const entryTimestamp = new Date(entryTime).getTime();
     const timeLimit = 3 * 60 * 60 * 1000;
     const candidates = logs.filter(l => 
-      (l.type === "bolus" || l.type === "meal") &&
+      (l.type === "bolus" || l.type === "meal" || l.type === "carbs") &&
       Math.abs(Number(l.timestamp) - entryTimestamp) < timeLimit &&
       (!l.items || l.items.length === 0) &&
       (!l.description || l.description.trim() === "") &&
@@ -1057,12 +1082,12 @@ export default function MealPlate({
     }
   };
 
-  const handleMergeMeal = async (logId: string) => {
+  const handleMergeMeal = async (logIdOrNsId: string) => {
     if (!user || plate.length === 0) return;
     Haptics.medium();
     
     try {
-      const logToMerge = logs.find(l => l.id === logId);
+      const logToMerge = logs.find(l => (l.id && l.id === logIdOrNsId) || (l.nsId && l.nsId === logIdOrNsId));
       if (!logToMerge) {
          handleLogMeal();
          return;
@@ -1072,6 +1097,11 @@ export default function MealPlate({
       const updates: any = {
         description: plate.map((i) => i.name).join(", "),
         items: plate,
+        polyols: rawPolyols,
+        protein: totalProtein,
+        fat: totalFat,
+        calories: Math.round(totalCalsFromMacros),
+        timestamp: new Date(entryTime).getTime(),
       };
       
       if (isBolus) {
@@ -1082,6 +1112,7 @@ export default function MealPlate({
             fat: totalFat,
             name: plate.map((i) => i.name).join(", "),
             items: plate,
+            calories: Math.round(totalCalsFromMacros),
          };
          // Override carbs with plate exact carbs
          updates.linkedMeal.carbs = totalCarbs;
@@ -1093,21 +1124,37 @@ export default function MealPlate({
          updates.type = "meal"; // Safety
       }
 
-      const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", logId);
-      await setDoc(logRef, { ...logToMerge, ...updates, userModified: true }, { merge: true });
+      const effectiveLogId = logToMerge.id || logToMerge.nsId;
+      if (!effectiveLogId) throw new Error("Brak prawidłowego ID wpisu.");
+
+      const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", effectiveLogId);
+      await setDoc(logRef, { ...logToMerge, id: effectiveLogId, ...updates, userModified: true }, { merge: true });
+      
+      window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: effectiveLogId, updates: { ...logToMerge, id: effectiveLogId, ...updates, userModified: true } } }));
       
       setPlate([]);
       setMergeCandidates(null);
       Haptics.success();
       toast.success(i18n.t('auto.polaczono_z_wpisem_z_pompy', { defaultValue: i18n.t('auto.polaczono_z_wpisem_z_pomp', { defaultValue: "Połączono z wpisem z pompy!" }) }));
-    } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + e.message); Haptics.error(); }
+    } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + " " + e.message); Haptics.error(); }
   };
 
   const handleLogMeal = async () => {
     if (!user || plate.length === 0) return;
     Haptics.medium();
     try {
-      await addDoc(
+      const payload = {
+        type: "meal",
+        value: totalCarbs,
+        polyols: rawPolyols,
+        protein: totalProtein,
+        fat: totalFat,
+        timestamp: new Date(entryTime).getTime(),
+        description: plate.map((i) => i.name).join(", "),
+        items: plate,
+        createdAt: Date.now()
+      };
+      const docRef = await addDoc(
         collection(
           db,
           "artifacts",
@@ -1116,17 +1163,9 @@ export default function MealPlate({
           getEffectiveUid(user),
           "logs",
         ),
-        {
-          type: "meal",
-          value: totalCarbs,
-          polyols: rawPolyols,
-          protein: totalProtein,
-          fat: totalFat,
-          timestamp: new Date(entryTime).getTime(),
-          description: plate.map((i) => i.name).join(", "),
-          items: plate,
-        },
+        payload,
       );
+      window.dispatchEvent(new CustomEvent("logAdd", { detail: { ...payload, id: docRef.id } }));
       setPlate([]);
       Haptics.success();
     } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + e.message); Haptics.error(); }
@@ -1305,6 +1344,61 @@ export default function MealPlate({
       animate={{ opacity: 1 }}
       className="space-y-6 pb-64"
     >
+      <div className="flex items-center justify-between mb-2 px-2">
+        <h1 className="text-3xl font-black tracking-tight dark:text-white">
+          {t('auto.talerz', { defaultValue: "Talerz" })}
+        </h1>
+        <button
+          onClick={() => setIsScannerOpen(true)}
+          className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-500 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shrink-0"
+        >
+          <Camera size={24} />
+        </button>
+      </div>
+
+      {/* Tab Toggle */}
+      <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl mx-2 mb-6">
+        <button
+          onClick={() => setPlateView("composer")}
+          className={cn(
+            "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+            plateView === "composer" 
+              ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
+              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          )}
+        >
+          {t('auto.kompozytor', { defaultValue: "Kompozytor" })}
+        </button>
+        <button
+          onClick={() => setPlateView("history")}
+          className={cn(
+            "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+            plateView === "history" 
+              ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
+              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          )}
+        >
+          {t('auto.historia', { defaultValue: "Historia" })}
+        </button>
+      </div>
+
+        {plateView === "history" ? (
+          <MealHistoryView 
+            logs={logs} 
+            user={user} 
+            hasItems={plate.length > 0}
+            onMergeToLog={(log) => {
+              if (plate.length > 0) {
+                handleMergeMeal(log.id!);
+                setPlateView("plate");
+              } else {
+                toast.error(i18n.t('auto.najpierw_skomponuj_talerz', { defaultValue: `Najpierw skomponuj talerz!` }));
+              }
+            }}
+          />
+        ) : (
+        <>
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-2 flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 mx-2"></div>
       {/* Weight Modal etc. */}
       {createPortal(
         <AnimatePresence>
@@ -1337,7 +1431,14 @@ export default function MealPlate({
                   <MealScanner
                     ref={scannerRef}
                     onResult={async (decodedText) => {
-                      handleCloseScanner();
+                      // 1. Sprawdź lokalną bazę customProducts
+                      const localMatch = customProducts.find(p => p.barcode === decodedText);
+                      if (localMatch) {
+                        handleCloseScanner();
+                        openWeightModal(localMatch);
+                        return;
+                      }
+
                       setIsSearching(true);
                       try {
                         const response = await fetch(
@@ -1346,6 +1447,7 @@ export default function MealPlate({
                         const data = await response.json();
 
                         if (data.status === 1 && data.product) {
+                          handleCloseScanner();
                           const p = data.product;
                           const product: Product = {
                             id: `scan_${Date.now()}`,
@@ -1358,15 +1460,21 @@ export default function MealPlate({
                             fat: p.nutriments?.fat_100g || 0,
                             gi: 50,
                             category: "Skanowane",
+                            barcode: decodedText
                           };
                           openWeightModal(product);
                         } else {
-                          setSearchTerm(decodedText);
-                          await performOnlineSearch(decodedText);
+                          // Zamiast szukać online, dajemy fallback AI
+                          if (scannerRef.current && scannerRef.current.stopScanner) {
+                            await scannerRef.current.stopScanner();
+                          }
+                          setUnrecognizedBarcode(decodedText);
                         }
                       } catch (err) {
-                        setSearchTerm(decodedText);
-                        await performOnlineSearch(decodedText);
+                        if (scannerRef.current && scannerRef.current.stopScanner) {
+                           await scannerRef.current.stopScanner();
+                        }
+                        setUnrecognizedBarcode(decodedText);
                       } finally {
                         setIsSearching(false);
                       }
@@ -2648,7 +2756,7 @@ export default function MealPlate({
                         138.2 *
                         (() => {
                           if (!activeMeal) return 0;
-                          const mSrc = activeMeal.type === "meal" ? activeMeal : activeMeal.linkedMeal;
+                          const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
                           if (!mSrc) return 0;
                           const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
                           const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
@@ -2793,7 +2901,7 @@ export default function MealPlate({
                   <Area
                     yAxisId="left"
                     type="monotone"
-                    dataKey={i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) })}
+                    dataKey="Posiłek" name={i18n.t('auto.posilek', { defaultValue: 'Posiłek' })}
                     stroke="#f43f5e"
                     strokeWidth={3}
                     fillOpacity={1}
@@ -3317,7 +3425,7 @@ export default function MealPlate({
                 import('@capacitor/haptics').then(({ Haptics }) => Haptics.medium());
                 toast.loading(i18n.t('auto.zapisywanie_posilku', { defaultValue: 'Zapisywanie posiłku...' }), { id: "meal-save" });
                 try {
-                  await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), {
+                  const payload = {
                     type: "meal",
                     value: 0,
                     carbs: Math.round(totalCarbs * 10) / 10,
@@ -3326,7 +3434,9 @@ export default function MealPlate({
                     notes: plate.map((i) => i.name).join(", ") || t('meal.custom_meal', { defaultValue: 'Własny posiłek' }),
                     timestamp: Date.now(),
                     createdAt: Date.now()
-                  });
+                  };
+                  const docRef = await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), payload);
+                  window.dispatchEvent(new CustomEvent("logAdd", { detail: { ...payload, id: docRef.id } }));
                   setPlate([]);
                   toast.success(i18n.t('auto.posilek_zostal_zapisany', { defaultValue: 'Posiłek został zapisany w dzienniku!' }), { id: "meal-save" });
                   setTab("dashboard");
@@ -3426,7 +3536,7 @@ export default function MealPlate({
                   />
                   <Area
                     type="monotone"
-                    dataKey={i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) })}
+                    dataKey="Posiłek" name={i18n.t('auto.posilek', { defaultValue: 'Posiłek' })}
                     stroke="#f43f5e"
                     strokeWidth={2.5}
                     fillOpacity={1}
@@ -3440,6 +3550,8 @@ export default function MealPlate({
             </p>
           </div>
         </div>
+      )}
+        </>
       )}
     </motion.div>
   );
@@ -3589,4 +3701,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
     </div>
   );
 });
+
+
+
 

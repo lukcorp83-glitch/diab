@@ -282,6 +282,11 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
           </div>
           
           <p className="text-[9px] text-accent-300 font-bold uppercase tracking-tighter opacity-60">{t('auto.analiza_obejmuje_trendy_posiłki_wzo', { defaultValue: i18n.t('auto.analiza_obejmuje_trendy_p', { defaultValue: "Analiza obejmuje: trendy, posiłki, wzorce i hba1c" }) })}</p>
+          <div className="mt-4 p-3 bg-red-900/30 rounded-xl border border-red-500/30">
+            <p className="text-[10px] font-bold text-red-300 text-center uppercase tracking-widest leading-relaxed">
+              {t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje lekarz." })}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -324,7 +329,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
                           className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
                           dangerouslySetInnerHTML={{ __html: report.content }}
                         />
-                      </div>
+                        </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -363,3 +368,4 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
     </>
   );
 }
+

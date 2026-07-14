@@ -116,6 +116,46 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
         }
       }
 
+      if (userSettings?.inventory) {
+        userSettings.inventory.forEach(item => {
+          // 1. Sprawdzanie ilości
+          if (item.quantity <= (item.lowStockThreshold || 0)) {
+            const id = `inv-stock-${item.id}`;
+            if (!deletedIds.includes(id)) {
+              newNotifications.push({
+                id,
+                title: i18n.t("auto.braki_w_apteczce", { defaultValue: "Braki w apteczce!" }),
+                message: `${item.name}: pozostało tylko ${item.quantity} szt.`,
+                type: 'warning',
+                timestamp: now,
+                read: false
+              });
+              triggerSystemAlert(`${id}-alert`, i18n.t("auto.braki_w_apteczce", { defaultValue: "Braki w apteczce!" }), `${item.name}: pozostało tylko ${item.quantity} szt.`);
+            }
+          }
+
+          // 2. Sprawdzanie daty ważności (7 dni)
+          if (item.expiryDate) {
+            const expiryTime = new Date(item.expiryDate).getTime();
+            const daysToExpiry = (expiryTime - now) / (1000 * 60 * 60 * 24);
+            if (daysToExpiry <= 7 && daysToExpiry > 0) {
+              const id = `inv-exp-${item.id}`;
+              if (!deletedIds.includes(id)) {
+                newNotifications.push({
+                  id,
+                  title: i18n.t("auto.konczy_sie_waznosc_sprzetu", { defaultValue: "Wygasa osprzęt z apteczki!" }),
+                  message: `${item.name} straci ważność za ${Math.ceil(daysToExpiry)} dni.`,
+                  type: 'alert',
+                  timestamp: now,
+                  read: false
+                });
+                triggerSystemAlert(`${id}-alert`, i18n.t("auto.konczy_sie_waznosc_sprzetu", { defaultValue: "Wygasa osprzęt z apteczki!" }), `${item.name} straci ważność za ${Math.ceil(daysToExpiry)} dni.`);
+              }
+            }
+          }
+        });
+      }
+
       if (userSettings?.medications) {
         const nowObj = new Date(now);
         const currentHours = nowObj.getHours();
@@ -125,6 +165,26 @@ export default function NotificationCenter({ userSettings, theme }: { userSettin
 
         userSettings.medications.forEach(med => {
            if (med.active) {
+              // Sprawdzanie daty ważności leku (7 dni)
+              if (med.expiryDate) {
+                const expiryTime = new Date(med.expiryDate).getTime();
+                const daysToExpiry = (expiryTime - now) / (1000 * 60 * 60 * 24);
+                if (daysToExpiry <= 7 && daysToExpiry > 0) {
+                  const id = `med-exp-${med.id}`;
+                  if (!deletedIds.includes(id)) {
+                    newNotifications.push({
+                      id,
+                      title: `Kończy się ważność: ${med.name}`,
+                      message: `Lek straci ważność za ${Math.ceil(daysToExpiry)} dni (${med.expiryDate}). Pamiętaj o uzupełnieniu zapasów!`,
+                      type: 'alert',
+                      timestamp: now,
+                      read: false
+                    });
+                    triggerSystemAlert(`${id}-alert`, `Kończy się ważność: ${med.name}`, `Lek straci ważność za ${Math.ceil(daysToExpiry)} dni.`);
+                  }
+                }
+              }
+
               med.reminders.forEach(rem => {
                  const [hStr, mStr] = rem.split(':');
                  const h = parseInt(hStr, 10);

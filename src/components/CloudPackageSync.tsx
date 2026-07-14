@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { dbService } from '../services/databaseService';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
+import * as LZString from 'lz-string';
 
 export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
   if (!user) return false;
@@ -22,8 +23,8 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
       }
     }
     
-    // Pobierz WSZYSTKIE logi glikemii z nowej natywnej bazy SQLite (do 15000), nie z przestarzałego IndexedDB
-    const sqliteLogs = await dbService.getLogs(15000);
+    // Pobierz WSZYSTKIE logi glikemii z nowej natywnej bazy SQLite (do 45000), nie z przestarzałego IndexedDB
+    const sqliteLogs = await dbService.getLogs(45000);
     
     // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
     const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
@@ -40,9 +41,11 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
     };
 
     const jsonStr = JSON.stringify(exportData);
+    const compressedPayload = LZString.compressToUTF16(jsonStr);
+
     await setDoc(
       doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest"),
-      { payload: jsonStr, timestamp: Date.now() }
+      { payload: compressedPayload, timestamp: Date.now(), isCompressed: true }
     );
     localStorage.setItem('last_cloud_package_sync', Date.now().toString());
     return true;
@@ -63,7 +66,20 @@ export const downloadCloudPackage = async (user: any) => {
     const data = snap.data();
     if (!data.payload) return false;
     
-    const parsed = JSON.parse(data.payload);
+    let parsed: any;
+    try {
+      if (data.isCompressed) {
+        const decompressed = LZString.decompressFromUTF16(data.payload);
+        if (!decompressed) throw new Error("Decompression returned null");
+        parsed = JSON.parse(decompressed);
+      } else {
+        // Fallback for older uncompressed packages
+        parsed = JSON.parse(data.payload);
+      }
+    } catch (e) {
+      console.error("Failed to parse package payload", e);
+      return false;
+    }
     
     // Przywróć ustawienia localStorage
     if (parsed.localStorage) {

@@ -73,6 +73,7 @@ import {
   MessageCircle,
   Camera,
   Pizza,
+  FileJson,
 } from "lucide-react";
 import { db, auth, onConnectionChange } from "../lib/firebase";
 import { deleteUser } from "firebase/auth";
@@ -3574,7 +3575,15 @@ export default function Profile({
                           updates,
                           { merge: true },
                         );
-                        await addDoc(
+                        const sensorLogPayload = {
+                          type: "sensor_change",
+                          value: 1,
+                          timestamp: now,
+                          createdAt: serverTimestamp(),
+                          notes: "Wymiana sensora - " + insertionSite,
+                          source: "system",
+                        };
+                        const docRef = await addDoc(
                           collection(
                             db,
                             "artifacts",
@@ -3583,15 +3592,11 @@ export default function Profile({
                             getEffectiveUid(user),
                             "logs",
                           ),
-                          {
-                            type: "sensor_change",
-                            value: 1,
-                            timestamp: now,
-                            createdAt: serverTimestamp(),
-                            notes: "Wymiana sensora - " + sensorSite,
-                            source: "system",
-                          },
+                          sensorLogPayload
                         );
+                        const newLog = { ...sensorLogPayload, id: docRef.id, createdAt: new Date().toISOString() };
+                        await dbService.saveLog(newLog);
+                        window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newLog }));
                       }
                       toast.success(i18n.t('auto.zapisano_wymiane_sensora_na_te', { defaultValue: i18n.t('auto.zapisano_wymiane_sensora', { defaultValue: "Zapisano wymianę sensora na teraz!" }) }));
                     }}
@@ -3609,7 +3614,7 @@ export default function Profile({
                       if (days > 30) days = 30;
 
                       const updates = {
-                        sensorChangeDate: settings.sensorChangeDate || Date.now(),
+                        sensorChangeDate: Date.now(),
                         sensorDurationDays: days
                       };
                       setSettings((prev) => ({ ...prev, ...updates }));
@@ -3841,7 +3846,7 @@ export default function Profile({
                             {t('auto.czy_wymieniasz_rowniez_zbiornicze', { defaultValue: 'Czy wymieniasz również zbiorniczek na insulinę?' })}
                          </p>
                          <div className="flex gap-3">
-                           <button onClick={() => handleInfusionReplacement(false)} disabled={isProcessingReplacement} className="flex-1 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                           <button onClick={() => handleInfusionReplacement(false)} disabled={isProcessingReplacement} className="flex-1 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-600 transition-colors">
                               {t('auto.nie', { defaultValue: 'Nie' })}
                            </button>
                            <button onClick={() => handleInfusionReplacement(true)} disabled={isProcessingReplacement} className="flex-1 py-3.5 rounded-2xl bg-teal-600 text-white font-bold shadow-lg shadow-teal-600/30 hover:bg-teal-500 transition-colors">
@@ -3859,7 +3864,7 @@ export default function Profile({
                       if (days > 7) days = 7;
 
                       const updates = {
-                        infusionSetChangeDate: settings.infusionSetChangeDate || Date.now(),
+                        infusionSetChangeDate: Date.now(),
                         infusionSetDurationDays: days,
                         infusionSetSite: insertionSite
                       };
@@ -3894,6 +3899,22 @@ export default function Profile({
                                await dbService.saveLog({ ...logToUpdate, timestamp: updates.infusionSetChangeDate });
                                window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: logToUpdate.id, updates: { timestamp: updates.infusionSetChangeDate } } }));
                             }
+                          } else {
+                            const siteLogPayload = {
+                              type: "site_change",
+                              value: 1,
+                              timestamp: updates.infusionSetChangeDate,
+                              createdAt: serverTimestamp(),
+                              notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }),
+                              source: "system",
+                            };
+                            const docRef = await addDoc(
+                              collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
+                              siteLogPayload
+                            );
+                            const newLog = { ...siteLogPayload, id: docRef.id, createdAt: new Date().toISOString() };
+                            await dbService.saveLog(newLog);
+                            window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newLog }));
                           }
                         }
                       }
@@ -6471,6 +6492,38 @@ export default function Profile({
                         <button
                           key={color}
                           onClick={async () => {
+                            if (latestSensorLog && latestSensorLog.id) {
+                              await updateDoc(
+                                doc(
+                                  db,
+                                  "artifacts",
+                                  "diacontrolapp",
+                                  "users",
+                                  getEffectiveUid(user),
+                                  "logs",
+                                  latestSensorLog.id
+                                ),
+                                { timestamp: updates.sensorChangeDate }
+                              );
+                                await dbService.saveLog({ ...latestSensorLog, timestamp: updates.sensorChangeDate });
+                                window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSensorLog.id, updates: { timestamp: updates.sensorChangeDate } } }));
+                            } else {
+                              const sensorLogPayload = {
+                                type: "sensor_change",
+                                value: 1,
+                                timestamp: updates.sensorChangeDate,
+                                createdAt: serverTimestamp(),
+                                notes: "Wymiana sensora - " + sensorSite,
+                                source: "system",
+                              };
+                              const docRef = await addDoc(
+                                collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
+                                sensorLogPayload
+                              );
+                              const newLog = { ...sensorLogPayload, id: docRef.id, createdAt: new Date().toISOString() };
+                              await dbService.saveLog(newLog);
+                              window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newLog }));
+                            }
                             setSettings((prev) => ({
                               ...prev,
                               accentColor: color,
@@ -6802,6 +6855,33 @@ export default function Profile({
                     toast.success(i18n.t('auto.synchronizacja_zakonczona', { defaultValue: i18n.t('auto.synchronizacja_zakonczona', { defaultValue: "Synchronizacja zakończona!" }) }));
                   }}
                 />
+
+                {logs && logs.length > 0 && (
+                  <div className={cn(
+                    "p-4 rounded-2xl border flex flex-col gap-2",
+                    settings.glassmorphismEnabled
+                      ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                      : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
+                  )}>
+                    <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                      <FileJson size={12} />
+                      Baza Danych (Local DB)
+                    </h4>
+                    <div className="flex justify-between items-center text-sm dark:text-white font-medium">
+                      <span>Zapisane logi:</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">{logs.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm dark:text-white font-medium">
+                      <span>Okres danych:</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">
+                        {Math.max(1, Math.ceil((logs[0].timestamp - logs[logs.length - 1].timestamp) / (1000 * 60 * 60 * 24)))} dni
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight mt-1">
+                      Aplikacja przechowuje dane w pamięci przeglądarki. Po zalogowaniu na nowym urządzeniu pobiera 5 dni z chmury, a przy połączeniu z Nightscout pobiera historię do 34 dni.
+                    </p>
+                  </div>
+                )}
 
                 <LocalSync settings={settings} user={user} />
 
@@ -7209,6 +7289,8 @@ function SettingInput({
     </div>
   );
 }
+
+
 
 
 

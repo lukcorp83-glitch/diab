@@ -14,6 +14,7 @@ import {
   Plus,
   Zap,
   Heart,
+  Trash2,
 } from "lucide-react";
 import {
   doc,
@@ -52,7 +53,9 @@ export default function MealEditModal({
   const initialCarbs =
     log.type === "bolus"
       ? formatVal(log.linkedMeal?.carbs)
-      : formatVal(log.value);
+      : log.type === "meal" 
+        ? formatVal(log.carbs) 
+        : formatVal(log.value);
   const initialPolyols =
     log.type === "bolus"
       ? formatVal(log.linkedMeal?.polyols)
@@ -284,6 +287,15 @@ export default function MealEditModal({
         } else {
           updates.linkedMeal = null;
         }
+      } else if (log.type === "meal") {
+        updates.carbs = Math.round((parseFloat(carbs) || 0) * 10) / 10;
+        updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
+        updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
+        updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
+        if (mealName) {
+          updates.description = mealName;
+          updates.name = mealName;
+        }
       } else {
         if (removeMeal) {
           updates.value = 0;
@@ -298,12 +310,11 @@ export default function MealEditModal({
             (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0),
           );
           updates.value = Math.round(netCarbs * 10) / 10;
-          updates.polyols =
-            Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
-          updates.protein =
-            Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
+          updates.carbs = Math.round((parseFloat(carbs) || 0) * 10) / 10;
+          updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
+          updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
           updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
-          if (mealName) updates.name = mealName;
+          if (mealName) updates.description = mealName;
         }
       }
 
@@ -699,21 +710,19 @@ export default function MealEditModal({
                 />
               </div>
             </div>
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-accent-700 transition-all disabled:opacity-50 mt-6"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Save size={18} />
+              )}
+              {t('auto.zaktualizuj_wpis', { defaultValue: 'Zaktualizuj Wpis' })}
+            </button>
           </div>
-
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-accent-700 transition-all disabled:opacity-50"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Save size={18} />
-            )}
-            
-                                  {t('auto.zaktualizuj_wpis', { defaultValue: 'Zaktualizuj Wpis' })}
-                                </button>
         </div>
       </motion.div>
 

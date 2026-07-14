@@ -1,7 +1,56 @@
 import * as tf from '@tensorflow/tfjs';
+const workerDictEN: Record<string, string> = {
+  "auto.metabolizm_label_bardzo_szybki": "Very fast",
+  "auto.metabolizm_label_szybki": "Fast",
+  "auto.metabolizm_label_standardowy": "Standard",
+  "auto.metabolizm_label_wolny": "Slow",
+  "auto.metabolizm_label_bardzo_wolny": "Very slow",
+  "auto.glikosense_wykryl_ze_twoj_metabolizm": "🧬 GlikoSense detected that your carbohydrate and insulin metabolism matches the profile: \"{{label}}\". I have updated the digestion curve model!",
+  "auto.wydaje_mi_sie_ze_weglowod": "💡 It seems to me that carbohydrates are now absorbed into your blood quite quickly. A portion of, for example, 50g can have a big impact!",
+  "auto.to_co_zjadles_uwalnia_sie": "💡 What you ate, in my opinion, is released very calmly and without spikes. Good for us!",
+  "auto.masz_w_tym_momencie_podwy": "💉 You currently have increased sensitivity to insulin. Try to approach any potential corrections more gently.",
+  "auto.poranne_wstawanie_twoj_or": "🌅 Waking up early... Your body activates the Dawn Phenomenon. I note that lately this has been frequent for you.",
+  "auto.prawdopodobnie_organizm_b": "🌅 Your body is probably waking you up with morning hormones. The so-called dawn phenomenon, we grow even without eating.",
+  "auto.uwaga_ostatnio_miales_hip": "🔄 Attention! Recently you had hypoglycemia, so I can see how your body started to fight by releasing glucose reserves (the so-called Somogyi effect). Be gentle with corrections.",
+  "auto.miales_przed_chwila_glebo": "🔄 You just had a deep drop. This sudden rise is a post-dip rebound. Watch out for a strong correction, so it doesn't fall again!",
+  "auto.w_moim_cenniku_twojego_uo": "💪 According to my analysis of your insulin resistance, there is a slight block. Expect a slightly reduced bodily response to doses.",
+  "auto.moje_ukryte_wagi_mowia_ze": "📉 My hidden scales say that you should be doubly careful with doses in the near future. You will lower your sugar more effectively!",
+  "auto.jest_wysoko_ale_uwaga_ust": "📉 It is high, but beware! Guard against insulin stacking, you already have an active dose built up. It only requires a moment of patience.",
+  "auto.widze_spokojna_i_udana_no": "🌙 I see a calm and successful night. Parameters cut off like from a string for sleep!",
+  "auto.oho_poszlismy_wyzej_niz_z": "📈 Oh, we went higher than I expected! Sugar seems to be looking for a new place to rest, you need to react.",
+  "auto.cukier_zapikowal_ostrzej": "📉 Sugar plummeted more sharply than one might expect! I recommend quickly securing yourself with carbohydrates.",
+  "auto.hej_jedziemy_na_sporym_ro": "🎢 Hey, we're going on a big roller coaster. Pay more attention to giving insulin earlier to limit spikes!",
+  "auto.chcialbym_ci_bardzo_podzi": "🏆 I would like to thank you very much - your charts hold so few swings, it's a reason for satisfaction!",
+  "auto.nic_nie_bylo_jedzone_nie": "🧗 Nothing was eaten, no insulin was taken, and yet we are slowly making our way up the mountains. The so-called empty loop - check if your base isn't failing you lightly!",
+  "auto.mam_u_siebie_zapisana_mas": "⚠️ I have stored a lot of fats or proteins waiting to be digested! Pay attention to the hidden spikes in dishes in about 3-4 hours - the pizza effect is in the air!",
+  "auto.trend_leci_masz_solidny_l": "🎯 The trend is dropping! You have a solid load of active insulin in your body and not a bit of secured carbohydrates in your stomach. Be sure to eat about 15g of juice or glucose!",
+  "auto.przeczucie_mi_mowi_ze_zbl": "⚠️ My gut feeling tells me that a pretty bad hypo is coming! Quickly eat some simple sugars so you don't completely crash.",
+  "auto.bardzo_czerwone_swiatlo_u": "⚠️ Very red light for me - you're going down hard! Treat yourself to a sip of juice.",
+  "auto.spadek_i_maly_zakres_koni": "⚠️ Drop and small range! Be sure to shift the gear higher, securing these jumps with the appropriate glucose!",
+  "auto.powoli_wybiegamy_w_teren": "📈 Slowly we are venturing into the territory of high sugars. Find out where this is headed, I might not know everything about food to bring it back under control.",
+  "auto.sklaniamy_sie_gwaltownie": "📈 We are leaning sharply against the doors of hyperglycemia, a small adjustment will give us a big boost of freshness for the next hour.",
+  "auto.wydaje_mi_sie_ze_ostatnio": "📈 It seems to me that recently a few unmarked sweets must have slipped in... Expect a flight above the line.",
+  "auto.piekna_chwila_homeostazy": "✨ A beautiful moment of homeostasis, really worth celebrating, and for such views on the screen, I try to make them always appear!",
+  "auto.krok_po_kroku_i_mamy_idea": "✨ Step by step and we have the perfect moment of balance... Let's hope it continues like this for the rest of the day!",
+  "auto.w_tej_minucie_mozna_powie": "✨ At this moment, one can only say bravo, little bull - it's ok, no unexpected troubles in my view!",
+  "auto.zbyt_malo_danych_dla_glik": "Too little data for GlikoSense.",
+  "raw.opor": "🚨 My estimates show you have a slight resistance (I was off by {{bias}} mg/dL low). Any stress or emotions?",
+  "raw.wegle": "🚀 I warn you! You have a lot of carbs built up to eat ({{cob}}g), but no insulin coverage, and it's going up. Act!",
+  "raw.utknal": "🚨 WARNING! Sugar is stuck high and not going down even with {{bolus}}u of insulin over 4 hours. You might want to check the infusion site, the cannula might be bent!"
+};
+
 const i18n = { 
-    t: (key, options) => { 
+    t: (key: string, options?: any) => { 
         let str = (options && options.defaultValue) ? options.defaultValue : key;
+        
+        // Match key starting with 'auto.' but maybe worker uses longer keys, so let's match the prefix.
+        if (i18n.language && i18n.language.startsWith('en')) {
+            const matchKey = Object.keys(workerDictEN).find(k => key.startsWith(k));
+            if (matchKey) {
+                str = workerDictEN[matchKey];
+            }
+        }
+
         if (options) {
             for (const k in options) {
                 if (k !== 'defaultValue') {
@@ -15,6 +64,7 @@ const i18n = {
     language: 'pl' 
 };
 
+
 export interface GlikoWorkerInput {
     logs: any[];
     force: boolean;
@@ -22,6 +72,7 @@ export interface GlikoWorkerInput {
     rules: any;
     datasetSizeFromStorage: number;
     lastTrainTime: number;
+    language?: string;
 }
 
 function calculateActiveAtTime(targetTime: number, pastLogs: any[], rules: any) {
@@ -171,7 +222,8 @@ let _cachedModel: tf.LayersModel | null = null;
 let isModelLoaded = false;
 
 self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
-  const { logs, force, mode, rules, datasetSizeFromStorage, lastTrainTime } = e.data;
+  const { logs, force, mode, rules, datasetSizeFromStorage, lastTrainTime, language } = e.data;
+    if (language) i18n.language = language;
 
   try {
     if (!logs || logs.length < 3) {
@@ -365,7 +417,20 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         }
         rules.pkParams = bestParams; // Użyj wyuczonych wag do generowania wejść dla LSTM
         if (rules.pkParams.label !== "Standardowy") {
-             insights.push(`🧬 GlikoSense wykrył, że Twój metabolizm węglowodanów i insuliny wpisuje się w profil: "${rules.pkParams.label}". Zaktualizowałem model krzywych trawienia!`);
+             let labelKey = '';
+             switch(rules.pkParams.label) {
+               case 'Bardzo szybki': labelKey = 'auto.metabolizm_label_bardzo_szybki'; break;
+               case 'Szybki': labelKey = 'auto.metabolizm_label_szybki'; break;
+               case 'Standardowy': labelKey = 'auto.metabolizm_label_standardowy'; break;
+               case 'Wolny': labelKey = 'auto.metabolizm_label_wolny'; break;
+               case 'Bardzo wolny': labelKey = 'auto.metabolizm_label_bardzo_wolny'; break;
+               default: labelKey = rules.pkParams.label; break;
+             }
+             const translatedLabel = i18n.t(labelKey, { defaultValue: rules.pkParams.label });
+             insights.push(i18n.t('auto.glikosense_wykryl_ze_twoj_metabolizm', { 
+                 label: translatedLabel,
+                 defaultValue: `🧬 GlikoSense wykrył, że Twój metabolizm węglowodanów i insuliny wpisuje się w profil: "${rules.pkParams.label}". Zaktualizowałem model krzywych trawienia!` 
+             }));
         }
     }
     
@@ -660,7 +725,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     if (insulinSensitivity < -30) insights.push(i18n.t('auto.masz_w_tym_momencie_podwyzszon', { defaultValue: i18n.t('auto.masz_w_tym_momencie_podwy', { defaultValue: i18n.t('auto.masz_w_tym_momencie_podwy', { defaultValue: "💉 Masz w tym momencie podwyższoną wrażliwość na insulinę. Postaraj się delikatniej podejść do ewentualnych korekt." }) }) }));
 
-    if (avgBias < -15) insights.push(`🚨 Z moich szacunków wynika, że masz lekką oporność (byłem o ${Math.abs(Math.round(avgBias))} mg/dL w błędzie w dół). Jakieś emocje, stres?`);
+    if (avgBias < -15) insights.push(i18n.t('raw.opor', { bias: Math.abs(Math.round(avgBias)), defaultValue: `🚨 Z moich szacunków wynika, że masz lekką oporność (byłem o ${Math.abs(Math.round(avgBias))} mg/dL w błędzie w dół). Jakieś emocje, stres?` }));
     else if (avgBias > 15) insights.push(i18n.t('auto.cukier_trzyma_sie_nizej_niz_pr', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: "🏃‍♂️ Cukier trzyma się niżej niż przewidywałem! Miałeś ukryty wysiłek fizyczny, o którym mi nie powiedziałeś?" }) }) }));
 
     const latestDate = new Date(latestTimeMs);
@@ -680,7 +745,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(i18n.t('auto.miales_przed_chwila_gleboki_sp', { defaultValue: i18n.t('auto.miales_przed_chwila_glebo', { defaultValue: i18n.t('auto.miales_przed_chwila_glebo', { defaultValue: "🔄 Miałeś przed chwilą głęboki spadek. Ten gwałtowny wzrost to odbicie po-hipowe. Uważnie z potężną korektą, by znów nie spaść!" }) }) }));
     }
 
-    if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier > 1.1) insights.push(i18n.t('auto.w_moim_cenniku_twojego_uodporn', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: "💪 W moim cenniku Twojego uodpornienia, widnieje lekka blokada na insulinę. Licz się z trochę chłodniejszą reakcją organizmu." }) }) }));
+    if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier > 1.1) insights.push(i18n.t('auto.w_moim_cenniku_twojego_uodporn', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: i18n.t('auto.w_moim_cenniku_twojego_uo', { defaultValue: "💪 Z moich analiz insulinooporności wynika, że występuje u Ciebie lekka blokada na insulinę. Licz się z trochę słabszą reakcją organizmu na dawki." }) }) }));
     else if (rules.insulinResistanceMultiplier && rules.insulinResistanceMultiplier < 0.9) insights.push(i18n.t('auto.moje_ukryte_wagi_mowia_ze_powi', { defaultValue: i18n.t('auto.moje_ukryte_wagi_mowia_ze', { defaultValue: i18n.t('auto.moje_ukryte_wagi_mowia_ze', { defaultValue: "📉 Moje ukryte wagi mówią, że powinieneś w najbliższym czasie być podwójnie ostrożny z dawkami. Będziesz zbijał cukier skuteczniej!" }) }) }));
 
     if (latestBg > 160 && currentIob > 1.5 && predictedNextHour > 160) {
@@ -712,7 +777,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     if (currentCob > 50 && latestBg > 150 && lastTrendNum > 4 && currentIob < Math.max(1, currentCob / 15)) {
-         insights.push(`🚀 Ostrzegam! Masz sporo węgli zgromadzonych do zjedzenia (${Math.round(currentCob)}g), ale brak ubezpieczenia insulinowego, i idzie do góry. Działaj!`);
+         insights.push(i18n.t('raw.wegle', { cob: Math.round(currentCob), defaultValue: `🚀 Ostrzegam! Masz sporo węgli zgromadzonych do zjedzenia (${Math.round(currentCob)}g), ale brak ubezpieczenia insulinowego, i idzie do góry. Działaj!` }));
     }
 
     const threeHoursAgoForBasal = latestTimeMs - (3 * 60 * 60 * 1000);
@@ -731,7 +796,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         const highCounts = last4h.filter(l => (l.type === 'glucose' || l.bg) && (l.value || l.bg) > 180).length;
         const totalCounts = last4h.filter(l => l.type === 'glucose' || l.bg).length;
         if (highCounts > 0 && highCounts / (totalCounts || 1) > 0.8) {
-            insights.push(`🚨 UWAGA! Cukier utknął wysoko i nie idzie w dół nawet przy podanych ${totalRecentBolus}j insuliny od 4 godzin. Istnieje powód by zerknąć na miejsce wkłucia, mogła wygiąć się kaniula!`);
+            insights.push(i18n.t('raw.utknal', { bolus: totalRecentBolus, defaultValue: `🚨 UWAGA! Cukier utknął wysoko i nie idzie w dół nawet przy podanych ${totalRecentBolus}j insuliny od 4 godzin. Istnieje powód by zerknąć na miejsce wkłucia, mogła wygiąć się kaniula!` }));
         }
     }
 
@@ -777,5 +842,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     self.postMessage({ type: 'error', error: error.message });
   }
 };
+
+
+
 
 

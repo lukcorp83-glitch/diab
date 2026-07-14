@@ -193,7 +193,7 @@ self.onmessage = async (e: MessageEvent) => {
   const { type, payload } = e.data;
 
   if (type === 'START_SYNC') {
-    const { url, secret, intervalMs = 5 * 60 * 1000, count = 150 } = payload;
+    const { url, secret, intervalMs = 5 * 60 * 1000, count = 3000 } = payload;
     
     const runSync = async (fetchCount: number) => {
       try {

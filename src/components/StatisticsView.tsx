@@ -67,18 +67,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
         data[monthKey].days[dayKey] = { dateStr: dayKey, carbs: 0, insulin: 0, hypos: 0, hypers: 0, siteChange: false, sensorChange: false };
       }
 
-      if (log.type === 'glucose') {
-        const val = Number(log.value) || 0;
-        if (val > 0) {
-          if (val < targetMin) {
-            data[monthKey].hypos += 1;
-            data[monthKey].days[dayKey].hypos += 1;
-          } else if (val > targetMax) {
-            data[monthKey].hypers += 1;
-            data[monthKey].days[dayKey].hypers += 1;
-          }
-        }
-      }
+      // Glucose events will be processed separately for accurate episode calculation
 
       if (log.type === 'meal') {
         data[monthKey].totalCarbs += Number(log.value) || 0;
@@ -109,6 +98,45 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
       }
     });
 
+    // 2. Process glucose logs in chronological order to detect episodes (incidents)
+    const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => a.timestamp - b.timestamp);
+    
+    let currentState: 'normal' | 'hypo' | 'hyper' = 'normal';
+    let lastTimestamp = 0;
+
+    glucoseLogs.forEach(log => {
+      const date = new Date(log.timestamp);
+      if (isNaN(date.getTime())) return;
+      
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      
+      if (!data[monthKey]) return; // Should already be initialized
+
+      // Reset state if there's a gap larger than 2 hours
+      if (lastTimestamp > 0 && (log.timestamp - lastTimestamp) > 2 * 60 * 60 * 1000) {
+        currentState = 'normal';
+      }
+      lastTimestamp = log.timestamp;
+
+      const val = Number(log.value) || 0;
+      if (val > 0) {
+        let newState: 'normal' | 'hypo' | 'hyper' = 'normal';
+        if (val < targetMin) newState = 'hypo';
+        else if (val > targetMax) newState = 'hyper';
+
+        if (newState === 'hypo' && currentState !== 'hypo') {
+          data[monthKey].hypos += 1;
+          if (data[monthKey].days[dayKey]) data[monthKey].days[dayKey].hypos += 1;
+        } else if (newState === 'hyper' && currentState !== 'hyper') {
+          data[monthKey].hypers += 1;
+          if (data[monthKey].days[dayKey]) data[monthKey].days[dayKey].hypers += 1;
+        }
+
+        currentState = newState;
+      }
+    });
+
     return Object.values(data).sort((a, b) => b.monthKey.localeCompare(a.monthKey));
   }, [logs]);
 
@@ -119,6 +147,13 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
     }
   }, [monthsData, expandedMonth]);
 
+  const daysOfData = useMemo(() => {
+    if (logs.length === 0) return 0;
+    const earliest = logs[logs.length - 1].timestamp;
+    const latest = logs[0].timestamp;
+    return Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24)));
+  }, [logs]);
+
   if (monthsData.length === 0) {
     return (
       <div className="text-center text-slate-500 mt-10">{t('auto.brak_danych_do_wyświetlenia_statyst', { defaultValue: i18n.t('auto.brak_danych_do_wyswietlen', { defaultValue: "Brak danych do wyświetlenia statystyk." }) })}</div>
@@ -127,6 +162,12 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
 
   return (
     <div className="space-y-4">
+      {daysOfData > 0 && (
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 p-3 rounded-2xl text-xs font-medium text-center flex items-center justify-center gap-2">
+          <Calendar size={14} />
+          {t('auto.statystyki_wygenerowane_na_podstaw', { defaultValue: "Statystyki wygenerowane na podstawie" })} <span className="font-black">{daysOfData}</span> {t('auto.ostatnich_dni', { defaultValue: "ostatnich dni logów." })}
+        </div>
+      )}
       {monthsData.map((month) => {
         const isExpanded = expandedMonth === month.monthKey;
         

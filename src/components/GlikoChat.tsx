@@ -471,12 +471,15 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
                         message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
                         message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
                         message.appAction.action === 'navigate' ? (
-                          message.appAction.target === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
-                          message.appAction.target === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
-                          message.appAction.target === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
-                          message.appAction.target === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
-                          message.appAction.target === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
-                          message.appAction.target
+                          (message.appAction.target || message.appAction.value) === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
+                          (message.appAction.target || message.appAction.value) === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
+                          (message.appAction.target || message.appAction.value) === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
+                          (message.appAction.target || message.appAction.value) === 'profile' ? t('nav.profile', { defaultValue: 'Profil' }) :
+                          (message.appAction.target || message.appAction.value) === 'history' ? t('nav.history', { defaultValue: 'Historia' }) :
+                          (message.appAction.target || message.appAction.value) === 'games' ? t('nav.games', { defaultValue: 'Gry' }) :
+                          (message.appAction.target || message.appAction.value) === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
+                          (message.appAction.target || message.appAction.value) === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
+                          (message.appAction.target || message.appAction.value)
                         ) :
                         message.appAction.action
                       }

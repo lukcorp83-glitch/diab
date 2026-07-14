@@ -1,6 +1,7 @@
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getMessaging, isSupported } from 'firebase/messaging';
+import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { getApps, getApp, initializeApp } from 'firebase/app';
 
@@ -60,5 +61,13 @@ export const messaging = async () => {
     const supported = await isSupported();
     return supported ? getMessaging(app) : null;
 };
+
+export let analytics: any = null;
+isAnalyticsSupported().then(supported => {
+  if (supported) {
+    analytics = getAnalytics(app);
+    console.log("[Firebase] Analytics initialized");
+  }
+}).catch(console.error);
 
 console.log("Firebase initialized for project:", firebaseConfig.projectId);

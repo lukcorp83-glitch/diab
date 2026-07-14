@@ -437,6 +437,25 @@ export const geminiService = {
     }
   },
 
+  async analyzeNutritionLabel(imageData: string) {
+    const prompt = i18n.t('auto.przeanalizuj_etykiete_odzywcza', { defaultValue: "Przeanalizuj to zdjęcie tabeli wartości odżywczych (etykiety) z opakowania produktu. Znajdź wartości dla 100g produktu (lub 100ml). Zwróć wynik absolutnie jako czysty JSON bez formatowania markdown:\n    {\n      \"name\": \"Opcjonalna nazwa produktu jeśli widoczna (np. na froncie opakowania)\",\n      \"carbs\": 0,\n      \"protein\": 0,\n      \"fat\": 0,\n      \"kcal\": 0,\n      \"gi\": 50\n    }\n    Wartość węglowodanów, białka, tłuszczu podaj w gramach. Jeśli czegoś brakuje, wstaw 0." });
+  
+    try {
+      const text = await this.generateContent(prompt, imageData);
+      console.log("Raw AI vision response for label:", text);
+      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      let cleanJson = jsonMatch ? jsonMatch[0] : text;
+      cleanJson = cleanJson
+        .replace(/^```json/, "")
+        .replace(/```$/, "")
+        .trim();
+      return JSON.parse(cleanJson);
+    } catch (error) {
+      console.error("Gemini Vision Error in analyzeNutritionLabel:", error);
+      throw error;
+    }
+  },
+
   async getBolusRecommendation(
     currentBg: number,
     currentCarbs: number,

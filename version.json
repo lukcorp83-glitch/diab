@@ -1,10 +1,11 @@
 {
-  "version": "5.7.0",
+  "version": "5.7.1",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.0_OTA.apk",
-  "buildNumber": 105,
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.1_OTA.apk",
+  "buildNumber": 114,
   "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.6.25: Poprawki stabilności i optymalizacja.",
-  "whatsNewEn": "🚀 Version 5.6.25: Stability improvements and optimization.",
-  "otaRevision": 260
+  "whatsNew": "🚀 Wersja 5.7.1: Połączenie najnowszych funkcji z wersji Beta do wydania Stabilnego! Dodano kompresję ZIP, nowy skaner żywności AI i poprawki ładowania statystyk na telefonach.",
+  "whatsNewEn": "🚀 Version 5.7.1: Merged the latest Beta features into Stable! Added ZIP compression, new AI food scanner, and fixes for loading statistics on phones.",
+  "otaRevision": 270
 }
+

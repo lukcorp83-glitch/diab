@@ -14,14 +14,62 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.0';
+export const CURRENT_VERSION = '5.7.1';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "5.7.0",
+    version: "5.7.1",
+    date: "2026-07-14",
+    title: "Dynamiczne Wykresy i AI Wkłucia",
+    changes: [
+      "Wykres wchłaniania na Talerzu automatycznie ucina pustą przestrzeń po małych przekąskach (np. 2 godziny dla jabłka).",
+      "Asystent AI po wpisaniu 'wymieniłem wkłucie' poprosi również o ewentualne zapisanie zmiany zbiorniczka.",
+      "Poprawiono błędne komunikaty na przyciskach nawigacji sugerowanych przez AI.",
+      "Skorygowano liczenie Dziennego TIR (wykorzystanie właściwych celów ustawionych przez użytkownika)."
+    ]
+  },
+  {
+    version: "5.7.04",
+    date: "2026-07-13",
+    title: "Rozszerzenie Pamięci GlikoSense i Kompresja",
+    changes: [
+      "GlikoSense zyskuje stałą pamięć wniosków niezależnie od dostępności pełnych logów (ochrona przed lukami w historii).",
+      "Nowy system potężnej kompresji ZIP (lz-string) omijający limity Firebase dla paczek chmurowych.",
+      "Od teraz można bezstratnie zapisać w chmurze nawet pełne 45 tysięcy rekordów (pół roku)."
+    ]
+  },
+  {
+    version: "5.7.03",
+    date: "2026-07-13",
+    title: "Aktualizacja Wykresu i Parowania",
+    changes: [
+      "Naprawiono limitowanie wykresu wchłaniania do maksymalnie 4 godzin – od teraz obsługuje do 8h dla posiłków tłustych.",
+      "Dodano stan 'Offline' dla zapamiętanych urządzeń w widoku parowania.",
+      "Poprawiono płynność wykresu przy odświeżaniu danych."
+    ]
+  },
+  {
+    version: "5.7.02",
+    date: "2026-07-10",
+    title: "Optymalizacja Firebase",
+    changes: [
+      "Rozwiązano błąd przekraczania darmowego limitu Firebase po nowej instalacji aplikacji.",
+      "Dodano auto-przywracanie pełnych statystyk (do 15000) z dziennej paczki chmurowej."
+    ]
+  },
+  {
+    version: "5.7.01",
+    date: "2026-07-09",
+    title: "Aktualizacja Beta",
+    changes: [
+      "Nowe wydanie w kanale Beta (5.7.01)."
+    ]
+  },
+  {
+    version: "5.6.25",
     date: "2026-07-09",
     title: "Poprawki i stabilizacja",
     changes: [
@@ -510,6 +558,71 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+    {
+      version: "5.7.05",
+      date: "2026-07-14",
+      title: "Dynamiczne Wykresy i AI Wkłucia",
+      changes: [
+        {
+          categoryKey: "kategoria_ulepszenia_algorytmów_ai",
+          icon: "Bot",
+          colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+          descriptionKey: "Asystent AI uwzględnia ewentualną zmianę zbiorniczka przy wymianie wkłucia."
+        },
+        {
+          categoryKey: "kategoria_drobne_poprawki",
+          icon: "LineChart",
+          colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+          descriptionKey: "Wykres wchłaniania ucina się dynamicznie przy mniejszych posiłkach oraz precyzyjniejsze liczenie Dziennego TIR."
+        }
+      ]
+    },
+    {
+      version: "5.7.04",
+    date: "2026-07-13",
+    title: "Rozszerzenie Pamięci GlikoSense i Kompresja",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Wbudowana bezstratna kompresja ZIP dla wielkich paczek chmurowych (obchodzi limity i utraty starszych wpisów)."
+      },
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "Trwała pamięć sztucznej inteligencji GlikoSense odporna na zaniki bazy danych."
+      }
+    ]
+  },
+  {
+    version: "5.7.03",
+    date: "2026-07-13",
+    title: "Aktualizacja Wykresu i Parowania",
+    changes: [
+      "Naprawiono limitowanie wykresu wchłaniania do maksymalnie 4 godzin – od teraz obsługuje do 8h dla posiłków tłustych.",
+      "Dodano stan 'Offline' dla zapamiętanych urządzeń w widoku parowania.",
+      "Poprawiono płynność wykresu przy odświeżaniu danych."
+    ]
+  },
+  {
+    version: "5.7.02",
+    date: "2026-07-10",
+    title: "Optymalizacja Firebase",
+    changes: [
+      "Rozwiązano błąd przekraczania darmowego limitu Firebase po nowej instalacji aplikacji.",
+      "Dodano auto-przywracanie pełnych statystyk (do 15000) z dziennej paczki chmurowej."
+    ]
+  },
+  {
+    version: "5.7.01",
+    date: "2026-07-09",
+    title: "Aktualizacja Beta",
+    changes: [
+      "Nowe wydanie w kanale Beta (5.7.01)."
+    ]
+  },
   {
     version: "5.7.0",
     date: "2026-07-09",
@@ -862,6 +975,13 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   }
 ];
+
+
+
+
+
+
+
 
 
 

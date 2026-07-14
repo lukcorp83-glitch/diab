@@ -270,14 +270,23 @@ export default function App() {
       if (Capacitor.getPlatform() === 'android') {
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
           LocalNotifications.createChannel({
-            id: 'glucose_alerts_v7',
-            name: 'Alarmy Glikemii',
-            description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
-            importance: 5, // MAX importance
-            visibility: 1, // Public
-            sound: 'critical_alarm.wav',
-            vibration: true
-          }).catch(e => console.warn('Failed to create notification channel', e));
+              id: 'glucose_alerts_v8',
+              name: 'Alarmy Glikemii',
+              description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
+              importance: 5, // MAX importance
+              visibility: 1, // Public
+              sound: 'status_clear.mp3',
+              vibration: true
+            }).catch(e => console.warn('Failed to create notification channel', e));
+
+          LocalNotifications.createChannel({
+              id: 'system_alerts_v1',
+              name: 'Powiadomienia Systemowe',
+              description: 'Standardowe komunikaty (bez specjalnych dźwięków)',
+              importance: 4, 
+              visibility: 1,
+              vibration: true
+            }).catch(e => console.warn('Failed to create system notification channel', e));
         });
       }
     }
@@ -286,7 +295,7 @@ export default function App() {
     dbService.init().then(async () => {
       console.log(i18n.t('auto.baza_danych_zainicjowana_prawi', { defaultValue: i18n.t('auto.baza_danych_zainicjowana', { defaultValue: "Baza danych zainicjowana prawidłowo!" }) }));
       try {
-        const localData = await dbService.getLogs(15000);
+        const localData = await dbService.getLogs(45000);
         setCachedLogs(localData);
       } catch (err) {
         console.error(i18n.t('auto.blad_pobierania_danych_startow', { defaultValue: i18n.t('auto.blad_pobierania_danych_st', { defaultValue: "Błąd pobierania danych startowych" }) }), err);
@@ -372,13 +381,53 @@ export default function App() {
          });
       }
     };
+
+    const handleLogAddBatch = (e: any) => {
+      const newLogs = e.detail;
+      if (!Array.isArray(newLogs) || newLogs.length === 0) return;
+      setCachedLogs((prev) => [...newLogs, ...prev]);
+      setFbLogs((prev) => [...newLogs, ...prev]);
+      
+      const insulinLogs = newLogs.filter((l: any) => l.type === 'insulin' && l.dose);
+      if (insulinLogs.length > 0) {
+         setUserSettings((prev) => {
+            if (!prev || prev.treatmentMode !== 'insulin') return prev;
+            let newCurrent = prev.currentPenUnits ?? prev.penCapacity ?? 300;
+            let newCount = prev.penCount ?? 0;
+            let totalDose = 0;
+            insulinLogs.forEach((l: any) => totalDose += l.dose);
+            
+            newCurrent -= totalDose;
+            
+            if (newCurrent <= 20 && prev.currentPenUnits && prev.currentPenUnits > 20) {
+              import("./services/notificationService").then(mod => {
+                 mod.notificationService.scheduleLocalNotification(
+                    "Kończy się insulina! 💉",
+                    `W Twoim penie zostało tylko ${newCurrent} jednostek.`,
+                    0
+                 );
+              });
+            }
+
+            if (newCurrent <= 0) {
+               newCount += 1;
+               newCurrent = prev.penCapacity ?? 300;
+            }
+            
+            return { ...prev, currentPenUnits: newCurrent, penCount: newCount };
+         });
+      }
+    };
+
     window.addEventListener("localLogUpdate", handleLogUpdate);
     window.addEventListener("localLogDelete", handleLogDelete);
     window.addEventListener("localLogAdd", handleLogAdd);
+    window.addEventListener("localLogAddBatch", handleLogAddBatch);
     return () => {
       window.removeEventListener("localLogUpdate", handleLogUpdate);
       window.removeEventListener("localLogDelete", handleLogDelete);
       window.removeEventListener("localLogAdd", handleLogAdd);
+      window.removeEventListener("localLogAddBatch", handleLogAddBatch);
     };
   }, []);
 
@@ -389,8 +438,8 @@ export default function App() {
 
     const getKey = (a: LogEntry) => {
       let key = "";
-      if (a.id) key = a.id;
-      else if (a.nsId) key = a.nsId;
+      if (a.nsId) key = a.nsId; // nsId ma wyższy priorytet (zapobiega duplikatom z fbLogs)
+      else if (a.id) key = a.id;
       else key = `${a.type}_${Math.floor(a.timestamp / 60000)}_${a.value?.toFixed(1)}`;
       return key;
     };
@@ -423,7 +472,7 @@ export default function App() {
   // Zapisy do DB za każdym razem gdy zmieni się docelowy useMemo logs
   useEffect(() => {
     if (logs.length > 0 && cachedLogsLoaded) {
-      dbService.saveMultipleLogs(logs.slice(0, 15000)).catch(console.error);
+      dbService.saveMultipleLogs(logs.slice(0, 45000)).catch(console.error);
     }
   }, [logs, cachedLogsLoaded]);
 
@@ -484,12 +533,14 @@ export default function App() {
     url: userSettings?.websocketUrl,
     roomId: userSettings?.websocketRoomId || (user ? getEffectiveUid(user) : undefined),
     deviceId: localDeviceId,
-    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : i18n.t('auto.przegladarka_www', { defaultValue: i18n.t('auto.przegladarka_www', { defaultValue: "Przeglądarka WWW" }) })),
+    deviceName: userSettings?.deviceName || (Capacitor.isNativePlatform() ? "Aplikacja Mobilna" : i18n.t('auto.przegladarka_www', { defaultValue: i18n.t('auto.przegladarka_www', { defaultValue: "Przeglądaraka WWW" }) })),
     role,
     isAdmin,
     onDataReceived: (payload) => {
       // Przychodzi dane z innego telefonu po WebSocket - emulujemy że to nowy log z powiadomień
-      if (payload && payload.id) {
+      if (Array.isArray(payload)) {
+         window.dispatchEvent(new CustomEvent("localLogAddBatch", { detail: payload }));
+      } else if (payload && payload.id) {
          window.dispatchEvent(new CustomEvent("localLogAdd", { detail: payload }));
       }
     },
@@ -505,8 +556,15 @@ export default function App() {
      const handleWsSend = (e: any) => {
         wsSendData(e.detail);
      };
+     const handleWsSendBatch = (e: any) => {
+        wsSendData(e.detail);
+     };
      window.addEventListener("wsSendLog", handleWsSend);
-     return () => window.removeEventListener("wsSendLog", handleWsSend);
+     window.addEventListener("wsSendLogBatch", handleWsSendBatch);
+     return () => {
+        window.removeEventListener("wsSendLog", handleWsSend);
+        window.removeEventListener("wsSendLogBatch", handleWsSendBatch);
+     };
   }, [wsSendData]);
 
   useEffect(() => {
@@ -1070,6 +1128,18 @@ export default function App() {
             const updates: any = {};
             if (logData.type === "site_change") {
               updates.infusionSetChangeDate = nowTimestamp;
+              if (window.confirm(i18n.t('auto.czy_wymieniasz_rowniez_zbiornicze', { defaultValue: 'Czy wymieniasz również zbiorniczek na insulinę?' }))) {
+                  updates.reservoirChangeDate = nowTimestamp;
+                  const resLog = { 
+                     type: "site_change", 
+                     value: 1, 
+                     timestamp: nowTimestamp + 1, 
+                     createdAt: serverTimestamp(), 
+                     notes: i18n.t('auto.wymiana_zbiorniczka', { defaultValue: "Wymiana zbiorniczka" }), 
+                     source: "system" 
+                  };
+                  await setDoc(doc(logsRef), resLog);
+              }
             } else if (logData.type === "sensor_change") {
               updates.sensorChangeDate = nowTimestamp;
             }
@@ -1355,10 +1425,15 @@ export default function App() {
             setDoc(settingsRef, { treatmentMode: localTreatmentMode }, { merge: true }).catch(console.error);
             localStorage.removeItem("treatmentMode"); // Pożeramy flagę
           }
+
+          if (data.appVersion !== CURRENT_VERSION) {
+            data.appVersion = CURRENT_VERSION;
+            setDoc(settingsRef, { appVersion: CURRENT_VERSION }, { merge: true }).catch(console.error);
+          }
           
           setUserSettings(data);
         } else {
-          const defaultSettings = { ...DEFAULT_SETTINGS };
+          const defaultSettings = { ...DEFAULT_SETTINGS, appVersion: CURRENT_VERSION };
           const localTreatmentMode = localStorage.getItem("treatmentMode") as any;
           
           if (localNotificationsEnabled !== null) {
@@ -1440,79 +1515,7 @@ export default function App() {
       }
     };
 
-    const checkExpiries = () => {
-      const hasPermission = Capacitor.isNativePlatform() || 
-        (window.Notification && window.Notification.permission === "granted");
-      if (!hasPermission) return;
-
-      const now = Date.now();
-      const warningThresholdMs = 12 * 60 * 60 * 1000; // 12 hours
-
-      // Sensor Notification Check
-      if (userSettings.sensorChangeDate && userSettings.sensorDurationDays) {
-        const sensorExpiryDate =
-          userSettings.sensorChangeDate +
-          userSettings.sensorDurationDays * 24 * 60 * 60 * 1000;
-        const sensorMsLeft = sensorExpiryDate - now;
-        if (sensorMsLeft > 0 && sensorMsLeft <= warningThresholdMs) {
-          const notifiedKey = `notified_sensor_${userSettings.sensorChangeDate}`;
-          if (!localStorage.getItem(notifiedKey)) {
-            sendAppNotification(
-              i18n.t('auto.zbliza_sie_wymiana_sensora', { defaultValue: i18n.t('auto.zbliza_sie_wymiana_sensor', { defaultValue: "Zbliża się wymiana sensora!" }) }),
-              i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora. Zmień go wkrótce!" }) })
-            );
-            localStorage.setItem(notifiedKey, "true");
-          }
-        }
-      }
-
-      // Infusion Set Notification Check
-      if (
-        userSettings.infusionSetChangeDate &&
-        userSettings.infusionSetDurationDays
-      ) {
-        const infusionExpiryDate =
-          userSettings.infusionSetChangeDate +
-          userSettings.infusionSetDurationDays * 24 * 60 * 60 * 1000;
-        const infusionMsLeft = infusionExpiryDate - now;
-        if (infusionMsLeft > 0 && infusionMsLeft <= warningThresholdMs) {
-          const notifiedKey = `notified_infusion_${userSettings.infusionSetChangeDate}`;
-          if (!localStorage.getItem(notifiedKey)) {
-            sendAppNotification(
-              i18n.t('auto.zbliza_sie_wymiana_wklucia', { defaultValue: i18n.t('auto.zbliza_sie_wymiana_wkluci', { defaultValue: "Zbliża się wymiana wkłucia!" }) }),
-              i18n.t('auto.pozostalo_mniej_niz_12_godzin', { defaultValue: i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia. Pamiętaj o zmianie!" }) })
-            );
-            localStorage.setItem(notifiedKey, "true");
-          }
-        }
-      }
-
-      // Medication Expiry Notification Check
-      if (userSettings.medications) {
-        userSettings.medications.forEach((med) => {
-          if (med.expiryDate && med.active) {
-            const expiryTime = new Date(med.expiryDate).getTime();
-            const daysToExpiry = (expiryTime - now) / (1000 * 60 * 60 * 24);
-
-            if (daysToExpiry <= 7 && daysToExpiry > 0) {
-              const notifiedKey = `notified_expiry_${med.id}_${med.expiryDate}`;
-              if (!localStorage.getItem(notifiedKey)) {
-                sendAppNotification(
-                  `Kończy się ważność: ${med.name}`,
-                  `Lek straci ważność za ${Math.ceil(daysToExpiry)} dni (${med.expiryDate}). Pamiętaj o uzupełnieniu zapasów!`
-                );
-                localStorage.setItem(notifiedKey, "true");
-              }
-            }
-          }
-        });
-      }
-    };
-
-    checkExpiries(); // Check on mount
-    const interval = setInterval(checkExpiries, 5 * 60 * 1000); // Check every 5 minutes
-
-    return () => clearInterval(interval);
+      // `checkExpiries` has been migrated to `NotificationCenter.tsx` to avoid duplicating native OS alerts and to unify the notification stream.
   }, [userSettings]);
 
   useEffect(() => {
@@ -1668,7 +1671,7 @@ export default function App() {
                   body: alertBody,
                   id: Math.floor(Math.random() * 100000),
                   schedule: { at: new Date() },
-                  channelId: "glucose_alerts_v7",
+                  channelId: "glucose_alerts_v8",
                   sound: "status_clear.mp3",
                   attachments: null,
                   actionTypeId: "",
@@ -1889,10 +1892,10 @@ export default function App() {
     if (!user || !cachedLogsLoaded) return;
 
     let q;
-    // Auto-Restore logic: if local DB was wiped (logs = 0) but we had them before (flag)
-    if (cachedLogs.length === 0 && localStorage.getItem('glikocontrol_has_local_data') === 'true') {
-      console.log("SQLite wipe detected, attempting auto-restore...");
-      localStorage.setItem('glikocontrol_has_local_data', 'false'); // prevent loop
+    // Auto-Restore logic: always attempt on fresh install/wipe to fetch the full 15k history without hitting quota
+    if (cachedLogs.length === 0 && localStorage.getItem('has_attempted_cloud_restore') !== 'true') {
+      console.log("No local data, attempting auto-restore from cloud package...");
+      localStorage.setItem('has_attempted_cloud_restore', 'true'); // prevent loop
       downloadCloudPackage(user).then(ok => {
         if (ok) {
           console.log("Auto-restore successful, reloading...");
@@ -1934,15 +1937,15 @@ export default function App() {
 
     if (newestLocalTs > 0) {
       // Fetch only what's new since our last sync/cache (+ mały zapas - 2 dni)
-      const safeTs = newestLocalTs - 2 * 24 * 3600 * 1000;
+      const safeTs = newestLocalTs - 5 * 24 * 3600 * 1000; // Zapas 5 dni na synchronizację offline
       q = query(
         logsCollection,
         where("timestamp", ">", safeTs),
         orderBy("timestamp", "desc"),
-        limit(150),
+        limit(1500),
       );
     } else {
-      q = query(logsCollection, orderBy("timestamp", "desc"), limit(300));
+      q = query(logsCollection, orderBy("timestamp", "desc"), limit(1500));
     }
 
     const unsubscribe = onSnapshot(
@@ -2239,7 +2242,7 @@ export default function App() {
           
           setNsLogs((prev) => {
              const all = [...prev, ...newLogsToSync];
-             return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 15000);
+             return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 45000);
           });
         }
         
@@ -2943,6 +2946,7 @@ export default function App() {
               user={user}
               setTab={changeTab}
               settings={userSettings || undefined}
+              logs={logs}
             />
           )}
           {activeTab === "travel" && (
@@ -3385,5 +3389,9 @@ function NavButton({
     </button>
   );
 }
+
+
+
+
 
 
