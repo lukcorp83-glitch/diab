@@ -464,7 +464,17 @@ export default function App() {
     });
 
     const uniqueLogs = Array.from(uniqueMap.values());
-    uniqueLogs.sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
+    const getSafeTs = (obj: any) => {
+      if (obj.timestamp) return Number(obj.timestamp);
+      if (obj.createdAt) {
+        if (typeof obj.createdAt.toMillis === 'function') return obj.createdAt.toMillis();
+        if (obj.createdAt.seconds) return obj.createdAt.seconds * 1000;
+        const d = new Date(obj.createdAt).getTime();
+        if (!isNaN(d)) return d;
+      }
+      return 0;
+    };
+    uniqueLogs.sort((a, b) => getSafeTs(b) - getSafeTs(a));
     
     return uniqueLogs;
   }, [cachedLogs, fbLogs, nsLogs]);

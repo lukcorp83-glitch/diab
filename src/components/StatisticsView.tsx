@@ -6,6 +6,17 @@ import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
+const getSafeTimestamp = (log: any): number => {
+  if (log.timestamp) return Number(log.timestamp);
+  if (log.createdAt) {
+    if (typeof log.createdAt.toMillis === 'function') return log.createdAt.toMillis();
+    if (log.createdAt.seconds) return log.createdAt.seconds * 1000;
+    const d = new Date(log.createdAt).getTime();
+    if (!isNaN(d)) return d;
+  }
+  return 0;
+};
+
 interface StatisticsViewProps {
   logs: LogEntry[];
   settings?: UserSettings;
@@ -43,7 +54,7 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
     const targetMax = settings?.targetMax || 180;
 
     logs.forEach(log => {
-      const ts = log.timestamp || log.createdAt || 0;
+      const ts = getSafeTimestamp(log);
       const date = new Date(ts);
       if (isNaN(date.getTime())) return;
       
@@ -100,13 +111,13 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
     });
 
     // 2. Process glucose logs in chronological order to detect episodes (incidents)
-    const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => (a.timestamp || a.createdAt || 0) - (b.timestamp || b.createdAt || 0));
+    const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => getSafeTimestamp(a) - getSafeTimestamp(b));
     
     let currentState: 'normal' | 'hypo' | 'hyper' = 'normal';
     let lastTimestamp = 0;
 
     glucoseLogs.forEach(log => {
-      const ts = log.timestamp || log.createdAt || 0;
+      const ts = getSafeTimestamp(log);
       const date = new Date(ts);
       if (isNaN(date.getTime())) return;
       
@@ -151,8 +162,8 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
 
   const daysOfData = useMemo(() => {
     if (logs.length === 0) return 0;
-    const earliest = logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt || 0;
-    const latest = logs[0].timestamp || logs[0].createdAt || 0;
+    const earliest = getSafeTimestamp(logs[logs.length - 1]);
+    const latest = getSafeTimestamp(logs[0]);
     return Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24)));
   }, [logs]);
 
