@@ -4,7 +4,7 @@ import { X, Save, Trash2, Syringe, Activity, Loader2 } from "lucide-react";
 import { LogEntry } from "../types";
 import { db } from "../lib/firebase";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { getEffectiveUid } from "../lib/utils";
+import { getEffectiveUid, getTs } from "../lib/utils";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
@@ -115,7 +115,7 @@ export default function DoseEditModal({ log, user, onClose }: DoseEditModalProps
                 {t('auto.edycja_wpisu', { defaultValue: "Edycja wpisu" })}
               </h3>
               <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
-                {new Date(log.timestamp || log.createdAt).toLocaleString()}
+                {new Date(getTs(log.timestamp || log.createdAt)).toLocaleString()}
               </p>
             </div>
           </div>

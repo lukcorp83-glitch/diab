@@ -4,7 +4,7 @@ import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loade
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
-import { cn, getEffectiveUid } from '../lib/utils';
+import { cn, getEffectiveUid, getTs } from '../lib/utils';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { db, auth } from '../lib/firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -420,7 +420,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
     });
 
     logs.forEach(log => {
-        const logTime = log.timestamp || (log.createdAt && new Date(log.createdAt).getTime()) || 0;
+        const logTime = getTs(log.timestamp || log.createdAt);
         if (!logTime) return;
         
         for (const day of days) {

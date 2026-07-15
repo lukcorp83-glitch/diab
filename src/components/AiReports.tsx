@@ -1,4 +1,4 @@
-import { getEffectiveUid } from '../lib/utils';
+import { getEffectiveUid, getTs } from '../lib/utils';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
@@ -66,7 +66,7 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
         const days = type === 'day' ? 1 : 30;
         const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
         const filteredLogs = logs.filter(l => {
-          const ts = l.timestamp || new Date(l.createdAt).getTime();
+          const ts = getTs(l.timestamp || l.createdAt);
           return ts > cutoff;
         });
         content = await geminiService.getPeriodAnalysis(type, filteredLogs, settings);
@@ -109,14 +109,14 @@ export default function AiReports({ user, logs, settings, setTab }: { user: any,
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const glucoseLogs = logs.filter(l => {
       if (l.type !== 'glucose' && !l.bg) return false;
-      const ts = l.timestamp || new Date(l.createdAt).getTime();
+      const ts = getTs(l.timestamp || l.createdAt);
       return typeof ts === 'number' && ts > thirtyDaysAgo;
     });
     
     if (glucoseLogs.length === 0) return [];
 
     const grouped = glucoseLogs.reduce((acc, log) => {
-      const ts = log.timestamp || new Date(log.createdAt).getTime();
+      const ts = getTs(log.timestamp || log.createdAt);
       const dateObj = new Date(ts);
       if (isNaN(dateObj.getTime())) return acc;
       const date = dateObj.toISOString().split('T')[0];

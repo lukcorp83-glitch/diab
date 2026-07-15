@@ -14,6 +14,7 @@ import { LogEntry, UserSettings } from '../types';
 import { ChevronLeft, Info, Calendar, AlertTriangle, ActivitySquare } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { getTs } from "../lib/utils";
 
 interface AGPReportProps {
   logs: LogEntry[];
@@ -42,7 +43,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
     
     const uniqueDays = new Set();
     glucoseLogs.forEach(l => {
-      uniqueDays.add(new Date(l.timestamp).toLocaleDateString());
+      uniqueDays.add(new Date(getTs(l.timestamp || l.createdAt)).toLocaleDateString());
     });
     const activeDays = uniqueDays.size;
     
@@ -60,7 +61,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
   const agpData = useMemo(() => {
     const cutoffTime = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
     const glucoseLogs = logs.filter(
-      (l) => (l.type === 'glucose' || l.bg) && l.timestamp >= cutoffTime
+      (l) => (l.type === 'glucose' || l.bg) && getTs(l.timestamp || l.createdAt) >= cutoffTime
     );
 
     // Aby wykres AGP miał kliniczny sens, potrzebujemy przynajmniej jakiejś puli danych,
@@ -76,7 +77,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
     glucoseLogs.forEach(log => {
       const val = log.value || log.bg;
       if (!val) return;
-      const d = new Date(log.timestamp);
+      const d = new Date(getTs(log.timestamp || log.createdAt));
       const bucketIdx = d.getHours() * 2 + Math.floor(d.getMinutes() / 30);
       buckets[bucketIdx].push(val);
     });
@@ -118,8 +119,8 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
   const incidentStats = useMemo(() => {
     const cutoffTime = Date.now() - (daysBack * 24 * 60 * 60 * 1000);
     const glucoseLogs = logs
-      .filter((l) => (l.type === 'glucose' || l.bg) && l.timestamp >= cutoffTime)
-      .sort((a, b) => a.timestamp - b.timestamp);
+      .filter((l) => (l.type === 'glucose' || l.bg) && getTs(l.timestamp || l.createdAt) >= cutoffTime)
+      .sort((a, b) => getTs(a.timestamp || a.createdAt) - getTs(b.timestamp || b.createdAt));
 
     let hypos = 0;
     let hypers = 0;
@@ -131,10 +132,11 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
     let lastTimestamp = 0;
 
     glucoseLogs.forEach(log => {
-      if (lastTimestamp > 0 && (log.timestamp - lastTimestamp) > 2 * 60 * 60 * 1000) {
+      const ts = getTs(log.timestamp || log.createdAt);
+      if (lastTimestamp > 0 && (ts - lastTimestamp) > 2 * 60 * 60 * 1000) {
         currentState = 'normal';
       }
-      lastTimestamp = log.timestamp;
+      lastTimestamp = ts;
       
       const val = log.value || log.bg;
       if (!val) return;
@@ -143,7 +145,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
       if (val < targetMin) newState = 'hypo';
       else if (val > targetMax) newState = 'hyper';
       
-      const hour = new Date(log.timestamp).getHours();
+      const hour = new Date(ts).getHours();
 
       if (newState === 'hypo' && currentState !== 'hypo') {
         hypos++;
@@ -172,7 +174,7 @@ export default function AGPReport({ logs, settings, onClose, theme }: AGPReportP
     const peakHypo = findPeakHour(hypoHours);
     const peakHyper = findPeakHour(hyperHours);
 
-    const actualDaysSpan = Math.max(1, Math.ceil((Date.now() - (glucoseLogs[0]?.timestamp || Date.now())) / (1000 * 60 * 60 * 24)));
+    const actualDaysSpan = Math.max(1, Math.ceil((Date.now() - (getTs(glucoseLogs[0]?.timestamp || glucoseLogs[0]?.createdAt) || Date.now())) / (1000 * 60 * 60 * 24)));
     const effectiveDays = Math.min(daysBack, actualDaysSpan);
 
     const avgHyposPerWeek = Math.round((hypos / effectiveDays) * 7);

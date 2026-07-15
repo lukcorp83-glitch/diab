@@ -4,7 +4,7 @@ import { LogEntry } from "../types";
 import { Utensils, Syringe, Trash2, Plus, Download } from "lucide-react";
 import MealEditModal from "./MealEditModal";
 import { useTranslation } from "react-i18next";
-import { cn } from "../lib/utils";
+import { cn, getTs } from "../lib/utils";
 import SwipeableItem from "./SwipeableItem";
 import { db } from "../lib/firebase";
 import { doc, deleteDoc } from "firebase/firestore";
@@ -79,7 +79,7 @@ export default function MealHistoryView({ logs, user, onMergeToLog, hasItems }: 
         <AnimatePresence>
           {mealLogs.map((log) => (
             <motion.div
-              key={log.id || log.nsId || `meal-${log.timestamp || log.createdAt}`}
+              key={log.id || log.nsId || `meal-${getTs(log.timestamp || log.createdAt)}`}
               layout
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -106,7 +106,7 @@ export default function MealHistoryView({ logs, user, onMergeToLog, hasItems }: 
                         {log.description || log.notes || log.linkedMeal?.name || t('auto.posilek', { defaultValue: "Posiłek" })}
                       </p>
                       <span className="text-[10px] font-bold text-slate-400 shrink-0 ml-2 mt-0.5">
-                        {new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(getTs(log.timestamp || log.createdAt)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     
