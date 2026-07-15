@@ -1,10 +1,10 @@
 {
-  "version": "5.7.13",
+  "version": "5.7.2",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
   "buildNumber": 116,
   "forceUpdate": false,
-  "whatsNew": "🔧 Wersja 5.7.13: Naprawiono błąd, w którym głośny dźwięk alarmu glikemii odtwarzał się przy zwykłych przypomnieniach. Asystent głosowy GlikoChat oraz GlikoSense poprawnie posługują się teraz językiem angielskim. Zoptymalizowano system wydawniczy OTA.",
-  "whatsNewEn": "🔧 Version 5.7.13: Fixed a bug where loud critical glucose alarms played for standard reminders. GlikoChat voice assistant and GlikoSense now properly speak and respond in English. Optimized OTA update system.",
-  "otaRevision": 275
+  "whatsNew": "🔧 Wersja 5.7.2: Ulepszono funkcję synchronizacji w chmurze (Cloud Package Sync), aby eksportowała zarówno starą, jak i nową bazę danych. Rozpoczęto prace pod edycję bolusów w historii.",
+  "whatsNewEn": "🔧 Version 5.7.2: Improved Cloud Package Sync to export both legacy and new databases. Prepared code for bolus editing in history.",
+  "otaRevision": 276
 }

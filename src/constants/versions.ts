@@ -14,12 +14,21 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.13';
+export const CURRENT_VERSION = '5.7.2';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.2",
+    date: "2026-07-15",
+    title: "Poprawki synchronizacji i historii",
+    changes: [
+      "Ulepszono synchronizację Cloud Package (eksport starej bazy)",
+      "Przygotowania pod szybką edycję historii"
+    ]
+  },
   {
     version: "5.7.13",
     date: "2026-07-15",
@@ -609,6 +618,15 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.2",
+    date: "2026-07-15",
+    title: "Poprawki synchronizacji i historii",
+    changes: [
+      "Ulepszono synchronizację Cloud Package (eksport starej bazy)",
+      "Przygotowania pod szybką edycję historii"
+    ]
+  },
   {
     version: "5.7.13",
     date: "2026-07-15",
