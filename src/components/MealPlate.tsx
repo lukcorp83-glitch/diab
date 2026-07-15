@@ -1,4 +1,4 @@
-import i18n from '../i18n';
+﻿import i18n from '../i18n';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
@@ -1121,6 +1121,7 @@ export default function MealPlate({
          updates.polyols = rawPolyols;
          updates.protein = totalProtein;
          updates.fat = totalFat;
+         updates.calories = Math.round(totalCalsFromMacros);
          updates.type = "meal"; // Safety
       }
 
@@ -1146,6 +1147,7 @@ export default function MealPlate({
       const payload = {
         type: "meal",
         value: totalCarbs,
+        carbs: totalCarbs,
         polyols: rawPolyols,
         protein: totalProtein,
         fat: totalFat,
@@ -1166,7 +1168,7 @@ export default function MealPlate({
         ),
         payload,
       );
-      window.dispatchEvent(new CustomEvent("logAdd", { detail: { ...payload, id: docRef.id } }));
+      window.dispatchEvent(new CustomEvent("localLogAdd", { detail: { ...payload, id: docRef.id } }));
       setPlate([]);
       Haptics.success();
     } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + e.message); Haptics.error(); }
@@ -3524,16 +3526,17 @@ export default function MealPlate({
                 try {
                   const payload = {
                     type: "meal",
-                    value: 0,
+                    value: Math.round(totalCarbs * 10) / 10,
                     carbs: Math.round(totalCarbs * 10) / 10,
                     protein: Math.round(totalProtein * 10) / 10,
                     fat: Math.round(totalFat * 10) / 10,
+                    calories: Math.round(totalCalsFromMacros),
                     notes: plate.map((i) => i.name).join(", ") || t('meal.custom_meal', { defaultValue: 'Własny posiłek' }),
                     timestamp: Date.now(),
                     createdAt: Date.now()
                   };
                   const docRef = await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), payload);
-                  window.dispatchEvent(new CustomEvent("logAdd", { detail: { ...payload, id: docRef.id } }));
+                  window.dispatchEvent(new CustomEvent("localLogAdd", { detail: { ...payload, id: docRef.id } }));
                   setPlate([]);
                   toast.success(i18n.t('auto.posilek_zostal_zapisany', { defaultValue: 'Posiłek został zapisany w dzienniku!' }), { id: "meal-save" });
                   setTab("dashboard");
@@ -3798,6 +3801,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
     </div>
   );
 });
+
 
 
 

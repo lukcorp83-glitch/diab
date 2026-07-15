@@ -1,13 +1,10 @@
 {
-  "version": "5.7.11",
+  "version": "5.7.12",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
-  "buildNumber": 115,
+  "buildNumber": 116,
   "forceUpdate": false,
-  "whatsNew": "🔧 Wersja 5.7.11 (Beta): Naprawiono skaner AI etykiet żywnościowych – po nieznanym kodzie pojawia się teraz opcja zrobienia zdjęcia etykiety. Bolus Pizza włącza się tylko przy dużej ilości tłuszczu/białka. Naprawiono scalanie posiłku z pompą i błąd 'logs' w sekcji Diety.",
-  "whatsNewEn": "🔧 Version 5.7.11 (Beta): Fixed AI label scanner – unknown barcodes now show a 'Scan Label with AI' option. Pizza Bolus only auto-enables for significant fat/protein. Fixed meal merging with pump and a 'logs' error in the Diet section.",
-  "otaRevision": 273
+  "whatsNew": "🔧 Wersja 5.7.12 (Beta): Widżet 'Leczenie' pokazuje teraz tylko bolusy. Diety poprawnie zliczają kalorie z posiłków (w tym z pompy). Historia talerza pokazuje makroskładniki i kcal dla wpisów z pompy. Nowy posiłek od razu aktualizuje licznik kcal w diecie.",
+  "whatsNewEn": "🔧 Version 5.7.12 (Beta): Treatment widget now shows only insulin boluses. Diet section correctly counts calories from all meals (including pump entries). Plate history shows macros and kcal for pump bolus entries. New meals instantly update the diet calorie counter.",
+  "otaRevision": 274
 }
-
-
-

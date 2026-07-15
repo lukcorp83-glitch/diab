@@ -23,9 +23,19 @@ export default function MealHistoryView({ logs, user, onMergeToLog, hasItems }: 
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
 
   const mealLogs = useMemo(() => {
-    return logs.filter(log => (log.type === "meal" || log.type === "carbs" || log.type === "bolus") && (log.carbs > 0 || log.protein > 0 || log.fat > 0 || log.type === "meal")).sort((a, b) => {
-      const timeA = a.timestamp || a.createdAt;
-      const timeB = b.timestamp || b.createdAt;
+    return logs.filter(log => {
+      if (log.type === "meal") return true;
+      if (log.type === "carbs") return true;
+      if (log.type === "bolus" && log.linkedMeal) {
+        const c = log.linkedMeal.carbs || 0;
+        const p = log.linkedMeal.protein || 0;
+        const f = log.linkedMeal.fat || 0;
+        return c > 0 || p > 0 || f > 0;
+      }
+      return false;
+    }).sort((a, b) => {
+      const timeA = a.timestamp || a.createdAt || 0;
+      const timeB = b.timestamp || b.createdAt || 0;
       return timeB - timeA;
     });
   }, [logs]);
@@ -69,13 +79,13 @@ export default function MealHistoryView({ logs, user, onMergeToLog, hasItems }: 
         <AnimatePresence>
           {mealLogs.map((log) => (
             <motion.div
-              key={log.id}
+              key={log.id || log.nsId || `meal-${log.timestamp || log.createdAt}`}
               layout
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
             >
-              <SwipeableItem id={log.id} onDelete={() => log.id && handleDelete(log.id)}>
+              <SwipeableItem id={log.id || log.nsId} onDelete={() => { const eid = log.id || log.nsId; if (eid) handleDelete(eid); }}>
                 <div
                   onClick={() => {
                     if (hasItems && onMergeToLog) {
@@ -93,40 +103,52 @@ export default function MealHistoryView({ logs, user, onMergeToLog, hasItems }: 
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
                       <p className="text-sm font-black text-slate-800 dark:text-white truncate">
-                        {log.description || log.notes || t('auto.posilek', { defaultValue: "Posiłek" })}
+                        {log.description || log.notes || log.linkedMeal?.name || t('auto.posilek', { defaultValue: "Posiłek" })}
                       </p>
                       <span className="text-[10px] font-bold text-slate-400 shrink-0 ml-2 mt-0.5">
                         {new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {log.calories > 0 && (
-                          <span className="text-[10px] bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-md font-bold">
-                            {log.calories} kcal
-                          </span>
-                        )}
-                        {log.carbs > 0 && (
-                          <span className="text-[10px] bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md font-bold">
-                            {log.carbs}g W
-                          </span>
-                        )}
-                      {log.protein > 0 && (
-                        <span className="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md font-bold">
-                          {log.protein}g B
-                        </span>
-                      )}
-                      {log.fat > 0 && (
-                        <span className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md font-bold">
-                          {log.fat}g T
-                        </span>
-                      )}
-                      {log.bolus > 0 && (
-                        <span className="text-[10px] bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
-                          <Syringe size={10} /> {log.bolus}j.
-                        </span>
-                      )}
-                    </div>
+                    {(() => {
+                      // Dla bolusów z pompy dane są w linkedMeal
+                      const src = (log.type === 'bolus' && log.linkedMeal) ? log.linkedMeal : log;
+                      const carbs = src.carbs || (log.type === 'meal' ? log.value : 0) || 0;
+                      const protein = src.protein || 0;
+                      const fat = src.fat || 0;
+                      const calories = src.calories || (carbs > 0 || protein > 0 || fat > 0
+                        ? Math.round(carbs * 4 + protein * 4 + fat * 9)
+                        : 0);
+                      return (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {calories > 0 && (
+                            <span className="text-[10px] bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-md font-bold">
+                              {calories} kcal
+                            </span>
+                          )}
+                          {carbs > 0 && (
+                            <span className="text-[10px] bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md font-bold">
+                              {Number(carbs).toFixed(1)}g W
+                            </span>
+                          )}
+                          {protein > 0 && (
+                            <span className="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md font-bold">
+                              {protein}g B
+                            </span>
+                          )}
+                          {fat > 0 && (
+                            <span className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md font-bold">
+                              {fat}g T
+                            </span>
+                          )}
+                          {log.value > 0 && log.type === 'bolus' && (
+                            <span className="text-[10px] bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
+                              <Syringe size={10} /> {log.value}j.
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {hasItems && onMergeToLog && (

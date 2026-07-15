@@ -14,12 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.11';
+export const CURRENT_VERSION = '5.7.12';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.12",
+    date: "2026-07-15",
+    title: "Kalorie i Historia Posiłków (BETA)",
+    changes: [
+      "Naprawa: Widżet 'Leczenie' na dashboardzie pokazuje teraz wyłącznie bolusy insulinowe (bez posiłków).",
+      "Naprawa: Sekcja 'Diety' poprawnie zlicza kalorie ze wszystkich dzisiejszych posiłków.",
+      "Naprawa: Posiłki z pompy (bolus + linkedMeal) są teraz widoczne w historii talerza z węglowodanami i kcal.",
+      "Naprawa: Nowy wpis z talerza natychmiast aktualizuje licznik kalorii w diecie (bez odświeżania).",
+      "Naprawa: Każdy zapisany posiłek zawiera teraz pole 'calories' w bazie danych.",
+      "Naprawa: Zduplikowane klucze React w historii posiłków."
+    ]
+  },
   {
     version: "5.7.11",
     date: "2026-07-14",
