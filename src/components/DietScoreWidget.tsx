@@ -11,8 +11,6 @@ import { useTranslation } from "react-i18next";
 export default function DietScoreWidget({ user, activeDiet, settings }: { user: User, activeDiet: string, settings?: UserSettings }) {
   const { t } = useTranslation();
   const [score, setScore] = useState(85);
-  const [fiber, setFiber] = useState(24);
-  const [sodium, setSodium] = useState(1800);
   const [loading, setLoading] = useState(true);
   const [yesterdayKcal, setYesterdayKcal] = useState(0);
   const [recommendationStr, setRecommendationStr] = useState("");
@@ -165,18 +163,6 @@ export default function DietScoreWidget({ user, activeDiet, settings }: { user: 
          </p>
        </div>
 
-       <div className="grid grid-cols-2 gap-3">
-         <div className="bg-white dark:bg-slate-800 rounded-xl p-3 text-center border border-slate-100 dark:border-slate-700/50">
-           <span className="block text-[9px] font-black uppercase tracking-widest text-emerald-500 mb-1">{t('auto.błonnik', { defaultValue: i18n.t('auto.blonnik', { defaultValue: "Błonnik" }) })}</span>
-           <span className="text-lg font-black text-slate-900 dark:text-white">{fiber}g</span>
-           <span className="text-[9px] text-slate-400 block mt-0.5">{t('auto.cel_30g', { defaultValue: 'cel: 30g' })}</span>
-         </div>
-         <div className="bg-white dark:bg-slate-800 rounded-xl p-3 text-center border border-slate-100 dark:border-slate-700/50">
-           <span className="block text-[9px] font-black uppercase tracking-widest text-amber-500 mb-1">{t('auto.sód_na', { defaultValue: i18n.t('auto.sod_na', { defaultValue: "Sód (Na)" }) })}</span>
-           <span className="text-lg font-black text-slate-900 dark:text-white">{sodium}</span>
-           <span className="text-[9px] text-slate-400 block mt-0.5">{t('auto.cel_lt_2300mg', { defaultValue: 'cel: &lt;2300mg' })}</span>
-         </div>
-       </div>
     </div>
   );
 }

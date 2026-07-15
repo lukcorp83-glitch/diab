@@ -464,7 +464,7 @@ export default function App() {
     });
 
     const uniqueLogs = Array.from(uniqueMap.values());
-    uniqueLogs.sort((a, b) => b.timestamp - a.timestamp);
+    uniqueLogs.sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
     
     return uniqueLogs;
   }, [cachedLogs, fbLogs, nsLogs]);

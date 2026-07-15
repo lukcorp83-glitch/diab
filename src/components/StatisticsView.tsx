@@ -43,7 +43,8 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
     const targetMax = settings?.targetMax || 180;
 
     logs.forEach(log => {
-      const date = new Date(log.timestamp);
+      const ts = log.timestamp || log.createdAt || 0;
+      const date = new Date(ts);
       if (isNaN(date.getTime())) return;
       
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -99,13 +100,14 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
     });
 
     // 2. Process glucose logs in chronological order to detect episodes (incidents)
-    const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => a.timestamp - b.timestamp);
+    const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => (a.timestamp || a.createdAt || 0) - (b.timestamp || b.createdAt || 0));
     
     let currentState: 'normal' | 'hypo' | 'hyper' = 'normal';
     let lastTimestamp = 0;
 
     glucoseLogs.forEach(log => {
-      const date = new Date(log.timestamp);
+      const ts = log.timestamp || log.createdAt || 0;
+      const date = new Date(ts);
       if (isNaN(date.getTime())) return;
       
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -114,10 +116,10 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
       if (!data[monthKey]) return; // Should already be initialized
 
       // Reset state if there's a gap larger than 2 hours
-      if (lastTimestamp > 0 && (log.timestamp - lastTimestamp) > 2 * 60 * 60 * 1000) {
+      if (lastTimestamp > 0 && (ts - lastTimestamp) > 2 * 60 * 60 * 1000) {
         currentState = 'normal';
       }
-      lastTimestamp = log.timestamp;
+      lastTimestamp = ts;
 
       const val = Number(log.value) || 0;
       if (val > 0) {
@@ -149,8 +151,8 @@ export default function StatisticsView({ logs, settings }: StatisticsViewProps) 
 
   const daysOfData = useMemo(() => {
     if (logs.length === 0) return 0;
-    const earliest = logs[logs.length - 1].timestamp;
-    const latest = logs[0].timestamp;
+    const earliest = logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt || 0;
+    const latest = logs[0].timestamp || logs[0].createdAt || 0;
     return Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24)));
   }, [logs]);
 
