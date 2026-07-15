@@ -264,6 +264,11 @@ export default function MealEditModal({
         log.id,
       );
 
+      const parsedC = Math.round((parseFloat(carbs) || 0) * 10) / 10;
+      const parsedP = Math.round((parseFloat(protein) || 0) * 10) / 10 || 0;
+      const parsedF = Math.round((parseFloat(fat) || 0) * 10) / 10 || 0;
+      const computedCalories = Math.round(parsedC * 4 + parsedP * 4 + parsedF * 9);
+
       const updates: any = {
         notes: notes,
         description: notes,
@@ -277,10 +282,11 @@ export default function MealEditModal({
           updates.linkedMeal = null;
         } else if (parseFloat(carbs) > 0) {
           updates.linkedMeal = {
-            carbs: Math.round((parseFloat(carbs) || 0) * 10) / 10,
+            carbs: parsedC,
             polyols: Math.round((parseFloat(polyols) || 0) * 10) / 10 || null,
-            protein: Math.round((parseFloat(protein) || 0) * 10) / 10 || null,
-            fat: Math.round((parseFloat(fat) || 0) * 10) / 10 || null,
+            protein: parsedP || null,
+            fat: parsedF || null,
+            calories: computedCalories,
             name: mealName || null,
             items: items,
           };
@@ -288,10 +294,11 @@ export default function MealEditModal({
           updates.linkedMeal = null;
         }
       } else if (log.type === "meal") {
-        updates.carbs = Math.round((parseFloat(carbs) || 0) * 10) / 10;
+        updates.carbs = parsedC;
         updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
-        updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
-        updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
+        updates.protein = parsedP || null;
+        updates.fat = parsedF || null;
+        updates.calories = computedCalories;
         if (mealName) {
           updates.description = mealName;
           updates.name = mealName;
@@ -303,6 +310,7 @@ export default function MealEditModal({
           updates.polyols = null;
           updates.protein = null;
           updates.fat = null;
+          updates.calories = 0;
           updates.notes = (updates.notes || "") + i18n.t('auto.posilek_usuniety', { defaultValue: i18n.t('auto.posilek_usuniety', { defaultValue: "(Posiłek usunięty)" }) });
         } else {
           const netCarbs = Math.max(
@@ -310,10 +318,11 @@ export default function MealEditModal({
             (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0),
           );
           updates.value = Math.round(netCarbs * 10) / 10;
-          updates.carbs = Math.round((parseFloat(carbs) || 0) * 10) / 10;
+          updates.carbs = parsedC;
           updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
-          updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
-          updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
+          updates.protein = parsedP || null;
+          updates.fat = parsedF || null;
+          updates.calories = computedCalories;
           if (mealName) updates.description = mealName;
         }
       }

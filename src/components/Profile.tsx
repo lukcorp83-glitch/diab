@@ -155,6 +155,9 @@ export default function Profile({
 }: ProfileProps) {
     const { t } = useTranslation();
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
+  const [tempSensorDate, setTempSensorDate] = useState<number | null>(null);
+  const [tempInfusionDate, setTempInfusionDate] = useState<number | null>(null);
+
   useEffect(() => {
     setSettings(initialSettings);
   }, [initialSettings]);
@@ -3529,9 +3532,9 @@ export default function Profile({
                     <input
                       type="datetime-local"
                       value={
-                        settings.sensorChangeDate
+                        (tempSensorDate || settings.sensorChangeDate)
                           ? new Date(
-                              settings.sensorChangeDate -
+                              (tempSensorDate || settings.sensorChangeDate)! -
                                 new Date().getTimezoneOffset() * 60000,
                             )
                               .toISOString()
@@ -3540,8 +3543,7 @@ export default function Profile({
                       }
                       onChange={(e) => {
                         const d = new Date(e.target.value).getTime();
-                        if (!isNaN(d))
-                          setSettings({ ...settings, sensorChangeDate: d });
+                        if (!isNaN(d)) setTempSensorDate(d);
                       }}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-10 pr-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-indigo-500/20 transition-all"
                     />
@@ -3614,9 +3616,10 @@ export default function Profile({
                       if (days > 30) days = 30;
 
                       const updates = {
-                        sensorChangeDate: Date.now(),
+                        sensorChangeDate: tempSensorDate || settings.sensorChangeDate || Date.now(),
                         sensorDurationDays: days
                       };
+                      setTempSensorDate(null);
                       setSettings((prev) => ({ ...prev, ...updates }));
                       if (user) {
                         await setDoc(
@@ -3769,9 +3772,9 @@ export default function Profile({
                     <input
                       type="datetime-local"
                       value={
-                        settings.infusionSetChangeDate
+                        (tempInfusionDate || settings.infusionSetChangeDate)
                           ? new Date(
-                              settings.infusionSetChangeDate -
+                              (tempInfusionDate || settings.infusionSetChangeDate)! -
                                 new Date().getTimezoneOffset() * 60000,
                             )
                               .toISOString()
@@ -3780,11 +3783,7 @@ export default function Profile({
                       }
                       onChange={(e) => {
                         const d = new Date(e.target.value).getTime();
-                        if (!isNaN(d))
-                          setSettings({
-                            ...settings,
-                            infusionSetChangeDate: d,
-                          });
+                        if (!isNaN(d)) setTempInfusionDate(d);
                       }}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-10 pr-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
                     />
@@ -3864,10 +3863,11 @@ export default function Profile({
                       if (days > 7) days = 7;
 
                       const updates = {
-                        infusionSetChangeDate: Date.now(),
+                        infusionSetChangeDate: tempInfusionDate || settings.infusionSetChangeDate || Date.now(),
                         infusionSetDurationDays: days,
                         infusionSetSite: insertionSite
                       };
+                      setTempInfusionDate(null);
                       setSettings((prev) => ({ ...prev, ...updates }));
                       if (user) {
                         await setDoc(

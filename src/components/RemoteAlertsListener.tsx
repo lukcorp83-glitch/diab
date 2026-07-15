@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { getEffectiveUid, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, CheckCircle2, MessageCircle, AlertTriangle, Pill } from 'lucide-react';
-import { playNormalGlucoseSound } from '../lib/audioUtils';
+import { playNormalGlucoseSound, playLowGlucoseSound } from '../lib/audioUtils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -53,7 +53,11 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
         if ('vibrate' in navigator) {
           navigator.vibrate([200, 100, 200, 100, 500]);
         }
-        playNormalGlucoseSound();
+        if (newAlert.type === 'urgent') {
+          playLowGlucoseSound();
+        } else {
+          playNormalGlucoseSound();
+        }
         
         // Android Push Notification
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
@@ -64,6 +68,8 @@ export default function RemoteAlertsListener({ user }: { user: any }) {
                 body: newAlert.message,
                 id: new Date().getTime(),
                 schedule: { at: new Date(Date.now() + 1000) },
+                channelId: newAlert.type === 'urgent' ? 'glucose_alerts_v10' : 'glikocontrol_reminders_v1',
+                sound: newAlert.type === 'urgent' ? 'status_clear.mp3' : undefined,
               }
             ]
           }).catch(e => console.warn('Push not supported', e));

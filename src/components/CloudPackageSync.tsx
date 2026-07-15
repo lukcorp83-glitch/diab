@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CloudUpload, CloudDownload, Loader2, Cloud, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { loadLocalLogs, saveLocalLogs } from '../lib/localLogs';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { getEffectiveUid, cn } from '../lib/utils';
 import { UserSettings } from '../types';
@@ -23,16 +23,34 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
       }
     }
     
-    // Pobierz logi zarówno z nowej natywnej bazy SQLite jak i starego IndexedDB
+    // Pobierz logi zarówno z natywnej bazy SQLite jak i starego IndexedDB
     const sqliteLogs = await dbService.getLogs(45000);
     const oldIndexedDbLogs = await loadLocalLogs().catch(() => []);
     
-    // Połącz logi i usuń duplikaty (priorytet ma SQLite)
+    // Dociągnij również pełną historię z kolekcji w Firestore w tle, by mieć 100% pewności, że paczka ma komplet odczytów (a nie tylko te z limitu 1500 na żywo)
+    let firestoreLogs: any[] = [];
+    try {
+      const logsRef = collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs");
+      const q = query(logsRef, orderBy("timestamp", "desc"), limit(45000));
+      const snap = await getDocs(q);
+      firestoreLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      console.warn("Could not fetch historical logs from Firestore during upload:", err);
+    }
+
+    // Połącz logi i usuń duplikaty (priorytet ma SQLite, potem Firestore, potem stary IDB)
     const allLogsMap = new Map();
     oldIndexedDbLogs.forEach(log => allLogsMap.set(log.id || log.nsId || `${log.type}_${log.timestamp}`, log));
+    firestoreLogs.forEach(log => allLogsMap.set(log.id || log.nsId || `${log.type}_${log.timestamp}`, log));
     sqliteLogs.forEach(log => allLogsMap.set(log.id || log.nsId || `${log.type}_${log.timestamp}`, log));
     
     const combinedLogs = Array.from(allLogsMap.values()).sort((a, b) => b.timestamp - a.timestamp).slice(0, 45000);
+    
+    // Zapisz też lokalnie na tym urządzeniu połączone logi (żeby od razu tu też były pełne)
+    if (combinedLogs.length > sqliteLogs.length) {
+      await dbService.saveMultipleLogs(combinedLogs).catch(console.error);
+      await saveLocalLogs(combinedLogs).catch(console.error);
+    }
     
     // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
     const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
@@ -69,54 +87,77 @@ export const downloadCloudPackage = async (user: any) => {
     const snap = await getDoc(
       doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest")
     );
-    if (!snap.exists()) return false;
     
-    const data = snap.data();
-    if (!data.payload) return false;
-    
-    let parsed: any;
-    try {
-      if (data.isCompressed) {
-        const decompressed = LZString.decompressFromUTF16(data.payload);
-        if (!decompressed) throw new Error("Decompression returned null");
-        parsed = JSON.parse(decompressed);
-      } else {
-        // Fallback for older uncompressed packages
-        parsed = JSON.parse(data.payload);
+    let parsedLogs: any[] = [];
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data && data.payload) {
+        let parsed: any;
+        try {
+          if (data.isCompressed) {
+            const decompressed = LZString.decompressFromUTF16(data.payload);
+            if (!decompressed) throw new Error("Decompression returned null");
+            parsed = JSON.parse(decompressed);
+          } else {
+            // Fallback for older uncompressed packages
+            parsed = JSON.parse(data.payload);
+          }
+        } catch (e) {
+          console.error("Failed to parse package payload", e);
+        }
+
+        if (parsed) {
+          // Przywróć ustawienia localStorage
+          if (parsed.localStorage) {
+            Object.keys(parsed.localStorage).forEach(key => {
+              localStorage.setItem(key, parsed.localStorage[key]);
+            });
+          }
+          // Przywróć model sieci neuronowej
+          if (parsed.mlModel && parsed.mlModel.weightDataB64) {
+            console.log("Restoring ML Model from Cloud Package...");
+            await MLAnalyzer.importModelFromBackup(parsed.mlModel).catch(console.error);
+          }
+          if (parsed.logs && Array.isArray(parsed.logs)) {
+            parsedLogs = parsed.logs;
+          }
+          // Przywróć ustawienia profilu w Firebase
+          if (parsed.settings) {
+            await setDoc(
+              doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+              parsed.settings,
+              { merge: true }
+            );
+          }
+        }
       }
-    } catch (e) {
-      console.error("Failed to parse package payload", e);
+    }
+
+    // Dodatkowo: pobierz pełne historyczne logi z kolekcji w Firestore, by zapewnić, że lokalna baza SQLite ma całe 50+ dni (a nie tylko ograniczenie do zrzutu)
+    let firestoreLogs: any[] = [];
+    try {
+      const logsRef = collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs");
+      const q = query(logsRef, orderBy("timestamp", "desc"), limit(45000));
+      const fsSnap = await getDocs(q);
+      firestoreLogs = fsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.warn("Could not fetch historical logs from Firestore during download:", err);
+    }
+
+    const allLogsMap = new Map();
+    firestoreLogs.forEach(log => allLogsMap.set(log.id || log.nsId || `${log.type}_${log.timestamp}`, log));
+    parsedLogs.forEach(log => allLogsMap.set(log.id || log.nsId || `${log.type}_${log.timestamp}`, log));
+
+    const combinedRestoredLogs = Array.from(allLogsMap.values()).sort((a, b) => b.timestamp - a.timestamp).slice(0, 45000);
+
+    if (combinedRestoredLogs.length > 0) {
+      console.log(`Restoring ${combinedRestoredLogs.length} logs from Cloud Package and Firestore history...`);
+      await saveLocalLogs(combinedRestoredLogs).catch(console.error);
+      await dbService.saveMultipleLogs(combinedRestoredLogs).catch(console.error);
+    } else if (parsedLogs.length === 0 && firestoreLogs.length === 0 && !snap.exists()) {
       return false;
     }
-    
-    // Przywróć ustawienia localStorage
-    if (parsed.localStorage) {
-      Object.keys(parsed.localStorage).forEach(key => {
-        localStorage.setItem(key, parsed.localStorage[key]);
-      });
-    }
-    
-    // Przywróć model sieci neuronowej
-    if (parsed.mlModel && parsed.mlModel.weightDataB64) {
-      console.log("Restoring ML Model from Cloud Package...");
-      await MLAnalyzer.importModelFromBackup(parsed.mlModel).catch(console.error);
-    }
-    
-    // Przywróć pełne logi do bazy natywnej SQLite i do IndexedDB (fallback)
-    if (parsed.logs && Array.isArray(parsed.logs)) {
-      console.log(`Restoring ${parsed.logs.length} logs from Cloud Package...`);
-      await saveLocalLogs(parsed.logs).catch(console.error);
-      await dbService.saveMultipleLogs(parsed.logs).catch(console.error);
-    }
-    
-    // Przywróć ustawienia profilu w Firebase
-    if (parsed.settings) {
-      await setDoc(
-        doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
-        parsed.settings,
-        { merge: true }
-      );
-    }
+
     localStorage.setItem('last_cloud_package_sync', Date.now().toString());
     return true;
   } catch (e) {

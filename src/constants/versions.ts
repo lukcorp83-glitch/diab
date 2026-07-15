@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.13';
+export const CURRENT_VERSION = '5.7.14';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.14",
+    date: "2026-07-15",
+    title: "Naprawa Zliczania Kalorii i Historii Posiłków",
+    changes: [
+      "Naprawa: Podsumowanie 'Kcal dziś' w zakładce Dieta zlicza teraz poprawnie wszystkie posiłki z historii oraz wpisy węglowodanowe (carbs).",
+      "Naprawa: Edycja posiłku lub bolusa z posiłkiem w historii natychmiast przelicza i aktualizuje wartość kalorii.",
+      "Poprawka: Widżet bilansu wczorajszego (DietScoreWidget) oraz wykresy w pełni uwzględniają wszystkie formy wpisów węglowodanowych."
+    ]
+  },
   {
     version: "5.7.13",
     date: "2026-07-15",
@@ -609,6 +619,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.14",
+    date: "2026-07-15",
+    title: "Naprawa Zliczania Kalorii i Historii Posiłków",
+    changes: [
+      "Naprawa: Podsumowanie 'Kcal dziś' w zakładce Dieta zlicza teraz poprawnie wszystkie posiłki z historii oraz wpisy węglowodanowe (carbs).",
+      "Naprawa: Edycja posiłku lub bolusa z posiłkiem w historii natychmiast przelicza i aktualizuje wartość kalorii.",
+      "Poprawka: Widżet bilansu wczorajszego (DietScoreWidget) oraz wykresy w pełni uwzględniają wszystkie formy wpisów węglowodanowych."
+    ]
+  },
   {
     version: "5.7.13",
     date: "2026-07-15",

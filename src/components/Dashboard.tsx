@@ -857,11 +857,14 @@ export default function Dashboard({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayLogs = logs.filter((l) => l.timestamp >= today.getTime());
-    const meals = todayLogs.filter((l) => l.type === "meal");
+    const meals = todayLogs.filter((l) => l.type === "meal" || l.type === "carbs" || (l.type === "bolus" && l.linkedMeal));
     const insulin = todayLogs.filter((l) => l.type === "bolus");
 
     return {
-      carbs: meals.reduce((acc, l) => acc + (l.value || 0), 0),
+      carbs: meals.reduce((acc, l) => {
+        const c = (l.type === "bolus" && l.linkedMeal) ? (l.linkedMeal.carbs || 0) : (l.carbs || l.value || 0);
+        return acc + c;
+      }, 0),
       insulin: insulin.reduce((acc, l) => acc + (l.value || 0), 0),
     };
   };

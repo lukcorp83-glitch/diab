@@ -138,16 +138,16 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
     const todayLogs = (logs || []).filter(l => {
       const ts = l.timestamp || l.createdAt || 0;
       if (ts < todayMs) return false;
-      if (l.type === 'meal') return true;
+      if (l.type === 'meal' || l.type === 'carbs') return true;
       if (l.type === 'bolus' && l.linkedMeal) {
-        return (l.linkedMeal.carbs || 0) > 0 || (l.linkedMeal.protein || 0) > 0 || (l.linkedMeal.fat || 0) > 0;
+        return (l.linkedMeal.carbs || 0) > 0 || (l.linkedMeal.protein || 0) > 0 || (l.linkedMeal.fat || 0) > 0 || (l.linkedMeal.calories || 0) > 0;
       }
       return false;
     });
     let consumedCalories = 0;
     todayLogs.forEach(log => {
       const src = (log.type === 'bolus' && log.linkedMeal) ? log.linkedMeal : log;
-      const carbs = src.carbs || (log.type === 'meal' ? (log.value || 0) : 0);
+      const carbs = src.carbs || ((log.type === 'meal' || log.type === 'carbs') ? (log.value || 0) : 0);
       const protein = src.protein || 0;
       const fat = src.fat || 0;
       const cal = src.calories || (carbs > 0 || protein > 0 || fat > 0

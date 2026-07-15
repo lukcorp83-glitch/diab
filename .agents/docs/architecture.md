@@ -18,20 +18,28 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `dev-dist/sw.js` - Wygenerowany Service Worker używany przez Vite PWA. Nie modyfikować ręcznie.
 
 ## Synchronizacja Danych i Firebase (Limity bazy)
-- `src/components/CloudPackageSync.tsx` - Narzędzie, które archiwizuje wszystkie tabele SQLite (do 45000) i model ML w jeden spakowany dokument na Firebase.
-- **Odczyty Bazy:** `App.tsx` samodzielnie puszcza w tle paczki co 24h. Aplikacja unika zapytań o tysiące rekordów poprzez `onSnapshot` w Firebase (rygorystyczny limit `1500`, zapobiegający błędowi "Quota Exceeded"). W przypadku zresetowanej / świeżej pamięci z automatu uruchamia import pojedynczej wielkiej paczki (Cloud Package), dzięki czemu historia z powrotem ma 45 000 wyników (i statystyki działają dla minionych miesięcy) przy obciążeniu zaledwie jednego odczytu Firebase.
+- `src/components/CloudPackageSync.tsx` - Narzędzie, które archiwizuje wszystkie tabele SQLite (do 45000) i model ML w jeden spakowany dokument na Firebase. Podczas eksportu (`uploadCloudPackage`) oraz importu (`downloadCloudPackage`) w tle dociąga pełną historię z kolekcji `logs` w Firestore (do 45000 rekordów) i zapisuje do lokalnego SQLite (`application_logs`) i IndexedDB, gwarantując komplet danych (50+ dni) bez obciążania subskrypcji na żywo.
+- **Odczyty Bazy:** Aplikacja unika zapytań o tysiące rekordów na żywo poprzez `onSnapshot` w Firebase (rygorystyczny limit `1500`, zapobiegający błędowi "Quota Exceeded"). Po synchronizacji paczki chmurowej cała historia (45 000 rekordów) jest odczytywana z natywnego SQLite na wykresach trendu i w raportach AGP.
+- `src/components/HistoryView.tsx` - Filtrowanie logów zostało ujednolicone z regułami UX: w sekcji `Leczenie` wykluczono posiłki (widoczne są tylko bolusy/leki/wymiany), natomiast pełna historia posiłków dostępna jest w `Talerzu` (`Posiłki`).
 
 *(Aktualizuj ten plik za każdym razem, gdy badasz nową część starego kodu lub tworzysz coś nowego!)*
 
-## Widok Talerza i Historia Posiłków (Kompozytor)
-- src/components/MealPlate.tsx - Główny widok "Talerza" do wprowadzania posiłków. Zawiera logikę skanowania kodów, AI (GlikoSense) oraz zakładkę z historią dodanych posiłków.
-- src/components/MealHistoryView.tsx - Dedykowany widok dla rekordów typu meal. Tylko tu użytkownik przegląda i ewentualnie edytuje posiłki. Edycja historii posiłków w głównej osi czasu (HistoryView.tsx) została zubożona do samej zmiany dawki insuliny, by uniknąć nadpisywania logiki wejść posiłkowych z notatkami AI.
+## Widok Talerza, Diety i Historia Posiłków
+- `src/components/MealPlate.tsx` - Główny widok "Talerza" do wprowadzania posiłków. Zawiera logikę skanowania kodów, AI (GlikoSense) oraz zakładkę z historią dodanych posiłków.
+- `src/components/MealHistoryView.tsx` - Dedykowany widok dla rekordów typu meal/carbs. Tylko tu użytkownik przegląda i ewentualnie edytuje posiłki. Edycja historii posiłków w głównej osi czasu (`HistoryView.tsx`) została zubożona do samej zmiany dawki insuliny, by uniknąć nadpisywania logiki wejść posiłkowych z notatkami AI.
+- **Wyliczanie i zliczanie kalorii (Kcal dziś):** W modułach dietetycznych (`Diets.tsx`, `DietScoreWidget.tsx`, `Dashboard.tsx`) wpisy kaloryczne i węglowodanowe są obliczane ze wszystkich źródeł: `type === 'meal'`, `type === 'carbs'` oraz `type === 'bolus'` (gdy posiada `linkedMeal`). Podczas każdej edycji w `MealEditModal.tsx` lub `DoseEditModal.tsx` pole `calories` jest od razu na nowo kalkulowane (`carbs*4 + protein*4 + fat*9`) i zapisywane na obiekcie logu i/lub `linkedMeal`.
 
 ## Zarządzanie Wpisami i Zdarzenia (Logs & Events)
 - System opiera się na trzech warstwach pamięci logów: \cachedLogs\ (do 45000 z IndexedDB), \
 sLogs\ (z NightscoutWorker) oraz \bLogs\ (z Firebase, sztywny limit 3000 zapytań dla uniknięcia Quota Exceeded).
 - **Zdarzenia Lokalne:** Aby aplikacja natychmiast reagowała na nowe wpisy (np. po dodaniu wymiany sensora lub wkłucia w \Profile.tsx\ czy po dodaniu posiłku), NIEZBĘDNE jest wywołanie \window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newLog }))\. Samo \ddDoc\ do Firebase odświeży widok z opóźnieniem (lub wcale w przypadku utraty połączenia). Pamiętaj też o \localLogUpdate\.
 - Widżety żywotności na Dashboardzie (Dashboard.tsx) bazują bezpośrednio na datach \sensorChangeDate\ oraz \infusionSetChangeDate\ z obiektu \settings\, a nie wyszukują z \logs\ (ponieważ stare logi mogą wypaść z 3000 limitu \bLogs\).
+
+## Powiadomienia i Dźwięki (Kanały Android / Audio)
+- **Kanały Powiadomień (Android O+):** Zmiana właściwości lub dźwięku na istniejącym kanale Android jest ignorowana przez system operacyjny. Dlatego przy zmianach konfiguracji dźwięku usuwane są stare kanały (`glucose_alerts_v7`, `glucose_alerts_v8`, `glucose_alerts_v9`) i tworzone jest nowe ID kanału.
+- **Krytyczne Alerty Glikemii (`glucose_alerts_v10`):** Używają pliku `status_clear.mp3` (`android/app/src/main/res/raw/status_clear.mp3` oraz w `public/status_clear.mp3` dla Web/PWA). Kanał ten ma najwyższy priorytet (`importance: 5`) i jest przypisany wyłącznie do alarmów o wysokim/niskim cukrze oraz pilnych powiadomień zdalnych (`RemoteAlertsListener.tsx`).
+- **Powiadomienia Systemowe (`system_alerts_v1` / `glikocontrol_reminders_v1`):** Używają standardowych dźwięków systemowych (`sound: undefined` lub `null`, `importance: 4`) i są przypisane do zwykłych przypomnień (np. o zmianie sensora, wkłucia, przypomnień o lekach i bolusie przedłużonym).
+- **Pomocnicze funkcje audio (`audioUtils.ts`):** `playLowGlucoseSound()` oraz `playHighGlucoseSound()` odtwarzają plik `/status_clear.mp3`, a `playNormalGlucoseSound()` odtwarza standardowe tony syntetyczne (`playTone`).
 
 ## WebSockets, Parowanie (DevicePairing) i Wydajność
 - src/hooks/useGlikoServer.ts obsługuje WebSocket, jednak jest to połączenie NIETRWAŁE, usypiane w tle przez Android/iOS. Lista u urządzeń wsDevices służy TYLKO do wskaźnika online.

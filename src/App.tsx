@@ -12,6 +12,7 @@ import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import RemoteAlertsListener from "./components/RemoteAlertsListener";
 import UpdateModal from "./components/UpdateModal";
+import { playLowGlucoseSound, playHighGlucoseSound } from "./lib/audioUtils";
 
 import GlikoControlLogo from "./components/LogoAnimation";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
@@ -269,9 +270,13 @@ export default function App() {
       // Setup Android notification channels for custom sounds
       if (Capacitor.getPlatform() === 'android') {
         import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+          LocalNotifications.deleteChannel({ id: 'glucose_alerts_v7' }).catch(() => {});
+          LocalNotifications.deleteChannel({ id: 'glucose_alerts_v8' }).catch(() => {});
+          LocalNotifications.deleteChannel({ id: 'glucose_alerts_v9' }).catch(() => {});
+
           LocalNotifications.createChannel({
-              id: 'glucose_alerts_v8',
-              name: 'Alarmy Glikemii',
+              id: 'glucose_alerts_v10',
+              name: 'Krytyczne Alerty Glikemii',
               description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
               importance: 5, // MAX importance
               visibility: 1, // Public
@@ -1669,6 +1674,12 @@ export default function App() {
         navigator.vibrate([400, 200, 400, 200, 400]);
       }
 
+      if (currentViolation === "hypo") {
+        playLowGlucoseSound();
+      } else {
+        playHighGlucoseSound();
+      }
+
       const apkPref = localStorage.getItem("apkSystemNotificationsEnabled");
       const apkNotificationsEnabled = apkPref !== "false";
       if (apkNotificationsEnabled) {
@@ -1681,7 +1692,7 @@ export default function App() {
                   body: alertBody,
                   id: Math.floor(Math.random() * 100000),
                   schedule: { at: new Date() },
-                  channelId: "glucose_alerts_v8",
+                  channelId: "glucose_alerts_v10",
                   sound: "status_clear.mp3",
                   attachments: null,
                   actionTypeId: "",

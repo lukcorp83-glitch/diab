@@ -41,13 +41,17 @@ export default function DietScoreWidget({ user, activeDiet, settings }: { user: 
 
         snapshot.forEach(docSnap => {
            const data = docSnap.data();
-           if (data.type === "meal" || data.type === "bolus") {
+           if (data.type === "meal" || data.type === "bolus" || data.type === "carbs") {
                const mealData = data.type === "bolus" ? data.linkedMeal : data;
                if (mealData) {
-                   totalCals += mealData.calories || 0;
-                   totalCarbs += (mealData.value || mealData.carbs) || 0;
-                   totalProtein += mealData.protein || 0;
-                   totalFat += mealData.fat || 0;
+                   const c = mealData.carbs || mealData.value || 0;
+                   const p = mealData.protein || 0;
+                   const f = mealData.fat || 0;
+                   const cal = mealData.calories || (c > 0 || p > 0 || f > 0 ? Math.round(c * 4 + p * 4 + f * 9) : 0);
+                   totalCals += cal;
+                   totalCarbs += c;
+                   totalProtein += p;
+                   totalFat += f;
                }
            }
         });

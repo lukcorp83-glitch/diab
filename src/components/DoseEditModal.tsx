@@ -43,8 +43,12 @@ export default function DoseEditModal({ log, user, onClose }: DoseEditModalProps
         updates.value = parseFloat(value) || 0;
       }
       if (log.type === "carbs") {
-        updates.value = parseFloat(carbs) || 0;
-        updates.carbs = parseFloat(carbs) || 0;
+        const parsedCarbs = parseFloat(carbs) || 0;
+        updates.value = parsedCarbs;
+        updates.carbs = parsedCarbs;
+        const p = log.protein || 0;
+        const f = log.fat || 0;
+        updates.calories = Math.round(parsedCarbs * 4 + p * 4 + f * 9);
       }
       if (log.type === "bolus" || (log.type as any) === "insulin") {
         updates.bolus = parseFloat(bolus) || 0;
@@ -52,7 +56,10 @@ export default function DoseEditModal({ log, user, onClose }: DoseEditModalProps
         
         if (log.linkedMeal || carbs) {
           const parsedCarbs = parseFloat(carbs) || 0;
-          updates.linkedMeal = log.linkedMeal ? { ...log.linkedMeal, carbs: parsedCarbs, value: parsedCarbs } : { type: "meal", carbs: parsedCarbs, value: parsedCarbs, timestamp: log.timestamp };
+          const p = log.linkedMeal?.protein || 0;
+          const f = log.linkedMeal?.fat || 0;
+          const cal = Math.round(parsedCarbs * 4 + p * 4 + f * 9);
+          updates.linkedMeal = log.linkedMeal ? { ...log.linkedMeal, carbs: parsedCarbs, value: parsedCarbs, calories: cal } : { type: "meal", carbs: parsedCarbs, value: parsedCarbs, calories: cal, timestamp: log.timestamp };
           updates.carbs = parsedCarbs;
         }
       }

@@ -1,10 +1,10 @@
 {
-  "version": "5.7.13",
+  "version": "5.7.14",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
   "buildNumber": 116,
   "forceUpdate": false,
-  "whatsNew": "🔧 Wersja 5.7.13: Naprawiono błąd, w którym głośny dźwięk alarmu glikemii odtwarzał się przy zwykłych przypomnieniach. Asystent głosowy GlikoChat oraz GlikoSense poprawnie posługują się teraz językiem angielskim. Zoptymalizowano system wydawniczy OTA.",
-  "whatsNewEn": "🔧 Version 5.7.13: Fixed a bug where loud critical glucose alarms played for standard reminders. GlikoChat voice assistant and GlikoSense now properly speak and respond in English. Optimized OTA update system.",
-  "otaRevision": 275
+  "whatsNew": "🥗 Wersja 5.7.14: Naprawiono podsumowanie kalorii (Kcal dziś) w zakładce Dieta – wszystkie posiłki z historii oraz wpisy węglowodanowe są teraz bezbłędnie zliczane. Automatyczne przeliczanie kalorii po każdej edycji posiłku w dzienniku.",
+  "whatsNewEn": "🥗 Version 5.7.14: Fixed today's calorie summary (Kcal today) in the Diet tab – all meals from history and carb logs are now accurately counted. Automatic recalculation of calories whenever editing meals or boluses.",
+  "otaRevision": 277
 }
