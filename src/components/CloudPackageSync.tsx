@@ -23,8 +23,16 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
       }
     }
     
-    // Pobierz WSZYSTKIE logi glikemii z nowej natywnej bazy SQLite (do 45000), nie z przestarzałego IndexedDB
+    // Pobierz logi zarówno z nowej natywnej bazy SQLite jak i starego IndexedDB
     const sqliteLogs = await dbService.getLogs(45000);
+    const oldIndexedDbLogs = await loadLocalLogs().catch(() => []);
+    
+    // Połącz logi i usuń duplikaty (priorytet ma SQLite)
+    const allLogsMap = new Map();
+    oldIndexedDbLogs.forEach(log => allLogsMap.set(log.id || log.nsId || `${log.type}_${log.timestamp}`, log));
+    sqliteLogs.forEach(log => allLogsMap.set(log.id || log.nsId || `${log.type}_${log.timestamp}`, log));
+    
+    const combinedLogs = Array.from(allLogsMap.values()).sort((a, b) => b.timestamp - a.timestamp).slice(0, 45000);
     
     // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
     const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
@@ -35,7 +43,7 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
     const exportData = {
       timestamp: Date.now(),
       localStorage: lsData,
-      logs: sqliteLogs,
+      logs: combinedLogs,
       mlModel: mlModelBackup,
       settings: settings
     };
