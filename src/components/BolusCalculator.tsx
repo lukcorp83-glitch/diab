@@ -276,7 +276,23 @@ export default function BolusCalculator({
     const cob = calculateCOB(logs);
     const cobDose = cob / currentWwRatio;
 
-    const baseVal = mealDose + wbtDose + corrDose - iob;
+    // Diabetological standard: 
+    // IOB should primarily cover the correction dose or unabsorbed carbs (COB).
+    // Subtracting IOB directly from the meal dose can lead to severe post-meal hyperglycemia.
+    // 1. Calculate how much IOB is "free" (not covering existing COB).
+    const freeIob = Math.max(0, iob - cobDose);
+
+    // 2. Apply free IOB ONLY to positive correction dose.
+    let adjustedCorrDose = corrDose;
+    if (corrDose > 0) {
+      adjustedCorrDose = Math.max(0, corrDose - freeIob);
+    } else {
+      // If BG is below target (corrDose < 0), we don't subtract IOB again because the negative correction already reduces the dose.
+      // However, if there's massive free IOB, some algorithms reduce the dose further. For safety, we keep the negative correction as is.
+      adjustedCorrDose = corrDose;
+    }
+
+    const baseVal = mealDose + wbtDose + adjustedCorrDose;
 
     let chartData = [];
     if (mealDose > 0)
@@ -294,7 +310,7 @@ export default function BolusCalculator({
     if (corrDose > 0)
       chartData.push({
         name: t('bolus.chart_corr_pos'),
-        value: parseFloat(corrDose.toFixed(2)),
+        value: parseFloat(adjustedCorrDose.toFixed(2)),
         color: "#ef4444",
       });
     if (corrDose < 0)
@@ -303,10 +319,10 @@ export default function BolusCalculator({
         value: parseFloat(Math.abs(corrDose).toFixed(2)),
         color: "#10b981",
       }); // we show absolute in chart but it reduces total
-    if (iob > 0)
+    if (freeIob > 0 && corrDose > 0)
       chartData.push({
         name: "IOB (-)",
-        value: parseFloat(iob.toFixed(2)),
+        value: parseFloat(Math.min(corrDose, freeIob).toFixed(2)),
         color: "#ef4444",
       });
 

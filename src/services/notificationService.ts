@@ -298,8 +298,7 @@ export const notificationService = {
           body,
           id: Math.floor(Math.random() * 100000),
           schedule: { at: scheduleDate },
-          channelId: 'glucose_alerts_v7',
-          sound: 'status_clear.mp3',
+          channelId: 'glikocontrol_reminders_v1',
           attachments: null,
           actionTypeId: '',
           extra: null

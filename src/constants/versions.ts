@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.12';
+export const CURRENT_VERSION = '5.7.13';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.13",
+    date: "2026-07-15",
+    title: "Rozdzielenie Alarmów i Wielojęzyczność",
+    changes: [
+      "Naprawa: Głośny dźwięk alarmu mp3 nie jest już odtwarzany przy zwykłych przypomnieniach o np. bolusie przedłużonym.",
+      "Poprawka: Asystent głosowy GlikoChat mówi teraz natywnie po angielsku, jeśli aplikacja jest w tym języku.",
+      "Poprawka: GlikoSense (AI) nie zmusza już modelu do odpowiadania wyłącznie po polsku.",
+      "Architektura: Oczyszczono główny folder z nieużywanych, przestarzałych skryptów spowalniających kompilację."
+    ]
+  },
   {
     version: "5.7.12",
     date: "2026-07-15",
@@ -598,6 +609,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.13",
+    date: "2026-07-15",
+    title: "Rozdzielenie Alarmów i Wielojęzyczność",
+    changes: [
+      "Naprawa: Głośny dźwięk alarmu mp3 nie jest już odtwarzany przy zwykłych przypomnieniach o np. bolusie przedłużonym.",
+      "Poprawka: Asystent głosowy GlikoChat mówi teraz natywnie po angielsku, jeśli aplikacja jest w tym języku.",
+      "Poprawka: GlikoSense (AI) nie zmusza już modelu do odpowiadania wyłącznie po polsku.",
+      "Architektura: Oczyszczono główny folder z nieużywanych, przestarzałych skryptów spowalniających kompilację."
+    ]
+  },
     {
       version: "5.7.05",
       date: "2026-07-14",

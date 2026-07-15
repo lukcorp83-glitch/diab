@@ -154,7 +154,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'pl-PL';
+    utterance.lang = i18n.language.startsWith('en') ? 'en-US' : 'pl-PL';
     utterance.rate = 1.1; // Slightly faster and more energetic
     utterance.pitch = 1.2; // Higher pitch for a "pet" voice
     

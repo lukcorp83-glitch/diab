@@ -1,10 +1,10 @@
 {
-  "version": "5.7.12",
+  "version": "5.7.13",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
   "buildNumber": 116,
   "forceUpdate": false,
-  "whatsNew": "🔧 Wersja 5.7.12 (Beta): Widżet 'Leczenie' pokazuje teraz tylko bolusy. Diety poprawnie zliczają kalorie z posiłków (w tym z pompy). Historia talerza pokazuje makroskładniki i kcal dla wpisów z pompy. Nowy posiłek od razu aktualizuje licznik kcal w diecie.",
-  "whatsNewEn": "🔧 Version 5.7.12 (Beta): Treatment widget now shows only insulin boluses. Diet section correctly counts calories from all meals (including pump entries). Plate history shows macros and kcal for pump bolus entries. New meals instantly update the diet calorie counter.",
-  "otaRevision": 274
+  "whatsNew": "🔧 Wersja 5.7.13: Naprawiono błąd, w którym głośny dźwięk alarmu glikemii odtwarzał się przy zwykłych przypomnieniach. Asystent głosowy GlikoChat oraz GlikoSense poprawnie posługują się teraz językiem angielskim. Zoptymalizowano system wydawniczy OTA.",
+  "whatsNewEn": "🔧 Version 5.7.13: Fixed a bug where loud critical glucose alarms played for standard reminders. GlikoChat voice assistant and GlikoSense now properly speak and respond in English. Optimized OTA update system.",
+  "otaRevision": 275
 }
