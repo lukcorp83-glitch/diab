@@ -58,12 +58,13 @@ public class GlikoForegroundService extends Service {
                                     
                                     android.app.NotificationManager notificationManager = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
                                     
-                                    String alarmChannelId = "gliko_ml_alarms";
+                                    String alarmChannelId = "gliko_ml_alarms_v2";
                                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                                         android.app.NotificationChannel channel = new android.app.NotificationChannel(alarmChannelId, "Inteligentne Alarmy (GlikoSense)", android.app.NotificationManager.IMPORTANCE_HIGH);
                                         channel.setDescription("Alarmy generowane przez sztuczną inteligencję o nadchodzących spadkach.");
                                         // Dzwiek alarmu z assetów
-                                        channel.setSound(android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI, new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+                                        android.net.Uri alarmSound = android.net.Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.status_clear);
+                                        channel.setSound(alarmSound, new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
                                         channel.setBypassDnd(true);
                                         notificationManager.createNotificationChannel(channel);
                                     }
@@ -197,6 +198,10 @@ public class GlikoForegroundService extends Service {
                 manager.deleteNotificationChannel("glucose_alerts_v2");
                 manager.deleteNotificationChannel("glucose_alerts_v3");
                 manager.deleteNotificationChannel("glucose_alerts_v4");
+                manager.deleteNotificationChannel("glucose_alerts_v7");
+                manager.deleteNotificationChannel("glucose_alerts_v8");
+                manager.deleteNotificationChannel("glucose_alerts_v9");
+                manager.deleteNotificationChannel("glucose_alerts_v10");
                 
                 manager.createNotificationChannel(serviceChannel);
             }

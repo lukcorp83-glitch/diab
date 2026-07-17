@@ -17,12 +17,15 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `version.json` - Główny konfig OTA używany przez mechanizm aktualizacji w aplikacji, to tu znajduje się tekst okna z nowościami.
 - `dev-dist/sw.js` - Wygenerowany Service Worker używany przez Vite PWA. Nie modyfikować ręcznie.
 
-## Synchronizacja Danych i Firebase (Limity bazy)
+## Synchronizacja Danych, Persystencja Hybrydowa i Firebase
 - `src/components/CloudPackageSync.tsx` - Narzędzie, które archiwizuje wszystkie tabele SQLite (do 45000) i model ML w jeden spakowany dokument na Firebase. Podczas eksportu (`uploadCloudPackage`) oraz importu (`downloadCloudPackage`) w tle dociąga pełną historię z kolekcji `logs` w Firestore (do 45000 rekordów) i zapisuje do lokalnego SQLite (`application_logs`) i IndexedDB, gwarantując komplet danych (50+ dni) bez obciążania subskrypcji na żywo.
 - **Odczyty Bazy:** Aplikacja unika zapytań o tysiące rekordów na żywo poprzez `onSnapshot` w Firebase (rygorystyczny limit `1500`, zapobiegający błędowi "Quota Exceeded"). Po synchronizacji paczki chmurowej cała historia (45 000 rekordów) jest odczytywana z natywnego SQLite na wykresach trendu i w raportach AGP.
+- **Bezpieczeństwo SQLite i Pętla 4 Dni (`databaseService.ts` & `localLogs.ts`):** Usunięto destrukcyjne wywołania `deleteDatabase()` – przy błędzie blokady transakcji (`database is locked` na Androidzie) aplikacja nie kasuje już lokalnej bazy, co wcześniej wywoływało pętlę i ograniczenie do 4 dni z limitu `onSnapshot`. Wdrożono kolejkę transakcji (`savePromise` mutex) dla operacji zapisu i usuwania (`saveLog`, `saveMultipleLogs`, `deleteLog`).
+- **Zapis Przyrostowy (`App.tsx` & `localLogs.ts`):** Usunięto obciążający `useEffect` zapisujący 45 000 wpisów przy każdym renderze. Zamiast tego, przy starcie wywoływana jest funkcja `loadLocalLogs()`, która łączy dane z natywnej bazy SQLite (`databaseService`) z przeglądarkowym IndexedDB (`GlikoControlLocalLogs`). Wszystkie zdarzenia (`handleLogAdd`, `handleLogUpdate`, `handleLogDelete`, `onSnapshot`, `SYNC_SUCCESS` workera) używają przyrostowego zapisu `saveLocalLogs([target])`, co automatycznie utrzymuje obie bazy w pełnej synchronizacji w czasie rzeczywistym.
 - `src/components/HistoryView.tsx` - Filtrowanie logów zostało ujednolicone z regułami UX: w sekcji `Leczenie` wykluczono posiłki (widoczne są tylko bolusy/leki/wymiany), natomiast pełna historia posiłków dostępna jest w `Talerzu` (`Posiłki`).
 
 *(Aktualizuj ten plik za każdym razem, gdy badasz nową część starego kodu lub tworzysz coś nowego!)*
+
 
 ## Widok Talerza, Diety i Historia Posiłków
 - `src/components/MealPlate.tsx` - Główny widok "Talerza" do wprowadzania posiłków. Zawiera logikę skanowania kodów, AI (GlikoSense) oraz zakładkę z historią dodanych posiłków.
@@ -36,10 +39,10 @@ sLogs\ (z NightscoutWorker) oraz \bLogs\ (z Firebase, sztywny limit 3000 zapyta
 - Widżety żywotności na Dashboardzie (Dashboard.tsx) bazują bezpośrednio na datach \sensorChangeDate\ oraz \infusionSetChangeDate\ z obiektu \settings\, a nie wyszukują z \logs\ (ponieważ stare logi mogą wypaść z 3000 limitu \bLogs\).
 
 ## Powiadomienia i Dźwięki (Kanały Android / Audio)
-- **Kanały Powiadomień (Android O+):** Zmiana właściwości lub dźwięku na istniejącym kanale Android jest ignorowana przez system operacyjny. Dlatego przy zmianach konfiguracji dźwięku usuwane są stare kanały (`glucose_alerts_v7`, `glucose_alerts_v8`, `glucose_alerts_v9`) i tworzone jest nowe ID kanału.
-- **Krytyczne Alerty Glikemii (`glucose_alerts_v10`):** Używają pliku `status_clear.mp3` (`android/app/src/main/res/raw/status_clear.mp3` oraz w `public/status_clear.mp3` dla Web/PWA). Kanał ten ma najwyższy priorytet (`importance: 5`) i jest przypisany wyłącznie do alarmów o wysokim/niskim cukrze oraz pilnych powiadomień zdalnych (`RemoteAlertsListener.tsx`).
+- **Kanały Powiadomień (Android O+):** Zmiana właściwości lub dźwięku na istniejącym kanale Android jest ignorowana przez system operacyjny. Dlatego przy zmianach konfiguracji dźwięku usuwane są stare kanały (`glucose_alerts_v7`, `glucose_alerts_v8`, `glucose_alerts_v9`, `glucose_alerts_v10`) i tworzone jest nowe ID kanału.
+- **Krytyczne Alerty Glikemii (`glucose_alerts_v11`):** Używają pliku `status_clear.mp3` (`android/app/src/main/res/raw/status_clear.mp3` oraz w `public/status_clear.mp3` dla Web/PWA). Kanał ten ma najwyższy priorytet (`importance: 5`, atrybut `USAGE_ALARM` w natywnych klasach Androida i wtyczce Capacitor) i jest przypisany wyłącznie do alarmów o wysokim/niskim cukrze (zarówno w tle z `NightscoutFetcher.java`, `MainActivity.java`, jak i z JS `App.tsx`, `RemoteAlertsListener.tsx`).
 - **Powiadomienia Systemowe (`system_alerts_v1` / `glikocontrol_reminders_v1`):** Używają standardowych dźwięków systemowych (`sound: undefined` lub `null`, `importance: 4`) i są przypisane do zwykłych przypomnień (np. o zmianie sensora, wkłucia, przypomnień o lekach i bolusie przedłużonym).
-- **Pomocnicze funkcje audio (`audioUtils.ts`):** `playLowGlucoseSound()` oraz `playHighGlucoseSound()` odtwarzają plik `/status_clear.mp3`, a `playNormalGlucoseSound()` odtwarza standardowe tony syntetyczne (`playTone`).
+- **Pomocnicze funkcje audio (`audioUtils.ts`):** `playLowGlucoseSound()` oraz `playHighGlucoseSound()` odtwarzają plik `/status_clear.mp3` i pilnują, aby dzwonek przeszedł do końca bez przerywania i nakładania (zmienna `currentAlertAudio`), chyba że użytkownik zamknie powiadomienie krzyżykiem (`stopGlucoseSound()`, co wyłącza dźwięk JS oraz anuluje natywne powiadomienie LocalNotifications). `playNormalGlucoseSound()` odtwarza standardowe tony syntetyczne (`playTone`).
 
 ## WebSockets, Parowanie (DevicePairing) i Wydajność
 - src/hooks/useGlikoServer.ts obsługuje WebSocket, jednak jest to połączenie NIETRWAŁE, usypiane w tle przez Android/iOS. Lista u urządzeń wsDevices służy TYLKO do wskaźnika online.

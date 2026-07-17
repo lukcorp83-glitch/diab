@@ -273,13 +273,13 @@ public class NightscoutFetcher {
                 // Upewniamy się, że głośny kanał powiadomień istnieje i ma skonfigurowany dźwięk w systemie Android
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     NotificationChannel alertChannel = new NotificationChannel(
-                            "glucose_alerts_v2",
+                            "glucose_alerts_v11",
                             "Alerty Glikemii",
                             NotificationManager.IMPORTANCE_HIGH
                     );
                     alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem");
                     
-                    Uri alarmSound = Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.critical_alarm);
+                    Uri alarmSound = Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.status_clear);
                     AudioAttributes audioAttributes = new AudioAttributes.Builder()
                             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .setUsage(AudioAttributes.USAGE_ALARM)
@@ -299,7 +299,7 @@ public class NightscoutFetcher {
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
                 );
                 
-                NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "glucose_alerts_v2")
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "glucose_alerts_v11")
                         .setSmallIcon(R.drawable.ic_stat_name)
                         .setContentTitle(alertTitle)
                         .setContentText(alertBody)
@@ -308,7 +308,7 @@ public class NightscoutFetcher {
                         .setCategory(NotificationCompat.CATEGORY_ALARM)
                         .setAutoCancel(true)
                         .setOnlyAlertOnce(false)
-                        .setSound(Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.critical_alarm))
+                        .setSound(Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.status_clear))
                         .setVibrate(new long[]{0, 500, 200, 500, 200, 500})
                         .setContentIntent(pendingIntentDefault);
                 

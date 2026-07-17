@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.14';
+export const CURRENT_VERSION = '5.7.15';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.15",
+    date: "2026-07-17",
+    title: "Naprawa Persystencji Danych i Pętli 4-Dniowej",
+    changes: [
+      "Naprawa: Zabezpieczono lokalną bazę danych SQLite przed automatycznym kasowaniem (resetem) przy błędach blokady transakcji.",
+      "Optymalizacja: Usunięto obciążające przeładowywanie całej historii (45 000 wpisów) na rzecz natychmiastowego zapisu przyrostowego.",
+      "Poprawka: Pełna synchronizacja hybrydowa między bazą SQLite (natywną) a IndexedDB (przeglądarkową)."
+    ]
+  },
   {
     version: "5.7.14",
     date: "2026-07-15",
@@ -619,6 +629,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.15",
+    date: "2026-07-17",
+    title: "Naprawa Persystencji Danych i Pętli 4-Dniowej",
+    changes: [
+      "Naprawa: Zabezpieczono lokalną bazę danych SQLite przed automatycznym kasowaniem (resetem) przy błędach blokady transakcji.",
+      "Optymalizacja: Usunięto obciążające przeładowywanie całej historii (45 000 wpisów) na rzecz natychmiastowego zapisu przyrostowego.",
+      "Poprawka: Pełna synchronizacja hybrydowa między bazą SQLite (natywną) a IndexedDB (przeglądarkową)."
+    ]
+  },
   {
     version: "5.7.14",
     date: "2026-07-15",

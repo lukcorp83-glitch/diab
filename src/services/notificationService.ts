@@ -17,9 +17,10 @@ export const notificationService = {
         await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v7' }).catch(() => {});
         await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v8' }).catch(() => {});
         await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v9' }).catch(() => {});
+        await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v10' }).catch(() => {});
 
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v10',
+          id: 'glucose_alerts_v11',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
           importance: 5,
@@ -443,7 +444,7 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v10',
+            channelId: 'glucose_alerts_v11',
             sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: "",

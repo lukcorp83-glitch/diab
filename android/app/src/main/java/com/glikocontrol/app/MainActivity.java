@@ -40,21 +40,27 @@ public class MainActivity extends BridgeActivity {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             android.app.NotificationManager manager = (android.app.NotificationManager) getSystemService(android.content.Context.NOTIFICATION_SERVICE);
             if (manager != null) {
-                // Usuwanie starego kanału o niskim/domyślnym dźwięku
                 try {
                     manager.deleteNotificationChannel("glucose_alerts");
+                    manager.deleteNotificationChannel("glucose_alerts_v2");
+                    manager.deleteNotificationChannel("glucose_alerts_v3");
+                    manager.deleteNotificationChannel("glucose_alerts_v4");
+                    manager.deleteNotificationChannel("glucose_alerts_v7");
+                    manager.deleteNotificationChannel("glucose_alerts_v8");
+                    manager.deleteNotificationChannel("glucose_alerts_v9");
+                    manager.deleteNotificationChannel("glucose_alerts_v10");
                 } catch (Exception e) {
-                    android.util.Log.e("GlikoControl", "Błąd usuwania starego kanału powiadomień", e);
+                    android.util.Log.e("GlikoControl", "Błąd usuwania starych kanałów powiadomień", e);
                 }
 
                 android.app.NotificationChannel alertChannel = new android.app.NotificationChannel(
-                        "glucose_alerts_v2",
+                        "glucose_alerts_v11",
                         "Alerty Glikemii",
                         android.app.NotificationManager.IMPORTANCE_HIGH
                 );
                 alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem");
 
-                android.net.Uri alarmSound = android.net.Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.critical_alarm);
+                android.net.Uri alarmSound = android.net.Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.status_clear);
                 android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
                         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .setUsage(android.media.AudioAttributes.USAGE_ALARM)

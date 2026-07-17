@@ -12,7 +12,7 @@ import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { NotificationListenerSync } from "./components/NotificationListenerSync";
 import RemoteAlertsListener from "./components/RemoteAlertsListener";
 import UpdateModal from "./components/UpdateModal";
-import { playLowGlucoseSound, playHighGlucoseSound } from "./lib/audioUtils";
+import { playLowGlucoseSound, playHighGlucoseSound, stopGlucoseSound } from "./lib/audioUtils";
 
 import GlikoControlLogo from "./components/LogoAnimation";
 import { getGlikoSenseInsights } from "./lib/insightGenerator";
@@ -273,9 +273,10 @@ export default function App() {
           LocalNotifications.deleteChannel({ id: 'glucose_alerts_v7' }).catch(() => {});
           LocalNotifications.deleteChannel({ id: 'glucose_alerts_v8' }).catch(() => {});
           LocalNotifications.deleteChannel({ id: 'glucose_alerts_v9' }).catch(() => {});
+          LocalNotifications.deleteChannel({ id: 'glucose_alerts_v10' }).catch(() => {});
 
           LocalNotifications.createChannel({
-              id: 'glucose_alerts_v10',
+              id: 'glucose_alerts_v11',
               name: 'Krytyczne Alerty Glikemii',
               description: 'Krytyczne alarmy o wysokim i niskim poziomie cukru',
               importance: 5, // MAX importance
@@ -296,11 +297,11 @@ export default function App() {
       }
     }
     
-    // Inicjalizacja hybrydowej bazy SQLite (APK & PWA)
+    // Inicjalizacja hybrydowej bazy SQLite (APK & PWA) oraz złączenie z IndexedDB
     dbService.init().then(async () => {
       console.log(i18n.t('auto.baza_danych_zainicjowana_prawi', { defaultValue: i18n.t('auto.baza_danych_zainicjowana', { defaultValue: "Baza danych zainicjowana prawidłowo!" }) }));
       try {
-        const localData = await dbService.getLogs(45000);
+        const localData = await loadLocalLogs();
         setCachedLogs(localData);
       } catch (err) {
         console.error(i18n.t('auto.blad_pobierania_danych_startow', { defaultValue: i18n.t('auto.blad_pobierania_danych_st', { defaultValue: "Błąd pobierania danych startowych" }) }), err);
@@ -330,9 +331,14 @@ export default function App() {
   useEffect(() => {
     const handleLogUpdate = (e: any) => {
       const { id, updates } = e.detail;
-      setCachedLogs((prev) => 
-        prev.map(l => l.id === id ? { ...l, ...updates } : l)
-      );
+      setCachedLogs((prev) => {
+        const updated = prev.map(l => l.id === id ? { ...l, ...updates } : l);
+        const target = updated.find(l => l.id === id);
+        if (target) {
+          saveLocalLogs([target]).catch(console.error);
+        }
+        return updated;
+      });
       setFbLogs((prev) => 
         prev.map(l => l.id === id ? { ...l, ...updates } : l)
       );
@@ -343,12 +349,13 @@ export default function App() {
       setFbLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
       setNsLogs((prev) => prev.filter(l => l.id !== id && l.nsId !== id));
       setDeletedNsIds((prev) => new Set(prev).add(id));
-      dbService.deleteLog(id).catch(console.error);
+      deleteLocalLog(id).catch(console.error);
     };
     const handleLogAdd = (e: any) => {
       const newLog = e.detail;
       setCachedLogs((prev) => [newLog, ...prev]);
       setFbLogs((prev) => [newLog, ...prev]);
+      saveLocalLogs([newLog]).catch(console.error);
 
       if (newLog.type === 'insulin' && newLog.dose) {
          setUserSettings((prev) => {
@@ -392,6 +399,7 @@ export default function App() {
       if (!Array.isArray(newLogs) || newLogs.length === 0) return;
       setCachedLogs((prev) => [...newLogs, ...prev]);
       setFbLogs((prev) => [...newLogs, ...prev]);
+      saveLocalLogs(newLogs).catch(console.error);
       
       const insulinLogs = newLogs.filter((l: any) => l.type === 'insulin' && l.dose);
       if (insulinLogs.length > 0) {
@@ -483,13 +491,6 @@ export default function App() {
     
     return uniqueLogs;
   }, [cachedLogs, fbLogs, nsLogs]);
-
-  // Zapisy do DB za każdym razem gdy zmieni się docelowy useMemo logs
-  useEffect(() => {
-    if (logs.length > 0 && cachedLogsLoaded) {
-      dbService.saveMultipleLogs(logs.slice(0, 45000)).catch(console.error);
-    }
-  }, [logs, cachedLogsLoaded]);
 
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");
@@ -1690,9 +1691,9 @@ export default function App() {
                 {
                   title: alertTitle,
                   body: alertBody,
-                  id: Math.floor(Math.random() * 100000),
+                  id: currentViolation === "hypo" ? 889 : 888,
                   schedule: { at: new Date() },
-                  channelId: "glucose_alerts_v10",
+                  channelId: "glucose_alerts_v11",
                   sound: "status_clear.mp3",
                   attachments: null,
                   actionTypeId: "",
@@ -1977,6 +1978,9 @@ export default function App() {
           id: doc.id,
         })) as LogEntry[];
         setFbLogs(data);
+        if (data.length > 0) {
+          saveLocalLogs(data).catch(console.error);
+        }
       },
       (error) => {
         console.error("Firestore subscription error:", error);
@@ -2265,6 +2269,7 @@ export default function App() {
              const all = [...prev, ...newLogsToSync];
              return all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 45000);
           });
+          saveLocalLogs(newLogsToSync).catch(console.error);
         }
         
         setSyncStatus({ status: "success", lastSync: Date.now() });
@@ -3294,7 +3299,10 @@ export default function App() {
                 </div>
                 {toastItem.type !== 'loading' && (
                   <button
-                    onClick={() => toast.dismiss(toastItem.id)}
+                    onClick={() => {
+                      stopGlucoseSound();
+                      toast.dismiss(toastItem.id);
+                    }}
                     className="p-2 ml-auto rounded-xl hover:bg-rose-500/10 text-rose-500 transition-colors shrink-0 group flex items-center justify-center hover:scale-110 active:scale-95"
                     aria-label={t('auto.zamknij_powiadomienie', { defaultValue: 'Zamknij powiadomienie' })}
                   >

@@ -1,10 +1,10 @@
 {
-  "version": "5.7.14",
+  "version": "5.7.15",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
-  "buildNumber": 116,
+  "buildNumber": 117,
   "forceUpdate": false,
-  "whatsNew": "🥗 Wersja 5.7.14: Naprawiono podsumowanie kalorii (Kcal dziś) w zakładce Dieta – wszystkie posiłki z historii oraz wpisy węglowodanowe są teraz bezbłędnie zliczane. Automatyczne przeliczanie kalorii po każdej edycji posiłku w dzienniku.",
-  "whatsNewEn": "🥗 Version 5.7.14: Fixed today's calorie summary (Kcal today) in the Diet tab – all meals from history and carb logs are now accurately counted. Automatic recalculation of calories whenever editing meals or boluses.",
-  "otaRevision": 277
+  "whatsNew": "🗄️ Wersja 5.7.15: Naprawiono persystencję bazy danych i wyeliminowano 4-dniową pętlę historii (zabezpieczono SQLite przed automatycznym resetem przy blokadach transakcji). Zoptymalizowano zapisywanie logów i zsynchronizowano bazy SQLite i IndexedDB.",
+  "whatsNewEn": "🗄️ Version 5.7.15: Fixed database persistence and eliminated the 4-day history loop (protected SQLite from automatic wipe on transaction locks). Optimized incremental log saving and synchronized SQLite and IndexedDB engines.",
+  "otaRevision": 278
 }

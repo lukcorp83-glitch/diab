@@ -44,10 +44,42 @@ export const playFeedSound = () => {
   setTimeout(() => playTone(300, 'triangle', 0.1, 0.1), 300);
 };
 
+let currentAlertAudio: HTMLAudioElement | null = null;
+
+export const stopGlucoseSound = () => {
+  if (currentAlertAudio) {
+    try {
+      currentAlertAudio.pause();
+      currentAlertAudio.currentTime = 0;
+    } catch (e) {
+      console.error("Error stopping audio", e);
+    }
+    currentAlertAudio = null;
+  }
+  // Anuluj dźwięk natywny jeśli odtwarzany przez LocalNotifications
+  import('@capacitor/core').then(({ Capacitor }) => {
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+        LocalNotifications.cancel({ notifications: [{ id: 888 }, { id: 889 }, { id: 2 }, { id: 777 }] }).catch(() => {});
+      });
+    }
+  });
+};
+
 const playMp3Alert = () => {
   try {
+    // Jeśli dzwonek już gra, nie przerywaj go ani nie nakładaj kolejnego, aby dzwonek przeszedł cały
+    if (currentAlertAudio && !currentAlertAudio.paused && !currentAlertAudio.ended) {
+      return;
+    }
     const audio = new Audio('/status_clear.mp3');
+    currentAlertAudio = audio;
     audio.play().catch(e => console.error("Audio play blocked", e));
+    audio.onended = () => {
+      if (currentAlertAudio === audio) {
+        currentAlertAudio = null;
+      }
+    };
   } catch (e) {
     console.error("Audio error", e);
   }
