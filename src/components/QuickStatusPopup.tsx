@@ -79,7 +79,7 @@ export default function QuickStatusPopup({ isOpen, onClose, logs, lastGlucose, i
                <StatusItem 
                   icon={<Zap size={14} className="text-amber-500" />} 
                   label={t('auto.sieć_neuronowa', { defaultValue: i18n.t('auto.siec_neuronowa', { defaultValue: "sieć neuronowa" }) })} 
-                  value="GlikoSense 3.0" 
+                  value={typeof window !== 'undefined' && localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' ? "GlikoSense 4.0 Pro" : "GlikoSense 3.0"} 
                   status="ok" 
                />
                <StatusItem 

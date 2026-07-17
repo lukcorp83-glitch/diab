@@ -36,13 +36,16 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
   const [mlResult, setMlResult] = useState<{
     predictedNextHour: number,
     predictedNext2Hours: number,
+    predictedNext6Hours?: number,
     riskOfHypo: boolean,
     insights: string[],
     accuracy: number,
     datasetSize?: number,
     predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number },
-    analyzedPeriod?: string
+    analyzedPeriod?: string,
+    engineMode?: string,
+    engineStatus?: string
   } | null>(() => {
     // Inicjalizacja z cache, aby uniknąć migania loaderem
     const cached = localStorage.getItem('glikosense_last_result_v2');
@@ -64,6 +67,19 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
   });
   const [showBackupPanel, setShowBackupPanel] = useState(false);
   const [isBackupActionRunning, setIsBackupActionRunning] = useState(false);
+  const [activeBackend, setActiveBackend] = useState(() => typeof window !== 'undefined' ? (localStorage.getItem('glikosense_active_backend') || 'cpu') : 'cpu');
+  const [currentEngineMode, setCurrentEngineMode] = useState(() => typeof window !== 'undefined' ? (localStorage.getItem('glikosense_engine_mode') || 'v3_lstm') : 'v3_lstm');
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setActiveBackend(localStorage.getItem('glikosense_active_backend') || 'cpu');
+      setCurrentEngineMode(localStorage.getItem('glikosense_engine_mode') || 'v3_lstm');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const isV4Active = currentEngineMode === 'v4_tcn' || mlResult?.engineMode === 'v4_tcn';
 
   function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
     const errInfo = {
@@ -152,7 +168,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
         datasetSize: mlResult?.datasetSize || 0
       });
 
-      toast.success(i18n.t('auto.kopia_zapasowa_modelu_glikosen', { defaultValue: i18n.t('auto.kopia_zapasowa_modelu_gli', { defaultValue: "Kopia zapasowa modelu GlikoSense 3.0 została zapisana pomyślnie!" }) }), { id: toastId });
+      toast.success(isV4Active ? t('auto.kopia_zapasowa_modelu_glikosen_v4', { defaultValue: "Kopia zapasowa modelu GlikoSense 4.0 Pro została zapisana pomyślnie!" }) : i18n.t('auto.kopia_zapasowa_modelu_glikosen', { defaultValue: i18n.t('auto.kopia_zapasowa_modelu_gli', { defaultValue: "Kopia zapasowa modelu GlikoSense 3.0 została zapisana pomyślnie!" }) }), { id: toastId });
     } catch (err) {
       toast.error(i18n.t('auto.blad_podczas_eksportowania_lub', { defaultValue: i18n.t('auto.blad_podczas_eksportowani', { defaultValue: "Błąd podczas eksportowania lub zapisu kopii zapasowej." }) }), { id: toastId });
       handleFirestoreError(err, OperationType.WRITE, docPath);
@@ -172,7 +188,9 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
     }
 
     const confirmRestore = window.confirm(
-      i18n.t('auto.uwaga_przywrocenie_modelu_z_ch', { defaultValue: i18n.t('auto.uwaga_przywrocenie_modelu', { defaultValue: "UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej GlikoSense 3.0 zainstalowane w przeglądarce. Czy chcesz kontynuować?" }) })
+      isV4Active
+        ? t('auto.uwaga_przywrocenie_modelu_v4', { defaultValue: "UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej GlikoSense 4.0 Pro. Czy chcesz kontynuować?" })
+        : i18n.t('auto.uwaga_przywrocenie_modelu_z_ch', { defaultValue: i18n.t('auto.uwaga_przywrocenie_modelu', { defaultValue: "UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej GlikoSense 3.0 zainstalowane w przeglądarce. Czy chcesz kontynuować?" }) })
     );
     if (!confirmRestore) return;
 
@@ -198,7 +216,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
       });
 
       if (success) {
-        toast.success(i18n.t('auto.model_glikosense_3_0_zostal_po', { defaultValue: i18n.t('auto.model_glikosense_3_0_zost', { defaultValue: "Model GlikoSense 3.0 został pomyślnie przywrócony z chmury!" }) }), { id: toastId });
+        toast.success(isV4Active ? t('auto.model_glikosense_4_0_zostal_po', { defaultValue: "Model GlikoSense 4.0 Pro został pomyślnie przywrócony z chmury!" }) : i18n.t('auto.model_glikosense_3_0_zostal_po', { defaultValue: i18n.t('auto.model_glikosense_3_0_zost', { defaultValue: "Model GlikoSense 3.0 został pomyślnie przywrócony z chmury!" }) }), { id: toastId });
         runML(true);
       } else {
         toast.error(i18n.t('auto.wystapil_nieznany_problem_z_pl', { defaultValue: i18n.t('auto.wystapil_nieznany_problem', { defaultValue: "Wystąpił nieznany problem z plikiem modelu." }) }), { id: toastId });
@@ -593,7 +611,12 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
           <div className="flex items-center gap-2.5">
             <Cloud size={18} className="text-indigo-500" />
             <div className="flex flex-col">
-              <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{t('auto.sieć_neuronowa_glikosense_3_0', { defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { defaultValue: "Sieć neuronowa GlikoSense 3.0" }) })}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{isV4Active ? t('auto.sieć_neuronowa_glikosense_4_0', { defaultValue: "Sieć neuronowa GlikoSense 4.0 Pro" }) : t('auto.sieć_neuronowa_glikosense_3_0', { defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { defaultValue: "Sieć neuronowa GlikoSense 3.0" }) })}</span>
+                <span className="px-2 py-0.5 text-[8px] font-black rounded-full bg-indigo-500/10 dark:bg-indigo-400/20 text-indigo-600 dark:text-indigo-300 uppercase tracking-wider border border-indigo-500/20">
+                  {activeBackend === 'webgl' ? '⚡ GPU / NPU Chip' : '🖥️ CPU Mode'}
+                </span>
+              </div>
               <span className="text-[10px] font-bold text-slate-400 opacity-80 mt-1">{t('auto.kopia_zapasowa_modelu_w_zabezpieczo', { defaultValue: 'Kopia zapasowa modelu w zabezpieczonej chmurze' })}</span>
             </div>
           </div>
@@ -619,7 +642,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                 <p className="text-xs font-medium leading-relaxed">
                   
                                                     {t('auto.twoja_sieć_neuronowa_uczy_się_lokal', { defaultValue: i18n.t('auto.twoja_siec_neuronowa_uczy', { defaultValue: "Twoja sieć neuronowa uczy się lokalnie na Twoim urządzeniu. Czyszczenie pamięci podręcznej przeglądarki lub zmiana urządzenia spowoduje" }) })}{" "}
-                  <strong className="font-extrabold text-amber-600 dark:text-amber-300">{t('auto.bezzwrotną_utratę_wyuczonego_modelu', { defaultValue: i18n.t('auto.bezzwrotna_utrate_wyuczon', { defaultValue: "bezzwrotną utratę wyuczonego modelu GlikoSense 3.0" }) })}</strong>{" "}
+                  <strong className="font-extrabold text-amber-600 dark:text-amber-300">{isV4Active ? t('auto.bezzwrotną_utratę_wyuczonego_modelu_v4', { defaultValue: "bezzwrotną utratę wyuczonego modelu GlikoSense 4.0 Pro" }) : t('auto.bezzwrotną_utratę_wyuczonego_modelu', { defaultValue: i18n.t('auto.bezzwrotna_utrate_wyuczon', { defaultValue: "bezzwrotną utratę wyuczonego modelu GlikoSense 3.0" }) })}</strong>{" "}
                   
                                                     {t('auto.i_przywrócenie_wartości_podstawowyc', { defaultValue: i18n.t('auto.i_przywrocenie_wartosci_p', { defaultValue: "i przywrócenie wartości podstawowych. Kopia w chmurze chroni przed utratą Twojej spersonalizowanej inteligencji." }) })}
                                                   </p>
@@ -804,7 +827,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="space-y-5 relative z-10"
               >
-                  <div className="grid grid-cols-2 gap-3 md:gap-5">
+                  <div className={`grid ${mlResult.predictedNext6Hours ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} gap-3 md:gap-5`}>
                       {/* Prediction Box */}
                       <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 dark:from-slate-950 dark:via-indigo-950 dark:to-violet-950 p-5 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group border border-indigo-500/20 flex flex-col">
                           <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-6 transform-gpu">
@@ -848,6 +871,30 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                           </div>
                       </div>
 
+                      {/* 6h Prediction Box for v4 TCN */}
+                      {mlResult.predictedNext6Hours ? (
+                        <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 dark:from-slate-950 dark:via-cyan-950 dark:to-indigo-950 p-5 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group border border-cyan-500/20 flex flex-col">
+                            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-6 transform-gpu">
+                               <TrendingUp size={160} />
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/20 to-transparent pointer-events-none" />
+                            
+                            <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4 relative z-10">
+                                <div className="bg-cyan-500/30 p-1.5 md:p-2 rounded-xl backdrop-blur-md">
+                                  <Target size={16} className="text-cyan-200" />
+                                </div>
+                                <span className="text-[10px] md:text-[11px] font-black text-cyan-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.prognoza_dluga_6h', { defaultValue: 'Prognoza długa (6h)' })}</span>
+                            </div>
+                            <div className="flex items-baseline gap-1 md:gap-2 relative z-10 mt-auto">
+                                <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{mlResult.predictedNext6Hours}</span>
+                                <span className="text-[10px] md:text-sm font-bold text-cyan-300 tracking-wider md:tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
+                            </div>
+                            <div className="mt-3 md:mt-4 text-[9px] font-bold text-cyan-300/80 uppercase tracking-wider relative z-10">
+                                🛸 TCN Pro INT8 • Horyzont Czasowy
+                            </div>
+                        </div>
+                      ) : null}
+
                       {/* Confidence & Alerts Box */}
                       <div className="flex flex-col gap-3 md:gap-5">
                           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 md:p-8 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-700/60 shadow-lg flex-1 flex flex-col justify-center relative overflow-hidden group">
@@ -873,6 +920,24 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                                 <div className="mt-3 flex items-center justify-between relative z-10">
                                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.model_wyuczony', { defaultValue: 'Model Wyuczony:' })}</span>
                                   <span className="text-[10px] font-black text-indigo-500">{mlResult.datasetSize}  {t('auto.pkt_danych', { defaultValue: 'pkt danych' })}</span>
+                                </div>
+                              )}
+                              {mlResult.engineStatus && (
+                                <div className="mt-2.5 pt-2.5 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between relative z-10">
+                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.silnik_ai', { defaultValue: 'Silnik AI:' })}</span>
+                                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
+                                    mlResult.engineStatus === 'hybrid_guardrail' 
+                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' 
+                                      : mlResult.engineStatus === 'ready_tcn_int8' || mlResult.engineMode === 'v4_tcn'
+                                        ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
+                                        : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+                                  }`}>
+                                    {mlResult.engineStatus === 'hybrid_guardrail' 
+                                      ? t('auto.ochrona_hybrydowa_150', { defaultValue: '🛡️ Ochrona (<150 pomiarów)' })
+                                      : mlResult.engineStatus === 'ready_tcn_int8' || mlResult.engineMode === 'v4_tcn'
+                                        ? t('auto.tcn_pro_int8', { defaultValue: '🚀 TCN Pro INT8' })
+                                        : t('auto.lstm_v3_klasyczny', { defaultValue: '⚡ LSTM v3.0' })}
+                                  </span>
                                 </div>
                               )}
                           </div>
@@ -1009,7 +1074,7 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                                     
                                     {/* Subtle background glow depending on theme */}
                                     {glassmorphismEnabled && (
-                                        <div className={`absolute -bottom-10 -right-10 w-32 h-32 blur-[40px] opacity-20 rounded-full ${glowColor}`} pointerEvents="none" />
+                                        <div className={`absolute -bottom-10 -right-10 w-32 h-32 blur-[40px] opacity-20 rounded-full ${glowColor}`} style={{ pointerEvents: "none" }} />
                                     )}
                                 </motion.div>
                             );

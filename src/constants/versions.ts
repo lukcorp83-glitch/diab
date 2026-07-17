@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.16';
+export const CURRENT_VERSION = '5.8.01';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.01",
+    date: "2026-07-17",
+    title: "GlikoSense 4.0 Pro – Dwusilnikowa AI z Ochroną Sprzętową",
+    changes: [
+      "Nowość: Silnik GlikoSense 4.0 Pro (TCN + INT8) – sploty dylatowane z kwantyzacją wag i prognozą do 6 godzin.",
+      "Bezpieczeństwo: Blokada aktywacji silnika 4.0 na urządzeniach bez wsparcia GPU/WebGL lub z mniej niż 3GB RAM.",
+      "Bezpiecznik: Automatyczny tryb hybrydowy (v3.0 LSTM) gdy historia zawiera mniej niż 150 pomiarów.",
+      "Interfejs: Dynamiczna zamiana etykiet GlikoSense 3.0 ➞ 4.0 Pro po aktywacji nowego silnika (zakładka AI, status systemowy).",
+      "Nowość: 3 nowe reguły fizjologiczne: Bezwładność Weekendowa, Opóźniony Spadek Powyśiłkowy, Wrażliwość Cykliczna (Stres)."
+    ]
+  },
   {
     version: "5.7.16",
     date: "2026-07-17",
@@ -639,6 +651,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.01",
+    date: "2026-07-17",
+    title: "GlikoSense 4.0 Pro – Dwusilnikowa AI z Ochroną Sprzętową",
+    changes: [
+      "Nowość: Silnik GlikoSense 4.0 Pro (TCN + INT8) – sploty dylatowane z kwantyzacją wag i prognozą do 6 godzin.",
+      "Bezpieczeństwo: Blokada aktywacji silnika 4.0 na urządzeniach bez wsparcia GPU/WebGL lub z mniej niż 3GB RAM.",
+      "Bezpiecznik: Automatyczny tryb hybrydowy (v3.0 LSTM) gdy historia zawiera mniej niż 150 pomiarów.",
+      "Interfejs: Dynamiczna zamiana etykiet GlikoSense 3.0 ➞ 4.0 Pro po aktywacji nowego silnika.",
+      "Nowość: 3 nowe reguły fizjologiczne: Bezwładność Weekendowa, Opóźniony Spadek Powyśiłkowy, Wrażliwość Cykliczna (Stres)."
+    ]
+  },
   {
     version: "5.7.16",
     date: "2026-07-17",

@@ -1,4 +1,4 @@
-﻿import i18n from '../i18n';
+import i18n from '../i18n';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
@@ -152,6 +152,7 @@ export default function MealPlate({
   logs = [],
   initialAction,
   onClearInitialAction,
+  hideInternalTabs = false,
 }: {
   user: any;
   setTab: (t: string) => void;
@@ -163,6 +164,7 @@ export default function MealPlate({
   logs?: any[];
   initialAction?: string | null;
   onClearInitialAction?: () => void;
+  hideInternalTabs?: boolean;
 }) {
   const plate = sharedPlate;
   const setPlate = setSharedPlate || (() => {});
@@ -1341,6 +1343,28 @@ export default function MealPlate({
     setIsScannerOpen(true);
   };
 
+  useEffect(() => {
+    if (mode === "search" || mode === "both") {
+      const aiAction = sessionStorage.getItem("ai_plate_action");
+      if (aiAction === "camera") {
+        sessionStorage.removeItem("ai_plate_action");
+        setTimeout(() => {
+          if (Capacitor.isNativePlatform()) {
+            startCameraAnalysis();
+          } else {
+            const elem = document.getElementById("meal-photo-input");
+            if (elem) elem.click();
+          }
+        }, 350);
+      } else if (aiAction === "voice") {
+        sessionStorage.removeItem("ai_plate_action");
+        setTimeout(() => {
+          startVoiceSearch();
+        }, 350);
+      }
+    }
+  }, [mode]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1360,32 +1384,34 @@ export default function MealPlate({
       </div>
 
       {/* Tab Toggle */}
-      <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl mx-2 mb-6">
-        <button
-          onClick={() => setPlateView("composer")}
-          className={cn(
-            "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-            plateView === "composer" 
-              ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
-              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          )}
-        >
-          {t('auto.kompozytor', { defaultValue: "Kompozytor" })}
-        </button>
-        <button
-          onClick={() => setPlateView("history")}
-          className={cn(
-            "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-            plateView === "history" 
-              ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
-              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          )}
-        >
-          {t('auto.historia', { defaultValue: "Historia" })}
-        </button>
-      </div>
+      {!hideInternalTabs && (
+        <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl mx-2 mb-6">
+          <button
+            onClick={() => setPlateView("composer")}
+            className={cn(
+              "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+              plateView === "composer" 
+                ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            )}
+          >
+            {t('auto.kompozytor', { defaultValue: "Kompozytor" })}
+          </button>
+          <button
+            onClick={() => setPlateView("history")}
+            className={cn(
+              "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+              plateView === "history" 
+                ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            )}
+          >
+            {t('auto.historia', { defaultValue: "Historia" })}
+          </button>
+        </div>
+      )}
 
-        {plateView === "history" ? (
+        {!hideInternalTabs && plateView === "history" ? (
           <MealHistoryView 
             logs={logs} 
             user={user} 
@@ -1393,7 +1419,7 @@ export default function MealPlate({
             onMergeToLog={(log) => {
               if (plate.length > 0) {
                 handleMergeMeal(log.id!);
-                setPlateView("plate");
+                setPlateView("composer");
               } else {
                 toast.error(i18n.t('auto.najpierw_skomponuj_talerz', { defaultValue: `Najpierw skomponuj talerz!` }));
               }
@@ -1967,6 +1993,35 @@ export default function MealPlate({
       {/* Search & Browser */}
       {(mode === "search" || mode === "both") && (
         <>
+          {mode === "search" && plate.length > 0 && (
+            <div
+              onClick={() => {
+                Haptics.medium();
+                setTab("meal");
+              }}
+              className="cursor-pointer mb-6 p-4 rounded-3xl bg-gradient-to-r from-accent-600 via-indigo-600 to-sky-600 text-white shadow-xl flex items-center justify-between gap-3 transform hover:scale-[1.01] transition-all border border-white/10"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white/20 rounded-2xl animate-pulse">
+                  <Utensils size={20} />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-2">
+                    {t('meal.your_plate', { defaultValue: 'Twój talerz' })}
+                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      {plate.length} {t('auto.skladniki', { defaultValue: 'składniki' })}
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-white/90 font-medium mt-0.5">
+                    {t('auto.kliknij_by_przejsc_do_talerza', { defaultValue: 'Kliknij, aby otworzyć talerz, przeliczyć WW/WBT i podać bolus' })}
+                  </p>
+                </div>
+              </div>
+              <div className="px-3.5 py-2 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-wider shrink-0 shadow-md">
+                {t('auto.otworz_talerz', { defaultValue: 'Otwórz talerz' })} →
+              </div>
+            </div>
+          )}
           <div className="px-1">
             <h2 className="text-xl font-black dark:text-white mb-2">
               {t('meal.build_meal', { defaultValue: i18n.t('auto.buduj_swoj_posilek', { defaultValue: "Buduj swój posiłek" }) })}
@@ -3075,15 +3130,27 @@ export default function MealPlate({
                 {plate.length}
               </span>
             </div>
-            <button
-              onClick={() => {
-                Haptics.impact();
-                setPlate([]);
-              }}
-              className="text-[9px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 px-4 py-2 rounded-xl active:bg-rose-500 active:text-white transition-all"
-            >
-              {t('meal.clear', { defaultValue: i18n.t('auto.wyczysc', { defaultValue: "Wyczyść" }) })}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  Haptics.medium();
+                  setTab("database");
+                }}
+                className="text-[9px] font-black uppercase tracking-widest bg-accent-500/20 text-accent-400 px-3 py-2 rounded-xl active:bg-accent-500 active:text-white transition-all flex items-center gap-1.5"
+              >
+                <Plus size={12} />
+                <span>{t('meal.add_from_db', { defaultValue: 'Dodaj z Bazy' })}</span>
+              </button>
+              <button
+                onClick={() => {
+                  Haptics.impact();
+                  setPlate([]);
+                }}
+                className="text-[9px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 px-3 py-2 rounded-xl active:bg-rose-500 active:text-white transition-all"
+              >
+                {t('meal.clear', { defaultValue: i18n.t('auto.wyczysc', { defaultValue: "Wyczyść" }) })}
+              </button>
+            </div>
           </div>
 
           <motion.div
@@ -3521,7 +3588,7 @@ export default function MealPlate({
           {settings?.treatmentMode === 'diet_only' ? (
             <button
               onClick={async () => {
-                import('@capacitor/haptics').then(({ Haptics }) => Haptics.medium());
+                import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => Haptics.impact({ style: ImpactStyle.Medium }));
                 toast.loading(i18n.t('auto.zapisywanie_posilku', { defaultValue: 'Zapisywanie posiłku...' }), { id: "meal-save" });
                 try {
                   const payload = {

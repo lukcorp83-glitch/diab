@@ -155,6 +155,7 @@ import ChangelogPopup from "./components/ChangelogPopup";
 import PrivacyPopup from "./components/PrivacyPopup";
 import QuickStatusPopup from "./components/QuickStatusPopup";
 import { Diets } from "./components/Diets";
+import NutritionHub from "./components/nutrition/NutritionHub";
 import JetLagMode from "./components/JetLagMode";
 import InsulinDetective from "./components/InsulinDetective";
 import { CURRENT_VERSION } from "./constants/versions";
@@ -1366,16 +1367,17 @@ export default function App() {
   const changeTab = React.useCallback(
     (newTab: string) => {
       Haptics.light();
+      window.scrollTo({ top: 0, behavior: "smooth" });
       const getIndex = (tab: string) => {
         const currentTabs = userSettings?.childMode
           ? ["chart", "dashboard", "database", "meal", "chat", "assistant", "ai", "profile", "games"]
-          : ["chart", "dashboard", "database", "meal", "assistant", "ai", "profile"];
+          : ["chart", "dashboard", "database", "meal", "chat", "assistant", "ai", "profile"];
         return currentTabs.indexOf(tab) >= 0 ? currentTabs.indexOf(tab) : 0;
       };
       setDirection(getIndex(newTab) >= getIndex(activeTab) ? 1 : -1);
       setActiveTab(newTab);
     },
-    [activeTab],
+    [activeTab, userSettings],
   );
 
   useEffect(() => {
@@ -2813,23 +2815,22 @@ export default function App() {
               />
             )}
             {activeTab === "meal" && !userSettings?.followerMode && (
-              <MealPlate
-                key="meal-plate"
+              <NutritionHub
+                key="nutrition-hub-mobile"
                 user={user}
                 setTab={changeTab}
                 sharedPlate={sharedPlate}
                 setSharedPlate={setSharedPlate}
-                mode="plate"
-                openHistory={() => changeTab("history")}
                 settings={userSettings || undefined}
                 logs={logs}
+                initialSubTab="creator"
               />
             )}
           </div>
-          <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6 w-full items-start">
+          <div className="hidden lg:block w-full max-w-5xl mx-auto items-start">
             {!userSettings?.followerMode && (
               <>
-                <div>
+                {activeTab === "database" ? (
                   <MealPlate
                     key="db-plate-desktop"
                     user={user}
@@ -2841,20 +2842,18 @@ export default function App() {
                     settings={userSettings || undefined}
                     logs={logs}
                   />
-                </div>
-                <div>
-                  <MealPlate
-                    key="meal-plate-desktop"
+                ) : (
+                  <NutritionHub
+                    key="nutrition-hub-desktop"
                     user={user}
                     setTab={changeTab}
                     sharedPlate={sharedPlate}
                     setSharedPlate={setSharedPlate}
-                    mode="plate"
-                    openHistory={() => changeTab("history")}
                     settings={userSettings || undefined}
                     logs={logs}
+                    initialSubTab="creator"
                   />
-                </div>
+                )}
               </>
             )}
           </div>
@@ -2898,25 +2897,29 @@ export default function App() {
           </div>
           <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6 w-full items-start">
             <div>
-              <GlikoAssistant
-                user={user}
-                logs={logs}
-                settings={userSettings || undefined}
-                petData={petData}
-                onAddToPlate={(item) =>
-                  setSharedPlate((prev) => [
-                    ...prev,
-                    {
-                      ...item,
-                      plateItemId: Math.random().toString(36).substr(2, 9),
-                    },
-                  ])
-                }
-                messages={assistantMessages}
-                setMessages={setAssistantMessages}
-                isTyping={isAssistantTyping}
-                onSend={sendAssistantMessage}
-              />
+              {activeTab === "chat" ? (
+                <GlikoChat petData={petData} settings={userSettings} />
+              ) : (
+                <GlikoAssistant
+                  user={user}
+                  logs={logs}
+                  settings={userSettings || undefined}
+                  petData={petData}
+                  onAddToPlate={(item) =>
+                    setSharedPlate((prev) => [
+                      ...prev,
+                      {
+                        ...item,
+                        plateItemId: Math.random().toString(36).substr(2, 9),
+                      },
+                    ])
+                  }
+                  messages={assistantMessages}
+                  setMessages={setAssistantMessages}
+                  isTyping={isAssistantTyping}
+                  onSend={sendAssistantMessage}
+                />
+              )}
             </div>
             <div>
               <AiReports user={user} logs={logs} settings={userSettings} setTab={changeTab} />
@@ -2981,11 +2984,14 @@ export default function App() {
             <GlikoGames logs={logs} user={user} setTab={changeTab} />
           )}
           {activeTab === "diets" && (
-            <Diets
+            <NutritionHub
               user={user}
               setTab={changeTab}
+              sharedPlate={sharedPlate}
+              setSharedPlate={setSharedPlate}
               settings={userSettings || undefined}
               logs={logs}
+              initialSubTab="diet"
             />
           )}
           {activeTab === "travel" && (

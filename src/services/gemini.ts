@@ -3,6 +3,7 @@ import { clampSafeBolus } from "../lib/physiologicalSafety";
 import i18n from "../i18n";
 
 import { auth } from "../lib/firebase";
+import { GlikoSenseLearner } from "./mlSugarAnalyzer";
 
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
@@ -812,12 +813,18 @@ export const geminiService = {
         });
         const data = await response.json();
         if (response.ok) {
-          if (data.candidates && data.candidates[0]?.content)
-            return data.candidates[0].content.parts
-              .map((p: any) => p.text)
-              .join("");
-          if (data.text) return data.text;
-          return typeof data === "string" ? data : JSON.stringify(data);
+          let resStr = "";
+          if (data.candidates && data.candidates[0]?.content) {
+            resStr = data.candidates[0].content.parts.map((p: any) => p.text).join("");
+          } else if (data.text) {
+            resStr = data.text;
+          } else {
+            resStr = typeof data === "string" ? data : JSON.stringify(data);
+          }
+          if (resStr && typeof resStr === "string") {
+            setTimeout(() => GlikoSenseLearner.learnFromGemini(resStr), 0);
+          }
+          return resStr;
         }
         throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
@@ -844,7 +851,11 @@ export const geminiService = {
             temperature: 0.4,
           },
         });
-        return response.text || i18n.t('gemini.response_generation_failed', { defaultValue: i18n.t('auto.nie_udalo_mi_sie_wygenero', { defaultValue: "Nie udało mi się wygenerować odpowiedzi." }) });
+        const resStr = response.text || i18n.t('gemini.response_generation_failed', { defaultValue: i18n.t('auto.nie_udalo_mi_sie_wygenero', { defaultValue: "Nie udało mi się wygenerować odpowiedzi." }) });
+        if (resStr && typeof resStr === "string") {
+          setTimeout(() => GlikoSenseLearner.learnFromGemini(resStr), 0);
+        }
+        return resStr;
       } catch (error) {
         console.warn(i18n.t('auto.assistant_blad_dla_modelu', { defaultValue: "Assistant - błąd dla modelu {{var0}}:", var0: model }), error);
         lastError = error;

@@ -144,7 +144,7 @@ export function calculateCOB(logs: LogEntry[], absorptionMinutes: number = 180) 
     }, 0);
 }
 
-export function getEffectiveUid(user: any): string {
+export function getEffectiveUid(user: any, settings?: any): string {
   if (!user || !user.uid) return '';
   return localStorage.getItem('diacontrol_linked_uid') || user.uid;
 }

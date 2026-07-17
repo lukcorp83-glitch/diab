@@ -20,35 +20,66 @@ export const GlikoSenseLearner = {
       }
     }
   },
-  learnFromGemini(analysisText: string) {
-    const text = analysisText.toLowerCase();
+  learnFromGemini(analysisText: string | string[]) {
+    const text = (Array.isArray(analysisText) ? analysisText.join(" ") : analysisText).toLowerCase();
     try {
       let rules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+      let changed = false;
       
-      if (text.includes(i18n.t('auto.insulinoopornosc', { defaultValue: i18n.t('auto.insulinoopornosc', { defaultValue: "insulinooporność" }) })) || text.includes(i18n.t('auto.opornosc_na_insuline', { defaultValue: i18n.t('auto.opornosc_na_insuline', { defaultValue: "oporność na insulinę" }) })) || text.includes('wysokie dawki')) {
+      if (/insulinooporn|opornoś.*insulin|wysokie dawki|zapotrzebowanie/i.test(text)) {
         rules.insulinResistanceMultiplier = (rules.insulinResistanceMultiplier || 1.0) * 1.05;
-        this.sendTelemetry("insulinResistanceMultiplier_increase", i18n.t('auto.wykryto_slowo_klucz_opornosci', { defaultValue: i18n.t('auto.wykryto_slowo_klucz_oporn', { defaultValue: "Wykryto słowo-klucz oporności w raporcie AI." }) }));
+        this.sendTelemetry("insulinResistanceMultiplier_increase", i18n.t('auto.wykryto_slowo_klucz_opornosci', { defaultValue: "Wykryto słowo-klucz oporności w raporcie AI." }));
+        changed = true;
       }
-      if (text.includes(i18n.t('auto.zwiekszona_wrazliwosc', { defaultValue: i18n.t('auto.zwiekszona_wrazliwosc', { defaultValue: "zwiększona wrażliwość" }) })) || text.includes('bardzo spada') || text.includes('szybki spadek')) {
+      if (/zwiększona wrażliwość|wzrost wrażliwości|bardzo spada|szybki spadek/i.test(text)) {
         rules.insulinResistanceMultiplier = Math.max(0.5, (rules.insulinResistanceMultiplier || 1.0) * 0.95);
-        this.sendTelemetry("insulinResistanceMultiplier_decrease", i18n.t('auto.wykryto_slowo_klucz_wrazliwosc', { defaultValue: i18n.t('auto.wykryto_slowo_klucz_wrazl', { defaultValue: "Wykryto słowo-klucz wrażliwości w raporcie AI." }) }));
+        this.sendTelemetry("insulinResistanceMultiplier_decrease", i18n.t('auto.wykryto_slowo_klucz_wrazliwosc', { defaultValue: "Wykryto słowo-klucz wrażliwości w raporcie AI." }));
+        changed = true;
       }
-      if (text.includes('brzask') || text.includes('wzrosty poranne')) {
+      if (/brzask|porann.*(wzrost|hormon|wstawani)|poranne wzrosty/i.test(text)) {
         rules.dawnPhenomenonEnabled = true;
-        this.sendTelemetry("dawnPhenomenonEnabled_true", i18n.t('auto.aktywowano_regule_poranna', { defaultValue: i18n.t('auto.aktywowano_regule_poranna', { defaultValue: "Aktywowano regułę poranną." }) }));
+        this.sendTelemetry("dawnPhenomenonEnabled_true", i18n.t('auto.aktywowano_regule_poranna', { defaultValue: "Aktywowano regułę poranną." }));
+        changed = true;
       }
-      if (text.includes('somogyi') || text.includes('odbicie po hipo')) {
+      if (/somogyi|odbici.*hipo|hipo.*odbici/i.test(text)) {
         rules.somogyiEnabled = true;
-        this.sendTelemetry("somogyiEnabled_true", "Aktywowano zjawisko somogyi z porad Gemini.");
+        this.sendTelemetry("somogyiEnabled_true", "Aktywowano zjawisko somogyi z porad Gemini/ML.");
+        changed = true;
       }
-      if (text.includes('pizza') || text.includes(i18n.t('auto.tluste_posilki', { defaultValue: i18n.t('auto.tluste_posilki', { defaultValue: "tłuste posiłki" }) })) || text.includes(i18n.t('auto.przedluzone_wchlanianie', { defaultValue: i18n.t('auto.przedluzone_wchlanianie', { defaultValue: "przedłużone wchłanianie" }) }))) {
+      if (/pizza|pizzy|tłust.*(posił|jedzen)|przedłużon.*wchłanian|białkowo-tłuszcz/i.test(text)) {
         rules.pizzaEffectMultiplier = 1.2;
-        this.sendTelemetry("pizzaEffectMultiplier_1.2", i18n.t('auto.korekta_bazy_wchlaniania_efekt', { defaultValue: i18n.t('auto.korekta_bazy_wchlaniania', { defaultValue: "Korekta bazy wchłaniania (Efekt Pizzy)." }) }));
+        this.sendTelemetry("pizzaEffectMultiplier_1.2", i18n.t('auto.korekta_bazy_wchlaniania_efekt', { defaultValue: "Korekta bazy wchłaniania (Efekt Pizzy)." }));
+        changed = true;
+      }
+      if (/bezwładność weekendowa|weekend/i.test(text)) {
+        rules.weekendInertiaEnabled = true;
+        this.sendTelemetry("weekendInertiaEnabled_true", "Aktywowano regułę Bezwładności Weekendowej.");
+        changed = true;
+      }
+      if (/opóźniony spadek powysiłkowy|aktywność fizyczna|trening/i.test(text)) {
+        rules.delayedExerciseEnabled = true;
+        this.sendTelemetry("delayedExerciseEnabled_true", "Aktywowano regułę Opóźnionego Spadku Powysiłkowego.");
+        changed = true;
+      }
+      if (/wrażliwość cykliczna|stres|wahania poranne/i.test(text)) {
+        rules.stressSensitivityEnabled = true;
+        this.sendTelemetry("stressSensitivityEnabled_true", "Aktywowano regułę Wrażliwości Cyklicznej/Stresowej.");
+        changed = true;
       }
       
-      localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
+      if (changed || Object.keys(rules).length > 0) {
+        localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('glikosense_rules_updated', { detail: rules }));
+        }
+      }
     } catch (e) {
       console.warn("GlikoSense Learner error", e);
+    }
+  },
+  learnFromInsights(insights: string[]) {
+    if (insights && insights.length > 0) {
+      this.learnFromGemini(insights);
     }
   },
   getRules() {
@@ -194,10 +225,16 @@ export const MLAnalyzer = {
         const { type, payload, value, key, error } = e.data;
         if (type === 'result') {
           worker.terminate();
-          if (payload.learnedPkParams) {
+          if (payload.learnedPkParams || payload.discoveredRules) {
              const rules = GlikoSenseLearner.getRules();
-             rules.pkParams = payload.learnedPkParams;
-             localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
+             const updated = { ...rules, ...(payload.learnedPkParams ? { pkParams: payload.learnedPkParams } : {}), ...(payload.discoveredRules || {}) };
+             localStorage.setItem('glikosense_medical_rules', JSON.stringify(updated));
+             if (typeof window !== 'undefined') {
+               window.dispatchEvent(new CustomEvent('glikosense_rules_updated', { detail: updated }));
+             }
+          }
+          if (payload.insights && Array.isArray(payload.insights)) {
+            GlikoSenseLearner.learnFromInsights(payload.insights);
           }
           
           if (payload.riskOfHypo) {
@@ -243,6 +280,7 @@ export const MLAnalyzer = {
       const rules = GlikoSenseLearner.getRules();
       const lastTrainTimeStr = localStorage.getItem('glikosense_last_train_time');
       const datasetSizeStr = localStorage.getItem('glikosense_dataset_size');
+      const engineMode = localStorage.getItem('glikosense_engine_mode') || 'v3_lstm';
 
       worker.postMessage({
         logs,
@@ -251,7 +289,8 @@ export const MLAnalyzer = {
         mode,
         rules,
         lastTrainTime: lastTrainTimeStr ? parseInt(lastTrainTimeStr, 10) : 0,
-        datasetSizeFromStorage: datasetSizeStr ? parseInt(datasetSizeStr, 10) : 0
+        datasetSizeFromStorage: datasetSizeStr ? parseInt(datasetSizeStr, 10) : 0,
+        engineMode
       });
     }).then((res: any) => {
       _cachedResult = res;

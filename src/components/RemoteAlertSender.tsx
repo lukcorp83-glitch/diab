@@ -12,6 +12,7 @@ export default function RemoteAlertSender({ user }: { user: any }) {
   return null;
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [customMessage, setCustomMessage] = useState('');
 
   const sendAlert = async (message: string, type: 'insulin' | 'food' | 'urgent' | 'custom') => {
     const uid = getEffectiveUid(user);

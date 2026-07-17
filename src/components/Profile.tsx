@@ -168,6 +168,21 @@ export default function Profile({
       return {};
     }
   });
+
+  useEffect(() => {
+    const syncRules = () => {
+      try {
+        setLearnedRules(JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}'));
+      } catch (e) {}
+    };
+    window.addEventListener('storage', syncRules);
+    window.addEventListener('glikosense_rules_updated', syncRules);
+    return () => {
+      window.removeEventListener('storage', syncRules);
+      window.removeEventListener('glikosense_rules_updated', syncRules);
+    };
+  }, []);
+
   const [confirmReservoirModalOpen, setConfirmReservoirModalOpen] = useState(false);
   const [isProcessingReplacement, setIsProcessingReplacement] = useState(false);
 
@@ -373,6 +388,7 @@ export default function Profile({
     reminders: string[];
     active: boolean;
     expiryDate?: string;
+    aiData?: any;
   } | null>(null);
 
   const [newInventoryItem, setNewInventoryItem] =
@@ -3325,11 +3341,80 @@ export default function Profile({
                 </div>
               )}
 
-              {settings.notificationsEnabled && Object.keys(learnedRules).length > 0 && (
+              {settings.notificationsEnabled && (
                 <div className="pl-12 mt-6 border-t border-slate-100 dark:border-slate-800 pt-6">
-                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                    <Bot size={12} />  {t('auto.odkryte_wzorce_wyuczone_przez', { defaultValue: "Odkryte Wzorce (Wyuczone przez GlikoSense)" })}
-                  </p>
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Bot size={12} />  {t('auto.odkryte_wzorce_wyuczone_przez', { defaultValue: "Odkryte Wzorce (Wyuczone przez GlikoSense)" })}
+                    </p>
+                    <span className="px-2 py-0.5 text-[8px] font-black rounded-full bg-indigo-500/10 dark:bg-indigo-400/20 text-indigo-600 dark:text-indigo-300 uppercase tracking-wider border border-indigo-500/20">
+                      {(typeof window !== 'undefined' && localStorage.getItem('glikosense_active_backend') === 'webgl') ? '⚡ Czip AI: GPU / NPU' : '🖥️ Silnik AI: CPU'}
+                    </span>
+                  </div>
+                  <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-cyan-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-cyan-500/20 p-4 rounded-2xl border border-indigo-500/20 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-300 uppercase tracking-wider block">
+                        🧠 {t('auto.architektura_sieci_glikosense', { defaultValue: 'Architektura Sieci Neuronowej (GlikoSense Engine)' })}
+                      </span>
+                      <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
+                        {localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' 
+                          ? t('auto.opis_silnika_tcn', { defaultValue: 'GlikoSense 4.0 Pro: Sploty dylatowane (TCN) + kwantyzacja INT8 + bezpiecznik próbek' })
+                          : t('auto.opis_silnika_lstm', { defaultValue: 'GlikoSense 3.0 Klasyczny: Pamięć sekwencyjna LSTM (sprawdzony model standardowy)' })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.setItem('glikosense_engine_mode', 'v3_lstm');
+                          toast.success(t('auto.przelaczono_na_silnik_lstm', { defaultValue: "Przełączono na GlikoSense 3.0 LSTM Klasyczny" }));
+                          setLearnedRules({ ...learnedRules });
+                          if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all",
+                          (localStorage.getItem('glikosense_engine_mode') || 'v3_lstm') === 'v3_lstm'
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : "text-slate-600 dark:text-slate-400 hover:text-indigo-600"
+                        )}
+                      >
+                        v3.0 LSTM
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const checkSupported = typeof window !== 'undefined' && 
+                            typeof OffscreenCanvas !== 'undefined' && 
+                            typeof window.WebGLRenderingContext !== 'undefined' && 
+                            localStorage.getItem('glikosense_active_backend') !== 'cpu' && 
+                            (!navigator.deviceMemory || navigator.deviceMemory >= 3);
+
+                          if (!checkSupported) {
+                            toast.error(t('auto.silnik_v4_nie_obslugiwany', { defaultValue: "⛔ GlikoSense 4.0 Pro wymaga wsparcia GPU/WebGL (OffscreenCanvas) oraz min. 3GB RAM. Twoje urządzenie nie obsługuje tego trybu." }));
+                            return;
+                          }
+                          localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
+                          toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
+                          setLearnedRules({ ...learnedRules });
+                          if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1",
+                          (typeof window !== 'undefined' && (
+                            typeof OffscreenCanvas === 'undefined' || 
+                            typeof window.WebGLRenderingContext === 'undefined' || 
+                            localStorage.getItem('glikosense_active_backend') === 'cpu' || 
+                            (navigator.deviceMemory && navigator.deviceMemory < 3)
+                          )) ? "opacity-50 cursor-not-allowed" : "",
+                          localStorage.getItem('glikosense_engine_mode') === 'v4_tcn'
+                            ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-sm"
+                            : "text-slate-600 dark:text-slate-400 hover:text-cyan-600"
+                        )}
+                      >
+                        🚀 v4.0 TCN INT8
+                      </button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {[
                       {
@@ -3359,10 +3444,29 @@ export default function Profile({
                         desc: t('auto.przedluzone_wchlanianie_opis', { defaultValue: "Przedłużone wchłanianie" }),
                         icon: <Pizza size={14} className="text-yellow-500" />,
                         type: "multiplier"
+                      },
+                      {
+                        id: "weekendInertiaEnabled",
+                        label: t('auto.bezwladnosc_weekendowa', { defaultValue: "Bezwładność Weekendowa" }),
+                        desc: t('auto.zmiany_rytmu_wknd_opis', { defaultValue: "Zmiany rytmu dobowego w weekend" }),
+                        icon: <Sun size={14} className="text-cyan-400" />,
+                        type: "boolean"
+                      },
+                      {
+                        id: "delayedExerciseEnabled",
+                        label: t('auto.opozniony_spadek_powysilkowy', { defaultValue: "Opóźniony Spadek Powysiłkowy" }),
+                        desc: t('auto.wrazliwosc_po_treningu_opis', { defaultValue: "Zwiększona wrażliwość po treningu" }),
+                        icon: <Activity size={14} className="text-emerald-400" />,
+                        type: "boolean"
+                      },
+                      {
+                        id: "stressSensitivityEnabled",
+                        label: t('auto.wrazliwosc_cykliczna_stres', { defaultValue: "Wrażliwość Cykliczna (Stres)" }),
+                        desc: t('auto.wahania_poranne_stres_opis', { defaultValue: "Wahania poranne i poziom kortyzolu" }),
+                        icon: <Shield size={14} className="text-violet-400" />,
+                        type: "boolean"
                       }
-                    ].filter(pattern => {
-                      return Object.keys(learnedRules).includes(pattern.id);
-                    }).map((pref) => {
+                    ].map((pref) => {
                       const isActive = pref.type === "boolean" 
                         ? learnedRules[pref.id] === true 
                         : learnedRules[pref.id] !== 1.0 && learnedRules[pref.id] !== undefined;
@@ -3372,7 +3476,9 @@ export default function Profile({
                           key={pref.id}
                           className={cn(
                             "flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all text-left",
-                            "bg-amber-50/50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 shadow-sm"
+                            isActive
+                              ? "bg-amber-50/50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 shadow-sm"
+                              : "bg-slate-50/50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/60 opacity-80"
                           )}
                         >
                           <div className="flex items-center gap-3">
@@ -3380,11 +3486,14 @@ export default function Profile({
                               {pref.icon}
                             </div>
                             <div>
-                              <span className="text-[10px] font-black uppercase tracking-tight block text-amber-700 dark:text-amber-300">
+                              <span className={cn(
+                                "text-[10px] font-black uppercase tracking-tight block",
+                                isActive ? "text-amber-700 dark:text-amber-300" : "text-slate-600 dark:text-slate-400"
+                              )}>
                                 {pref.label}
                               </span>
                               <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-                                {pref.desc}
+                                {pref.desc} {isActive ? "• (Aktywna)" : "• (Nieaktywna)"}
                               </span>
                             </div>
                           </div>
@@ -3406,6 +3515,9 @@ export default function Profile({
                               
                               setLearnedRules(newRules);
                               localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
+                              if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('glikosense_rules_updated', { detail: newRules }));
+                              }
                               toast.success(isActive ? t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) : t('auto.regula_wlaczona', { defaultValue: "Reguła włączona" }));
                             }}
                             className={cn(
@@ -5844,7 +5956,27 @@ export default function Profile({
           animate={{ opacity: 1, x: 0 }}
           className="pb-20"
         >
-          <Diets user={user} setTab={setTab} settings={settings} logs={logs} />
+          <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-950/40 dark:to-purple-950/40 rounded-[2rem] p-6 border border-indigo-200 dark:border-indigo-800/60 shadow-xl text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-indigo-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-indigo-500/30">
+              <BookOpen size={28} />
+            </div>
+            <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+              {i18n.t("nutrition.hub_redirect_title", { defaultValue: "Nowe Centrum Żywienia" })}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
+              {i18n.t("nutrition.hub_redirect_desc", { defaultValue: "Zarządzanie dietami, wskaźniki zgodności, bilans Kcal dziś oraz historia posiłków zostały zjednoczone w nowoczesnym Centrum Żywienia w zakładce Talerz." })}
+            </p>
+            <button
+              onClick={() => {
+                Haptics.selection();
+                setTab("diets");
+              }}
+              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest shadow-md shadow-indigo-600/20 active:scale-95 transition-all inline-flex items-center gap-2"
+            >
+              <Utensils size={16} />
+              {i18n.t("nutrition.open_hub", { defaultValue: "Otwórz Centrum Żywienia" })}
+            </button>
+          </div>
         </motion.div>
       )}
 

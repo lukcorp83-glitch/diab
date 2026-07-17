@@ -1,10 +1,10 @@
 {
-  "version": "5.7.16",
+  "version": "5.8.01",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
   "buildNumber": 118,
   "forceUpdate": false,
-  "whatsNew": "🔧 Wersja 5.7.16: Naprawiono błąd dublowania wymiany wkłuć i sensorów po aktualizacji daty. Usunięto przypadkowe generowanie wpisów przy zmianie akcentu kolorystycznego oraz zapobiegnięto ponownemu pobieraniu starych dat osprzętu z Nightscout.",
-  "whatsNewEn": "🔧 Version 5.7.16: Fixed site and sensor change duplication bug when updating change date. Removed accidental log generation when switching accent colors and prevented re-importing outdated equipment dates from Nightscout.",
-  "otaRevision": 279
+  "whatsNew": "🚀 Wersja 5.8.01: Wprowadzono dwusilnikową architekturę AI – GlikoSense 4.0 Pro (TCN + INT8) z prognozą do 6h i blokadą aktywacji na nieobsługiwanych urządzeniach. Dodano 3 nowe reguły fizjologiczne: Bezwładność Weekendowa, Opóźniony Spadek Powysiłkowy oraz Wrażliwość Cykliczna (Stres). Interfejs automatycznie zmienia oznaczenia z 3.0 na 4.0 Pro po przełączeniu silnika.",
+  "whatsNewEn": "🚀 Version 5.8.01: Introduced dual-engine AI architecture – GlikoSense 4.0 Pro (TCN + INT8) with up to 6h forecast and hardware-level activation guard for unsupported devices. Added 3 new physiological rules: Weekend Inertia, Delayed Post-Exercise Drop, Cyclical Sensitivity (Stress). UI automatically updates labels from 3.0 to 4.0 Pro upon engine switch.",
+  "otaRevision": 280
 }

@@ -49,6 +49,7 @@ export default function GlikoAssistant({
     const { t } = useTranslation();
   const isChild = settings?.childMode ?? false;
   const assistantName = isChild ? (petData?.name || "Asystent Gliko") : "Neural Expressive AI";
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -190,14 +191,17 @@ export default function GlikoAssistant({
   };
 
   const clearChat = () => {
-    if (window.confirm(i18n.t('auto.wyczyscic_historie_rozmowy_z_a', { defaultValue: i18n.t('auto.wyczyscic_historie_rozmow', { defaultValue: "Wyczyścić historię rozmowy z asystentem?" }) }))) {
-      setMessages([{
-        id: 'initial-' + Date.now(),
-        role: 'model',
-        text: i18n.t('auto.witam_jestem_twoim_asystentem', { defaultValue: 'Witam, jestem Twoim asystentem.' }),
-        timestamp: Date.now()
-      }]);
-    }
+    setShowClearConfirm(true);
+  };
+
+  const executeClearChat = () => {
+    setShowClearConfirm(false);
+    setMessages([{
+      id: 'initial-' + Date.now(),
+      role: 'model',
+      text: i18n.t('auto.witam_jestem_twoim_asystentem', { defaultValue: 'Witam, jestem Twoim asystentem.' }),
+      timestamp: Date.now()
+    }]);
   };
 
   const adultSuggestions = settings?.treatmentMode === 'diet_only' ? [
@@ -503,6 +507,50 @@ export default function GlikoAssistant({
           </button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showClearConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowClearConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <Trash2 size={26} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                {t('auto.czyszczenie_czatu', { defaultValue: "Czyszczenie czatu" })}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                {t('auto.czy_na_pewno_chcesz_wyczyscic_all', { defaultValue: "Czy na pewno chcesz usunąć całą dotychczasową historię rozmowy? Tej operacji nie można cofnąć." })}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                >
+                  {t('auto.anuluj', { defaultValue: "Anuluj" })}
+                </button>
+                <button
+                  onClick={executeClearChat}
+                  className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm shadow-md shadow-rose-600/20 transition-all"
+                >
+                  {t('auto.wyczysc', { defaultValue: "Wyczyść" })}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

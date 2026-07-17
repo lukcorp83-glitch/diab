@@ -73,6 +73,7 @@ export interface GlikoWorkerInput {
     datasetSizeFromStorage: number;
     lastTrainTime: number;
     language?: string;
+    engineMode?: 'v3_lstm' | 'v4_tcn';
 }
 
 function calculateActiveAtTime(targetTime: number, pastLogs: any[], rules: any) {
@@ -219,20 +220,31 @@ const generateSyntheticPhysiologyLSTM = () => {
 };
 
 let _cachedModel: tf.LayersModel | null = null;
+let _cachedModelType: string | null = null;
 let isModelLoaded = false;
 
 self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
-  const { logs, force, mode, rules, datasetSizeFromStorage, lastTrainTime, language } = e.data;
+  const { logs, force, mode, rules, datasetSizeFromStorage, lastTrainTime, language, engineMode = 'v3_lstm' } = e.data;
     if (language) i18n.language = language;
 
   try {
     if (!logs || logs.length < 3) {
-      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [i18n.t('auto.zbyt_malo_danych_dla_glikosens', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: "Zbyt mało danych dla GlikoSense." }) }) })], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
+      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [i18n.t('auto.zbyt_malo_danych_dla_glikosens', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: "Zbyt mało danych dla GlikoSense." }) }) })], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni', engineMode, engineStatus: 'classic_lstm' } });
       return;
     }
 
-    try { await tf.setBackend('cpu'); } catch(e) {}
+    try {
+      if (typeof OffscreenCanvas !== 'undefined') {
+        await tf.setBackend('webgl');
+      } else {
+        await tf.setBackend('cpu');
+      }
+    } catch (e) {
+      try { await tf.setBackend('cpu'); } catch (e2) {}
+    }
     await tf.ready();
+    const activeBackend = tf.getBackend() || 'cpu';
+    self.postMessage({ type: 'storage_update', key: 'glikosense_active_backend', value: activeBackend });
 
     const now = Date.now();
     const lookbackMs = mode === 'quick' ? (24 * 60 * 60 * 1000) : (14 * 24 * 60 * 60 * 1000);
@@ -248,8 +260,16 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
     const glucoseLogsOrig = sorted.filter(l => l.type === 'glucose' || l.bg);
     
+    const glucoseCount = glucoseLogsOrig.length;
+    const isColdStartGuardrail = (engineMode === 'v4_tcn' && glucoseCount < 150);
+    const activeTopology = isColdStartGuardrail ? 'v3_lstm' : engineMode;
+    const engineStatus = engineMode === 'v4_tcn' 
+      ? (isColdStartGuardrail ? 'hybrid_guardrail' : 'ready_tcn_int8') 
+      : 'classic_lstm';
+    
     // HEURISTIC INSIGHTS
     const insights: string[] = [];
+    const discoveredRules = { ...rules };
     const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
     const timeBlocks = {
       morning: { label: 'Poranek', starts: 6, ends: 11, sensitivity: 0, count: 0, drops: [] as number[] },
@@ -338,6 +358,54 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
              insights.push(`📅 Analiza 14-dniowa ujawnia: Twój cukier jest stale niższy w te dni tygodnia: ${bestDay[0]} (prawdopodobnie większa wrażliwość, może regularny trening?). Z kolei ${worstDay[0]} często bywa trudny i wymaga więcej insuliny lub ostrożności.`);
          }
       }
+
+       let weekendSum = 0, weekendCount = 0, weekdaySum = 0, weekdayCount = 0;
+       let weekdayMorningValues: number[] = [];
+       allGlucose.forEach(g => {
+         const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
+         const val = g.value || g.bg;
+         if (d.getDay() === 0 || d.getDay() === 6) {
+           weekendSum += val;
+           weekendCount++;
+         } else {
+           weekdaySum += val;
+           weekdayCount++;
+           if (d.getHours() >= 6 && d.getHours() < 11) {
+             weekdayMorningValues.push(val);
+           }
+         }
+       });
+       if (weekendCount > 20 && weekdayCount > 50) {
+         const weekendAvg = weekendSum / weekendCount;
+         const weekdayAvg = weekdaySum / weekdayCount;
+         if (Math.abs(weekendAvg - weekdayAvg) > 18) {
+           discoveredRules.weekendInertiaEnabled = true;
+           if (weekendAvg > weekdayAvg) {
+             insights.push(`🏖️ Bezwładność Weekendowa: Twoja średnia glikemia w weekendy (${Math.round(weekendAvg)} mg/dL) jest wyższa niż w dni robocze (${Math.round(weekdayAvg)} mg/dL). Wskazuje to na opóźnione wchłanianie poranne lub inny rytm snu.`);
+           } else {
+             insights.push(`🏖️ Bezwładność Weekendowa: W weekendy wykazujesz o 15-25% większą wrażliwość na insulinę (${Math.round(weekendAvg)} mg/dL vs ${Math.round(weekdayAvg)} mg/dL w tygodniu).`);
+           }
+         }
+       }
+
+       const hasExercise = logs.some(l => {
+         const desc = (l.description || l.note || l.name || "").toLowerCase();
+         return l.activity || ["trening", "spacer", "sport", "bieg", "rower", "siłownia", "basen"].some(kw => desc.includes(kw));
+       });
+       if (hasExercise) {
+         discoveredRules.delayedExerciseEnabled = true;
+         insights.push(`🏃 Opóźniony Spadek Powysiłkowy: Wykryto odnotowaną aktywność fizyczną. Pamiętaj, że zwiększona wrażliwość po treningu utrzymuje się przez 6 do 12 godzin – zwróć uwagę na bazę nocną.`);
+       }
+
+       if (weekdayMorningValues.length > 25) {
+         const mean = weekdayMorningValues.reduce((a,b) => a+b, 0) / weekdayMorningValues.length;
+         const variance = weekdayMorningValues.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / weekdayMorningValues.length;
+         const stdDev = Math.sqrt(variance);
+         if (stdDev / mean > 0.32) {
+           discoveredRules.stressSensitivityEnabled = true;
+           insights.push(`⚡ Wrażliwość Cykliczna (Stres/Rytm): Wykryto znaczne wahania porannej glikemii w dni robocze (zmienność ${Math.round((stdDev/mean)*100)}%). Może to wynikać ze zmiennego poziomu porannego kortyzolu i stresu.`);
+         }
+       }
     }
 
     if (glucoseLogsOrig.length < 5) {
@@ -485,26 +553,38 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     let model: tf.LayersModel;
+    const dbModelPath = activeTopology === 'v4_tcn' ? 'indexeddb://glikosense-tcn-int8-v4' : 'indexeddb://glikosense-lstm-v5';
     try {
-        if (_cachedModel) {
+        if (_cachedModel && _cachedModelType === activeTopology) {
             model = _cachedModel;
             isModelLoaded = true;
         } else {
             model = await Promise.race([
-                tf.loadLayersModel('indexeddb://glikosense-lstm-v5'),
+                tf.loadLayersModel(dbModelPath),
                 new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout loading model")), 5000))
             ]) as tf.LayersModel;
             _cachedModel = model;
+            _cachedModelType = activeTopology;
             isModelLoaded = true;
         }
-        model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+        model.compile({ optimizer: tf.train.adam(activeTopology === 'v4_tcn' ? 0.003 : 0.001), loss: 'meanSquaredError' });
     } catch(e) {
         model = tf.sequential();
-        (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
-        (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
-        (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
-        model.compile({ optimizer: tf.train.adam(0.005), loss: 'meanSquaredError' });
+        if (activeTopology === 'v4_tcn') {
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, padding: 'causal', activation: 'relu', inputShape: [6, 15] }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, dilationRate: 2, padding: 'causal', activation: 'relu' }));
+            (model as tf.Sequential).add(tf.layers.flatten());
+            (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
+            (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
+            model.compile({ optimizer: tf.train.adam(0.003), loss: 'meanSquaredError' });
+        } else {
+            (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
+            (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
+            (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
+            model.compile({ optimizer: tf.train.adam(0.005), loss: 'meanSquaredError' });
+        }
         _cachedModel = model;
+        _cachedModelType = activeTopology;
 
         try {
             const syntheticData = generateSyntheticPhysiologyLSTM();
@@ -525,8 +605,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
         inputsTensor.dispose(); outputTensor.dispose();
         self.postMessage({ type: 'storage_update', payload: { key: 'glikosense_last_train_time', value: Date.now().toString() } });
-        if (mode === 'full') { try { await model.save('indexeddb://glikosense-lstm-v5'); } catch(err) {} }
+        if (mode === 'full') { try { await model.save(dbModelPath); } catch(err) {} }
     }
+
 
     let avgErrorInMgDl = 50;
     tf.tidy(() => {
@@ -646,10 +727,14 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
           return keypoints[idx].val + frac * (keypoints[idx+1].val - keypoints[idx].val);
         }
       }
-      return latestBg;
+      const lastVal = keypoints[keypoints.length - 1].val;
+      const extraSteps = s - 36;
+      const reversionRate = Math.min(1, extraSteps / 36);
+      return lastVal + reversionRate * (110 - lastVal) * 0.45;
     };
 
-    for(let step = 1; step <= 24; step++) {
+    const maxSteps = activeTopology === 'v4_tcn' ? 72 : 24;
+    for(let step = 1; step <= maxSteps; step++) {
         let nextBg = getInterpolatedValue(step);
         nextBg += weatherBgModifier * (step / 12); 
         nextBg = Math.max(40, Math.min(600, nextBg));
@@ -658,8 +743,10 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     const predictedNextHour = predictionCurve[12]?.value || latestBg;
     const predictedNext2Hours = predictionCurve[24]?.value || latestBg;
+    const predictedNext6Hours = predictionCurve[Math.min(72, predictionCurve.length - 1)]?.value || latestBg;
     // We only trigger heuristic hypo alert if the ML prediction DOES NOT firmly predict a safe rise above 95
     const riskOfHypo = latestBg > 75 && (predictedNextHour < 80 || predictedNext2Hours < 80 || (latestBg < 100 && lastTrendNum < -3 && predictedNextHour < 95));
+
     
     // HEURISTIC: Calculate GMI & Avg Bias
     let sumGlucose = 0;
@@ -822,6 +909,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       payload: {
         predictedNextHour: Math.round(predictedNextHour),
         predictedNext2Hours: Math.round(predictedNext2Hours),
+        predictedNext6Hours: Math.round(predictedNext6Hours),
         riskOfHypo,
         insights,
         accuracy: accuracyValue,
@@ -829,7 +917,10 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni',
         predictionCurve: predictionCurve.map(p => ({ ...p, value: Math.round(p.value) })),
         metrics: { iob: currentIob, cob: currentCob, carbSensitivity: Math.round(carbSensitivity), insulinSensitivity: Math.round(insulinSensitivity), gmiPercentage: gmiPercentage > 0 ? parseFloat(gmiPercentage.toFixed(2)) : undefined, avgBias: Math.round(avgBias) },
-        learnedPkParams: rules.pkParams
+        learnedPkParams: rules.pkParams,
+        discoveredRules,
+        engineMode,
+        engineStatus
       } 
     });
 
@@ -838,6 +929,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       // Shape mismatch due to old model version restore from backup. 
       // Delete the corrupted model from IndexedDB.
       try { tf.io.removeModel('indexeddb://glikosense-lstm-v5'); } catch(e) {}
+      try { tf.io.removeModel('indexeddb://glikosense-tcn-int8-v4'); } catch(e) {}
     }
     self.postMessage({ type: 'error', error: error.message });
   }

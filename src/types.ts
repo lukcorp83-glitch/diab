@@ -53,6 +53,8 @@ export interface LogEntry {
   fat?: number;
   linkedMeal?: {
     carbs: number;
+    value?: number;
+    calories?: number;
     polyols?: number;
     protein?: number;
     fat?: number;

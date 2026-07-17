@@ -45,6 +45,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
     return saved !== null ? JSON.parse(saved) : true;
   });
   const [imageError, setImageError] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -307,7 +308,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
         parts: [{ text: m.text }]
       }));
 
-      const response = await geminiService.getGlikoChatResponse(messageText, history, petData, userSettings?.treatmentMode);
+      const response = await geminiService.getGlikoChatResponse(messageText, history, petData, settings?.treatmentMode);
       
       let cleanResponse = response;
       const plateActionMatches = Array.from(response.matchAll(/<plate_action>([\s\S]*?)<\/plate_action>/g));
@@ -360,15 +361,18 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
   };
 
   const clearChat = () => {
-    if (window.confirm(i18n.t('auto.czy_na_pewno_chcesz_wyczyscic', { defaultValue: i18n.t('auto.czy_na_pewno_chcesz_wyczy', { defaultValue: "Czy na pewno chcesz wyczyścić naszą rozmowę? 🐾" }) }))) {
-      const initialMessage: Message = {
-        id: 'initial-' + Date.now(),
-        role: 'model',
-        text: !isKidMode ? i18n.t('auto.wyczyscilem_rozmowe_w_czym_mog', { defaultValue: i18n.t('auto.wyczyscilem_rozmowe_w_czy', { defaultValue: "Wyczyściłem rozmowę. W czym mogę pomóc?" }) }) : i18n.t('auto.czesc_znowu_o_czym_chcesz_tera', { defaultValue: i18n.t('auto.czesc_znowu_o_czym_chcesz', { defaultValue: "Cześć znowu! ✨ O czym chcesz teraz pogadać?" }) }),
-        timestamp: Date.now()
-      };
-      setMessages([initialMessage]);
-    }
+    setShowClearConfirm(true);
+  };
+
+  const executeClearChat = () => {
+    setShowClearConfirm(false);
+    const initialMessage: Message = {
+      id: 'initial-' + Date.now(),
+      role: 'model',
+      text: !isKidMode ? i18n.t('auto.wyczyscilem_rozmowe_w_czym_mog', { defaultValue: i18n.t('auto.wyczyscilem_rozmowe_w_czy', { defaultValue: "Wyczyściłem rozmowę. W czym mogę pomóc?" }) }) : i18n.t('auto.czesc_znowu_o_czym_chcesz_tera', { defaultValue: i18n.t('auto.czesc_znowu_o_czym_chcesz', { defaultValue: "Cześć znowu! ✨ O czym chcesz teraz pogadać?" }) }),
+      timestamp: Date.now()
+    };
+    setMessages([initialMessage]);
   };
 
   const suggestions = [
@@ -584,12 +588,55 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
         <div className="flex items-center justify-center gap-3 mt-4 landscape:hidden">
            <div className="h-px bg-slate-100 dark:bg-slate-800 flex-1" />
            <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] whitespace-nowrap">
-              
-                                    {t('auto.zawsze_słuchaj_rodziców', { defaultValue: i18n.t('auto.zawsze_sluchaj_rodzicow', { defaultValue: "Zawsze słuchaj rodziców ✨" }) })}
-                                 </p>
+              {t('auto.zawsze_słuchaj_rodziców', { defaultValue: i18n.t('auto.zawsze_sluchaj_rodzicow', { defaultValue: "Zawsze słuchaj rodziców ✨" }) })}
+           </p>
            <div className="h-px bg-slate-100 dark:bg-slate-800 flex-1" />
         </div>
       </div>
+
+      <AnimatePresence>
+        {showClearConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowClearConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <Trash2 size={26} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                {t('auto.czyszczenie_czatu', { defaultValue: "Czyszczenie czatu" })}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                {t('auto.czy_na_pewno_chcesz_wyczyscic_all', { defaultValue: "Czy na pewno chcesz usunąć całą dotychczasową historię rozmowy? Tej operacji nie można cofnąć." })}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                >
+                  {t('auto.anuluj', { defaultValue: "Anuluj" })}
+                </button>
+                <button
+                  onClick={executeClearChat}
+                  className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm shadow-md shadow-rose-600/20 transition-all"
+                >
+                  {t('auto.wyczysc', { defaultValue: "Wyczyść" })}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
