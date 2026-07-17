@@ -7,7 +7,8 @@ export interface Product {
   polyols?: number;
   protein?: number;
   fat?: number;
-  gi: number;
+  gi?: number;
+  ig?: number;
   category?: string;
   isOnline?: boolean;
   author?: string;
@@ -21,6 +22,7 @@ export interface LogEntry {
   type:
     | "glucose"
     | "meal"
+    | "carbs"
     | "bolus"
     | "site_change"
     | "sensor_change"
@@ -38,6 +40,9 @@ export interface LogEntry {
   userModified?: boolean;
   direction?: string;
   delta?: number;
+  carbs?: number;
+  calories?: number;
+  bolus?: number;
   medicationData?: {
     name: string;
     dose: string;
@@ -177,6 +182,10 @@ export interface UserSettings {
     intensity: "low" | "medium" | "high";
   } | null;
   treatmentMode?: 'diet_only' | 'insulin' | 'pump'; // Typ leczenia: dieta/tabletki, insulina, pompa
+  dashboardWidgets?: any[];
+  appVersion?: string;
+  nsUrl?: string;
+  nsSecret?: string;
 }
 
 export interface AssistantMessage {

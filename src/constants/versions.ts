@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.15';
+export const CURRENT_VERSION = '5.7.16';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.16",
+    date: "2026-07-17",
+    title: "Naprawa Dublowania Wkłuć i Sensorów",
+    changes: [
+      "Naprawa: Usunięto błąd powielania wpisów wymiany wkłucia i sensora po zaktualizowaniu ich daty.",
+      "Poprawka: Usunięto przypadkowe generowanie wpisów wymiany sensora w panelu Akcentu Kolorystycznego.",
+      "Optymalizacja: Zablokowano ponowne pobieranie starych dat osprzętu z Nightscout w przypadku lokalnej aktualizacji wpisu."
+    ]
+  },
   {
     version: "5.7.15",
     date: "2026-07-17",
@@ -629,6 +639,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.7.16",
+    date: "2026-07-17",
+    title: "Naprawa Dublowania Wkłuć i Sensorów",
+    changes: [
+      "Naprawa: Usunięto błąd powielania wpisów wymiany wkłucia i sensora po zaktualizowaniu ich daty.",
+      "Poprawka: Usunięto przypadkowe generowanie wpisów wymiany sensora w panelu Akcentu Kolorystycznego.",
+      "Optymalizacja: Zablokowano ponowne pobieranie starych dat osprzętu z Nightscout w przypadku lokalnej aktualizacji wpisu."
+    ]
+  },
   {
     version: "5.7.15",
     date: "2026-07-17",

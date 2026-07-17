@@ -136,8 +136,8 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
     today.setHours(0,0,0,0);
     const todayMs = today.getTime();
     const todayLogs = (logs || []).filter(l => {
-      const ts = l.timestamp || l.createdAt || 0;
-      if (ts < todayMs) return false;
+      const ts = Number(l.timestamp || (l.createdAt && typeof l.createdAt === 'object' && l.createdAt.seconds ? l.createdAt.seconds * 1000 : l.createdAt) || 0);
+      if (!ts || ts < todayMs) return false;
       if (l.type === 'meal' || l.type === 'carbs') return true;
       if (l.type === 'bolus' && l.linkedMeal) {
         return (l.linkedMeal.carbs || 0) > 0 || (l.linkedMeal.protein || 0) > 0 || (l.linkedMeal.fat || 0) > 0 || (l.linkedMeal.calories || 0) > 0;
@@ -147,12 +147,12 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
     let consumedCalories = 0;
     todayLogs.forEach(log => {
       const src = (log.type === 'bolus' && log.linkedMeal) ? log.linkedMeal : log;
-      const carbs = src.carbs || ((log.type === 'meal' || log.type === 'carbs') ? (log.value || 0) : 0);
-      const protein = src.protein || 0;
-      const fat = src.fat || 0;
-      const cal = src.calories || (carbs > 0 || protein > 0 || fat > 0
+      const carbs = Number(src.carbs || ((log.type === 'meal' || log.type === 'carbs') ? (log.value || 0) : 0));
+      const protein = Number(src.protein || 0);
+      const fat = Number(src.fat || 0);
+      const cal = Number(src.calories || (carbs > 0 || protein > 0 || fat > 0
         ? Math.round(carbs * 4 + protein * 4 + fat * 9)
-        : 0);
+        : 0));
       consumedCalories += cal;
     });
     consumedCalories = Math.round(consumedCalories);
@@ -207,9 +207,8 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 glass-target">
                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                    
-                                                  {t('auto.główne_zasady', { defaultValue: i18n.t('auto.glowne_zasady', { defaultValue: "Główne Zasady" }) })}
-                                               </h4>
+                    {t('auto.główne_zasady', { defaultValue: i18n.t('auto.glowne_zasady', { defaultValue: "Główne Zasady" }) })}
+                 </h4>
                  <ul className="space-y-2">
                    {activeDietData.principles.map((p, i) => (
                       <li key={i} className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-start gap-2">
@@ -237,7 +236,7 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
                
                <HydrationWidget user={user} tdee={settings.tdee} />
                
-               <DietScoreWidget user={user} activeDiet={settings.activeDiet} settings={settings} />
+               <DietScoreWidget user={user} activeDiet={settings.activeDiet} settings={settings} logs={logs} />
 
                <DietManager user={user} settings={settings} activeDietData={activeDietData} />
                

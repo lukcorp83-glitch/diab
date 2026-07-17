@@ -332,15 +332,18 @@ export default function App() {
     const handleLogUpdate = (e: any) => {
       const { id, updates } = e.detail;
       setCachedLogs((prev) => {
-        const updated = prev.map(l => l.id === id ? { ...l, ...updates } : l);
-        const target = updated.find(l => l.id === id);
+        const updated = prev.map(l => (l.id === id || l.nsId === id) ? { ...l, ...updates, userModified: true } : l);
+        const target = updated.find(l => (l.id === id || l.nsId === id));
         if (target) {
           saveLocalLogs([target]).catch(console.error);
         }
         return updated;
       });
       setFbLogs((prev) => 
-        prev.map(l => l.id === id ? { ...l, ...updates } : l)
+        prev.map(l => (l.id === id || l.nsId === id) ? { ...l, ...updates, userModified: true } : l)
+      );
+      setNsLogs((prev) => 
+        prev.map(l => (l.id === id || l.nsId === id) ? { ...l, ...updates, userModified: true } : l)
       );
     };
     const handleLogDelete = (e: any) => {
@@ -2221,6 +2224,16 @@ export default function App() {
                 return Math.abs(l.value - newLog.value) < 1;
               if (l.userModified) return true;
               return Math.abs(l.value - newLog.value) < 0.1;
+            }
+
+            // Zapobieganie importowaniu starszych wersji wkłuć/sensorów z NS po tym jak użytkownik zaktualizował datę w aplikacji
+            if (
+              (newLog.type === "site_change" || newLog.type === "sensor_change") &&
+              (l.type === newLog.type) &&
+              (l.userModified || l.source === "system")
+            ) {
+              const daysDiff = Math.abs(l.timestamp - newLog.timestamp) / (1000 * 3600 * 24);
+              if (daysDiff < 14) return true;
             }
 
             if (

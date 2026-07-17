@@ -1,10 +1,10 @@
 {
-  "version": "5.7.15",
+  "version": "5.7.16",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
-  "buildNumber": 117,
+  "buildNumber": 118,
   "forceUpdate": false,
-  "whatsNew": "🗄️ Wersja 5.7.15: Naprawiono persystencję bazy danych i wyeliminowano 4-dniową pętlę historii (zabezpieczono SQLite przed automatycznym resetem przy blokadach transakcji). Zoptymalizowano zapisywanie logów i zsynchronizowano bazy SQLite i IndexedDB.",
-  "whatsNewEn": "🗄️ Version 5.7.15: Fixed database persistence and eliminated the 4-day history loop (protected SQLite from automatic wipe on transaction locks). Optimized incremental log saving and synchronized SQLite and IndexedDB engines.",
-  "otaRevision": 278
+  "whatsNew": "🔧 Wersja 5.7.16: Naprawiono błąd dublowania wymiany wkłuć i sensorów po aktualizacji daty. Usunięto przypadkowe generowanie wpisów przy zmianie akcentu kolorystycznego oraz zapobiegnięto ponownemu pobieraniu starych dat osprzętu z Nightscout.",
+  "whatsNewEn": "🔧 Version 5.7.16: Fixed site and sensor change duplication bug when updating change date. Removed accidental log generation when switching accent colors and prevented re-importing outdated equipment dates from Nightscout.",
+  "otaRevision": 279
 }

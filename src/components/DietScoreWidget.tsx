@@ -5,10 +5,10 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { getEffectiveUid, cn } from '../lib/utils';
 import { Activity, Award, TrendingUp } from 'lucide-react';
-import { UserSettings } from '../types';
+import { UserSettings, LogEntry } from '../types';
 import { useTranslation } from "react-i18next";
 
-export default function DietScoreWidget({ user, activeDiet, settings }: { user: User, activeDiet: string, settings?: UserSettings }) {
+export default function DietScoreWidget({ user, activeDiet, settings, logs = [] }: { user: User, activeDiet: string, settings?: UserSettings, logs?: LogEntry[] }) {
   const { t } = useTranslation();
   const [score, setScore] = useState(85);
   const [loading, setLoading] = useState(true);
@@ -26,35 +26,61 @@ export default function DietScoreWidget({ user, activeDiet, settings }: { user: 
         endOfYesterday.setDate(endOfYesterday.getDate() - 1);
         endOfYesterday.setHours(23, 59, 59, 999);
 
-        const logsRef = collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs");
-        const q = query(
-          logsRef,
-          where("timestamp", ">=", startOfYesterday.getTime()),
-          where("timestamp", "<=", endOfYesterday.getTime())
-        );
-        const snapshot = await getDocs(q);
+        const startMs = startOfYesterday.getTime();
+        const endMs = endOfYesterday.getTime();
 
         let totalCals = 0;
         let totalCarbs = 0;
         let totalProtein = 0;
         let totalFat = 0;
 
-        snapshot.forEach(docSnap => {
-           const data = docSnap.data();
-           if (data.type === "meal" || data.type === "bolus" || data.type === "carbs") {
-               const mealData = data.type === "bolus" ? data.linkedMeal : data;
-               if (mealData) {
-                   const c = mealData.carbs || mealData.value || 0;
-                   const p = mealData.protein || 0;
-                   const f = mealData.fat || 0;
-                   const cal = mealData.calories || (c > 0 || p > 0 || f > 0 ? Math.round(c * 4 + p * 4 + f * 9) : 0);
-                   totalCals += cal;
-                   totalCarbs += c;
-                   totalProtein += p;
-                   totalFat += f;
-               }
-           }
+        const localYesterdayLogs = (logs || []).filter(l => {
+          const ts = Number(l.timestamp || (l.createdAt && typeof l.createdAt === 'object' && l.createdAt.seconds ? l.createdAt.seconds * 1000 : l.createdAt) || 0);
+          return ts >= startMs && ts <= endMs;
         });
+
+        if (localYesterdayLogs.length > 0 || (logs && logs.length > 0)) {
+          localYesterdayLogs.forEach(data => {
+            if (data.type === "meal" || data.type === "bolus" || data.type === "carbs") {
+              const mealData = (data.type === "bolus" && data.linkedMeal) ? data.linkedMeal : data;
+              if (mealData) {
+                const c = Number(mealData.carbs || mealData.value || 0);
+                const p = Number(mealData.protein || 0);
+                const f = Number(mealData.fat || 0);
+                const cal = Number(mealData.calories || (c > 0 || p > 0 || f > 0 ? Math.round(c * 4 + p * 4 + f * 9) : 0));
+                totalCals += cal;
+                totalCarbs += c;
+                totalProtein += p;
+                totalFat += f;
+              }
+            }
+          });
+        } else {
+          const logsRef = collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs");
+          const q = query(
+            logsRef,
+            where("timestamp", ">=", startMs),
+            where("timestamp", "<=", endMs)
+          );
+          const snapshot = await getDocs(q);
+
+          snapshot.forEach(docSnap => {
+             const data = docSnap.data();
+             if (data.type === "meal" || data.type === "bolus" || data.type === "carbs") {
+                 const mealData = data.type === "bolus" ? data.linkedMeal : data;
+                 if (mealData) {
+                     const c = Number(mealData.carbs || mealData.value || 0);
+                     const p = Number(mealData.protein || 0);
+                     const f = Number(mealData.fat || 0);
+                     const cal = Number(mealData.calories || (c > 0 || p > 0 || f > 0 ? Math.round(c * 4 + p * 4 + f * 9) : 0));
+                     totalCals += cal;
+                     totalCarbs += c;
+                     totalProtein += p;
+                     totalFat += f;
+                 }
+             }
+          });
+        }
 
         setYesterdayKcal(totalCals);
         
@@ -130,7 +156,7 @@ export default function DietScoreWidget({ user, activeDiet, settings }: { user: 
       }
     };
     fetchYesterdayLogs();
-  }, [user, activeDiet, settings]);
+  }, [user, activeDiet, settings, logs]);
 
   if (loading) {
     return <div className="animate-pulse bg-slate-100 dark:bg-slate-800 h-32 rounded-2xl"></div>;

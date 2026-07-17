@@ -3641,20 +3641,26 @@ export default function Profile({
                             .filter((l) => l.type === "sensor_change")
                             .sort((a, b) => b.timestamp - a.timestamp)[0];
                           if (latestSensorLog && latestSensorLog.id) {
-                            await updateDoc(
-                              doc(
-                                db,
-                                "artifacts",
-                                "diacontrolapp",
-                                "users",
-                                getEffectiveUid(user),
-                                "logs",
-                                latestSensorLog.id
-                              ),
-                              { timestamp: updates.sensorChangeDate }
-                            );
-                              await dbService.saveLog({ ...latestSensorLog, timestamp: updates.sensorChangeDate });
-                              window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSensorLog.id, updates: { timestamp: updates.sensorChangeDate } } }));
+                            try {
+                              if (!latestSensorLog.id.startsWith("ns-")) {
+                                await updateDoc(
+                                  doc(
+                                    db,
+                                    "artifacts",
+                                    "diacontrolapp",
+                                    "users",
+                                    getEffectiveUid(user),
+                                    "logs",
+                                    latestSensorLog.id
+                                  ),
+                                  { timestamp: updates.sensorChangeDate }
+                                );
+                              }
+                            } catch (e) {
+                              console.warn("Nie udało się zaktualizować wpisu w Firestore (może być offline lub z NS):", e);
+                            }
+                            await dbService.saveLog({ ...latestSensorLog, timestamp: updates.sensorChangeDate, userModified: true });
+                            window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSensorLog.id, updates: { timestamp: updates.sensorChangeDate, userModified: true } } }));
                           }
                         }
                       }
@@ -3892,12 +3898,18 @@ export default function Profile({
                           if (latestSiteLog && latestSiteLog.id) {
                             const logsToUpdate = sortedSiteLogs.filter(l => l.timestamp === latestSiteLog.timestamp);
                             for (const logToUpdate of logsToUpdate) {
-                               await updateDoc(
-                                 doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", logToUpdate.id),
-                                 { timestamp: updates.infusionSetChangeDate }
-                               );
-                               await dbService.saveLog({ ...logToUpdate, timestamp: updates.infusionSetChangeDate });
-                               window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: logToUpdate.id, updates: { timestamp: updates.infusionSetChangeDate } } }));
+                               try {
+                                 if (!logToUpdate.id.startsWith("ns-")) {
+                                   await updateDoc(
+                                     doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", logToUpdate.id),
+                                     { timestamp: updates.infusionSetChangeDate }
+                                   );
+                                 }
+                               } catch (e) {
+                                 console.warn("Nie udało się zaktualizować wpisu w Firestore:", e);
+                               }
+                               await dbService.saveLog({ ...logToUpdate, timestamp: updates.infusionSetChangeDate, userModified: true });
+                               window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: logToUpdate.id, updates: { timestamp: updates.infusionSetChangeDate, userModified: true } } }));
                             }
                           } else {
                             const siteLogPayload = {
@@ -5832,7 +5844,7 @@ export default function Profile({
           animate={{ opacity: 1, x: 0 }}
           className="pb-20"
         >
-          <Diets user={user} setTab={setTab} settings={settings} />
+          <Diets user={user} setTab={setTab} settings={settings} logs={logs} />
         </motion.div>
       )}
 
@@ -6492,38 +6504,6 @@ export default function Profile({
                         <button
                           key={color}
                           onClick={async () => {
-                            if (latestSensorLog && latestSensorLog.id) {
-                              await updateDoc(
-                                doc(
-                                  db,
-                                  "artifacts",
-                                  "diacontrolapp",
-                                  "users",
-                                  getEffectiveUid(user),
-                                  "logs",
-                                  latestSensorLog.id
-                                ),
-                                { timestamp: updates.sensorChangeDate }
-                              );
-                                await dbService.saveLog({ ...latestSensorLog, timestamp: updates.sensorChangeDate });
-                                window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSensorLog.id, updates: { timestamp: updates.sensorChangeDate } } }));
-                            } else {
-                              const sensorLogPayload = {
-                                type: "sensor_change",
-                                value: 1,
-                                timestamp: updates.sensorChangeDate,
-                                createdAt: serverTimestamp(),
-                                notes: "Wymiana sensora - " + sensorSite,
-                                source: "system",
-                              };
-                              const docRef = await addDoc(
-                                collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
-                                sensorLogPayload
-                              );
-                              const newLog = { ...sensorLogPayload, id: docRef.id, createdAt: new Date().toISOString() };
-                              await dbService.saveLog(newLog);
-                              window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newLog }));
-                            }
                             setSettings((prev) => ({
                               ...prev,
                               accentColor: color,
