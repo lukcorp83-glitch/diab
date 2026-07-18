@@ -2812,6 +2812,7 @@ export default function App() {
                 openHistory={() => changeTab("history")}
                 settings={userSettings || undefined}
                 logs={logs}
+                hideInternalTabs={true}
               />
             )}
             {activeTab === "meal" && !userSettings?.followerMode && (
@@ -2841,6 +2842,7 @@ export default function App() {
                     openHistory={() => changeTab("history")}
                     settings={userSettings || undefined}
                     logs={logs}
+                    hideInternalTabs={true}
                   />
                 ) : (
                   <NutritionHub
@@ -3140,7 +3142,7 @@ export default function App() {
         ref={mainRef}
         className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden"
       >
-        <AnimatePresence mode="wait" custom={direction} initial={false}>
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.div
             key={activeTab}
             custom={direction}

@@ -574,7 +574,7 @@ export default function BolusCalculator({
       setPolyols("");
       setManualDose(null);
       setIsAlcoholMode(false);
-      localStorage.removeItem("temp_meal_macro");
+      sessionStorage.removeItem("pending_meal");
       if (setSharedPlate) {
         setSharedPlate([]);
       }

@@ -128,6 +128,7 @@ export interface UserSettings {
   linkedUid?: string;      // Zapamiętuje na twardo w chmurze klucz sparowanego Głównego konta
   isLinkedAdmin?: boolean; // Zapamiętuje na twardo w chmurze uprawnienia administratora
   dia?: number; // Duration of Insulin Action in hours
+  showConfidenceCloud?: boolean; // Pokaż chmurę prawdopodobieństwa TCN
   hourlyProfiles?: HourlyProfile[];
   customDrugDictionary?: Record<string, DrugKnowledge>; // Globalny słownik wiedzy wygenerowany przez AI
   medications?: Medication[];

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { LogEntry } from "../types";
-import { Utensils, Syringe, Trash2, Plus, Download } from "lucide-react";
+import { Utensils, Syringe, Trash2, Plus, Download, Activity } from "lucide-react";
 import MealEditModal from "./MealEditModal";
 import { useTranslation } from "react-i18next";
 import { cn, getTs } from "../lib/utils";
@@ -119,32 +119,56 @@ export default function MealHistoryView({ logs, user, onMergeToLog, hasItems }: 
                       const calories = src.calories || (carbs > 0 || protein > 0 || fat > 0
                         ? Math.round(carbs * 4 + protein * 4 + fat * 9)
                         : 0);
+
+                      const mealTime = getTs(log.timestamp || log.createdAt);
+                      const startBgLog = logs.find(l => l.type === 'glucose' && Math.abs(getTs(l.timestamp || l.createdAt) - mealTime) <= 30 * 60000);
+                      const peakBgLog = logs
+                        .filter(l => l.type === 'glucose' && getTs(l.timestamp || l.createdAt) > mealTime && getTs(l.timestamp || l.createdAt) <= mealTime + 2.5 * 3600000)
+                        .sort((a, b) => (b.value || b.bg || 0) - (a.value || a.bg || 0))[0];
+
+                      const startBg = startBgLog?.value || startBgLog?.bg;
+                      const peakBg = peakBgLog?.value || peakBgLog?.bg;
+                      const peakTime = peakBgLog ? getTs(peakBgLog.timestamp || peakBgLog.createdAt) : null;
+                      const timeToPeakMinutes = peakTime ? Math.round((peakTime - mealTime) / 60000) : null;
+
                       return (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {calories > 0 && (
-                            <span className="text-[10px] bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-md font-bold">
-                              {calories} kcal
-                            </span>
-                          )}
-                          {carbs > 0 && (
-                            <span className="text-[10px] bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md font-bold">
-                              {Number(carbs).toFixed(1)}g W
-                            </span>
-                          )}
-                          {protein > 0 && (
-                            <span className="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md font-bold">
-                              {protein}g B
-                            </span>
-                          )}
-                          {fat > 0 && (
-                            <span className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md font-bold">
-                              {fat}g T
-                            </span>
-                          )}
-                          {log.value > 0 && log.type === 'bolus' && (
-                            <span className="text-[10px] bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
-                              <Syringe size={10} /> {log.value}j.
-                            </span>
+                        <div className="flex flex-col gap-1.5 mt-2">
+                          <div className="flex flex-wrap gap-2">
+                            {calories > 0 && (
+                              <span className="text-[10px] bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-md font-bold">
+                                {calories} kcal
+                              </span>
+                            )}
+                            {carbs > 0 && (
+                              <span className="text-[10px] bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md font-bold">
+                                {Number(carbs).toFixed(1)}g W
+                              </span>
+                            )}
+                            {protein > 0 && (
+                              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md font-bold">
+                                {protein}g B
+                              </span>
+                            )}
+                            {fat > 0 && (
+                              <span className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md font-bold">
+                                {fat}g T
+                              </span>
+                            )}
+                            {log.value > 0 && log.type === 'bolus' && (
+                              <span className="text-[10px] bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
+                                <Syringe size={10} /> {log.value}j.
+                              </span>
+                            )}
+                          </div>
+                          
+                          {(startBg || peakBg) && (
+                            <div className="flex items-center gap-1.5 mt-0.5 py-1 px-2 w-fit bg-slate-50 dark:bg-slate-800/80 rounded border border-slate-100 dark:border-slate-700/50">
+                               <Activity size={12} className="text-indigo-500" />
+                               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">
+                                 {startBg ? `${startBg} mg/dL ` : ''} 
+                                 {peakBg ? `→ ${peakBg} mg/dL ${timeToPeakMinutes ? `(szczyt po ${timeToPeakMinutes} min)` : ''}` : ''}
+                               </span>
+                            </div>
                           )}
                         </div>
                       );

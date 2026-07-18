@@ -55,3 +55,6 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - **PRIORYTET #2:** Głównym problemem wydajnościowym V1 jest potężny tzw. "Prop Drilling" z `App.tsx` na dziesiątki komponentów w dół, szczególnie przesyłanie wielkiej tablicy `logs` (45 000 wpisów).
 - Podczas operacji w gałęzi testowej V2 priorytetem jest wdrożenie biblioteki **Zustand** (lekki, globalny, darmowy stan). Mając globalny "Magazyn", mniejsze komponenty (np. guziki na talerzu) będą samodzielnie pobierać wyłącznie niezbędne paczki danych, co uwolni aplikację od zamrożeń wywołanych masowym przeładowywaniem interfejsu (re-renderami).
 - Dodatkowo zaleca się wdrożenie **TanStack Query** do zarządzania stanem asynchronicznym (szczególnie Firebase), co pozwoli usunąć mnóstwo ręcznego zarządzania stanami ładowania.
+
+## Znane Problemy i Rozwiązania
+- **Framer Motion Deadlock**: Używaj AnimatePresence mode="popLayout" (lub brak mode) zamiast "wait" dla głównego kontenera w App.tsx. Zagnieżdżone AnimatePresence z mode="wait" (np. w NutritionHub.tsx) mogły blokować wątek renderowania i powodować "biały ekran" podczas przełączania zakładek.

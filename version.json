@@ -1,10 +1,10 @@
 {
-  "version": "5.8.01",
+  "version": "5.8.02",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
   "buildNumber": 118,
   "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.8.01: Wprowadzono dwusilnikową architekturę AI – GlikoSense 4.0 Pro (TCN + INT8) z prognozą do 6h i blokadą aktywacji na nieobsługiwanych urządzeniach. Dodano 3 nowe reguły fizjologiczne: Bezwładność Weekendowa, Opóźniony Spadek Powysiłkowy oraz Wrażliwość Cykliczna (Stres). Interfejs automatycznie zmienia oznaczenia z 3.0 na 4.0 Pro po przełączeniu silnika.",
-  "whatsNewEn": "🚀 Version 5.8.01: Introduced dual-engine AI architecture – GlikoSense 4.0 Pro (TCN + INT8) with up to 6h forecast and hardware-level activation guard for unsupported devices. Added 3 new physiological rules: Weekend Inertia, Delayed Post-Exercise Drop, Cyclical Sensitivity (Stress). UI automatically updates labels from 3.0 to 4.0 Pro upon engine switch.",
-  "otaRevision": 280
+  "whatsNew": "🚀 Wersja 5.8.02: Wprowadzono Chmurę Pewności dla GlikoSense 4.0 Pro, nową regułę Nocnego Asystenta Bazy oraz rozszerzono kontekst pamięci TCN do 24 godzin (288 kroków). Poprawiono również problem z przekazywaniem danych o posiłku z Talerza do Kalkulatora Bolusa.",
+  "whatsNewEn": "🚀 Version 5.8.02: Introduced Confidence Cloud for GlikoSense 4.0 Pro, new Night Guard basal test rule, and extended TCN memory context to 24 hours (288 steps). Fixed an issue with meal data transfer from the Meal Plate to the Bolus Calculator.",
+  "otaRevision": 281
 }

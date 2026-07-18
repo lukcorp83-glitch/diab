@@ -6611,9 +6611,11 @@
   "auto.historia": "Historia",
   "auto.asystent_ai": "Asystent AI",
   "auto.glikochat": "GlikoChat",
-  "nutrition.tab_creator": "Talerz i AI",
-  "nutrition.tab_diet": "Bilans i Dieta",
-  "nutrition.tab_history": "Dziennik i Glikemia",
+  "nutrition.tab_creator": "Talerz",
+  "nutrition.tab_diet": "Dieta",
+  "nutrition.tab_history": "Historia",
+  "nutrition.history_title": "Korelacja Posiłku i Glikemii",
+  "nutrition.history_desc": "Obserwuj szczytowe glikemie po zjedzeniu dania. Zawsze sprawdzaj, czy bolus pokrył wyrzut z makroskładników.",
   "nutrition.hub_title": "Centrum Żywieniowe",
   "nutrition.ai_banner_title": "AI: GlikoSense i Czat",
   "nutrition.ai_banner_desc": "Skorzystaj z inteligentnego asystenta diety, przeanalizuj zdjęcie posiłku z aparatu lub zapytaj o wymienniki.",
@@ -6655,7 +6657,10 @@
   "auto.bezzwrotną_utratę_wyuczonego_modelu_v4": "bezzwrotną utratę wyuczonego modelu GlikoSense 4.0 Pro",
   "auto.kopia_zapasowa_modelu_glikosen_v4": "Kopia zapasowa modelu GlikoSense 4.0 Pro została zapisana pomyślnie!",
   "auto.uwaga_przywrocenie_modelu_v4": "UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej GlikoSense 4.0 Pro. Czy chcesz kontynuować?",
-  "auto.model_glikosense_4_0_zostal_po": "Model GlikoSense 4.0 Pro został pomyślnie przywrócony z chmury!"
+  "auto.model_glikosense_4_0_zostal_po": "Model GlikoSense 4.0 Pro został pomyślnie przywrócony z chmury!",
+  "auto.ochrona_nocy_6h": "Ochrona nocy (6h)",
+  "auto.glikosense_4_0_chmura_pewnosci": "GlikoSense 4.0: Chmura Pewności",
+  "auto.pokaz_chmure_prawdopodobienstwa": "Pokaż zacieniony obszar na wykresie obrazujący margines błędu TCN."
 }
 
 

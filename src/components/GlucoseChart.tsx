@@ -55,7 +55,7 @@ interface GlucoseChartProps {
 export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction }: GlucoseChartProps) {
     const { t } = useTranslation();
   const [crosshair, setCrosshair] = useState<{ x: number, data: any, tClick: number } | null>(null);
-  const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number}[]>([]);
+  const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number, confidenceMin?: number, confidenceMax?: number}[]>([]);
   const [isMlProcessing, setIsMlProcessing] = useState(false);
 
   useEffect(() => {
@@ -73,7 +73,9 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         if (isMounted && result.predictionCurve) {
           setMlPredictionDataState(result.predictionCurve.map(p => ({
             timestamp: p.timestamp,
-            value: p.value
+            value: p.value,
+            confidenceMin: p.confidenceMin,
+            confidenceMax: p.confidenceMax
           })));
         }
       } catch (err) {
@@ -187,7 +189,10 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       }
     }
 
-    const predictionTime = 2 * 60 * 60 * 1000;
+    const maxPredictionMs = mlPredictionDataState.length > 0 
+      ? mlPredictionDataState[mlPredictionDataState.length - 1].timestamp - now 
+      : 2 * 60 * 60 * 1000;
+    const predictionTime = Math.max(2 * 60 * 60 * 1000, maxPredictionMs);
     const baseRangeMs = hours * 60 * 60 * 1000;
     const rangeMs = baseRangeMs / zoomLevel;
     
@@ -410,7 +415,11 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
     dataSensor.forEach(d => addPoint(d.timestamp, 'sensorVal', true, { originalSensor: d, yVal: chartMaxY }));
 
     loopPredictions.forEach(p => addPoint(p.timestamp, 'loopPrediction', p.value, { loopAction: p.actionType }));
-    mlPredictionData.forEach(p => addPoint(p.timestamp, 'mlPrediction', p.value));
+    mlPredictionData.forEach(p => {
+       addPoint(p.timestamp, 'mlPrediction', p.value);
+       if (p.confidenceMin !== undefined) addPoint(p.timestamp, 'mlConfidenceMin', p.confidenceMin);
+       if (p.confidenceMax !== undefined) addPoint(p.timestamp, 'mlConfidenceMax', p.confidenceMax);
+    });
 
     // Stitch predictions to the last actual glucose point to ensure lines are connected
     if (dataG.length > 0) {
@@ -424,6 +433,8 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
         }
         if (showMLPrediction && mlPredictionData.length > 0) {
           lastPoint.mlPrediction = lastVal;
+          lastPoint.mlConfidenceMin = lastVal;
+          lastPoint.mlConfidenceMax = lastVal;
         }
       }
     }
@@ -576,6 +587,38 @@ export default function GlucoseChart({ logs, hours, targetMin, targetMax, theme,
       
       // ML Prediction
       if (showMLPrediction) {
+         // Confidence Cloud
+         // Wait, any cast is needed because typescript complains about settings
+         const cloudEnabled = (settings as any)?.showConfidenceCloud !== false;
+         if (cloudEnabled) {
+            const cloudPts = chartData.filter(d => d.mlConfidenceMin !== undefined && d.mlConfidenceMax !== undefined).map(d => ({ x: getX(d.timestamp), yMin: getY(d.mlConfidenceMin), yMax: getY(d.mlConfidenceMax) }));
+            if (cloudPts.length > 1) {
+               ctx.beginPath();
+               ctx.moveTo(cloudPts[0].x, cloudPts[0].yMax);
+               for(let i=1; i<cloudPts.length - 1; i++) {
+                  const xc = (cloudPts[i].x + cloudPts[i+1].x) / 2;
+                  const yc = (cloudPts[i].yMax + cloudPts[i+1].yMax) / 2;
+                  ctx.quadraticCurveTo(cloudPts[i].x, cloudPts[i].yMax, xc, yc);
+               }
+               ctx.lineTo(cloudPts[cloudPts.length-1].x, cloudPts[cloudPts.length-1].yMax);
+               
+               ctx.lineTo(cloudPts[cloudPts.length-1].x, cloudPts[cloudPts.length-1].yMin);
+               for(let i=cloudPts.length-2; i>=1; i--) {
+                  const xc = (cloudPts[i].x + cloudPts[i-1].x) / 2;
+                  const yc = (cloudPts[i].yMin + cloudPts[i-1].yMin) / 2;
+                  ctx.quadraticCurveTo(cloudPts[i].x, cloudPts[i].yMin, xc, yc);
+               }
+               ctx.lineTo(cloudPts[0].x, cloudPts[0].yMin);
+               ctx.closePath();
+               
+               const grad = ctx.createLinearGradient(0, 0, cw, 0);
+               grad.addColorStop(0, isDark ? 'rgba(251, 191, 36, 0.05)' : 'rgba(251, 191, 36, 0.05)');
+               grad.addColorStop(1, isDark ? 'rgba(251, 191, 36, 0.3)' : 'rgba(251, 191, 36, 0.4)');
+               ctx.fillStyle = grad;
+               ctx.fill();
+            }
+         }
+
          ctx.beginPath();
          const mPts = chartData.filter(d => d.mlPrediction !== undefined).map(d => ({ x: getX(d.timestamp), y: getY(d.mlPrediction) }));
          if (mPts.length > 0) {

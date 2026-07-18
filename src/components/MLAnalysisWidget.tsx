@@ -874,23 +874,40 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                       {/* 6h Prediction Box for v4 TCN */}
                       {mlResult.predictedNext6Hours ? (
                         <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 dark:from-slate-950 dark:via-cyan-950 dark:to-indigo-950 p-5 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group border border-cyan-500/20 flex flex-col">
-                            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-6 transform-gpu">
+                            {/* SVG Chart Background */}
+                            <div className="absolute inset-0 z-0 opacity-40">
+                              {mlResult.predictionCurve && mlResult.predictionCurve.length > 24 && (
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <AreaChart data={mlResult.predictionCurve.slice(12)} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                    <defs>
+                                      <linearGradient id="nightProtect" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/>
+                                      </linearGradient>
+                                    </defs>
+                                    <Area type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={3} fill="url(#nightProtect)" />
+                                  </AreaChart>
+                                </ResponsiveContainer>
+                              )}
+                            </div>
+
+                            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-6 transform-gpu z-0">
                                <TrendingUp size={160} />
                             </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/20 to-transparent pointer-events-none" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent pointer-events-none z-0" />
                             
                             <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4 relative z-10">
                                 <div className="bg-cyan-500/30 p-1.5 md:p-2 rounded-xl backdrop-blur-md">
-                                  <Target size={16} className="text-cyan-200" />
+                                  <ShieldAlert size={16} className="text-cyan-200" />
                                 </div>
-                                <span className="text-[10px] md:text-[11px] font-black text-cyan-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.prognoza_dluga_6h', { defaultValue: 'Prognoza długa (6h)' })}</span>
+                                <span className="text-[10px] md:text-[11px] font-black text-cyan-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.ochrona_nocy_6h', { defaultValue: 'Ochrona nocy (6h)' })}</span>
                             </div>
                             <div className="flex items-baseline gap-1 md:gap-2 relative z-10 mt-auto">
                                 <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{mlResult.predictedNext6Hours}</span>
                                 <span className="text-[10px] md:text-sm font-bold text-cyan-300 tracking-wider md:tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
                             </div>
                             <div className="mt-3 md:mt-4 text-[9px] font-bold text-cyan-300/80 uppercase tracking-wider relative z-10">
-                                🛸 TCN Pro INT8 • Horyzont Czasowy
+                                🛸 TCN Pro INT8 • Horyzont Nocny
                             </div>
                         </div>
                       ) : null}

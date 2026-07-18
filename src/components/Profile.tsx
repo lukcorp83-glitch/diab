@@ -276,6 +276,8 @@ export default function Profile({
   });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [nsSyncLoading, setNsSyncLoading] = useState(false);
+  const [benchmarkStatus, setBenchmarkStatus] = useState<"idle" | "running_v3" | "running_v4" | "done">("idle");
+  const [benchmarkResult, setBenchmarkResult] = useState<{ v3: number; v4: number } | null>(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [cleaningLoading, setCleaningLoading] = useState(false);
   const [nsUrl, setNsUrl] = useState(() => localStorage.getItem("ns_url_backup") || "");
@@ -852,6 +854,65 @@ export default function Profile({
       .replace(/[\u0300-\u036f]/g, "") // usuwanie diakrytyków
       .replace(/[^a-z0-9%\s]/g, "") // usuwanie znaków specjalnych
       .replace(/\s+/g, " "); // usuwanie wielokrotnych spacji
+
+  const runAIBenchmark = async () => {
+    if (benchmarkStatus !== "idle" && benchmarkStatus !== "done") return;
+    setBenchmarkStatus("running_v3");
+    setBenchmarkResult(null);
+    Haptics.medium();
+
+    const dummyLogs = logs && logs.length > 0 ? logs : Array.from({ length: 150 }, (_, i) => ({
+      type: "glucose",
+      value: 100 + Math.random() * 20,
+      timestamp: Date.now() - i * 5 * 60000,
+      trend: 0
+    }));
+
+    const runModel = (engineMode: "v3_lstm" | "v4_tcn") => {
+      return new Promise<number>((resolve) => {
+        try {
+          const worker = new Worker(new URL('../workers/glikosense.worker.ts', import.meta.url), { type: 'module' });
+          const tStart = performance.now();
+          
+          const timeoutId = setTimeout(() => {
+            worker.terminate();
+            resolve(9999);
+          }, 30000);
+
+          worker.onmessage = (e) => {
+            if (e.data.type === "result") {
+              const tEnd = performance.now();
+              clearTimeout(timeoutId);
+              worker.terminate();
+              resolve(Math.round(tEnd - tStart));
+            }
+          };
+          worker.postMessage({
+            logs: dummyLogs,
+            force: false,
+            mode: 'quick',
+            rules: settings,
+            engineMode,
+            language: i18n.language
+          });
+        } catch (e) {
+          resolve(9999);
+        }
+      });
+    };
+
+    try {
+      const v3Time = await runModel("v3_lstm");
+      setBenchmarkStatus("running_v4");
+      const v4Time = await runModel("v4_tcn");
+      setBenchmarkResult({ v3: v3Time, v4: v4Time });
+      setBenchmarkStatus("done");
+      Haptics.success();
+    } catch (e) {
+      toast.error(i18n.t('auto.blad_podczas_benchmarku', { defaultValue: "Błąd podczas testu" }));
+      setBenchmarkStatus("idle");
+    }
+  };
 
   const repairGIWithAI = async () => {
     if (cleaning) return;
@@ -6615,6 +6676,51 @@ export default function Profile({
                     <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
                   </button>
                 </div>
+
+                {/* Chmura prawdopodobieństwa */}
+                <div
+                  className={cn(
+                    "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md",
+                    settings.glassmorphismEnabled
+                      ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                      : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+                  )}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Activity size={22} />
+                    </div>
+                    <div className="text-left max-w-[150px] sm:max-w-none">
+                      <p className="text-sm font-black dark:text-white leading-tight">
+                        {t('auto.glikosense_4_0_chmura_pewnosci', { defaultValue: 'GlikoSense 4.0: Chmura Pewności' })}
+                      </p>
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight flex-wrap">
+                        {t('auto.pokaz_chmure_prawdopodobienstwa', { defaultValue: 'Pokaż zacieniony obszar na wykresie obrazujący margines błędu TCN.' })}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const newVal = settings.showConfidenceCloud === false ? true : false;
+                      setSettings((prev) => ({
+                        ...prev,
+                        showConfidenceCloud: newVal,
+                      }));
+                      if (user)
+                        await setDoc(
+                          doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+                          { showConfidenceCloud: newVal },
+                          { merge: true }
+                        );
+                    }}
+                    className={cn(
+                      "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
+                      settings.showConfidenceCloud !== false && "bg-amber-500 pl-5",
+                    )}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                  </button>
+                </div>
               </div>
 
               {/* Visual Appearance Cards */}
@@ -7105,6 +7211,34 @@ export default function Profile({
                 </button>
 
                 <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2 p-2">
+                    <button
+                      onClick={runAIBenchmark}
+                      disabled={benchmarkStatus === "running_v3" || benchmarkStatus === "running_v4"}
+                      className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all flex flex-col items-center justify-center gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        {benchmarkStatus === "running_v3" || benchmarkStatus === "running_v4" ? (
+                          <Loader2 className="animate-spin" size={18} />
+                        ) : (
+                          <Zap size={18} fill="currentColor" />
+                        )}
+                        {t('auto.benchmark_glikosense', { defaultValue: "BENCHMARK AI (3.0 vs 4.0)" })}
+                      </div>
+                      {benchmarkResult && (
+                        <div className="flex gap-4 mt-2 text-[10px] bg-black/20 px-4 py-2 rounded-xl">
+                          <span>LSTM: {benchmarkResult.v3}ms</span>
+                          <span>TCN: {benchmarkResult.v4}ms</span>
+                        </div>
+                      )}
+                      {benchmarkStatus === "running_v3" && <span className="text-[9px] opacity-70">Testowanie 3.0 LSTM...</span>}
+                      {benchmarkStatus === "running_v4" && <span className="text-[9px] opacity-70">Testowanie 4.0 TCN INT8...</span>}
+                    </button>
+                    <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold px-4 text-center leading-relaxed">
+                      {t('auto.benchmark_desc', { defaultValue: "Przetestuj wydajność obu modeli GlikoSense na Twoim urządzeniu. Niższy wynik = szybsze działanie." })}
+                    </p>
+                  </div>
+
                   <div className="flex flex-col gap-2 p-2">
                     <button
                       onClick={repairGIWithAI}

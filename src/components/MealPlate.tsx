@@ -166,7 +166,7 @@ export default function MealPlate({
   onClearInitialAction?: () => void;
   hideInternalTabs?: boolean;
 }) {
-  const plate = sharedPlate;
+  const plate = sharedPlate || [];
   const setPlate = setSharedPlate || (() => {});
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
@@ -1371,17 +1371,19 @@ export default function MealPlate({
       animate={{ opacity: 1 }}
       className="space-y-6 pb-64"
     >
-      <div className="flex items-center justify-between mb-2 px-2">
-        <h1 className="text-3xl font-black tracking-tight dark:text-white">
-          {t('auto.talerz', { defaultValue: "Talerz" })}
-        </h1>
-        <button
-          onClick={() => setIsScannerOpen(true)}
-          className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-500 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shrink-0"
-        >
-          <Camera size={24} />
-        </button>
-      </div>
+      {mode !== "search" && (
+        <div className="flex items-center justify-between mb-2 px-2">
+          <h1 className="text-3xl font-black tracking-tight dark:text-white">
+            {t('auto.talerz', { defaultValue: "Talerz" })}
+          </h1>
+          <button
+            onClick={() => setIsScannerOpen(true)}
+            className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-500 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shrink-0"
+          >
+            <Camera size={24} />
+          </button>
+        </div>
+      )}
 
       {/* Tab Toggle */}
       {!hideInternalTabs && (
@@ -3755,6 +3757,7 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     if (scanner && !scanner.isScanning) {
       // Html5QrcodeObj is not needed because we use Html5Qrcode directly
       // but let's alias it for the rest of the code
@@ -3768,18 +3771,30 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
                videoConstraints: typeof config === 'string' ? undefined : { facingMode: config.facingMode },
             },
             (decodedText) => {
-              scanner.stop().then(() => onResult(decodedText)).catch((e) => console.error(e));
+              scanner.stop().then(() => {
+                if (isMounted) onResult(decodedText);
+              }).catch((e) => console.error(e));
             },
             () => {}
-          ).catch((err) => {
+          ).then(() => {
+             if (!isMounted) {
+                scanner.stop().catch(console.error);
+             }
+          }).catch((err) => {
             console.error("Scanner start error", err);
-            if (config.facingMode) {
-               scanner.start({ facingMode: 'environment' }, { fps: 20 }, (txt) => { scanner.stop(); onResult(txt); }, () => {}).catch(console.error);
+            if (config.facingMode && isMounted) {
+               scanner.start({ facingMode: 'environment' }, { fps: 20 }, (txt) => { 
+                 scanner.stop(); 
+                 if (isMounted) onResult(txt); 
+               }, () => {}).then(() => {
+                 if (!isMounted) scanner.stop().catch(console.error);
+               }).catch(console.error);
             }
           });
       };
 
       Html5QrcodeObj.getCameras().then((devices) => {
+         if (!isMounted) return;
          if (devices && devices.length > 0) {
             let selectedCamId = devices[0].id;
             if (facingMode === 'environment') {
@@ -3798,9 +3813,13 @@ const MealScanner = forwardRef(({ onResult }: { onResult: (res: string) => void 
             startWithConfig({ facingMode });
          }
       }).catch(() => {
-         startWithConfig({ facingMode });
+         if (isMounted) startWithConfig({ facingMode });
       });
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [scanner, facingMode]);
 
   const switchCamera = () => {

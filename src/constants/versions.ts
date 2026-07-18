@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.8.01';
+export const CURRENT_VERSION = '5.8.02';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.02",
+    date: "2026-07-18",
+    title: "GlikoSense 4.0: Chmura Pewności i Ochrona Nocy",
+    changes: [
+      "Nowość: Chmura Pewności – na wykresie GlikoSense 4.0 Pro widać teraz probabilistyczny margines błędu TCN.",
+      "Nowość: Nocny Asystent Bazy (Basal-Test) – inteligentny audyt stabilności insuliny bazowej o 3:00 nad ranem.",
+      "Ulepszenie: Zwiększono głęboką pamięć (Deep Memory) z 30 minut do aż 24 godzin (288 kroków).",
+      "Poprawka: Usunięto błąd powodujący zacinanie się kalkulatora bolusa przy przejściu z talerza."
+    ]
+  },
   {
     version: "5.8.01",
     date: "2026-07-17",
@@ -651,6 +662,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.02",
+    date: "2026-07-18",
+    title: "GlikoSense 4.0: Chmura Pewności i Ochrona Nocy",
+    changes: [
+      "Nowość: Chmura Pewności – na wykresie GlikoSense 4.0 Pro widać teraz probabilistyczny margines błędu TCN.",
+      "Nowość: Nocny Asystent Bazy (Basal-Test) – inteligentny audyt stabilności insuliny bazowej o 3:00 nad ranem.",
+      "Ulepszenie: Zwiększono głęboką pamięć (Deep Memory) z 30 minut do aż 24 godzin (288 kroków).",
+      "Poprawka: Usunięto błąd powodujący zacinanie się kalkulatora bolusa przy przejściu z talerza."
+    ]
+  },
   {
     version: "5.8.01",
     date: "2026-07-17",

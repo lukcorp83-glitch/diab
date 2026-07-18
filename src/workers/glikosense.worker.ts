@@ -177,7 +177,7 @@ const physiologicalNormalize = (inputs: number[]): number[] => {
   ];
 };
 
-const generateSyntheticPhysiologyLSTM = () => {
+const generateSyntheticPhysiologyLSTM = (steps: number = 6) => {
   const synthetic: any[] = [];
   for (let s = 0; s < 150; s++) {
     const sequence = [];
@@ -186,10 +186,11 @@ const generateSyntheticPhysiologyLSTM = () => {
     const cobStart = Math.random() * 60;
     let currentBg = bgStart;
 
-    for(let t = 5; t >= 0; t--) {
-        const bg = currentBg - (t * 5); 
-        const iob = Math.max(0, iobStart - (t * 0.1));
-        const cob = Math.max(0, cobStart - (t * 1.0));
+    for(let t = steps - 1; t >= 0; t--) {
+        const effectiveT = Math.min(t, 6);
+        const bg = currentBg - (effectiveT * 5); 
+        const iob = Math.max(0, iobStart - (effectiveT * 0.1));
+        const cob = Math.max(0, cobStart - (effectiveT * 1.0));
         const fastCob = Math.random() > 0.5 ? cob * 0.8 : 0;
         const slowCob = cob - fastCob;
         const sinceMeal = cob > 0 ? 30 + Math.random() * 180 : 1440;
@@ -270,7 +271,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     // HEURISTIC INSIGHTS
     const insights: string[] = [];
     const discoveredRules = { ...rules };
-    const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
+    const mealPatterns: { [key: string]: { spikes: number, count: number, totalCorrections?: number, totalReturnTime?: number } } = {};
     const timeBlocks = {
       morning: { label: 'Poranek', starts: 6, ends: 11, sensitivity: 0, count: 0, drops: [] as number[] },
       afternoon: { label: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: "Popołudnie" }) }) }), starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
@@ -331,14 +332,60 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       });
       if (postMealBg.length > 0) {
         const maxBg = Math.max(...postMealBg.map(g => g.value || g.bg));
-        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0 };
+        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0, totalCorrections: 0, totalReturnTime: 0 };
         mealPatterns[mealName].count++;
         if (maxBg > 180) mealPatterns[mealName].spikes++;
+        
+        if (activeTopology === 'v4_tcn') {
+            const mealEnd = mealTime + 4 * 60 * 60 * 1000;
+            const postBoluses = allBoluses.filter(b => {
+                const bt = b.timestamp || new Date(b.createdAt).getTime();
+                return bt > mealTime + 45 * 60 * 1000 && bt < mealEnd;
+            });
+            mealPatterns[mealName].totalCorrections! += postBoluses.length;
+            
+            if (maxBg > 140) {
+                const peakLog = postMealBg.find(g => (g.value || g.bg) === maxBg);
+                if (peakLog) {
+                    const peakTime = peakLog.timestamp || new Date(peakLog.createdAt).getTime();
+                    const normalizationLog = allGlucose.find(g => {
+                        const gt = g.timestamp || new Date(g.createdAt).getTime();
+                        return gt > peakTime && gt < mealEnd && (g.value || g.bg) <= 140;
+                    });
+                    if (normalizationLog) {
+                        const normTime = normalizationLog.timestamp || new Date(normalizationLog.createdAt).getTime();
+                        mealPatterns[mealName].totalReturnTime! += (normTime - mealTime) / 60000;
+                    }
+                }
+            }
+        }
       }
     });
 
-    const problematicMeals = Object.entries(mealPatterns).filter(([_, stats]) => stats.spikes > 0 && (stats.spikes / stats.count) >= 0.5).map(([name]) => name);
-    if (problematicMeals.length > 0) insights.push(`🧠 Z moich obserwacji z 14 dni: pozycje takie jak: ${problematicMeals.slice(0, 2).join(", ")} powtarzały się z wyższymi poziomami cukru potem. Możesz tu rozważyć wcześniejszy bolus.`);
+    const problematicMeals = Object.entries(mealPatterns).filter(([_, stats]) => stats.spikes > 0 && (stats.spikes / stats.count) >= 0.5);
+    if (problematicMeals.length > 0) {
+        problematicMeals.sort((a,b) => (b[1].spikes/b[1].count) - (a[1].spikes/a[1].count));
+        const mealNames = problematicMeals.slice(0, 2).map(([name]) => name).join(", ");
+        
+        const isEn = i18n.language && i18n.language.startsWith('en');
+        let insightMsg = isEn 
+            ? `🧠 From my 14-day observations: meals like: ${mealNames} repeated with higher sugar levels afterwards. You might consider an earlier bolus here.`
+            : `🧠 Z moich obserwacji z 14 dni: pozycje takie jak: ${mealNames} powtarzały się z wyższymi poziomami cukru potem. Możesz tu rozważyć wcześniejszy bolus.`;
+        
+        if (activeTopology === 'v4_tcn') {
+            const [wName, wStats] = problematicMeals[0];
+            const avgCorrections = Math.round((wStats.totalCorrections! / wStats.count) * 10) / 10;
+            const avgReturnTime = Math.round(wStats.totalReturnTime! / wStats.count);
+            if (avgCorrections > 0 || avgReturnTime > 0) {
+                if (isEn) {
+                    insightMsg += ` TCN Pro detected that after "${wName}" you add an average of ${avgCorrections} correction(s), and sugar returns to normal (140) after approx. ${avgReturnTime > 0 ? avgReturnTime + ' min' : 'a long time'}.`;
+                } else {
+                    insightMsg += ` TCN Pro wykryło, że po "${wName}" dokładasz średnio ${avgCorrections} korekt(y), a cukier wraca do normy (140) po ok. ${avgReturnTime > 0 ? avgReturnTime + ' min' : 'długim czasie'}.`;
+                }
+            }
+        }
+        insights.push(insightMsg);
+    }
 
     if (mode === 'full') {
       const daysStats: { [day: string]: { sum: number, count: number } } = { "Niedziela": { sum: 0, count: 0 }, "Poniedziałek": { sum: 0, count: 0 }, "Wtorek": { sum: 0, count: 0 }, "Środa": { sum: 0, count: 0 }, "Czwartek": { sum: 0, count: 0 }, "Piątek": { sum: 0, count: 0 }, "Sobota": { sum: 0, count: 0 } };
@@ -452,6 +499,35 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     
     const dataset = [];
     const treatmentLogs = sorted.filter(l => l.type === 'meal' || l.type === 'bolus' || l.type === 'insulin');
+
+    // BASAL-TEST (Nocny asystent bazy)
+    if (activeTopology === 'v4_tcn' && resampledGlucose.length > 50) {
+      const isEn = i18n.language && i18n.language.startsWith('en');
+      let nightDriftCount = 0;
+      let totalNightDrift = 0;
+
+      for(let i=12; i<resampledGlucose.length; i++) {
+         const p = resampledGlucose[i];
+         const date = new Date(p.timestamp);
+         const hour = date.getHours();
+         if (hour >= 2 && hour < 5) {
+            // Relies on calculateActiveAtTime, checking if no active carbs/bolus
+            const { iob, cob } = calculateActiveAtTime(p.timestamp, treatmentLogs, rules);
+            if (cob < 1 && iob < 0.2) {
+               totalNightDrift += p.trend;
+               nightDriftCount++;
+            }
+         }
+      }
+      if (nightDriftCount > 36) { // at least 3 hours of clean night data
+         const avgDriftPerHour = (totalNightDrift / nightDriftCount) * 12; // 12 steps of 5 min = 1 hour
+         if (avgDriftPerHour > 15) {
+            insights.push(isEn ? `🌙 Basal-Test: Nighttime baseline (2:00-5:00) is drifting UP (+${Math.round(avgDriftPerHour)} mg/dL/h). TCN suggests raising basal by approx 0.05 U/h in this window.` : `🌙 Basal-Test: Krzywa nocna (2:00-5:00) stale rośnie (+${Math.round(avgDriftPerHour)} mg/dL/h) przy braku IOB/COB. TCN sugeruje podniesienie bazy o ok. 0.05 j/h w tym paśmie.`);
+         } else if (avgDriftPerHour < -15) {
+            insights.push(isEn ? `🌙 Basal-Test: Nighttime baseline (2:00-5:00) is drifting DOWN (${Math.round(avgDriftPerHour)} mg/dL/h). TCN suggests lowering basal by approx 0.05 U/h in this window.` : `🌙 Basal-Test: Krzywa nocna (2:00-5:00) stale spada (${Math.round(avgDriftPerHour)} mg/dL/h) przy braku IOB/COB. TCN sugeruje obniżenie bazy o ok. 0.05 j/h w tym paśmie.`);
+         }
+      }
+    }
     
     // --- DEEP PHARMACOKINETIC ENCODER (SELF-LEARNING) ---
     if (mode === 'full' && resampledGlucose.length > 50 && treatmentLogs.length > 0) {
@@ -503,10 +579,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
     
     let treatmentIdx = 0;
+    const sequenceLength = activeTopology === 'v4_tcn' ? 288 : 6;
 
-    for(let i=5; i < resampledGlucose.length - 36; i++) {
+    for(let i=sequenceLength-1; i < resampledGlucose.length - 36; i++) {
       const sequence = [];
-      for(let step = 5; step >= 0; step--) {
+      for(let step = sequenceLength - 1; step >= 0; step--) {
           const current = resampledGlucose[i - step];
           const currentTimeMs = current.timestamp;
 
@@ -571,7 +648,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     } catch(e) {
         model = tf.sequential();
         if (activeTopology === 'v4_tcn') {
-            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, padding: 'causal', activation: 'relu', inputShape: [6, 15] }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, padding: 'causal', activation: 'relu', inputShape: [288, 15] }));
             (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, dilationRate: 2, padding: 'causal', activation: 'relu' }));
             (model as tf.Sequential).add(tf.layers.flatten());
             (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
@@ -587,8 +664,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         _cachedModelType = activeTopology;
 
         try {
-            const syntheticData = generateSyntheticPhysiologyLSTM();
-            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, 6, 15]);
+            const syntheticData = generateSyntheticPhysiologyLSTM(activeTopology === 'v4_tcn' ? 288 : 6);
+            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, activeTopology === 'v4_tcn' ? 288 : 6, 15]);
             const synOutputsTensor = tf.tensor2d(syntheticData.map(d => d.output));
             await model.fit(synInputsTensor, synOutputsTensor, { epochs: mode === 'quick' ? 3 : 10, shuffle: true, verbose: 0 });
             synInputsTensor.dispose();
@@ -600,10 +677,30 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     let shouldTrain = force || !isModelLoaded || (mode === 'full' && (Date.now() - lastTrainTime > 2 * 60 * 60 * 1000));
 
     if (shouldTrain && trainingDataset.length > 0) {
-        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, 6, 15]);
+        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, activeTopology === 'v4_tcn' ? 288 : 6, 15]);
         const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
         await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
         inputsTensor.dispose(); outputTensor.dispose();
+        
+        // --- REAL INT8 QUANTIZATION FOR TCN ---
+        if (activeTopology === 'v4_tcn') {
+            const weights = model.getWeights();
+            const quantizedWeights = tf.tidy(() => {
+                return weights.map(w => {
+                    const minVal = w.min().dataSync()[0];
+                    const maxVal = w.max().dataSync()[0];
+                    const range = Math.max(Math.abs(minVal), Math.abs(maxVal));
+                    if (range === 0) return w.clone();
+                    // Symmetric INT8 Quantization: scale = max_abs / 127
+                    const scale = range / 127;
+                    // Quantize to [-127, 127] and dequantize back
+                    const q = w.div(scale).round().clipByValue(-127, 127);
+                    return q.mul(scale);
+                });
+            });
+            model.setWeights(quantizedWeights);
+        }
+        
         self.postMessage({ type: 'storage_update', payload: { key: 'glikosense_last_train_time', value: Date.now().toString() } });
         if (mode === 'full') { try { await model.save(dbModelPath); } catch(err) {} }
     }
@@ -612,7 +709,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     let avgErrorInMgDl = 50;
     tf.tidy(() => {
       if (trainingDataset.length === 0) return;
-      const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, 6, 15]);
+      const evalSeqLen = activeTopology === 'v4_tcn' ? 288 : 6;
+      const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, evalSeqLen, 15]);
       const preds = model.predict(evalInputs) as tf.Tensor;
       const predsArray = preds.dataSync();
       let errorSum = 0;
@@ -622,7 +720,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     const predictValue = (mdl: tf.LayersModel, sequence: number[][]) => {
         return tf.tidy(() => {
-            const pred = mdl.predict(tf.tensor3d([sequence], [1, 6, 15])) as tf.Tensor;
+            const pred = mdl.predict(tf.tensor3d([sequence], [1, sequence.length, 15])) as tf.Tensor;
             return (pred.arraySync() as number[][])[0];
         });
     };
@@ -663,7 +761,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     const sequenceForPrediction = [];
-    for(let step = 5; step >= 0; step--) {
+    const predSeqLen = activeTopology === 'v4_tcn' ? 288 : 6;
+    for(let step = predSeqLen - 1; step >= 0; step--) {
       const idx = resampledGlucose.length - 1 - step;
       if (idx >= 0) {
         const cur = resampledGlucose[idx];
@@ -683,6 +782,17 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const nextPredNormal = predictValue(model, sequenceForPrediction);
     const stepsArr = [3,6,9,12,18,24,30,36];
     const maxDeltaPerStep = 12; // Max realistic change: 12 mg/dL per 5 min
+
+    let ensembleRawPreds: number[][] = [];
+    if (activeTopology === 'v4_tcn') {
+        for (let n = 0; n < 5; n++) {
+            const noisySeq = sequenceForPrediction.map(row => row.map((val, cIdx) => (cIdx === 0 || cIdx === 3 || cIdx === 6) ? val * (1 + (Math.random() * 0.1 - 0.05)) : val));
+            ensembleRawPreds.push(predictValue(model, noisySeq));
+        }
+    }
+
+    const confUpper: number[] = [];
+    const confLower: number[] = [];
 
     let previousVal = latestBg;
     let previousStep = 0;
@@ -707,38 +817,75 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
       actualVal = Math.max(40, Math.min(450, actualVal));
       
+      if (activeTopology === 'v4_tcn') {
+          const variance = ensembleRawPreds.reduce((sum, p) => sum + Math.pow(p[idx]*400 - actualVal, 2), 0) / 5;
+          let stdDev = Math.sqrt(variance);
+          stdDev = Math.max(stdDev, currentStep * 0.6); // uncertainty grows with time
+          confUpper.push(Math.min(450, actualVal + stdDev * 1.5));
+          confLower.push(Math.max(40, actualVal - stdDev * 1.5));
+      }
+
       previousVal = actualVal;
       previousStep = currentStep;
 
       return actualVal;
     });
 
-    const predictionCurve = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg }];
+    const predictionCurve: any[] = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg }];
+    if (activeTopology === 'v4_tcn') {
+        predictionCurve[0].confidenceMin = latestBg;
+        predictionCurve[0].confidenceMax = latestBg;
+    }
+
     const keypoints = [
-      { step: 0, val: latestBg }, { step: 3, val: predValues[0] }, { step: 6, val: predValues[1] },
-      { step: 9, val: predValues[2] }, { step: 12, val: predValues[3] }, { step: 18, val: predValues[4] },
-      { step: 24, val: predValues[5] }, { step: 30, val: predValues[6] }, { step: 36, val: predValues[7] },
+      { step: 0, val: latestBg, min: latestBg, max: latestBg }, 
+      { step: 3, val: predValues[0], min: confLower[0], max: confUpper[0] }, 
+      { step: 6, val: predValues[1], min: confLower[1], max: confUpper[1] },
+      { step: 9, val: predValues[2], min: confLower[2], max: confUpper[2] }, 
+      { step: 12, val: predValues[3], min: confLower[3], max: confUpper[3] }, 
+      { step: 18, val: predValues[4], min: confLower[4], max: confUpper[4] },
+      { step: 24, val: predValues[5], min: confLower[5], max: confUpper[5] }, 
+      { step: 30, val: predValues[6], min: confLower[6], max: confUpper[6] }, 
+      { step: 36, val: predValues[7], min: confLower[7], max: confUpper[7] },
     ];
 
-    const getInterpolatedValue = (s: number) => {
+    const getInterpolatedValue = (s: number, key: 'val' | 'min' | 'max' = 'val') => {
       for (let idx = 0; idx < keypoints.length - 1; idx++) {
         if (s >= keypoints[idx].step && s <= keypoints[idx + 1].step) {
           const frac = (s - keypoints[idx].step) / (keypoints[idx+1].step - keypoints[idx].step);
-          return keypoints[idx].val + frac * (keypoints[idx+1].val - keypoints[idx].val);
+          return (keypoints[idx] as any)[key] + frac * ((keypoints[idx+1] as any)[key] - (keypoints[idx] as any)[key]);
         }
       }
-      const lastVal = keypoints[keypoints.length - 1].val;
+      const lastVal = (keypoints[keypoints.length - 1] as any)[key] || keypoints[keypoints.length - 1].val;
       const extraSteps = s - 36;
       const reversionRate = Math.min(1, extraSteps / 36);
       return lastVal + reversionRate * (110 - lastVal) * 0.45;
     };
 
-    const maxSteps = activeTopology === 'v4_tcn' ? 72 : 24;
+    const currentHour = new Date().getHours();
+    // Ochrona nocna: wydłużamy przewidywanie do 6 godzin (72 kroki) między 20:00 a 4:00 rano
+    const isNightApproaching = currentHour >= 20 || currentHour < 4;
+
+    let maxSteps = 24; // Domyślnie 2 godziny (v3_lstm)
+    if (activeTopology === 'v4_tcn') {
+        maxSteps = isNightApproaching ? 72 : 36; // 6h w nocy, 3h w dzień dla silnika 4.0
+    }
+
     for(let step = 1; step <= maxSteps; step++) {
-        let nextBg = getInterpolatedValue(step);
+        let nextBg = getInterpolatedValue(step, 'val');
         nextBg += weatherBgModifier * (step / 12); 
         nextBg = Math.max(40, Math.min(600, nextBg));
-        predictionCurve.push({ timestamp: latestTimeMs + (step * 5 * 60 * 1000), offsetMs: step * 5 * 60 * 1000, value: nextBg });
+        
+        let pObj: any = { timestamp: latestTimeMs + (step * 5 * 60 * 1000), offsetMs: step * 5 * 60 * 1000, value: nextBg };
+        if (activeTopology === 'v4_tcn') {
+            let nextMin = getInterpolatedValue(step, 'min');
+            let nextMax = getInterpolatedValue(step, 'max');
+            nextMin += weatherBgModifier * (step / 12);
+            nextMax += weatherBgModifier * (step / 12);
+            pObj.confidenceMin = Math.max(40, Math.min(600, nextMin));
+            pObj.confidenceMax = Math.max(40, Math.min(600, nextMax));
+        }
+        predictionCurve.push(pObj);
     }
 
     const predictedNextHour = predictionCurve[12]?.value || latestBg;

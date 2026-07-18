@@ -47,19 +47,19 @@ export default function NutritionHub({
   const tabs = [
     {
       id: "creator" as const,
-      label: t("nutrition.tab_creator", { defaultValue: "Talerz i AI" }),
+      label: t("nutrition.tab_creator", { defaultValue: "Talerz" }),
       icon: <Utensils size={16} />,
       badge: sharedPlate.length > 0 ? sharedPlate.length : undefined,
     },
     {
       id: "diet" as const,
-      label: t("nutrition.tab_diet", { defaultValue: "Bilans i Dieta" }),
+      label: t("nutrition.tab_diet", { defaultValue: "Dieta" }),
       icon: <PieChart size={16} />,
       badge: settings?.activeDiet ? "1" : undefined,
     },
     {
       id: "history" as const,
-      label: t("nutrition.tab_history", { defaultValue: "Dziennik i Glikemia" }),
+      label: t("nutrition.tab_history", { defaultValue: "Historia" }),
       icon: <History size={16} />,
     },
   ];
@@ -121,73 +121,7 @@ export default function NutritionHub({
               transition={{ duration: 0.2 }}
               className="w-full space-y-4"
             >
-              {/* Interaktywny Baner AI */}
-              <div
-                onClick={() => {
-                  Haptics.medium();
-                  setTab("assistant");
-                }}
-                className="group cursor-pointer bg-gradient-to-r from-sky-500/10 via-indigo-500/10 to-purple-500/10 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-purple-500/20 rounded-2xl p-4 border border-sky-200/60 dark:border-sky-800/60 hover:border-sky-500 dark:hover:border-sky-400 transition-all active:scale-[0.99] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-md shadow-sky-500/30 shrink-0 group-hover:scale-105 transition-transform animate-pulse">
-                    <Sparkles size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors flex items-center gap-2">
-                      {t("nutrition.ai_title", { defaultValue: "Szybkie Narzędzia GlikoSense AI" })}
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300 font-bold uppercase">
-                        {t("auto.akcje_talerza", { defaultValue: "Akcje Talerza" })}
-                      </span>
-                    </h4>
-                    <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 mt-0.5">
-                      {t("nutrition.ai_desc", { defaultValue: "Skanuj zdjęcia potraw, podyktuj posiłek głosem lub zapytaj Czatu AI. Produkty zostaną od razu przeliczone i dodane na Twój Talerz." })}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/50 dark:border-slate-800/50">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      Haptics.medium();
-                      sessionStorage.setItem("ai_plate_action", "camera");
-                      setTab("database");
-                    }}
-                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 transition-all"
-                    title={t("auto.zrob_zdjecie_analiza_ai", { defaultValue: "Zrób zdjęcie (Analiza AI)" })}
-                  >
-                    <Camera size={14} />
-                    <span>{t("meal.analyze_btn", { defaultValue: "Analiza AI" })}</span>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      Haptics.medium();
-                      sessionStorage.setItem("ai_plate_action", "voice");
-                      setTab("database");
-                    }}
-                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 transition-all"
-                    title={t("auto.podyktuj_posilek", { defaultValue: "Podyktuj posiłek" })}
-                  >
-                    <Mic size={14} />
-                    <span>{t("auto.glosowo", { defaultValue: "Głosowo" })}</span>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      Haptics.medium();
-                      setTab(settings?.childMode ? "chat" : "assistant");
-                    }}
-                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-black text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 transition-all"
-                    title={t("auto.czat_ai", { defaultValue: "Czat AI" })}
-                  >
-                    <Sparkles size={14} />
-                    <span>{t("auto.czat_ai", { defaultValue: "Czat AI" })}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Układ wewnątrz karty kreatora - czysty widok Talerza i AI */}
+              {/* Układ wewnątrz karty kreatora - czysty widok Talerza */}
               <div className="w-full">
                 <MealPlate
                   user={user}
