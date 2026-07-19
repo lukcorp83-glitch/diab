@@ -1,4 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-wasm';
+import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 const workerDictEN: Record<string, string> = {
   "auto.metabolizm_label_bardzo_szybki": "Very fast",
   "auto.metabolizm_label_szybki": "Fast",
@@ -235,13 +237,18 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     try {
+      setWasmPaths('/wasm/');
       if (typeof OffscreenCanvas !== 'undefined') {
         await tf.setBackend('webgl');
       } else {
-        await tf.setBackend('cpu');
+        throw new Error('No webgl');
       }
     } catch (e) {
-      try { await tf.setBackend('cpu'); } catch (e2) {}
+      try { 
+        await tf.setBackend('wasm'); 
+      } catch (e2) {
+        try { await tf.setBackend('cpu'); } catch (e3) {}
+      }
     }
     await tf.ready();
     const activeBackend = tf.getBackend() || 'cpu';
