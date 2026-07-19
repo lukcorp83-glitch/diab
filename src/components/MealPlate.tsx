@@ -1374,7 +1374,7 @@ export default function MealPlate({
       {mode !== "search" && (
         <div className="flex items-center justify-between mb-2 px-2">
           <h1 className="text-3xl font-black tracking-tight dark:text-white">
-            {t('auto.talerz', { defaultValue: "Talerz" })}
+            {t('auto.talerz', { defaultValue: "Centrum Żywieniowe" })}
           </h1>
           <button
             onClick={() => setIsScannerOpen(true)}
@@ -2009,7 +2009,7 @@ export default function MealPlate({
                 </div>
                 <div>
                   <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-2">
-                    {t('meal.your_plate', { defaultValue: 'Twój talerz' })}
+                    {t('meal.your_plate', { defaultValue: 'Mój Talerz' })}
                     <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] font-bold">
                       {plate.length} {t('auto.skladniki', { defaultValue: 'składniki' })}
                     </span>
@@ -2861,7 +2861,7 @@ export default function MealPlate({
             {t('meal.plate_empty_title', { defaultValue: 'Talerz jeszcze pusty' })}
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-[280px] mb-10 leading-relaxed font-medium relative z-10">
-            {t('meal.plate_empty_desc', { defaultValue: i18n.t('auto.twoj_talerz_czeka_na_smak', { defaultValue: "Twój talerz czeka na smakołyki! Odwiedź bazę i wybierz coś pysznego do przeliczenia." }) })}
+            {t('meal.plate_empty_desc', { defaultValue: i18n.t('auto.twoj_talerz_czeka_na_smak', { defaultValue: "Mój Talerz czeka na smakołyki! Odwiedź bazę i wybierz coś pysznego do przeliczenia." }) })}
           </p>
 
           <button
@@ -3126,7 +3126,7 @@ export default function MealPlate({
                 <Utensils size={16} className="text-accent-400" />
               </div>
               <span className="text-xs font-black uppercase tracking-widest text-white">
-                {t('meal.your_plate', { defaultValue: i18n.t('auto.twoj_talerz', { defaultValue: "Twój Talerz" }) })}
+                {t('meal.your_plate', { defaultValue: i18n.t('auto.twoj_talerz', { defaultValue: "Centrum Żywieniowe" }) })}
               </span>
               <span className="bg-accent-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
                 {plate.length}
