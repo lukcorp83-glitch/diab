@@ -245,7 +245,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       }
     } catch (e) {
       try { 
-        await tf.setBackend('wasm'); 
+        await tf.setBackend('wasm'); if (engineMode === 'v4_tcn') { const m = tf.sequential(); m.add(tf.layers.conv1d({ filters: 1, kernelSize: 2, padding: 'causal', inputShape: [2, 1] })); const t = tf.zeros([1, 2, 1]); m.predict(t); t.dispose(); } 
       } catch (e2) {
         try { await tf.setBackend('cpu'); } catch (e3) {}
       }
