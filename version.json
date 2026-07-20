@@ -1,10 +1,10 @@
 {
-  "version": "5.8.02",
+  "version": "5.8.03",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
-  "buildNumber": 118,
+  "buildNumber": 119,
   "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.8.02: Wprowadzono Chmurę Pewności dla GlikoSense 4.0 Pro, nową regułę Nocnego Asystenta Bazy oraz rozszerzono kontekst pamięci TCN do 24 godzin (288 kroków). Poprawiono również problem z przekazywaniem danych o posiłku z Talerza do Kalkulatora Bolusa.",
-  "whatsNewEn": "🚀 Version 5.8.02: Introduced Confidence Cloud for GlikoSense 4.0 Pro, new Night Guard basal test rule, and extended TCN memory context to 24 hours (288 steps). Fixed an issue with meal data transfer from the Meal Plate to the Bolus Calculator.",
-  "otaRevision": 281
+  "whatsNew": "🚀 Wersja 5.8.03: Zmieniono nazwę Mój Talerz na Centrum Żywieniowe. Wprowadzono architektoniczną poprawkę do GlikoSense 4.0 TCN (obejście braku Causal Padding w WASM), odblokowując błyskawiczną analizę AI na telefonach komórkowych bez przeciążania procesora.",
+  "whatsNewEn": "🚀 Version 5.8.03: Renamed My Plate to Nutrition Center. Implemented an architectural fix for GlikoSense 4.0 TCN (Causal Padding workaround for WASM), unlocking lightning-fast AI analysis on mobile devices without overloading the CPU.",
+  "otaRevision": 282
 }

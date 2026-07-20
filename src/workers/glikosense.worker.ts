@@ -245,7 +245,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       }
     } catch (e) {
       try { 
-        await tf.setBackend('wasm'); if (engineMode === 'v4_tcn') { const m = tf.sequential(); m.add(tf.layers.conv1d({ filters: 1, kernelSize: 2, padding: 'causal', inputShape: [2, 1] })); const t = tf.zeros([1, 2, 1]); m.predict(t); t.dispose(); } 
+        await tf.setBackend('wasm'); 
       } catch (e2) {
         try { await tf.setBackend('cpu'); } catch (e3) {}
       }
@@ -637,7 +637,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     let model: tf.LayersModel;
-    const dbModelPath = activeTopology === 'v4_tcn' ? 'indexeddb://glikosense-tcn-int8-v4' : 'indexeddb://glikosense-lstm-v5';
+    const dbModelPath = activeTopology === 'v4_tcn' ? 'indexeddb://glikosense-tcn-v4-pad-fix' : 'indexeddb://glikosense-lstm-v5';
     try {
         if (_cachedModel && _cachedModelType === activeTopology) {
             model = _cachedModel;
@@ -655,8 +655,16 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     } catch(e) {
         model = tf.sequential();
         if (activeTopology === 'v4_tcn') {
-            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, padding: 'causal', activation: 'relu', inputShape: [288, 15] }));
-            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, dilationRate: 2, padding: 'causal', activation: 'relu' }));
+            (model as tf.Sequential).add(tf.layers.reshape({ targetShape: [288, 1, 15], inputShape: [288, 15] }));
+            (model as tf.Sequential).add(tf.layers.zeroPadding2d({ padding: [[2, 0], [0, 0]] }));
+            (model as tf.Sequential).add(tf.layers.reshape({ targetShape: [290, 15] }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, padding: 'valid', activation: 'relu' }));
+
+            (model as tf.Sequential).add(tf.layers.reshape({ targetShape: [288, 1, 32] }));
+            (model as tf.Sequential).add(tf.layers.zeroPadding2d({ padding: [[4, 0], [0, 0]] }));
+            (model as tf.Sequential).add(tf.layers.reshape({ targetShape: [292, 32] }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, dilationRate: 2, padding: 'valid', activation: 'relu' }));
+            
             (model as tf.Sequential).add(tf.layers.flatten());
             (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
             (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
@@ -1084,6 +1092,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       // Delete the corrupted model from IndexedDB.
       try { tf.io.removeModel('indexeddb://glikosense-lstm-v5'); } catch(e) {}
       try { tf.io.removeModel('indexeddb://glikosense-tcn-int8-v4'); } catch(e) {}
+      try { tf.io.removeModel('indexeddb://glikosense-tcn-v4-pad-fix'); } catch(e) {}
     }
     self.postMessage({ type: 'error', error: error.message });
   }

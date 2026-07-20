@@ -14,12 +14,31 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.8.02';
+export const CURRENT_VERSION = '5.8.03';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.03",
+    date: "2026-07-20",
+    title: "Centrum Żywieniowe i TCN WASM Fix",
+    changes: [
+      {
+        categoryKey: "kategoria_interfejs",
+        icon: "Layout",
+        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
+        descriptionKey: "Zmieniono nazwę zakładki 'Mój Talerz' na 'Centrum Żywieniowe'."
+      },
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "Cpu",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Wdrożono sprzętowe obejście dla silnika AI (TCN) - pełne wsparcie ultra-szybkiego WASM na smartfonach."
+      }
+    ]
+  },
   {
     version: "5.8.02",
     date: "2026-07-18",
@@ -662,6 +681,25 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.03",
+    date: "2026-07-20",
+    title: "Centrum Żywieniowe i TCN WASM Fix",
+    changes: [
+      {
+        categoryKey: "kategoria_interfejs",
+        icon: "Layout",
+        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
+        descriptionKey: "Zmieniono nazwę zakładki 'Mój Talerz' na 'Centrum Żywieniowe'."
+      },
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "Cpu",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Wdrożono sprzętowe obejście dla silnika AI (TCN) - pełne wsparcie ultra-szybkiego WASM na smartfonach."
+      }
+    ]
+  },
   {
     version: "5.8.02",
     date: "2026-07-18",
