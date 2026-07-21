@@ -190,7 +190,7 @@ const generateSyntheticPhysiologyLSTM = (steps: number = 6) => {
 
     for(let t = steps - 1; t >= 0; t--) {
         const effectiveT = Math.min(t, 6);
-        const bg = currentBg - (effectiveT * 5); 
+        const bg = currentBg + (Math.random() * 4 - 2); 
         const iob = Math.max(0, iobStart - (effectiveT * 0.1));
         const cob = Math.max(0, cobStart - (effectiveT * 1.0));
         const fastCob = Math.random() > 0.5 ? cob * 0.8 : 0;
@@ -208,14 +208,14 @@ const generateSyntheticPhysiologyLSTM = (steps: number = 6) => {
     }
 
     const output = [
-      (currentBg + (cobStart * 0.15) - (iobStart * 4.0)) / 400, 
-      (currentBg + (cobStart * 0.3) - (iobStart * 8.0)) / 400,  
-      (currentBg + (cobStart * 0.45) - (iobStart * 12.0)) / 400, 
-      (currentBg + (cobStart * 0.55) - (iobStart * 15.0)) / 400, 
-      (currentBg + (cobStart * 0.70) - (iobStart * 20.0)) / 400, 
-      (currentBg + (cobStart * 0.60) - (iobStart * 25.0)) / 400, 
-      (currentBg + (cobStart * 0.45) - (iobStart * 27.0)) / 400,  
-      (currentBg + (cobStart * 0.30) - (iobStart * 28.0)) / 400  
+      (currentBg + (cobStart * 0.2) - (iobStart * 1.5)) / 400, 
+      (currentBg + (cobStart * 0.4) - (iobStart * 3.0)) / 400,  
+      (currentBg + (cobStart * 0.6) - (iobStart * 4.5)) / 400, 
+      (currentBg + (cobStart * 0.8) - (iobStart * 6.0)) / 400, 
+      (currentBg + (cobStart * 1.0) - (iobStart * 7.5)) / 400, 
+      (currentBg + (cobStart * 0.8) - (iobStart * 6.0)) / 400, 
+      (currentBg + (cobStart * 0.6) - (iobStart * 4.5)) / 400,  
+      (currentBg + (cobStart * 0.4) - (iobStart * 3.0)) / 400  
     ];
     synthetic.push({ inputs: sequence, output });
   }
@@ -255,8 +255,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     self.postMessage({ type: 'storage_update', key: 'glikosense_active_backend', value: activeBackend });
 
     const now = Date.now();
-    const lookbackMs = mode === 'quick' ? (24 * 60 * 60 * 1000) : (14 * 24 * 60 * 60 * 1000);
-    const cutoffTime = now - lookbackMs;
+    const cutoffTime = mode === 'quick' 
+      ? Date.now() - (36 * 60 * 60 * 1000) 
+      : Date.now() - (14 * 24 * 60 * 60 * 1000);
     
     let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
     if (logsToAnalyze.filter(l => l.type === 'glucose').length < 5) {
@@ -272,7 +273,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const isColdStartGuardrail = (engineMode === 'v4_tcn' && glucoseCount < 150);
     const activeTopology = isColdStartGuardrail ? 'v3_lstm' : engineMode;
     const engineStatus = engineMode === 'v4_tcn' 
-      ? (isColdStartGuardrail ? 'hybrid_guardrail' : 'ready_tcn_int8') 
+      ? (isColdStartGuardrail ? 'hybrid_guardrail' : 'ready_tcn') 
       : 'classic_lstm';
     
     // HEURISTIC INSIGHTS
@@ -586,7 +587,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
     
     let treatmentIdx = 0;
-    const sequenceLength = activeTopology === 'v4_tcn' ? 288 : 6;
+    const sequenceLength = activeTopology === 'v4_tcn' ? 36 : 6;
 
     for(let i=sequenceLength-1; i < resampledGlucose.length - 36; i++) {
       const sequence = [];
@@ -651,24 +652,17 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
             _cachedModelType = activeTopology;
             isModelLoaded = true;
         }
-        model.compile({ optimizer: tf.train.adam(activeTopology === 'v4_tcn' ? 0.003 : 0.001), loss: 'meanSquaredError' });
+        model.compile({ optimizer: tf.train.adam(activeTopology === 'v4_tcn' ? 0.001 : 0.001), loss: 'meanSquaredError' });
     } catch(e) {
         model = tf.sequential();
         if (activeTopology === 'v4_tcn') {
-            (model as tf.Sequential).add(tf.layers.reshape({ targetShape: [288, 1, 15], inputShape: [288, 15] }));
-            (model as tf.Sequential).add(tf.layers.zeroPadding2d({ padding: [[2, 0], [0, 0]] }));
-            (model as tf.Sequential).add(tf.layers.reshape({ targetShape: [290, 15] }));
-            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, padding: 'valid', activation: 'relu' }));
-
-            (model as tf.Sequential).add(tf.layers.reshape({ targetShape: [288, 1, 32] }));
-            (model as tf.Sequential).add(tf.layers.zeroPadding2d({ padding: [[4, 0], [0, 0]] }));
-            (model as tf.Sequential).add(tf.layers.reshape({ targetShape: [292, 32] }));
-            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 32, kernelSize: 3, dilationRate: 2, padding: 'valid', activation: 'relu' }));
-            
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu', inputShape: [36, 15] }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu' }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu' }));
             (model as tf.Sequential).add(tf.layers.flatten());
             (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
             (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
-            model.compile({ optimizer: tf.train.adam(0.003), loss: 'meanSquaredError' });
+            model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
         } else {
             (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
             (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
@@ -679,42 +673,28 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         _cachedModelType = activeTopology;
 
         try {
-            const syntheticData = generateSyntheticPhysiologyLSTM(activeTopology === 'v4_tcn' ? 288 : 6);
-            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, activeTopology === 'v4_tcn' ? 288 : 6, 15]);
+            const syntheticData = generateSyntheticPhysiologyLSTM(activeTopology === 'v4_tcn' ? 36 : 6);
+            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, activeTopology === 'v4_tcn' ? 36 : 6, 15]);
             const synOutputsTensor = tf.tensor2d(syntheticData.map(d => d.output));
-            await model.fit(synInputsTensor, synOutputsTensor, { epochs: mode === 'quick' ? 3 : 10, shuffle: true, verbose: 0 });
+            await model.fit(synInputsTensor, synOutputsTensor, { epochs: mode === 'quick' ? 1 : 2, shuffle: true, verbose: 0 });
             synInputsTensor.dispose();
             synOutputsTensor.dispose();
         } catch (synErr) {}
     }
 
-    const trainingDataset = dataset.slice(-250);
+    const trainingDataset = dataset.slice(-50); // Maksymalnie 50 paczek by uniknąć zapchania CPU
     let shouldTrain = force || !isModelLoaded || (mode === 'full' && (Date.now() - lastTrainTime > 2 * 60 * 60 * 1000));
 
     if (shouldTrain && trainingDataset.length > 0) {
-        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, activeTopology === 'v4_tcn' ? 288 : 6, 15]);
+        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, activeTopology === 'v4_tcn' ? 36 : 6, 15]);
         const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
-        await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
-        inputsTensor.dispose(); outputTensor.dispose();
-        
-        // --- REAL INT8 QUANTIZATION FOR TCN ---
-        if (activeTopology === 'v4_tcn') {
-            const weights = model.getWeights();
-            const quantizedWeights = tf.tidy(() => {
-                return weights.map(w => {
-                    const minVal = w.min().dataSync()[0];
-                    const maxVal = w.max().dataSync()[0];
-                    const range = Math.max(Math.abs(minVal), Math.abs(maxVal));
-                    if (range === 0) return w.clone();
-                    // Symmetric INT8 Quantization: scale = max_abs / 127
-                    const scale = range / 127;
-                    // Quantize to [-127, 127] and dequantize back
-                    const q = w.div(scale).round().clipByValue(-127, 127);
-                    return q.mul(scale);
-                });
-            });
-            model.setWeights(quantizedWeights);
+        try {
+            await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
+        } catch (fitErr) {
+            self.postMessage({ type: 'error', error: `Błąd treningu na realnych danych: ${fitErr}` });
+            return;
         }
+        inputsTensor.dispose(); outputTensor.dispose();
         
         self.postMessage({ type: 'storage_update', payload: { key: 'glikosense_last_train_time', value: Date.now().toString() } });
         if (mode === 'full') { try { await model.save(dbModelPath); } catch(err) {} }
@@ -724,10 +704,16 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     let avgErrorInMgDl = 50;
     tf.tidy(() => {
       if (trainingDataset.length === 0) return;
-      const evalSeqLen = activeTopology === 'v4_tcn' ? 288 : 6;
+      const evalSeqLen = activeTopology === 'v4_tcn' ? 36 : 6;
       const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, evalSeqLen, 15]);
-      const preds = model.predict(evalInputs) as tf.Tensor;
-      const predsArray = preds.dataSync();
+      let predsArray: Float32Array | Int32Array | Uint8Array;
+      try {
+          const preds = model.predict(evalInputs, { batchSize: 32 }) as tf.Tensor;
+          predsArray = preds.dataSync();
+      } catch (evalErr) {
+          self.postMessage({ type: 'error', error: `Błąd predykcji próbnej: ${evalErr}` });
+          return;
+      }
       let errorSum = 0;
       for(let j = 0; j < trainingDataset.length; j++) errorSum += Math.abs(predsArray[j * 8 + 3] - trainingDataset[j].output[3]); 
       avgErrorInMgDl = (errorSum / (trainingDataset.length || 1)) * 400;
@@ -776,7 +762,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     const sequenceForPrediction = [];
-    const predSeqLen = activeTopology === 'v4_tcn' ? 288 : 6;
+    const predSeqLen = activeTopology === 'v4_tcn' ? 36 : 6;
     for(let step = predSeqLen - 1; step >= 0; step--) {
       const idx = resampledGlucose.length - 1 - step;
       if (idx >= 0) {
@@ -835,6 +821,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       if (activeTopology === 'v4_tcn') {
           const variance = ensembleRawPreds.reduce((sum, p) => sum + Math.pow(p[idx]*400 - actualVal, 2), 0) / 5;
           let stdDev = Math.sqrt(variance);
+          if (isNaN(stdDev) || !isFinite(stdDev)) stdDev = currentStep * 1.5;
           stdDev = Math.max(stdDev, currentStep * 0.6); // uncertainty grows with time
           confUpper.push(Math.min(450, actualVal + stdDev * 1.5));
           confLower.push(Math.max(40, actualVal - stdDev * 1.5));
@@ -901,6 +888,23 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
             pObj.confidenceMax = Math.max(40, Math.min(600, nextMax));
         }
         predictionCurve.push(pObj);
+    }
+
+    if (activeTopology === 'v4_tcn') {
+        const smoothedCurve = [...predictionCurve];
+        for(let iter = 0; iter < 3; iter++) {
+            for (let i = 1; i < predictionCurve.length - 1; i++) {
+                const prev = smoothedCurve[i - 1].value;
+                const curr = smoothedCurve[i].value;
+                const next = smoothedCurve[i + 1].value;
+                smoothedCurve[i].value = (prev * 0.25) + (curr * 0.5) + (next * 0.25);
+                
+                if(smoothedCurve[i].confidenceMin) {
+                   smoothedCurve[i].confidenceMin = (smoothedCurve[i-1].confidenceMin * 0.25) + (smoothedCurve[i].confidenceMin * 0.5) + (smoothedCurve[i+1].confidenceMin * 0.25);
+                   smoothedCurve[i].confidenceMax = (smoothedCurve[i-1].confidenceMax * 0.25) + (smoothedCurve[i].confidenceMax * 0.5) + (smoothedCurve[i+1].confidenceMax * 0.25);
+                }
+            }
+        }
     }
 
     const predictedNextHour = predictionCurve[12]?.value || latestBg;
@@ -1082,7 +1086,10 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         learnedPkParams: rules.pkParams,
         discoveredRules,
         engineMode,
-        engineStatus
+        engineStatus,
+        modelParams: model ? model.countParams() : 0,
+        epochsTrained: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8),
+        avgError: Math.round(avgErrorInMgDl)
       } 
     });
 
@@ -1091,7 +1098,6 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       // Shape mismatch due to old model version restore from backup. 
       // Delete the corrupted model from IndexedDB.
       try { tf.io.removeModel('indexeddb://glikosense-lstm-v5'); } catch(e) {}
-      try { tf.io.removeModel('indexeddb://glikosense-tcn-int8-v4'); } catch(e) {}
       try { tf.io.removeModel('indexeddb://glikosense-tcn-v4-pad-fix'); } catch(e) {}
     }
     self.postMessage({ type: 'error', error: error.message });

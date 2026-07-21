@@ -1,10 +1,10 @@
 {
-  "version": "5.8.03",
-  "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
-  "buildNumber": 119,
-  "forceUpdate": false,
-  "whatsNew": "🚀 Wersja 5.8.03: Zmieniono nazwę Mój Talerz na Centrum Żywieniowe. Wprowadzono architektoniczną poprawkę do GlikoSense 4.0 TCN (obejście braku Causal Padding w WASM), odblokowując błyskawiczną analizę AI na telefonach komórkowych bez przeciążania procesora.",
-  "whatsNewEn": "🚀 Version 5.8.03: Renamed My Plate to Nutrition Center. Implemented an architectural fix for GlikoSense 4.0 TCN (Causal Padding workaround for WASM), unlocking lightning-fast AI analysis on mobile devices without overloading the CPU.",
-  "otaRevision": 282
+    "version":  "5.8.05",
+    "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.8.05_OTA.apk",
+    "buildNumber":  121,
+    "forceUpdate":  false,
+    "whatsNew":  "🚀 Wersja 5.8.05: Poprawka blokowania ekranu w Kalkulatorze Bolusa. Dodano pełną izolację błędów NaN dla wartości profilowych i modyfikatorów diety. Ekran nie powinien już zamarzać na przyciskach Pizza/Alkohol ani Podaj Insulinę.",
+    "whatsNewEn":  "🚀 Version 5.8.05: Bolus Calculator screen freeze fix. Added full NaN error isolation for profile values and diet modifiers. The screen should no longer freeze on Pizza/Alcohol or Submit buttons.",
+    "otaRevision":  283
 }

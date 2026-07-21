@@ -45,7 +45,10 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
     metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number },
     analyzedPeriod?: string,
     engineMode?: string,
-    engineStatus?: string
+    engineStatus?: string,
+    modelParams?: number,
+    epochsTrained?: number,
+    avgError?: number
   } | null>(() => {
     // Inicjalizacja z cache, aby uniknąć migania loaderem
     const cached = localStorage.getItem('glikosense_last_result_v2');
@@ -613,8 +616,8 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
             <div className="flex flex-col">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{isV4Active ? t('auto.sieć_neuronowa_glikosense_4_0', { defaultValue: "Sieć neuronowa GlikoSense 4.0 Pro" }) : t('auto.sieć_neuronowa_glikosense_3_0', { defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { defaultValue: "Sieć neuronowa GlikoSense 3.0" }) })}</span>
-                <span className="px-2 py-0.5 text-[8px] font-black rounded-full bg-indigo-500/10 dark:bg-indigo-400/20 text-indigo-600 dark:text-indigo-300 uppercase tracking-wider border border-indigo-500/20">
-                  {activeBackend === 'webgl' ? '⚡ GPU / NPU Chip' : '🖥️ CPU Mode'}
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  {activeBackend === 'webgl' ? '⚡ Silnik AI: Akceleracja Wł.' : '🖥️ Silnik AI: Standardowy'}
                 </span>
               </div>
               <span className="text-[10px] font-bold text-slate-400 opacity-80 mt-1">{t('auto.kopia_zapasowa_modelu_w_zabezpieczo', { defaultValue: 'Kopia zapasowa modelu w zabezpieczonej chmurze' })}</span>
@@ -872,13 +875,13 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                       </div>
 
                       {/* 6h Prediction Box for v4 TCN */}
-                      {mlResult.predictedNext6Hours ? (
+                      {settings?.glikosenseTopology === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() <= 6) ? (
                         <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 dark:from-slate-950 dark:via-cyan-950 dark:to-indigo-950 p-5 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group border border-cyan-500/20 flex flex-col">
                             {/* SVG Chart Background */}
                             <div className="absolute inset-0 z-0 opacity-40">
-                              {mlResult.predictionCurve && mlResult.predictionCurve.length > 24 && (
+                              {mlResult.predictionCurve && (
                                 <ResponsiveContainer width="100%" height="100%">
-                                  <AreaChart data={mlResult.predictionCurve.slice(12)} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                  <AreaChart data={mlResult.predictionCurve} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                                     <defs>
                                       <linearGradient id="nightProtect" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.8}/>
@@ -900,14 +903,14 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                                 <div className="bg-cyan-500/30 p-1.5 md:p-2 rounded-xl backdrop-blur-md">
                                   <ShieldAlert size={16} className="text-cyan-200" />
                                 </div>
-                                <span className="text-[10px] md:text-[11px] font-black text-cyan-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.ochrona_nocy_6h', { defaultValue: 'Ochrona nocy (6h)' })}</span>
+                                <span className="text-[10px] md:text-[11px] font-black text-cyan-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.najniższy_spadek', { defaultValue: 'Nocne Minimum' })}</span>
                             </div>
                             <div className="flex items-baseline gap-1 md:gap-2 relative z-10 mt-auto">
-                                <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{mlResult.predictedNext6Hours}</span>
+                                <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{Math.round(Math.min(...(mlResult.predictionCurve?.map((p: any) => p.value) || [999])))}</span>
                                 <span className="text-[10px] md:text-sm font-bold text-cyan-300 tracking-wider md:tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
                             </div>
                             <div className="mt-3 md:mt-4 text-[9px] font-bold text-cyan-300/80 uppercase tracking-wider relative z-10">
-                                🛸 TCN Pro INT8 • Horyzont Nocny
+                                🛸 TCN Pro • Horyzont Nocny
                             </div>
                         </div>
                       ) : null}
@@ -945,14 +948,14 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                                   <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
                                     mlResult.engineStatus === 'hybrid_guardrail' 
                                       ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' 
-                                      : mlResult.engineStatus === 'ready_tcn_int8' || mlResult.engineMode === 'v4_tcn'
+                                      : mlResult.engineStatus === 'ready_tcn' || mlResult.engineMode === 'v4_tcn'
                                         ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
                                         : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
                                   }`}>
                                     {mlResult.engineStatus === 'hybrid_guardrail' 
-                                      ? t('auto.ochrona_hybrydowa_150', { defaultValue: '🛡️ Ochrona (<150 pomiarów)' })
-                                      : mlResult.engineStatus === 'ready_tcn_int8' || mlResult.engineMode === 'v4_tcn'
-                                        ? t('auto.tcn_pro_int8', { defaultValue: '🚀 TCN Pro INT8' })
+                                      ? t('auto.ochrona_hybrydowa', { defaultValue: '🛡️ Ochrona' })
+                                      : mlResult.engineStatus === 'ready_tcn' || mlResult.engineMode === 'v4_tcn'
+                                        ? t('auto.tcn_pro', { defaultValue: '🚀 TCN Pro' })
                                         : t('auto.lstm_v3_klasyczny', { defaultValue: '⚡ LSTM v3.0' })}
                                   </span>
                                 </div>
@@ -1013,6 +1016,56 @@ export default function MLAnalysisWidget({ logs, settings, user, setTab }: MLAna
                           </div>
                       </div>
                   )}
+
+                  {/* Nowa sekcja: Szczegóły Treningu Modelu */}
+                  <div className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 rounded-[2.5rem] border border-indigo-200/50 dark:border-indigo-700/30 flex flex-col gap-4">
+                      <div className="flex items-center gap-3">
+                         <div className="bg-indigo-100 dark:bg-indigo-900/50 p-2.5 rounded-xl text-indigo-500 shadow-sm">
+                            <Brain size={24} />
+                         </div>
+                         <div>
+                            <h4 className="text-sm font-black text-slate-800 dark:text-slate-100">{t('auto.stan_umyslu_ai', { defaultValue: 'Szczegóły Sztucznej Inteligencji' })}</h4>
+                            <span className="text-[10px] font-bold text-slate-500">{isV4Active ? 'GlikoSense 4.0 Pro (Deep CNN)' : 'GlikoSense 3.0 (LSTM)'}</span>
+                         </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                         <div className="bg-white/60 dark:bg-slate-900/40 p-4 rounded-2xl flex flex-col gap-1 border border-white/40 dark:border-slate-700/50 shadow-sm">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('auto.baza_wiedzy', { defaultValue: 'Baza Wiedzy' })}</span>
+                            <span className="text-xl font-black text-slate-700 dark:text-slate-200">{mlResult.datasetSize ? mlResult.datasetSize : '--'} <span className="text-[10px] font-bold text-slate-400">{t('auto.paczek', { defaultValue: 'historii' })}</span></span>
+                         </div>
+                         <div className="bg-white/60 dark:bg-slate-900/40 p-4 rounded-2xl flex flex-col gap-1 border border-white/40 dark:border-slate-700/50 shadow-sm">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('auto.dokladnosc_treningu', { defaultValue: 'Błąd predykcyjny' })}</span>
+                            <span className="text-xl font-black text-slate-700 dark:text-slate-200">±{mlResult.avgError ? mlResult.avgError : (mlResult.accuracy ? Math.round(mlResult.accuracy) : '--')} <span className="text-[10px] font-bold text-slate-400">mg/dL</span></span>
+                         </div>
+                         <div className="bg-white/60 dark:bg-slate-900/40 p-4 rounded-2xl flex flex-col gap-1 border border-white/40 dark:border-slate-700/50 shadow-sm">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('auto.parametry_sieci', { defaultValue: 'Parametry Sieci' })}</span>
+                            <span className="text-xl font-black text-slate-700 dark:text-slate-200">{mlResult.modelParams ? mlResult.modelParams.toLocaleString() : '--'} <span className="text-[10px] font-bold text-slate-400">{t('auto.wag', { defaultValue: 'wag' })}</span></span>
+                         </div>
+                         <div className="bg-white/60 dark:bg-slate-900/40 p-4 rounded-2xl flex flex-col gap-1 border border-white/40 dark:border-slate-700/50 shadow-sm">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('auto.epoki_uczenia', { defaultValue: 'Epoki Uczenia' })}</span>
+                            <span className="text-xl font-black text-slate-700 dark:text-slate-200">{mlResult.epochsTrained ? mlResult.epochsTrained : '--'} <span className="text-[10px] font-bold text-slate-400">{t('auto.cykli', { defaultValue: 'cykli' })}</span></span>
+                         </div>
+                      </div>
+                      
+                      <div className="bg-white/60 dark:bg-slate-900/40 p-4 rounded-2xl mt-1 border border-white/40 dark:border-slate-700/50 shadow-sm">
+                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Zap size={12} className="text-amber-500" /> {t('auto.umiejetnosci_modelu', { defaultValue: 'Umiejętności aktywnego modelu' })}</span>
+                         <ul className="text-xs font-medium text-slate-600 dark:text-slate-300 space-y-2.5">
+                            {isV4Active ? (
+                               <>
+                                 <li className="flex gap-2 items-start"><Info size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>{t('auto.analiza_przestrzenna_trendu_z_3h', { defaultValue: 'Analiza przestrzenna trendu glikemii z 3 godzin wstecz.' })}</span></li>
+                                 <li className="flex gap-2 items-start"><Info size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>{t('auto.wykrywanie_ukrytej_opornosci', { defaultValue: 'Wykrywanie ukrytej oporności na insulinę.' })}</span></li>
+                                 <li className="flex gap-2 items-start"><Info size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>{t('auto.przewidywanie_naglych_zalaman', { defaultValue: 'Przewidywanie nagłych załamań linii na 2 godziny w przód.' })}</span></li>
+                               </>
+                            ) : (
+                               <>
+                                 <li className="flex gap-2 items-start"><Info size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>{t('auto.plytka_analiza_z_30m', { defaultValue: 'Płytka analiza czasowa z ostatnich 30 minut.' })}</span></li>
+                                 <li className="flex gap-2 items-start"><Info size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>{t('auto.standardowe_wnioskowanie_iob', { defaultValue: 'Standardowe wnioskowanie o aktywnej insulinie.' })}</span></li>
+                               </>
+                            )}
+                         </ul>
+                      </div>
+                  </div>
 
                   <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
                       <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">

@@ -2487,7 +2487,7 @@ export default function App() {
     return <GlikoControlLogo />;
   }
 
-  if (!user) {
+  if (!user) { return <Auth onLogin={() => {}} />; 
     return (
       <div
         className={cn(
@@ -3151,11 +3151,6 @@ export default function App() {
             animate="center"
             exit="exit"
             transition={{ duration: 0.15, ease: "easeOut" }}
-            drag="x"
-            dragDirectionLock
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.1}
-            onDragEnd={handleSwipe}
             className={cn(
               "w-full min-h-full p-4 pb-32 flex flex-col",
             )}
@@ -3439,6 +3434,7 @@ function NavButton({
     </button>
   );
 }
+
 
 
 

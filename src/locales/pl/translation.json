@@ -6660,7 +6660,17 @@
   "auto.model_glikosense_4_0_zostal_po": "Model GlikoSense 4.0 Pro został pomyślnie przywrócony z chmury!",
   "auto.ochrona_nocy_6h": "Ochrona nocy (6h)",
   "auto.glikosense_4_0_chmura_pewnosci": "GlikoSense 4.0: Chmura Pewności",
-  "auto.pokaz_chmure_prawdopodobienstwa": "Pokaż zacieniony obszar na wykresie obrazujący margines błędu TCN."
+  "auto.pokaz_chmure_prawdopodobienstwa": "Pokaż zacieniony obszar na wykresie obrazujący margines błędu TCN.",
+  "auto.stan_umyslu_ai": "Szczegóły Sztucznej Inteligencji",
+  "auto.baza_wiedzy": "Baza Wiedzy",
+  "auto.paczek": "historii",
+  "auto.dokladnosc_treningu": "Błąd predykcyjny",
+  "auto.umiejetnosci_modelu": "Umiejętności aktywnego modelu",
+  "auto.analiza_przestrzenna_trendu_z_3h": "Analiza przestrzenna trendu glikemii z 3 godzin wstecz.",
+  "auto.wykrywanie_ukrytej_opornosci": "Wykrywanie ukrytej oporności na insulinę.",
+  "auto.przewidywanie_naglych_zalaman": "Przewidywanie nagłych załamań linii na 2 godziny w przód.",
+  "auto.plytka_analiza_z_30m": "Płytka analiza czasowa z ostatnich 30 minut.",
+  "auto.standardowe_wnioskowanie_iob": "Standardowe wnioskowanie o aktywnej insulinie."
 }
 
 

@@ -1,7 +1,7 @@
 {
-  "name": "diacontrolapp",
+  "name": "diab",
   "private": true,
-  "version": "5.8.03",
+  "version": "5.8.05",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -56,6 +56,7 @@
     "html5-qrcode": "^2.3.8",
     "i18next": "^26.3.1",
     "i18next-browser-languagedetector": "^8.2.1",
+    "isomorphic-git": "^1.38.9",
     "jeep-sqlite": "^2.8.0",
     "lodash": "^4.18.1",
     "lucide-react": "^0.546.0",

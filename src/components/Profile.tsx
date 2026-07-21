@@ -485,7 +485,6 @@ export default function Profile({
           "therapy",
           "shop",
           "devices",
-          "diets",
           "stats",
           "food",
           "meds",
@@ -615,13 +614,7 @@ export default function Profile({
         icon: <Signal size={24} />,
         color: "bg-indigo-500",
       },
-      {
-        id: "diets",
-        label: i18n.t('auto.diety', { defaultValue: 'Diety' }),
-        sub: i18n.t('auto.nawyki', { defaultValue: "Nawyki" }),
-        icon: <BookOpen size={24} />,
-        color: "bg-rose-500",
-      },
+
       {
         id: "devices",
         label: i18n.t('auto.osprzęt', { defaultValue: i18n.t('auto.osprzet', { defaultValue: "Osprzęt" }) }),
@@ -629,13 +622,7 @@ export default function Profile({
         icon: <Signal size={24} />,
         color: "bg-indigo-500",
       },
-      {
-        id: "diets",
-        label: i18n.t('auto.diety', { defaultValue: 'Diety' }),
-        sub: i18n.t('auto.nawyki', { defaultValue: "Nawyki" }),
-        icon: <BookOpen size={24} />,
-        color: "bg-rose-500",
-      },
+
       {
         id: "stats",
         label: i18n.t('auto.statystyki', { defaultValue: 'Statystyki' }),
@@ -2033,7 +2020,6 @@ export default function Profile({
                     ]
                   : []),
                 { id: "devices", label: i18n.t('auto.osprzęt', { defaultValue: i18n.t('auto.osprzet', { defaultValue: "Osprzęt" }) }), icon: <Signal size={14} />, color: "text-indigo-500 bg-indigo-500/10" },
-                { id: "diets", label: i18n.t('auto.diety', { defaultValue: 'Diety' }), icon: <BookOpen size={14} />, color: "text-rose-500 bg-rose-500/10" },
                 {
                   id: "stats",
                   label: i18n.t('auto.statystyki', { defaultValue: 'Statystyki' }),
@@ -7235,7 +7221,7 @@ export default function Profile({
                       {benchmarkStatus === "running_v4" && <span className="text-[9px] opacity-70">Testowanie 4.0 TCN INT8...</span>}
                     </button>
                     <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold px-4 text-center leading-relaxed">
-                      {t('auto.benchmark_desc', { defaultValue: "Przetestuj wydajność obu modeli GlikoSense na Twoim urządzeniu. Niższy wynik = szybsze działanie." })}
+                      {t('auto.benchmark_desc', { defaultValue: "Przetestuj sprzętowe wsparcie AI na Twoim urządzeniu. TCN (4.0) analizuje wielokrotnie więcej danych z całych 24 godzin – wynik rzędu 1-3 sekund na urządzeniu mobilnym to fenomenalny rezultat silnika WASM." })}
                     </p>
                   </div>
 

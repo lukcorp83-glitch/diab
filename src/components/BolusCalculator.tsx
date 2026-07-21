@@ -72,6 +72,7 @@ export default function BolusCalculator({
   const [trend, setTrend] = useState<"up" | "stable" | "down">("stable");
   const [dose, setDose] = useState<number>(0);
   const [manualDose, setManualDose] = useState<string | null>(null);
+
   const [extendedTime, setExtendedTime] = useState<number>(0); // how many hours to extend
   const [settings, setSettings] = useState<UserSettings>({
     isf: 58,
@@ -81,6 +82,9 @@ export default function BolusCalculator({
     targetMax: 140,
     dia: 4,
   });
+
+  const safeDia = Number(settings.dia?.toString().replace(',', '.')) || 4;
+
   const [scanning, setScanning] = useState(false);
   const [scanResultMsg, setScanResultMsg] = useState<string | null>(null);
   const [aiRec, setAiRec] = useState<{
@@ -157,9 +161,9 @@ export default function BolusCalculator({
         setFat(parsed.fat?.toString() || "");
         if (parsed.name) setMealName(parsed.name);
         
-        const kcalFromWBT = pProt * 4 + pFat * 9;
+        const kcalFromWBT = (pProt * 4) + (pFat * 9);
         if (kcalFromWBT >= 100) {
-          setIsPizzaMode(true);
+          setTimeout(() => setIsPizzaMode(true), 0);
         }
         
         if (parsed.items) {
@@ -222,8 +226,8 @@ export default function BolusCalculator({
     // Net carbs calculation
     const netCarbs = Math.max(0, carbsNum - polyolsNum);
 
-    let currentIsf = settings.isf;
-    let currentWwRatio = settings.wwRatio;
+    let currentIsf = Math.max(1, Number(settings.isf?.toString().replace(',', '.')) || 50);
+    let currentWwRatio = Math.max(0.1, Number(settings.wwRatio?.toString().replace(',', '.')) || 10);
     let activeProfileStr = null;
 
     if (settings.hourlyProfiles && settings.hourlyProfiles.length > 0) {
@@ -243,8 +247,8 @@ export default function BolusCalculator({
         activeProfile = sorted[sorted.length - 1];
 
       if (activeProfile) {
-        currentIsf = activeProfile.isf || currentIsf;
-        currentWwRatio = activeProfile.wwRatio || currentWwRatio;
+        currentIsf = Math.max(1, Number(activeProfile.isf?.toString().replace(',', '.')) || currentIsf);
+        currentWwRatio = Math.max(0.1, Number(activeProfile.wwRatio?.toString().replace(',', '.')) || currentWwRatio);
         activeProfileStr = activeProfile.time;
       }
     }
@@ -266,13 +270,15 @@ export default function BolusCalculator({
     }
     setExtendedTime(extendHrs);
 
-    const target = (settings.targetMin + settings.targetMax) / 2;
+    const safeTargetMin = Number(settings.targetMin?.toString().replace(',', '.')) || 70;
+    const safeTargetMax = Number(settings.targetMax?.toString().replace(',', '.')) || 140;
+    const target = (safeTargetMin + safeTargetMax) / 2;
     let corrDose = bgNum > target ? (bgNum - target) / currentIsf : 0;
     if (bgNum > 0 && bgNum < target) {
       corrDose = (bgNum - target) / currentIsf; // negative correction
     }
 
-    const iob = getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
+    const iob = getEffectiveIOB(logs, pumpStatus, safeDia);
     const cob = calculateCOB(logs);
     const cobDose = cob / currentWwRatio;
 
@@ -295,31 +301,31 @@ export default function BolusCalculator({
     const baseVal = mealDose + wbtDose + adjustedCorrDose;
 
     let chartData = [];
-    if (mealDose > 0)
+    if (mealDose > 0 && !isNaN(mealDose))
       chartData.push({
         name: t('bolus.chart_carbs'),
         value: parseFloat(mealDose.toFixed(2)),
         color: "#3b82f6",
       });
-    if (wbtDose > 0)
+    if (wbtDose > 0 && !isNaN(wbtDose))
       chartData.push({
         name: "WBT",
         value: parseFloat(wbtDose.toFixed(2)),
         color: "#f59e0b",
       });
-    if (corrDose > 0)
+    if (corrDose > 0 && !isNaN(adjustedCorrDose))
       chartData.push({
         name: t('bolus.chart_corr_pos'),
         value: parseFloat(adjustedCorrDose.toFixed(2)),
         color: "#ef4444",
       });
-    if (corrDose < 0)
+    if (corrDose < 0 && !isNaN(corrDose))
       chartData.push({
         name: t('bolus.chart_corr_neg'),
         value: parseFloat(Math.abs(corrDose).toFixed(2)),
         color: "#10b981",
       }); // we show absolute in chart but it reduces total
-    if (freeIob > 0 && corrDose > 0)
+    if (freeIob > 0 && corrDose > 0 && !isNaN(freeIob) && !isNaN(corrDose))
       chartData.push({
         name: "IOB (-)",
         value: parseFloat(Math.min(corrDose, freeIob).toFixed(2)),
@@ -328,29 +334,34 @@ export default function BolusCalculator({
 
     const trendFactor = trend === "up" ? 1.15 : trend === "down" ? 0.85 : 1.0;
     let total = Math.max(0, baseVal * trendFactor * alcoholReduction);
+    if (isNaN(total)) total = 0;
 
     if (trendFactor !== 1.0 && total > 0) {
       const trendImpact = baseVal * trendFactor - baseVal;
-      chartData.push({
-        name: "Trend",
-        value: parseFloat(Math.abs(trendImpact).toFixed(2)),
-        color: trend === "up" ? "#f97316" : "#06b6d4",
-      });
+      if (!isNaN(trendImpact)) {
+        chartData.push({
+          name: "Trend",
+          value: parseFloat(Math.abs(trendImpact).toFixed(2)),
+          color: trend === "up" ? "#f97316" : "#06b6d4",
+        });
+      }
     }
 
     if (alcoholReduction !== 1.0 && total > 0) {
       const alcImpact =
         baseVal * trendFactor * alcoholReduction - baseVal * trendFactor;
-      chartData.push({
-        name: "Alkohol (-)",
-        value: parseFloat(Math.abs(alcImpact).toFixed(2)),
-        color: "#6366f1",
-      });
+      if (!isNaN(alcImpact)) {
+        chartData.push({
+          name: "Alkohol (-)",
+          value: parseFloat(Math.abs(alcImpact).toFixed(2)),
+          color: "#6366f1",
+        });
+      }
     }
 
-    setDoseBreakdown(chartData);
+    setDoseBreakdown(chartData.filter(d => !isNaN(d.value)));
 
-    const roundedTotal = Math.round(total * 10) / 10;
+    const roundedTotal = isNaN(total) ? 0 : Math.round(total * 10) / 10;
     setDose(roundedTotal);
     setManualDose(null);
   };
@@ -414,13 +425,14 @@ export default function BolusCalculator({
   const handleSave = async () => {
     if (!user || saving) return;
 
-    const finalDose = manualDose !== null ? parseFloat(manualDose) : dose;
+    let finalDose = manualDose !== null ? parseFloat(manualDose) : dose;
+    if (isNaN(finalDose)) finalDose = 0;
     const bgNum = parseFloat(bg) || 0;
     const carbsNum = parseFloat(carbs) || 0;
     const protNum = parseFloat(protein) || 0;
     const fNum = parseFloat(fat) || 0;
 
-    if (finalDose <= 0 && bgNum <= 0 && carbsNum <= 0) {
+    if (finalDose <= 0 && bgNum <= 0 && carbsNum <= 0 && protNum <= 0 && fNum <= 0) {
       toast.error(t('bolus.err_empty'));
       return;
     }
@@ -528,13 +540,15 @@ export default function BolusCalculator({
       }
 
       // 3. Separate Meal Entry (ONLY if no bolus)
-      if (carbsNum > 0 && finalDose <= 0) {
+      if ((carbsNum > 0 || protNum > 0 || fNum > 0) && finalDose <= 0) {
         const payload: any = {
           type: "meal",
           value: Math.max(0, carbsNum - (parseFloat(polyols) || 0)),
           timestamp: timestamp - 5,
           description: mealName || "Pobrano z kalkulatora",
-          calories: Math.round(carbsNum * 4 + protNum * 4 + fNum * 9)
+          calories: Math.round(carbsNum * 4 + protNum * 4 + fNum * 9),
+          name: mealName || null,
+          items: items.length > 0 ? items : undefined,
         };
         if (parseFloat(polyols) > 0) payload.polyols = parseFloat(polyols);
         if (protNum > 0) payload.protein = Math.round(protNum * 10) / 10;
@@ -642,9 +656,11 @@ export default function BolusCalculator({
     setLoadingAi(true);
     try {
       const bgNum = parseFloat(bg) || 0;
-      const iob = getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
+      const safeDia = settings.dia || 4;
+      const iob = getEffectiveIOB(logs, pumpStatus, safeDia);
       const cob = calculateCOB(logs);
-      const currentDose = manualDose !== null ? parseFloat(manualDose) : dose;
+      let currentDose = manualDose !== null ? parseFloat(manualDose) : dose;
+      if (isNaN(currentDose)) currentDose = 0;
       const netCarbsNum = Math.max(
         0,
         (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0),
@@ -941,7 +957,7 @@ export default function BolusCalculator({
           </motion.div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative z-10">
           <input
             type="checkbox"
             id="pizzaMode"
@@ -1009,7 +1025,7 @@ export default function BolusCalculator({
         )}
 
         {!settings.childMode && (
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex items-center gap-2 mt-4 relative z-10">
             <input
               type="checkbox"
               id="alcoholMode"
@@ -1163,7 +1179,7 @@ export default function BolusCalculator({
             <h3 className="text-[10px] font-black uppercase text-slate-500 mb-4 text-center tracking-widest flex items-center justify-center gap-2">
               <BarChart2 size={14} className="text-accent-500" /> {t('bolus.dose_analysis')}
             </h3>
-            <div className="h-44 w-full">
+            <div className="h-44 w-full relative">
               <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart
                   data={doseBreakdown}
@@ -1262,7 +1278,7 @@ export default function BolusCalculator({
                 max="50"
                 step="0.1"
                 value={manualDose !== null ? manualDose : dose.toFixed(1)}
-                onChange={(e) => setManualDose(e.target.value)}
+                onChange={(e) => setManualDose(e.target.value.replace(',', '.'))}
                 onBlur={() => {
                   if (manualDose === null) return;
                   let v = parseFloat(manualDose);
@@ -1277,7 +1293,7 @@ export default function BolusCalculator({
             </div>
 
             {/* Stacking Warning (IOB & COB) */}
-            {(getEffectiveIOB(logs, pumpStatus, settings.dia || 4) > 0.5 ||
+            {(getEffectiveIOB(logs, pumpStatus, safeDia) > 0.5 ||
               calculateCOB(logs) > 5) && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }}
@@ -1288,7 +1304,7 @@ export default function BolusCalculator({
                   <AlertTriangle
                     size={12}
                     className={cn(
-                      getEffectiveIOB(logs, pumpStatus, settings.dia || 4) > 0.5
+                      getEffectiveIOB(logs, pumpStatus, safeDia) > 0.5
                         ? "text-rose-500 animate-pulse"
                         : "text-amber-500",
                     )}
@@ -1298,14 +1314,14 @@ export default function BolusCalculator({
                   </span>
                 </div>
                 <div className="flex gap-4">
-                  {getEffectiveIOB(logs, pumpStatus, settings.dia || 4) >
+                  {getEffectiveIOB(logs, pumpStatus, safeDia) >
                     0.1 && (
                     <span className="text-[9px] font-bold text-rose-400">
                       {t('bolus.insulin_iob')}:{" "}
                       {getEffectiveIOB(
                         logs,
                         pumpStatus,
-                        settings.dia || 4,
+                        safeDia,
                       ).toFixed(2)}
                       {t('bolus.unit')}
                     </span>
@@ -1351,7 +1367,7 @@ export default function BolusCalculator({
           <button
             onClick={handleAskAi}
             disabled={loadingAi || ((manualDose !== null ? parseFloat(manualDose) || 0 : dose) === 0 && !bg && !carbs)}
-            className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-accent-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-accent-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2 relative z-10"
           >
             {loadingAi ? (
               <Loader2 size={14} className="animate-spin" />
@@ -1362,9 +1378,12 @@ export default function BolusCalculator({
         </div>
 
         <button
-          onClick={handleSave}
-          disabled={saving || ((manualDose !== null ? parseFloat(manualDose) || 0 : dose) === 0 && !bg && !carbs)}
-          className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          onClick={(e) => {
+            e.preventDefault();
+            handleSave();
+          }}
+          disabled={saving || (isNaN(manualDose !== null ? parseFloat(manualDose) : dose) || ((manualDose !== null ? parseFloat(manualDose) || 0 : dose) === 0 && !bg && !carbs && !protein && !fat))}
+          className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 relative z-10"
         >
           {saving && <Loader2 size={18} className="animate-spin" />}
           {saving ? t('bolus.saving') : t('bolus.save_btn')}

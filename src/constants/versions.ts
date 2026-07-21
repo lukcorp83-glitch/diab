@@ -14,12 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.8.03';
+export const CURRENT_VERSION = '5.8.05';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.05",
+    date: "2026-07-20",
+    title: "Krytyczna poprawka Kalkulatora Bolusa",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "ShieldAlert",
+        colorClass: "bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400",
+        descriptionKey: "Zabezpieczono wszystkie zmienne profilowe przed błędami parsera, naprawiając nieklikalne pola w Kalkulatorze Bolusa."
+      }
+    ]
+  },
   {
     version: "5.8.03",
     date: "2026-07-20",
@@ -55,8 +68,8 @@ export const PWA_VERSIONS: VersionEntry[] = [
     date: "2026-07-17",
     title: "GlikoSense 4.0 Pro – Dwusilnikowa AI z Ochroną Sprzętową",
     changes: [
-      "Nowość: Silnik GlikoSense 4.0 Pro (TCN + INT8) – sploty dylatowane z kwantyzacją wag i prognozą do 6 godzin.",
-      "Bezpieczeństwo: Blokada aktywacji silnika 4.0 na urządzeniach bez wsparcia GPU/WebGL lub z mniej niż 3GB RAM.",
+      "Nowość: Silnik GlikoSense 4.0 Pro (TCN) – sploty dylatowane i prognoza do 6 godzin.",
+      "Bezpieczeństwo: Blokada aktywacji silnika 4.0 na urządzeniach z mniej niż 3GB RAM.",
       "Bezpiecznik: Automatyczny tryb hybrydowy (v3.0 LSTM) gdy historia zawiera mniej niż 150 pomiarów.",
       "Interfejs: Dynamiczna zamiana etykiet GlikoSense 3.0 ➞ 4.0 Pro po aktywacji nowego silnika (zakładka AI, status systemowy).",
       "Nowość: 3 nowe reguły fizjologiczne: Bezwładność Weekendowa, Opóźniony Spadek Powyśiłkowy, Wrażliwość Cykliczna (Stres)."
@@ -682,6 +695,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "5.8.05",
+    date: "2026-07-20",
+    title: "Krytyczna poprawka Kalkulatora Bolusa",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "ShieldAlert",
+        colorClass: "bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400",
+        descriptionKey: "Zabezpieczono wszystkie zmienne profilowe przed błędami parsera, naprawiając nieklikalne pola w Kalkulatorze Bolusa."
+      }
+    ]
+  },
+  {
     version: "5.8.03",
     date: "2026-07-20",
     title: "Centrum Żywieniowe i TCN WASM Fix",
@@ -716,8 +742,8 @@ export const APK_VERSIONS: VersionEntry[] = [
     date: "2026-07-17",
     title: "GlikoSense 4.0 Pro – Dwusilnikowa AI z Ochroną Sprzętową",
     changes: [
-      "Nowość: Silnik GlikoSense 4.0 Pro (TCN + INT8) – sploty dylatowane z kwantyzacją wag i prognozą do 6 godzin.",
-      "Bezpieczeństwo: Blokada aktywacji silnika 4.0 na urządzeniach bez wsparcia GPU/WebGL lub z mniej niż 3GB RAM.",
+      "Nowość: Silnik GlikoSense 4.0 Pro (TCN) – sploty dylatowane i prognoza do 6 godzin.",
+      "Bezpieczeństwo: Blokada aktywacji silnika 4.0 na urządzeniach z mniej niż 3GB RAM.",
       "Bezpiecznik: Automatyczny tryb hybrydowy (v3.0 LSTM) gdy historia zawiera mniej niż 150 pomiarów.",
       "Interfejs: Dynamiczna zamiana etykiet GlikoSense 3.0 ➞ 4.0 Pro po aktywacji nowego silnika.",
       "Nowość: 3 nowe reguły fizjologiczne: Bezwładność Weekendowa, Opóźniony Spadek Powyśiłkowy, Wrażliwość Cykliczna (Stres)."

@@ -211,6 +211,11 @@ export const MLAnalyzer = {
     if (mode === 'quick' && _currentQuickAnalysisPromise) return _currentQuickAnalysisPromise;
 
     const analysisPromise = new Promise((resolve, reject) => {
+      if (typeof window === 'undefined') {
+        resolve(null);
+        return;
+      }
+      
       // Setup Web Worker using standard URL module approach for Capacitor compatibility
       const worker = new Worker(new URL('../workers/glikosense.worker.ts', import.meta.url), { type: 'module' });
       
@@ -218,12 +223,12 @@ export const MLAnalyzer = {
       const timeoutId = setTimeout(() => {
         worker.terminate();
         reject(new Error("GlikoSense Worker timeout"));
-      }, mode === 'quick' ? 120000 : 240000);
+      }, mode === 'quick' ? 300000 : 600000);
 
       worker.onmessage = (e) => {
-        clearTimeout(timeoutId);
         const { type, payload, value, key, error } = e.data;
         if (type === 'result') {
+          clearTimeout(timeoutId);
           worker.terminate();
           if (payload.learnedPkParams || payload.discoveredRules) {
              const rules = GlikoSenseLearner.getRules();
@@ -260,10 +265,12 @@ export const MLAnalyzer = {
              }
           }
           
+          
           resolve(payload);
         } else if (type === 'storage_update') {
           localStorage.setItem(key, value);
         } else if (type === 'error') {
+          clearTimeout(timeoutId);
           worker.terminate();
           console.error("GlikoSense Worker Error:", error);
           reject(new Error(error));

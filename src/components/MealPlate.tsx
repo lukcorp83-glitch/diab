@@ -860,25 +860,32 @@ export default function MealPlate({
       return Math.max(0, 1 - Math.pow((t - peakT) / duration, 2));
     };
 
-    const getWbtAbsorption = (t: number) => {
+    const getWbtAbsorption = (t: number, wbt: number) => {
       let multiplier = pkSlow / 5.0;
       let adjT = t / multiplier;
+      let maxDuration = 5;
+      if (wbt > 0 && wbt < 1.5) maxDuration = 3;
+      else if (wbt >= 1.5 && wbt < 2.5) maxDuration = 4;
+      else if (wbt >= 2.5 && wbt < 3.5) maxDuration = 5;
+      else if (wbt >= 3.5) maxDuration = 8;
+      
       if (adjT < 1) return 0;
-      if (adjT < 3) return (adjT - 1) * 0.5;
-      return Math.max(0, 1 - (adjT - 3) * 0.5);
+      const peakT = 1 + (maxDuration - 1) / 2;
+      if (adjT < peakT) return (adjT - 1) / (peakT - 1);
+      return Math.max(0, 1 - (adjT - peakT) / (maxDuration - peakT));
     };
 
     // Find all meals and boluses within 6h window before activeMeal
     const recentMeals = logs.filter(
       (l) =>
         (l.type === "meal" || l.type === "carbs" || l.linkedMeal) &&
-        (activeMeal.timestamp || 0) - (l.timestamp || 0) < 1000 * 60 * 60 * 6,
+        (activeMeal.timestamp || 0) - (l.timestamp || 0) < 1000 * 60 * 60 * 12,
     );
     const recentBoluses = logs.filter(
       (l) =>
         (l.type === "bolus" || l.type === "insulin") &&
         Math.abs((activeMeal.timestamp || 0) - (l.timestamp || 0)) <
-          1000 * 60 * 60 * 6,
+          1000 * 60 * 60 * 12,
     );
     const bgLogs = logs
       .filter((l) => l.type === "glucose")
@@ -889,10 +896,9 @@ export default function MealPlate({
     const maxCarbPeakActive = gI > 70 ? 0.75 : gI < 50 ? 1.5 : 1.0;
     const maxCarbTimeActive = WW > 0 ? (maxCarbPeakActive + 1.5) * maxCarbMultiplierActive : 0;
     const maxWbtTimeActive = WBT > 0 ? 5 * (pkSlow / 5.0) : 0;
-    maxChartHoursActive = Math.max(maxCarbTimeActive, maxWbtTimeActive, 2);
+    maxChartHoursActive = Math.max(maxCarbTimeActive, getMealAbsorptionTime(WW, WBT), 2);
     if (recentBoluses.length > 0) maxChartHoursActive = Math.max(maxChartHoursActive, 4);
     maxChartHoursActive = Math.ceil(maxChartHoursActive * 2) / 2;
-    if (maxChartHoursActive > 8) maxChartHoursActive = 8;
 
     for (let currentHr = -1; currentHr <= maxChartHoursActive; currentHr += 0.5) {
       let totalMealImpact = 0;
@@ -923,8 +929,8 @@ export default function MealPlate({
           for (let step = 0; step <= 8; step += 0.5)
             tCarbProfile += getCarbAbsorption(step, gI);
           let tWbtProfile = 0;
-          for (let step = 0; step <= 8; step += 0.5)
-            tWbtProfile += getWbtAbsorption(step);
+          for (let step = 0; step <= 12; step += 0.5)
+            tWbtProfile += getWbtAbsorption(step, mWBT);
 
           let c =
             tCarbProfile > 0
@@ -932,7 +938,7 @@ export default function MealPlate({
               : 0;
           let w =
             tWbtProfile > 0
-              ? (getWbtAbsorption(relativeAgeHr) / tWbtProfile) * mWBT
+              ? (getWbtAbsorption(relativeAgeHr, mWBT) / tWbtProfile) * mWBT
               : 0;
 
           totalMealImpact += c + w;
@@ -1011,12 +1017,19 @@ export default function MealPlate({
       return Math.max(0, 1 - Math.pow((t - peakT) / duration, 2));
     };
 
-    const getWbtAbsorption = (t: number) => {
+    const getWbtAbsorption = (t: number, wbt: number) => {
       let multiplier = pkSlow / 5.0;
       let adjT = t / multiplier;
+      let maxDuration = 5;
+      if (wbt > 0 && wbt < 1.5) maxDuration = 3;
+      else if (wbt >= 1.5 && wbt < 2.5) maxDuration = 4;
+      else if (wbt >= 2.5 && wbt < 3.5) maxDuration = 5;
+      else if (wbt >= 3.5) maxDuration = 8;
+      
       if (adjT < 1) return 0;
-      if (adjT < 3) return (adjT - 1) * 0.5;
-      return Math.max(0, 1 - (adjT - 3) * 0.5);
+      const peakT = 1 + (maxDuration - 1) / 2;
+      if (adjT < peakT) return (adjT - 1) / (peakT - 1);
+      return Math.max(0, 1 - (adjT - peakT) / (maxDuration - peakT));
     };
 
     const startTime = new Date(entryTime).getTime();
@@ -1026,9 +1039,8 @@ export default function MealPlate({
     const maxCarbPeakPlate = averageGi > 70 ? 0.75 : averageGi < 50 ? 1.5 : 1.0;
     const maxCarbTimePlate = WW > 0 ? (maxCarbPeakPlate + 1.5) * maxCarbMultiplierPlate : 0;
     const maxWbtTimePlate = WBT > 0 ? 5 * (pkSlow / 5.0) : 0;
-    maxChartHoursPlate = Math.max(maxCarbTimePlate, maxWbtTimePlate, 2);
+    maxChartHoursPlate = Math.max(maxCarbTimePlate, getMealAbsorptionTime(WW, WBT), 2);
     maxChartHoursPlate = Math.ceil(maxChartHoursPlate * 2) / 2;
-    if (maxChartHoursPlate > 8) maxChartHoursPlate = 8;
 
     for (let currentHr = 0; currentHr <= maxChartHoursPlate; currentHr += 0.5) {
       let tCarbProfile = 0;
@@ -1036,12 +1048,12 @@ export default function MealPlate({
         tCarbProfile += getCarbAbsorption(step, averageGi);
       }
       let tWbtProfile = 0;
-      for (let step = 0; step <= 8; step += 0.5) {
-        tWbtProfile += getWbtAbsorption(step);
+      for (let step = 0; step <= 12; step += 0.5) {
+        tWbtProfile += getWbtAbsorption(step, WBT);
       }
 
       let c = tCarbProfile > 0 ? (getCarbAbsorption(currentHr, averageGi) / tCarbProfile) * WW : 0;
-      let w = tWbtProfile > 0 ? (getWbtAbsorption(currentHr) / tWbtProfile) * WBT : 0;
+      let w = tWbtProfile > 0 ? (getWbtAbsorption(currentHr, WBT) / tWbtProfile) * WBT : 0;
 
       const chartTime = new Date(startTime + currentHr * 60 * 60 * 1000);
 
@@ -1995,35 +2007,6 @@ export default function MealPlate({
       {/* Search & Browser */}
       {(mode === "search" || mode === "both") && (
         <>
-          {mode === "search" && plate.length > 0 && (
-            <div
-              onClick={() => {
-                Haptics.medium();
-                setTab("meal");
-              }}
-              className="cursor-pointer mb-6 p-4 rounded-3xl bg-gradient-to-r from-accent-600 via-indigo-600 to-sky-600 text-white shadow-xl flex items-center justify-between gap-3 transform hover:scale-[1.01] transition-all border border-white/10"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 rounded-2xl animate-pulse">
-                  <Utensils size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-2">
-                    {t('meal.your_plate', { defaultValue: 'Mój Talerz' })}
-                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                      {plate.length} {t('auto.skladniki', { defaultValue: 'składniki' })}
-                    </span>
-                  </h4>
-                  <p className="text-[11px] text-white/90 font-medium mt-0.5">
-                    {t('auto.kliknij_by_przejsc_do_talerza', { defaultValue: 'Kliknij, aby otworzyć talerz, przeliczyć WW/WBT i podać bolus' })}
-                  </p>
-                </div>
-              </div>
-              <div className="px-3.5 py-2 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-wider shrink-0 shadow-md">
-                {t('auto.otworz_talerz', { defaultValue: 'Otwórz talerz' })} →
-              </div>
-            </div>
-          )}
           <div className="px-1">
             <h2 className="text-xl font-black dark:text-white mb-2">
               {t('meal.build_meal', { defaultValue: i18n.t('auto.buduj_swoj_posilek', { defaultValue: "Buduj swój posiłek" }) })}

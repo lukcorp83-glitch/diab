@@ -1,13 +1,13 @@
 import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '5.8.02';
-export const CURRENT_VERSION = '5.8.02';
+export const APP_VERSION = '5.8.05';
+export const CURRENT_VERSION = '5.8.05';
 
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';
 export const FACEBOOK_GROUP_URL = 'https://www.facebook.com/groups/4442689766059238/';
-export const FACEBOOK_GROUP_URL_EN = 'https://www.facebook.com/groups/1548051880440593/';
+export const FACEBOOK_GROUP_URL_EN = 'https://www.facebook.com/groups/154805.8.0540593/';
 
 export const CATEGORIES = [
   "Owoce i Warzywa",
