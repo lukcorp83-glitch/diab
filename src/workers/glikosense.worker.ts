@@ -237,11 +237,16 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     try {
-      setWasmPaths('/wasm/');
-      if (typeof OffscreenCanvas !== 'undefined') {
-        await tf.setBackend('webgl');
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+         try { await tf.setBackend('cpu'); } catch(e) {}
       } else {
-        throw new Error('No webgl');
+        setWasmPaths('/wasm/');
+        if (typeof OffscreenCanvas !== 'undefined') {
+          await tf.setBackend('webgl');
+        } else {
+          throw new Error('No webgl');
+        }
       }
     } catch (e) {
       try { 

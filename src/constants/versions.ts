@@ -14,12 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.8.05';
+export const CURRENT_VERSION = '5.8.06';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.06",
+    date: "2026-07-23",
+    title: "Wydajność ML na smartfonach",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "Zap",
+        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
+        descriptionKey: "Zoptymalizowano silnik GlikoSense 4.0 dla małych modeli wymuszając natywne obliczenia, rozwiązując problem opóźnień na urządzeniach mobilnych."
+      }
+    ]
+  },
   {
     version: "5.8.05",
     date: "2026-07-20",
@@ -694,6 +707,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.8.06",
+    date: "2026-07-23",
+    title: "Wydajność ML na smartfonach",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "Zap",
+        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
+        descriptionKey: "Zoptymalizowano silnik GlikoSense 4.0 dla małych modeli wymuszając natywne obliczenia, rozwiązując problem opóźnień na urządzeniach mobilnych."
+      }
+    ]
+  },
   {
     version: "5.8.05",
     date: "2026-07-20",

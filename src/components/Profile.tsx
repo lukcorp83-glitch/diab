@@ -864,7 +864,7 @@ export default function Profile({
           const timeoutId = setTimeout(() => {
             worker.terminate();
             resolve(9999);
-          }, 30000);
+          }, 90000);
 
           worker.onmessage = (e) => {
             if (e.data.type === "error") { toast.error("AI Error: " + e.data.error, {duration: 6000}); console.error("Worker error:", e.data.error); clearTimeout(timeoutId); worker.terminate(); resolve(9999); } if (e.data.type === "result") {
