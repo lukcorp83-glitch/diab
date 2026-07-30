@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.9.91';
+export const CURRENT_VERSION = '5.9.92';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.9.92",
+    date: "2026-07-30",
+    title: "Optymalizacja Nightscout i UI",
+    changes: [
+      "Optymalizacja synchronizacji Nightscout (szybsze pobieranie)",
+      "Inteligentniejsze filtrowanie statusu pompy (ignorowanie wpisów z telefonu)",
+      "Wizualny wskaźnik pulsującej kropki dla pigułki pogodowej na pulpicie"
+    ]
+  },
   {
     version: "5.9.91",
     date: "2026-07-30",
@@ -619,6 +629,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.9.92",
+    date: "2026-07-30",
+    title: "Optymalizacja Nightscout i UI",
+    changes: [
+      "Optymalizacja synchronizacji Nightscout (szybsze pobieranie)",
+      "Inteligentniejsze filtrowanie statusu pompy (ignorowanie wpisów z telefonu)",
+      "Wizualny wskaźnik pulsującej kropki dla pigułki pogodowej na pulpicie"
+    ]
+  },
   {
     version: "5.9.91",
     date: "2026-07-30",

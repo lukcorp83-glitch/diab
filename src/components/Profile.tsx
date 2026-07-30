@@ -3553,6 +3553,7 @@ export default function Profile({
  )}
  <button
  onClick={async () => {
+ console.log("==== PROFILE: Przycisk Pobierz dane kliknięty! ====", { nsUrl, nsSecret });
  if (!nsUrl) return;
  setNsSyncLoading(true);
  await saveNsUrl();
@@ -3566,9 +3567,9 @@ export default function Profile({
  }
  };
  window.addEventListener("nightscout-sync-result", handleResult);
- window.dispatchEvent(new Event("force-nightscout-sync"));
+ window.dispatchEvent(new CustomEvent("force-nightscout-sync", { detail: { url: nsUrl, secret: nsSecret } }));
  
- // Fallback: Timeout 15s in case worker hangs
+ // Fallback: Timeout 45s in case worker hangs
  setTimeout(() => {
  window.removeEventListener("nightscout-sync-result", handleResult);
  setNsSyncLoading((prev) => {
@@ -3579,7 +3580,7 @@ export default function Profile({
  }
  return false;
  });
- }, 15000);
+ }, 45000);
  }}
  disabled={nsSyncLoading}
  className="flex items-center gap-2 text-[10px] font-black text-accent-500 uppercase tracking-widest hover:text-accent-600 active:scale-95 transition-all"
@@ -3827,7 +3828,7 @@ export default function Profile({
  <CgmImport
  
  onComplete={() =>
- window.dispatchEvent(new Event("force-nightscout-sync"))
+ window.dispatchEvent(new CustomEvent("force-nightscout-sync", { detail: { url: nsUrl, secret: nsSecret } }))
  }
  />
  <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">

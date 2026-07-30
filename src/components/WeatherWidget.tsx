@@ -5,6 +5,7 @@ import { CloudRain, Sun, Cloud, Thermometer, Wind, Droplets, AlertTriangle, Clou
 import { fetchCurrentWeather } from '../services/weatherService';
 import { Haptics } from '../lib/haptics';
 import { useTranslation } from "react-i18next";
+import { toast } from "react-hot-toast";
 
 export default function WeatherWidget({ compact = false, pill = false }: { compact?: boolean, pill?: boolean }) {
  const { t } = useTranslation();
@@ -145,18 +146,47 @@ export default function WeatherWidget({ compact = false, pill = false }: { compa
  return <Sun size={24} className="text-amber-500" />;
  };
 
- if (pill) {
- if (!weather) return null;
- return (
- <div 
- onClick={handleRefreshLoc}
- className="shrink-0 flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest cursor-pointer active:scale-95 transition-all shadow-sm"
- >
- <span className="scale-75 origin-center">{renderWeatherIcon()}</span>
- {Math.round(weather.temp)}°
- </div>
- );
- }
+  if (pill) {
+    if (!weather) return null;
+    let colorClass = "text-sky-600 dark:text-sky-400";
+    let bgClass = "bg-sky-500/10 border-sky-500/20 hover:bg-sky-500/20";
+    let isBad = false;
+    const condition = (weather.condition || "").toLowerCase();
+    const hasStorm = condition.includes('thunder') || condition.includes('burza') || condition.includes('storm');
+    
+    if (weather.temp >= 30 || weather.temp <= -10 || hasStorm) {
+      colorClass = "text-red-600 dark:text-red-400";
+      bgClass = "bg-red-500/10 border-red-500/20 hover:bg-red-500/20";
+      isBad = true;
+    } else if (weather.temp >= 25 || weather.temp <= 0) {
+      colorClass = "text-amber-600 dark:text-amber-400";
+      bgClass = "bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20";
+      isBad = true;
+    }
+
+    return (
+      <div 
+        onClick={() => {
+          Haptics.light();
+          if (alertText) {
+            toast(alertText, { icon: alertIcon, duration: 6000 });
+          }
+        }}
+        className={`relative shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest cursor-pointer active:scale-95 transition-all shadow-sm group ${bgClass} ${colorClass}`}
+      >
+        <span className={`scale-75 origin-center ${isBad ? '[&>svg]:!text-current' : ''}`}>{renderWeatherIcon()}</span>
+        {Math.round(weather.temp)}°
+        
+        {/* Wskaźnik klikalności (pulsująca kropka) */}
+        {alertText && (
+          <div className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-60"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-current opacity-90 border-[1.5px] border-white dark:border-slate-900"></span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
  return (
  <div className="glass-card mb-0 overflow-hidden relative">

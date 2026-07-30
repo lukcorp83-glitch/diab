@@ -175,6 +175,22 @@ async function startServer() {
     }
   });
 
+  // Local CORS Proxy for Nightscout
+  app.get("/api/ns-proxy", async (req, res) => {
+    try {
+      const targetUrl = req.query.url as string;
+      const secret = req.headers['api-secret'] as string;
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (secret) headers['api-secret'] = secret;
+
+      const response = await fetch(targetUrl, { headers });
+      const data = await response.text();
+      res.status(response.status).send(data);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

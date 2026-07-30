@@ -217,10 +217,13 @@ function TopPillHydration() {
   return (
     <div 
       onClick={addGlass}
-      className="shrink-0 flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest cursor-pointer active:scale-95 transition-all shadow-sm"
+      className="relative overflow-hidden shrink-0 flex items-center bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest cursor-pointer active:scale-95 transition-all shadow-sm"
     >
-      <Droplet size={12} className={glasses > 0 ? "fill-blue-500/80" : ""} />
-      {glasses}/8
+      <div className="absolute left-0 top-0 bottom-0 bg-blue-500/20 dark:bg-blue-500/30 transition-all duration-500" style={{ width: `${Math.min(100, (glasses / 8) * 100)}%` }} />
+      <div className="relative z-10 flex items-center gap-1.5">
+        <Droplet size={12} className={glasses > 0 ? "fill-blue-500/80" : ""} />
+        {glasses}/8
+      </div>
     </div>
   );
 }
@@ -1749,18 +1752,57 @@ export default function Dashboard({
          )}
          {pumpStatus && (
             <>
-               {pumpStatus.battery !== undefined && (
-                 <div className="shrink-0 flex items-center gap-1.5 bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest shadow-sm">
-                   <Zap size={12} className="text-amber-500" />
-                   {pumpStatus.battery}%
-                 </div>
-               )}
-               {pumpStatus.reservoir !== undefined && (
-                 <div className="shrink-0 flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest shadow-sm">
-                   <Cpu size={12} />
-                   {pumpStatus.reservoir} J.
-                 </div>
-               )}
+               {pumpStatus.battery !== undefined && (() => {
+                 const bat = pumpStatus.battery;
+                 let colorClass = "text-emerald-600 dark:text-emerald-400";
+                 let fillClass = "bg-emerald-500/20 dark:bg-emerald-500/30";
+                 let bgClass = "bg-emerald-500/10 border-emerald-500/20";
+                 if (bat < 25) {
+                   colorClass = "text-red-600 dark:text-red-400";
+                   fillClass = "bg-red-500/20 dark:bg-red-500/30";
+                   bgClass = "bg-red-500/10 border-red-500/20";
+                 } else if (bat <= 50) {
+                   colorClass = "text-amber-600 dark:text-amber-400";
+                   fillClass = "bg-amber-500/20 dark:bg-amber-500/30";
+                   bgClass = "bg-amber-500/10 border-amber-500/20";
+                 }
+                 return (
+                   <div className={`relative overflow-hidden shrink-0 flex items-center px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
+                     <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${fillClass}`} style={{ width: `${bat}%` }} />
+                     <div className="relative z-10 flex items-center gap-1.5">
+                       <Zap size={12} className={bat < 25 ? "animate-pulse" : ""} />
+                       {bat}%
+                     </div>
+                   </div>
+                 );
+               })()}
+               {pumpStatus.reservoir !== undefined && (() => {
+                 const res = pumpStatus.reservoir;
+                 let colorClass = "text-indigo-600 dark:text-indigo-400";
+                 let fillClass = "bg-indigo-500/20 dark:bg-indigo-500/30";
+                 let bgClass = "bg-indigo-500/10 border-indigo-500/20";
+                 
+                 if (res <= 20) {
+                   colorClass = "text-red-600 dark:text-red-400";
+                   fillClass = "bg-red-500/20 dark:bg-red-500/30";
+                   bgClass = "bg-red-500/10 border-red-500/20";
+                 } else if (res <= 50) {
+                   colorClass = "text-amber-600 dark:text-amber-400";
+                   fillClass = "bg-amber-500/20 dark:bg-amber-500/30";
+                   bgClass = "bg-amber-500/10 border-amber-500/20";
+                 }
+
+                 const percent = Math.min(100, (res / 300) * 100);
+                 return (
+                   <div className={`relative overflow-hidden shrink-0 flex items-center px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
+                     <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${fillClass}`} style={{ width: `${percent}%` }} />
+                     <div className="relative z-10 flex items-center gap-1.5">
+                       <Cpu size={12} className={res <= 20 ? "animate-pulse" : ""} />
+                       {res} J.
+                     </div>
+                   </div>
+                 );
+               })()}
             </>
          )}
       </div>

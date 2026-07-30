@@ -8,9 +8,15 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
   const [nsDeviceStatus, setNsDeviceStatus] = useState<any>(null);
 
   useEffect(() => {
-    if (!user || !nsUrl) return;
+    console.log("==== HOOK: useEffect uruchomiony ====", { user: !!user, nsUrl });
+    if (!user) {
+      console.log("==== HOOK: Brak usera, przerywam ====");
+      return;
+    }
 
+    console.log("==== HOOK: Tworzę workera ====");
     const worker = new Worker(new URL('../workers/nightscout.worker.ts', import.meta.url), { type: 'module' });
+    console.log("==== HOOK: Worker utworzony ====", worker);
 
     worker.onmessage = (e) => {
       const { type, payload } = e.data;
@@ -60,16 +66,28 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       }
     };
 
-    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
-    useAppStore.getState().setSyncStatus({ status: "syncing" });
+    if (nsUrl) {
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 500 } });
+      useAppStore.getState().setSyncStatus({ status: "syncing" });
+    }
 
-    const handleForceSync = () => {
-      console.log("Force sync manually triggered (Worker)");
+    const handleForceSync = (e: any) => {
+      console.log("==== HOOK: Zdarzenie force-nightscout-sync otrzymane! ====", e);
+      const urlToUse = e?.detail?.url || nsUrl;
+      const secretToUse = e?.detail?.secret !== undefined ? e.detail.secret : nsSecret;
+      
+      if (!urlToUse) {
+         console.warn("==== HOOK: Brak URL do synchronizacji ====");
+         return;
+      }
+
+      console.log("Force sync manually triggered (Worker)", { urlToUse });
       useAppStore.getState().setSyncStatus({ status: "syncing" });
       worker.postMessage({ type: 'STOP_SYNC' });
-      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: urlToUse, secret: secretToUse, intervalMs: 5 * 60 * 1000, count: 500 } });
     };
 
+    console.log("==== HOOK: Rejestruję event listener na force-nightscout-sync ====");
     window.addEventListener("force-nightscout-sync", handleForceSync);
     
     const handleHypoAlert = (e: any) => {

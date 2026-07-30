@@ -1,10 +1,18 @@
 {
-  "version": "5.9.91",
+  "version": "5.9.92",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.91_OTA.apk",
   "buildNumber": 117,
   "forceUpdate": false,
-  "whatsNew": "🔧 Wersja 5.9.91: Nowa architektura aplikacji (Centrum żywieniowe i GlikoSense 4.0)",
-  "whatsNewEn": "🔧 Version 5.9.91: New application architecture (Nutrition Center & GlikoSense 4.0)",
+  "whatsNew": [
+    "Optymalizacja synchronizacji Nightscout (szybsze pobieranie)",
+    "Inteligentniejsze filtrowanie statusu pompy (ignorowanie wpisów z telefonu)",
+    "Wizualny wskaźnik pulsującej kropki dla pigułki pogodowej na pulpicie"
+  ],
+  "whatsNewEn": [
+    "Nightscout synchronization optimization (faster fetching)",
+    "Smarter pump status filtering (ignoring phone entries)",
+    "Visual pulsing dot indicator for the weather pill on the dashboard"
+  ],
   "otaRevision": 276
 }

@@ -1,7 +1,7 @@
 import i18n from '../i18n';
 import React from 'react';
 import { motion } from 'motion/react';
-import { Battery, Database, Activity, Zap, Clock } from 'lucide-react';
+import { Battery, Database, Activity, Zap, Clock, Syringe } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 
@@ -23,9 +23,10 @@ interface PumpStatusProps {
  } | null;
  loading?: boolean;
  compact?: boolean;
+ inventory?: any[];
 }
 
-export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compact = false }) => {
+export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compact = false, inventory = [] }) => {
  const { t } = useTranslation();
  if (!data) return null;
 
@@ -86,7 +87,7 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
  {isPump ? (
  <div className="flex flex-col gap-1">
  <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
- <Database size={10} /> {t('auto.zbiornik', { defaultValue: 'Zbiornik' })}
+ <Syringe size={10} /> {t('auto.zbiornik', { defaultValue: 'Zbiornik' })}
  </div>
  <div className={cn("text-lg font-black", getReservoirColor(data.reservoir))}>
  {data.reservoir != null ? Number(data.reservoir).toFixed(0) : '--'} <span className="text-[10px] opacity-70">U</span>
@@ -168,6 +169,22 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
  </div>
  )}
  </div>
+
+ {/* Zapas sprzętu (wkłucia, sensory, zbiorniczki) */}
+ {inventory && inventory.filter(item => ['cannulas', 'sensors', 'reservoirs'].includes(item.category)).length > 0 && (
+ <div className={cn("flex flex-wrap gap-2 pt-3 border-t border-slate-100 dark:border-slate-800", compact ? "mt-3" : "mt-4")}>
+ {inventory.filter(item => ['cannulas', 'sensors', 'reservoirs'].includes(item.category)).map((item) => (
+ <div key={item.id} className="flex items-center gap-1.5 bg-slate-100/80 dark:bg-slate-800/80 px-2 py-1 rounded-full border border-slate-200/50 dark:border-slate-700/50">
+ {item.category === 'cannulas' && <Activity size={10} className="text-emerald-500" />}
+ {item.category === 'sensors' && <Zap size={10} className="text-amber-500" />}
+ {item.category === 'reservoirs' && <Syringe size={10} className="text-purple-500" />}
+ <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300">
+ {item.name}: <span className="text-slate-900 dark:text-white">{item.quantity}</span>
+ </span>
+ </div>
+ ))}
+ </div>
+ )}
 
  <div className={cn("pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center", compact ? "mt-4" : "mt-6")}>
  <div>

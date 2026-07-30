@@ -35,15 +35,16 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
 
   // Fallback proxies in order of preference
   const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+    `/api/ns-proxy?url=${encodeURIComponent(directUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(directUrl)}`,
-    // thingsproxy.freeboard.io can sometimes work, but is very strict on some headers.
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+    `https://proxy.cors.sh/${directUrl}`
   ];
 
   for (const proxyUrl of proxies) {
     try {
-      // For proxies, headers often don't pass through correctly, so relying on token query param
-      const proxyResponse = await fetch(proxyUrl);
+      // Pass headers specifically for local proxy, which can forward them
+      const proxyResponse = await fetch(proxyUrl, { headers });
       if (proxyResponse.ok) {
         const textData = await proxyResponse.text();
         return JSON.parse(textData);

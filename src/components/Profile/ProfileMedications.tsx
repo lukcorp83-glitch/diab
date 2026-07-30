@@ -92,6 +92,7 @@ import {
 } from "firebase/firestore";
 import { notificationService } from "../../services/notificationService";
 import { UserSettings, LogEntry, InventoryItem } from "../../types";
+import { useQueryClient } from "@tanstack/react-query";
 import {
  APP_VERSION,
  MEDICAL_DICTIONARY,
@@ -145,6 +146,7 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
  const newSettings = { ...settings, inventory: updatedInv };
  setSettings(newSettings);
  await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { inventory: updatedInv }, { merge: true });
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  toast.success("Zapas usunięty");
  } catch (e) {
  toast.error("Błąd usuwania zapasu");
@@ -224,6 +226,7 @@ const saveMedication = async () => {
  { medications: updatedMeds },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  setNewMedication(null);
  } catch (e) {
  console.error(e);
@@ -270,6 +273,7 @@ const saveInventoryItem = async () => {
  { inventory: updatedInventory },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  setNewInventoryItem(null);
  } catch (e) {
  console.error(e);
@@ -777,6 +781,7 @@ const saveInventoryItem = async () => {
  { inventory: updatedInventory },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }
  }}
  className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all text-slate-600 dark:text-slate-300"

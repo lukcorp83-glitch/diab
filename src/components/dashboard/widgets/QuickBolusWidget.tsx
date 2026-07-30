@@ -1,7 +1,7 @@
 import React from 'react';
-import { cn } from ../../../lib/utils;
+import { cn } from '../../../lib/utils';
 import { Zap } from 'lucide-react';
-import { useTranslation } from react-i18next;
+import { useTranslation } from 'react-i18next';
 import { Haptics } from '../../../lib/haptics';
 
 export default function QuickBolusWidget({
@@ -15,18 +15,18 @@ export default function QuickBolusWidget({
       onClick={() => {
         if (!isEditingLayout) {
           Haptics.light();
-          setTab(bolus);
+          setTab('bolus');
         }
       }}
       className={cn(
-        bg-accent-600 flex flex-col items-center justify-center gap-2 shadow-2xl shadow-accent-600/40 active:scale-95 group transition-all text-white overflow-hidden relative w-full select-none h-full py-5 rounded-[2.5rem] min-h-[140px]
+        "bg-accent-600 flex flex-col items-center justify-center gap-2 shadow-2xl shadow-accent-600/40 active:scale-95 group transition-all text-white overflow-hidden relative w-full select-none h-full py-5 rounded-[2.5rem] min-h-[140px]"
       )}
     >
-      <div className=absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all pointer-events-none></div>
-      <div className=w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shrink-0 pointer-events-none>
+      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all pointer-events-none"></div>
+      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shrink-0 pointer-events-none">
         <Zap size={22} />
       </div>
-      <span className=font-black text-[12px] uppercase tracking-widest pointer-events-none text-center>
+      <span className="font-black text-[12px] uppercase tracking-widest pointer-events-none text-center">
         {t('auto.bolus', { defaultValue: 'Bolus' })}
       </span>
     </button>
