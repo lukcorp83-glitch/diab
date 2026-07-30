@@ -1,10 +1,10 @@
 {
-  "version": "5.7.2",
+  "version": "5.9.91",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.7.10_OTA.apk",
-  "buildNumber": 116,
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.91_OTA.apk",
+  "buildNumber": 117,
   "forceUpdate": false,
-  "whatsNew": "🔧 Wersja 5.7.2: Ulepszono funkcję synchronizacji w chmurze (Cloud Package Sync), aby eksportowała zarówno starą, jak i nową bazę danych. Rozpoczęto prace pod edycję bolusów w historii.",
-  "whatsNewEn": "🔧 Version 5.7.2: Improved Cloud Package Sync to export both legacy and new databases. Prepared code for bolus editing in history.",
+  "whatsNew": "🔧 Wersja 5.9.91: Nowość - Centrum żywieniowe oraz zaktualizowany silnik GlikoSense 4.0",
+  "whatsNewEn": "🔧 Version 5.9.91: New - Nutrition Center and updated GlikoSense 4.0 engine",
   "otaRevision": 276
 }

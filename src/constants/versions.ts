@@ -14,19 +14,19 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.7.2';
+export const CURRENT_VERSION = '5.9.91';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "5.7.2",
-    date: "2026-07-15",
-    title: "Poprawki synchronizacji i historii",
+    version: "5.9.91",
+    date: "2026-07-30",
+    title: "Centrum Żywieniowe i GlikoSense 4.0",
     changes: [
-      "Ulepszono synchronizację Cloud Package (eksport starej bazy)",
-      "Przygotowania pod szybką edycję historii"
+      "Nowość: Centrum żywieniowe ułatwiające monitorowanie diety.",
+      "Nowość: Silnik GlikoSense 4.0 z ulepszonymi predykcjami."
     ]
   },
   {
@@ -619,12 +619,12 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-    version: "5.7.2",
-    date: "2026-07-15",
-    title: "Poprawki synchronizacji i historii",
+    version: "5.9.91",
+    date: "2026-07-30",
+    title: "Centrum Żywieniowe i GlikoSense 4.0",
     changes: [
-      "Ulepszono synchronizację Cloud Package (eksport starej bazy)",
-      "Przygotowania pod szybką edycję historii"
+      "Nowość: Centrum żywieniowe ułatwiające monitorowanie diety.",
+      "Nowość: Silnik GlikoSense 4.0 z ulepszonymi predykcjami."
     ]
   },
   {

@@ -1,0 +1,106 @@
+import { useEffect, useState } from 'react';
+import { LogEntry } from '../types';
+import { useAppStore } from '../stores/useAppStore';
+import { notificationService } from '../services/notificationService';
+
+export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, userSettingsRef: any, deletedNsIdsRef: any) {
+  const [nsLogs, setNsLogs] = useState<LogEntry[]>([]);
+  const [nsDeviceStatus, setNsDeviceStatus] = useState<any>(null);
+
+  useEffect(() => {
+    if (!user || !nsUrl) return;
+
+    const worker = new Worker(new URL('../workers/nightscout.worker.ts', import.meta.url), { type: 'module' });
+
+    worker.onmessage = (e) => {
+      const { type, payload } = e.data;
+
+      if (type === 'SYNC_SUCCESS') {
+        if (payload.deviceStatus) {
+           setNsDeviceStatus(payload.deviceStatus);
+        }
+
+        const uniqueNSLogs: LogEntry[] = [];
+        const seen = new Set<string>();
+
+        const allLogs = [...(payload.entries || []), ...(payload.treatments || [])];
+        allLogs.forEach((n: LogEntry) => {
+          const key = n.id || (n.timestamp + n.type + (n.value || ''));
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueNSLogs.push(n);
+          }
+        });
+
+        const newLogsToSync = uniqueNSLogs.filter(
+          (newLog) => (!newLog.id || !deletedNsIdsRef.current.has(newLog.id))
+        );
+
+        if (newLogsToSync.length > 0) {
+          console.log(`Worker synced ${newLogsToSync.length} new records to memory`);
+          setNsLogs((prev) => {
+            const all = [...prev, ...newLogsToSync];
+            const uniqueMap = new Map();
+            all.forEach(log => {
+                const key = log.id || (log.timestamp + log.type + (log.value || ''));
+                uniqueMap.set(key, log);
+            });
+            return Array.from(uniqueMap.values()).sort((a, b) => b.timestamp - a.timestamp).slice(0, 45000);
+          });
+        }
+        
+        useAppStore.getState().setSyncStatus({ status: "success", lastSync: Date.now() });
+        window.dispatchEvent(new CustomEvent("nightscout-sync-result", { detail: { success: true } }));
+      }
+
+      if (type === 'SYNC_ERROR') {
+        console.error("Worker sync error:", payload);
+        useAppStore.getState().setSyncStatus({ status: "error", lastSync: Date.now() });
+        window.dispatchEvent(new CustomEvent("nightscout-sync-result", { detail: { success: false, payload } }));
+      }
+    };
+
+    worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
+    useAppStore.getState().setSyncStatus({ status: "syncing" });
+
+    const handleForceSync = () => {
+      console.log("Force sync manually triggered (Worker)");
+      useAppStore.getState().setSyncStatus({ status: "syncing" });
+      worker.postMessage({ type: 'STOP_SYNC' });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
+    };
+
+    window.addEventListener("force-nightscout-sync", handleForceSync);
+    
+    const handleHypoAlert = (e: any) => {
+      if (userSettingsRef.current?.notificationsEnabled === false) return;
+      const prefs = userSettingsRef.current?.notificationPrefs;
+      if (prefs?.hypoProtection !== false) {
+        const lastSent = parseInt(localStorage.getItem('last_hypo_protect_alert') || '0', 10);
+        if (Date.now() - lastSent > 60 * 60 * 1000) {
+          localStorage.setItem('last_hypo_protect_alert', Date.now().toString());
+          notificationService.sendHypoProtectionAlert();
+        }
+      }
+    };
+    window.addEventListener("glikosense_hypo_alert", handleHypoAlert);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("App returned to foreground, forcing nightscout worker sync...");
+        handleForceSync();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      worker.postMessage({ type: 'STOP_SYNC' });
+      worker.terminate();
+      window.removeEventListener("force-nightscout-sync", handleForceSync);
+      window.removeEventListener("glikosense_hypo_alert", handleHypoAlert);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user, nsUrl, nsSecret, userSettingsRef, deletedNsIdsRef]);
+
+  return { nsLogs, setNsLogs, nsDeviceStatus };
+}

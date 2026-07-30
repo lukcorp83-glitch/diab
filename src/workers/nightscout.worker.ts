@@ -23,29 +23,48 @@ interface NightscoutTreatment {
 }
 
 async function fetchWithFallbacks(directUrl: string, headers: Record<string, string>): Promise<any> {
+  let lastError = null;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout per fetch
   try {
-    const directResponse = await fetch(directUrl, { headers });
+    const directResponse = await fetch(directUrl, { headers, signal: controller.signal });
+    clearTimeout(timeoutId);
     if (directResponse.ok) return await directResponse.json();
-  } catch (err) {
-    // Ignore first failure as we have fallbacks
+    lastError = `Direct fetch failed with status ${directResponse.status}`;
+  } catch (e: any) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      lastError = "Request timed out (5s limit)";
+    } else {
+      lastError = e.message || "Network error on direct fetch";
+    }
   }
 
+  // Try proxies if direct fails
   const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(directUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
   ];
 
   for (const proxyUrl of proxies) {
+    const proxyController = new AbortController();
+    const proxyTimeoutId = setTimeout(() => proxyController.abort(), 5000);
     try {
-      const proxyResponse = await fetch(proxyUrl);
-      if (proxyResponse.ok) {
-        return JSON.parse(await proxyResponse.text());
+      const proxyResponse = await fetch(proxyUrl, { headers, signal: proxyController.signal });
+      clearTimeout(proxyTimeoutId);
+      if (proxyResponse.ok) return await proxyResponse.json();
+      lastError = `Proxy fetch failed with status ${proxyResponse.status}`;
+    } catch (e: any) {
+      clearTimeout(proxyTimeoutId);
+      if (e.name === 'AbortError') {
+        lastError = "Proxy request timed out (5s limit)";
+      } else {
+        lastError = e.message || "Network error on proxy";
       }
-    } catch (err) {
-      // ignore
     }
   }
-  return [];
+
+  throw new Error(`Wszystkie próby połączenia (bezpośrednie i proxy) zawiodły. Ostatni błąd: ${lastError}`);
 }
 
 function processEntries(data: any[]): any[] {
@@ -53,8 +72,8 @@ function processEntries(data: any[]): any[] {
   return data.filter((e: any) => e.sgv).map((e: any, index: number) => ({
     id: `ns-entry-${e.date}-${index}`,
     type: 'glucose',
-    value: e.sgv,
-    timestamp: e.date,
+    value: Number(e.sgv),
+    timestamp: typeof e.date === 'string' ? parseInt(e.date, 10) : (e.date || new Date(e.dateString).getTime()),
     source: 'nightscout',
     direction: e.direction,
     delta: e.delta,
@@ -174,16 +193,18 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
     ? `${baseUrl}/api/v1/devicestatus.json?count=1&${cacheBust}&token=${secret}` 
     : `${baseUrl}/api/v1/devicestatus.json?count=1&${cacheBust}`;
 
-  const [entriesRaw, treatmentsRaw, deviceRaw] = await Promise.all([
-    fetchWithFallbacks(entriesUrl, headers).catch(() => []),
-    fetchWithFallbacks(treatmentsUrl, headers).catch(() => []),
-    fetchWithFallbacks(deviceUrl, headers).catch(() => null),
-  ]);
+  const entriesRaw = await fetchWithFallbacks(entriesUrl, headers);
+  const treatmentsRaw = await fetchWithFallbacks(treatmentsUrl, headers).catch(() => []);
+  const deviceRaw = await fetchWithFallbacks(deviceUrl, headers).catch(() => null);
+  console.log("Nightscout RAW devicestatus fetch:", deviceRaw);
+
+  const processedDeviceStatus = processDeviceStatus(deviceRaw);
+  console.log("Nightscout PROCESSED devicestatus:", processedDeviceStatus);
 
   return {
     entries: processEntries(entriesRaw),
     treatments: processTreatments(treatmentsRaw),
-    deviceStatus: processDeviceStatus(deviceRaw)
+    deviceStatus: processedDeviceStatus
   };
 }
 

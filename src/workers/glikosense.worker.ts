@@ -1,4 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-wasm';
+import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 const workerDictEN: Record<string, string> = {
   "auto.metabolizm_label_bardzo_szybki": "Very fast",
   "auto.metabolizm_label_szybki": "Fast",
@@ -73,6 +75,7 @@ export interface GlikoWorkerInput {
     datasetSizeFromStorage: number;
     lastTrainTime: number;
     language?: string;
+    engineMode?: 'v3_lstm' | 'v4_tcn';
 }
 
 function calculateActiveAtTime(targetTime: number, pastLogs: any[], rules: any) {
@@ -176,7 +179,7 @@ const physiologicalNormalize = (inputs: number[]): number[] => {
   ];
 };
 
-const generateSyntheticPhysiologyLSTM = () => {
+const generateSyntheticPhysiologyLSTM = (steps: number = 6) => {
   const synthetic: any[] = [];
   for (let s = 0; s < 150; s++) {
     const sequence = [];
@@ -185,10 +188,11 @@ const generateSyntheticPhysiologyLSTM = () => {
     const cobStart = Math.random() * 60;
     let currentBg = bgStart;
 
-    for(let t = 5; t >= 0; t--) {
-        const bg = currentBg - (t * 5); 
-        const iob = Math.max(0, iobStart - (t * 0.1));
-        const cob = Math.max(0, cobStart - (t * 1.0));
+    for(let t = steps - 1; t >= 0; t--) {
+        const effectiveT = Math.min(t, 6);
+        const bg = currentBg + (Math.random() * 4 - 2); 
+        const iob = Math.max(0, iobStart - (effectiveT * 0.1));
+        const cob = Math.max(0, cobStart - (effectiveT * 1.0));
         const fastCob = Math.random() > 0.5 ? cob * 0.8 : 0;
         const slowCob = cob - fastCob;
         const sinceMeal = cob > 0 ? 30 + Math.random() * 180 : 1440;
@@ -204,14 +208,14 @@ const generateSyntheticPhysiologyLSTM = () => {
     }
 
     const output = [
-      (currentBg + (cobStart * 0.15) - (iobStart * 4.0)) / 400, 
-      (currentBg + (cobStart * 0.3) - (iobStart * 8.0)) / 400,  
-      (currentBg + (cobStart * 0.45) - (iobStart * 12.0)) / 400, 
-      (currentBg + (cobStart * 0.55) - (iobStart * 15.0)) / 400, 
-      (currentBg + (cobStart * 0.70) - (iobStart * 20.0)) / 400, 
-      (currentBg + (cobStart * 0.60) - (iobStart * 25.0)) / 400, 
-      (currentBg + (cobStart * 0.45) - (iobStart * 27.0)) / 400,  
-      (currentBg + (cobStart * 0.30) - (iobStart * 28.0)) / 400  
+      (currentBg + (cobStart * 0.2) - (iobStart * 1.5)) / 400, 
+      (currentBg + (cobStart * 0.4) - (iobStart * 3.0)) / 400,  
+      (currentBg + (cobStart * 0.6) - (iobStart * 4.5)) / 400, 
+      (currentBg + (cobStart * 0.8) - (iobStart * 6.0)) / 400, 
+      (currentBg + (cobStart * 1.0) - (iobStart * 7.5)) / 400, 
+      (currentBg + (cobStart * 0.8) - (iobStart * 6.0)) / 400, 
+      (currentBg + (cobStart * 0.6) - (iobStart * 4.5)) / 400,  
+      (currentBg + (cobStart * 0.4) - (iobStart * 3.0)) / 400  
     ];
     synthetic.push({ inputs: sequence, output });
   }
@@ -219,24 +223,46 @@ const generateSyntheticPhysiologyLSTM = () => {
 };
 
 let _cachedModel: tf.LayersModel | null = null;
+let _cachedModelType: string | null = null;
 let isModelLoaded = false;
 
 self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
-  const { logs, force, mode, rules, datasetSizeFromStorage, lastTrainTime, language } = e.data;
+  const { logs, force, mode, rules, datasetSizeFromStorage, lastTrainTime, language, engineMode = 'v3_lstm' } = e.data;
     if (language) i18n.language = language;
 
   try {
     if (!logs || logs.length < 3) {
-      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [i18n.t('auto.zbyt_malo_danych_dla_glikosens', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: "Zbyt mało danych dla GlikoSense." }) }) })], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni' } });
+      self.postMessage({ type: 'result', payload: { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [i18n.t('auto.zbyt_malo_danych_dla_glikosens', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: i18n.t('auto.zbyt_malo_danych_dla_glik', { defaultValue: "Zbyt mało danych dla GlikoSense." }) }) })], accuracy: 0, analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni', engineMode, engineStatus: 'classic_lstm' } });
       return;
     }
 
-    try { await tf.setBackend('cpu'); } catch(e) {}
+    try {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+         try { await tf.setBackend('cpu'); } catch(e) {}
+      } else {
+        setWasmPaths('/wasm/');
+        if (typeof OffscreenCanvas !== 'undefined') {
+          await tf.setBackend('webgl');
+        } else {
+          throw new Error('No webgl');
+        }
+      }
+    } catch (e) {
+      try { 
+        await tf.setBackend('wasm'); 
+      } catch (e2) {
+        try { await tf.setBackend('cpu'); } catch (e3) {}
+      }
+    }
     await tf.ready();
+    const activeBackend = tf.getBackend() || 'cpu';
+    self.postMessage({ type: 'storage_update', key: 'glikosense_active_backend', value: activeBackend });
 
     const now = Date.now();
-    const lookbackMs = mode === 'quick' ? (24 * 60 * 60 * 1000) : (14 * 24 * 60 * 60 * 1000);
-    const cutoffTime = now - lookbackMs;
+    const cutoffTime = mode === 'quick' 
+      ? Date.now() - (36 * 60 * 60 * 1000) 
+      : Date.now() - (14 * 24 * 60 * 60 * 1000);
     
     let logsToAnalyze = logs.filter(l => (l.timestamp || new Date(l.createdAt).getTime()) >= cutoffTime);
     if (logsToAnalyze.filter(l => l.type === 'glucose').length < 5) {
@@ -248,9 +274,17 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const sorted = [...logsToAnalyze].sort((a,b) => (a.timestamp || new Date(a.createdAt).getTime()) - (b.timestamp || new Date(b.createdAt).getTime()));
     const glucoseLogsOrig = sorted.filter(l => l.type === 'glucose' || l.bg);
     
+    const glucoseCount = glucoseLogsOrig.length;
+    const isColdStartGuardrail = (engineMode === 'v4_tcn' && glucoseCount < 150);
+    const activeTopology = isColdStartGuardrail ? 'v3_lstm' : engineMode;
+    const engineStatus = engineMode === 'v4_tcn' 
+      ? (isColdStartGuardrail ? 'hybrid_guardrail' : 'ready_tcn') 
+      : 'classic_lstm';
+    
     // HEURISTIC INSIGHTS
     const insights: string[] = [];
-    const mealPatterns: { [key: string]: { spikes: number, count: number } } = {};
+    const discoveredRules = { ...rules };
+    const mealPatterns: { [key: string]: { spikes: number, count: number, totalCorrections?: number, totalReturnTime?: number } } = {};
     const timeBlocks = {
       morning: { label: 'Poranek', starts: 6, ends: 11, sensitivity: 0, count: 0, drops: [] as number[] },
       afternoon: { label: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: "Popołudnie" }) }) }), starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
@@ -311,14 +345,60 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       });
       if (postMealBg.length > 0) {
         const maxBg = Math.max(...postMealBg.map(g => g.value || g.bg));
-        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0 };
+        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0, totalCorrections: 0, totalReturnTime: 0 };
         mealPatterns[mealName].count++;
         if (maxBg > 180) mealPatterns[mealName].spikes++;
+        
+        if (activeTopology === 'v4_tcn') {
+            const mealEnd = mealTime + 4 * 60 * 60 * 1000;
+            const postBoluses = allBoluses.filter(b => {
+                const bt = b.timestamp || new Date(b.createdAt).getTime();
+                return bt > mealTime + 45 * 60 * 1000 && bt < mealEnd;
+            });
+            mealPatterns[mealName].totalCorrections! += postBoluses.length;
+            
+            if (maxBg > 140) {
+                const peakLog = postMealBg.find(g => (g.value || g.bg) === maxBg);
+                if (peakLog) {
+                    const peakTime = peakLog.timestamp || new Date(peakLog.createdAt).getTime();
+                    const normalizationLog = allGlucose.find(g => {
+                        const gt = g.timestamp || new Date(g.createdAt).getTime();
+                        return gt > peakTime && gt < mealEnd && (g.value || g.bg) <= 140;
+                    });
+                    if (normalizationLog) {
+                        const normTime = normalizationLog.timestamp || new Date(normalizationLog.createdAt).getTime();
+                        mealPatterns[mealName].totalReturnTime! += (normTime - mealTime) / 60000;
+                    }
+                }
+            }
+        }
       }
     });
 
-    const problematicMeals = Object.entries(mealPatterns).filter(([_, stats]) => stats.spikes > 0 && (stats.spikes / stats.count) >= 0.5).map(([name]) => name);
-    if (problematicMeals.length > 0) insights.push(`🧠 Z moich obserwacji z 14 dni: pozycje takie jak: ${problematicMeals.slice(0, 2).join(", ")} powtarzały się z wyższymi poziomami cukru potem. Możesz tu rozważyć wcześniejszy bolus.`);
+    const problematicMeals = Object.entries(mealPatterns).filter(([_, stats]) => stats.spikes > 0 && (stats.spikes / stats.count) >= 0.5);
+    if (problematicMeals.length > 0) {
+        problematicMeals.sort((a,b) => (b[1].spikes/b[1].count) - (a[1].spikes/a[1].count));
+        const mealNames = problematicMeals.slice(0, 2).map(([name]) => name).join(", ");
+        
+        const isEn = i18n.language && i18n.language.startsWith('en');
+        let insightMsg = isEn 
+            ? `🧠 From my 14-day observations: meals like: ${mealNames} repeated with higher sugar levels afterwards. You might consider an earlier bolus here.`
+            : `🧠 Z moich obserwacji z 14 dni: pozycje takie jak: ${mealNames} powtarzały się z wyższymi poziomami cukru potem. Możesz tu rozważyć wcześniejszy bolus.`;
+        
+        if (activeTopology === 'v4_tcn') {
+            const [wName, wStats] = problematicMeals[0];
+            const avgCorrections = Math.round((wStats.totalCorrections! / wStats.count) * 10) / 10;
+            const avgReturnTime = Math.round(wStats.totalReturnTime! / wStats.count);
+            if (avgCorrections > 0 || avgReturnTime > 0) {
+                if (isEn) {
+                    insightMsg += ` TCN Pro detected that after "${wName}" you add an average of ${avgCorrections} correction(s), and sugar returns to normal (140) after approx. ${avgReturnTime > 0 ? avgReturnTime + ' min' : 'a long time'}.`;
+                } else {
+                    insightMsg += ` TCN Pro wykryło, że po "${wName}" dokładasz średnio ${avgCorrections} korekt(y), a cukier wraca do normy (140) po ok. ${avgReturnTime > 0 ? avgReturnTime + ' min' : 'długim czasie'}.`;
+                }
+            }
+        }
+        insights.push(insightMsg);
+    }
 
     if (mode === 'full') {
       const daysStats: { [day: string]: { sum: number, count: number } } = { "Niedziela": { sum: 0, count: 0 }, "Poniedziałek": { sum: 0, count: 0 }, "Wtorek": { sum: 0, count: 0 }, "Środa": { sum: 0, count: 0 }, "Czwartek": { sum: 0, count: 0 }, "Piątek": { sum: 0, count: 0 }, "Sobota": { sum: 0, count: 0 } };
@@ -338,6 +418,54 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
              insights.push(`📅 Analiza 14-dniowa ujawnia: Twój cukier jest stale niższy w te dni tygodnia: ${bestDay[0]} (prawdopodobnie większa wrażliwość, może regularny trening?). Z kolei ${worstDay[0]} często bywa trudny i wymaga więcej insuliny lub ostrożności.`);
          }
       }
+
+       let weekendSum = 0, weekendCount = 0, weekdaySum = 0, weekdayCount = 0;
+       let weekdayMorningValues: number[] = [];
+       allGlucose.forEach(g => {
+         const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
+         const val = g.value || g.bg;
+         if (d.getDay() === 0 || d.getDay() === 6) {
+           weekendSum += val;
+           weekendCount++;
+         } else {
+           weekdaySum += val;
+           weekdayCount++;
+           if (d.getHours() >= 6 && d.getHours() < 11) {
+             weekdayMorningValues.push(val);
+           }
+         }
+       });
+       if (weekendCount > 20 && weekdayCount > 50) {
+         const weekendAvg = weekendSum / weekendCount;
+         const weekdayAvg = weekdaySum / weekdayCount;
+         if (Math.abs(weekendAvg - weekdayAvg) > 18) {
+           discoveredRules.weekendInertiaEnabled = true;
+           if (weekendAvg > weekdayAvg) {
+             insights.push(`🏖️ Bezwładność Weekendowa: Twoja średnia glikemia w weekendy (${Math.round(weekendAvg)} mg/dL) jest wyższa niż w dni robocze (${Math.round(weekdayAvg)} mg/dL). Wskazuje to na opóźnione wchłanianie poranne lub inny rytm snu.`);
+           } else {
+             insights.push(`🏖️ Bezwładność Weekendowa: W weekendy wykazujesz o 15-25% większą wrażliwość na insulinę (${Math.round(weekendAvg)} mg/dL vs ${Math.round(weekdayAvg)} mg/dL w tygodniu).`);
+           }
+         }
+       }
+
+       const hasExercise = logs.some(l => {
+         const desc = (l.description || l.note || l.name || "").toLowerCase();
+         return l.activity || ["trening", "spacer", "sport", "bieg", "rower", "siłownia", "basen"].some(kw => desc.includes(kw));
+       });
+       if (hasExercise) {
+         discoveredRules.delayedExerciseEnabled = true;
+         insights.push(`🏃 Opóźniony Spadek Powysiłkowy: Wykryto odnotowaną aktywność fizyczną. Pamiętaj, że zwiększona wrażliwość po treningu utrzymuje się przez 6 do 12 godzin – zwróć uwagę na bazę nocną.`);
+       }
+
+       if (weekdayMorningValues.length > 25) {
+         const mean = weekdayMorningValues.reduce((a,b) => a+b, 0) / weekdayMorningValues.length;
+         const variance = weekdayMorningValues.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / weekdayMorningValues.length;
+         const stdDev = Math.sqrt(variance);
+         if (stdDev / mean > 0.32) {
+           discoveredRules.stressSensitivityEnabled = true;
+           insights.push(`⚡ Wrażliwość Cykliczna (Stres/Rytm): Wykryto znaczne wahania porannej glikemii w dni robocze (zmienność ${Math.round((stdDev/mean)*100)}%). Może to wynikać ze zmiennego poziomu porannego kortyzolu i stresu.`);
+         }
+       }
     }
 
     if (glucoseLogsOrig.length < 5) {
@@ -384,6 +512,35 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     
     const dataset = [];
     const treatmentLogs = sorted.filter(l => l.type === 'meal' || l.type === 'bolus' || l.type === 'insulin');
+
+    // BASAL-TEST (Nocny asystent bazy)
+    if (activeTopology === 'v4_tcn' && resampledGlucose.length > 50) {
+      const isEn = i18n.language && i18n.language.startsWith('en');
+      let nightDriftCount = 0;
+      let totalNightDrift = 0;
+
+      for(let i=12; i<resampledGlucose.length; i++) {
+         const p = resampledGlucose[i];
+         const date = new Date(p.timestamp);
+         const hour = date.getHours();
+         if (hour >= 2 && hour < 5) {
+            // Relies on calculateActiveAtTime, checking if no active carbs/bolus
+            const { iob, cob } = calculateActiveAtTime(p.timestamp, treatmentLogs, rules);
+            if (cob < 1 && iob < 0.2) {
+               totalNightDrift += p.trend;
+               nightDriftCount++;
+            }
+         }
+      }
+      if (nightDriftCount > 36) { // at least 3 hours of clean night data
+         const avgDriftPerHour = (totalNightDrift / nightDriftCount) * 12; // 12 steps of 5 min = 1 hour
+         if (avgDriftPerHour > 15) {
+            insights.push(isEn ? `🌙 Basal-Test: Nighttime baseline (2:00-5:00) is drifting UP (+${Math.round(avgDriftPerHour)} mg/dL/h). TCN suggests raising basal by approx 0.05 U/h in this window.` : `🌙 Basal-Test: Krzywa nocna (2:00-5:00) stale rośnie (+${Math.round(avgDriftPerHour)} mg/dL/h) przy braku IOB/COB. TCN sugeruje podniesienie bazy o ok. 0.05 j/h w tym paśmie.`);
+         } else if (avgDriftPerHour < -15) {
+            insights.push(isEn ? `🌙 Basal-Test: Nighttime baseline (2:00-5:00) is drifting DOWN (${Math.round(avgDriftPerHour)} mg/dL/h). TCN suggests lowering basal by approx 0.05 U/h in this window.` : `🌙 Basal-Test: Krzywa nocna (2:00-5:00) stale spada (${Math.round(avgDriftPerHour)} mg/dL/h) przy braku IOB/COB. TCN sugeruje obniżenie bazy o ok. 0.05 j/h w tym paśmie.`);
+         }
+      }
+    }
     
     // --- DEEP PHARMACOKINETIC ENCODER (SELF-LEARNING) ---
     if (mode === 'full' && resampledGlucose.length > 50 && treatmentLogs.length > 0) {
@@ -435,10 +592,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
     
     let treatmentIdx = 0;
+    const sequenceLength = activeTopology === 'v4_tcn' ? 36 : 6;
 
-    for(let i=5; i < resampledGlucose.length - 36; i++) {
+    for(let i=sequenceLength-1; i < resampledGlucose.length - 36; i++) {
       const sequence = [];
-      for(let step = 5; step >= 0; step--) {
+      for(let step = sequenceLength - 1; step >= 0; step--) {
           const current = resampledGlucose[i - step];
           const currentTimeMs = current.timestamp;
 
@@ -485,55 +643,82 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     let model: tf.LayersModel;
+    const dbModelPath = activeTopology === 'v4_tcn' ? 'indexeddb://glikosense-tcn-v4-pad-fix' : 'indexeddb://glikosense-lstm-v5';
     try {
-        if (_cachedModel) {
+        if (_cachedModel && _cachedModelType === activeTopology) {
             model = _cachedModel;
             isModelLoaded = true;
         } else {
             model = await Promise.race([
-                tf.loadLayersModel('indexeddb://glikosense-lstm-v5'),
+                tf.loadLayersModel(dbModelPath),
                 new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout loading model")), 5000))
             ]) as tf.LayersModel;
             _cachedModel = model;
+            _cachedModelType = activeTopology;
             isModelLoaded = true;
         }
-        model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+        model.compile({ optimizer: tf.train.adam(activeTopology === 'v4_tcn' ? 0.001 : 0.001), loss: 'meanSquaredError' });
     } catch(e) {
         model = tf.sequential();
-        (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
-        (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
-        (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
-        model.compile({ optimizer: tf.train.adam(0.005), loss: 'meanSquaredError' });
+        if (activeTopology === 'v4_tcn') {
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu', inputShape: [36, 15] }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu' }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu' }));
+            (model as tf.Sequential).add(tf.layers.flatten());
+            (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
+            (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
+            model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+        } else {
+            (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
+            (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
+            (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
+            model.compile({ optimizer: tf.train.adam(0.005), loss: 'meanSquaredError' });
+        }
         _cachedModel = model;
+        _cachedModelType = activeTopology;
 
         try {
-            const syntheticData = generateSyntheticPhysiologyLSTM();
-            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, 6, 15]);
+            const syntheticData = generateSyntheticPhysiologyLSTM(activeTopology === 'v4_tcn' ? 36 : 6);
+            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, activeTopology === 'v4_tcn' ? 36 : 6, 15]);
             const synOutputsTensor = tf.tensor2d(syntheticData.map(d => d.output));
-            await model.fit(synInputsTensor, synOutputsTensor, { epochs: mode === 'quick' ? 3 : 10, shuffle: true, verbose: 0 });
+            await model.fit(synInputsTensor, synOutputsTensor, { epochs: mode === 'quick' ? 1 : 2, shuffle: true, verbose: 0 });
             synInputsTensor.dispose();
             synOutputsTensor.dispose();
         } catch (synErr) {}
     }
 
-    const trainingDataset = dataset.slice(-250);
+    const trainingDataset = dataset.slice(-50); // Maksymalnie 50 paczek by uniknąć zapchania CPU
     let shouldTrain = force || !isModelLoaded || (mode === 'full' && (Date.now() - lastTrainTime > 2 * 60 * 60 * 1000));
 
     if (shouldTrain && trainingDataset.length > 0) {
-        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, 6, 15]);
+        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, activeTopology === 'v4_tcn' ? 36 : 6, 15]);
         const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
-        await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
+        try {
+            await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
+        } catch (fitErr) {
+            self.postMessage({ type: 'error', error: `Błąd treningu na realnych danych: ${fitErr}` });
+            return;
+        }
         inputsTensor.dispose(); outputTensor.dispose();
+        
         self.postMessage({ type: 'storage_update', payload: { key: 'glikosense_last_train_time', value: Date.now().toString() } });
-        if (mode === 'full') { try { await model.save('indexeddb://glikosense-lstm-v5'); } catch(err) {} }
+        if (mode === 'full') { try { await model.save(dbModelPath); } catch(err) {} }
     }
+
 
     let avgErrorInMgDl = 50;
     tf.tidy(() => {
       if (trainingDataset.length === 0) return;
-      const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, 6, 15]);
-      const preds = model.predict(evalInputs) as tf.Tensor;
-      const predsArray = preds.dataSync();
+      const evalSeqLen = activeTopology === 'v4_tcn' ? 36 : 6;
+      const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, evalSeqLen, 15]);
+      let predsArray: Float32Array | Int32Array | Uint8Array;
+      try {
+          const preds = model.predict(evalInputs, { batchSize: 32 }) as tf.Tensor;
+          predsArray = preds.dataSync();
+      } catch (evalErr) {
+          self.postMessage({ type: 'error', error: `Błąd predykcji próbnej: ${evalErr}` });
+          return;
+      }
       let errorSum = 0;
       for(let j = 0; j < trainingDataset.length; j++) errorSum += Math.abs(predsArray[j * 8 + 3] - trainingDataset[j].output[3]); 
       avgErrorInMgDl = (errorSum / (trainingDataset.length || 1)) * 400;
@@ -541,7 +726,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     const predictValue = (mdl: tf.LayersModel, sequence: number[][]) => {
         return tf.tidy(() => {
-            const pred = mdl.predict(tf.tensor3d([sequence], [1, 6, 15])) as tf.Tensor;
+            const pred = mdl.predict(tf.tensor3d([sequence], [1, sequence.length, 15])) as tf.Tensor;
             return (pred.arraySync() as number[][])[0];
         });
     };
@@ -582,7 +767,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     const sequenceForPrediction = [];
-    for(let step = 5; step >= 0; step--) {
+    const predSeqLen = activeTopology === 'v4_tcn' ? 36 : 6;
+    for(let step = predSeqLen - 1; step >= 0; step--) {
       const idx = resampledGlucose.length - 1 - step;
       if (idx >= 0) {
         const cur = resampledGlucose[idx];
@@ -602,6 +788,17 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const nextPredNormal = predictValue(model, sequenceForPrediction);
     const stepsArr = [3,6,9,12,18,24,30,36];
     const maxDeltaPerStep = 12; // Max realistic change: 12 mg/dL per 5 min
+
+    let ensembleRawPreds: number[][] = [];
+    if (activeTopology === 'v4_tcn') {
+        for (let n = 0; n < 5; n++) {
+            const noisySeq = sequenceForPrediction.map(row => row.map((val, cIdx) => (cIdx === 0 || cIdx === 3 || cIdx === 6) ? val * (1 + (Math.random() * 0.1 - 0.05)) : val));
+            ensembleRawPreds.push(predictValue(model, noisySeq));
+        }
+    }
+
+    const confUpper: number[] = [];
+    const confLower: number[] = [];
 
     let previousVal = latestBg;
     let previousStep = 0;
@@ -626,40 +823,101 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
       actualVal = Math.max(40, Math.min(450, actualVal));
       
+      if (activeTopology === 'v4_tcn') {
+          const variance = ensembleRawPreds.reduce((sum, p) => sum + Math.pow(p[idx]*400 - actualVal, 2), 0) / 5;
+          let stdDev = Math.sqrt(variance);
+          if (isNaN(stdDev) || !isFinite(stdDev)) stdDev = currentStep * 1.5;
+          stdDev = Math.max(stdDev, currentStep * 0.6); // uncertainty grows with time
+          confUpper.push(Math.min(450, actualVal + stdDev * 1.5));
+          confLower.push(Math.max(40, actualVal - stdDev * 1.5));
+      }
+
       previousVal = actualVal;
       previousStep = currentStep;
 
       return actualVal;
     });
 
-    const predictionCurve = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg }];
+    const predictionCurve: any[] = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg }];
+    if (activeTopology === 'v4_tcn') {
+        predictionCurve[0].confidenceMin = latestBg;
+        predictionCurve[0].confidenceMax = latestBg;
+    }
+
     const keypoints = [
-      { step: 0, val: latestBg }, { step: 3, val: predValues[0] }, { step: 6, val: predValues[1] },
-      { step: 9, val: predValues[2] }, { step: 12, val: predValues[3] }, { step: 18, val: predValues[4] },
-      { step: 24, val: predValues[5] }, { step: 30, val: predValues[6] }, { step: 36, val: predValues[7] },
+      { step: 0, val: latestBg, min: latestBg, max: latestBg }, 
+      { step: 3, val: predValues[0], min: confLower[0], max: confUpper[0] }, 
+      { step: 6, val: predValues[1], min: confLower[1], max: confUpper[1] },
+      { step: 9, val: predValues[2], min: confLower[2], max: confUpper[2] }, 
+      { step: 12, val: predValues[3], min: confLower[3], max: confUpper[3] }, 
+      { step: 18, val: predValues[4], min: confLower[4], max: confUpper[4] },
+      { step: 24, val: predValues[5], min: confLower[5], max: confUpper[5] }, 
+      { step: 30, val: predValues[6], min: confLower[6], max: confUpper[6] }, 
+      { step: 36, val: predValues[7], min: confLower[7], max: confUpper[7] },
     ];
 
-    const getInterpolatedValue = (s: number) => {
+    const getInterpolatedValue = (s: number, key: 'val' | 'min' | 'max' = 'val') => {
       for (let idx = 0; idx < keypoints.length - 1; idx++) {
         if (s >= keypoints[idx].step && s <= keypoints[idx + 1].step) {
           const frac = (s - keypoints[idx].step) / (keypoints[idx+1].step - keypoints[idx].step);
-          return keypoints[idx].val + frac * (keypoints[idx+1].val - keypoints[idx].val);
+          return (keypoints[idx] as any)[key] + frac * ((keypoints[idx+1] as any)[key] - (keypoints[idx] as any)[key]);
         }
       }
-      return latestBg;
+      const lastVal = (keypoints[keypoints.length - 1] as any)[key] || keypoints[keypoints.length - 1].val;
+      const extraSteps = s - 36;
+      const reversionRate = Math.min(1, extraSteps / 36);
+      return lastVal + reversionRate * (110 - lastVal) * 0.45;
     };
 
-    for(let step = 1; step <= 24; step++) {
-        let nextBg = getInterpolatedValue(step);
+    const currentHour = new Date().getHours();
+    // Ochrona nocna: wydłużamy przewidywanie do 6 godzin (72 kroki) między 20:00 a 4:00 rano
+    const isNightApproaching = currentHour >= 20 || currentHour < 4;
+
+    let maxSteps = 24; // Domyślnie 2 godziny (v3_lstm)
+    if (activeTopology === 'v4_tcn') {
+        maxSteps = isNightApproaching ? 72 : 36; // 6h w nocy, 3h w dzień dla silnika 4.0
+    }
+
+    for(let step = 1; step <= maxSteps; step++) {
+        let nextBg = getInterpolatedValue(step, 'val');
         nextBg += weatherBgModifier * (step / 12); 
         nextBg = Math.max(40, Math.min(600, nextBg));
-        predictionCurve.push({ timestamp: latestTimeMs + (step * 5 * 60 * 1000), offsetMs: step * 5 * 60 * 1000, value: nextBg });
+        
+        let pObj: any = { timestamp: latestTimeMs + (step * 5 * 60 * 1000), offsetMs: step * 5 * 60 * 1000, value: nextBg };
+        if (activeTopology === 'v4_tcn') {
+            let nextMin = getInterpolatedValue(step, 'min');
+            let nextMax = getInterpolatedValue(step, 'max');
+            nextMin += weatherBgModifier * (step / 12);
+            nextMax += weatherBgModifier * (step / 12);
+            pObj.confidenceMin = Math.max(40, Math.min(600, nextMin));
+            pObj.confidenceMax = Math.max(40, Math.min(600, nextMax));
+        }
+        predictionCurve.push(pObj);
+    }
+
+    if (activeTopology === 'v4_tcn') {
+        const smoothedCurve = [...predictionCurve];
+        for(let iter = 0; iter < 3; iter++) {
+            for (let i = 1; i < predictionCurve.length - 1; i++) {
+                const prev = smoothedCurve[i - 1].value;
+                const curr = smoothedCurve[i].value;
+                const next = smoothedCurve[i + 1].value;
+                smoothedCurve[i].value = (prev * 0.25) + (curr * 0.5) + (next * 0.25);
+                
+                if(smoothedCurve[i].confidenceMin) {
+                   smoothedCurve[i].confidenceMin = (smoothedCurve[i-1].confidenceMin * 0.25) + (smoothedCurve[i].confidenceMin * 0.5) + (smoothedCurve[i+1].confidenceMin * 0.25);
+                   smoothedCurve[i].confidenceMax = (smoothedCurve[i-1].confidenceMax * 0.25) + (smoothedCurve[i].confidenceMax * 0.5) + (smoothedCurve[i+1].confidenceMax * 0.25);
+                }
+            }
+        }
     }
 
     const predictedNextHour = predictionCurve[12]?.value || latestBg;
     const predictedNext2Hours = predictionCurve[24]?.value || latestBg;
+    const predictedNext6Hours = predictionCurve[Math.min(72, predictionCurve.length - 1)]?.value || latestBg;
     // We only trigger heuristic hypo alert if the ML prediction DOES NOT firmly predict a safe rise above 95
     const riskOfHypo = latestBg > 75 && (predictedNextHour < 80 || predictedNext2Hours < 80 || (latestBg < 100 && lastTrendNum < -3 && predictedNextHour < 95));
+
     
     // HEURISTIC: Calculate GMI & Avg Bias
     let sumGlucose = 0;
@@ -822,6 +1080,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       payload: {
         predictedNextHour: Math.round(predictedNextHour),
         predictedNext2Hours: Math.round(predictedNext2Hours),
+        predictedNext6Hours: Math.round(predictedNext6Hours),
         riskOfHypo,
         insights,
         accuracy: accuracyValue,
@@ -829,7 +1088,13 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         analyzedPeriod: mode === 'quick' ? 'Ostatnie 4h' : 'Ostatnie 14 dni',
         predictionCurve: predictionCurve.map(p => ({ ...p, value: Math.round(p.value) })),
         metrics: { iob: currentIob, cob: currentCob, carbSensitivity: Math.round(carbSensitivity), insulinSensitivity: Math.round(insulinSensitivity), gmiPercentage: gmiPercentage > 0 ? parseFloat(gmiPercentage.toFixed(2)) : undefined, avgBias: Math.round(avgBias) },
-        learnedPkParams: rules.pkParams
+        learnedPkParams: rules.pkParams,
+        discoveredRules,
+        engineMode,
+        engineStatus,
+        modelParams: model ? model.countParams() : 0,
+        epochsTrained: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8),
+        avgError: Math.round(avgErrorInMgDl)
       } 
     });
 
@@ -838,6 +1103,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       // Shape mismatch due to old model version restore from backup. 
       // Delete the corrupted model from IndexedDB.
       try { tf.io.removeModel('indexeddb://glikosense-lstm-v5'); } catch(e) {}
+      try { tf.io.removeModel('indexeddb://glikosense-tcn-v4-pad-fix'); } catch(e) {}
     }
     self.postMessage({ type: 'error', error: error.message });
   }

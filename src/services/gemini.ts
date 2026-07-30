@@ -855,6 +855,74 @@ export const geminiService = {
     return i18n.t('gemini.ai_communication_error', { defaultValue: i18n.t('auto.wystapil_blad_podczas_kom', { defaultValue: "Wystąpił błąd podczas komunikacji z AI. Sprawdź swoje połączenie lub klucz API." }) });
   },
 
+  async searchFood(query: string) {
+    try {
+      const creds = await getApiKey();
+      const prompt = `Jesteś potężną bazą danych produktów spożywczych (FatSecret/OpenFoodFacts). 
+Zwróć 3 najbardziej pasujące wyniki dla zapytania: "${query}".
+Dla każdego wyniku podaj wartości odżywcze w 100g.
+Format JSON:
+[
+  {
+    "id": "unikalny_id_np_jab_1",
+    "namePl": "nazwa po polsku",
+    "nameEn": "nazwa po angielsku",
+    "carbs": węglowodany_liczba,
+    "protein": białko_liczba,
+    "fat": tłuszcz_liczba,
+    "gi": indeks_glikemiczny_liczba_0_100,
+    "category": "mięso|nabiał|owoce|warzywa|zbożowe|inne"
+  }
+]`;
+
+      let text = "";
+      const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+      
+      if (isProxyUrl && creds.key === "proxy") {
+        const response = await fetch(creds.baseUrl!, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gemini-2.5-flash",
+            payload: {
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+            }
+          }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (data.candidates && data.candidates[0]?.content) {
+            text = data.candidates[0].content.parts.map((p: any) => p.text).join("");
+          } else if (data.text) {
+            text = data.text;
+          } else {
+            text = typeof data === "string" ? data : JSON.stringify(data);
+          }
+        } else {
+          throw new Error("Proxy error");
+        }
+      } else {
+        const client = await getClient();
+        const response = await client.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+          },
+        });
+        text = response.text || "";
+      }
+
+      console.log("Gemini searchFood raw response:", text);
+      text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("Gemini searchFood error:", e);
+      return [];
+    }
+  },
+
   async translateProduct(name: string): Promise<{ namePl: string, nameEn: string }> {
     const prompt = `Translate this product name to both Polish and English. Return ONLY a valid JSON object in this exact format, nothing else: {"namePl": "Polish name", "nameEn": "English name"}. Product name: "${name}"`;
     const result = await this.generateContent(prompt);
