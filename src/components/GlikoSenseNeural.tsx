@@ -26,6 +26,15 @@ interface GlikoSenseNeuralProps {
 
 export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, children, compact }: GlikoSenseNeuralProps) {
     const { t } = useTranslation();
+    const [activeBackend, setActiveBackend] = React.useState(localStorage.getItem('glikosense_active_backend') || 'v5_lstm');
+    
+    const toggleBackend = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const next = activeBackend === 'v5_lstm' ? 'v4_tcn' : 'v5_lstm';
+      setActiveBackend(next);
+      localStorage.setItem('glikosense_active_backend', next);
+      window.dispatchEvent(new CustomEvent('glikosense_backend_changed', { detail: next }));
+    };
   // Generate stable random nodes for the background animation
   const nodes = useMemo(() => {
     return Array.from({ length: 15 }).map((_, i) => ({
@@ -147,7 +156,9 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
 
           {/* Footer status dot */}
           <div className="flex items-center justify-between border-t border-slate-200/50 dark:border-white/5 pt-1.5 text-[8px] font-black uppercase text-slate-400">
-            <span>{isChildMode ? petName : 'GlikoSense AI'}</span>
+            <span onClick={toggleBackend} className="cursor-pointer hover:text-white transition-colors">
+              {isChildMode ? petName : (activeBackend === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0')}
+            </span>
             <motion.div
               animate={{ 
                 scale: [1, 1.2, 1],
@@ -234,7 +245,12 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
               <GlikoSenseIcon size={20} isAnalyzing={true} />
             </div>
             <div>
-              <h3 className="text-sm font-black dark:text-white leading-tight">{t('auto.glikosense', { defaultValue: 'GlikoSense' })}</h3>
+              <h3 
+                className="text-sm font-black dark:text-white leading-tight cursor-pointer hover:text-sky-400 transition-colors"
+                onClick={toggleBackend}
+              >
+                {t('auto.glikosense', { defaultValue: activeBackend === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0' })}
+              </h3>
             </div>
           </div>
           

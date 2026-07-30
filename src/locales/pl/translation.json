@@ -34,7 +34,7 @@
       "dashboard": "Pulpit & Narzędzia",
       "system": "System & Urządzenia",
       "community": "Społeczność",
-      "meals": "Posiłki & Talerz",
+      "meals": "Centrum Żywieniowe",
       "analysis": "Analiza & Dane",
       "gliko": "Świat Gliko",
       "database": "Baza Produktów"
@@ -6606,8 +6606,8 @@
   "diet.too_many_calories": "Wczoraj przekroczyłeś swój limit kalorii. Zwróć uwagę na wielkość porcji.",
   "diet.no_data": "Brak danych z wczoraj. Zapisuj posiłki, by uzyskać analizę!",
   "diet.macros_perfect": "Wczorajsze proporcje makroskładników i kalorii są wzorowe!",
-  "auto.kompozytor": "Kompozytor",
-  "auto.talerz": "Mój Talerz",
+  "auto.kompozytor": "Talerz",
+  "auto.talerz": "Centrum Żywieniowe",
   "ai_medical_disclaimer": "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą."
 }
 

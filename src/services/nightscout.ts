@@ -12,6 +12,7 @@ export interface NightscoutEntry {
 }
 
 export interface NightscoutTreatment {
+  enteredBy?: string;
   _id: string;
   eventType: string;
   created_at: string;
