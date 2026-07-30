@@ -3,7 +3,6 @@ import { clampSafeBolus } from "../lib/physiologicalSafety";
 import i18n from "../i18n";
 
 import { auth } from "../lib/firebase";
-import { GlikoSenseLearner } from "./mlSugarAnalyzer";
 
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
@@ -275,8 +274,7 @@ export const geminiService = {
     const dietInfo = settings?.activeDiet
       ? i18n.t('auto.uwaga_uzytkownik_jest_na', { defaultValue: "UWAGA: Użytkownik jest na diecie: {{var0}}. Zwróć na to uwagę przy zaleceniach.", var0: settings.activeDiet })
       : "";
-    const pumpInfo = settings?.treatmentMode === 'pump' ? i18n.t('auto.uwaga_uzytkownik_pompa', { defaultValue: 'UWAGA: Pacjent używa pompy insulinowej (system hybrydowy/zamknięta pętla). Bardzo częste, małe mikrokorekty (często poniżej 1j.) są automatycznie podawane przez pompę - to normalne i pożądane działanie sprzętu, pod żadnym pozorem NIE KRYTYKUJ ich jako błąd lub nakładanie insuliny przez użytkownika!' }) : '';
-    const prompt = i18n.t('auto.jestes_asystentem_diabety', { defaultValue: "Jesteś asystentem diabetyka. Przeanalizuj poniższe logi z ostatnich 2 godzin (najnowsze u góry): {{var0}}. {{var1}} {{var2}} Zwróć odpowiedź w 3 krótkich punktach używając HTML (<b>, <ul>, <li>): 1. Sytuacja aktualna (oceń czy glikemia jest w normie, spada, rośnie, z czego to wynika). 2. Przewidywania (co może się stać przez najbliższe 2 godziny). 3. Zalecenie działania (np. podaj korektę, zjedz coś na podbicie, obserwuj). Zwięźle, naturalnie, po polsku. Bez znaków markdown typu gwiazdki.", var0: JSON.stringify(formattedLogs), var1: dietInfo, var2: pumpInfo });
+    const prompt = i18n.t('auto.jestes_asystentem_diabety', { defaultValue: "Jesteś asystentem diabetyka. Przeanalizuj poniższe logi z ostatnich 2 godzin (najnowsze u góry): {{var0}}. {{var1}} Zwróć odpowiedź w 3 krótkich punktach używając HTML (<b>, <ul>, <li>): 1. Sytuacja aktualna (oceń czy glikemia jest w normie, spada, rośnie, z czego to wynika). 2. Przewidywania (co może się stać przez najbliższe 2 godziny). 3. Zalecenie działania (np. podaj korektę, zjedz coś na podbicie, obserwuj). Zwięźle, naturalnie, po polsku. Bez znaków markdown typu gwiazdki.", var0: JSON.stringify(formattedLogs), var1: dietInfo });
     return this.generateContent(prompt);
   },
 
@@ -348,8 +346,7 @@ export const geminiService = {
     const dietInfo = settings?.activeDiet
       ? i18n.t('auto.dodatkowy_kontekst_uzytko', { defaultValue: "DODATKOWY KONTEKST: Użytkownik jest na diecie: {{var0}}. Skup się na ewaluacji tej diety.", var0: settings.activeDiet })
       : "";
-    const pumpInfo = settings?.treatmentMode === 'pump' ? i18n.t('auto.uwaga_uzytkownik_pompa', { defaultValue: 'UWAGA: Pacjent używa pompy insulinowej (system hybrydowy/zamknięta pętla). Bardzo częste, małe mikrokorekty (często poniżej 1j.) są automatycznie podawane przez pompę - to normalne i pożądane działanie sprzętu, pod żadnym pozorem NIE KRYTYKUJ ich jako błąd lub nakładanie insuliny przez użytkownika!' }) : '';
-    const prompt = i18n.t('auto.jestes_ekspertem_diabetol_raport_okresowy', { defaultValue: "Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj rozłożoną w czasie próbkę danych z {{var0}} ({{var1}} wpisów): {{var2}}. {{var3}} {{var5}}\\n    Stwórz {{var4}} Raport Postępów (obejmujący CAŁY TEN OKRES, od najstarszych do najnowszych powierzonych danych).\n    Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):\n    1. <b>Podsumowanie Okresu</b> (ogólny stan, średni cukier).\n    2. <b>Największe Wyzwania</b> (momenty dnia z największymi wahaniami).\n    3. <b>Pozytywne Trendy</b> (co udało się poprawić).\n    4. <b>Cele na Kolejny Okres</b> (konkretne wskazówki).\n    Pisz merytorycznie, zwięźle, bez formatowania markdown (gwiazdek).", var0: days === 1 ? "OSTATNIEJ DOBY" : `OSTATNICH ${days} DNI`, var1: formattedLogs.length, var2: JSON.stringify(formattedLogs), var3: dietInfo, var4: periodName, var5: pumpInfo }) + " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
+    const prompt = i18n.t('auto.jestes_ekspertem_diabetol_raport_okresowy', { defaultValue: "Jesteś ekspertem diabetologii systemu GlikoControl. Przeanalizuj rozłożoną w czasie próbkę danych z {{var0}} ({{var1}} wpisów): {{var2}}. {{var3}}\n    Stwórz {{var4}} Raport Postępów (obejmujący CAŁY TEN OKRES, od najstarszych do najnowszych powierzonych danych).\n    Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):\n    1. <b>Podsumowanie Okresu</b> (ogólny stan, średni cukier).\n    2. <b>Największe Wyzwania</b> (momenty dnia z największymi wahaniami).\n    3. <b>Pozytywne Trendy</b> (co udało się poprawić).\n    4. <b>Cele na Kolejny Okres</b> (konkretne wskazówki).\n    Pisz merytorycznie, zwięźle, bez formatowania markdown (gwiazdek).", var0: days === 1 ? "OSTATNIEJ DOBY" : `OSTATNICH ${days} DNI`, var1: formattedLogs.length, var2: JSON.stringify(formattedLogs), var3: dietInfo, var4: periodName }) + " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
     return this.generateContent(prompt);
   },
 
@@ -413,8 +410,7 @@ export const geminiService = {
     const dietInfo = settings?.activeDiet
       ? i18n.t('auto.dodatkowy_kontekst_uzytko', { defaultValue: "DODATKOWY KONTEKST: Użytkownik przebywa na diecie: {{var0}}. Skup się na ewaluacji jak ta dieta na niego działa, uwzględnij rekomendacje żywieniowe dla niej.", var0: settings.activeDiet })
       : "";
-    const pumpInfo = settings?.treatmentMode === 'pump' ? i18n.t('auto.uwaga_uzytkownik_pompa', { defaultValue: 'UWAGA: Pacjent używa pompy insulinowej (system hybrydowy/zamknięta pętla). Bardzo częste, małe mikrokorekty (często poniżej 1j.) są automatycznie podawane przez pompę - to normalne i pożądane działanie sprzętu, pod żadnym pozorem NIE KRYTYKUJ ich jako błąd lub nakładanie insuliny przez użytkownika!' }) : '';
-    const prompt = i18n.t('auto.jestes_zaawansowanym_syst', { defaultValue: "Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl (GlikoSense). Otrzymujesz rozłożoną w czasie próbkę danych z OSTATNICH 15 DNI (łącznie {{var0}} rzadkich próbek obejmujących cały ten okres): {{var1}}. {{var2}} {{var3}}\\n    Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego bazującego na PEŁNYCH 15 Dniach (nie skupiaj się tylko na ostatnich wpisach!).\n    Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):\n    1. <b>Krótki przegląd ostatnich 15 dni</b>.\n    2. <b>Analiza trendów i wzorców</b> (kiedy cukier skacze, dlaczego, czy bolusy są trafne na przestrzeni ostatnich dwóch tygodni).\n    3. <b>Ocena długoterminowa</b> (przewidywane HbA1c, czas w zakresie).\n    4. <b>Konkretne rekomendacje</b> (co poprawić w diecie, dawkowaniu lub aktywności).\n    5. <b>Sugestie profili godzinowych</b> (zaproponuj konkretne przedziały czasowe i wartości ISF oraz WW Ratio na podstawie zaobserwowanych trendów - np. zwiększony ISF rano jeśli cukier rośnie).\n    Zwracaj uwagę na: nocne hipoglikemie, skoki po posiłkach, efektywność insuliny z CAŁEGO okresu. \n    Ważne: Odpowiadaj WYŁĄCZNIE i ZAWSZE w JĘZYKU POLSKIM. Piszesz po polsku. Bez formatowania markdown (gwiazdek (**) ani (###)).", var0: formattedLogs.length, var1: JSON.stringify(formattedLogs), var2: dietInfo, var3: pumpInfo }) + " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
+    const prompt = i18n.t('auto.jestes_zaawansowanym_syst', { defaultValue: "Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl (GlikoSense). Otrzymujesz rozłożoną w czasie próbkę danych z OSTATNICH 15 DNI (łącznie {{var0}} rzadkich próbek obejmujących cały ten okres): {{var1}}. {{var2}}\n    Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego bazującego na PEŁNYCH 15 Dniach (nie skupiaj się tylko na ostatnich wpisach!).\n    Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):\n    1. <b>Krótki przegląd ostatnich 15 dni</b>.\n    2. <b>Analiza trendów i wzorców</b> (kiedy cukier skacze, dlaczego, czy bolusy są trafne na przestrzeni ostatnich dwóch tygodni).\n    3. <b>Ocena długoterminowa</b> (przewidywane HbA1c, czas w zakresie).\n    4. <b>Konkretne rekomendacje</b> (co poprawić w diecie, dawkowaniu lub aktywności).\n    5. <b>Sugestie profili godzinowych</b> (zaproponuj konkretne przedziały czasowe i wartości ISF oraz WW Ratio na podstawie zaobserwowanych trendów - np. zwiększony ISF rano jeśli cukier rośnie).\n    Zwracaj uwagę na: nocne hipoglikemie, skoki po posiłkach, efektywność insuliny z CAŁEGO okresu. \n    Ważne: Odpowiadaj WYŁĄCZNIE i ZAWSZE w JĘZYKU POLSKIM. Piszesz po polsku. Bez formatowania markdown (gwiazdek (**) ani (###)).", var0: formattedLogs.length, var1: JSON.stringify(formattedLogs), var2: dietInfo }) + " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
     return this.generateContent(prompt);
   },
 
@@ -754,9 +750,6 @@ export const geminiService = {
         if (rules.pkParams) {
           medicalRulesStr = i18n.t('auto.osobnicze_tempo_wchlanian', { defaultValue: "\nOsobnicze tempo wchłaniania pacjenta: metabolizm \"{{var0}}\" (czas wchłaniania standardowych węglowodanów: {{var1}}h). Wykorzystaj to w swoich poradach dotyczących wchłaniania powołując się na system GlikoSense!", var0: rules.pkParams.label, var1: rules.pkParams.normalCarbDuration });
         }
-        if (settings?.treatmentMode === 'pump') { 
-          medicalRulesStr += i18n.t('auto.uwaga_uzytkownik_pompa', { defaultValue: ' UWAGA: Pacjent używa pompy insulinowej (system hybrydowy/zamknięta pętla). Bardzo częste, małe mikrokorekty (często poniżej 1j.) są automatycznie podawane przez pompę - to normalne i pożądane działanie sprzętu, pod żadnym pozorem NIE KRYTUJ ich jako błąd lub nakładanie insuliny przez użytkownika!' }); 
-        }
       } catch(e) {}
     }
 
@@ -819,18 +812,12 @@ export const geminiService = {
         });
         const data = await response.json();
         if (response.ok) {
-          let resStr = "";
-          if (data.candidates && data.candidates[0]?.content) {
-            resStr = data.candidates[0].content.parts.map((p: any) => p.text).join("");
-          } else if (data.text) {
-            resStr = data.text;
-          } else {
-            resStr = typeof data === "string" ? data : JSON.stringify(data);
-          }
-          if (resStr && typeof resStr === "string") {
-            setTimeout(() => GlikoSenseLearner.learnFromGemini(resStr), 0);
-          }
-          return resStr;
+          if (data.candidates && data.candidates[0]?.content)
+            return data.candidates[0].content.parts
+              .map((p: any) => p.text)
+              .join("");
+          if (data.text) return data.text;
+          return typeof data === "string" ? data : JSON.stringify(data);
         }
         throw new Error(data.error?.message || "Proxy error");
       } catch (e) {
@@ -857,11 +844,7 @@ export const geminiService = {
             temperature: 0.4,
           },
         });
-        const resStr = response.text || i18n.t('gemini.response_generation_failed', { defaultValue: i18n.t('auto.nie_udalo_mi_sie_wygenero', { defaultValue: "Nie udało mi się wygenerować odpowiedzi." }) });
-        if (resStr && typeof resStr === "string") {
-          setTimeout(() => GlikoSenseLearner.learnFromGemini(resStr), 0);
-        }
-        return resStr;
+        return response.text || i18n.t('gemini.response_generation_failed', { defaultValue: i18n.t('auto.nie_udalo_mi_sie_wygenero', { defaultValue: "Nie udało mi się wygenerować odpowiedzi." }) });
       } catch (error) {
         console.warn(i18n.t('auto.assistant_blad_dla_modelu', { defaultValue: "Assistant - błąd dla modelu {{var0}}:", var0: model }), error);
         lastError = error;
@@ -870,6 +853,74 @@ export const geminiService = {
 
     console.error("Assistant API Error:", lastError);
     return i18n.t('gemini.ai_communication_error', { defaultValue: i18n.t('auto.wystapil_blad_podczas_kom', { defaultValue: "Wystąpił błąd podczas komunikacji z AI. Sprawdź swoje połączenie lub klucz API." }) });
+  },
+
+  async searchFood(query: string) {
+    try {
+      const creds = await getApiKey();
+      const prompt = `Jesteś potężną bazą danych produktów spożywczych (FatSecret/OpenFoodFacts). 
+Zwróć 3 najbardziej pasujące wyniki dla zapytania: "${query}".
+Dla każdego wyniku podaj wartości odżywcze w 100g.
+Format JSON:
+[
+  {
+    "id": "unikalny_id_np_jab_1",
+    "namePl": "nazwa po polsku",
+    "nameEn": "nazwa po angielsku",
+    "carbs": węglowodany_liczba,
+    "protein": białko_liczba,
+    "fat": tłuszcz_liczba,
+    "gi": indeks_glikemiczny_liczba_0_100,
+    "category": "mięso|nabiał|owoce|warzywa|zbożowe|inne"
+  }
+]`;
+
+      let text = "";
+      const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
+      
+      if (isProxyUrl && creds.key === "proxy") {
+        const response = await fetch(creds.baseUrl!, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gemini-2.5-flash",
+            payload: {
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+            }
+          }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (data.candidates && data.candidates[0]?.content) {
+            text = data.candidates[0].content.parts.map((p: any) => p.text).join("");
+          } else if (data.text) {
+            text = data.text;
+          } else {
+            text = typeof data === "string" ? data : JSON.stringify(data);
+          }
+        } else {
+          throw new Error("Proxy error");
+        }
+      } else {
+        const client = await getClient();
+        const response = await client.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+          },
+        });
+        text = response.text || "";
+      }
+
+      console.log("Gemini searchFood raw response:", text);
+      text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("Gemini searchFood error:", e);
+      return [];
+    }
   },
 
   async translateProduct(name: string): Promise<{ namePl: string, nameEn: string }> {

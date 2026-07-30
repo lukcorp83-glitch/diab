@@ -7,8 +7,7 @@ export interface Product {
   polyols?: number;
   protein?: number;
   fat?: number;
-  gi?: number;
-  ig?: number;
+  gi: number;
   category?: string;
   isOnline?: boolean;
   author?: string;
@@ -22,7 +21,6 @@ export interface LogEntry {
   type:
     | "glucose"
     | "meal"
-    | "carbs"
     | "bolus"
     | "site_change"
     | "sensor_change"
@@ -40,9 +38,6 @@ export interface LogEntry {
   userModified?: boolean;
   direction?: string;
   delta?: number;
-  carbs?: number;
-  calories?: number;
-  bolus?: number;
   medicationData?: {
     name: string;
     dose: string;
@@ -53,8 +48,6 @@ export interface LogEntry {
   fat?: number;
   linkedMeal?: {
     carbs: number;
-    value?: number;
-    calories?: number;
     polyols?: number;
     protein?: number;
     fat?: number;
@@ -128,7 +121,6 @@ export interface UserSettings {
   linkedUid?: string;      // Zapamiętuje na twardo w chmurze klucz sparowanego Głównego konta
   isLinkedAdmin?: boolean; // Zapamiętuje na twardo w chmurze uprawnienia administratora
   dia?: number; // Duration of Insulin Action in hours
-  showConfidenceCloud?: boolean; // Pokaż chmurę prawdopodobieństwa TCN
   hourlyProfiles?: HourlyProfile[];
   customDrugDictionary?: Record<string, DrugKnowledge>; // Globalny słownik wiedzy wygenerowany przez AI
   medications?: Medication[];
@@ -185,10 +177,6 @@ export interface UserSettings {
     intensity: "low" | "medium" | "high";
   } | null;
   treatmentMode?: 'diet_only' | 'insulin' | 'pump'; // Typ leczenia: dieta/tabletki, insulina, pompa
-  dashboardWidgets?: any[];
-  appVersion?: string;
-  nsUrl?: string;
-  nsSecret?: string;
 }
 
 export interface AssistantMessage {

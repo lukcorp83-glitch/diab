@@ -97,20 +97,18 @@ export class DatabaseService {
             console.error("Could not retrieve stale connection", retrieveErr);
           }
         } else {
-          // Zamiast kasować bazę w ciemno (co niszczy całą historię użytkownika),
-          // spróbujmy bezpiecznie zamknąć stare lub zawieszone połączenie i otworzyć ponownie po krótkiej przerwie.
-          console.warn("DB Open failed – attempting safe close and reopen without data wipe.", openError);
+          // Likely migration from unencrypted DB – wipe and recreate
+          console.warn("DB Open failed – attempting recovery by wiping old database.", openError);
           try {
-            await this.sqlite.closeConnection(dbName, false);
-          } catch { /* ignore */ }
-          
+            await CapacitorSQLite.deleteDatabase({ database: dbName });
+          } catch (delError) {
+            console.error("Failed to delete database", delError);
+          }
           try {
-            await new Promise(r => setTimeout(r, 250));
             this.db = await this.sqlite.createConnection(dbName, isEncrypted, mode, 1, false);
             await this.db.open();
-          } catch (reopenErr) {
-            console.error("Failed to reopen database safely after error. Database wipe will NOT be performed automatically to protect user history.", reopenErr);
-            throw reopenErr;
+          } catch (recreateErr) {
+            console.error("Failed to recreate database after wipe", recreateErr);
           }
         }
       }
@@ -142,43 +140,25 @@ export class DatabaseService {
   }
 
   async saveLog(log: any) {
-    if (!this.db || !log) return;
+    if (!this.db) return;
+    const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
+    const payloadStr = JSON.stringify(log);
+    const query = `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES (?, ?, ?, ?, 0)`;
     
-    // Zapobiegamy równoległemu zapisowi (mutex), aby wyeliminować "database is locked" w SQLite
-    while (this.savePromise) {
-      await this.savePromise;
+    try {
+      await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
+    } catch (e: any) {
+      if (e?.message?.includes("not opened") || e?.message?.includes("closed")) {
+        console.warn("DB not opened, attempting to open and retry", e);
+        await this.db.open();
+        await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
+      } else {
+        throw e;
+      }
     }
     
-    let resolveSave: () => void;
-    this.savePromise = new Promise(resolve => { resolveSave = resolve; });
-
-    try {
-      const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
-      const payloadStr = JSON.stringify(log);
-      const query = `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES (?, ?, ?, ?, 0)`;
-      
-      try {
-        await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
-      } catch (e: any) {
-        if (e?.message?.includes("not opened") || e?.message?.includes("closed")) {
-          console.warn("DB not opened, attempting to open and retry", e);
-          await this.db.open();
-          await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
-        } else {
-          throw e;
-        }
-      }
-      
-      if (this.isWeb) {
-        await this.sqlite.saveToStore('glikocontrol_db');
-      }
-    } catch (e) {
-      console.error("Save log error", e);
-    } finally {
-      if (resolveSave!) {
-        resolveSave();
-      }
-      this.savePromise = null;
+    if (this.isWeb) {
+      await this.sqlite.saveToStore('glikocontrol_db');
     }
   }
 
@@ -259,40 +239,23 @@ export class DatabaseService {
   }
   
   async deleteLog(id: string) {
-    if (!this.db || !id) return;
+    if (!this.db) return;
+    const query = `DELETE FROM application_logs WHERE id = ? OR payload LIKE ?`;
     
-    while (this.savePromise) {
-      await this.savePromise;
+    try {
+      await this.db.run(query, [id, `%"nsId":"${id}"%`]);
+    } catch(e: any) {
+      if (e?.message?.includes("not opened") || e?.message?.includes("closed")) {
+         console.warn("DB not opened in deleteLog, attempting to open and retry", e);
+         await this.db.open();
+         await this.db.run(query, [id, `%"nsId":"${id}"%`]);
+      } else {
+         throw e;
+      }
     }
     
-    let resolveSave: () => void;
-    this.savePromise = new Promise(resolve => { resolveSave = resolve; });
-
-    try {
-      const query = `DELETE FROM application_logs WHERE id = ? OR payload LIKE ?`;
-      
-      try {
-        await this.db.run(query, [id, `%"nsId":"${id}"%`]);
-      } catch(e: any) {
-        if (e?.message?.includes("not opened") || e?.message?.includes("closed")) {
-           console.warn("DB not opened in deleteLog, attempting to open and retry", e);
-           await this.db.open();
-           await this.db.run(query, [id, `%"nsId":"${id}"%`]);
-        } else {
-           throw e;
-        }
-      }
-      
-      if (this.isWeb) {
-        await this.sqlite.saveToStore('glikocontrol_db');
-      }
-    } catch (e) {
-      console.error("Delete log error", e);
-    } finally {
-      if (resolveSave!) {
-        resolveSave();
-      }
-      this.savePromise = null;
+    if (this.isWeb) {
+      await this.sqlite.saveToStore('glikocontrol_db');
     }
   }
 }

@@ -6,82 +6,82 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 export default function BarcodeScannerModal({
-  onClose,
-  onScan,
+ onClose,
+ onScan,
 }: {
-  onClose: () => void;
-  onScan: (barcode: string) => void;
+ onClose: () => void;
+ onScan: (barcode: string) => void;
 }) {
-    const { t } = useTranslation();
-  const [error, setError] = useState("");
+ const { t } = useTranslation();
+ const [error, setError] = useState("");
 
-  useEffect(() => {
-    let isActive = true;
+ useEffect(() => {
+ let isActive = true;
 
-    const startNativeScanner = async () => {
-      try {
-        const status = await BarcodeScanner.checkPermissions();
-        if (status.camera !== 'granted') {
-          const request = await BarcodeScanner.requestPermissions();
-          if (request.camera !== 'granted') {
-            if (isActive) setError(i18n.t('auto.brak_uprawnien_do_aparatu_przy', { defaultValue: i18n.t('auto.brak_uprawnien_do_aparatu', { defaultValue: "Brak uprawnień do aparatu. Przyznaj je w ustawieniach systemowych." }) }));
-            return;
-          }
-        }
+ const startNativeScanner = async () => {
+ try {
+ const status = await BarcodeScanner.checkPermissions();
+ if (status.camera !== 'granted') {
+ const request = await BarcodeScanner.requestPermissions();
+ if (request.camera !== 'granted') {
+ if (isActive) setError(i18n.t('auto.brak_uprawnien_do_aparatu_przy', { defaultValue: i18n.t('auto.brak_uprawnien_do_aparatu', { defaultValue: "Brak uprawnień do aparatu. Przyznaj je w ustawieniach systemowych." }) }));
+ return;
+ }
+ }
 
-        
+ 
 
-        // Uruchomienie pełnoekranowego skanera systemowego Google ML Kit (działa w natywnej warstwie nad WebView)
-        const { barcodes } = await BarcodeScanner.scan();
-        
-        if (barcodes.length > 0 && isActive) {
-          onScan(barcodes[0].rawValue);
-        } else {
-          // Anulowano skanowanie (użytkownik kliknął Wstecz)
-          if (isActive) onClose();
-        }
-      } catch (err: any) {
-        console.error("ML Kit Barcode Error:", err);
-        if (isActive) {
-          setError(err.message || i18n.t('auto.blad_podczas_uruchamiania_skan', { defaultValue: i18n.t('auto.blad_podczas_uruchamiania', { defaultValue: "Błąd podczas uruchamiania skanera systemowego." }) }));
-        }
-      }
-    };
+ // Uruchomienie pełnoekranowego skanera systemowego Google ML Kit (działa w natywnej warstwie nad WebView)
+ const { barcodes } = await BarcodeScanner.scan();
+ 
+ if (barcodes.length > 0 && isActive) {
+ onScan(barcodes[0].rawValue);
+ } else {
+ // Anulowano skanowanie (użytkownik kliknął Wstecz)
+ if (isActive) onClose();
+ }
+ } catch (err: any) {
+ console.error("ML Kit Barcode Error:", err);
+ if (isActive) {
+ setError(err.message || i18n.t('auto.blad_podczas_uruchamiania_skan', { defaultValue: i18n.t('auto.blad_podczas_uruchamiania', { defaultValue: "Błąd podczas uruchamiania skanera systemowego." }) }));
+ }
+ }
+ };
 
-    startNativeScanner();
+ startNativeScanner();
 
-    return () => {
-      isActive = false;
-    };
-  }, [onClose, onScan]);
+ return () => {
+ isActive = false;
+ };
+ }, [onClose, onScan]);
 
-  if (error) {
-    return createPortal(
-      <div className="fixed inset-0 pt-safe pb-safe z-[9999] bg-black/90 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm flex flex-col gap-4">
-          <div className="flex items-center justify-between text-white">
-            <div className="flex items-center gap-2">
-              <Camera size={20} />
-              <span className="font-bold">{t('auto.skaner_opakowań', { defaultValue: i18n.t('auto.skaner_opakowan', { defaultValue: "Skaner Opakowań" }) })}</span>
-            </div>
-            <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all">
-              <X size={20} />
-            </button>
-          </div>
-          <div className="bg-rose-500/20 text-rose-300 p-4 rounded-2xl text-center font-bold text-sm">
-            {error}
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
+ if (error) {
+ return createPortal(
+ <div className="fixed inset-0 pt-safe pb-safe z-[9999] bg-black/90 flex flex-col items-center justify-center p-4">
+ <div className="w-full max-w-sm flex flex-col gap-4">
+ <div className="flex items-center justify-between text-white">
+ <div className="flex items-center gap-2">
+ <Camera size={20} />
+ <span className="font-bold">{t('auto.skaner_opakowań', { defaultValue: i18n.t('auto.skaner_opakowan', { defaultValue: "Skaner Opakowań" }) })}</span>
+ </div>
+ <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all">
+ <X size={20} />
+ </button>
+ </div>
+ <div className="bg-rose-500/20 text-rose-300 p-4 rounded-2xl text-center font-bold text-sm">
+ {error}
+ </div>
+ </div>
+ </div>,
+ document.body
+ );
+ }
 
-  // W trakcie ładowania natywnego interfejsu renderujemy jedynie tło blokujące WebView,
-  // ponieważ interfejs Capacitor ML Kit zostanie narysowany na wierzchu przez system Android.
-  return createPortal(
-    <div className="fixed inset-0 pt-safe pb-safe z-[9999] bg-black"></div>,
-    document.body
-  );
+ // W trakcie ładowania natywnego interfejsu renderujemy jedynie tło blokujące WebView,
+ // ponieważ interfejs Capacitor ML Kit zostanie narysowany na wierzchu przez system Android.
+ return createPortal(
+ <div className="fixed inset-0 pt-safe pb-safe z-[9999] bg-black"></div>,
+ document.body
+ );
 }
 

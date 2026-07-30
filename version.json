@@ -1,10 +1,10 @@
 {
-    "version":  "5.8.06",
-    "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.8.06_OTA.apk",
-    "buildNumber":  121,
-    "forceUpdate":  false,
-    "whatsNew":  "🚀 Wersja 5.8.06: Optymalizacja GlikoSense 4.0 Pro na smartfonach. Wyłączono akcelerację sprzętową (WebGL) dla małych modeli na korzyść obliczeń natywnych (CPU), co naprawia błędy opóźnień.",
-    "whatsNewEn":  "🚀 Version 5.8.06: GlikoSense 4.0 Pro optimization on smartphones. Disabled hardware acceleration (WebGL) for small models in favor of native CPU inference, fixing latency issues.",
-    "otaRevision":  284
+  "version": "5.9.91",
+  "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
+  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.91_OTA.apk",
+  "buildNumber": 117,
+  "forceUpdate": false,
+  "whatsNew": "🔧 Wersja 5.9.91: Nowa architektura aplikacji (Centrum żywieniowe i GlikoSense 4.0)",
+  "whatsNewEn": "🔧 Version 5.9.91: New application architecture (Nutrition Center & GlikoSense 4.0)",
+  "otaRevision": 276
 }

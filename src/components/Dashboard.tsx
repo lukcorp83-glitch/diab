@@ -2,6 +2,8 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useLogsStore } from '../stores/useLogsStore';
 import { notificationService } from "../services/notificationService";
 import { nightscoutService } from "../services/nightscout";
 import { LogEntry, UserSettings, Product } from "../types";
@@ -57,6 +59,13 @@ import MealEditModal from "./MealEditModal";
 import DoseEditModal from "./DoseEditModal";
 import HealthWidget from './HealthWidget';
 import GlikoWidget from "./GlikoWidget";
+import QuickBolusWidget from './dashboard/widgets/QuickBolusWidget';
+import QuickMeasurementWidget from './dashboard/widgets/QuickMeasurementWidget';
+import ShortcutsWidget from './dashboard/widgets/ShortcutsWidget';
+import MainStatsWidget from './dashboard/widgets/MainStatsWidget';
+import HistoryMeasurementsWidget from './dashboard/widgets/HistoryMeasurementsWidget';
+import HistoryTreatmentsWidget from './dashboard/widgets/HistoryTreatmentsWidget';
+import PumpWidget from './dashboard/widgets/PumpWidget';
 import GlikoSenseTips from "./GlikoSenseTips";
 import GlikoSenseNeural from "./GlikoSenseNeural";
 import WeatherWidget from "./WeatherWidget";
@@ -104,7 +113,6 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
     case "quick_correction":
       return ["2x2", "2x1"];
     case "weather":
-    case "quick_bolus":
     case "sensor_reminder":
     case "infusion_reminder":
     case "pen_tracker":
@@ -218,8 +226,6 @@ function TopPillHydration() {
 }
 
 export default function Dashboard({
-  logs,
-  user,
   setTab,
   theme,
   initialAction,
@@ -233,6 +239,8 @@ export default function Dashboard({
   settings,
   isShortcutMode
 }: DashboardProps) {
+  const user = useAuthStore(state => state.user);
+  const { logs } = useLogsStore();
   const { t } = useTranslation();
   // Tryb leczenia: domyślnie 'insulin' dla wstecznej kompatybilności
   const treatmentMode = settings.treatmentMode ?? 'insulin';
@@ -959,6 +967,11 @@ export default function Dashboard({
     );
   }, [lastG, settings, iob, setTab]);
 
+  const widgetProps = {
+    size: "1x1", isEditingLayout, user, settings, logs, lastG, petData, shortcuts, setTab, handleDeleteLog, setEditingLog, setListFilter, pumpStatus,
+    iob, todayStats, trend, targetMin: settings.targetMin || 70, targetMax: settings.targetMax || 140, isInsulinMode, tir, hba1c
+  };
+
   const renderWidget = (id: string, size: "2x2" | "2x1" | "1x2" | "1x1") => {
     const hasReminders = settings.sensorChangeDate || settings.infusionSetChangeDate;
     const isHighGlucose = lastG && lastG.value >= (settings.targetMax || 140);
@@ -966,19 +979,8 @@ export default function Dashboard({
 
     switch (id) {
       case "main_stats":
-        return (
-          <GlikoWidget
-            logs={logs}
-            setTab={setTab}
-            iob={iob}
-            todayStats={todayStats}
-            trend={trend}
-            tir={tir}
-            hba1c={hba1c}
-            glassmorphismEnabled={settings.glassmorphismEnabled}
-            compact={size.startsWith("1")}
-          />
-        );
+          return <MainStatsWidget {...widgetProps} size={size} />;
+
 
       case "quick_correction":
         if (!showCorrection) {
@@ -989,7 +991,7 @@ export default function Dashboard({
                                     {t('auto.sugerowana_szybka_korekta_nieaktywn', { defaultValue: '⚡ Sugerowana Szybka Korekta [Nieaktywna]' })}
                                     <p className="text-[10px] text-slate-400 dark:text-slate-600 font-normal mt-1">
                   
-                                          {t('auto.pojawia_się_automatycznie_grawitacy', { defaultValue: i18n.t('auto.pojawia_sie_automatycznie', { defaultValue: "Pojawia się automatycznie grawitacyjnie powyżej celu glikemii." }) })}
+                                          {t('auto.pojawia_się_automatycznie_grawitacyjnie', { defaultValue: i18n.t('auto.pojawia_sie_automatycznie', { defaultValue: "Pojawia się automatycznie grawitacyjnie powyżej celu glikemii." }) })}
                                         </p>
               </div>
             );
@@ -1396,91 +1398,15 @@ export default function Dashboard({
       }
 
       case "shortcuts":
-        const quickAdd = async (shortcut: any) => {
-          if (!user) return;
-          Haptics.medium();
-          try {
-            const tempLog = {
-              id: Math.random().toString(),
-              timestamp: Date.now(),
-              type: 'meal',
-              value: shortcut.carbs,
-              notes: `Szybkie dodanie: ${shortcut.name}`,
-              calories: shortcut.calories || 0,
-              proteins: shortcut.proteins || 0,
-              fats: shortcut.fats || 0
-            };
-            await addDoc(
-              collection(
-                db,
-                "artifacts",
-                "diacontrolapp",
-                "users",
-                getEffectiveUid(user),
-                "logs",
-              ),
-              tempLog
-            );
-            toast.success(`Dodano posiłek: ${shortcut.name} (${shortcut.carbs}g)`);
-          } catch (err) {
-            console.error("Error quick adding shortcut:", err);
-            toast.error(i18n.t('auto.wystapil_blad', { defaultValue: i18n.t('auto.wystapil_blad', { defaultValue: "Wystąpił błąd" }) }));
-          }
-        };
-
-        if (shortcuts.length === 0) {
-          return (
-            <div 
-              onClick={() => {
-                if (!isEditingLayout) {
-                  Haptics.light();
-                  onAction?.("food");
-                  setTab("profile");
-                }
-              }}
-              className="glass-card !p-6 flex flex-col justify-center items-center text-center cursor-pointer border border-white/50 dark:border-white/5 shadow-lg w-full min-h-[140px]"
-            >
-              <span className="text-2xl mb-1">🍔</span>
-              <h4 className="text-[10px] font-black uppercase tracking-wider leading-none mb-1">{t('auto.brak_moich_ulubionych', { defaultValue: 'Brak Moich Ulubionych' })}</h4>
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{t('auto.dotknij_tutaj_aby_dodać_ulubione_po', { defaultValue: i18n.t('auto.dotknij_tutaj_aby_dodac_u', { defaultValue: "Dotknij tutaj, aby dodać ulubione posiłki w Profilu" }) })}</span>
-            </div>
-          );
-        }
-
         return (
-          <div className="glass-card !p-6 flex flex-col gap-4 border border-white/50 dark:border-white/5 shadow-lg w-full h-full">
-            <div className="flex justify-between items-center px-1">
-              <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">{t('auto.moje_ulubione_posiłki', { defaultValue: i18n.t('auto.moje_ulubione_posilki', { defaultValue: "MOJE ULUBIONE POSIŁKI" }) })}</h4>
-              <button 
-                onClick={() => {
-                  if (!isEditingLayout) {
-                    Haptics.light();
-                    onAction?.("food");
-                    setTab("profile");
-                  }
-                }}
-                className="text-[9px] font-black text-accent-500 uppercase tracking-tight"
-              >
-                
-                                        {t('auto.edytuj', { defaultValue: 'Edytuj' })}
-                                      </button>
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none mask-fade-right w-full">
-              {shortcuts.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => { if (!isEditingLayout) quickAdd(s); }}
-                  className="shrink-0 glass-card !p-5 flex items-center gap-4 font-black text-xs uppercase tracking-tighter shadow-md active:scale-95 transition-all border border-black/5 dark:border-white/5 dark:text-white group min-w-[140px]"
-                >
-                  <span className="text-2xl group-hover:scale-110 transition-transform block">{s.icon || "📌"}</span>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="leading-tight text-slate-800 dark:text-slate-200">{s.name}</span>
-                    <span className="text-[9px] opacity-50 lowercase font-bold">{Number(s.carbs).toFixed(1)}{t('auto.g_węgli', { defaultValue: i18n.t('auto.g_wegli', { defaultValue: "g węgli" }) })}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+          <ShortcutsWidget
+            shortcuts={shortcuts}
+            isEditingLayout={isEditingLayout}
+            user={user}
+            setTab={setTab}
+            onAction={onAction}
+            size={size}
+          />
         );
 
       case "medications":
@@ -1582,167 +1508,15 @@ export default function Dashboard({
         );
 
       case "quick_measurement": {
-        const isMs1x1 = size === "1x1";
-        const isMs1x2 = size === "1x2";
-
-        if (isMs1x1) {
-          return (
-            <button
-              onClick={() => {
-                if (!isEditingLayout) {
-                  Haptics.light();
-                  setIsGlucoseModalOpen(true);
-                }
-              }}
-              className={cn(
-                "bg-rose-500 flex flex-col items-center justify-center gap-2 shadow-2xl shadow-rose-500/40 active:scale-95 group transition-all text-white overflow-hidden relative w-full select-none h-full py-5 rounded-[2.5rem] min-h-[140px]"
-              )}
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all pointer-events-none"></div>
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shrink-0 pointer-events-none">
-                <Droplet size={22} strokeWidth={2.5} />
-              </div>
-              <div className="text-center pointer-events-none">
-                <span className="font-black text-[10px] uppercase tracking-widest font-display block">{t('auto.pomiar', { defaultValue: 'Pomiar' })}</span>
-                <span className="text-[8px] text-white/70 font-bold leading-none">{t('auto.ręczny_wynik', { defaultValue: i18n.t('auto.reczny_wynik', { defaultValue: "Ręczny wynik" }) })}</span>
-              </div>
-            </button>
-          );
-        }
-
-        if (isMs1x2) {
-          return (
-            <div className="glass-card !p-3.5 flex flex-col justify-between h-full w-full relative overflow-hidden text-left min-h-[220px] border border-white/50 dark:border-white/5 shadow-2xl animate-fade-in">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
-              
-              <div className="flex justify-between items-center w-full">
-                <div className="p-1.5 bg-rose-500/10 rounded-lg text-rose-500"><Droplet size={14} strokeWidth={2.5} /></div>
-                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.pomiar', { defaultValue: 'Pomiar' })}</span>
-              </div>
-              
-              <div className="mt-2 text-left flex-1 flex flex-col justify-between">
-                <div>
-                  <span className="text-[7px] uppercase font-black text-slate-400 block mb-1 opacity-60">{t('auto.szybki_zapis', { defaultValue: 'Szybki zapis' })}</span>
-                  <form onSubmit={handleInlineBgSubmit} className="space-y-2">
-                    <div className="relative">
-                      <input
-                        type="number"
-                        pattern="[0-9]*"
-                        inputMode="numeric"
-                        placeholder={t('auto.np_120', { defaultValue: 'np. 120' })}
-                        value={inlineBgValue}
-                        onChange={(e) => setInlineBgValue(e.target.value)}
-                        disabled={isEditingLayout}
-                        className="w-full px-2.5 py-2 rounded-xl bg-white/40 dark:bg-slate-900/40 text-xs font-black text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-rose-500 pr-10"
-                      />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-400 uppercase tracking-tighter">
-                        
-                                                              {t('auto.mg', { defaultValue: 'mg' })}
-                                                            </span>
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isEditingLayout || !inlineBgValue}
-                      className={cn(
-                        "w-full py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black text-[9px] uppercase tracking-widest transition-all shadow-md active:scale-95 cursor-pointer text-center",
-                        (!inlineBgValue || isEditingLayout) && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      
-                                                        {t('auto.zapisz', { defaultValue: 'Zapisz' })}
-                                                      </button>
-                  </form>
-                </div>
-                
-                <div className="mt-2 border-t border-slate-100 dark:border-white/5 pt-2">
-                  <button
-                    onClick={() => { if (!isEditingLayout) { Haptics.light(); setIsGlucoseModalOpen(true); } }}
-                    className="w-full py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-center"
-                  >
-                    
-                                                  {t('auto.klawiatura', { defaultValue: 'Klawiatura ⌨️' })}
-                                                </button>
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        const isFullHeight = size === "2x2";
         return (
-          <div className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden h-full w-full min-h-[140px] border border-white/50 dark:border-white/5 shadow-2xl">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
-                  <Droplet size={16} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <span className="font-black text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-300 font-display block leading-none">{t('auto.dodaj_pomiar', { defaultValue: 'Dodaj Pomiar' })}</span>
-                  <span className="text-[8px] text-slate-400 font-bold leading-none">{t('auto.zapisz_glukozę_natychmiast', { defaultValue: i18n.t('auto.zapisz_glukoze_natychmias', { defaultValue: "Zapisz glukozę natychmiast" }) })}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex-1 flex flex-col justify-center gap-3">
-              <form onSubmit={handleInlineBgSubmit} className="flex gap-2 items-center w-full">
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    pattern="[0-9]*"
-                    inputMode="numeric"
-                    placeholder={t('auto.np_120', { defaultValue: 'np. 120' })}
-                    value={inlineBgValue}
-                    onChange={(e) => setInlineBgValue(e.target.value)}
-                    disabled={isEditingLayout}
-                    className="w-full px-4 py-2.5 rounded-2xl bg-white/40 dark:bg-slate-900/40 text-sm font-black text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-rose-500 pr-14"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-                    
-                                                    {t('auto.mg_dl', { defaultValue: 'mg/dL' })}
-                                                  </span>
-                </div>
-                <button
-                  type="submit"
-                  disabled={isEditingLayout || !inlineBgValue}
-                  className={cn(
-                    "px-4 py-2.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1 shrink-0",
-                    (!inlineBgValue || isEditingLayout) && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  
-                                              {t('auto.zapisz', { defaultValue: 'Zapisz' })}
-                                            </button>
-              </form>
-
-              {isFullHeight && (
-                <div className="space-y-1.5 mt-1">
-                  <p className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.szybki_wybór', { defaultValue: i18n.t('auto.szybki_wybor', { defaultValue: "Szybki wybór:" }) })}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[80, 100, 120, 150, 180, 220].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        disabled={isEditingLayout}
-                        onClick={() => {
-                          Haptics.light();
-                          setInlineBgValue(v.toString());
-                        }}
-                        className={cn(
-                          "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all active:scale-95 cursor-pointer",
-                          inlineBgValue === v.toString()
-                            ? "bg-rose-500 text-white border-rose-500"
-                            : "bg-slate-500/5 hover:bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/5"
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <QuickMeasurementWidget
+            isEditingLayout={isEditingLayout}
+            inlineBgValue={inlineBgValue}
+            setInlineBgValue={setInlineBgValue}
+            handleInlineBgSubmit={handleInlineBgSubmit}
+            setIsGlucoseModalOpen={setIsGlucoseModalOpen}
+            size={size}
+          />
         );
       }
 
@@ -1942,220 +1716,16 @@ export default function Dashboard({
       }
 
       case "history_measurements":
-        const glucoseLogs = logs.filter(log => log.type === 'glucose');
-        const hasGlucoseLogsOnly = glucoseLogs.length > 0;
-        if (!hasGlucoseLogsOnly) {
-          if (isEditingLayout) {
-            return (
-              <div className="p-6 bg-slate-500/5 dark:bg-slate-950/10 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-xs text-slate-400 dark:text-slate-500 font-bold font-display w-full min-h-[140px] flex flex-col justify-center items-center">
-                
-                                    {t('auto.ostatnie_pomiary_brak_danych', { defaultValue: '📊 Ostatnie pomiary [Brak danych]' })}
-                                  </div>
-            );
-          }
-          return null;
-        }
-        
-        if (size === "1x2") {
-          const latestLog = glucoseLogs[0];
-          return (
-            <div className="glass-card !p-3.5 flex flex-col justify-between h-full w-full relative overflow-hidden text-left min-h-[220px]">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
-              
-              <div className="flex justify-between items-center w-full">
-                <div className="p-1.5 bg-rose-500/10 rounded-lg text-rose-500"><Droplet size={14} strokeWidth={2.5} /></div>
-                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.pomiary', { defaultValue: 'Pomiary' })}</span>
-              </div>
-              
-              <div className="mt-2 text-left">
-                <span className="text-[7px] uppercase font-black text-slate-400 block mb-0.5 opacity-60">{t('auto.ostatni_wynik', { defaultValue: 'Ostatni wynik' })}</span>
-                <p className="font-black text-2xl dark:text-white font-display leading-none tracking-tight">
-                  {Math.round(latestLog.value)} <span className="text-xs opacity-50 font-sans font-medium">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
-                </p>
-                <p className="text-[8px] text-slate-400 mt-0.5">
-                  
-                                            {t('auto.godz', { defaultValue: 'godz.' })} {new Date(latestLog.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </p>
-              </div>
+          return <HistoryMeasurementsWidget {...widgetProps} size={size} />;
 
-              <div className="my-3 border-t border-slate-100 dark:border-white/5 pt-3 flex-1 flex flex-col gap-2 overflow-hidden">
-                <span className="text-[7px] uppercase font-black text-slate-400 block opacity-60">{t('auto.poprzednie', { defaultValue: 'Poprzednie' })}</span>
-                <div className="space-y-1.5 flex-1 overflow-hidden">
-                  {glucoseLogs.slice(1, 3).map((log) => (
-                    <div key={log.id} className="flex justify-between items-center text-[10px] bg-slate-500/5 p-1.5 rounded-lg border border-slate-100 dark:border-white/5">
-                      <span className="font-black dark:text-white">{Math.round(log.value)}  {t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
-                      <span className="text-[8px] text-slate-400 font-bold">{new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={() => { if (!isEditingLayout) { Haptics.light(); setListFilter('glucose'); setTab("history"); } }}
-                className="w-full py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-center"
-              >
-                
-                                      {t('auto.wszystkie', { defaultValue: 'Wszystkie ➡️' })}
-                                    </button>
-            </div>
-          );
-        }
-
-        const isHistMeasCompactHeight = size.endsWith("1");
-        return (
-          <div className="space-y-3 w-full h-full glass-card !p-5 min-h-[220px]">
-            <div className="flex justify-between items-center px-1 pb-1">
-              <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                
-                                        {t('auto.ostatnie_pomiary', { defaultValue: 'Ostatnie Pomiary' })}
-                                      </h3>
-              <button onClick={() => { if (!isEditingLayout) { Haptics.light(); setListFilter('glucose'); setTab("history"); } }} className="text-[9px] font-black text-rose-500 uppercase">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
-            </div>
-            <div className="space-y-2">
-              {glucoseLogs.slice(0, isHistMeasCompactHeight ? 2 : 3).map((log, idx) => (
-                <div key={`${log.id}-${idx}`}>
-                  <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
-                    <div className="glass-card !p-4 flex items-center gap-4 w-full">
-                      <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
-                        <Droplet size={18} strokeWidth={2.5} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-black text-base dark:text-white font-display text-left">
-                          {Math.round(log.value)} <span className="text-[10px] opacity-40 uppercase font-bold text-slate-400">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
-                        </p>
-                        <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter truncate font-display text-left">
-                          {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.notes || 'Glukoza'}
-                        </p>
-                      </div>
-                    </div>
-                  </SwipeableItem>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
 
       case "history_treatments":
-        const treatmentLogs = logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin');
-        const hasTreatmentLogsOnly = treatmentLogs.length > 0;
-        if (!hasTreatmentLogsOnly) {
-          if (isEditingLayout) {
-            return (
-              <div className="p-6 bg-slate-500/5 dark:bg-slate-950/10 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-xs text-slate-400 dark:text-slate-500 font-bold font-display w-full min-h-[140px] flex flex-col justify-center items-center">
-                
-                                    {t('auto.ostatnie_leczenie_brak_danych', { defaultValue: '💉 Ostatnie leczenie [Brak danych]' })}
-                                  </div>
-            );
-          }
-          return null;
-        }
+          return <HistoryTreatmentsWidget {...widgetProps} size={size} />;
 
-        if (size === "1x2") {
-          const latestLog = treatmentLogs[0];
-          return (
-            <div className="glass-card !p-3.5 flex flex-col justify-between h-full w-full relative overflow-hidden text-left min-h-[220px]">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-accent-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
-              
-              <div className="flex justify-between items-center w-full">
-                <div className="p-1.5 rounded-lg shrink-0 bg-accent-500/10 text-accent-500">
-                  <Syringe size={14} />
-                </div>
-                <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.leczenie', { defaultValue: 'Leczenie' })}</span>
-              </div>
-              
-              <div className="mt-2 text-left">
-                <span className="text-[7px] uppercase font-black text-slate-400 block mb-0.5 opacity-60">{t('auto.ostatni_wpis', { defaultValue: 'Ostatni wpis' })}</span>
-                <p className="font-black text-2xl dark:text-white font-display leading-none tracking-tight">
-                  {typeof latestLog.value === 'number' ? Number(latestLog.value.toFixed(1)) : Number(Number(latestLog.value).toFixed(1))}
-                  <span className="text-[10px] opacity-50 font-sans font-medium uppercase ml-1">j.</span>
-                </p>
-                <p className="text-[8px] text-slate-400 mt-0.5 truncate">
-                  {t('auto.godz', { defaultValue: 'godz.' })} {new Date(latestLog.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {latestLog.description || 'Bolus'}
-                </p>
-              </div>
-
-              <div className="my-3 border-t border-slate-100 dark:border-white/5 pt-3 flex-1 flex flex-col gap-2 overflow-hidden">
-                <span className="text-[7px] uppercase font-black text-slate-400 block opacity-60">{t('auto.poprzednie', { defaultValue: 'Poprzednie' })}</span>
-                <div className="space-y-1.5 flex-1 overflow-hidden">
-                  {treatmentLogs.slice(1, 3).map((log) => {
-                    return (
-                      <div key={log.id} className="flex justify-between items-center text-[10px] bg-slate-500/5 p-1.5 rounded-lg border border-slate-100 dark:border-white/5">
-                        <span className="font-black dark:text-white flex items-center gap-1">
-                          <Syringe size={12} className="text-indigo-400" /> {typeof log.value === 'number' ? Number(log.value.toFixed(1)) : Number(Number(log.value).toFixed(1))} j.
-                        </span>
-                        <span className="text-[8px] text-slate-400 font-bold">{new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <button
-                onClick={() => { if (!isEditingLayout) { Haptics.light(); setListFilter('treatment'); setTab("history"); } }}
-                className="w-full py-1.5 bg-accent-500/10 hover:bg-accent-500/20 text-accent-500 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-center"
-              >
-                
-                                      {t('auto.wszystkie', { defaultValue: 'Wszystkie ➡️' })}
-                                    </button>
-            </div>
-          );
-        }
-
-        const isHistTreatCompactHeight = size.endsWith("1");
-        return (
-          <div className="space-y-3 w-full h-full glass-card !p-5 min-h-[220px]">
-            <div className="flex justify-between items-center px-1 pb-1">
-              <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent-500" />
-                {t('auto.leczenie', { defaultValue: 'Leczenie' })}
-              </h3>
-              <button onClick={() => { if (!isEditingLayout) { Haptics.light(); setListFilter('treatment'); setTab("history"); } }} className="text-[9px] font-black text-accent-500 uppercase font-display">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
-            </div>
-            <div className="space-y-2">
-              {treatmentLogs.slice(0, isHistTreatCompactHeight ? 2 : 3).map((log, idx) => (
-                <div key={`${log.id}-${idx}`}>
-                  <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
-                    <div onClick={() => { if (!isEditingLayout && !settings.followerMode) setEditingLog(log); }} className="glass-card !p-4 flex items-center gap-4 cursor-pointer w-full">
-                      <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-accent-500/10 text-accent-500">
-                        <Syringe size={18} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-black text-base dark:text-white font-display text-left">
-                          {typeof log.value === 'number' ? Number(log.value.toFixed(2)) : Number(Number(log.value).toFixed(2))} <span className="text-[10px] opacity-40 uppercase font-bold text-slate-400">j.</span>
-                        </p>
-                        <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter truncate font-display text-left">
-                          {new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {log.description || 'Bolus'}
-                        </p>
-                      </div>
-                    </div>
-                  </SwipeableItem>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
 
       case "pump":
-        if (!isInsulinMode) return null;
-        if (!pumpStatus) {
-          if (isEditingLayout) {
-            return (
-              <div className="mx-2 p-6 bg-slate-500/5 dark:bg-slate-950/10 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-xs text-slate-400 dark:text-slate-500 font-bold font-display w-full">
-                
-                                    {t('auto.status_pompy_insulinowej_nieaktywny', { defaultValue: '📟 Status Pompy Insulinowej [Nieaktywny]' })}
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-600 font-normal mt-1">
-                  
-                                          {t('auto.połącz_pompę_np_carelink_w_profilu_', { defaultValue: i18n.t('auto.polacz_pompe_np_carelink', { defaultValue: "Połącz pompę (np. CareLink) w Profilu, by aktywować te dane." }) })}
-                                        </p>
-              </div>
-            );
-          }
-          return null;
-        }
-        return (
-          <PumpStatusCard data={pumpStatus} compact={size.endsWith("1")} />
-        );
+          return <PumpWidget {...widgetProps} size={size} />;
+
 
       default:
         return null;
@@ -2177,7 +1747,7 @@ export default function Dashboard({
          {widgets.find(w => w.id === 'weather')?.visible && (
             <WeatherWidget pill={true} />
          )}
-         {isPumpMode && pumpStatus && widgets.find(w => w.id === 'pump')?.visible && (
+         {pumpStatus && (
             <>
                {pumpStatus.battery !== undefined && (
                  <div className="shrink-0 flex items-center gap-1.5 bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-400 px-3 py-1.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest shadow-sm">

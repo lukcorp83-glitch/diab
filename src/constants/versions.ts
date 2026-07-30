@@ -14,108 +14,20 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.8.06';
+export const CURRENT_VERSION = '5.9.91';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "5.8.06",
-    date: "2026-07-23",
-    title: "Wydajność ML na smartfonach",
+    version: "5.9.91",
+    date: "2026-07-30",
+    title: i18n.t('changelog.v5991_title', { defaultValue: "Nowa Architektura Aplikacji" }),
     changes: [
-      {
-        categoryKey: "kategoria_aktualizacje",
-        icon: "Zap",
-        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
-        descriptionKey: "Zoptymalizowano silnik GlikoSense 4.0 dla małych modeli wymuszając natywne obliczenia, rozwiązując problem opóźnień na urządzeniach mobilnych."
-      }
-    ]
-  },
-  {
-    version: "5.8.05",
-    date: "2026-07-20",
-    title: "Krytyczna poprawka Kalkulatora Bolusa",
-    changes: [
-      {
-        categoryKey: "kategoria_aktualizacje",
-        icon: "ShieldAlert",
-        colorClass: "bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400",
-        descriptionKey: "Zabezpieczono wszystkie zmienne profilowe przed błędami parsera, naprawiając nieklikalne pola w Kalkulatorze Bolusa."
-      }
-    ]
-  },
-  {
-    version: "5.8.03",
-    date: "2026-07-20",
-    title: "Centrum Żywieniowe i TCN WASM Fix",
-    changes: [
-      {
-        categoryKey: "kategoria_interfejs",
-        icon: "Layout",
-        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
-        descriptionKey: "Zmieniono nazwę zakładki 'Mój Talerz' na 'Centrum Żywieniowe'."
-      },
-      {
-        categoryKey: "kategoria_aktualizacje",
-        icon: "Cpu",
-        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
-        descriptionKey: "Wdrożono sprzętowe obejście dla silnika AI (TCN) - pełne wsparcie ultra-szybkiego WASM na smartfonach."
-      }
-    ]
-  },
-  {
-    version: "5.8.02",
-    date: "2026-07-18",
-    title: "GlikoSense 4.0: Chmura Pewności i Ochrona Nocy",
-    changes: [
-      "Nowość: Chmura Pewności – na wykresie GlikoSense 4.0 Pro widać teraz probabilistyczny margines błędu TCN.",
-      "Nowość: Nocny Asystent Bazy (Basal-Test) – inteligentny audyt stabilności insuliny bazowej o 3:00 nad ranem.",
-      "Ulepszenie: Zwiększono głęboką pamięć (Deep Memory) z 30 minut do aż 24 godzin (288 kroków).",
-      "Poprawka: Usunięto błąd powodujący zacinanie się kalkulatora bolusa przy przejściu z talerza."
-    ]
-  },
-  {
-    version: "5.8.01",
-    date: "2026-07-17",
-    title: "GlikoSense 4.0 Pro – Dwusilnikowa AI z Ochroną Sprzętową",
-    changes: [
-      "Nowość: Silnik GlikoSense 4.0 Pro (TCN) – sploty dylatowane i prognoza do 6 godzin.",
-      "Bezpieczeństwo: Blokada aktywacji silnika 4.0 na urządzeniach z mniej niż 3GB RAM.",
-      "Bezpiecznik: Automatyczny tryb hybrydowy (v3.0 LSTM) gdy historia zawiera mniej niż 150 pomiarów.",
-      "Interfejs: Dynamiczna zamiana etykiet GlikoSense 3.0 ➞ 4.0 Pro po aktywacji nowego silnika (zakładka AI, status systemowy).",
-      "Nowość: 3 nowe reguły fizjologiczne: Bezwładność Weekendowa, Opóźniony Spadek Powyśiłkowy, Wrażliwość Cykliczna (Stres)."
-    ]
-  },
-  {
-    version: "5.7.16",
-    date: "2026-07-17",
-    title: "Naprawa Dublowania Wkłuć i Sensorów",
-    changes: [
-      "Naprawa: Usunięto błąd powielania wpisów wymiany wkłucia i sensora po zaktualizowaniu ich daty.",
-      "Poprawka: Usunięto przypadkowe generowanie wpisów wymiany sensora w panelu Akcentu Kolorystycznego.",
-      "Optymalizacja: Zablokowano ponowne pobieranie starych dat osprzętu z Nightscout w przypadku lokalnej aktualizacji wpisu."
-    ]
-  },
-  {
-    version: "5.7.15",
-    date: "2026-07-17",
-    title: "Naprawa Persystencji Danych i Pętli 4-Dniowej",
-    changes: [
-      "Naprawa: Zabezpieczono lokalną bazę danych SQLite przed automatycznym kasowaniem (resetem) przy błędach blokady transakcji.",
-      "Optymalizacja: Usunięto obciążające przeładowywanie całej historii (45 000 wpisów) na rzecz natychmiastowego zapisu przyrostowego.",
-      "Poprawka: Pełna synchronizacja hybrydowa między bazą SQLite (natywną) a IndexedDB (przeglądarkową)."
-    ]
-  },
-  {
-    version: "5.7.14",
-    date: "2026-07-15",
-    title: "Naprawa Zliczania Kalorii i Historii Posiłków",
-    changes: [
-      "Naprawa: Podsumowanie 'Kcal dziś' w zakładce Dieta zlicza teraz poprawnie wszystkie posiłki z historii oraz wpisy węglowodanowe (carbs).",
-      "Naprawa: Edycja posiłku lub bolusa z posiłkiem w historii natychmiast przelicza i aktualizuje wartość kalorii.",
-      "Poprawka: Widżet bilansu wczorajszego (DietScoreWidget) oraz wykresy w pełni uwzględniają wszystkie formy wpisów węglowodanowych."
+      i18n.t('changelog.v5991_change_1', { defaultValue: "Architektura: Całkowicie nowa, odchudzona i zoptymalizowana struktura kodu." }),
+      i18n.t('changelog.v5991_change_2', { defaultValue: "Nowość: Centrum żywieniowe ułatwiające monitorowanie diety." }),
+      i18n.t('changelog.v5991_change_3', { defaultValue: "Nowość: Silnik GlikoSense 4.0 z ulepszonymi predykcjami." })
     ]
   },
   {
@@ -708,101 +620,13 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-    version: "5.8.06",
-    date: "2026-07-23",
-    title: "Wydajność ML na smartfonach",
+    version: "5.9.91",
+    date: "2026-07-30",
+    title: i18n.t('changelog.v5991_title', { defaultValue: "Nowa Architektura Aplikacji" }),
     changes: [
-      {
-        categoryKey: "kategoria_aktualizacje",
-        icon: "Zap",
-        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
-        descriptionKey: "Zoptymalizowano silnik GlikoSense 4.0 dla małych modeli wymuszając natywne obliczenia, rozwiązując problem opóźnień na urządzeniach mobilnych."
-      }
-    ]
-  },
-  {
-    version: "5.8.05",
-    date: "2026-07-20",
-    title: "Krytyczna poprawka Kalkulatora Bolusa",
-    changes: [
-      {
-        categoryKey: "kategoria_aktualizacje",
-        icon: "ShieldAlert",
-        colorClass: "bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400",
-        descriptionKey: "Zabezpieczono wszystkie zmienne profilowe przed błędami parsera, naprawiając nieklikalne pola w Kalkulatorze Bolusa."
-      }
-    ]
-  },
-  {
-    version: "5.8.03",
-    date: "2026-07-20",
-    title: "Centrum Żywieniowe i TCN WASM Fix",
-    changes: [
-      {
-        categoryKey: "kategoria_interfejs",
-        icon: "Layout",
-        colorClass: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400",
-        descriptionKey: "Zmieniono nazwę zakładki 'Mój Talerz' na 'Centrum Żywieniowe'."
-      },
-      {
-        categoryKey: "kategoria_aktualizacje",
-        icon: "Cpu",
-        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
-        descriptionKey: "Wdrożono sprzętowe obejście dla silnika AI (TCN) - pełne wsparcie ultra-szybkiego WASM na smartfonach."
-      }
-    ]
-  },
-  {
-    version: "5.8.02",
-    date: "2026-07-18",
-    title: "GlikoSense 4.0: Chmura Pewności i Ochrona Nocy",
-    changes: [
-      "Nowość: Chmura Pewności – na wykresie GlikoSense 4.0 Pro widać teraz probabilistyczny margines błędu TCN.",
-      "Nowość: Nocny Asystent Bazy (Basal-Test) – inteligentny audyt stabilności insuliny bazowej o 3:00 nad ranem.",
-      "Ulepszenie: Zwiększono głęboką pamięć (Deep Memory) z 30 minut do aż 24 godzin (288 kroków).",
-      "Poprawka: Usunięto błąd powodujący zacinanie się kalkulatora bolusa przy przejściu z talerza."
-    ]
-  },
-  {
-    version: "5.8.01",
-    date: "2026-07-17",
-    title: "GlikoSense 4.0 Pro – Dwusilnikowa AI z Ochroną Sprzętową",
-    changes: [
-      "Nowość: Silnik GlikoSense 4.0 Pro (TCN) – sploty dylatowane i prognoza do 6 godzin.",
-      "Bezpieczeństwo: Blokada aktywacji silnika 4.0 na urządzeniach z mniej niż 3GB RAM.",
-      "Bezpiecznik: Automatyczny tryb hybrydowy (v3.0 LSTM) gdy historia zawiera mniej niż 150 pomiarów.",
-      "Interfejs: Dynamiczna zamiana etykiet GlikoSense 3.0 ➞ 4.0 Pro po aktywacji nowego silnika.",
-      "Nowość: 3 nowe reguły fizjologiczne: Bezwładność Weekendowa, Opóźniony Spadek Powyśiłkowy, Wrażliwość Cykliczna (Stres)."
-    ]
-  },
-  {
-    version: "5.7.16",
-    date: "2026-07-17",
-    title: "Naprawa Dublowania Wkłuć i Sensorów",
-    changes: [
-      "Naprawa: Usunięto błąd powielania wpisów wymiany wkłucia i sensora po zaktualizowaniu ich daty.",
-      "Poprawka: Usunięto przypadkowe generowanie wpisów wymiany sensora w panelu Akcentu Kolorystycznego.",
-      "Optymalizacja: Zablokowano ponowne pobieranie starych dat osprzętu z Nightscout w przypadku lokalnej aktualizacji wpisu."
-    ]
-  },
-  {
-    version: "5.7.15",
-    date: "2026-07-17",
-    title: "Naprawa Persystencji Danych i Pętli 4-Dniowej",
-    changes: [
-      "Naprawa: Zabezpieczono lokalną bazę danych SQLite przed automatycznym kasowaniem (resetem) przy błędach blokady transakcji.",
-      "Optymalizacja: Usunięto obciążające przeładowywanie całej historii (45 000 wpisów) na rzecz natychmiastowego zapisu przyrostowego.",
-      "Poprawka: Pełna synchronizacja hybrydowa między bazą SQLite (natywną) a IndexedDB (przeglądarkową)."
-    ]
-  },
-  {
-    version: "5.7.14",
-    date: "2026-07-15",
-    title: "Naprawa Zliczania Kalorii i Historii Posiłków",
-    changes: [
-      "Naprawa: Podsumowanie 'Kcal dziś' w zakładce Dieta zlicza teraz poprawnie wszystkie posiłki z historii oraz wpisy węglowodanowe (carbs).",
-      "Naprawa: Edycja posiłku lub bolusa z posiłkiem w historii natychmiast przelicza i aktualizuje wartość kalorii.",
-      "Poprawka: Widżet bilansu wczorajszego (DietScoreWidget) oraz wykresy w pełni uwzględniają wszystkie formy wpisów węglowodanowych."
+      i18n.t('changelog.v5991_change_1', { defaultValue: "Architektura: Całkowicie nowa, odchudzona i zoptymalizowana struktura kodu." }),
+      i18n.t('changelog.v5991_change_2', { defaultValue: "Nowość: Centrum żywieniowe ułatwiające monitorowanie diety." }),
+      i18n.t('changelog.v5991_change_3', { defaultValue: "Nowość: Silnik GlikoSense 4.0 z ulepszonymi predykcjami." })
     ]
   },
   {

@@ -25,6 +25,7 @@ jobs:
   deploy-web:
     name: 🌐 OTA – GitHub Pages
     runs-on: ubuntu-latest
+    if: github.ref_name != 'alpha'
     environment:
       name: ${{ github.ref_name == 'main' && 'github-pages' || 'beta-environment' }}
       url: ${{ steps.deployment.outputs.page_url }}
@@ -48,7 +49,6 @@ jobs:
           CI: false
 
       - name: 📝 Generuj plik wersji (version.json lub beta.json)
-        if: github.ref_name != 'alpha'
         run: |
           VERSION=$(node -p "require('./package.json').version")
           BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -83,7 +83,6 @@ jobs:
           cat dist/${JSON_NAME}
 
       - name: 🗜️ Utwórz dist.zip i update.zip (OTA bundle)
-        if: github.ref_name != 'alpha'
         run: |
           rm -f dist.zip
           cd dist
@@ -102,7 +101,6 @@ jobs:
           fi
 
       - name: 📤 Upload dist.zip jako artifact
-        if: github.ref_name != 'alpha'
         uses: actions/upload-artifact@v4
         with:
           name: dist-zip-${{ github.run_number }}
@@ -129,9 +127,8 @@ jobs:
   build-apk:
     name: 📱 APK Release
     runs-on: ubuntu-latest
-    needs: deploy-web # poczekaj az OTA bedzie gotowe
-    # Uruchamiamy na ten sam push co deploy-web
-    if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/alpha')
+    needs: deploy-web
+    if: always()
 
     steps:
       - name: 📥 Checkout
@@ -188,10 +185,22 @@ jobs:
             APK_NAME="GlikoControl_${VERSION}_OTA.apk"
           fi
           cp android/app/build/outputs/apk/release/GlikoControl.apk "${APK_NAME}"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [ "$BRANCH_NAME" = "alpha" ]; then
+            APK_NAME="GlikoControl_${VERSION}-alpha.apk"
+          elif [ "$BRANCH_NAME" = "beta" ]; then
+            APK_NAME="GlikoControl_${VERSION}-beta_OTA.apk"
+          else
+            APK_NAME="GlikoControl_${VERSION}_OTA.apk"
+          fi
+          cp android/app/build/outputs/apk/release/GlikoControl.apk "${APK_NAME}"
           echo "APK_NAME=${APK_NAME}" >> $GITHUB_ENV
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: 📦 Pobierz dist.zip z poprzedniego joba
+        if: github.ref_name != 'alpha'
         if: github.ref_name != 'alpha'
         uses: actions/download-artifact@v4
         with:
@@ -200,6 +209,7 @@ jobs:
         continue-on-error: true
 
       - name: 🗜️ Kopia dla starszych wersji OTA
+        if: github.ref_name != 'alpha'
         if: github.ref_name != 'alpha'
         run: |
           BRANCH_NAME="${{ github.ref_name }}"
@@ -212,6 +222,18 @@ jobs:
           fi
 
       - name: 🗑️ Usuń stary Release
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [ "$BRANCH_NAME" = "alpha" ]; then
+            gh release delete aktualizacja-alpha -y || true
+            gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/aktualizacja-alpha || true
+          elif [ "$BRANCH_NAME" = "beta" ]; then
+            gh release delete aktualizacja-beta -y || true
+            gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/aktualizacja-beta || true
+          else
+            gh release delete aktualizacja -y || true
+            gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/aktualizacja || true
+          fi
         run: |
           BRANCH_NAME="${{ github.ref_name }}"
           if [ "$BRANCH_NAME" = "alpha" ]; then
@@ -239,7 +261,32 @@ jobs:
             1. Pobierz **${{ env.APK_NAME }}** poniżej
             2. Na telefonie otwórz pobrany plik i kliknij **Zainstaluj**
 
-            ${{ github.ref_name != 'alpha' && '### 🔄 Automatyczna aktualizacja OTA\nJeśli masz już aplikację — zostaniesz powiadomiony automatycznie.\n' || '' }}
+            ${{ github.ref_name != 'alpha' && '### 🔄 Automatyczna aktualizacja OTA\nJeśli masz już aplikację — zostaniesz powiadomiony automatycznie.' || '' }}
+
+            ---
+            Build: `${{ github.sha }}`
+          files: |
+            ${{ env.APK_NAME }}
+            ${{ github.ref_name != 'alpha' && 'dist.zip' || '' }}
+            ${{ github.ref_name != 'alpha' && (github.ref_name == 'beta' && 'update-beta.zip' || 'update.zip') || '' }}
+            ${{ github.ref_name != 'alpha' && (github.ref_name == 'beta' && 'dist/beta.json' || 'dist/version.json') || '' }}
+          draft: false
+          prerelease: ${{ github.ref_name == 'alpha' || github.ref_name == 'beta' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name == 'alpha' && 'aktualizacja-alpha' || (github.ref_name == 'beta' && 'aktualizacja-beta' || 'aktualizacja') }}
+          name: ${{ github.ref_name == 'alpha' && 'GlikoControl Alpha (Tylko APK)' || (github.ref_name == 'beta' && 'GlikoControl Wersja Testowa (BETA)' || 'GlikoControl Zawsze Najnowsza') }}
+          body: |
+            ## 🩺 GlikoControl v${{ env.VERSION }} ${{ github.ref_name == 'alpha' && '(ALPHA)' || (github.ref_name == 'beta' && '(BETA)' || '') }}
+
+            ### 📱 Jak zainstalować
+            1. Pobierz **${{ env.APK_NAME }}** poniżej
+            2. Na telefonie otwórz pobrany plik i kliknij **Zainstaluj**
+
+            ${{ github.ref_name != 'alpha' && '### 🔄 Automatyczna aktualizacja OTA\nJeśli masz już aplikację — zostaniesz powiadomiony automatycznie.' || '' }}
+
             ---
             Build: `${{ github.sha }}`
           files: |

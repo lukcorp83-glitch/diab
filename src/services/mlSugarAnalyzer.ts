@@ -20,66 +20,35 @@ export const GlikoSenseLearner = {
       }
     }
   },
-  learnFromGemini(analysisText: string | string[]) {
-    const text = (Array.isArray(analysisText) ? analysisText.join(" ") : analysisText).toLowerCase();
+  learnFromGemini(analysisText: string) {
+    const text = analysisText.toLowerCase();
     try {
       let rules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
-      let changed = false;
       
-      if (/insulinooporn|opornoś.*insulin|wysokie dawki|zapotrzebowanie/i.test(text)) {
+      if (text.includes(i18n.t('auto.insulinoopornosc', { defaultValue: i18n.t('auto.insulinoopornosc', { defaultValue: "insulinooporność" }) })) || text.includes(i18n.t('auto.opornosc_na_insuline', { defaultValue: i18n.t('auto.opornosc_na_insuline', { defaultValue: "oporność na insulinę" }) })) || text.includes('wysokie dawki')) {
         rules.insulinResistanceMultiplier = (rules.insulinResistanceMultiplier || 1.0) * 1.05;
-        this.sendTelemetry("insulinResistanceMultiplier_increase", i18n.t('auto.wykryto_slowo_klucz_opornosci', { defaultValue: "Wykryto słowo-klucz oporności w raporcie AI." }));
-        changed = true;
+        this.sendTelemetry("insulinResistanceMultiplier_increase", i18n.t('auto.wykryto_slowo_klucz_opornosci', { defaultValue: i18n.t('auto.wykryto_slowo_klucz_oporn', { defaultValue: "Wykryto słowo-klucz oporności w raporcie AI." }) }));
       }
-      if (/zwiększona wrażliwość|wzrost wrażliwości|bardzo spada|szybki spadek/i.test(text)) {
+      if (text.includes(i18n.t('auto.zwiekszona_wrazliwosc', { defaultValue: i18n.t('auto.zwiekszona_wrazliwosc', { defaultValue: "zwiększona wrażliwość" }) })) || text.includes('bardzo spada') || text.includes('szybki spadek')) {
         rules.insulinResistanceMultiplier = Math.max(0.5, (rules.insulinResistanceMultiplier || 1.0) * 0.95);
-        this.sendTelemetry("insulinResistanceMultiplier_decrease", i18n.t('auto.wykryto_slowo_klucz_wrazliwosc', { defaultValue: "Wykryto słowo-klucz wrażliwości w raporcie AI." }));
-        changed = true;
+        this.sendTelemetry("insulinResistanceMultiplier_decrease", i18n.t('auto.wykryto_slowo_klucz_wrazliwosc', { defaultValue: i18n.t('auto.wykryto_slowo_klucz_wrazl', { defaultValue: "Wykryto słowo-klucz wrażliwości w raporcie AI." }) }));
       }
-      if (/brzask|porann.*(wzrost|hormon|wstawani)|poranne wzrosty/i.test(text)) {
+      if (text.includes('brzask') || text.includes('wzrosty poranne')) {
         rules.dawnPhenomenonEnabled = true;
-        this.sendTelemetry("dawnPhenomenonEnabled_true", i18n.t('auto.aktywowano_regule_poranna', { defaultValue: "Aktywowano regułę poranną." }));
-        changed = true;
+        this.sendTelemetry("dawnPhenomenonEnabled_true", i18n.t('auto.aktywowano_regule_poranna', { defaultValue: i18n.t('auto.aktywowano_regule_poranna', { defaultValue: "Aktywowano regułę poranną." }) }));
       }
-      if (/somogyi|odbici.*hipo|hipo.*odbici/i.test(text)) {
+      if (text.includes('somogyi') || text.includes('odbicie po hipo')) {
         rules.somogyiEnabled = true;
-        this.sendTelemetry("somogyiEnabled_true", "Aktywowano zjawisko somogyi z porad Gemini/ML.");
-        changed = true;
+        this.sendTelemetry("somogyiEnabled_true", "Aktywowano zjawisko somogyi z porad Gemini.");
       }
-      if (/pizza|pizzy|tłust.*(posił|jedzen)|przedłużon.*wchłanian|białkowo-tłuszcz/i.test(text)) {
+      if (text.includes('pizza') || text.includes(i18n.t('auto.tluste_posilki', { defaultValue: i18n.t('auto.tluste_posilki', { defaultValue: "tłuste posiłki" }) })) || text.includes(i18n.t('auto.przedluzone_wchlanianie', { defaultValue: i18n.t('auto.przedluzone_wchlanianie', { defaultValue: "przedłużone wchłanianie" }) }))) {
         rules.pizzaEffectMultiplier = 1.2;
-        this.sendTelemetry("pizzaEffectMultiplier_1.2", i18n.t('auto.korekta_bazy_wchlaniania_efekt', { defaultValue: "Korekta bazy wchłaniania (Efekt Pizzy)." }));
-        changed = true;
-      }
-      if (/bezwładność weekendowa|weekend/i.test(text)) {
-        rules.weekendInertiaEnabled = true;
-        this.sendTelemetry("weekendInertiaEnabled_true", "Aktywowano regułę Bezwładności Weekendowej.");
-        changed = true;
-      }
-      if (/opóźniony spadek powysiłkowy|aktywność fizyczna|trening/i.test(text)) {
-        rules.delayedExerciseEnabled = true;
-        this.sendTelemetry("delayedExerciseEnabled_true", "Aktywowano regułę Opóźnionego Spadku Powysiłkowego.");
-        changed = true;
-      }
-      if (/wrażliwość cykliczna|stres|wahania poranne/i.test(text)) {
-        rules.stressSensitivityEnabled = true;
-        this.sendTelemetry("stressSensitivityEnabled_true", "Aktywowano regułę Wrażliwości Cyklicznej/Stresowej.");
-        changed = true;
+        this.sendTelemetry("pizzaEffectMultiplier_1.2", i18n.t('auto.korekta_bazy_wchlaniania_efekt', { defaultValue: i18n.t('auto.korekta_bazy_wchlaniania', { defaultValue: "Korekta bazy wchłaniania (Efekt Pizzy)." }) }));
       }
       
-      if (changed || Object.keys(rules).length > 0) {
-        localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('glikosense_rules_updated', { detail: rules }));
-        }
-      }
+      localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
     } catch (e) {
       console.warn("GlikoSense Learner error", e);
-    }
-  },
-  learnFromInsights(insights: string[]) {
-    if (insights && insights.length > 0) {
-      this.learnFromGemini(insights);
     }
   },
   getRules() {
@@ -211,11 +180,6 @@ export const MLAnalyzer = {
     if (mode === 'quick' && _currentQuickAnalysisPromise) return _currentQuickAnalysisPromise;
 
     const analysisPromise = new Promise((resolve, reject) => {
-      if (typeof window === 'undefined') {
-        resolve(null);
-        return;
-      }
-      
       // Setup Web Worker using standard URL module approach for Capacitor compatibility
       const worker = new Worker(new URL('../workers/glikosense.worker.ts', import.meta.url), { type: 'module' });
       
@@ -223,23 +187,17 @@ export const MLAnalyzer = {
       const timeoutId = setTimeout(() => {
         worker.terminate();
         reject(new Error("GlikoSense Worker timeout"));
-      }, mode === 'quick' ? 300000 : 600000);
+      }, mode === 'quick' ? 120000 : 240000);
 
       worker.onmessage = (e) => {
+        clearTimeout(timeoutId);
         const { type, payload, value, key, error } = e.data;
         if (type === 'result') {
-          clearTimeout(timeoutId);
           worker.terminate();
-          if (payload.learnedPkParams || payload.discoveredRules) {
+          if (payload.learnedPkParams) {
              const rules = GlikoSenseLearner.getRules();
-             const updated = { ...rules, ...(payload.learnedPkParams ? { pkParams: payload.learnedPkParams } : {}), ...(payload.discoveredRules || {}) };
-             localStorage.setItem('glikosense_medical_rules', JSON.stringify(updated));
-             if (typeof window !== 'undefined') {
-               window.dispatchEvent(new CustomEvent('glikosense_rules_updated', { detail: updated }));
-             }
-          }
-          if (payload.insights && Array.isArray(payload.insights)) {
-            GlikoSenseLearner.learnFromInsights(payload.insights);
+             rules.pkParams = payload.learnedPkParams;
+             localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
           }
           
           if (payload.riskOfHypo) {
@@ -265,12 +223,10 @@ export const MLAnalyzer = {
              }
           }
           
-          
           resolve(payload);
         } else if (type === 'storage_update') {
           localStorage.setItem(key, value);
         } else if (type === 'error') {
-          clearTimeout(timeoutId);
           worker.terminate();
           console.error("GlikoSense Worker Error:", error);
           reject(new Error(error));
@@ -287,7 +243,6 @@ export const MLAnalyzer = {
       const rules = GlikoSenseLearner.getRules();
       const lastTrainTimeStr = localStorage.getItem('glikosense_last_train_time');
       const datasetSizeStr = localStorage.getItem('glikosense_dataset_size');
-      const engineMode = localStorage.getItem('glikosense_engine_mode') || 'v3_lstm';
 
       worker.postMessage({
         logs,
@@ -296,8 +251,7 @@ export const MLAnalyzer = {
         mode,
         rules,
         lastTrainTime: lastTrainTimeStr ? parseInt(lastTrainTimeStr, 10) : 0,
-        datasetSizeFromStorage: datasetSizeStr ? parseInt(datasetSizeStr, 10) : 0,
-        engineMode
+        datasetSizeFromStorage: datasetSizeStr ? parseInt(datasetSizeStr, 10) : 0
       });
     }).then((res: any) => {
       _cachedResult = res;

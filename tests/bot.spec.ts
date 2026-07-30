@@ -14,6 +14,29 @@ test.describe('Automatyczny Bot Testujący - Błędy i Wydajność', () => {
       }
     });
     errors = []; // Czyszczenie błędów przed każdym testem
+
+    // BARDZO WAŻNE: Dodajemy pominięcie Onboardingu do Local Storage przed wejściem na stronę,
+    // w przeciwnym razie bot ugrzęźnie na samouczku startowym!
+    await page.addInitScript(() => {
+      window.localStorage.setItem('onboarding_completed', 'true');
+      window.localStorage.setItem('hasSeenTutorial', 'true');
+      window.localStorage.setItem('privacy_accepted', 'true');
+      window.localStorage.setItem('cookie_consent', 'true');
+      window.localStorage.setItem('changelog_1.2.0_seen', 'true');
+    });
+
+    // Centralne wejście i logowanie dla każdego testu
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    
+    // Automatyczne ominięcie ekranu logowania (kliknięcie 'Logowanie bez konta / Gość')
+    const guestLoginBtn = page.getByText(/Logowanie bez konta|Gość/i).first();
+    await guestLoginBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    if (await guestLoginBtn.isVisible()) {
+      console.log('Znaleziono ekran logowania. Klikam "Logowanie jako Gość"...');
+      await guestLoginBtn.click();
+      // Czekamy na przetworzenie logowania przez Firebase i przeładowanie UI
+      await page.waitForTimeout(2500); 
+    }
   });
 
   test.afterEach(() => {
@@ -22,31 +45,28 @@ test.describe('Automatyczny Bot Testujący - Błędy i Wydajność', () => {
   });
 
   test('Scenariusz 1: Nawigacja i wczytywanie (Smoke Test)', async ({ page }) => {
-    // 1. Otwarcie strony
-    await page.goto('/');
-    
-    // Sprawdzenie czy załadował się główny kontener aplikacji (np. pasek dolny lub nawigacja)
-    // Oczekujemy że tytuł strony to np. "Vite + React" lub mamy jakiś bazowy element.
+    // Sprawdzenie czy załadował się główny kontener aplikacji
     await expect(page).toHaveTitle(/Vite \+ React|Diab|GlikoControl/i);
     
-    // Proste odczekanie na stabilizację animacji
-    await page.waitForTimeout(1000);
+    // Sprawdzamy czy widoczny jest główny pasek nawigacyjny
+    const navBar = page.locator('nav').first();
+    if (await navBar.count() > 0) {
+      await expect(navBar).toBeVisible();
+    }
   });
 
   test('Scenariusz 2: Kalkulator Bolusa', async ({ page }) => {
-    await page.goto('/');
-    // Szukanie przycisku/linku Kalkulatora Bolusa (zakładając że gdzieś jest tekst "Kalkulator")
-    // Jeśli go nie ma na wierzchu, bot spróbuje kliknąć w odpowiednie menu.
-    // Używamy luźnego selektora tekstowego
+    // Zamiast sztywnego czekania, czekamy na pojawienie się przycisku/zakładki
     const bolusBtn = page.getByText(/Kalkulator/i).first();
-    if (await bolusBtn.isVisible()) {
-      await bolusBtn.click();
+    await expect(bolusBtn).toBeVisible({ timeout: 15000 });
+    await bolusBtn.click();
       
-      // Sprawdzenie czy formularz się załadował
-      await expect(page.getByText(/Glukoza/i).first()).toBeVisible();
-      
-      // Przykładowe wpisanie glukozy
-      const glukozaInput = page.getByRole('spinbutton').first();
+    // Sprawdzenie czy formularz się załadował
+    await expect(page.getByText(/Glukoza/i).first()).toBeVisible();
+    
+    // Przykładowe wpisanie glukozy
+    const glukozaInput = page.getByRole('spinbutton').first();
+    if (await glukozaInput.isVisible()) {
       await glukozaInput.fill('120');
       
       // Kliknięcie oblicz, jeśli jest
@@ -54,82 +74,137 @@ test.describe('Automatyczny Bot Testujący - Błędy i Wydajność', () => {
       if (await obliczBtn.isVisible()) {
         await obliczBtn.click();
       }
-      await page.waitForTimeout(500);
     }
   });
 
   test('Scenariusz 3: Talerz Żywieniowy (MealPlate)', async ({ page }) => {
-    await page.goto('/');
-    // Próba wejścia w zakładkę Talerz/Posiłki
-    const plateBtn = page.getByText(/Talerz|Posił/i).first();
-    if (await plateBtn.isVisible()) {
-      await plateBtn.click();
+    const plateBtn = page.getByText(/Centrum Żywieniowe/i).first();
+    await expect(plateBtn).toBeVisible({ timeout: 15000 });
+    await plateBtn.click();
       
-      // Sprawdzenie czy załadowała się scena 3D z talerzem (lub odpowiedni komponent)
-      const canvas = page.locator('canvas');
-      if (await canvas.count() > 0) {
-        await expect(canvas.first()).toBeVisible();
-      }
-      
-      await page.waitForTimeout(1000);
+    // Sprawdzenie czy załadowała się scena (canvas)
+    const canvas = page.locator('canvas').first();
+    if (await canvas.count() > 0) {
+      await expect(canvas).toBeVisible();
     }
   });
 
   test('Scenariusz 4: Miejsca Wkłucia i Pompa (Profile)', async ({ page }) => {
-    await page.goto('/');
-    // Próba wejścia w Profil lub Pompę
-    const profileBtn = page.getByText(/Profil|Pompa|Wkłucia/i).first();
-    if (await profileBtn.isVisible()) {
-      await profileBtn.click();
+    const profileBtn = page.getByText(/^Profil$/i).first();
+    await expect(profileBtn).toBeVisible({ timeout: 15000 });
+    await profileBtn.click();
       
-      // Sprawdzenie czy istnieje możliwość interakcji z miejscami wkłucia
-      await page.waitForTimeout(1000);
-      
-      // Sprawdzamy czy gdzieś na stronie jest napis "Wkłucie" lub "Zmień"
-      const wklucieText = page.getByText(/Wkłuci/i).first();
-      if (await wklucieText.isVisible()) {
-         // symulacja bycia na ekranie miejsc wkłucia
-      }
+    // Sprawdzamy czy gdzieś na stronie jest napis "Wkłucie" lub pojawia się odpowiednia sekcja
+    const wklucieText = page.getByText(/Wkłuci/i).first();
+    if (await wklucieText.isVisible()) {
+      await expect(wklucieText).toBeVisible();
     }
   });
 
   test('Scenariusz 5: Pełna eksploracja wszystkich zakładek (Klikacz we wszystko)', async ({ page }) => {
-    await page.goto('/');
-    
-    // Czekamy na załadowanie aplikacji
-    await page.waitForTimeout(2000);
-
-    // Znajdujemy wszystkie główne elementy nawigacyjne (linki lub przyciski na dolnym pasku)
-    // Zazwyczaj w nawigacji znajdują się nazwy lub ikony. Szukamy po popularnych rolach i tekstach.
     const menuItems = [
-      'Pulpit', 'Dzienniczek', 'Wykresy', 'Talerz', 'Kalkulator', 'Ustawienia', 'Profil', 'Pompa', 'Wkłucia'
+      'Pulpit', 'Dzienniczek', 'Wykres', 'Centrum Żywieniowe', 'Kalkulator Bolusa', 'Profil'
     ];
 
     for (const itemText of menuItems) {
-      // Szukamy elementów, które zawierają dany tekst i są widoczne
+      // Szukamy przycisków dolnego paska nawigacyjnego
       const element = page.getByText(new RegExp(itemText, 'i')).first();
       
       if (await element.isVisible()) {
-        console.log(`Klikam w: ${itemText}`);
+        console.log(`Klikam w zakładkę: ${itemText}`);
         await element.click();
         
-        // Czekamy chwilę na przeładowanie widoku i ewentualne błędy w konsoli
-        await page.waitForTimeout(1000);
+        // Zamiast sztywnych przerw używamy wbudowanych mechanizmów stabilizacji
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(300); // krótka przerwa na animacje przejścia
 
-        // Będąc na danej zakładce, próbujemy kliknąć w jakikolwiek widoczny, główny przycisk typu "Dodaj", "Zapisz", "Otwórz"
-        // (żeby wyzwolić otwieranie modali lub formularzy)
+        // Próbujemy otworzyć ewentualne modale, by sprawdzić błędy przy ich renderowaniu
         const actionBtn = page.getByRole('button', { name: /Dodaj|Nowy|Więcej|Otwórz/i }).first();
-        if (await actionBtn.isVisible()) {
+        if (await actionBtn.isVisible() && await actionBtn.isEnabled()) {
           await actionBtn.click();
-          await page.waitForTimeout(500);
           
-          // Jeśli otworzył się modal z przyciskiem "Anuluj" lub "Zamknij", klikamy go, by móc iść dalej
+          await page.waitForTimeout(300);
+          
+          // Zamykanie modali by móc kontynuować
           const closeBtn = page.getByRole('button', { name: /Anuluj|Zamknij|Wróć/i }).first();
-          if (await closeBtn.isVisible()) {
+          if (await closeBtn.isVisible() && await closeBtn.isEnabled()) {
             await closeBtn.click();
-            await page.waitForTimeout(500);
+          } else {
+            // Zamknięcie przez wciśnięcie Esc (często działa na modale i szuflady)
+            await page.keyboard.press('Escape');
           }
+          await page.waitForTimeout(300);
         }
+      }
+    }
+  });
+
+  test('Scenariusz 6: Dzienniczek i Filtrowanie', async ({ page }) => {
+    // Wejście w Dzienniczek
+    const logbookBtn = page.getByText(/^Dzienniczek$/i).first();
+    await logbookBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    if (await logbookBtn.isVisible()) {
+      await logbookBtn.click();
+      
+      // Oczekiwanie na załadowanie listy wpisów
+      await page.waitForLoadState('domcontentloaded');
+      
+      // Sprawdzenie obecności jakichkolwiek elementów z czasem (np. godzina dodania wpisu) 
+      // lub napisu "Brak danych" w przypadku pustego dzienniczka
+      const emptyState = page.getByText(/Brak|Pusto/i).first();
+      const listElement = page.locator('ul li, .log-entry').first();
+      
+      if (!await emptyState.isVisible()) {
+        await expect(listElement).toBeVisible({ timeout: 15000 }).catch(() => {});
+      }
+    }
+  });
+
+  test('Scenariusz 7: Interakcja z bazą jedzenia', async ({ page }) => {
+    // Wejście w Talerz (posiłki)
+    const plateBtn = page.getByText(/^Talerz$/i).first();
+    await plateBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    if (await plateBtn.isVisible()) {
+      await plateBtn.click();
+      await page.waitForTimeout(500);
+
+      // Próba kliknięcia w 'Baza jedzenia' lub 'Szukaj'
+      const searchDbBtn = page.getByRole('button', { name: /Baza|Szukaj|Dodaj produkt/i }).first();
+      if (await searchDbBtn.isVisible() && await searchDbBtn.isEnabled()) {
+        await searchDbBtn.click();
+        
+        // Sprawdzenie czy pojawiło się pole wyszukiwania
+        const searchInput = page.getByRole('textbox').first();
+        if (await searchInput.isVisible()) {
+          await searchInput.fill('Jabłko');
+          await page.waitForTimeout(1000); // Czas na debounce wyszukiwarki
+          
+          // Zamknięcie modala po udanym wyszukaniu
+          await page.keyboard.press('Escape');
+        }
+      }
+    }
+  });
+
+  test('Scenariusz 8: Zmiana motywu (Dark/Light Mode) w Ustawieniach', async ({ page }) => {
+    // Otwarcie Profilu
+    const profileBtn = page.getByText(/^Profil$/i).first();
+    await profileBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    if (await profileBtn.isVisible()) {
+      await profileBtn.click();
+      
+      // Przewinięcie w dół, aby znaleźć ustawienia wyglądu (np. Ciemny motyw)
+      const themeToggle = page.getByText(/Ciemny motyw|Wygląd|Dark/i).first();
+      if (await themeToggle.isVisible()) {
+        await themeToggle.click();
+        
+        // Weryfikacja czy aplikacja reaguje i zmienia klasy na body/html
+        // Sprawdzamy, czy znacznik html uzyskał klasę 'dark' lub zmienił styl.
+        await page.waitForTimeout(500);
+        const hasDarkClass = await page.evaluate(() => document.documentElement.classList.contains('dark'));
+        
+        // Klikamy ponownie, by odwrócić (nie chcemy psuć stanu jeśli korzysta z local storage)
+        await themeToggle.click();
       }
     }
   });

@@ -6,7 +6,6 @@ import { getToken, onMessage } from 'firebase/messaging';
 import { messaging, auth, db } from '../lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import i18n from "../i18n";
-import { playLowGlucoseSound, playHighGlucoseSound } from "../lib/audioUtils";
 
 const VAPID_KEY = 'BDpTWMeEWqqbg9i1S4P33GC51S2TgPs_cozqFLQrYJl0y6RXMXUym50gG-1d3xvGsSH7EjVGRyERPQ1i-K2h3D4';
 
@@ -14,13 +13,8 @@ export const notificationService = {
   async initChannels() {
     if (Capacitor.isNativePlatform()) {
       try {
-        await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v7' }).catch(() => {});
-        await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v8' }).catch(() => {});
-        await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v9' }).catch(() => {});
-        await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v10' }).catch(() => {});
-
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v11',
+          id: 'glucose_alerts_v7',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
           importance: 5,
@@ -429,12 +423,6 @@ export const notificationService = {
     const title = isHigh ? i18n.t('auto.wysoki_cukier', { defaultValue: 'Wysoki Cukier!' }) : i18n.t('auto.niski_cukier', { defaultValue: 'Niski Cukier!' });
     const body = `${i18n.t('auto.twoj_aktualny_poziom_cukru_to', { defaultValue: 'Twój aktualny poziom cukru to' })} ${value} mg/dL.`;
 
-    if (isHigh) {
-      playHighGlucoseSound();
-    } else {
-      playLowGlucoseSound();
-    }
-
     if (Capacitor.isNativePlatform()) {
       await this.initChannels();
       await LocalNotifications.requestPermissions();
@@ -444,7 +432,7 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v11',
+            channelId: 'glucose_alerts_v7',
             sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: "",

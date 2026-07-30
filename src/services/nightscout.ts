@@ -12,6 +12,7 @@ export interface NightscoutEntry {
 }
 
 export interface NightscoutTreatment {
+  enteredBy?: string;
   _id: string;
   eventType: string;
   created_at: string;
@@ -19,7 +20,6 @@ export interface NightscoutTreatment {
   insulin?: number;
   carbs?: number;
   notes?: string;
-  enteredBy?: string;
 }
 
 async function fetchWithFallbacks(directUrl: string, headers: Record<string, string>): Promise<any> {
