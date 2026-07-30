@@ -3394,7 +3394,7 @@ export default function Profile({
  </div>
  </motion.div>
  )}
- {activeCategory === "meds" && <ProfileMedications settings={settings} setSettings={setSettings} />}
+ {activeCategory === "meds" && <ProfileMedications user={user} settings={settings} setSettings={setSettings} />}
  {activeCategory === "simulator" && <React.Suspense fallback={null}><PumpSimulator settings={settings} /></React.Suspense>}
  {activeCategory === "tutorial" && (
  <TutorialView 

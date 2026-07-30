@@ -81,8 +81,8 @@ export default function App() {
 
   const { nsLogs, nsDeviceStatus } = useNightscoutWorker(
     user, 
-    nsSettings?.nsUrl || "", 
-    nsSettings?.apiSecret || "", 
+    nsSettings?.url || "", 
+    nsSettings?.secret || "", 
     userSettingsRef, 
     deletedNsIdsRef
   );

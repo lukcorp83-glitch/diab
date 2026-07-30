@@ -1,7 +1,7 @@
 {
   "name": "diacontrolapp",
   "private": true,
-  "version": "5.9.92",
+  "version": "5.9.93",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",

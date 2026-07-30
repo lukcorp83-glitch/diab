@@ -1,3 +1,4 @@
+import { Cylinder } from 'lucide-react';
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -470,25 +471,8 @@ export default function Dashboard({
 
   // Inline forms state
   const [inlineBgValue, setInlineBgValue] = useState("");
-  const [inlineBolusDose, setInlineBolusDose] = useState("");
-  const [inlineBolusCarbs, setInlineBolusCarbs] = useState("");
-  const [inlineBolusNotes, setInlineBolusNotes] = useState("");
-
-  const handleInlineBolusCarbsChange = (val: string) => {
-    setInlineBolusCarbs(val);
-    if (settings.wwRatio && val) {
-      const carbs = parseFloat(val.replace(',', '.'));
-      if (!isNaN(carbs) && carbs > 0) {
-         const dose = ((carbs / 10) * settings.wwRatio).toFixed(1);
-         setInlineBolusDose(dose.endsWith('.0') ? dose.replace('.0', '') : dose);
-      } else {
-         setInlineBolusDose("");
-      }
-    } else if (!val) {
-      setInlineBolusDose("");
-    }
-  };
-
+      
+  
   const handleInlineBgSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -516,49 +500,7 @@ export default function Dashboard({
     }
   };
 
-  const handleInlineBolusSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    const dose = parseFloat(inlineBolusDose);
-    const carbs = parseFloat(inlineBolusCarbs) || 0;
-    if (isNaN(dose) && isNaN(carbs)) {
-      toast.error(i18n.t('auto.wpisz_dawke_insuliny_lub_weglo', { defaultValue: i18n.t('auto.wpisz_dawke_insuliny_lub', { defaultValue: "Wpisz dawkę insuliny lub węglowodany!" }) }));
-      return;
-    }
-    Haptics.medium();
-    try {
-      if (!isNaN(dose) && dose > 0) {
-        await addDoc(
-          collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
-          {
-            id: Math.random().toString(),
-            timestamp: Date.now(),
-            type: 'bolus', createdAt: serverTimestamp(), source: 'manual', value: dose,
-             notes: inlineBolusNotes ? `Bolus: ${inlineBolusNotes}` : 'Szybki bolus z kafelka'
-          }
-        );
-      }
-      if (carbs > 0) {
-        await addDoc(
-          collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
-          {
-            id: Math.random().toString(),
-            timestamp: Date.now(),
-            type: 'meal', createdAt: serverTimestamp(), source: 'manual', value: carbs,
-            notes: inlineBolusNotes ? i18n.t('auto.posilek_var0', { defaultValue: "Posiłek: {{var0}}", var0: inlineBolusNotes }) : i18n.t('auto.szybki_posilek_z_kafelka', { defaultValue: i18n.t('auto.szybki_posilek_z_kafelka', { defaultValue: "Szybki posiłek z kafelka" }) })
-          }
-        );
-      }
-      toast.success("Zapisano wpis leczenia!");
-      setInlineBolusDose("");
-      setInlineBolusCarbs("");
-      setInlineBolusNotes("");
-    } catch (err) {
-      console.error(err);
-      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu" }) }));
-    }
-  };
-
+  
   useEffect(() => {
     if (initialAction === "add_glucose" && !settings.followerMode) {
       setIsGlucoseModalOpen(true);
@@ -1528,193 +1470,16 @@ export default function Dashboard({
         if (!isInsulinMode) {
           return (
             <div className="glass-card w-full h-full flex flex-col items-center justify-center gap-2 min-h-[120px] opacity-60 cursor-default select-none">
-              <Apple size={20} className="text-amber-500" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">
-                {t('auto.tryb_diety', { defaultValue: 'Tryb diety' })}
-              </span>
-            </div>
-          );
-        }
-        const isB1x1 = size === "1x1";
-        const isB1x2 = size === "1x2";
-
-        if (isB1x1) {
-          return (
-            <button
-              onClick={() => {
-                if (!isEditingLayout) {
-                  Haptics.light();
-                  setTab("bolus");
-                }
-              }}
-              className={cn(
-                "bg-accent-600 flex flex-col items-center justify-center gap-2 shadow-2xl shadow-accent-600/40 active:scale-95 group transition-all text-white overflow-hidden relative w-full select-none h-full py-5 rounded-[2.5rem] min-h-[140px]"
-              )}
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all pointer-events-none"></div>
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shrink-0 pointer-events-none">
-                <Zap size={22} />
-              </div>
-              <div className="text-center pointer-events-none">
-                <span className="font-black text-[10px] uppercase tracking-widest font-display block">{t('auto.bolus', { defaultValue: 'Bolus' })}</span>
-                <span className="text-[8px] text-white/70 font-bold leading-none">{t('auto.kalkulator', { defaultValue: 'Kalkulator' })}</span>
-              </div>
-            </button>
-          );
-        }
-
-        if (isB1x2) {
-          return (
-            <div className="bg-accent-600 text-white rounded-[2.5rem] !p-3.5 flex flex-col justify-between h-full w-full relative overflow-hidden text-left min-h-[220px] shadow-2xl shadow-accent-600/30 animate-fade-in">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
-              
-              <div className="flex justify-between items-center w-full">
-                <div className="p-1.5 bg-white/20 rounded-lg text-white"><Zap size={14} /></div>
-                <span className="text-[8px] font-black uppercase text-white/80 tracking-wider">{t('auto.bolus', { defaultValue: 'Bolus' })}</span>
-              </div>
-              
-              <div className="mt-2 text-left flex-1 flex flex-col justify-between">
-                <div>
-                  <span className="text-[7px] uppercase font-black text-white/60 block mb-1">{t('auto.szybki_zapis', { defaultValue: 'Szybki zapis' })}</span>
-                  <form onSubmit={handleInlineBolusSubmit} className="space-y-1.5 align-middle">
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.1"
-                        placeholder={t('auto.insulina', { defaultValue: 'Insulina' })}
-                        value={inlineBolusDose}
-                        onChange={(e) => setInlineBolusDose(e.target.value)}
-                        disabled={isEditingLayout}
-                        className="w-full px-2.5 py-1.5 rounded-xl bg-white/20 text-white placeholder-white/80 text-xs font-black border border-white/10 focus:outline-none focus:ring-1 focus:ring-white pr-6"
-                      />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-white/80 uppercase">{t('auto.j', { defaultValue: 'j.' })}</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        placeholder={t('auto.węgle', { defaultValue: i18n.t('auto.wegle', { defaultValue: "Węgle" }) })}
-                        value={inlineBolusCarbs}
-                        onChange={(e) => handleInlineBolusCarbsChange(e.target.value)}
-                        disabled={isEditingLayout}
-                        className="w-full px-2.5 py-1.5 rounded-xl bg-white/20 text-white placeholder-white/80 text-xs font-black border border-white/10 focus:outline-none focus:ring-1 focus:ring-white pr-6"
-                      />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-white/80 uppercase">g</span>
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isEditingLayout || (!inlineBolusDose && !inlineBolusCarbs)}
-                      className={cn(
-                        "w-full py-1.5 bg-white text-accent-700 hover:bg-white/90 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 cursor-pointer text-center",
-                        (!inlineBolusDose && !inlineBolusCarbs || isEditingLayout) && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      
-                                                        {t('auto.podaj', { defaultValue: 'Podaj' })}
-                                                      </button>
-                  </form>
-                </div>
-                
-                <div className="mt-2 border-t border-white/10 pt-2 flex gap-1 justify-between">
-                  <button
-                    onClick={() => { if (!isEditingLayout) { Haptics.light(); setTab("bolus"); } }}
-                    className="w-full py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[8px] font-black uppercase tracking-wide transition-all text-center"
-                  >
-                    
-                                                  {t('auto.kalkulator', { defaultValue: 'Kalkulator ➡️' })}
-                                                </button>
-                </div>
-              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">{t('auto.tryb_diety', { defaultValue: 'Tryb diety' })}</span>
             </div>
           );
         }
 
-        const isFullHeight = size === "2x2";
         return (
-          <div className="bg-accent-600 text-white rounded-[2.5rem] !p-5 flex flex-col justify-between relative overflow-hidden h-full w-full min-h-[140px] shadow-2xl shadow-accent-600/30">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
-            <div className="flex justify-between items-center mb-1 pb-1">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center animate-pulse">
-                  <Zap size={16} />
-                </div>
-                <div>
-                  <span className="font-black text-[10px] uppercase tracking-wider text-white font-display block leading-none">{t('auto.zapisz_bolus_i_posiłek', { defaultValue: i18n.t('auto.zapisz_bolus_i_posilek', { defaultValue: "Zapisz Bolus i Posiłek" }) })}</span>
-                  <span className="text-[8px] text-white/70 font-bold leading-none">{t('auto.wpisz_dawkę_i_węglowodany', { defaultValue: i18n.t('auto.wpisz_dawke_i_weglowodany', { defaultValue: "Wpisz dawkę i węglowodany" }) })}</span>
-                </div>
-              </div>
-            </div>
-
-            <form onSubmit={handleInlineBolusSubmit} className="flex-1 flex flex-col justify-center gap-2 mt-1">
-              <div className={cn("grid gap-2 w-full", isFullHeight ? "grid-cols-1" : "grid-cols-2")}>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.1"
-                    placeholder={t('auto.dose_j', { defaultValue: 'Dose j.' })}
-                    value={inlineBolusDose}
-                    onChange={(e) => setInlineBolusDose(e.target.value)}
-                    disabled={isEditingLayout}
-                    className="w-full px-3 py-1.5 rounded-xl bg-white/20 text-white placeholder-white/80 text-xs font-black border border-white/10 focus:outline-none focus:ring-1 focus:ring-white pr-6"
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-white/80 uppercase">
-                    
-                                                    {t('auto.j', { defaultValue: 'j.' })}
-                                                  </span>
-                </div>
-
-                <div className="relative">
-                  <input
-                    type="number"
-                    placeholder={t('auto.węgle_g', { defaultValue: i18n.t('auto.wegle_g', { defaultValue: "Węgle g" }) })}
-                    value={inlineBolusCarbs}
-                    onChange={(e) => handleInlineBolusCarbsChange(e.target.value)}
-                    disabled={isEditingLayout}
-                    className="w-full px-3 py-1.5 rounded-xl bg-white/20 text-white placeholder-white/80 text-xs font-black border border-white/10 focus:outline-none focus:ring-1 focus:ring-white pr-6"
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black text-white/80 uppercase">
-                    g
-                  </span>
-                </div>
-              </div>
-
-              {isFullHeight && (
-                <input
-                  type="text"
-                  placeholder={t('auto.notatki_np_obiad', { defaultValue: 'Notatki (np. obiad)' })}
-                  value={inlineBolusNotes}
-                  onChange={(e) => setInlineBolusNotes(e.target.value)}
-                  disabled={isEditingLayout}
-                  className="w-full px-3 py-1.5 rounded-xl bg-white/20 text-white placeholder-white/80 text-xs font-black border border-white/10 focus:outline-none focus:ring-1 focus:ring-white"
-                />
-              )}
-
-              <div className="flex gap-2 items-center mt-1">
-                <button
-                  type="submit"
-                  disabled={isEditingLayout || (!inlineBolusDose && !inlineBolusCarbs)}
-                  className={cn(
-                    "flex-1 py-1.5 bg-white text-accent-700 hover:bg-white/90 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 cursor-pointer text-center justify-center",
-                    (!inlineBolusDose && !inlineBolusCarbs || isEditingLayout) && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  
-                                              {t('auto.podaj', { defaultValue: 'Podaj' })}
-                                            </button>
-                <button
-                  type="button"
-                  disabled={isEditingLayout}
-                  onClick={() => {
-                    Haptics.light();
-                    setTab("bolus");
-                  }}
-                  className="p-1 px-2.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-[8px] font-black uppercase tracking-tighter"
-                >
-                  
-                                              {t('auto.kalkulator', { defaultValue: 'Kalkulator' })}
-                                            </button>
-              </div>
-            </form>
-          </div>
+          <QuickBolusWidget
+            isEditingLayout={isEditingLayout}
+            setTab={setTab}
+          />
         );
       }
 
@@ -1797,7 +1562,7 @@ export default function Dashboard({
                    <div className={`relative overflow-hidden shrink-0 flex items-center px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
                      <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${fillClass}`} style={{ width: `${percent}%` }} />
                      <div className="relative z-10 flex items-center gap-1.5">
-                       <Cpu size={12} className={res <= 20 ? "animate-pulse" : ""} />
+                       <Cylinder size={12} className={res <= 20 ? "animate-pulse" : ""} />
                        {res} J.
                      </div>
                    </div>
@@ -1805,6 +1570,27 @@ export default function Dashboard({
                })()}
             </>
          )}
+           {settings?.inventory && settings.inventory.filter((item: any) => ['cannulas', 'sensors', 'reservoirs'].includes(item.category)).map((item: any) => {
+             let colorClass = "text-slate-600 dark:text-slate-300";
+             let fillClass = "bg-slate-100/80 dark:bg-slate-800/80";
+             let bgClass = "bg-slate-100/50 border-slate-200/50 dark:border-slate-700/50";
+             
+             const threshold = typeof item.lowStockThreshold === 'number' ? item.lowStockThreshold : 1;
+             if (item.quantity <= threshold) {
+                 colorClass = "text-rose-600 dark:text-rose-400";
+                 fillClass = "bg-rose-500/20 dark:bg-rose-500/30";
+                 bgClass = "bg-rose-500/10 border-rose-500/20 animate-pulse";
+             }
+             
+             return (
+               <div key={item.id} className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
+                 {item.category === 'cannulas' && <Activity size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-emerald-500"} />}
+                 {item.category === 'sensors' && <Zap size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-amber-500"} />}
+                 {item.category === 'reservoirs' && <Cylinder size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-purple-500"} />}
+                 {item.quantity} {item.unit || 'szt.'}
+               </div>
+             );
+           })}
       </div>
 
       <div className="flex items-center justify-between px-2">

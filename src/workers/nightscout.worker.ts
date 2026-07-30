@@ -92,15 +92,33 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
 
 function processEntries(data: any[]): any[] {
   if (!Array.isArray(data)) return [];
-  return data.filter((e: any) => e.sgv).map((e: any) => ({
-    id: e._id || `ns-entry-${typeof e.date === 'string' ? parseInt(e.date, 10) : (e.date || new Date(e.dateString).getTime())}`,
-    type: 'glucose',
-    value: Number(e.sgv),
-    timestamp: typeof e.date === 'string' ? parseInt(e.date, 10) : (e.date || new Date(e.dateString).getTime()),
-    source: 'nightscout',
-    direction: e.direction,
-    delta: e.delta,
-  }));
+  return data.filter((e: any) => e.sgv).map((e: any) => {
+    let ts = Date.now();
+    if (e.date) {
+      if (typeof e.date === 'number') {
+        ts = e.date;
+      } else if (typeof e.date === 'string') {
+        const parsed = parseInt(e.date, 10);
+        if (!isNaN(parsed) && parsed > 1000000000) {
+          ts = parsed;
+        } else {
+          ts = new Date(e.date).getTime() || Date.now();
+        }
+      }
+    } else if (e.dateString) {
+      ts = new Date(e.dateString).getTime() || Date.now();
+    }
+    
+    return {
+      id: e._id || `ns-entry-${ts}-${e.sgv}`,
+      type: 'glucose',
+      value: Number(e.sgv),
+      timestamp: ts,
+      source: 'nightscout',
+      direction: e.direction,
+      delta: e.delta,
+    };
+  });
 }
 
 function processTreatments(data: any[]): any[] {

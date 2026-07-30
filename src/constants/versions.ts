@@ -14,12 +14,21 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.9.92';
+export const CURRENT_VERSION = '5.9.93';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.9.93",
+    date: new Date().toISOString().split('T')[0],
+    title: "Poprawki i stabilność bazy",
+    changes: [
+      "Nowa ikona zbiorniczka",
+      "Zabezpieczenie przed undefined Firestore dla leków i sprzętu"
+    ]
+  },
   {
     version: "5.9.92",
     date: "2026-07-30",
@@ -629,6 +638,15 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.9.93",
+    date: new Date().toISOString().split('T')[0],
+    title: "Poprawki i stabilność bazy",
+    changes: [
+      "Nowa ikona zbiorniczka",
+      "Zabezpieczenie przed undefined Firestore dla leków i sprzętu"
+    ]
+  },
   {
     version: "5.9.92",
     date: "2026-07-30",

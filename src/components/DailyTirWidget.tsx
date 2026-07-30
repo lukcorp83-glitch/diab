@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts';
 import { LogEntry } from '../types';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
@@ -70,15 +70,14 @@ export default function DailyTirWidget({ settings }: DailyTirWidgetProps) {
  
  {t('auto.dzienny_tir', { defaultValue: 'Dzienny TIR' })}
  </h3>
- <div className="flex-1 relative flex items-center justify-center min-h-[100px]">
- <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
- <PieChart>
+ <div className="flex-1 relative flex items-center justify-center min-h-[100px] mt-2">
+ <PieChart width={120} height={120}>
  <Pie
  data={data}
  cx="50%"
  cy="50%"
- innerRadius="65%"
- outerRadius="90%"
+ innerRadius={45}
+ outerRadius={60}
  paddingAngle={2}
  dataKey="value"
  stroke="none"
@@ -89,7 +88,6 @@ export default function DailyTirWidget({ settings }: DailyTirWidgetProps) {
  ))}
  </Pie>
  </PieChart>
- </ResponsiveContainer>
  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
  <span className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter shadow-sm font-display leading-none">
  {tir}%

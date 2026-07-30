@@ -211,23 +211,52 @@ export const geminiService = {
       120000,
     );
 
-    for (const model of modelsToTry) {
-      try {
-        console.log(i18n.t('auto.proba_uzycia_modelu_var0', { defaultValue: "Próba użycia modelu: {{var0}}...", var0: model }));
+    if (isProxyUrl && creds.key === "proxy") {
+        const CLOUDFLARE_WORKER_URL = creds.baseUrl;
+        const payload = { contents };
+        for (const model of modelsToTry) {
+          try {
+            console.log(i18n.t('auto.proba_uzycia_modelu_proxy', { defaultValue: "Próba użycia modelu (Proxy): {{var0}}...", var0: model }));
+            const response = await fetch(CLOUDFLARE_WORKER_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ model: model, payload: payload }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+              console.log(`Sukces z modelem (Proxy): ${model}`);
+              if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
+                return data.candidates[0].content.parts.map(p => p.text).join("") || "";
+              } else if (data.text) {
+                return data.text;
+              }
+              return typeof data === "string" ? data : JSON.stringify(data);
+            }
+            throw new Error(data.error?.message || "Proxy Error");
+          } catch (error) {
+            console.warn("Proxy model failed", error);
+          }
+        }
+        throw new Error("Wszystkie modele AI(Proxy) są obecnie zajęte.");
+      }
 
-        // Race the actual call against a Rejecting Promise wrapped in timeout
-        const result = await Promise.race([
-          client.models.generateContent({
-            model: model,
-            contents: contents,
-          }),
-          new Promise<never>((_, reject) => {
-            const id = setTimeout(() => {
-              clearTimeout(id);
-              reject(new Error("Timeout_AI"));
-            }, 125000);
-          }),
-        ]);
+      for (const model of modelsToTry) {
+        try {
+          console.log(i18n.t('auto.proba_uzycia_modelu_var0', { defaultValue: "Próba użycia modelu: {{var0}}...", var0: model }));
+
+          // Race the actual call against a Rejecting Promise wrapped in timeout
+          const result = await Promise.race([
+            client.models.generateContent({
+              model: model,
+              contents: contents,
+            }),
+            new Promise<never>((_, reject) => {
+              const id = setTimeout(() => {
+                clearTimeout(id);
+                reject(new Error("Timeout_AI"));
+              }, 125000);
+            }),
+          ]);
 
         clearTimeout(timeoutId);
         console.log(`Sukces z modelem: ${model}`);

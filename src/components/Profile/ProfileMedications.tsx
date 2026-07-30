@@ -125,14 +125,16 @@ import i18n from '../../i18n';
 
 export default function ProfileMedications({ user, settings, setSettings }: any) {
  const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
  const deleteMedication = async (id: string) => {
  if (!user) return;
  try {
  const updatedMeds = (settings.medications || []).filter((m: any) => m.id !== id);
- const newSettings = { ...settings, medications: updatedMeds };
+ const cleanMeds = JSON.parse(JSON.stringify(updatedMeds));
+   const newSettings = { ...settings, medications: cleanMeds };
  setSettings(newSettings);
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { medications: updatedMeds }, { merge: true });
+ await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { medications: JSON.parse(JSON.stringify(updatedMeds)) }, { merge: true });
  toast.success("Lek usunięty");
  } catch (e) {
  toast.error("Błąd usuwania leku");
@@ -146,7 +148,7 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
  const newSettings = { ...settings, inventory: updatedInv };
  setSettings(newSettings);
  await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { inventory: updatedInv }, { merge: true });
- queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+ queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  toast.success("Zapas usunięty");
  } catch (e) {
  toast.error("Błąd usuwania zapasu");
@@ -180,10 +182,11 @@ const analyzeDrug = async () => {
  const newSettings = { ...settings, customDrugDictionary: updatedDict };
  setSettings(newSettings);
  await setDoc(
- doc(db, "users", getEffectiveUid(user)),
- { customDrugDictionary: updatedDict },
+ doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ { customDrugDictionary: JSON.parse(JSON.stringify(updatedDict)) },
  { merge: true }
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  toast.success(i18n.t('auto.ai_analiza_zakonczona', { defaultValue: "AI: Analiza zakończona!" }), { id: toastId });
  } else {
  toast.error(i18n.t('auto.ai_nie_udalo_sie_przean', { defaultValue: "AI: Nie udało się przeanalizować." }), { id: toastId });
@@ -211,7 +214,8 @@ const saveMedication = async () => {
  toast.success("Lek dodany do apteczki!");
  }
 
- const newSettings = { ...settings, medications: updatedMeds };
+ const cleanMeds = JSON.parse(JSON.stringify(updatedMeds));
+   const newSettings = { ...settings, medications: cleanMeds };
  setSettings(newSettings);
  await setDoc(
  doc(
@@ -223,10 +227,10 @@ const saveMedication = async () => {
  "settings",
  "profile",
  ),
- { medications: updatedMeds },
+ { medications: JSON.parse(JSON.stringify(updatedMeds)) },
  { merge: true },
  );
- queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+ queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  setNewMedication(null);
  } catch (e) {
  console.error(e);
@@ -258,7 +262,8 @@ const saveInventoryItem = async () => {
  toast.success(i18n.t('auto.sprzet_dodany_do_zapasow', { defaultValue: i18n.t('auto.sprzet_dodany_do_zapasow', { defaultValue: "Sprzęt dodany do zapasów!" }) }));
  }
 
- const newSettings = { ...settings, inventory: updatedInventory };
+ const cleanInventory = JSON.parse(JSON.stringify(updatedInventory));
+   const newSettings = { ...settings, inventory: cleanInventory };
  setSettings(newSettings);
  await setDoc(
  doc(
@@ -270,10 +275,10 @@ const saveInventoryItem = async () => {
  "settings",
  "profile",
  ),
- { inventory: updatedInventory },
+ { inventory: JSON.parse(JSON.stringify(updatedInventory)) },
  { merge: true },
  );
- queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+ queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  setNewInventoryItem(null);
  } catch (e) {
  console.error(e);
@@ -396,7 +401,7 @@ const saveInventoryItem = async () => {
  "settings",
  "profile",
  ),
- { medications: updatedMeds },
+ { medications: JSON.parse(JSON.stringify(updatedMeds)) },
  { merge: true },
  );
  }}
@@ -778,10 +783,10 @@ const saveInventoryItem = async () => {
  "settings",
  "profile",
  ),
- { inventory: updatedInventory },
+ { inventory: JSON.parse(JSON.stringify(updatedInventory)) },
  { merge: true },
  );
- queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+ queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  }
  }}
  className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all text-slate-600 dark:text-slate-300"
@@ -809,7 +814,7 @@ const saveInventoryItem = async () => {
  "settings",
  "profile",
  ),
- { inventory: updatedInventory },
+ { inventory: JSON.parse(JSON.stringify(updatedInventory)) },
  { merge: true },
  );
  }}
@@ -1025,7 +1030,7 @@ const saveInventoryItem = async () => {
  onChange={(e) =>
  setNewInventoryItem({
  ...newInventoryItem,
- dailyDose: e.target.value ? Number(e.target.value) : undefined,
+ dailyDose: e.target.value ? Number(e.target.value) : null,
  })
  }
  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
@@ -1045,7 +1050,7 @@ const saveInventoryItem = async () => {
  onChange={(e) =>
  setNewInventoryItem({
  ...newInventoryItem,
- penCapacity: e.target.value ? Number(e.target.value) : undefined,
+ penCapacity: e.target.value ? Number(e.target.value) : null,
  })
  }
  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"

@@ -1,6 +1,6 @@
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion } from 'motion/react';
-import { Radio, Droplet, Clock, ChevronRight, Utensils } from 'lucide-react';
+import { Radio, Droplet, Cylinder, Clock, ChevronRight, Utensils } from 'lucide-react';
 import { LogEntry } from '../types';
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
@@ -220,7 +220,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between glass-target">
  <div>
  <div className="flex items-center gap-2 mb-3">
- <Droplet size={12} className="text-accent-500" />
+ <Cylinder size={12} className="text-accent-500" />
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_jednostek', { defaultValue: i18n.t('auto.dzis_jednostek', { defaultValue: "Dziś Jednostek" }) })}</span>
  </div>
  <div className="flex items-baseline gap-1">
