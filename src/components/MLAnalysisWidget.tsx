@@ -589,72 +589,6 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  </div>
  
-      <AnimatePresence>
-        {showEngineSettings && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-cyan-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-cyan-500/20 p-4 rounded-2xl border border-indigo-500/20 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-300 uppercase tracking-wider block">
-                  🧠 {t('auto.architektura_sieci_glikosense', { defaultValue: 'Architektura Sieci Neuronowej (GlikoSense Engine)' })}
-                </span>
-                <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-                  {engineMode === 'v4_tcn' 
-                    ? t('auto.opis_silnika_tcn', { defaultValue: 'GlikoSense 4.0 Pro: Sploty dylatowane (TCN) + kwantyzacja INT8 + bezpiecznik próbek' })
-                    : t('auto.opis_silnika_lstm', { defaultValue: 'GlikoSense 3.0 Klasyczny: Pamięć sekwencyjna LSTM (sprawdzony model standardowy)' })}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.setItem('glikosense_engine_mode', 'v3_lstm');
-                    setEngineMode('v3_lstm');
-                    toast.success(t('auto.przelaczono_na_silnik_lstm', { defaultValue: "Przełączono na GlikoSense 3.0 LSTM Klasyczny" }));
-                    if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all",
-                    engineMode === 'v3_lstm'
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-indigo-600"
-                  )}
-                >
-                  v3.0 LSTM
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
-                    setEngineMode('v4_tcn');
-                    toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
-                    if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1",
-                    (typeof window !== 'undefined' && (
-                      typeof OffscreenCanvas === 'undefined' || 
-                      typeof window.WebGLRenderingContext === 'undefined' || 
-                      localStorage.getItem('glikosense_active_backend') === 'cpu' || 
-                      (navigator.deviceMemory && navigator.deviceMemory < 3)
-                    )) ? "opacity-50 cursor-not-allowed" : "",
-                    engineMode === 'v4_tcn'
-                      ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-cyan-600"
-                  )}
-                >
-                  🚀 v4.0 TCN INT8
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
  <button 
  onClick={() => runML(true)} 
  disabled={isAnalyzing}
@@ -664,6 +598,75 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <RefreshCw size={18} className={isAnalyzing ? 'animate-spin' : ''} />
  </button>
  </div>
+
+ <AnimatePresence>
+        {showEngineSettings && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mb-6 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    🧠 {t('auto.architektura_sieci_glikosense', { defaultValue: 'Wersja Silnika GlikoSense' })}
+                  </span>
+                </div>
+                
+                <div className="flex bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl w-full border border-slate-200/50 dark:border-slate-700/50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem('glikosense_engine_mode', 'v3_lstm');
+                      setEngineMode('v3_lstm');
+                      toast.success(t('auto.przelaczono_na_silnik_lstm', { defaultValue: "Przełączono na GlikoSense 3.0 LSTM Klasyczny" }));
+                      if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                    }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300",
+                      engineMode === 'v3_lstm'
+                        ? "bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-white"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                    )}
+                  >
+                    v3.0 Klasyczny
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
+                      setEngineMode('v4_tcn');
+                      toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
+                      if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                    }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300 gap-1.5",
+                      (typeof window !== 'undefined' && (
+                        typeof OffscreenCanvas === 'undefined' || 
+                        typeof window.WebGLRenderingContext === 'undefined' || 
+                        localStorage.getItem('glikosense_active_backend') === 'cpu' || 
+                        (navigator.deviceMemory && navigator.deviceMemory < 3)
+                      )) ? "opacity-50 cursor-not-allowed" : "",
+                      engineMode === 'v4_tcn'
+                        ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400"
+                        : "text-slate-500 dark:text-slate-400 hover:text-indigo-500"
+                    )}
+                  >
+                    🚀 v4.0 Pro INT8
+                  </button>
+                </div>
+                
+                <p className="text-[9px] text-slate-400 dark:text-slate-500 text-center px-4 font-medium leading-relaxed">
+                  {engineMode === 'v4_tcn' 
+                    ? t('auto.opis_silnika_tcn', { defaultValue: 'Sploty dylatowane (TCN) z kwantyzacją wag INT8 i bezpiecznikiem skrajnych próbek. Wysoka precyzja.' })
+                    : t('auto.opis_silnika_lstm', { defaultValue: 'Pamięć sekwencyjna (LSTM). Sprawdzony, klasyczny wariant asystenta o mniejszym zapotrzebowaniu na moc.' })}
+                </p>
+              </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
  {/* GlikoSense Neural Backup Control Trigger & Panel */}
  <div className="relative z-20 mb-6 bg-slate-50 dark:bg-slate-800/20 p-4 border border-slate-200/40 dark:border-slate-800/40 rounded-[2rem] hover:border-indigo-500/20 transition-all">
