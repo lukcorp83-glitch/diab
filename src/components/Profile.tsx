@@ -3347,12 +3347,17 @@ export default function Profile({
  </div>
  </div>
  <div
+ onClick={() => {
+ import('../lib/firebase').then(m => m.testConnection());
+ toast(t('auto.testowanie_polaczenia_cloud', { defaultValue: 'Testowanie połączenia Cloud...' }), { icon: '☁️' });
+ }}
  className={cn(
- "flex items-center gap-2 px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
+ "flex items-center gap-2 px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border cursor-pointer active:scale-95 transition-transform",
  isFirebaseConnected
  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
  : "bg-rose-500/10 text-rose-500 border-rose-500/20 animate-pulse",
  )}
+ title={t('auto.kliknij_by_przetestowac', { defaultValue: 'Kliknij, aby ponowić test połączenia' })}
  >
  <div
  className={cn(

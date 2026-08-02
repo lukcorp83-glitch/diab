@@ -10,6 +10,7 @@ import { downloadCloudPackage } from './CloudPackageSync';
 export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
   const { t } = useTranslation();
   const [migrationState, setMigrationState] = useState<'idle' | 'checking' | 'migrating' | 'verify' | 'done'>('idle');
+  const [progress, setProgress] = useState(0);
   
   useEffect(() => {
     if (!user) return;
@@ -74,7 +75,7 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
 
     // 2. Kopiujemy logi (zamiast pętli getDocs obciążającej limit 40k reads, pobieramy JEDNĄ SZYBKĄ PACZKĘ)
     // downloadCloudPackage zostało celowo zmodyfikowane wcześniej by jako fallback szukać paczki w starej ścieżce
-    await downloadCloudPackage(userObj);
+    await downloadCloudPackage(userObj, (p) => setProgress(p));
   };
 
   const confirmMigration = async () => {
@@ -93,28 +94,34 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
   if (migrationState === 'migrating' || migrationState === 'verify') {
     return (
       <div className="fixed top-0 left-0 right-0 z-50 bg-blue-500/90 backdrop-blur-md text-white p-3 px-4 shadow-lg flex flex-col md:flex-row items-center justify-between gap-3 animate-in slide-in-from-top-full">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full">
           {migrationState === 'migrating' ? (
             <Loader2 className="animate-spin shrink-0" size={24} />
           ) : (
             <Database className="shrink-0 animate-pulse" size={24} />
           )}
-          <div className="text-sm">
-            <p className="font-bold">
-              {migrationState === 'migrating' ? "Aktualizacja bazy danych..." : "Weryfikacja bazy danych"}
+          <div className="text-sm flex-1">
+            <p className="font-bold flex justify-between items-center">
+              <span>{migrationState === 'migrating' ? "Aktualizacja bazy danych..." : "Weryfikacja bazy danych"}</span>
+              {migrationState === 'migrating' && <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">{progress}%</span>}
             </p>
-            <p className="text-blue-100 text-xs">
+            <p className="text-blue-100 text-xs mt-1">
               {migrationState === 'migrating' 
                 ? "Przenosimy Twoją historię do nowego, szybszego formatu. To potrwa tylko chwilę." 
                 : "Sprawdź swoje stare wpisy. Jeśli wszystko poprawnie się załadowało ze starej wersji, zatwierdź."}
             </p>
+            {migrationState === 'migrating' && (
+              <div className="w-full bg-blue-900/40 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div className="bg-white h-1.5 rounded-full transition-all duration-300 ease-out" style={{ width: `${progress}%` }}></div>
+              </div>
+            )}
           </div>
         </div>
         
         {migrationState === 'verify' && (
           <button 
             onClick={confirmMigration}
-            className="shrink-0 bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-transform active:scale-95"
+            className="shrink-0 bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 w-full md:w-auto justify-center"
           >
             <CheckCircle size={16} />
             Potwierdź odbiór danych

@@ -56,7 +56,7 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
  }
 };
 
-export const downloadCloudPackage = async (user: any) => {
+export const downloadCloudPackage = async (user: any, onProgress?: (progress: number) => void) => {
  if (!user) return false;
  try {
  let snap = await getDoc(
@@ -101,8 +101,13 @@ export const downloadCloudPackage = async (user: any) => {
  // Przywróć pełne logi do bazy natywnej SQLite i do IndexedDB (fallback)
  if (parsed.logs && Array.isArray(parsed.logs)) {
  console.log(`Restoring ${parsed.logs.length} logs from Cloud Package...`);
- await saveLocalLogs(parsed.logs).catch(console.error);
- await dbService.saveMultipleLogs(parsed.logs).catch(console.error);
+ let sqliteP = 0, idbP = 0;
+ const updateP = () => onProgress?.(Math.round((sqliteP + idbP) / 2));
+ 
+ await Promise.all([
+   saveLocalLogs(parsed.logs, (p) => { idbP = p; updateP(); }).catch(console.error),
+   dbService.saveMultipleLogs(parsed.logs, (p) => { sqliteP = p; updateP(); }).catch(console.error)
+ ]);
  }
  
  // Przywróć ustawienia profilu w Firebase

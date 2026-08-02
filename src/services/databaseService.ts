@@ -162,8 +162,11 @@ export class DatabaseService {
     }
   }
 
-  async saveMultipleLogs(logs: any[]) {
-    if (!this.db || logs.length === 0) return;
+  async saveMultipleLogs(logs: any[], onProgress?: (progress: number) => void) {
+    if (!this.db || logs.length === 0) {
+      onProgress?.(100);
+      return;
+    }
     
     // Zapobiegamy równoległemu zapisowi (mutex), co mogłoby wywołać błąd "database is locked" w SQLite na Androidzie
     while (this.savePromise) {
@@ -175,7 +178,8 @@ export class DatabaseService {
 
     try {
       const BATCH_SIZE = 500;
-      for (let i = 0; i < logs.length; i += BATCH_SIZE) {
+      const total = logs.length;
+      for (let i = 0; i < total; i += BATCH_SIZE) {
         const chunk = logs.slice(i, i + BATCH_SIZE);
         const statements = chunk.map(log => {
           const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
@@ -197,6 +201,7 @@ export class DatabaseService {
              throw innerE;
           }
         }
+        onProgress?.(Math.min(100, Math.round(((i + chunk.length) / total) * 100)));
       }
       
       if (this.isWeb) {

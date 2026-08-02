@@ -1501,7 +1501,7 @@ export default function Dashboard({
       <LowGlucoseMealAlert logs={logs} lastGlucose={lastG ? Math.round(lastG.value) : null} onAddCarbs={() => setTab("meal")} shortcuts={shortcuts} onQuickAdd={quickAdd} />
       <UnlinkedCarbsWidget user={user} logs={logs} onAddCarbs={() => setTab("meal")} />
 
-      {/* Pasek Pigułek (Top Pill Bar) */}
+      {/* Pasek Pigułek - Linia 1 (Hydratacja, Pogoda, Bateria, Zbiornik) */}
       <div className="px-2 flex gap-2 overflow-x-auto scrollbar-none pb-1 mt-2">
          {widgets.find(w => w.id === 'hydration')?.visible && (
             <TopPillHydration />
@@ -1564,27 +1564,31 @@ export default function Dashboard({
                })()}
             </>
          )}
-           {settings?.inventory && settings.inventory.filter((item: any) => ['cannulas', 'infusion_sets', 'sensors', 'reservoirs'].includes(item.category)).map((item: any) => {
-               let colorClass = "text-slate-600 dark:text-slate-300";
-               let fillClass = "bg-slate-100/80 dark:bg-slate-800/80";
-               let bgClass = "bg-slate-100/50 border-slate-200/50 dark:border-slate-700/50";
-               
-               const threshold = typeof item.lowStockThreshold === 'number' ? item.lowStockThreshold : 1;
-               if (item.quantity <= threshold) {
-                   colorClass = "text-rose-600 dark:text-rose-400";
-                   fillClass = "bg-rose-500/20 dark:bg-rose-500/30";
-                   bgClass = "bg-rose-500/10 border-rose-500/20 animate-pulse";
-               }
-               
-               return (
-                 <div key={item.id} className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
-                   {(item.category === 'cannulas' || item.category === 'infusion_sets') && <Droplet size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-sky-500"} />}
-                   {item.category === 'sensors' && <Signal size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-violet-500"} />}
-                   {item.category === 'reservoirs' && <Cylinder size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-purple-500"} />}
-                   {item.quantity} {item.unit || 'szt.'}
-                 </div>
-               );
-             })}
+      </div>
+
+      {/* Pasek Pigułek - Linia 2 (Magazyn) */}
+      <div className="px-2 flex gap-2 overflow-x-auto scrollbar-none pb-1 mt-1">
+         {settings?.inventory && settings.inventory.filter((item: any) => ['cannulas', 'infusion_sets', 'sensors', 'reservoirs'].includes(item.category)).map((item: any) => {
+             let colorClass = "text-slate-600 dark:text-slate-300";
+             let fillClass = "bg-slate-100/80 dark:bg-slate-800/80";
+             let bgClass = "bg-slate-100/50 border-slate-200/50 dark:border-slate-700/50";
+             
+             const threshold = typeof item.lowStockThreshold === 'number' ? item.lowStockThreshold : 1;
+             if (item.quantity <= threshold) {
+                 colorClass = "text-rose-600 dark:text-rose-400";
+                 fillClass = "bg-rose-500/20 dark:bg-rose-500/30";
+                 bgClass = "bg-rose-500/10 border-rose-500/20 animate-pulse";
+             }
+             
+             return (
+               <div key={item.id} className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
+                 {(item.category === 'cannulas' || item.category === 'infusion_sets') && <Droplet size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-sky-500"} />}
+                 {item.category === 'sensors' && <Signal size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-violet-500"} />}
+                 {item.category === 'reservoirs' && <Cylinder size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-purple-500"} />}
+                 {item.quantity} {item.unit || 'szt.'}
+               </div>
+             );
+           })}
       </div>
 
       <div className="flex items-center justify-between px-2">

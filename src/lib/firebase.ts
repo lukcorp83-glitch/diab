@@ -38,23 +38,37 @@ function updateConnectionStatus(status: boolean) {
     connectionListeners.forEach(l => l(status));
 }
 
-async function testConnection() {
+export async function testConnection() {
+    if (typeof window !== 'undefined' && !window.navigator.onLine) {
+        console.error("[Firestore] Navigator reports offline.");
+        updateConnectionStatus(false);
+        return false;
+    }
+    
     try {
         // Try to fetch a non-existent doc from server to verify connectivity
         await getDocFromServer(doc(db, '_connection_test_', 'ping'));
         console.log('[Firestore] Connection verified');
         updateConnectionStatus(true);
+        return true;
     } catch (error: any) {
-        if (error.message?.includes('offline')) {
-            console.error("[Firestore] Connection issue: Client appears to be offline.");
+        if (error.message?.includes('offline') || error.code === 'unavailable') {
+            console.error("[Firestore] Connection issue: Client appears to be offline.", error);
             updateConnectionStatus(false);
+            return false;
         } else {
             console.log(`[Firestore] Connection test successful (server reachable, expected ${error.code})`);
             updateConnectionStatus(true);
+            return true;
         }
     }
 }
 testConnection();
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => testConnection());
+    window.addEventListener('offline', () => updateConnectionStatus(false));
+}
 
 export const messaging = async () => {
     if (typeof window === 'undefined') return null;
