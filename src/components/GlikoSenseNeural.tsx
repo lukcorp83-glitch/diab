@@ -26,7 +26,15 @@ interface GlikoSenseNeuralProps {
 
 export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, children, compact }: GlikoSenseNeuralProps) {
     const { t } = useTranslation();
-    const [activeBackend, setActiveBackend] = React.useState(localStorage.getItem('glikosense_active_backend') || 'v5_lstm');
+    const [engineMode, setEngineMode] = React.useState(localStorage.getItem('glikosense_engine_mode') || 'v3_lstm');
+  
+    React.useEffect(() => {
+      const handleStorageChange = () => {
+        setEngineMode(localStorage.getItem('glikosense_engine_mode') || 'v3_lstm');
+      };
+      window.addEventListener('storage', handleStorageChange);
+      return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
     
     const toggleBackend = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -157,7 +165,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
           {/* Footer status dot */}
           <div className="flex items-center justify-between border-t border-slate-200/50 dark:border-white/5 pt-1.5 text-[8px] font-black uppercase text-slate-400">
             <span onClick={toggleBackend} className="cursor-pointer hover:text-white transition-colors">
-              {isChildMode ? petName : (activeBackend === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0')}
+              {isChildMode ? petName : (engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0')}
             </span>
             <motion.div
               animate={{ 
@@ -249,7 +257,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                 className="text-sm font-black dark:text-white leading-tight cursor-pointer hover:text-sky-400 transition-colors"
                 onClick={toggleBackend}
               >
-                {t('auto.glikosense', { defaultValue: activeBackend === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0' })}
+                {t('auto.glikosense', { defaultValue: engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0' })}
               </h3>
             </div>
           </div>

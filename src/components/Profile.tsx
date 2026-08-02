@@ -2216,61 +2216,7 @@ export default function Profile({
  </motion.div>
  )}
  </div>
-                  <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-cyan-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-cyan-500/20 p-4 rounded-2xl border border-indigo-500/20 mb-4 mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div>
-                      <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-300 uppercase tracking-wider block">
-                        🧠 {t('auto.architektura_sieci_glikosense', { defaultValue: 'Architektura Sieci Neuronowej (GlikoSense Engine)' })}
-                      </span>
-                      <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-                        {localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' 
-                          ? t('auto.opis_silnika_tcn', { defaultValue: 'GlikoSense 4.0 Pro: Sploty dylatowane (TCN) + kwantyzacja INT8 + bezpiecznik próbek' })
-                          : t('auto.opis_silnika_lstm', { defaultValue: 'GlikoSense 3.0 Klasyczny: Pamięć sekwencyjna LSTM (sprawdzony model standardowy)' })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          localStorage.setItem('glikosense_engine_mode', 'v3_lstm');
-                          toast.success(t('auto.przelaczono_na_silnik_lstm', { defaultValue: "Przełączono na GlikoSense 3.0 LSTM Klasyczny" }));
-                          setLearnedRules({ ...learnedRules });
-                          if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
-                        }}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all",
-                          (localStorage.getItem('glikosense_engine_mode') || 'v3_lstm') === 'v3_lstm'
-                            ? "bg-indigo-600 text-white shadow-sm"
-                            : "text-slate-600 dark:text-slate-400 hover:text-indigo-600"
-                        )}
-                      >
-                        v3.0 LSTM
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const checkSupported = true;
-                          localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
-                          toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
-                          setLearnedRules({ ...learnedRules });
-                          if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
-                        }}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1",
-                          (typeof window !== 'undefined' && (
-                            typeof OffscreenCanvas === 'undefined' || 
-                            typeof window.WebGLRenderingContext === 'undefined' || 
-                            localStorage.getItem('glikosense_active_backend') === 'cpu' || 
-                            (navigator.deviceMemory && navigator.deviceMemory < 3)
-                          )) ? "opacity-50 cursor-not-allowed" : "",
-                          localStorage.getItem('glikosense_engine_mode') === 'v4_tcn'
-                            ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-sm"
-                            : "text-slate-600 dark:text-slate-400 hover:text-cyan-600"
-                        )}
-                      >
-                        🚀 v4.0 TCN INT8
-                      </button>
-                    </div>
-                  </div>
+                  {/* Removed GlikoSense Engine selector - moved to MLAnalysisWidget */}
  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
  
  {t('auto.zaawansowane_profile_godzinowe', { defaultValue: 'Zaawansowane Profile Godzinowe' })}

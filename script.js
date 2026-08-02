@@ -1,32 +1,42 @@
 ﻿const fs = require('fs');
-const file = 'C:/Users/luk/Downloads/diab/src/components/Dashboard.tsx';
-let content = fs.readFileSync(file, 'utf8');
+const pl = JSON.parse(fs.readFileSync('src/locales/pl/translation.json', 'utf8'));
 
-const regex = /case \x22quick_bolus\x22:\s*\{[\s\S]*?(?=case \x22history_measurements\x22:)/;
-const replacement = `case "quick_bolus": {
-        // Ukryj widget bolusa dla pacjentów tylko na diecie/tabletkach
-        if (!isInsulinMode) {
-          return (
-            <div className="glass-card w-full h-full flex flex-col items-center justify-center gap-2 min-h-[120px] opacity-60 cursor-default select-none">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">{t('auto.tryb_diety', { defaultValue: 'Tryb diety' })}</span>
-            </div>
-          );
-        }
-
-        return (
-          <QuickBolusWidget
-            isEditingLayout={isEditingLayout}
-            setTab={setTab}
-          />
-        );
-      }
-
-      `;
-
-if (regex.test(content)) {
-  content = content.replace(regex, replacement);
-  fs.writeFileSync(file, content, 'utf8');
-  console.log('Successfully replaced quick_bolus block!');
-} else {
-  console.log('Could not find quick_bolus block!');
+const valToKey = {};
+for (const k in pl) {
+    if (k.startsWith('auto.')) {
+        valToKey[pl[k]] = k;
+    }
 }
+
+let content = fs.readFileSync('src/components/MLAnalysisWidget.tsx', 'utf8');
+
+content = content.replace(/i18n\.t\('', \{ glikoName, defaultValue: i18n\.t\('', \{ glikoName, defaultValue: "([^]+)" \} \) \}\)/g, (match, val) => {
+    let lookupVal = val.replace(/\$\{glikoName\}/g, 'GlikoSense {{glikoName}}');
+    let key = valToKey[lookupVal] || 'auto.unknown_key';
+    return "i18n.t('" + key + "', { glikoName, defaultValue: " + val + " })";
+});
+content = content.replace(/i18n\.t\('', \{ glikoName, defaultValue: i18n\.t\('', \{ glikoName, defaultValue: "([^"]+)" \} \) \}\)/g, (match, val) => {
+    let key = valToKey[val] || 'auto.unknown_key';
+    return "i18n.t('" + key + "', { glikoName, defaultValue: \"" + val + "\" })";
+});
+content = content.replace(/i18n\.t\('', \{ glikoName, defaultValue: i18n\.t\('', \{ glikoName, defaultValue: '([^']+)' \} \) \}\)/g, (match, val) => {
+    let key = valToKey[val] || 'auto.unknown_key';
+    return "i18n.t('" + key + "', { glikoName, defaultValue: '" + val + "' })";
+});
+
+content = content.replace(/t\('', \{ glikoName, defaultValue: i18n\.t\('', \{ glikoName, defaultValue: "([^]+)" \} \) \}\)/g, (match, val) => {
+    let lookupVal = val.replace(/\$\{glikoName\}/g, 'GlikoSense {{glikoName}}');
+    let key = valToKey[lookupVal] || 'auto.unknown_key';
+    return "t('" + key + "', { glikoName, defaultValue: " + val + " })";
+});
+content = content.replace(/t\('', \{ glikoName, defaultValue: i18n\.t\('', \{ glikoName, defaultValue: "([^"]+)" \} \) \}\)/g, (match, val) => {
+    let key = valToKey[val] || 'auto.unknown_key';
+    return "t('" + key + "', { glikoName, defaultValue: \"" + val + "\" })";
+});
+content = content.replace(/t\('', \{ glikoName, defaultValue: i18n\.t\('', \{ glikoName, defaultValue: '([^']+)' \} \) \}\)/g, (match, val) => {
+    let key = valToKey[val] || 'auto.unknown_key';
+    return "t('" + key + "', { glikoName, defaultValue: '" + val + "' })";
+});
+
+fs.writeFileSync('src/components/MLAnalysisWidget.tsx', content, 'utf8');
+console.log('Done restoring keys');

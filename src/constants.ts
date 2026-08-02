@@ -1,4 +1,4 @@
-﻿import { UserSettings } from "./types";
+import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 

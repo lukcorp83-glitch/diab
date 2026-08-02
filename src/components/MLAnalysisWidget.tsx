@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot } from 'lucide-react';
+import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot, Settings } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
@@ -32,7 +32,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const glassmorphismEnabled = settings?.glassmorphismEnabled || false;
-  const glikoName = (typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') : '') === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0';
+  const [engineMode, setEngineMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') || 'v3_lstm' : 'v3_lstm');
+  const glikoName = engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0';
+  const [showEngineSettings, setShowEngineSettings] = useState(false);
  const [isAnalyzing, setIsAnalyzing] = useState(false);
  const [error, setError] = useState<string | null>(null);
  const [mlResult, setMlResult] = useState<{
@@ -117,17 +119,17 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  setHasBackupConsent(checked);
  localStorage.setItem('glikosense_backup_consent', checked ? 'true' : 'false');
  if (checked) {
- toast.success(i18n.t('auto.zgoda_udzielona_mozesz_teraz_z', { defaultValue: i18n.t('auto.zgoda_udzielona_mozesz_te', { defaultValue: "Zgoda udzielona. Możesz teraz zarządzać kopią zapasową." }) }));
+ toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.zgoda_udzielona_mozesz_te', { glikoName, defaultValue: "Zgoda udzielona. Możesz teraz zarządzać kopią zapasową." }) }));
  }
  };
 
  const handleBackupToCloud = async () => {
  if (!user || user.isAnonymous) {
- toast.error(i18n.t('auto.zaloguj_sie_na_pelne_konto_e_m', { defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_kont', { defaultValue: "Zaloguj się na pełne konto (E-mail lub Google), aby korzystać z kopii zapasowej." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.unknown_key', { glikoName, defaultValue: "Zaloguj się na pełne konto (E-mail lub Google), aby korzystać z kopii zapasowej." }) }));
  return;
  }
  if (!hasBackupConsent) {
- toast.error(i18n.t('auto.musisz_najpierw_zaakceptowac_i', { defaultValue: i18n.t('auto.musisz_najpierw_zaakcepto', { defaultValue: "Musisz najpierw zaakceptować informację o zgodzie." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.musisz_najpierw_zaakcepto', { glikoName, defaultValue: "Musisz najpierw zaakceptować informację o zgodzie." }) }));
  return;
  }
 
@@ -154,9 +156,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  datasetSize: mlResult?.datasetSize || 0
  });
 
- toast.success(i18n.t('auto.kopia_zapasowa_modelu_glikosen', { defaultValue: i18n.t('auto.kopia_zapasowa_modelu_gli', { defaultValue: `Kopia zapasowa modelu ${glikoName} została zapisana pomyślnie!` }) }), { id: toastId });
+ toast.success(i18n.t('auto.kopia_zapasowa_modelu_glikosen', { glikoName, defaultValue: i18n.t('auto.kopia_zapasowa_modelu_gli', { glikoName, defaultValue: `Kopia zapasowa modelu ${glikoName} została zapisana pomyślnie!` }) }), { id: toastId });
  } catch (err) {
- toast.error(i18n.t('auto.blad_podczas_eksportowania_lub', { defaultValue: i18n.t('auto.blad_podczas_eksportowani', { defaultValue: "Błąd podczas eksportowania lub zapisu kopii zapasowej." }) }), { id: toastId });
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_podczas_eksportowani', { glikoName, defaultValue: "Błąd podczas eksportowania lub zapisu kopii zapasowej." }) }), { id: toastId });
  handleFirestoreError(err, OperationType.WRITE, docPath);
  } finally {
  setIsBackupActionRunning(false);
@@ -165,16 +167,16 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
 
  const handleRestoreFromCloud = async () => {
  if (!user || user.isAnonymous) {
- toast.error(i18n.t('auto.zaloguj_sie_na_pelne_konto_e_m', { defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_kont', { defaultValue: "Zaloguj się na pełne konto (E-mail lub Google), aby pobrać kopię zapasową." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_konto_e_m', { glikoName, defaultValue: "Zaloguj się na pełne konto (E-mail lub Google), aby pobrać kopię zapasową." }) }));
  return;
  }
  if (!hasBackupConsent) {
- toast.error(i18n.t('auto.udziel_najpierw_zgody_na_zarza', { defaultValue: i18n.t('auto.udziel_najpierw_zgody_na', { defaultValue: "Udziel najpierw zgody na zarządzanie kopią zapasową." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.udziel_najpierw_zgody_na', { glikoName, defaultValue: "Udziel najpierw zgody na zarządzanie kopią zapasową." }) }));
  return;
  }
 
  const confirmRestore = window.confirm(
- i18n.t('auto.uwaga_przywrocenie_modelu_z_ch', { defaultValue: i18n.t('auto.uwaga_przywrocenie_modelu', { defaultValue: `UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej ${glikoName} zainstalowane w przeglądarce. Czy chcesz kontynuować?` }) })
+ i18n.t('auto.uwaga_przywrocenie_modelu_z_ch', { glikoName, defaultValue: i18n.t('auto.uwaga_przywrocenie_modelu', { glikoName, defaultValue: `UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej ${glikoName} zainstalowane w przeglądarce. Czy chcesz kontynuować?` }) })
  );
  if (!confirmRestore) return;
 
@@ -200,13 +202,13 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  });
 
  if (success) {
- toast.success(i18n.t('auto.model_glikosense_3_0_zostal_po', { defaultValue: i18n.t('auto.model_glikosense_3_0_zost', { defaultValue: `Model ${glikoName} został pomyślnie przywrócony z chmury!` }) }), { id: toastId });
+ toast.success(i18n.t('auto.model_glikosense_3_0_zostal_po', { glikoName, defaultValue: i18n.t('auto.model_glikosense_3_0_zost', { glikoName, defaultValue: `Model ${glikoName} został pomyślnie przywrócony z chmury!` }) }), { id: toastId });
  runML(true);
  } else {
- toast.error(i18n.t('auto.wystapil_nieznany_problem_z_pl', { defaultValue: i18n.t('auto.wystapil_nieznany_problem', { defaultValue: "Wystąpił nieznany problem z plikiem modelu." }) }), { id: toastId });
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.wystapil_nieznany_problem', { glikoName, defaultValue: "Wystąpił nieznany problem z plikiem modelu." }) }), { id: toastId });
  }
  } catch (err) {
- toast.error(i18n.t('auto.blad_podczas_przywracania_kopi', { defaultValue: i18n.t('auto.blad_podczas_przywracania', { defaultValue: "Błąd podczas przywracania kopii zapasowej." }) }), { id: toastId });
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_podczas_przywracania', { glikoName, defaultValue: "Błąd podczas przywracania kopii zapasowej." }) }), { id: toastId });
  handleFirestoreError(err, OperationType.GET, docPath);
  } finally {
  setIsBackupActionRunning(false);
@@ -215,7 +217,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
 
  const handleDeleteBackup = async () => {
  if (!user || user.isAnonymous) return;
- const confirmDelete = window.confirm(i18n.t('auto.czy_na_pewno_chcesz_usunac_kop', { defaultValue: i18n.t('auto.czy_na_pewno_chcesz_usuna', { defaultValue: "Czy na pewno chcesz usunąć kopię zapasową modelu z chmury? Ta operacja jest nieodwracalna." }) }));
+ const confirmDelete = window.confirm(i18n.t('', { glikoName, defaultValue: i18n.t('auto.czy_na_pewno_chcesz_usunac_kop', { glikoName, defaultValue: "Czy na pewno chcesz usunąć kopię zapasową modelu z chmury? Ta operacja jest nieodwracalna." }) }));
  if (!confirmDelete) return;
 
  setIsBackupActionRunning(true);
@@ -225,9 +227,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  await deleteDoc(docRef);
  setBackupInfo(null);
- toast.success(i18n.t('auto.kopia_zapasowa_w_chmurze_zosta', { defaultValue: i18n.t('auto.kopia_zapasowa_w_chmurze', { defaultValue: "Kopia zapasowa w chmurze została usunięta." }) }), { id: toastId });
+ toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.kopia_zapasowa_w_chmurze', { glikoName, defaultValue: "Kopia zapasowa w chmurze została usunięta." }) }), { id: toastId });
  } catch (err) {
- toast.error(i18n.t('auto.blad_podczas_usuwania_kopii_za', { defaultValue: i18n.t('auto.blad_podczas_usuwania_kop', { defaultValue: "Błąd podczas usuwania kopii zapasowej." }) }), { id: toastId });
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_podczas_usuwania_kop', { glikoName, defaultValue: "Błąd podczas usuwania kopii zapasowej." }) }), { id: toastId });
  handleFirestoreError(err, OperationType.DELETE, docPath);
  } finally {
  setIsBackupActionRunning(false);
@@ -238,7 +240,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  try {
  const modelData = await MLAnalyzer.exportCurrentModel();
  if (!modelData) {
- toast.error(i18n.t('auto.brak_wytrenowanego_modelu_do_p', { defaultValue: i18n.t('auto.brak_wytrenowanego_modelu', { defaultValue: "Brak wytrenowanego modelu do pobrania. Wykonaj najpierw analizę!" }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.brak_wytrenowanego_modelu', { glikoName, defaultValue: "Brak wytrenowanego modelu do pobrania. Wykonaj najpierw analizę!" }) }));
  return;
  }
  
@@ -251,9 +253,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  document.body.appendChild(downloadAnchor);
  downloadAnchor.click();
  downloadAnchor.remove();
- toast.success(i18n.t('auto.pomyslnie_pobrano_model_do_pli', { defaultValue: i18n.t('auto.pomyslnie_pobrano_model_d', { defaultValue: "Pomyślnie pobrano model do pliku JSON!" }) }));
+ toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.pomyslnie_pobrano_model_d', { glikoName, defaultValue: "Pomyślnie pobrano model do pliku JSON!" }) }));
  } catch (err) {
- toast.error(i18n.t('auto.blad_eksportu_do_pliku', { defaultValue: i18n.t('auto.blad_eksportu_do_pliku', { defaultValue: "Błąd eksportu do pliku." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_eksportu_do_pliku', { glikoName, defaultValue: "Błąd eksportu do pliku." }) }));
  console.error(err);
  }
  };
@@ -271,23 +273,23 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  
  const parsed = JSON.parse(textStr);
  if (!parsed.modelTopology || !parsed.weightSpecs || !parsed.weightDataB64) {
- throw new Error(i18n.t('auto.nieprawidlowy_format_pliku_mod', { defaultValue: i18n.t('auto.nieprawidlowy_format_plik', { defaultValue: "Nieprawidłowy format pliku modelu GlikoSense." }) }));
+ throw new Error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.nieprawidlowy_format_plik', { glikoName, defaultValue: "Nieprawidłowy format pliku modelu GlikoSense." }) }));
  }
  
  const confirmRestore = window.confirm(
- i18n.t('auto.uwaga_wgranie_modelu_z_pliku_n', { defaultValue: i18n.t('auto.uwaga_wgranie_modelu_z_pl', { defaultValue: "Uwaga: Wgranie modelu z pliku nadpisze aktualny model w przeglądarce. Czy chcesz kontynuować?" }) })
+ i18n.t('', { glikoName, defaultValue: i18n.t('auto.uwaga_wgranie_modelu_z_pl', { glikoName, defaultValue: "Uwaga: Wgranie modelu z pliku nadpisze aktualny model w przeglądarce. Czy chcesz kontynuować?" }) })
  );
  if (!confirmRestore) return;
  
  const success = await MLAnalyzer.importModelFromBackup(parsed);
  if (success) {
- toast.success(i18n.t('auto.pomyslnie_wgrano_model_z_pliku', { defaultValue: i18n.t('auto.pomyslnie_wgrano_model_z', { defaultValue: "Pomyślnie wgrano model z pliku JSON!" }) }));
+ toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.pomyslnie_wgrano_model_z', { glikoName, defaultValue: "Pomyślnie wgrano model z pliku JSON!" }) }));
  runML(true);
  } else {
- toast.error(i18n.t('auto.blad_podczas_importu_modelu', { defaultValue: i18n.t('auto.blad_podczas_importu_mode', { defaultValue: "Błąd podczas importu modelu." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_podczas_importu_mode', { glikoName, defaultValue: "Błąd podczas importu modelu." }) }));
  }
  } catch (err) {
- toast.error(err instanceof Error ? err.message : i18n.t('auto.blad_odczytu_pliku_upewnij_sie', { defaultValue: i18n.t('auto.blad_odczytu_pliku_upewni', { defaultValue: "Błąd odczytu pliku. Upewnij się, że plik jest poprawnym JSONem modelu." }) }));
+ toast.error(err instanceof Error ? err.message : i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_odczytu_pliku_upewni', { glikoName, defaultValue: "Błąd odczytu pliku. Upewnij się, że plik jest poprawnym JSONem modelu." }) }));
  console.error(err);
  } finally {
  e.target.value = '';
@@ -352,7 +354,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  .catch(e => {
  console.error("GlikoSense Full Analysis Error:", e);
  // Nie ustawiamy błędu globalnego jeśli mamy już wynik quick
- if (!qResult) setError(i18n.t('auto.blad_pelnej_analizy', { defaultValue: i18n.t('auto.blad_pelnej_analizy', { defaultValue: "Błąd pełnej analizy." }) }));
+ if (!qResult) setError(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_pelnej_analizy', { glikoName, defaultValue: "Błąd pełnej analizy." }) }));
  })
  .finally(() => {
  clearTimeout(safetyTimeout);
@@ -360,7 +362,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  
  } catch (e) {
  console.error("GlikoSense Quick Analysis Error:", e);
- setError(i18n.t('auto.nie_udalo_sie_przeanalizowac_d', { defaultValue: i18n.t('auto.nie_udalo_sie_przeanalizo', { defaultValue: "Nie udało się przeanalizować danych. Spróbuj później." }) }));
+ setError(i18n.t('', { glikoName, defaultValue: i18n.t('auto.nie_udalo_sie_przeanalizo', { glikoName, defaultValue: "Nie udało się przeanalizować danych. Spróbuj później." }) }));
  clearTimeout(safetyTimeout);
  setIsAnalyzing(false);
  }
@@ -481,10 +483,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }
 
  const mealBlocks = {
- breakfast: { name: i18n.t('auto.sniadanie', { defaultValue: 'Śniadanie' }), icon: '🌅', hours: [6, 11], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
- lunch: { name: i18n.t('auto.obiad', { defaultValue: 'Obiad' }), icon: '☀️', hours: [11, 16], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
- dinner: { name: i18n.t('auto.kolacja', { defaultValue: 'Kolacja' }), icon: '🌙', hours: [16, 22], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
- night: { name: i18n.t('auto.noc', { defaultValue: 'Noc' }), icon: '🌌', hours: [22, 6], carbs: 0, bolus: 0, count: 0, totalDelta: 0 }
+ breakfast: { name: i18n.t('auto.sniadanie', { glikoName, defaultValue: 'Śniadanie' }), icon: '🌅', hours: [6, 11], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+ lunch: { name: i18n.t('auto.obiad', { glikoName, defaultValue: 'Obiad' }), icon: '☀️', hours: [11, 16], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+ dinner: { name: i18n.t('auto.kolacja', { glikoName, defaultValue: 'Kolacja' }), icon: '🌙', hours: [16, 22], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+ night: { name: i18n.t('auto.noc', { glikoName, defaultValue: 'Noc' }), icon: '🌌', hours: [22, 6], carbs: 0, bolus: 0, count: 0, totalDelta: 0 }
  };
 
  const recentMeals = logs.filter(l => l.type === 'meal' && l.timestamp >= cutoff14);
@@ -564,7 +566,15 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <GlikoSenseIcon size={24} isAnalyzing={isAnalyzing} />
  </div>
  <div className="flex flex-col">
+ <div className="flex items-center gap-2">
  <h3 className="text-xl font-black tracking-tighter text-slate-800 dark:text-white">{t('auto.glikosense', { defaultValue: 'GlikoSense' })}<span className="text-indigo-500 text-2xl leading-none">.</span></h3>
+ <button 
+ onClick={() => setShowEngineSettings(!showEngineSettings)} 
+ className="p-1 text-slate-400 hover:text-indigo-500 transition-colors"
+ >
+ <Settings size={16} />
+ </button>
+ </div>
  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-1.5 mt-0.5">
  {isAnalyzing ? (
  <>
@@ -579,11 +589,77 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  </div>
  
+      <AnimatePresence>
+        {showEngineSettings && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-cyan-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-cyan-500/20 p-4 rounded-2xl border border-indigo-500/20 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-300 uppercase tracking-wider block">
+                  🧠 {t('auto.architektura_sieci_glikosense', { defaultValue: 'Architektura Sieci Neuronowej (GlikoSense Engine)' })}
+                </span>
+                <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
+                  {engineMode === 'v4_tcn' 
+                    ? t('auto.opis_silnika_tcn', { defaultValue: 'GlikoSense 4.0 Pro: Sploty dylatowane (TCN) + kwantyzacja INT8 + bezpiecznik próbek' })
+                    : t('auto.opis_silnika_lstm', { defaultValue: 'GlikoSense 3.0 Klasyczny: Pamięć sekwencyjna LSTM (sprawdzony model standardowy)' })}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('glikosense_engine_mode', 'v3_lstm');
+                    setEngineMode('v3_lstm');
+                    toast.success(t('auto.przelaczono_na_silnik_lstm', { defaultValue: "Przełączono na GlikoSense 3.0 LSTM Klasyczny" }));
+                    if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all",
+                    engineMode === 'v3_lstm'
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-indigo-600"
+                  )}
+                >
+                  v3.0 LSTM
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
+                    setEngineMode('v4_tcn');
+                    toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
+                    if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1",
+                    (typeof window !== 'undefined' && (
+                      typeof OffscreenCanvas === 'undefined' || 
+                      typeof window.WebGLRenderingContext === 'undefined' || 
+                      localStorage.getItem('glikosense_active_backend') === 'cpu' || 
+                      (navigator.deviceMemory && navigator.deviceMemory < 3)
+                    )) ? "opacity-50 cursor-not-allowed" : "",
+                    engineMode === 'v4_tcn'
+                      ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-cyan-600"
+                  )}
+                >
+                  🚀 v4.0 TCN INT8
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
  <button 
  onClick={() => runML(true)} 
  disabled={isAnalyzing}
  className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-accent-500 dark:text-slate-400 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-50"
- title={t('auto.odśwież_analizę', { defaultValue: i18n.t('auto.odswiez_analize', { defaultValue: "Odśwież analizę" }) })}
+ title={t('', { glikoName, defaultValue: i18n.t('auto.odswiez_analize', { glikoName, defaultValue: "Odśwież analizę" }) })}
  >
  <RefreshCw size={18} className={isAnalyzing ? 'animate-spin' : ''} />
  </button>
@@ -595,7 +671,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="flex items-center gap-2.5">
  <Cloud size={18} className="text-indigo-500" />
  <div className="flex flex-col">
- <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{t('auto.sieć_neuronowa_glikosense_3_0', { defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { defaultValue: `Sieć neuronowa ${glikoName}` }) })}</span>
+ <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{t('auto.sieć_neuronowa_glikosense_3_0', { glikoName, defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { glikoName, defaultValue: `Sieć neuronowa ${glikoName}` }) })}</span>
  <span className="text-[10px] font-bold text-slate-400 opacity-80 mt-1">{t('auto.kopia_zapasowa_modelu_w_zabezpieczo', { defaultValue: 'Kopia zapasowa modelu w zabezpieczonej chmurze' })}</span>
  </div>
  </div>
@@ -603,7 +679,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  onClick={() => setShowBackupPanel(!showBackupPanel)}
  className="px-3 py-1.5 text-xs font-bold text-indigo-500 hover:text-indigo-600 bg-indigo-500/5 hover:bg-indigo-500/10 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/15 rounded-xl transition-all"
  >
- {showBackupPanel ? i18n.t('auto.zwin', { defaultValue: i18n.t('auto.zwin', { defaultValue: "Zwiń" }) }) : i18n.t('auto.zarzadzaj', { defaultValue: i18n.t('auto.zarzadzaj', { defaultValue: "Zarządzaj" }) })}
+ {showBackupPanel ? i18n.t('', { glikoName, defaultValue: i18n.t('auto.zwin', { glikoName, defaultValue: "Zwiń" }) }) : i18n.t('', { glikoName, defaultValue: i18n.t('auto.zarzadzaj', { glikoName, defaultValue: "Zarządzaj" }) })}
  </button>
  </div>
 
@@ -617,13 +693,13 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 text-amber-700 dark:text-amber-400">
  <ShieldAlert size={20} className="shrink-0 mt-0.5" />
  <div className="space-y-1">
- <span className="text-xs font-black uppercase tracking-wider block">{t('auto.ważna_informacja_o_modelu', { defaultValue: i18n.t('auto.wazna_informacja_o_modelu', { defaultValue: "Ważna Informacja o Modelu" }) })}</span>
+ <span className="text-xs font-black uppercase tracking-wider block">{t('', { glikoName, defaultValue: i18n.t('auto.wazna_informacja_o_modelu', { glikoName, defaultValue: "Ważna Informacja o Modelu" }) })}</span>
  <p className="text-xs font-medium leading-relaxed">
  
- {t('auto.twoja_sieć_neuronowa_uczy_się_lokal', { defaultValue: i18n.t('auto.twoja_siec_neuronowa_uczy', { defaultValue: "Twoja sieć neuronowa uczy się lokalnie na Twoim urządzeniu. Czyszczenie pamięci podręcznej przeglądarki lub zmiana urządzenia spowoduje" }) })}{" "}
- <strong className="font-extrabold text-amber-600 dark:text-amber-300">{t('auto.bezzwrotną_utratę_wyuczonego_modelu', { defaultValue: i18n.t('auto.bezzwrotna_utrate_wyuczon', { defaultValue: `bezzwrotną utratę wyuczonego modelu ${glikoName}` }) })}</strong>{" "}
+ {t('', { glikoName, defaultValue: i18n.t('auto.twoja_siec_neuronowa_uczy', { glikoName, defaultValue: "Twoja sieć neuronowa uczy się lokalnie na Twoim urządzeniu. Czyszczenie pamięci podręcznej przeglądarki lub zmiana urządzenia spowoduje" }) })}{" "}
+ <strong className="font-extrabold text-amber-600 dark:text-amber-300">{t('auto.bezzwrotną_utratę_wyuczonego_modelu', { glikoName, defaultValue: i18n.t('auto.bezzwrotna_utrate_wyuczon', { glikoName, defaultValue: `bezzwrotną utratę wyuczonego modelu ${glikoName}` }) })}</strong>{" "}
  
- {t('auto.i_przywrócenie_wartości_podstawowyc', { defaultValue: i18n.t('auto.i_przywrocenie_wartosci_p', { defaultValue: "i przywrócenie wartości podstawowych. Kopia w chmurze chroni przed utratą Twojej spersonalizowanej inteligencji." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.i_przywrocenie_wartosci_p', { glikoName, defaultValue: "i przywrócenie wartości podstawowych. Kopia w chmurze chroni przed utratą Twojej spersonalizowanej inteligencji." }) })}
  </p>
  </div>
  </div>
@@ -643,11 +719,11 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="space-y-0.5">
  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
  
- {t('auto.rozumiem_ryzyko_i_wyrażam_świadomą_', { defaultValue: i18n.t('auto.rozumiem_ryzyko_i_wyrazam', { defaultValue: "Rozumiem ryzyko i wyrażam świadomą zgodę" }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.rozumiem_ryzyko_i_wyrazam', { glikoName, defaultValue: "Rozumiem ryzyko i wyrażam świadomą zgodę" }) })}
  </span>
  <p className="text-[10px] text-slate-400">
  
- {t('auto.wyrażam_zgodę_na_bezpieczny_szyfrow', { defaultValue: i18n.t('auto.wyrazam_zgode_na_bezpiecz', { defaultValue: "Wyrażam zgodę na bezpieczny, szyfrowany zapis wag i topologii mojej lokalnej sieci neuronowej w moim profilu bazy danych Firebase." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.wyrazam_zgode_na_bezpiecz', { glikoName, defaultValue: "Wyrażam zgodę na bezpieczny, szyfrowany zapis wag i topologii mojej lokalnej sieci neuronowej w moim profilu bazy danych Firebase." }) })}
  </p>
  </div>
  </div>
@@ -656,12 +732,12 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  {!user ? (
  <div className="bg-indigo-500/5 border border-indigo-500/15 p-3 rounded-2xl text-center text-xs text-indigo-500 font-bold">
  
- {t('auto.zaloguj_się_na_pełne_konto_e_mailem', { defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_kont', { defaultValue: "⚠️ Zaloguj się na pełne konto (e-mailem lub Google), aby uzyskać dostęp do kopii zapasowej w bezpiecznej chmurze." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_kont', { glikoName, defaultValue: "⚠️ Zaloguj się na pełne konto (e-mailem lub Google), aby uzyskać dostęp do kopii zapasowej w bezpiecznej chmurze." }) })}
  </div>
  ) : user.isAnonymous ? (
  <div className="bg-amber-500/5 border border-amber-500/15 p-3 rounded-2xl text-center text-xs text-amber-600 dark:text-amber-400 font-bold">
  
- {t('auto.kopia_zapasowa_modelu_jest_niedostę', { defaultValue: i18n.t('auto.kopia_zapasowa_modelu_jes', { defaultValue: "⚠️ Kopia zapasowa modelu jest niedostępna w trybie gościa. Zapobiegaj utracie modelu logując się na pełne konto (E-mail lub Google)." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.kopia_zapasowa_modelu_jes', { glikoName, defaultValue: "⚠️ Kopia zapasowa modelu jest niedostępna w trybie gościa. Zapobiegaj utracie modelu logując się na pełne konto (E-mail lub Google)." }) })}
  </div>
  ) : (
  <div className="space-y-3">
@@ -700,7 +776,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  disabled={isBackupActionRunning || !hasBackupConsent || !backupInfo}
  className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-black text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/30 disabled:text-emerald-500/50 rounded-xl transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
  >
- <CloudDownload size={14} /> {t('auto.przywróć_z_chmury', { defaultValue: i18n.t('auto.przywroc_z_chmury', { defaultValue: "PRZYWRÓĆ Z CHMURY" }) })}
+ <CloudDownload size={14} /> {t('', { glikoName, defaultValue: i18n.t('auto.przywroc_z_chmury', { glikoName, defaultValue: "PRZYWRÓĆ Z CHMURY" }) })}
  </button>
 
  {backupInfo && (
@@ -708,7 +784,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  onClick={handleDeleteBackup}
  disabled={isBackupActionRunning}
  className="p-2.5 text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 rounded-xl transition-all shrink-0 cursor-pointer disabled:opacity-50"
- title={t('auto.usuń_kopię_zapasową_z_chmury', { defaultValue: i18n.t('auto.usun_kopie_zapasowa_z_chm', { defaultValue: "Usuń kopię zapasową z chmury" }) })}
+ title={t('', { glikoName, defaultValue: i18n.t('auto.usun_kopie_zapasowa_z_chm', { glikoName, defaultValue: "Usuń kopię zapasową z chmury" }) })}
  >
  <Trash2 size={14} />
  </button>
@@ -720,10 +796,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  {/* Opcja offline dla gości, urządzeń lokalnych oraz eksportu dla APK */}
  <div className="pt-3.5 border-t border-slate-200/40 dark:border-slate-800/40 space-y-3">
  <div className="flex flex-col">
- <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.kopia_lokalna_plik_idealne_dla_plik', { defaultValue: i18n.t('auto.kopia_lokalna_plik_idealn', { defaultValue: "Kopia Lokalna / Plik (Idealne dla pliku APK & Gości)" }) })}</span>
+ <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('', { glikoName, defaultValue: i18n.t('auto.kopia_lokalna_plik_idealn', { glikoName, defaultValue: "Kopia Lokalna / Plik (Idealne dla pliku APK & Gości)" }) })}</span>
  <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
  
- {t('auto.całkowicie_bezpłatne_pobieranie_spe', { defaultValue: i18n.t('auto.calkowicie_bezplatne_pobi', { defaultValue: "Całkowicie bezpłatne pobieranie spersonalizowanych wag sieci neuronowej bezpośrednio na pamięć urządzenia lub ich wczytywanie z pliku JSON." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.calkowicie_bezplatne_pobi', { glikoName, defaultValue: "Całkowicie bezpłatne pobieranie spersonalizowanych wag sieci neuronowej bezpośrednio na pamięć urządzenia lub ich wczytywanie z pliku JSON." }) })}
  </p>
  </div>
  <div className="flex flex-wrap gap-2">
@@ -759,7 +835,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  exit={{ opacity: 0 }}
  className="h-48 flex items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 glass-target"
  >
- <span className="text-xs font-bold uppercase tracking-widest text-slate-400">{t('auto.zbyt_mało_danych_do_analizy_min_5_w', { defaultValue: i18n.t('auto.zbyt_malo_danych_do_anali', { defaultValue: "Zbyt mało danych do analizy (min. 5 wpisów)" }) })}</span>
+ <span className="text-xs font-bold uppercase tracking-widest text-slate-400">{t('', { glikoName, defaultValue: i18n.t('auto.zbyt_malo_danych_do_anali', { glikoName, defaultValue: "Zbyt mało danych do analizy (min. 5 wpisów)" }) })}</span>
  </motion.div>
  ) : error && !mlResult ? (
  <motion.div 
@@ -776,7 +852,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  className="mt-4 text-[10px] font-bold text-accent-500 uppercase tracking-widest hover:underline"
  >
  
- {t('auto.spróbuj_ponownie', { defaultValue: i18n.t('auto.sprobuj_ponownie', { defaultValue: "Spróbuj ponownie" }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.sprobuj_ponownie', { glikoName, defaultValue: "Spróbuj ponownie" }) })}
  </button>
  </motion.div>
  ) : isAnalyzing && !mlResult ? (
@@ -899,7 +975,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 md:p-2 rounded-xl">
  <GlikoSenseIcon size={16} isAnalyzing={true} />
  </div>
- <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.1em] md:tracking-[0.2em] leading-tight">{t('auto.pewność_modelu', { defaultValue: i18n.t('auto.pewnosc_modelu', { defaultValue: "Pewność Modelu" }) })}</span>
+ <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.1em] md:tracking-[0.2em] leading-tight">{t('', { glikoName, defaultValue: i18n.t('auto.pewnosc_modelu', { glikoName, defaultValue: "Pewność Modelu" }) })}</span>
  </div>
  <div className="flex items-end gap-2 relative z-10 mt-auto">
  <span className="text-4xl md:text-5xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">{mlResult.accuracy}%</span>
@@ -956,7 +1032,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  {mlResult.metrics && (
  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
  <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-indigo-500 transition-colors">{t('auto.profil_działania_insuliny', { defaultValue: i18n.t('auto.profil_dzialania_insuliny', { defaultValue: "Profil Działania Insuliny" }) })}</span>
+ <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-indigo-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.unknown_key', { glikoName, defaultValue: "Profil Działania Insuliny" }) })}</span>
  <div className="flex flex-col">
  <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.iob.toFixed(1)} <span className="text-xs font-bold text-slate-400 tracking-normal">j</span></span>
  {mlResult.metrics.iob > 0 && (
@@ -965,27 +1041,27 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  </div>
  <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">{t('auto.aktywne_węglow', { defaultValue: i18n.t('auto.aktywne_weglow', { defaultValue: "Aktywne Węglow." }) })}</span>
+ <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.aktywne_weglow', { glikoName, defaultValue: "Aktywne Węglow." }) })}</span>
  <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.cob.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">g</span></span>
  </div>
  <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">{t('auto.oporność_bias', { defaultValue: i18n.t('auto.opornosc_bias', { defaultValue: "Oporność (Bias)" }) })}</span>
+ <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.opornosc_bias', { glikoName, defaultValue: "Oporność (Bias)" }) })}</span>
  <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
  {mlResult.metrics.avgBias > 0 ? '+' : ''}{mlResult.metrics.avgBias.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  </span>
  </div>
  <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-emerald-500 transition-colors">{t('auto.gmi_wskaźnik', { defaultValue: i18n.t('auto.gmi_wskaznik', { defaultValue: "GMI (Wskaźnik)" }) })}</span>
+ <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-emerald-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.gmi_wskaznik', { glikoName, defaultValue: "GMI (Wskaźnik)" }) })}</span>
  <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.gmiPercentage > 0 ? mlResult.metrics.gmiPercentage.toFixed(1) : '--'} <span className="text-xs font-bold text-slate-400 tracking-normal">%</span></span>
  </div>
  <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-orange-500 transition-colors">{t('auto.czułość_węg', { defaultValue: i18n.t('auto.czulosc_weg', { defaultValue: "Czułość (Węg.)" }) })}</span>
+ <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-orange-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.czulosc_weg', { glikoName, defaultValue: "Czułość (Węg.)" }) })}</span>
  <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
  {mlResult.metrics.carbSensitivity > 0 ? '+' : ''}{mlResult.metrics.carbSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">{t('auto.50g', { defaultValue: '/ 50g' })}</span>
  </span>
  </div>
  <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-cyan-500 transition-colors">{t('auto.wrażliwość_ins', { defaultValue: i18n.t('auto.wrazliwosc_ins', { defaultValue: "Wrażliwość (Ins.)" }) })}</span>
+ <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-cyan-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.wrazliwosc_ins', { glikoName, defaultValue: "Wrażliwość (Ins.)" }) })}</span>
  <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
  {mlResult.metrics.insulinSensitivity > 0 ? '+' : ''}{mlResult.metrics.insulinSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">{t('auto.1j', { defaultValue: '/ 1j' })}</span>
  </span>
@@ -1246,6 +1322,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  );
 }
+
 
 
 
