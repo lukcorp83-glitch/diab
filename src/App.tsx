@@ -44,6 +44,7 @@ import Logo from "./components/Logo";
 import GlikoControlLogo from "./components/LogoAnimation";
 import { CURRENT_VERSION } from "./constants/versions";
 
+import { MigrationManager } from "./components/MigrationManager";
 import { AppLayout } from "./components/app/AppLayout";
 import { AppContent } from "./components/app/AppContent";
 
@@ -337,7 +338,9 @@ export default function App() {
   const currentTabContent = <AppContent {...{assistantMessages, setAssistantMessages, isAssistantTyping, sendAssistantMessage, handleLogout, wsDevices, kickDevice, mealProgress, getEffectiveIOB, toggleTheme, pumpStatus}} />;
 
   return (
-    <AppLayout
+    <>
+      <MigrationManager user={user} />
+      <AppLayout
       mainRef={mainRef}
       mealProgress={mealProgress}
       userSettings={userSettings}
@@ -357,5 +360,7 @@ export default function App() {
     >
       {currentTabContent}
     </AppLayout>
+    </>
   );
 }
+

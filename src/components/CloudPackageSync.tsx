@@ -59,10 +59,13 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
 export const downloadCloudPackage = async (user: any) => {
  if (!user) return false;
  try {
- const snap = await getDoc(
+ let snap = await getDoc(
  doc(db, "users", getEffectiveUid(user), "syncPackage", "latest")
  );
- if (!snap.exists()) return false;
+ if (!snap.exists()) {
+    snap = await getDoc(doc(db, "artifacts/diacontrolapp/users", getEffectiveUid(user), "syncPackage", "latest"));
+    if (!snap.exists()) return false;
+ }
  
  const data = snap.data();
  if (!data.payload) return false;
@@ -210,4 +213,5 @@ export default function CloudPackageSync({
  </div>
  );
 }
+
 

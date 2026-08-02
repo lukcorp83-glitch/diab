@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.9.94';
+export const CURRENT_VERSION = '5.9.95';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.9.95",
+    date: "2026-08-02",
+    title: "Migrator & TIR Fix",
+    changes: [
+      "Wdrożono interaktywnego, bezpiecznego asystenta migracji konta",
+      "Naprawiono problem z brakiem wczytywania dzisiejszych logów na kołowym wykresie TIR",
+      "Wyłączono kosztowny podwójny odczyt starych kolekcji w tle"
+    ]
+  },
   {
     version: "5.9.93",
     date: new Date().toISOString().split('T')[0],
@@ -638,6 +648,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.9.95",
+    date: "2026-08-02",
+    title: "Migrator & TIR Fix",
+    changes: [
+      "Wdrożono interaktywnego, bezpiecznego asystenta migracji konta",
+      "Naprawiono problem z brakiem wczytywania dzisiejszych logów na kołowym wykresie TIR",
+      "Wyłączono kosztowny podwójny odczyt starych kolekcji w tle"
+    ]
+  },
   {
     version: "5.9.93",
     date: new Date().toISOString().split('T')[0],

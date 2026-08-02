@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion } from 'motion/react';
 import { Flower2, Sun, CloudRain, Trophy, Ruler } from 'lucide-react';
@@ -8,7 +8,7 @@ export default function GlikoGarden({}: {}) {
  const { t } = useTranslation();
  const tir = useMemo(() => {
  const today = new Date().setHours(0,0,0,0);
- const todayLogs = logs.filter(l => l.timestamp >= today && l.type === 'glucose');
+ const todayLogs = logs.filter(l => getTimestampMs(l.timestamp) >= today && l.type === 'glucose');
  if (todayLogs.length === 0) return 0;
  const inRange = todayLogs.filter(l => l.value >= 70 && l.value <= 180).length;
  return (inRange / todayLogs.length) * 100;
@@ -78,5 +78,7 @@ export default function GlikoGarden({}: {}) {
 
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
+import { getTimestampMs } from '../lib/utils';
 import i18n from "../i18n";
+
 

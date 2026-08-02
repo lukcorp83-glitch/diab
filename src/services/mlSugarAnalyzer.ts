@@ -1,4 +1,4 @@
-import * as tf from '@tensorflow/tfjs';
+﻿import * as tf from '@tensorflow/tfjs';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import i18n from "../i18n";
@@ -243,11 +243,13 @@ export const MLAnalyzer = {
       const rules = GlikoSenseLearner.getRules();
       const lastTrainTimeStr = localStorage.getItem('glikosense_last_train_time');
       const datasetSizeStr = localStorage.getItem('glikosense_dataset_size');
+        const engineModeStr = localStorage.getItem('glikosense_engine_mode');
 
       worker.postMessage({
         logs,
         force,
         language: i18n.language || 'pl',
+          engineMode: engineModeStr || 'v3_lstm',
         mode,
         rules,
         lastTrainTime: lastTrainTimeStr ? parseInt(lastTrainTimeStr, 10) : 0,
@@ -306,4 +308,5 @@ if (typeof window !== 'undefined') {
     } catch (e) { return false; }
   };
 }
+
 

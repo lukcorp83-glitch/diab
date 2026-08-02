@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { PieChart, Pie, Cell } from 'recharts';
 import { LogEntry } from '../types';
+import { getTimestampMs } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -17,7 +18,7 @@ export default function DailyTirWidget({ settings }: DailyTirWidgetProps) {
  today.setHours(0, 0, 0, 0);
 
  const glucoseLogs = logs.filter(
- (log) => log.type === "glucose" && new Date(log.timestamp) >= today
+ (log) => log.type === "glucose" && new Date(getTimestampMs(log.timestamp)) >= today
  );
 
  if (glucoseLogs.length === 0) {
@@ -113,3 +114,4 @@ export default function DailyTirWidget({ settings }: DailyTirWidgetProps) {
  </div>
  );
 }
+

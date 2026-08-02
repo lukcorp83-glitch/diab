@@ -14,12 +14,12 @@ export const notificationService = {
     if (Capacitor.isNativePlatform()) {
       try {
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v8',
+          id: 'glucose_alerts_v9',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
           importance: 5,
           visibility: 1,
-          sound: 'status_clear',
+          sound: 'status_clear.mp3',
           vibration: true
         });
 
@@ -432,8 +432,8 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v8',
-            sound: 'status_clear',
+            channelId: 'glucose_alerts_v9',
+            sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: "",
             extra: null

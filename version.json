@@ -1,18 +1,18 @@
-{
-  "version": "5.9.94",
+﻿{
+  "version": "5.9.95",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.91_OTA.apk",
-  "buildNumber": 117,
+  "buildNumber": 118,
   "forceUpdate": false,
   "whatsNew": [
-    "Naprawiono awarię asystenta głosowego (Invalid hook call)",
-    "Przywrócono wskaźnik ŁG i tłumaczenia zakładek w wyszukiwarce posiłków",
-    "Poprawiono działanie mikrofonu na urządzeniach mobilnych"
+    "Wdrożono automatycznego menedżera migracji bazy danych",
+    "Naprawiono wyświetlanie pustego widżetu dziennego TIR (Time In Range)",
+    "Przywrócono pełną optymalizację kosztów Firebase (usunięto podwójne odczyty)"
   ],
   "whatsNewEn": [
-    "Fixed voice assistant crash (Invalid hook call)",
-    "Restored GL indicator and category translations in food search",
-    "Improved microphone behavior on mobile devices"
+    "Implemented automated database migration manager",
+    "Fixed empty circular daily TIR widget issue",
+    "Restored Firebase cost optimization (removed dual-reads)"
   ],
-  "otaRevision": 276
+  "otaRevision": 277
 }

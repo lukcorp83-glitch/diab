@@ -1,6 +1,10 @@
 ﻿rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    match /_connection_test_/{document=**} {
+      allow read: if true;
+    }
     // Authentication helpers
     function isSignedIn() {
       return request.auth != null;
@@ -10,12 +14,16 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isLinked(userId) {
+    function isLinkedRoot(userId) {
       return userId != null && userId != "" && exists(/databases/$(database)/documents/users/$(userId)/linkRequests/$(request.auth.uid));
     }
 
+    function isLinkedOld(userId) {
+      return userId != null && userId != "" && exists(/databases/$(database)/documents/artifacts/diacontrolapp/users/$(userId)/linkRequests/$(request.auth.uid));
+    }
+
     function canAccessUser(userId) {
-      return isOwner(userId) || isLinked(userId);
+      return isOwner(userId) || isLinkedRoot(userId) || isLinkedOld(userId);
     }
 
     // FCM tokens for push notifications
@@ -23,7 +31,9 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
-    // Shared collections
+    // ==========================================
+    // ROOT LEVEL (NEW APP V4/V5)
+    // ==========================================
     match /syncCodes/{codeId} {
       allow read, write: if isSignedIn();
     }
@@ -35,7 +45,6 @@ service cloud.firestore {
     }
 
     match /apiSecrets/{apiSecretHash} {
-      // Prevent list queries, only get by known hash. Allow write only for current user's data.
       allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create, update: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
@@ -46,10 +55,9 @@ service cloud.firestore {
       allow read: if false;
     }
 
-    // Public connection tests (restricted to prevent abuse)
     match /connection_tests/{docId} {
       allow get: if true;
-      allow create: if true && docId == "test"; // only allow one specific test document
+      allow create: if true && docId == "test"; 
       allow update, delete: if false;
     }
 
@@ -59,7 +67,6 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // User-specific data
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 
@@ -72,5 +79,57 @@ service cloud.firestore {
         allow read, write: if canAccessUser(userId);
       }
     }
+
+    // ==========================================
+    // LEGACY LEVEL (OLD APP V1 - artifacts/diacontrolapp)
+    // ==========================================
+    match /artifacts/diacontrolapp {
+      match /syncCodes/{codeId} {
+        allow read, write: if isSignedIn();
+      }
+
+      match /communityProducts/{productId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      }
+
+      match /apiSecrets/{apiSecretHash} {
+        allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+        allow create, update: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      }
+
+      match /glikosense_training/{docId} {
+        allow create: if isSignedIn();
+        allow read: if false;
+      }
+
+      match /connection_tests/{docId} {
+        allow get: if true;
+        allow create: if true && docId == "test"; 
+        allow update, delete: if false;
+      }
+
+      match /tests/{testId} {
+        allow get: if true;
+        allow create: if true && testId == "test";
+        allow update, delete: if false;
+      }
+
+      match /users/{userId} {
+        allow read, write: if isOwner(userId);
+        
+        match /linkRequests/{requesterUid} {
+          allow read, delete: if isSignedIn() && (userId == request.auth.uid || requesterUid == request.auth.uid);
+          allow create, update: if isSignedIn() && requesterUid == request.auth.uid;
+        }
+
+        match /{allSub=**} {
+          allow read, write: if canAccessUser(userId);
+        }
+      }
+    }
   }
 }
+

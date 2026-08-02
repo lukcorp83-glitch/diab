@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Search, Loader2, Globe, Mic, Plus, Info, Scale, Share2, BookMarked, Tag, X, Scan, Camera } from "lucide-react";
 import { Haptics } from "../../lib/haptics";
@@ -249,22 +249,22 @@ export const ProductSearch = ({
  <div className="flex items-center gap-2 mb-1">
  <h4 className="text-xs font-black text-slate-800 dark:text-white truncate">{getProductName(p, i18n.language)}</h4>
  {getDietBadge(p, settings?.activeDiet || null)}
- {p.gi > 0 && (
-   <div className="flex gap-1">
-     <span className={cn(
-       "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
-       p.gi <= 55 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
-       p.gi <= 69 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
-       "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
-     )}>IG: {p.gi}</span>
-     <span className={cn(
-       "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
-       ((p.gi * (p.carbs || 0)) / 100) <= 10 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
-       ((p.gi * (p.carbs || 0)) / 100) <= 19 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
-       "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
-     )}>ŁG: {((p.gi * (p.carbs || 0)) / 100).toFixed(1)}</span>
-   </div>
- )}
+ <div className="flex gap-1">
+       <span className={cn(
+         "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+         p.gi === undefined || p.gi === null ? "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" :
+         p.gi <= 55 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+         p.gi <= 69 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+         "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+       )}>IG: {p.gi ?? '?'}</span>
+       <span className={cn(
+         "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+         p.gi === undefined || p.gi === null ? "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" :
+         ((p.gi * (p.carbs || 0)) / 100) <= 10 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+         ((p.gi * (p.carbs || 0)) / 100) <= 19 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+         "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+       )}>ŁG: {p.gi !== undefined && p.gi !== null ? ((p.gi * (p.carbs || 0)) / 100).toFixed(1) : '?'}</span>
+     </div>
  </div>
  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
  <span>{p.carbs}g Węgle</span>
@@ -309,22 +309,22 @@ export const ProductSearch = ({
  {getProductName(p, i18n.language)}
  </h4>
  {getDietBadge(p, settings?.activeDiet || null)}
- {p.gi > 0 && (
-   <div className="flex gap-1">
-     <span className={cn(
-       "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
-       p.gi <= 55 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
-       p.gi <= 69 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
-       "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
-     )}>IG: {p.gi}</span>
-     <span className={cn(
-       "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
-       ((p.gi * (p.carbs || 0)) / 100) <= 10 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
-       ((p.gi * (p.carbs || 0)) / 100) <= 19 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
-       "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
-     )}>ŁG: {((p.gi * (p.carbs || 0)) / 100).toFixed(1)}</span>
-   </div>
- )}
+ <div className="flex gap-1">
+       <span className={cn(
+         "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+         p.gi === undefined || p.gi === null ? "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" :
+         p.gi <= 55 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+         p.gi <= 69 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+         "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+       )}>IG: {p.gi ?? '?'}</span>
+       <span className={cn(
+         "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+         p.gi === undefined || p.gi === null ? "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" :
+         ((p.gi * (p.carbs || 0)) / 100) <= 10 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+         ((p.gi * (p.carbs || 0)) / 100) <= 19 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+         "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+       )}>ŁG: {p.gi !== undefined && p.gi !== null ? ((p.gi * (p.carbs || 0)) / 100).toFixed(1) : '?'}</span>
+     </div>
  </div>
  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
  <span>
@@ -367,3 +367,5 @@ export const ProductSearch = ({
  </>
  );
 };
+
+

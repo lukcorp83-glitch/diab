@@ -8,13 +8,27 @@ export const useCommunityProducts = () => {
  return useQuery({
  queryKey: ['communityProducts'],
  queryFn: async () => {
- const q = query(collection(db, "communityProducts"));
- const snapshot = await getDocs(q);
- return snapshot.docs.map((doc) => ({
- id: doc.id,
- ...doc.data(),
- isCommunity: true,
- })) as Product[];
+ const qNew = query(collection(db, "communityProducts"));
+ const qLegacy = query(collection(db, "artifacts/diacontrolapp/communityProducts"));
+ 
+ const [snapshotNew, snapshotLegacy] = await Promise.all([
+   getDocs(qNew),
+   getDocs(qLegacy)
+ ]);
+
+ const combined = [...snapshotNew.docs, ...snapshotLegacy.docs];
+ const uniqueMap = new Map();
+ 
+ combined.forEach((doc) => {
+   // Nadpisujemy nowszym, w razie wystąpienia tego samego id
+   uniqueMap.set(doc.id, {
+     id: doc.id,
+     ...doc.data(),
+     isCommunity: true,
+   });
+ });
+
+ return Array.from(uniqueMap.values()) as Product[];
  },
  staleTime: 1000 * 60 * 60, // 1 hour
  gcTime: 1000 * 60 * 60 * 24, // 24 hours

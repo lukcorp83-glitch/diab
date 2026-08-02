@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { LogEntry } from '../types';
 import { useAppStore } from '../stores/useAppStore';
 import { notificationService } from '../services/notificationService';
@@ -67,7 +67,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
     };
 
     if (nsUrl) {
-      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 500 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 6000 } });
       useAppStore.getState().setSyncStatus({ status: "syncing" });
     }
 
@@ -84,7 +84,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       console.log("Force sync manually triggered (Worker)", { urlToUse });
       useAppStore.getState().setSyncStatus({ status: "syncing" });
       worker.postMessage({ type: 'STOP_SYNC' });
-      worker.postMessage({ type: 'START_SYNC', payload: { url: urlToUse, secret: secretToUse, intervalMs: 5 * 60 * 1000, count: 500 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: urlToUse, secret: secretToUse, intervalMs: 5 * 60 * 1000, count: 6000 } });
     };
 
     console.log("==== HOOK: Rejestruję event listener na force-nightscout-sync ====");
@@ -122,3 +122,4 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
 
   return { nsLogs, setNsLogs, nsDeviceStatus };
 }
+

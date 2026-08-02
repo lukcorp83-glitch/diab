@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { collection, query, onSnapshot, orderBy, limit, doc, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { getEffectiveUid } from '../lib/utils';
-import { useLogsStore } from '../stores/useLogsStore';
 import { LogEntry } from '../types';
 
 export const useAppSubscriptions = (user: any) => {
@@ -13,54 +12,62 @@ export const useAppSubscriptions = (user: any) => {
     if (!user) return;
     const uid = getEffectiveUid(user);
 
+    const unsubs: (() => void)[] = [];
+
+    // Helper for single collection fetching
+    const createCollectionSub = (
+      pathSuffix: string, 
+      queryKey: string,
+      buildQuery: (coll: any) => any,
+      mapDoc: (doc: any) => any
+    ) => {
+      const q = buildQuery(collection(db, "users", uid, ...pathSuffix.split('/')));
+      const unsub = onSnapshot(q, (snapshot) => {
+        queryClient.setQueryData([queryKey, uid], snapshot.docs.map(mapDoc));
+      });
+      unsubs.push(unsub);
+    };
+
+    // Helper for single document fetching
+    const createDocSub = (pathSuffix: string, queryKey: string) => {
+      const unsub = onSnapshot(doc(db, "users", uid, ...pathSuffix.split('/')), (s) => {
+        if (s.exists()) queryClient.setQueryData([queryKey, uid], s.data());
+      });
+      unsubs.push(unsub);
+    };
+
     // 1. Logs
     const safeTs = localStorage.getItem("lastSafeTimestamp") || (Date.now() - 30 * 24 * 60 * 60 * 1000).toString();
-    const logsCollection = collection(db, "users", uid, "logs");
-    let logsQuery;
-    if (localStorage.getItem("ecoMode") === "true") {
-      logsQuery = query(logsCollection, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(1500));
-    } else {
-      logsQuery = query(logsCollection, orderBy("timestamp", "desc"), limit(1500));
-    }
-    const unsubLogs = onSnapshot(logsQuery, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as LogEntry[];
-      queryClient.setQueryData(['fbLogs', uid], data);
-    });
+    const isEco = localStorage.getItem("ecoMode") === "true";
+    createCollectionSub(
+      "logs",
+      "fbLogs",
+      (coll) => isEco ? query(coll, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(6000)) : query(coll, orderBy("timestamp", "desc"), limit(6000)),
+      (doc) => ({ ...doc.data(), id: doc.id })
+    );
 
     // 2. AI Reports
-    const aiReportsQuery = query(collection(db, "users", uid, "aiReports"), orderBy("timestamp", "desc"), limit(3));
-    const unsubAi = onSnapshot(aiReportsQuery, (snapshot) => {
-      const texts = snapshot.docs.map(doc => doc.data().content?.replace(/<[^>]*>/g, " ").substring(0, 500) || "");
-      queryClient.setQueryData(['aiInsights', uid], texts);
-    });
+    createCollectionSub(
+      "aiReports",
+      "aiInsights",
+      (coll) => query(coll, orderBy("timestamp", "desc"), limit(3)),
+      (doc) => doc.data().content?.replace(/<[^>]*>/g, " ").substring(0, 500) || ""
+    );
 
     // 3. Pump Status
-    const unsubPump = onSnapshot(doc(db, "users", uid, "status", "pump"), (docSnap) => {
-      queryClient.setQueryData(['pumpStatus', uid], docSnap.data() || null);
-    });
+    createDocSub("status/pump", "pumpStatus");
 
     // 4. Pet Status
-    const unsubPet = onSnapshot(doc(db, "users", uid, "pet", "status"), (docSnap) => {
-      if (docSnap.exists()) queryClient.setQueryData(['petStatus', uid], docSnap.data());
-    });
+    createDocSub("pet/status", "petStatus");
 
     // 5. User Settings (Profile)
-    const unsubSettings = onSnapshot(doc(db, "users", uid, "settings", "profile"), (docSnap) => {
-      if (docSnap.exists()) queryClient.setQueryData(['userSettings', uid], docSnap.data());
-    });
+    createDocSub("settings/profile", "userSettings");
 
     // 6. Nightscout Settings
-    const unsubNightscout = onSnapshot(doc(db, "users", uid, "settings", "nightscout"), (docSnap) => {
-      if (docSnap.exists()) queryClient.setQueryData(['nightscoutSettings', uid], docSnap.data());
-    });
+    createDocSub("settings/nightscout", "nightscoutSettings");
 
     return () => {
-      unsubLogs();
-      unsubAi();
-      unsubPump();
-      unsubPet();
-      unsubSettings();
-      unsubNightscout();
+      unsubs.forEach(u => u());
     };
   }, [user, queryClient]);
 };

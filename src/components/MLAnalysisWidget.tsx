@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
 import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot } from 'lucide-react';
@@ -32,6 +32,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const glassmorphismEnabled = settings?.glassmorphismEnabled || false;
+  const glikoName = (typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') : '') === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0';
  const [isAnalyzing, setIsAnalyzing] = useState(false);
  const [error, setError] = useState<string | null>(null);
  const [mlResult, setMlResult] = useState<{
@@ -131,7 +132,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }
 
  setIsBackupActionRunning(true);
- const toastId = toast.loading("Archiwizowanie modelu GlikoSense 3.0 w chmurze...");
+ const toastId = toast.loading(`Archiwizowanie modelu {glikoName} w chmurze...`);;
  const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
  const modelData = await MLAnalyzer.exportCurrentModel();
@@ -153,7 +154,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  datasetSize: mlResult?.datasetSize || 0
  });
 
- toast.success(i18n.t('auto.kopia_zapasowa_modelu_glikosen', { defaultValue: i18n.t('auto.kopia_zapasowa_modelu_gli', { defaultValue: "Kopia zapasowa modelu GlikoSense 3.0 została zapisana pomyślnie!" }) }), { id: toastId });
+ toast.success(i18n.t('auto.kopia_zapasowa_modelu_glikosen', { defaultValue: i18n.t('auto.kopia_zapasowa_modelu_gli', { defaultValue: `Kopia zapasowa modelu ${glikoName} została zapisana pomyślnie!` }) }), { id: toastId });
  } catch (err) {
  toast.error(i18n.t('auto.blad_podczas_eksportowania_lub', { defaultValue: i18n.t('auto.blad_podczas_eksportowani', { defaultValue: "Błąd podczas eksportowania lub zapisu kopii zapasowej." }) }), { id: toastId });
  handleFirestoreError(err, OperationType.WRITE, docPath);
@@ -173,12 +174,12 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }
 
  const confirmRestore = window.confirm(
- i18n.t('auto.uwaga_przywrocenie_modelu_z_ch', { defaultValue: i18n.t('auto.uwaga_przywrocenie_modelu', { defaultValue: "UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej GlikoSense 3.0 zainstalowane w przeglądarce. Czy chcesz kontynuować?" }) })
+ i18n.t('auto.uwaga_przywrocenie_modelu_z_ch', { defaultValue: i18n.t('auto.uwaga_przywrocenie_modelu', { defaultValue: `UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej ${glikoName} zainstalowane w przeglądarce. Czy chcesz kontynuować?` }) })
  );
  if (!confirmRestore) return;
 
  setIsBackupActionRunning(true);
- const toastId = toast.loading("Pobieranie i importowanie modelu z chmury...");
+ const toastId = toast.loading(`Archiwizowanie modelu {glikoName} w chmurze...`);;
  const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
  const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
@@ -199,7 +200,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  });
 
  if (success) {
- toast.success(i18n.t('auto.model_glikosense_3_0_zostal_po', { defaultValue: i18n.t('auto.model_glikosense_3_0_zost', { defaultValue: "Model GlikoSense 3.0 został pomyślnie przywrócony z chmury!" }) }), { id: toastId });
+ toast.success(i18n.t('auto.model_glikosense_3_0_zostal_po', { defaultValue: i18n.t('auto.model_glikosense_3_0_zost', { defaultValue: `Model ${glikoName} został pomyślnie przywrócony z chmury!` }) }), { id: toastId });
  runML(true);
  } else {
  toast.error(i18n.t('auto.wystapil_nieznany_problem_z_pl', { defaultValue: i18n.t('auto.wystapil_nieznany_problem', { defaultValue: "Wystąpił nieznany problem z plikiem modelu." }) }), { id: toastId });
@@ -218,7 +219,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  if (!confirmDelete) return;
 
  setIsBackupActionRunning(true);
- const toastId = toast.loading("Usuwanie kopii zapasowej...");
+ const toastId = toast.loading(`Archiwizowanie modelu {glikoName} w chmurze...`);;
  const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
  const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
@@ -594,7 +595,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="flex items-center gap-2.5">
  <Cloud size={18} className="text-indigo-500" />
  <div className="flex flex-col">
- <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{t('auto.sieć_neuronowa_glikosense_3_0', { defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { defaultValue: "Sieć neuronowa GlikoSense 3.0" }) })}</span>
+ <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{t('auto.sieć_neuronowa_glikosense_3_0', { defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { defaultValue: `Sieć neuronowa ${glikoName}` }) })}</span>
  <span className="text-[10px] font-bold text-slate-400 opacity-80 mt-1">{t('auto.kopia_zapasowa_modelu_w_zabezpieczo', { defaultValue: 'Kopia zapasowa modelu w zabezpieczonej chmurze' })}</span>
  </div>
  </div>
@@ -620,7 +621,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <p className="text-xs font-medium leading-relaxed">
  
  {t('auto.twoja_sieć_neuronowa_uczy_się_lokal', { defaultValue: i18n.t('auto.twoja_siec_neuronowa_uczy', { defaultValue: "Twoja sieć neuronowa uczy się lokalnie na Twoim urządzeniu. Czyszczenie pamięci podręcznej przeglądarki lub zmiana urządzenia spowoduje" }) })}{" "}
- <strong className="font-extrabold text-amber-600 dark:text-amber-300">{t('auto.bezzwrotną_utratę_wyuczonego_modelu', { defaultValue: i18n.t('auto.bezzwrotna_utrate_wyuczon', { defaultValue: "bezzwrotną utratę wyuczonego modelu GlikoSense 3.0" }) })}</strong>{" "}
+ <strong className="font-extrabold text-amber-600 dark:text-amber-300">{t('auto.bezzwrotną_utratę_wyuczonego_modelu', { defaultValue: i18n.t('auto.bezzwrotna_utrate_wyuczon', { defaultValue: `bezzwrotną utratę wyuczonego modelu ${glikoName}` }) })}</strong>{" "}
  
  {t('auto.i_przywrócenie_wartości_podstawowyc', { defaultValue: i18n.t('auto.i_przywrocenie_wartosci_p', { defaultValue: "i przywrócenie wartości podstawowych. Kopia w chmurze chroni przed utratą Twojej spersonalizowanej inteligencji." }) })}
  </p>
@@ -923,13 +924,13 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
  mlResult.engineStatus === 'hybrid_guardrail' 
  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' 
- : mlResult.engineStatus === 'tcn_int8'
+ : (mlResult.engineStatus === 'tcn_int8' || (typeof window !== 'undefined' && localStorage.getItem('glikosense_engine_mode') === 'v4_tcn'))
  ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
  : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
  }`}>
  {mlResult.engineStatus === 'hybrid_guardrail' 
  ? '🛡️ HYBRID GUARDRAIL' 
- : mlResult.engineStatus === 'tcn_int8' 
+ : (mlResult.engineStatus === 'tcn_int8' || (typeof window !== 'undefined' && localStorage.getItem('glikosense_engine_mode') === 'v4_tcn')) 
  ? '🚀 TCN INT8' 
  : '🧠 LSTM CLASSIC'}
  </span>
@@ -1245,3 +1246,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  );
 }
+
+
+
+
+
+
