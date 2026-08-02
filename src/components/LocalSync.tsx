@@ -84,7 +84,7 @@ export default function LocalSync({
 
  if (parsed.settings && user) {
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  parsed.settings,
  { merge: true }
  );

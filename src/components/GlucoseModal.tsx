@@ -56,7 +56,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
  
  try {
  // Check if weather is enabled
- const settingsDocRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+ const settingsDocRef = doc(db, 'users', getEffectiveUid(user), 'settings', 'profile');
  const settingsDoc = await getDoc(settingsDocRef);
  const settingsData = settingsDoc.exists() ? settingsDoc.data() : null;
  const weatherEnabled = settingsData?.weatherNeuralEnabled === true;
@@ -76,7 +76,7 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
  logData.weather = weather;
  }
  
- const docRef = await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs'), logData);
+ const docRef = await addDoc(collection(db, 'users', getEffectiveUid(user), 'logs'), logData);
  await dbService.saveLog({ ...logData, id: docRef.id });
  window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { ...logData, id: docRef.id } }));
  } catch (e) {

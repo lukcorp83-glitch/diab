@@ -1,10 +1,18 @@
 {
-  "version": "5.9.93",
+  "version": "5.9.94",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.91_OTA.apk",
   "buildNumber": 117,
   "forceUpdate": false,
-  "whatsNew": "Poprawki wizualne (nowa ikona zbiorniczka) oraz zaawansowane poprawki mechanizmu zapisu leków, sensorów i AI w bazie danych Firestore.",
-  "whatsNewEn": "Visual tweaks (new reservoir icon) and advanced fixes for saving medications, sensors, and AI data in the Firestore database.",
+  "whatsNew": [
+    "Naprawiono awarię asystenta głosowego (Invalid hook call)",
+    "Przywrócono wskaźnik ŁG i tłumaczenia zakładek w wyszukiwarce posiłków",
+    "Poprawiono działanie mikrofonu na urządzeniach mobilnych"
+  ],
+  "whatsNewEn": [
+    "Fixed voice assistant crash (Invalid hook call)",
+    "Restored GL indicator and category translations in food search",
+    "Improved microphone behavior on mobile devices"
+  ],
   "otaRevision": 276
 }

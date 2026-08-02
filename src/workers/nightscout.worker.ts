@@ -216,8 +216,8 @@ function processDeviceStatus(data: any[]): any {
   
   return {
     battery: batteryPercent,
-    reservoir: pumpInfo?.reservoir ?? 0,
-    activeInsulin: pumpInfo?.iob?.iob ?? 0,
+    reservoir: pumpInfo?.reservoir ?? undefined,
+    activeInsulin: pumpInfo?.iob?.iob ?? undefined,
     model: pumpInfo?.model ?? pumpInfo?.name ?? null,
     basal: {
        rate: pumpInfo?.status?.currentbasal ?? 0,

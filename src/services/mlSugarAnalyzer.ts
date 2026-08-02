@@ -7,7 +7,7 @@ export const GlikoSenseLearner = {
   async sendTelemetry(learnedRule: string, contextString: string) {
     if (localStorage.getItem('glikosense_telemetry') === 'true') {
       try {
-        await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'glikosense_training'), {
+        await addDoc(collection(db, 'glikosense_training'), {
           ruleLearned: learnedRule,
           context: contextString,
           timestamp: serverTimestamp(),

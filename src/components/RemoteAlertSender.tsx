@@ -26,7 +26,7 @@ export default function RemoteAlertSender({ }: { user: any }) {
 
  setLoading(true);
  try {
- const newAlertRef = doc(collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'alerts'));
+ const newAlertRef = doc(collection(db, 'users', uid, 'alerts'));
  
  // Ustalamy przyjazną nazwę urządzenia wysyłającego
  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);

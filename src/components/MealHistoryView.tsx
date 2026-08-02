@@ -44,7 +44,7 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
  const handleDelete = async (id: string) => {
  if (!user) return;
  try {
- await deleteDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", id));
+ await deleteDoc(doc(db, "users", getEffectiveUid(user), "logs", id));
  window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id } }));
  toast.success(t('auto.usunieto', { defaultValue: "Usunięto!" }), { id: "meal-delete" });
  } catch (e) {

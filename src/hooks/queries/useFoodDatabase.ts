@@ -8,11 +8,12 @@ export const useCommunityProducts = () => {
  return useQuery({
  queryKey: ['communityProducts'],
  queryFn: async () => {
- const q = query(collection(db, "artifacts", "diacontrolapp", "communityProducts"));
+ const q = query(collection(db, "communityProducts"));
  const snapshot = await getDocs(q);
  return snapshot.docs.map((doc) => ({
  id: doc.id,
  ...doc.data(),
+ isCommunity: true,
  })) as Product[];
  },
  staleTime: 1000 * 60 * 60, // 1 hour
@@ -25,11 +26,12 @@ export const useCustomProducts = (user: any) => {
  queryKey: ['customProducts', user ? getEffectiveUid(user) : ''],
  queryFn: async () => {
  if (!user) return [];
- const q = query(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "customProducts"));
+ const q = query(collection(db, "users", getEffectiveUid(user), "customProducts"));
  const snapshot = await getDocs(q);
  return snapshot.docs.map((doc) => ({
  id: doc.id,
  ...doc.data(),
+ isCustom: true,
  })) as Product[];
  },
  enabled: !!user,

@@ -102,7 +102,7 @@ export default function UnlinkedCarbsWidget({ user, onAddCarbs }: Props) {
  description: mealName,
  notes: mealName
  };
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", updatedLog.id), { ...updatedLog, userModified: true }, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "logs", updatedLog.id), { ...updatedLog, userModified: true }, { merge: true });
  window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: updatedLog.id, updates: updatedLog } }));
  } else {
  const updatedBolus = {
@@ -118,7 +118,7 @@ export default function UnlinkedCarbsWidget({ user, onAddCarbs }: Props) {
  name: mealName
  }
  };
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", updatedBolus.id), { ...updatedBolus, userModified: true }, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "logs", updatedBolus.id), { ...updatedBolus, userModified: true }, { merge: true });
  window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: updatedBolus.id, updates: updatedBolus } }));
  }
  

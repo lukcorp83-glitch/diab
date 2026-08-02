@@ -32,7 +32,7 @@ export default function DoseEditModal({ log, user, onClose }: DoseEditModalProps
  }
  setLoading(true);
  try {
- const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", log.id);
+ const logRef = doc(db, "users", getEffectiveUid(user), "logs", log.id);
  
  const updates: any = {
  notes: notes,
@@ -74,7 +74,7 @@ export default function DoseEditModal({ log, user, onClose }: DoseEditModalProps
 
  setLoading(true);
  try {
- await deleteDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", log.id));
+ await deleteDoc(doc(db, "users", getEffectiveUid(user), "logs", log.id));
  toast.success(t('auto.usunieto', { defaultValue: "Usunięto!" }), { id: "dose-delete" });
  onClose();
  } catch (e) {

@@ -72,7 +72,7 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  setTimeout(() => GlikoSenseLearner.learnFromGemini(content), 0);
  }
 
- await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'aiReports'), {
+ await addDoc(collection(db, 'users', getEffectiveUid(user), 'aiReports'), {
  type: reportType,
  content,
  timestamp: Date.now()
@@ -292,7 +292,7 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  id={report.id}
  onDelete={async () => {
  try {
- await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'aiReports', report.id));
+ await deleteDoc(doc(db, 'users', getEffectiveUid(user), 'aiReports', report.id));
  } catch (err) {
  console.error("Delete failed:", err);
  }

@@ -61,7 +61,7 @@ export default function MiniDashboard({ userSettings }: MiniDashboardProps) {
  };
  }
 
- await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'logs'), entry);
+ await addDoc(collection(db, 'users', uid, 'logs'), entry);
  toast.success("Zapisano!");
  
  // Attempt to close the window

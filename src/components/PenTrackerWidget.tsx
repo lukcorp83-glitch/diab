@@ -70,7 +70,7 @@ export function PenTrackerWidget({ settings }: PenTrackerWidgetProps) {
  const updates = { inventory: updatedInventory };
 
  try {
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(auth.currentUser), "settings", "profile"), updates, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(auth.currentUser), "settings", "profile"), updates, { merge: true });
  // Notify App.tsx about the setting update
  window.dispatchEvent(new CustomEvent('localSettingsUpdate', { detail: updates }));
  toast.success(t('auto.rozpoczal_sie_nowy_pen', { defaultValue: 'Rozpoczęto nowego pena ({{units}}j)', units: penCapacity }));

@@ -11,8 +11,6 @@ export const useSavedMeals = (user: any) => {
  const q = query(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "savedMeals"

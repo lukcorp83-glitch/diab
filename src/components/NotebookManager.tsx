@@ -74,7 +74,7 @@ export default function NotebookManager({ }: { user: any }) {
  // Optional: remove reminder after showing
  if (user) {
  const uid = getEffectiveUid(user);
- updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'notebook', n.id), { reminderDate: '' });
+ updateDoc(doc(db, 'users', uid, 'notebook', n.id), { reminderDate: '' });
  }
  }
  }
@@ -96,7 +96,7 @@ export default function NotebookManager({ }: { user: any }) {
  setIsAdding(true);
  try {
  const uid = getEffectiveUid(user);
- await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'notebook'), {
+ await addDoc(collection(db, 'users', uid, 'notebook'), {
  content: newContent.trim(),
  reminderDate: newReminder,
  createdAt: Date.now()
@@ -114,7 +114,7 @@ export default function NotebookManager({ }: { user: any }) {
  if (!user) return;
  try {
  const uid = getEffectiveUid(user);
- await deleteDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'notebook', id));
+ await deleteDoc(doc(db, 'users', uid, 'notebook', id));
  } catch (e) {
  console.error(e);
  }

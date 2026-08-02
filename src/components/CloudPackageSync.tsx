@@ -45,7 +45,7 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
  const compressedPayload = LZString.compressToUTF16(jsonStr);
 
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest"),
+ doc(db, "users", getEffectiveUid(user), "syncPackage", "latest"),
  { payload: compressedPayload, timestamp: Date.now(), isCompressed: true }
  );
  localStorage.setItem('last_cloud_package_sync', Date.now().toString());
@@ -60,7 +60,7 @@ export const downloadCloudPackage = async (user: any) => {
  if (!user) return false;
  try {
  const snap = await getDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest")
+ doc(db, "users", getEffectiveUid(user), "syncPackage", "latest")
  );
  if (!snap.exists()) return false;
  
@@ -105,7 +105,7 @@ export const downloadCloudPackage = async (user: any) => {
  // Przywróć ustawienia profilu w Firebase
  if (parsed.settings) {
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  parsed.settings,
  { merge: true }
  );

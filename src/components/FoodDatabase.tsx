@@ -84,8 +84,6 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  await addDoc(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "customProducts",
@@ -95,7 +93,7 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
 
  if (shareWithCommunity) {
  await addDoc(
- collection(db, "artifacts", "diacontrolapp", "communityProducts"),
+ collection(db, "communityProducts"),
  prodData,
  );
  }
@@ -498,7 +496,7 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  id={p.id}
  onDelete={async () => {
  try {
- await deleteDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "customProducts", p.id!));
+ await deleteDoc(doc(db, "users", getEffectiveUid(user), "customProducts", p.id!));
  queryClient.invalidateQueries({ queryKey: ['customProducts'] });
  if (p.isCommunity) {
  // Note: Deleting from community would require querying community path with product ID.

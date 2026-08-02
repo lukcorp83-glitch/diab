@@ -36,8 +36,6 @@ export default function ShortcutsWidget({
       await addDoc(
         collection(
           db,
-          "artifacts",
-          "diacontrolapp",
           "users",
           getEffectiveUid(user),
           "logs",

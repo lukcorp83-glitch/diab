@@ -110,8 +110,6 @@ export default function BolusCalculator({ setTab,
  getDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -436,8 +434,6 @@ export default function BolusCalculator({ setTab,
  const timestamp = new Date(entryTime).getTime();
  const logsRef = collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  effectiveUid,
  "logs",
@@ -488,7 +484,7 @@ export default function BolusCalculator({ setTab,
  };
  
  const updates = { inventory: updatedInventory };
- const settingsDocRef = doc(db, "artifacts", "diacontrolapp", "users", effectiveUid, "settings", "profile");
+ const settingsDocRef = doc(db, "users", effectiveUid, "settings", "profile");
  batch.set(settingsDocRef, updates, { merge: true });
  window.dispatchEvent(new CustomEvent('localSettingsUpdate', { detail: updates }));
  }
@@ -501,8 +497,6 @@ export default function BolusCalculator({ setTab,
  // Check if weather is enabled
  const settingsDocRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  effectiveUid,
  "settings",

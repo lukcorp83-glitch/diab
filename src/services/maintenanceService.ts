@@ -32,13 +32,13 @@ export const maintenanceService = {
       
       // 1. Clean up logs
       await this.cleanupCollection(
-        collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'logs'),
+        collection(db, 'users', uid, 'logs'),
         threshold
       );
 
       // 2. Clean up AI Reports (they can be large)
       await this.cleanupCollection(
-        collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'aiReports'),
+        collection(db, 'users', uid, 'aiReports'),
         threshold
       );
 

@@ -95,8 +95,6 @@ export default function DevicePairing({
  try {
  const reqsRef = collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  user.uid,
  "linkRequests",
@@ -117,8 +115,6 @@ export default function DevicePairing({
  if (showExport && user) {
  const docRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  );
@@ -191,8 +187,6 @@ export default function DevicePairing({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  parsed.uid,
  "linkRequests",

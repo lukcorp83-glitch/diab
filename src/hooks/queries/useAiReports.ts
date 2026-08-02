@@ -12,7 +12,7 @@ export const useAiReports = (user: any) => {
  if (!user) return;
  
  const q = query(
- collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'aiReports'),
+ collection(db, 'users', getEffectiveUid(user), 'aiReports'),
  orderBy('timestamp', 'desc')
  );
  
@@ -30,7 +30,7 @@ export const useAiReports = (user: any) => {
  if (!user) return [];
  
  const q = query(
- collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'aiReports'),
+ collection(db, 'users', getEffectiveUid(user), 'aiReports'),
  orderBy('timestamp', 'desc')
  );
  const snapshot = await getDocs(q);

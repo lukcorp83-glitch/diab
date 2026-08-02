@@ -154,7 +154,7 @@ export default function Profile({
  const [newShortcut, setNewShortcut] = useState<any>(null);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
-  const updatePetName = async () => { if (!user || !newName.trim()) return; setEditingName(false); try { await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "pet"), { name: newName.trim() }, { merge: true }); toast.success("Zapisano"); } catch (e) { toast.error("Błąd"); } };
+  const updatePetName = async () => { if (!user || !newName.trim()) return; setEditingName(false); try { await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "pet"), { name: newName.trim() }, { merge: true }); toast.success("Zapisano"); } catch (e) { toast.error("Błąd"); } };
  const [settings, setSettings] = useState<UserSettings>(initialSettings);
  useEffect(() => {
  setSettings(initialSettings);
@@ -193,16 +193,16 @@ export default function Profile({
  updates.inventory = updatedInv;
  setSettings((prev) => ({ ...prev, ...updates }));
  if (user) {
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
  const siteLog = { type: "site_change", value: 1, timestamp: now, createdAt: new Date().toISOString(), notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }), source: "system" };
- const docRef = await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), siteLog);
+ const docRef = await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), siteLog);
  const addedSiteLog = { ...siteLog, id: docRef.id };
  await dbService.saveLog(addedSiteLog);
  window.dispatchEvent(new CustomEvent("localLogAdd", { detail: addedSiteLog }));
  
  if (alsoReplaceReservoir) {
  const resLog = { type: "site_change", value: 1, timestamp: now, createdAt: new Date().toISOString(), notes: i18n.t('auto.wymiana_zbiorniczka', { defaultValue: "Wymiana zbiorniczka" }), source: "system" };
- const resDocRef = await addDoc(collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"), resLog);
+ const resDocRef = await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), resLog);
  const addedResLog = { ...resLog, id: resDocRef.id };
  await dbService.saveLog(addedResLog);
  window.dispatchEvent(new CustomEvent("localLogAdd", { detail: addedResLog }));
@@ -690,7 +690,7 @@ export default function Profile({
  Haptics.impact();
  try {
  const uid = getEffectiveUid(user);
- const userDocPath = `artifacts/diacontrolapp/users/${uid}`;
+ const userDocPath = `users/${uid}`;
  // List of collections/docs to delete
  const collectionsToDelete = [
  "logs",
@@ -715,7 +715,7 @@ export default function Profile({
  for (const docPath of docsToDelete) {
  await deleteDoc(doc(db, userDocPath, ...docPath.split("/")));
  }
- await deleteDoc(doc(db, "artifacts/diacontrolapp/users", uid));
+ await deleteDoc(doc(db, "users", uid));
  if (auth.currentUser) {
  try {
  await deleteUser(auth.currentUser);
@@ -752,8 +752,6 @@ export default function Profile({
  try {
  const petRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "pet",
@@ -774,8 +772,6 @@ export default function Profile({
  try {
  const petRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "pet",
@@ -793,8 +789,6 @@ export default function Profile({
  try {
  const petRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "pet",
@@ -813,8 +807,6 @@ export default function Profile({
  try {
  const petRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "pet",
@@ -833,8 +825,6 @@ export default function Profile({
  try {
  const petRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "pet",
@@ -853,8 +843,6 @@ export default function Profile({
  try {
  const petRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "pet",
@@ -874,8 +862,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "shortcuts",
@@ -889,8 +875,6 @@ export default function Profile({
  await addDoc(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "shortcuts",
@@ -909,8 +893,6 @@ export default function Profile({
  await deleteDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "shortcuts",
@@ -969,8 +951,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -1014,8 +994,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -1065,8 +1043,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -1101,8 +1077,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -1246,7 +1220,7 @@ export default function Profile({
  const updated = { ...settings, followerMode: false };
  setSettings(updated);
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user!), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user!), "settings", "profile"),
  { followerMode: false },
  { merge: true }
  );
@@ -1567,8 +1541,6 @@ export default function Profile({
  setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -1584,8 +1556,6 @@ export default function Profile({
  setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -2278,16 +2248,7 @@ export default function Profile({
                       <button
                         type="button"
                         onClick={() => {
-                          const checkSupported = typeof window !== 'undefined' && 
-                            typeof OffscreenCanvas !== 'undefined' && 
-                            typeof window.WebGLRenderingContext !== 'undefined' && 
-                            localStorage.getItem('glikosense_active_backend') !== 'cpu' && 
-                            (!navigator.deviceMemory || navigator.deviceMemory >= 3);
-
-                          if (!checkSupported) {
-                            toast.error(t('auto.silnik_v4_nie_obslugiwany', { defaultValue: "⛔ GlikoSense 4.0 Pro wymaga wsparcia GPU/WebGL (OffscreenCanvas) oraz min. 3GB RAM. Twoje urządzenie nie obsługuje tego trybu." }));
-                            return;
-                          }
+                          const checkSupported = true;
                           localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
                           toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
                           setLearnedRules({ ...learnedRules });
@@ -2599,8 +2560,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -2620,8 +2579,6 @@ export default function Profile({
  const docRef = await addDoc(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "logs",
@@ -2654,8 +2611,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -2672,8 +2627,6 @@ export default function Profile({
  await updateDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "logs",
@@ -2894,8 +2847,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -2913,7 +2864,7 @@ export default function Profile({
  const logsToUpdate = sortedSiteLogs.filter(l => l.timestamp === latestSiteLog.timestamp);
  for (const logToUpdate of logsToUpdate) {
  await updateDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", logToUpdate.id),
+ doc(db, "users", getEffectiveUid(user), "logs", logToUpdate.id),
  { timestamp: updates.infusionSetChangeDate }
  );
  await dbService.saveLog({ ...logToUpdate, timestamp: updates.infusionSetChangeDate });
@@ -2929,7 +2880,7 @@ export default function Profile({
  source: "system",
  };
  const docRef = await addDoc(
- collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs"),
+ collection(db, "users", getEffectiveUid(user), "logs"),
  siteLogPayload
  );
  const newLog = { ...siteLogPayload, id: docRef.id, createdAt: new Date().toISOString() };
@@ -3078,8 +3029,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -3091,8 +3040,6 @@ export default function Profile({
  await addDoc(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "logs",
@@ -3133,8 +3080,6 @@ export default function Profile({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -3408,7 +3353,7 @@ export default function Profile({
    ...(old || {}),
    treatmentMode: newVal
  }));
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { treatmentMode: newVal }, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { treatmentMode: newVal }, { merge: true });
  queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }
  }}
@@ -3715,7 +3660,7 @@ export default function Profile({
  const updated = { ...settings, healthConnectSyncSteps: isSyncSteps };
  setSettings(updated);
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { healthConnectSyncSteps: isSyncSteps },
  { merge: true }
  );
@@ -3745,7 +3690,7 @@ export default function Profile({
  const updated = { ...settings, healthConnectSyncGlucose: isSyncGlucose };
  setSettings(updated);
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { healthConnectSyncGlucose: isSyncGlucose },
  { merge: true }
  );
@@ -3806,7 +3751,7 @@ export default function Profile({
  setSettings(updated);
  localStorage.setItem("betaProgramEnabled", String(isBeta));
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { betaProgram: isBeta },
  { merge: true }
  );

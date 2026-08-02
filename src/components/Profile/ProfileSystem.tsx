@@ -11,7 +11,6 @@ import toast from 'react-hot-toast';
 import { Switch } from '@headlessui/react';
 import i18n from '../../i18n';
 import { dbService } from '../../services/databaseService';
-import { clearCache } from '../../lib/cacheStore';
 
 
 import { motion } from 'framer-motion';
@@ -60,8 +59,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  // 1. Skan w produktach społecznościowych - najpierw budujemy bazę wzorcową
  const commRef = collection(
  db,
- "artifacts",
- "diacontrolapp",
  "communityProducts",
  );
  const commSnap = await getDocs(commRef);
@@ -89,8 +86,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  // 2. Skan we własnych produktach - usuwamy te, które już są w społeczności lub się powtarzają
  const userRef = collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  uid,
  "customProducts",
@@ -123,8 +118,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  for (const dup of duplicatesToDelete) {
  const targetRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  uid,
  "customProducts",
@@ -176,8 +169,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  item.coll === "custom"
  ? doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  uid,
  "customProducts",
@@ -185,8 +176,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  )
  : doc(
  db,
- "artifacts",
- "diacontrolapp",
  "communityProducts",
  item.id,
  );
@@ -287,7 +276,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  setSettings(updated);
  
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user!), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user!), "settings", "profile"),
  { followerMode: isFollower },
  { merge: true }
  );
@@ -420,7 +409,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  if (user) {
    try {
      await setDoc(
-       doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+       doc(db, "users", getEffectiveUid(user), "settings", "profile"),
        { treatmentMode: newVal },
        { merge: true }
      );
@@ -479,8 +468,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -534,8 +521,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -588,8 +573,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -693,8 +676,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -741,8 +722,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -804,8 +783,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -851,8 +828,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -910,7 +885,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  
  if (user) {
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { glassmorphismEnabled: glass, material3Enabled: material },
  { merge: true }
  );
@@ -952,7 +927,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  setSettings((prev) => ({ ...prev, dynamicColorsEnabled: newVal }));
  if (user) {
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { dynamicColorsEnabled: newVal },
  { merge: true }
  );
@@ -986,7 +961,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  const mode = !settings.ecoMode;
  setSettings(prev => ({ ...prev, ecoMode: mode }));
  if (user) {
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true });
  }
  }}
  className={cn(
@@ -1030,8 +1005,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -1051,8 +1024,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",

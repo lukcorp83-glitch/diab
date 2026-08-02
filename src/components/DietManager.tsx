@@ -54,7 +54,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  
  try {
  const updated = { ...settings, tdee: Number(tdee), allergies };
- await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updated, { merge: true });
+ await setDoc(doc(db, 'users', getEffectiveUid(user), 'settings', 'profile'), updated, { merge: true });
  setIsEditingTdee(false);
  toast.success('Zapisano ustawienia');
  } catch (e) {
@@ -150,7 +150,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  Haptics.medium();
  
  try {
- await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'savedMeals'), {
+ await addDoc(collection(db, 'users', getEffectiveUid(user), 'savedMeals'), {
  name: meal.name,
  items: [{
  name: meal.name,

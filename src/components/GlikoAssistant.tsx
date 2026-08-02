@@ -101,11 +101,11 @@ export default function GlikoAssistant({
  }, [messages]);
 
  useEffect(() => {
- const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
- if (SpeechRecognition) {
- recognitionRef.current = new SpeechRecognition();
- recognitionRef.current.continuous = false;
- recognitionRef.current.lang = 'pl-PL';
+  const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (SpeechRecognitionAPI) {
+  recognitionRef.current = new SpeechRecognitionAPI();
+  recognitionRef.current.continuous = false;
+  recognitionRef.current.lang = 'pl-PL';
  
  recognitionRef.current.onresult = (event: any) => {
  const transcript = event.results[0][0].transcript;
@@ -171,7 +171,6 @@ export default function GlikoAssistant({
  };
 
  const speak = (text: string) => {
- const logs = useLogsStore((state) => state.logs);
  if (!voiceEnabled || !window.speechSynthesis) return;
  const cleanText = text.replace(/<[^>]*>/g, '').replace(/\*/g, '');
  window.speechSynthesis.cancel();

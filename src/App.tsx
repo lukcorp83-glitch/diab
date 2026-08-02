@@ -87,7 +87,14 @@ export default function App() {
     deletedNsIdsRef
   );
   
-  const pumpStatus = nsDeviceStatus || fbPumpStatus;
+    const pumpStatus = {
+      ...(fbPumpStatus || {}),
+      ...(nsDeviceStatus || {}),
+      // Zabezpieczenie przed uciętymi payloadami z Nightscout (np. gdy telefon dosłał samą baterię bez stanu zbiorniczka pompy)
+      reservoir: nsDeviceStatus?.reservoir !== undefined ? nsDeviceStatus.reservoir : (fbPumpStatus?.reservoir || 0),
+      battery: nsDeviceStatus?.battery !== undefined ? nsDeviceStatus.battery : (fbPumpStatus?.battery || 0),
+      activeInsulin: nsDeviceStatus?.activeInsulin !== undefined ? nsDeviceStatus.activeInsulin : (fbPumpStatus?.activeInsulin || 0)
+    };
   
   const mainRef = useRef<HTMLDivElement>(null);
   
@@ -210,7 +217,7 @@ export default function App() {
     
     if (user && userSettings) {
       try {
-        await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), {
+        await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), {
           theme: newTheme
         }, { merge: true });
       } catch (e) {

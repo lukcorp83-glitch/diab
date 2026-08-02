@@ -12,6 +12,7 @@ import { Capacitor } from '@capacitor/core';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 
@@ -176,6 +177,7 @@ export default function MealPlate({
  onClearInitialAction?: () => void;
 }) {
   const user = useAuthStore(state => state.user);
+  const queryClient = useQueryClient();
 
  const logs = useLogsStore(state => state.logs);
  const plate = sharedPlate;
@@ -224,7 +226,11 @@ export default function MealPlate({
   }, []);
 
   const allLocal = useMemo(() => {
-    const allLocalRaw = [...qCustomProducts, ...qCommunityProducts, ...libBase];
+    const allLocalRaw = [
+      ...qCustomProducts.map((p: any) => ({ ...p, isCustom: true })), 
+      ...qCommunityProducts.map((p: any) => ({ ...p, isCommunity: true })), 
+      ...libBase
+    ];
  // Remove duplicates based on lowercased name
  const uniqueMap = new Map();
  for (const prod of allLocalRaw) {
@@ -235,7 +241,7 @@ export default function MealPlate({
  }
  }
  return Array.from(uniqueMap.values());
- }, [qCustomProducts, qCommunityProducts, i18n.language]);
+ }, [qCustomProducts, qCommunityProducts, libBase, i18n.language]);
 
 
  const openShortcutConfirmModal = (product: Product) => {
@@ -262,8 +268,6 @@ export default function MealPlate({
  await addDoc(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "shortcuts",
@@ -289,14 +293,12 @@ export default function MealPlate({
  if (!user) return;
  try {
  await addDoc(
- collection(
- db,
- "artifacts",
- "diacontrolapp",
- "users",
- getEffectiveUid(user),
- "customProducts",
- ),
+      collection(
+        db,
+        "users",
+        getEffectiveUid(user),
+        "customProducts",
+      ),
  {
  name: getProductName(product, i18n.language),
  carbs: product.carbs,
@@ -306,7 +308,8 @@ export default function MealPlate({
  category: "Z Sieci",
  },
  );
- toast(`Zapisano ${getProductName(product, i18n.language)} do bazy produktów.`);
+ queryClient.invalidateQueries({ queryKey: ["customProducts"] });
+ toast(i18n.t('auto.zapisano_do_wlasnych_posilkow', { defaultValue: i18n.t('auto.zapisano_do_wlasnych_posi', { defaultValue: "Zapisano do własnych posiłków." }) }));
  } catch (e) {
  console.error(e);
  toast.error(i18n.t('auto.blad_zapisu', { defaultValue: i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu." }) }));
@@ -317,7 +320,7 @@ export default function MealPlate({
  if (!user) return;
  try {
  await addDoc(
- collection(db, "artifacts", "diacontrolapp", "communityProducts"),
+      collection(db, "communityProducts"),
  {
  name: getProductName(product, i18n.language),
  carbs: product.carbs,
@@ -329,6 +332,7 @@ export default function MealPlate({
  createdAt: serverTimestamp(),
  },
  );
+ queryClient.invalidateQueries({ queryKey: ["communityProducts"] });
  toast.success(
  `Udostępniono "${getProductName(product, i18n.language)}" społeczności GlikoControl!`,
  );
@@ -411,36 +415,66 @@ export default function MealPlate({
  } finally {
  setIsAnalyzing(false);
  }
- };
+  };
 
- const saveMealSet = async () => {
- if (!user || !mealName || plate.length === 0) return;
- Haptics.medium();
- try {
- await addDoc(
- collection(
- db,
- "artifacts",
- "diacontrolapp",
- "users",
- getEffectiveUid(user),
- "savedMeals",
- ),
- {
- name: mealName,
- items: plate,
- cookingMethod: cookingMethod,
- timestamp: Date.now(),
- },
- );
- setIsSaveModalOpen(false);
- setMealName("");
- Haptics.success();
- toast.success("Zestaw zapisany!");
- } catch (e) {
- console.error(e);
- }
- };
+  const saveMealSet = async () => {
+    if (!user || !mealName || plate.length === 0) return;
+    Haptics.medium();
+    try {
+      const totalCarbs = plate.reduce((sum: number, item: any) => sum + (item.carbs || 0), 0);
+      const totalProtein = plate.reduce((sum: number, item: any) => sum + (item.protein || 0), 0);
+      const totalFat = plate.reduce((sum: number, item: any) => sum + (item.fat || 0), 0);
+      const totalCarbsForGI = plate.reduce((sum: number, item: any) => sum + (item.carbs || 0), 0);
+      const weightedGI = totalCarbsForGI > 0 
+        ? plate.reduce((sum: number, item: any) => sum + ((item.gi || 50) * (item.carbs || 0)), 0) / totalCarbsForGI
+        : 50;
+
+      // Zapis jako szablon (na wypadek, gdyby stary kod gdzieś go używał)
+      await addDoc(
+        collection(
+          db,
+          "users",
+          getEffectiveUid(user),
+          "savedMeals",
+        ),
+        {
+          name: mealName,
+          items: plate,
+          cookingMethod: cookingMethod,
+          timestamp: Date.now(),
+        },
+      );
+
+      // Zapis jako pojedynczy, gotowy produkt do wyszukiwania we Własnych
+      await addDoc(
+        collection(
+          db,
+          "users",
+          getEffectiveUid(user),
+          "customProducts",
+        ),
+        {
+          name: mealName,
+          carbs: Number(totalCarbs.toFixed(1)),
+          protein: Number(totalProtein.toFixed(1)),
+          fat: Number(totalFat.toFixed(1)),
+          gi: Number(weightedGI.toFixed(0)),
+          category: "Zestawy",
+          isCustom: true
+        }
+      );
+      
+      queryClient.invalidateQueries({ queryKey: ["customProducts"] });
+      
+      setIsSaveModalOpen(false);
+      setMealName("");
+      Haptics.success();
+      toast.success(i18n.t('auto.zestaw_zapisany', { defaultValue: "Zestaw zapisany!" }));
+    } catch (e) {
+      console.error(e);
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu." }));
+    }
+  };
 
  const addSavedMeal = (meal: any) => {
  Haptics.light();
@@ -871,7 +905,7 @@ export default function MealPlate({
  const effectiveLogId = logToMerge.id || logToMerge.nsId;
  if (!effectiveLogId) throw new Error("Brak prawidłowego ID wpisu.");
 
- const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", effectiveLogId);
+ const logRef = doc(db, "users", getEffectiveUid(user), "logs", effectiveLogId);
  await setDoc(logRef, { ...logToMerge, id: effectiveLogId, ...updates, userModified: true }, { merge: true });
  
  window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: effectiveLogId, updates: { ...logToMerge, id: effectiveLogId, ...updates, userModified: true } } }));
@@ -903,8 +937,6 @@ export default function MealPlate({
  const docRef = await addDoc(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "logs",

@@ -14,12 +14,12 @@ export const notificationService = {
     if (Capacitor.isNativePlatform()) {
       try {
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v7',
+          id: 'glucose_alerts_v8',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
           importance: 5,
           visibility: 1,
-          sound: 'status_clear.mp3',
+          sound: 'status_clear',
           vibration: true
         });
 
@@ -362,7 +362,7 @@ export const notificationService = {
     if (!user) return;
 
     try {
-      await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', user.uid, 'settings', 'fcm_token'), {
+      await setDoc(doc(db, 'users', user.uid, 'settings', 'fcm_token'), {
         token,
         updatedAt: serverTimestamp(),
         userId: user.uid,
@@ -432,8 +432,8 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v7',
-            sound: 'status_clear.mp3',
+            channelId: 'glucose_alerts_v8',
+            sound: 'status_clear',
             attachments: null,
             actionTypeId: "",
             extra: null

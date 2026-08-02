@@ -65,7 +65,7 @@ export default function RemoteAlertsListener({ }: { user: any }) {
  if (!activeAlert) return;
  
  const uid = getEffectiveUid(user);
- const alertRef = doc(db, 'artifacts', 'diacontrolapp', 'users', uid, 'alerts', activeAlert.id);
+ const alertRef = doc(db, 'users', uid, 'alerts', activeAlert.id);
  
  // Optymistycznie zamykamy okno u siebie
  setActiveAlert(null);

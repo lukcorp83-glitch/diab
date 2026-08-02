@@ -190,7 +190,7 @@ const TrainingChart = ({ user, startTime, endTime, startSugar, endSugar }: { use
  useEffect(() => {
  const fetchData = async () => {
  if (!user) return;
- const logsRef = collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs');
+ const logsRef = collection(db, 'users', getEffectiveUid(user), 'logs');
  const q = query(
  logsRef, 
  where('type', '==', 'glucose'),
@@ -296,7 +296,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  const handleStartTraining = async () => {
  if (!user) return;
  Haptics.success();
- const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+ const settingsRef = doc(db, 'users', getEffectiveUid(user), 'settings', 'profile');
  
  const trainingData = {
  sportId: selectedSportLog,
@@ -307,7 +307,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  };
 
  // 1. Dodaj do historii treningów jako rekord "w trakcie"
- const historyRef = collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'trainings');
+ const historyRef = collection(db, 'users', getEffectiveUid(user), 'trainings');
  const docRef = await addDoc(historyRef, {
  ...trainingData,
  timestamp: serverTimestamp(),
@@ -324,7 +324,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  });
 
  // 3. Dodaj wpis do głównej historii (logs) aby był widoczny na osi czasu
- const logsRef = collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs');
+ const logsRef = collection(db, 'users', getEffectiveUid(user), 'logs');
  const sportName = SPORTS.find(s => s.id === selectedSportLog)?.name || 'Trening';
  await addDoc(logsRef, {
  type: 'activity',
@@ -344,7 +344,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  
  // Zaktualizuj rekord w historii
  if (activeTraining.trainingId) {
- const trainingRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'trainings', activeTraining.trainingId);
+ const trainingRef = doc(db, 'users', getEffectiveUid(user), 'trainings', activeTraining.trainingId);
  await setDoc(trainingRef, {
  endTime: Date.now(),
  endSugar: currentSugar,
@@ -352,7 +352,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  }, { merge: true });
  }
 
- const settingsRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile');
+ const settingsRef = doc(db, 'users', getEffectiveUid(user), 'settings', 'profile');
  await setDoc(settingsRef, {
  ...settings,
  activeTraining: null
@@ -363,7 +363,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  if (!user) return;
  Haptics.warning();
  try {
- const trainingRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'trainings', trainingId);
+ const trainingRef = doc(db, 'users', getEffectiveUid(user), 'trainings', trainingId);
  await deleteDoc(trainingRef);
  } catch (error) {
  console.error("Error deleting training:", error);

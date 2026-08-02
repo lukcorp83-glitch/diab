@@ -80,8 +80,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -101,8 +99,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -122,8 +118,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -203,8 +197,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -285,8 +277,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -355,7 +345,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  });
  if (user) {
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { notificationPrefs: newPrefs },
  { merge: true }
  );

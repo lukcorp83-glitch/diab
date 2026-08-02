@@ -106,7 +106,7 @@ export default function ApiIntegration({ }: { user: any }) {
  // Validate if mapping still exists
  sha1(stored).then(hash => {
  setLastHash(hash);
- getDoc(doc(db, 'artifacts', 'diacontrolapp', 'apiSecrets', hash)).then(d => {
+ getDoc(doc(db, 'apiSecrets', hash)).then(d => {
  if (!d.exists() || d.data()?.userId !== user.uid) {
  // The hash in DB doesn't match, meaning this token is invalid
  setLocalSecret('');

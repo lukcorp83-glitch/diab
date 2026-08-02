@@ -432,8 +432,6 @@ export function AppLayout({
                       await setDoc(
                         doc(
                           db,
-                          "artifacts",
-                          "diacontrolapp",
                           "users",
                           getEffectiveUid(user),
                           "settings",

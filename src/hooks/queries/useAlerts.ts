@@ -10,7 +10,7 @@ export const useAlerts = (user: any) => {
  if (!user) return [];
  const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
  const q = query(
- collection(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'alerts'),
+ collection(db, 'users', getEffectiveUid(user), 'alerts'),
  where('acknowledged', '==', false),
  where('createdAt', '>', twelveHoursAgo)
  );

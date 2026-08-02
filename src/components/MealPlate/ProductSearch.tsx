@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import i18n from "../../i18n";
 import SwipeableItem from "../SwipeableItem";
 import { cn } from "../../lib/utils";
+import { Capacitor } from "@capacitor/core";
+import { SpeechRecognition as CapSpeechRecognition } from "@capacitor-community/speech-recognition";
 
 const getDietBadge = (product: Product, activeDiet: string | null) => {
  if (!activeDiet) return null;
@@ -67,27 +69,70 @@ export const ProductSearch = ({
    return () => clearTimeout(handler);
  }, [localSearchTerm]);
 
- const startVoiceSearch = () => {
- if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
- toast.error("Brak obsługi rozpoznawania głosu.");
- return;
- }
- const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
- const recognition = new SpeechRecognition();
- recognition.lang = "pl-PL";
- recognition.continuous = false;
- recognition.interimResults = false;
- recognition.onstart = () => { setIsListening(true); Haptics.light(); };
- recognition.onresult = (event: any) => {
- const transcript = event.results[0][0].transcript;
- setSearchTerm(transcript);
- setLocalSearchTerm(transcript);
- performOnlineSearch(transcript);
- };
- recognition.onerror = () => { setIsListening(false); toast.error("Błąd rozpoznawania głosu."); };
- recognition.onend = () => setIsListening(false);
- recognition.start();
- };
+ useEffect(() => {
+   if (!searchTerm.trim()) {
+     setOnlineResults([]);
+   }
+ }, [searchTerm, setOnlineResults]);
+
+  const startVoiceSearch = async () => {
+    if (isListening) return;
+    
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const permStatus = await CapSpeechRecognition.checkPermissions();
+        if (permStatus.speechRecognition !== 'granted') {
+          const reqStatus = await CapSpeechRecognition.requestPermissions();
+          if (reqStatus.speechRecognition !== 'granted') {
+            toast.error("Brak uprawnień do mikrofonu! Zezwól na nagrywanie w ustawieniach Androida.");
+            return;
+          }
+        }
+        setIsListening(true);
+        Haptics.light();
+        const { matches } = await CapSpeechRecognition.start({
+          language: 'pl-PL',
+          maxResults: 1,
+          prompt: i18n.t('auto.mow_teraz', { defaultValue: 'Mów teraz...' }),
+          partialResults: false,
+          popup: true
+        });
+        if (matches && matches.length > 0) {
+          const transcript = matches[0];
+          setSearchTerm(transcript);
+          setLocalSearchTerm(transcript);
+          performOnlineSearch(transcript);
+        }
+        setIsListening(false);
+        return;
+      } catch (e) {
+        console.error('Native speech recognition error:', e);
+        setIsListening(false);
+        toast.error("Nie udało się uruchomić mikrofonu natywnego.");
+        return;
+      }
+    }
+
+    if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+      toast.error("Brak obsługi rozpoznawania głosu.");
+      return;
+    }
+    const SpeechRecAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecAPI();
+    recognition.lang = "pl-PL";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => { setIsListening(true); Haptics.light(); };
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchTerm(transcript);
+      setLocalSearchTerm(transcript);
+      performOnlineSearch(transcript);
+    };
+    recognition.onerror = () => { setIsListening(false); toast.error("Błąd rozpoznawania głosu."); };
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
+  };
 
  const performOnlineSearch = async (query: string) => {
  if (!query.trim()) return;
@@ -108,9 +153,9 @@ export const ProductSearch = ({
  const browseResults = useMemo(() => {
  if (!allLocal) return [];
  let base = allLocal;
- if (activeCategory === "custom") base = base.filter((p: Product) => p.isCustom);
- else if (activeCategory === "community") base = base.filter((p: Product) => p.isCommunity);
- else if (activeCategory !== "all") base = base.filter((p: Product) => p.category === activeCategory);
+  if (activeCategory === "custom") base = base.filter((p: Product) => p.isCustom);
+  else if (activeCategory === "community") base = base.filter((p: Product) => p.isCommunity);
+  else if (activeCategory !== "all") base = base.filter((p: Product) => p.category?.toLowerCase().includes(activeCategory.toLowerCase()));
  
  if (searchTerm.trim()) {
  const term = searchTerm.toLowerCase();
@@ -119,7 +164,7 @@ export const ProductSearch = ({
  return name.includes(term) || (p.brand && p.brand.toLowerCase().includes(term));
  });
  }
- return base;
+ return base.sort((a, b) => getProductName(a, i18n.language).localeCompare(getProductName(b, i18n.language), 'pl'));
  }, [allLocal, activeCategory, searchTerm]);
 
  return (
@@ -179,10 +224,10 @@ export const ProductSearch = ({
  onClick={() => { setActiveCategory(cat); Haptics.light(); }}
  className={cn(
  "snap-start px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all border-2",
- activeCategory === cat ? "bg-slate-800 text-white" : "bg-white text-slate-500"
+ activeCategory === cat ? "bg-slate-800 text-white dark:bg-accent-500" : "bg-white text-slate-500 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700/50"
  )}
  >
- {cat}
+ {cat === 'all' ? t('meal.all', { defaultValue: 'Wszystkie' }) : cat === 'custom' ? t('meal.custom', { defaultValue: 'Własne' }) : cat === 'community' ? t('meal.community', { defaultValue: 'Społeczność' }) : cat.charAt(0).toUpperCase() + cat.slice(1)}
  </button>
  ))}
  </div>
@@ -204,12 +249,36 @@ export const ProductSearch = ({
  <div className="flex items-center gap-2 mb-1">
  <h4 className="text-xs font-black text-slate-800 dark:text-white truncate">{getProductName(p, i18n.language)}</h4>
  {getDietBadge(p, settings?.activeDiet || null)}
+ {p.gi > 0 && (
+   <div className="flex gap-1">
+     <span className={cn(
+       "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+       p.gi <= 55 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+       p.gi <= 69 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+       "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+     )}>IG: {p.gi}</span>
+     <span className={cn(
+       "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+       ((p.gi * (p.carbs || 0)) / 100) <= 10 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+       ((p.gi * (p.carbs || 0)) / 100) <= 19 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+       "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+     )}>ŁG: {((p.gi * (p.carbs || 0)) / 100).toFixed(1)}</span>
+   </div>
+ )}
  </div>
  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
  <span>{p.carbs}g Węgle</span>
  <span>{p.protein}g Białko</span>
  <span>{p.fat}g Tłuszcz</span>
  </div>
+ </div>
+ <div className="flex flex-col gap-1 ml-2 shrink-0">
+  <button onClick={(e) => { e.stopPropagation(); saveToCustomDb && saveToCustomDb(p); }} className="p-2 text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg hover:bg-indigo-100 transition-all" title="Zapisz do własnych">
+    <BookMarked size={14} />
+  </button>
+  <button onClick={(e) => { e.stopPropagation(); openShortcutConfirmModal && openShortcutConfirmModal(p); }} className="p-2 text-amber-500 bg-amber-50 dark:bg-amber-500/10 rounded-lg hover:bg-amber-100 transition-all" title="Skrót posiłku">
+    <Plus size={14} />
+  </button>
  </div>
  </div>
  </motion.div>
@@ -230,7 +299,6 @@ export const ProductSearch = ({
  transition={{ duration: 0.2, delay: i * 0.05 }}
  layout
  >
- <SwipeableItem onSwipeLeft={() => {}} disabled={true}>
  <div
  onClick={() => openWeightModal(p)}
  className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800/80 rounded-2xl border-2 border-slate-100 dark:border-slate-700/50 hover:border-accent-500/30 transition-all cursor-pointer shadow-sm relative group"
@@ -241,7 +309,22 @@ export const ProductSearch = ({
  {getProductName(p, i18n.language)}
  </h4>
  {getDietBadge(p, settings?.activeDiet || null)}
-
+ {p.gi > 0 && (
+   <div className="flex gap-1">
+     <span className={cn(
+       "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+       p.gi <= 55 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+       p.gi <= 69 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+       "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+     )}>IG: {p.gi}</span>
+     <span className={cn(
+       "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+       ((p.gi * (p.carbs || 0)) / 100) <= 10 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+       ((p.gi * (p.carbs || 0)) / 100) <= 19 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" :
+       "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+     )}>ŁG: {((p.gi * (p.carbs || 0)) / 100).toFixed(1)}</span>
+   </div>
+ )}
  </div>
  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
  <span>
@@ -258,18 +341,17 @@ export const ProductSearch = ({
  </span>
  </div>
  </div>
- {p.isCustom && (
- <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[9px] font-black uppercase tracking-widest">
- <BookMarked size={12} />
+ <div className="flex flex-col gap-1 ml-2 shrink-0">
+  {p.isCustom && !p.isCommunity && (
+    <button onClick={(e) => { e.stopPropagation(); publishToCommunity && publishToCommunity(p); }} className="p-2 text-teal-500 bg-teal-50 dark:bg-teal-500/10 rounded-lg hover:bg-teal-100 transition-all" title="Opublikuj">
+      <Globe size={14} />
+    </button>
+  )}
+  <button onClick={(e) => { e.stopPropagation(); openShortcutConfirmModal && openShortcutConfirmModal(p); }} className="p-2 text-amber-500 bg-amber-50 dark:bg-amber-500/10 rounded-lg hover:bg-amber-100 transition-all" title="Skrót posiłku">
+    <Plus size={14} />
+  </button>
  </div>
- )}
- {p.isCommunity && (
- <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-500 text-[9px] font-black uppercase tracking-widest">
- <Globe size={12} />
  </div>
- )}
- </div>
- </SwipeableItem>
  </motion.div>
  ))}
  </AnimatePresence>

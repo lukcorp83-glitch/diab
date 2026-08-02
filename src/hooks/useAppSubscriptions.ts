@@ -15,7 +15,7 @@ export const useAppSubscriptions = (user: any) => {
 
     // 1. Logs
     const safeTs = localStorage.getItem("lastSafeTimestamp") || (Date.now() - 30 * 24 * 60 * 60 * 1000).toString();
-    const logsCollection = collection(db, "artifacts", "diacontrolapp", "users", uid, "logs");
+    const logsCollection = collection(db, "users", uid, "logs");
     let logsQuery;
     if (localStorage.getItem("ecoMode") === "true") {
       logsQuery = query(logsCollection, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(1500));
@@ -28,29 +28,29 @@ export const useAppSubscriptions = (user: any) => {
     });
 
     // 2. AI Reports
-    const aiReportsQuery = query(collection(db, "artifacts", "diacontrolapp", "users", uid, "aiReports"), orderBy("timestamp", "desc"), limit(3));
+    const aiReportsQuery = query(collection(db, "users", uid, "aiReports"), orderBy("timestamp", "desc"), limit(3));
     const unsubAi = onSnapshot(aiReportsQuery, (snapshot) => {
       const texts = snapshot.docs.map(doc => doc.data().content?.replace(/<[^>]*>/g, " ").substring(0, 500) || "");
       queryClient.setQueryData(['aiInsights', uid], texts);
     });
 
     // 3. Pump Status
-    const unsubPump = onSnapshot(doc(db, "artifacts", "diacontrolapp", "users", uid, "status", "pump"), (docSnap) => {
+    const unsubPump = onSnapshot(doc(db, "users", uid, "status", "pump"), (docSnap) => {
       queryClient.setQueryData(['pumpStatus', uid], docSnap.data() || null);
     });
 
     // 4. Pet Status
-    const unsubPet = onSnapshot(doc(db, "artifacts", "diacontrolapp", "users", uid, "pet", "status"), (docSnap) => {
+    const unsubPet = onSnapshot(doc(db, "users", uid, "pet", "status"), (docSnap) => {
       if (docSnap.exists()) queryClient.setQueryData(['petStatus', uid], docSnap.data());
     });
 
     // 5. User Settings (Profile)
-    const unsubSettings = onSnapshot(doc(db, "artifacts", "diacontrolapp", "users", uid, "settings", "profile"), (docSnap) => {
+    const unsubSettings = onSnapshot(doc(db, "users", uid, "settings", "profile"), (docSnap) => {
       if (docSnap.exists()) queryClient.setQueryData(['userSettings', uid], docSnap.data());
     });
 
     // 6. Nightscout Settings
-    const unsubNightscout = onSnapshot(doc(db, "artifacts", "diacontrolapp", "users", uid, "settings", "nightscout"), (docSnap) => {
+    const unsubNightscout = onSnapshot(doc(db, "users", uid, "settings", "nightscout"), (docSnap) => {
       if (docSnap.exists()) queryClient.setQueryData(['nightscoutSettings', uid], docSnap.data());
     });
 

@@ -91,7 +91,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const fetchBackupStatus = async () => {
  setLoadingBackup(true);
  try {
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  const docSnap = await getDoc(docRef);
  if (docSnap.exists()) {
  const data = docSnap.data();
@@ -132,7 +132,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
 
  setIsBackupActionRunning(true);
  const toastId = toast.loading("Archiwizowanie modelu GlikoSense 3.0 w chmurze...");
- const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+ const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
  const modelData = await MLAnalyzer.exportCurrentModel();
  if (!modelData) {
@@ -142,7 +142,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  return;
  }
 
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  await setDoc(docRef, {
  ...modelData,
  datasetSize: mlResult?.datasetSize || 0
@@ -179,9 +179,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
 
  setIsBackupActionRunning(true);
  const toastId = toast.loading("Pobieranie i importowanie modelu z chmury...");
- const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+ const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  const docSnap = await getDoc(docRef);
 
  if (!docSnap.exists()) {
@@ -219,9 +219,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
 
  setIsBackupActionRunning(true);
  const toastId = toast.loading("Usuwanie kopii zapasowej...");
- const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+ const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  await deleteDoc(docRef);
  setBackupInfo(null);
  toast.success(i18n.t('auto.kopia_zapasowa_w_chmurze_zosta', { defaultValue: i18n.t('auto.kopia_zapasowa_w_chmurze', { defaultValue: "Kopia zapasowa w chmurze została usunięta." }) }), { id: toastId });

@@ -72,8 +72,6 @@ export default function SettingsSync({
  try {
  const reqsRef = collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  user.uid,
  "linkRequests",
@@ -96,8 +94,6 @@ export default function SettingsSync({
  if (showExport && user) {
  const docRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  );
@@ -173,8 +169,6 @@ export default function SettingsSync({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  parsed.uid,
  "linkRequests",

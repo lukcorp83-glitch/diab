@@ -8,7 +8,7 @@ export const usePetStatus = (user: any) => {
  queryKey: ['petStatus', user ? getEffectiveUid(user) : ''],
  queryFn: async () => {
  if (!user) return null;
- const petRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "pet", "status");
+ const petRef = doc(db, "users", getEffectiveUid(user), "pet", "status");
  const d = await getDoc(petRef);
  if (d.exists()) {
  return d.data();
@@ -25,7 +25,7 @@ export const useNightscoutSettings = (user: any) => {
  queryKey: ['nightscoutSettings', user ? getEffectiveUid(user) : ''],
  queryFn: async () => {
  if (!user) return null;
- const nsSettingsRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "nightscout");
+ const nsSettingsRef = doc(db, "users", getEffectiveUid(user), "settings", "nightscout");
  const d = await getDoc(nsSettingsRef);
  if (d.exists()) {
  return d.data();
@@ -42,7 +42,7 @@ export const useUserSettings = (user: any) => {
     queryKey: ['userSettings', user ? getEffectiveUid(user) : ''],
     queryFn: async () => {
       if (!user) return null;
-      const settingsRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile");
+      const settingsRef = doc(db, "users", getEffectiveUid(user), "settings", "profile");
       const d = await getDoc(settingsRef);
       if (d.exists()) {
         return d.data();
@@ -59,7 +59,7 @@ export const usePumpStatus = (user: any) => {
     queryKey: ['pumpStatus', user ? getEffectiveUid(user) : ''],
     queryFn: async () => {
       if (!user) return null;
-      const pumpRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "status", "pump");
+      const pumpRef = doc(db, "users", getEffectiveUid(user), "status", "pump");
       const d = await getDoc(pumpRef);
       if (d.exists()) {
         return d.data();

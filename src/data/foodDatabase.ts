@@ -1,4 +1,4 @@
-﻿import i18n from '../i18n';
+import i18n from '../i18n';
 import { Product } from '../types';
 
 export const LIB_BASE: Product[] = [

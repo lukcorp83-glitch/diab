@@ -134,7 +134,7 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
  const cleanMeds = JSON.parse(JSON.stringify(updatedMeds));
    const newSettings = { ...settings, medications: cleanMeds };
  setSettings(newSettings);
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { medications: JSON.parse(JSON.stringify(updatedMeds)) }, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { medications: JSON.parse(JSON.stringify(updatedMeds)) }, { merge: true });
  toast.success("Lek usunięty");
  } catch (e) {
  toast.error("Błąd usuwania leku");
@@ -147,7 +147,7 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
  const updatedInv = (settings.inventory || []).filter((m: any) => m.id !== id);
  const newSettings = { ...settings, inventory: updatedInv };
  setSettings(newSettings);
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { inventory: updatedInv }, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { inventory: updatedInv }, { merge: true });
  queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  toast.success("Zapas usunięty");
  } catch (e) {
@@ -166,9 +166,70 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
  } | null>(null);
 const [isAnalyzingDrug, setIsAnalyzingDrug] = useState(false);
 const [medLoading, setMedLoading] = useState(false);
-const [newInventoryItem, setNewInventoryItem] =
- useState<InventoryItem | null>(null);
-const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [newInventoryItem, setNewInventoryItem] =
+    useState<InventoryItem | null>(null);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+
+  const handleBarcodeScan = async (scannedBarcodeRaw: string) => {
+    setShowBarcodeScanner(false);
+    if (!user) return;
+    
+    const scannedBarcode = extractGTIN(scannedBarcodeRaw);
+
+    // If the form is already open, just paste the barcode and try to fill known info, but preserve existing typed values!
+    if (newInventoryItem) {
+        const knownProduct = lookupMedicalDictionary(scannedBarcode);
+        setNewInventoryItem(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                barcode: scannedBarcode,
+                name: prev.name || knownProduct?.name || "",
+                category: prev.category === 'other' && knownProduct ? (knownProduct.category as any) : prev.category
+            }
+        });
+        toast.success(i18n.t('auto.kod_zeskanowany', { defaultValue: "Kod zeskanowany i wprowadzony do formularza!" }));
+        return;
+    }
+
+    const currentInv = settings.inventory || [];
+    const existingItemIndex = currentInv.findIndex((i: any) => extractGTIN(i.barcode) === scannedBarcode);
+    
+    if (existingItemIndex !== -1) {
+      const existingItem = currentInv[existingItemIndex];
+      setNewInventoryItem({
+        ...existingItem,
+        quantity: existingItem.quantity + 1
+      });
+      toast.success(i18n.t('auto.znaleziono_sprzet_w_apteczce', { defaultValue: "✅ Znaleziono sprzęt w apteczce! Popraw ilość i zapisz." }));
+    } else {
+      const knownProduct = lookupMedicalDictionary(scannedBarcode);
+      if (knownProduct) {
+        setNewInventoryItem({
+          id: "",
+          name: knownProduct.name,
+          quantity: 1,
+          unit: "szt.",
+          lowStockThreshold: 1,
+          category: knownProduct.category as any,
+          barcode: scannedBarcode
+        });
+        toast.success("✅ Znaleziono znany produkt medyczny!");
+      } else {
+        setNewInventoryItem({
+          id: "",
+          name: "",
+          quantity: 1,
+          unit: "szt.",
+          lowStockThreshold: 1,
+          category: "other",
+          barcode: scannedBarcode
+        });
+        alert(i18n.t('auto.nieznany_kod_kreskowy_otwarto', { defaultValue: "🆕 Nieznany kod kreskowy!\nOtwarto okno dodawania. Wpisz nazwę sprzętu, a aplikacja zapamięta go na przyszłość." }));
+      }
+    }
+  };
+
 const analyzeDrug = async () => {
  if (!newMedication?.name || !user) return;
  setIsAnalyzingDrug(true);
@@ -182,7 +243,7 @@ const analyzeDrug = async () => {
  const newSettings = { ...settings, customDrugDictionary: updatedDict };
  setSettings(newSettings);
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { customDrugDictionary: JSON.parse(JSON.stringify(updatedDict)) },
  { merge: true }
  );
@@ -220,8 +281,6 @@ const saveMedication = async () => {
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -268,8 +327,6 @@ const saveInventoryItem = async () => {
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -394,8 +451,6 @@ const saveInventoryItem = async () => {
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -458,21 +513,31 @@ const saveInventoryItem = async () => {
  </motion.div>
  ))}
 
- <button
- onClick={() =>
- setNewMedication({
- id: "",
- name: "",
- dosage: "",
- reminders: ["08:00"],
- active: true,
- expiryDate: "",
- })
- }
- className="w-full py-5 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 hover:border-teal-500 hover:bg-teal-500/5 hover:text-teal-600 transition-all flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-[0.2em]"
- >
- <Plus size={20} /> {t('auto.dodaj_nowy_lek', { defaultValue: 'Dodaj nowy lek' })}
- </button>
+   {!newMedication && (
+   <div className="flex gap-2">
+     <button
+     onClick={() =>
+     setNewMedication({
+     id: "",
+     name: "",
+     dosage: "",
+     reminders: ["08:00"],
+     active: true,
+     expiryDate: "",
+     })
+     }
+     className="flex-1 py-4 bg-teal-50 dark:bg-slate-800/50 text-teal-600 dark:text-teal-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-teal-200 dark:border-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/20 transition-all flex items-center justify-center gap-2"
+     >
+     <Plus size={16} /> {t('auto.dodaj_nowy_lek', { defaultValue: 'Dodaj nowy lek' })}
+     </button>
+     <button
+     onClick={() => setShowBarcodeScanner(true)}
+     className="flex-1 py-4 bg-indigo-50 dark:bg-slate-800/50 text-indigo-600 dark:text-indigo-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2"
+     >
+     <Camera size={16} /> {t('auto.skanuj_kod', { defaultValue: 'Skanuj Kod' })}
+     </button>
+   </div>
+   )}
  </div>
 
  {newMedication && (
@@ -776,8 +841,6 @@ const saveInventoryItem = async () => {
  setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user!),
  "settings",
@@ -807,8 +870,6 @@ const saveInventoryItem = async () => {
  setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user!),
  "settings",
@@ -860,7 +921,7 @@ const saveInventoryItem = async () => {
  </button>
  <button
  onClick={() => setShowBarcodeScanner(true)}
- className="flex-1 py-4 bg-indigo-50 dark:bg-slate-800/50 text-indigo-600 dark:indigo-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2"
+ className="flex-1 py-4 bg-indigo-50 dark:bg-slate-800/50 text-indigo-600 dark:text-indigo-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2"
  >
  <Camera size={16} /> {t('auto.skanuj_kod', { defaultValue: 'Skanuj Kod' })}
  </button>
@@ -1003,6 +1064,7 @@ const saveInventoryItem = async () => {
  
  {t('auto.kod_kreskowy_ean_upc', { defaultValue: 'Kod kreskowy (EAN/UPC)' })}
  </label>
+ <div className="flex gap-2">
  <input
  type="text"
  placeholder={t('auto.skorzystaj_ze_skanera', { defaultValue: 'Skorzystaj ze skanera...' })}
@@ -1013,8 +1075,16 @@ const saveInventoryItem = async () => {
  barcode: e.target.value,
  })
  }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+ className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
  />
+ <button
+ type="button"
+ onClick={() => setShowBarcodeScanner(true)}
+ className="p-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-200 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all flex items-center justify-center"
+ >
+ <Camera size={16} />
+ </button>
+ </div>
  </div>
 
  {newInventoryItem.category === "insulin" && (
@@ -1095,6 +1165,13 @@ const saveInventoryItem = async () => {
  </motion.div>
  )}
  </div>
+ 
+ {showBarcodeScanner && (
+ <BarcodeScannerModal
+ onClose={() => setShowBarcodeScanner(false)}
+ onScan={handleBarcodeScan}
+ />
+ )}
  </motion.div>
  );
 }

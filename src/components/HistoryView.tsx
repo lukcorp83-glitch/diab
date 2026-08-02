@@ -156,8 +156,6 @@ export default function HistoryView({ user, onBack, settings }: HistoryProps) {
  deleteDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "logs",

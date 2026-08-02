@@ -212,8 +212,6 @@ export default function MealEditModal({
  try {
  const logRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "logs",

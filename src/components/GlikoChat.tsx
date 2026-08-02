@@ -50,8 +50,8 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  useEffect(() => {
  localStorage.setItem('gliko_voice_enabled', JSON.stringify(voiceEnabled));
  if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
- const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
- recognitionRef.current = new SpeechRec();
+ const SpeechRecAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+ recognitionRef.current = new SpeechRecAPI();
  recognitionRef.current.continuous = false;
  recognitionRef.current.lang = 'pl-PL';
  
