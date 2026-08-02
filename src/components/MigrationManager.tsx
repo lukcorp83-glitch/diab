@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, CheckCircle, Database } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { downloadCloudPackage } from './CloudPackageSync';
+import { dbService } from '../services/databaseService';
+import { saveLocalLogs } from '../lib/localLogs';
 
 export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
   const { t } = useTranslation();
@@ -57,7 +59,7 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
   }, [user]);
 
   const performMigration = async (uid: string, userObj: any) => {
-    // 1. Kopiujemy profil, pet, status, nightscout ze starej lokalizacji
+    // 1. Kopiujemy profil, pet, status, nightscout ze starej lokalizacji (równolegle dla przyspieszenia)
     const docsToCopy = [
       ["settings", "profile"],
       ["settings", "nightscout"],
@@ -66,16 +68,47 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       ["pet", "status"]
     ];
 
-    for (const [col, docId] of docsToCopy) {
-      const snap = await getDoc(doc(db, "artifacts/diacontrolapp/users", uid, col, docId));
-      if (snap.exists()) {
-        await setDoc(doc(db, "users", uid, col, docId), snap.data(), { merge: true });
+    let copied = 0;
+    await Promise.all(docsToCopy.map(async ([col, docId]) => {
+      try {
+        const snap = await getDoc(doc(db, "artifacts/diacontrolapp/users", uid, col, docId));
+        if (snap.exists()) {
+          await setDoc(doc(db, "users", uid, col, docId), snap.data(), { merge: true });
+        }
+      } catch (err) {
+        console.error(`Failed to copy ${col}/${docId}`, err);
+      } finally {
+        copied++;
+        setProgress(Math.round((copied / docsToCopy.length) * 4)); // Postęp od 0% do 4% w trakcie szybkiego kopiowania
+      }
+    }));
+
+    // 2. Kopiujemy logi. Najpierw próbujemy pobrać jedną szybką paczkę cloud.
+    const success = await downloadCloudPackage(userObj, (p) => setProgress(p));
+    
+    // Fallback: jeśli użytkownik nie miał utworzonej paczki cloud backup, pobieramy klasycznie (z Firestore logs)
+    if (!success) {
+      setProgress(10);
+      try {
+        const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
+        const snap = await getDocs(oldLogsRef);
+        if (!snap.empty) {
+          const logs = snap.docs.map(d => d.data());
+          let sqliteP = 0, idbP = 0;
+          const updateP = () => setProgress(10 + Math.round((sqliteP + idbP) / 2 * 0.9)); // 10% - 100%
+          
+          await Promise.all([
+            saveLocalLogs(logs as any, (p) => { idbP = p; updateP(); }).catch(console.error),
+            dbService.saveMultipleLogs(logs, (p) => { sqliteP = p; updateP(); }).catch(console.error)
+          ]);
+        } else {
+          setProgress(100);
+        }
+      } catch (err) {
+        console.error("Fallback logs migration failed", err);
+        setProgress(100);
       }
     }
-
-    // 2. Kopiujemy logi (zamiast pętli getDocs obciążającej limit 40k reads, pobieramy JEDNĄ SZYBKĄ PACZKĘ)
-    // downloadCloudPackage zostało celowo zmodyfikowane wcześniej by jako fallback szukać paczki w starej ścieżce
-    await downloadCloudPackage(userObj, (p) => setProgress(p));
   };
 
   const confirmMigration = async () => {

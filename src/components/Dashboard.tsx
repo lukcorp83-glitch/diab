@@ -1053,8 +1053,7 @@ export default function Dashboard({
             onClick={() => { 
               if (!isEditingLayout) {
                 Haptics.light();
-                setTab('profile'); 
-                onAction?.('devices'); 
+                setTab('inventory');
               }
             }}
             className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isSensCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
@@ -1114,8 +1113,7 @@ export default function Dashboard({
             onClick={() => { 
               if (!isEditingLayout) {
                 Haptics.light();
-                setTab('profile'); 
-                onAction?.('devices'); 
+                setTab('inventory');
               }
             }}
             className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isInfCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
@@ -1581,7 +1579,14 @@ export default function Dashboard({
              }
              
              return (
-               <div key={item.id} className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
+               <div 
+                 key={item.id} 
+                 onClick={() => {
+                   Haptics.light();
+                   setTab('inventory');
+                 }}
+                 className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors cursor-pointer active:scale-95 ${bgClass} ${colorClass}`}
+               >
                  {(item.category === 'cannulas' || item.category === 'infusion_sets') && <Droplet size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-sky-500"} />}
                  {item.category === 'sensors' && <Signal size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-violet-500"} />}
                  {item.category === 'reservoirs' && <Cylinder size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-purple-500"} />}
@@ -1824,9 +1829,6 @@ export default function Dashboard({
           {settings.sensorChangeDate && (
              <div 
                onClick={() => { 
-                 Haptics.light();
-                 setTab('profile'); 
-                 onAction?.('devices'); 
                }}
                className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden cursor-pointer"
              >
