@@ -59,6 +59,7 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
 export const downloadCloudPackage = async (user: any, onProgress?: (progress: number) => void) => {
  if (!user) return false;
  try {
+ onProgress?.(5);
  let snap = await getDoc(
  doc(db, "users", getEffectiveUid(user), "syncPackage", "latest")
  );
@@ -67,6 +68,7 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
     if (!snap.exists()) return false;
  }
  
+ onProgress?.(30);
  const data = snap.data();
  if (!data.payload) return false;
  
@@ -85,6 +87,8 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
  return false;
  }
  
+ onProgress?.(60);
+ 
  // Przywróć ustawienia localStorage
  if (parsed.localStorage) {
  Object.keys(parsed.localStorage).forEach(key => {
@@ -99,15 +103,19 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
  }
  
  // Przywróć pełne logi do bazy natywnej SQLite i do IndexedDB (fallback)
- if (parsed.logs && Array.isArray(parsed.logs)) {
+ if (parsed.logs && Array.isArray(parsed.logs) && parsed.logs.length > 0) {
  console.log(`Restoring ${parsed.logs.length} logs from Cloud Package...`);
  let sqliteP = 0, idbP = 0;
- const updateP = () => onProgress?.(Math.round((sqliteP + idbP) / 2));
+ // Skalujemy zapis bazy z przedziału 0-100 na przedział 60-100 na pasku
+ // idbP (0-100) + sqliteP (0-100) = max 200. Podzielone przez 5 daje max 40. 60 + 40 = 100.
+ const updateP = () => onProgress?.(60 + Math.round((sqliteP + idbP) / 5));
  
  await Promise.all([
    saveLocalLogs(parsed.logs, (p) => { idbP = p; updateP(); }).catch(console.error),
    dbService.saveMultipleLogs(parsed.logs, (p) => { sqliteP = p; updateP(); }).catch(console.error)
  ]);
+ } else {
+   onProgress?.(100);
  }
  
  // Przywróć ustawienia profilu w Firebase
