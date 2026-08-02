@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useTranslation } from 'react-i18next';
 import { Loader2, CheckCircle, Database } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { downloadCloudPackage } from './CloudPackageSync';
 
 export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
   const { t } = useTranslation();
@@ -29,7 +30,10 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
         const q = query(oldLogsRef, limit(1));
         const oldLogsSnap = await getDocs(q);
         
-        if (oldLogsSnap.empty) {
+        // Sprawdzamy też czy ma starą paczkę cloud (jeśli nie używał logs, ale miał paczkę)
+        const oldPackageSnap = await getDoc(doc(db, "artifacts/diacontrolapp/users", uid, "syncPackage", "latest"));
+        
+        if (oldLogsSnap.empty && !oldPackageSnap.exists()) {
           // Nie ma starych danych, nie ma czego migrować, oznaczamy jako done by nie pytać ponownie
           await setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: true }, { merge: true });
           setMigrationState('done');
@@ -38,7 +42,7 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
 
         // Musimy zmigrować
         setMigrationState('migrating');
-        await performMigration(uid);
+        await performMigration(uid, user);
         
         // Po udanym kopiowaniu prosimy o weryfikację
         setMigrationState('verify');
@@ -51,8 +55,8 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
     checkMigration();
   }, [user]);
 
-  const performMigration = async (uid: string) => {
-    // 1. Kopiujemy profil, pet, status, nightscout
+  const performMigration = async (uid: string, userObj: any) => {
+    // 1. Kopiujemy profil, pet, status, nightscout ze starej lokalizacji
     const docsToCopy = [
       ["settings", "profile"],
       ["settings", "nightscout"],
@@ -68,27 +72,9 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       }
     }
 
-    // 2. Kopiujemy logi (w paczkach po 400)
-    const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
-    const oldLogsSnap = await getDocs(oldLogsRef);
-    
-    let batch = writeBatch(db);
-    let count = 0;
-    
-    for (const d of oldLogsSnap.docs) {
-      const newRef = doc(db, "users", uid, "logs", d.id);
-      batch.set(newRef, d.data(), { merge: true });
-      count++;
-      
-      if (count === 400) {
-        await batch.commit();
-        batch = writeBatch(db);
-        count = 0;
-      }
-    }
-    if (count > 0) {
-      await batch.commit();
-    }
+    // 2. Kopiujemy logi (zamiast pętli getDocs obciążającej limit 40k reads, pobieramy JEDNĄ SZYBKĄ PACZKĘ)
+    // downloadCloudPackage zostało celowo zmodyfikowane wcześniej by jako fallback szukać paczki w starej ścieżce
+    await downloadCloudPackage(userObj);
   };
 
   const confirmMigration = async () => {
