@@ -159,6 +159,11 @@ export default function Profile({
  useEffect(() => {
  setSettings(initialSettings);
  }, [initialSettings]);
+ useEffect(() => {
+   if (user) {
+     queryClient.setQueryData(['userSettings', getEffectiveUid(user)], settings);
+   }
+ }, [settings, user, queryClient]);
  const [learnedRules, setLearnedRules] = useState<any>(() => {
  try {
  return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');

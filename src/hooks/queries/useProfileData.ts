@@ -8,10 +8,19 @@ export const usePetStatus = (user: any) => {
  queryKey: ['petStatus', user ? getEffectiveUid(user) : ''],
  queryFn: async () => {
  if (!user) return null;
- const petRef = doc(db, "users", getEffectiveUid(user), "pet", "status");
- const d = await getDoc(petRef);
- if (d.exists()) {
- return d.data();
+ try {
+   const petRef = doc(db, "users", getEffectiveUid(user), "pet", "status");
+   const d = await getDoc(petRef);
+   if (d.exists()) return d.data();
+ } catch (e) {
+   console.warn("Brak dostępu do nowej struktury pet/status. Próba ze starej ścieżki...");
+ }
+ try {
+   const oldPetRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "pet", "status");
+   const oldD = await getDoc(oldPetRef);
+   if (oldD.exists()) return oldD.data();
+ } catch (err) {
+   console.error("Zarówno nowa jak i stara ścieżka zwierzaka zawiodła", err);
  }
  return null;
  },
@@ -25,10 +34,19 @@ export const useNightscoutSettings = (user: any) => {
  queryKey: ['nightscoutSettings', user ? getEffectiveUid(user) : ''],
  queryFn: async () => {
  if (!user) return null;
- const nsSettingsRef = doc(db, "users", getEffectiveUid(user), "settings", "nightscout");
- const d = await getDoc(nsSettingsRef);
- if (d.exists()) {
- return d.data();
+ try {
+   const nsSettingsRef = doc(db, "users", getEffectiveUid(user), "settings", "nightscout");
+   const d = await getDoc(nsSettingsRef);
+   if (d.exists()) return d.data();
+ } catch (e) {
+   console.warn("Brak dostępu do nowej struktury settings/nightscout. Próba ze starej ścieżki...");
+ }
+ try {
+   const oldNsSettingsRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "nightscout");
+   const oldD = await getDoc(oldNsSettingsRef);
+   if (oldD.exists()) return oldD.data();
+ } catch (err) {
+   console.error("Zarówno nowa jak i stara ścieżka ustawień nightscout zawiodła", err);
  }
  return null;
  },
@@ -42,10 +60,19 @@ export const useUserSettings = (user: any) => {
     queryKey: ['userSettings', user ? getEffectiveUid(user) : ''],
     queryFn: async () => {
       if (!user) return null;
-      const settingsRef = doc(db, "users", getEffectiveUid(user), "settings", "profile");
-      const d = await getDoc(settingsRef);
-      if (d.exists()) {
-        return d.data();
+      try {
+        const settingsRef = doc(db, "users", getEffectiveUid(user), "settings", "profile");
+        const d = await getDoc(settingsRef);
+        if (d.exists()) return d.data();
+      } catch (e) {
+        console.warn("Brak dostępu do nowej struktury settings/profile. Próba ze starej ścieżki...");
+      }
+      try {
+        const oldSettingsRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile");
+        const oldD = await getDoc(oldSettingsRef);
+        if (oldD.exists()) return oldD.data();
+      } catch (err) {
+        console.error("Zarówno nowa jak i stara ścieżka ustawień profilu zawiodła", err);
       }
       return null;
     },

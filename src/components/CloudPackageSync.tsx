@@ -60,13 +60,22 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
  if (!user) return false;
  try {
  onProgress?.(5);
- let snap = await getDoc(
- doc(db, "users", getEffectiveUid(user), "syncPackage", "latest")
- );
- if (!snap.exists()) {
-    snap = await getDoc(doc(db, "artifacts/diacontrolapp/users", getEffectiveUid(user), "syncPackage", "latest"));
-    if (!snap.exists()) return false;
- }
+   let snap: any = null;
+   try {
+     snap = await getDoc(doc(db, "users", getEffectiveUid(user), "syncPackage", "latest"));
+   } catch (e) {
+     console.warn("Błąd odczytu nowej struktury syncPackage, próba pobrania ze starej...", e);
+   }
+
+   if (!snap || !snap.exists()) {
+      try {
+        snap = await getDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest"));
+      } catch (err) {
+        console.error("Awaryjny odczyt paczki z artifacts/ również się nie powiódł", err);
+        return false;
+      }
+      if (!snap || !snap.exists()) return false;
+   }
  
  onProgress?.(30);
  const data = snap.data();

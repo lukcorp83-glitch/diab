@@ -461,22 +461,27 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </div>
  </div>
  <button
- onClick={async () => {
- const newVal = !settings.childMode;
- setSettings((prev) => ({ ...prev, childMode: newVal }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { childMode: newVal },
- { merge: true },
- );
- }}
+   onClick={async () => {
+   const newVal = !settings.childMode;
+   setSettings((prev) => ({ ...prev, childMode: newVal }));
+     if (user) {
+       try {
+         await setDoc(
+           doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+           { childMode: newVal },
+           { merge: true }
+         );
+       } catch (e) {
+         console.warn("Zapis childMode do nowej ścieżki odrzucony, awaryjny zapis do artifacts...");
+         await setDoc(
+           doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+           { childMode: newVal },
+           { merge: true }
+         );
+       }
+       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+     }
+   }}
  className={cn(
  "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
  settings.childMode && "bg-amber-500 pl-5",
@@ -961,7 +966,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  const mode = !settings.ecoMode;
  setSettings(prev => ({ ...prev, ecoMode: mode }));
  if (user) {
- await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true }); queryClient.invalidateQueries({ queryKey: ["userSettings"] });;
  }
  }}
  className={cn(
