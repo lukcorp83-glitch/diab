@@ -1,4 +1,4 @@
-import i18n from "../i18n";
+﻿import i18n from "../i18n";
 
 export interface ChangeEntry {
   categoryKey: string;
@@ -14,7 +14,7 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.9.96';
+export const CURRENT_VERSION = '5.9.97';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
@@ -1144,6 +1144,7 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   }
 ];
+
 
 
 

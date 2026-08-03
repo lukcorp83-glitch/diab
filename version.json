@@ -1,18 +1,10 @@
 {
-  "version": "5.9.96",
-  "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.91_OTA.apk",
-  "buildNumber": 119,
-  "forceUpdate": false,
-  "whatsNew": [
-    "Naprawiono zacinający się na 0% pasek migracji i pobierania bazy",
-    "Dodano potrójny algorytm dekompresji dla baz ze starszych wersji",
-    "Zoptymalizowano asynchroniczne pobieranie paczek ustawień"
-  ],
-  "whatsNewEn": [
-    "Fixed migration and database download progress bar stuck at 0%",
-    "Added triple decompression algorithm for legacy database formats",
-    "Optimized asynchronous fetching of settings"
-  ],
-  "otaRevision": 278
+    "version":  "5.9.97",
+    "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.97_OTA.apk",
+    "buildNumber":  119,
+    "forceUpdate":  false,
+    "whatsNew":  "Diagnoza braku zapisu trybu dziecka (dodano toasty z błędami) po stronie Firebase.",
+    "whatsNewEn":  "Diagnosing missing child mode saves (added error toasts) on the Firebase side.",
+    "otaRevision":  278
 }
