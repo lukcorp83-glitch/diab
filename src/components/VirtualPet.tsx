@@ -1339,7 +1339,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  ) : (
  <h4 
  className="font-black text-sm dark:text-white flex items-center gap-1 cursor-pointer hover:text-accent-500 transition-colors" 
- onClick={() => { setTempName(petData.name); setIsEditingName(true); }}
+ onClick={() => { setTempName(petData.name || ''); setIsEditingName(true); }}
  >
  {petData.name} <span className="text-[10px] opacity-30 group-hover:opacity-100">✎</span> <span className="text-xs font-bold text-accent-500 bg-accent-50 dark:bg-accent-500/10 px-1.5 py-0.5 rounded-md">{t('auto.lvl', { defaultValue: 'Lvl' })} {petData.level}</span>
  </h4>
@@ -1591,5 +1591,6 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  </div>
  );
 }
+
 
 

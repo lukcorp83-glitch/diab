@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -1389,3 +1389,5 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </>
  );
 }
+
+

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { getEffectiveUid } from '../../lib/utils';
@@ -97,3 +97,4 @@ export const usePumpStatus = (user: any) => {
     staleTime: 1000 * 60 * 5,
   });
 };
+
