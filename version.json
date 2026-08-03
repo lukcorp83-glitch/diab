@@ -1,10 +1,10 @@
 {
-    "version":  "6.0.0",
+    "version":  "6.0.1",
     "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.0_OTA.apk",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.1_OTA.apk",
     "buildNumber":  119,
     "forceUpdate":  false,
-    "whatsNew":  "Wielki przełom (6.0.0)! Naprawiono system pobierania aktualizacji, który odrzucał wersję 5.9.100. Zawiera też poprawkę bazy i paska.",
-    "whatsNewEn":  "Major milestone (6.0.0)! Fixed update system which rejected 5.9.100. Includes DB and status bar fixes.",
+    "whatsNew":  "Wreszcie dopięto diagnostykę trybu dziecka. Dodano poprawione powiadomienia pustej bazy na ekranie głównym.",
+    "whatsNewEn":  "Child mode diagnostics finally fully deployed. Added proper empty DB toasts.",
     "otaRevision":  278
 }

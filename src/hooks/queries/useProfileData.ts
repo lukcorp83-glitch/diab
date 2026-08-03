@@ -1,4 +1,4 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { getEffectiveUid } from '../../lib/utils';
@@ -61,17 +61,29 @@ export const useUserSettings = (user: any) => {
     queryFn: async () => {
       if (!user) return null;
       try {
-        const settingsRef = doc(db, "users", getEffectiveUid(user), "settings", "profile");
+        const uid = getEffectiveUid(user);
+        const settingsRef = doc(db, "users", uid, "settings", "profile");
         const d = await getDoc(settingsRef);
-        if (d.exists()) return d.data();
-      } catch (e) {
+        if (d.exists()) {
+           return d.data();
+        } else {
+           import('react-hot-toast').then(m => m.toast("Baza główna pusta dla UID: " + uid.substring(0,5) + "... Szukam w awaryjnej."));
+        }
+      } catch (e: any) {
+        import('react-hot-toast').then(m => m.toast.error("Błąd odczytu nowej bazy: " + e.message));
         console.warn("Brak dostępu do nowej struktury settings/profile. Próba ze starej ścieżki...");
       }
       try {
-        const oldSettingsRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile");
+        const uid = getEffectiveUid(user);
+        const oldSettingsRef = doc(db, "artifacts", "diacontrolapp", "users", uid, "settings", "profile");
         const oldD = await getDoc(oldSettingsRef);
-        if (oldD.exists()) return oldD.data();
-      } catch (err) {
+        if (oldD.exists()) {
+           return oldD.data();
+        } else {
+           import('react-hot-toast').then(m => m.toast.error("UWAGA: Obie bazy są całkowicie PUSTE dla UID: " + uid.substring(0,5) + "... Dlatego tryb dziecka gaśnie!"));
+        }
+      } catch (err: any) {
+        import('react-hot-toast').then(m => m.toast.error("Błąd odczytu starej bazy: " + err.message));
         console.error("Zarówno nowa jak i stara ścieżka ustawień profilu zawiodła", err);
       }
       return null;
