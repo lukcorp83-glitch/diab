@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '5.9.95';
+export const CURRENT_VERSION = '5.9.96';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.9.96",
+    date: new Date().toISOString().split('T')[0],
+    title: "Naprawa Paska Migracji",
+    changes: [
+      "Wdrożono awaryjne pobieranie logów z chmury Firebase bez użycia paczki",
+      "Dodano wsparcie dla potrójnego dekodowania starej bazy (UTF16, Base64)",
+      "Zoptymalizowano asynchroniczne pobieranie ustawień z wyświetlaniem od 0% do 4%"
+    ]
+  },
   {
     version: "5.9.95",
     date: "2026-08-02",
@@ -648,6 +658,25 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "5.9.96",
+    date: new Date().toISOString().split('T')[0],
+    title: "Aktualizacja Krytyczna: Naprawa Paska",
+    changes: [
+      {
+        categoryKey: "kategoria_aktualizacje",
+        icon: "CloudCog",
+        colorClass: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400",
+        descriptionKey: "Rozwiązano problem z zawieszającym się na 0% paskiem migracji."
+      },
+      {
+        categoryKey: "kategoria_wersja_apk_mobilna",
+        icon: "Smartphone",
+        colorClass: "bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400",
+        descriptionKey: "Wdrożono wsparcie wielu kodowań dla paczek CloudSync ze starej wersji (5.7.2)."
+      }
+    ]
+  },
   {
     version: "5.9.95",
     date: "2026-08-02",

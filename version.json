@@ -1,18 +1,18 @@
 {
-  "version": "5.9.95",
+  "version": "5.9.96",
   "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
   "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.91_OTA.apk",
-  "buildNumber": 118,
+  "buildNumber": 119,
   "forceUpdate": false,
   "whatsNew": [
-    "Wdrożono automatycznego menedżera migracji bazy danych",
-    "Naprawiono wyświetlanie pustego widżetu dziennego TIR (Time In Range)",
-    "Przywrócono pełną optymalizację kosztów Firebase (usunięto podwójne odczyty)"
+    "Naprawiono zacinający się na 0% pasek migracji i pobierania bazy",
+    "Dodano potrójny algorytm dekompresji dla baz ze starszych wersji",
+    "Zoptymalizowano asynchroniczne pobieranie paczek ustawień"
   ],
   "whatsNewEn": [
-    "Implemented automated database migration manager",
-    "Fixed empty circular daily TIR widget issue",
-    "Restored Firebase cost optimization (removed dual-reads)"
+    "Fixed migration and database download progress bar stuck at 0%",
+    "Added triple decompression algorithm for legacy database formats",
+    "Optimized asynchronous fetching of settings"
   ],
-  "otaRevision": 277
+  "otaRevision": 278
 }
