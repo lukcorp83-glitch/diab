@@ -1,4 +1,4 @@
-import {
+﻿import {
  calculateIOB,
  calculateCOB,
  getEffectiveUid,
@@ -34,6 +34,7 @@ import { notificationService } from "./services/notificationService";
 import { Toaster, toast, ToastBar } from "react-hot-toast";
 
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
+import { NotificationBridge } from './lib/notificationBridge';
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePetStatus, useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
@@ -363,4 +364,5 @@ export default function App() {
     </>
   );
 }
+
 

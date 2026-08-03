@@ -1,10 +1,11 @@
-import { registerPlugin } from '@capacitor/core';
+﻿import { registerPlugin } from '@capacitor/core';
 
 export interface NotificationBridgePlugin {
   checkPermission(): Promise<{ granted: boolean }>;
   requestPermission(): Promise<void>;
   requestActiveNotifications(): Promise<void>;
   getGlucoseHistory(): Promise<{ history: string }>;
+  updateForegroundNotification(options: { title: string, text: string }): Promise<void>;
   addListener(
     eventName: 'glucoseNotificationReceived',
     listenerFunc: (data: { glucose: number; iob: number; package: string }) => void,
@@ -12,3 +13,4 @@ export interface NotificationBridgePlugin {
 }
 
 export const NotificationBridge = registerPlugin<NotificationBridgePlugin>('NotificationBridge');
+

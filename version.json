@@ -1,10 +1,10 @@
 {
-    "version":  "5.9.98",
+    "version":  "6.0.0",
     "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.98_OTA.apk",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.0_OTA.apk",
     "buildNumber":  119,
     "forceUpdate":  false,
-    "whatsNew":  "Wydłużono limit czasu pobierania Nightscout z 10s do 60s. Dodano monitory pustej bazy Firebase.",
-    "whatsNewEn":  "Extended Nightscout download timeout from 10s to 60s. Added empty Firebase db monitors.",
+    "whatsNew":  "Wielki przełom (6.0.0)! Naprawiono system pobierania aktualizacji, który odrzucał wersję 5.9.100. Zawiera też poprawkę bazy i paska.",
+    "whatsNewEn":  "Major milestone (6.0.0)! Fixed update system which rejected 5.9.100. Includes DB and status bar fixes.",
     "otaRevision":  278
 }

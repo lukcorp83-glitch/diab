@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, X, Star, CloudDownload, Loader2 } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
@@ -59,7 +59,17 @@ export default function UpdateModal() {
  const dismissedOta = localStorage.getItem("dismissedOtaRevision");
  const appliedOta = localStorage.getItem("appliedOtaRevision");
  
- const isNewApkVersion = data && data.version > CURRENT_VERSION;
+    const isNewApkVersion = data && (function(v1, v2) {
+       var p1 = v1.split('.').map(Number);
+       var p2 = v2.split('.').map(Number);
+       for (var i=0; i<Math.max(p1.length, p2.length); i++) {
+           var n1 = p1[i] || 0;
+           var n2 = p2[i] || 0;
+           if (n1 > n2) return true;
+           if (n1 < n2) return false;
+       }
+       return false;
+   })(data.version, CURRENT_VERSION);
  const currentOtaToCompare = appliedOta ? parseInt(appliedOta, 10) : CURRENT_OTA_REVISION;
  const isNewOtaRevision = data && data.version === CURRENT_VERSION && data.otaRevision && data.otaRevision > currentOtaToCompare;
 
@@ -221,3 +231,4 @@ export default function UpdateModal() {
  </AnimatePresence>
  );
 }
+
