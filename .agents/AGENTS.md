@@ -1,4 +1,4 @@
-# Projekt GlikoControl - Reguły i Wnioski z Błędów
+﻿# Projekt GlikoControl - Reguły i Wnioski z Błędów
 
 Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Zawsze ich przestrzegaj!
 
@@ -8,7 +8,7 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
     1. `package.json` (klucz "version")
     2. `package-lock.json` (uruchom komendę `npm install --package-lock-only`)
     3. `version.json` (klucz "version", aktualizacja okien nowości `whatsNew`, opcjonalnie `apkUrl`)
-    4. `src/constants.ts` (zmienna `APP_VERSION`)
+    4. `src/constants.ts` (zmienne `APP_VERSION` oraz `CURRENT_VERSION`)
     5. `src/constants/versions.ts` (zmienna `CURRENT_VERSION` oraz dodanie wpisu do tablic `PWA_VERSIONS` i `APK_VERSIONS`)
 
 - **Aktualizacja tekstów w oknie nowości (Pop-up)**:
@@ -33,4 +33,5 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
 
 - **Optymalizacja Kontekstu (Oszczędzanie Tokenów)**:
   - Zawsze opieraj się na pliku `.agents/docs/architecture.md`, w którym znajduje się mapa starego i nowego kodu. Zamiast w ciemno skanować cały projekt czy wielkie pliki (jak `App.tsx`), najpierw zajrzyj do mapy architektury. Gdy tylko odkryjesz lub zmodyfikujesz coś ważnego (niezależnie czy to nowy, czy stary kod), **od razu aktualizuj plik `architecture.md`**, aby nie zapomnieć jak działa aplikacja między rozmowami.
+
 

@@ -1,4 +1,4 @@
-/// <reference lib="webworker" />
+﻿/// <reference lib="webworker" />
 
 interface NightscoutEntry {
   sgv: number;
@@ -28,7 +28,7 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
   console.log(`[Worker] Rozpoczynam fetchWithFallbacks dla URL: ${directUrl}, używany proxy: ${workingProxyIndex}`);
   let lastError = null;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout per fetch
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for large history // 10 second timeout per fetch
   
   if (workingProxyIndex === -1) {
     console.log(`[Worker] Próbuję połączenia bezpośredniego...`);
@@ -41,8 +41,8 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
     } catch (e: any) {
       clearTimeout(timeoutId);
       if (e.name === 'AbortError') {
-        console.warn(`[Worker] Bezpośrednie połączenie: TIMEOUT (10s)`);
-        lastError = "Request timed out (10s limit)";
+        console.warn(`[Worker] Bezpośrednie połączenie: TIMEOUT (60s)`);
+        lastError = "Request timed out (60s limit)";
       } else {
         console.warn(`[Worker] Bezpośrednie połączenie: BŁĄD SIECI - ${e.message}`);
         lastError = e.message || "Network error on direct fetch";
@@ -77,7 +77,7 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
     } catch (e: any) {
       clearTimeout(proxyTimeoutId);
       if (e.name === 'AbortError') {
-        console.warn(`[Worker] Proxy [${i}] TIMEOUT (10s)`);
+        console.warn(`[Worker] Proxy [${i}] TIMEOUT (60s)`);
         lastError = "Proxy request timed out (10s limit)";
       } else {
         console.warn(`[Worker] Proxy [${i}] BŁĄD SIECI - ${e.message}`);
@@ -304,3 +304,4 @@ self.onmessage = async (e: MessageEvent) => {
     if (syncInterval) clearInterval(syncInterval);
   }
 };
+

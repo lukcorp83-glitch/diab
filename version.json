@@ -1,10 +1,10 @@
 {
-    "version":  "5.9.97",
+    "version":  "5.9.98",
     "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.97_OTA.apk",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.98_OTA.apk",
     "buildNumber":  119,
     "forceUpdate":  false,
-    "whatsNew":  "Diagnoza braku zapisu trybu dziecka (dodano toasty z błędami) po stronie Firebase.",
-    "whatsNewEn":  "Diagnosing missing child mode saves (added error toasts) on the Firebase side.",
+    "whatsNew":  "Wydłużono limit czasu pobierania Nightscout z 10s do 60s. Dodano monitory pustej bazy Firebase.",
+    "whatsNewEn":  "Extended Nightscout download timeout from 10s to 60s. Added empty Firebase db monitors.",
     "otaRevision":  278
 }

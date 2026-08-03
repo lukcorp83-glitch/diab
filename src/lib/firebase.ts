@@ -1,4 +1,4 @@
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+﻿import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
@@ -15,7 +15,7 @@ export const db = initializeFirestore(app, {
     ignoreUndefinedProperties: true,
     host: 'firestore.googleapis.com',
     ssl: true,
-    localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+    localCache: persistentLocalCache({tabManager: persistentSingleTabManager()})
 });
 
 // Verification function as per Firestore guidelines
@@ -85,3 +85,4 @@ isAnalyticsSupported().then(supported => {
 }).catch(console.error);
 
 console.log("Firebase initialized for project:", firebaseConfig.projectId);
+
