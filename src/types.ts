@@ -1,4 +1,4 @@
-export interface Product {
+﻿export interface Product {
   id?: string;
   name: string;
   nameEn?: string;
@@ -123,6 +123,7 @@ export interface UserSettings {
   dia?: number; // Duration of Insulin Action in hours
   hourlyProfiles?: HourlyProfile[];
   customDrugDictionary?: Record<string, DrugKnowledge>; // Globalny słownik wiedzy wygenerowany przez AI
+  smartEquipmentDetection?: boolean; // Inteligentne wykrywanie zmiany osprzetu
   medications?: Medication[];
   inventory?: InventoryItem[];
   cgmCalibration?: number; // Calibration offset in mg/dL
@@ -186,3 +187,4 @@ export interface AssistantMessage {
   timestamp: number;
   appAction?: any;
 }
+

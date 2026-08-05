@@ -445,9 +445,41 @@ export const geminiService = {
 
   async analyzeMeal(imageData: string, settings?: any) {
     const dietInfo = settings?.activeDiet
-      ? i18n.t('auto.uwaga_uzytkownik_przestrz', { defaultValue: "UWAGA: Użytkownik przestrzega diety: {{var0}}. Zwróć szczególną uwagę jak ten posiłek wpisuje się w jej zasady.", var0: settings.activeDiet })
+      ? i18n.t("auto.uwaga_uzytkownik_przestrz", { defaultValue: "UWAGA: Użytkownik przestrzega diety: {{var0}}. Zwróć szczególną uwagę jak ten posiłek wpisuje się w jej zasady.", var0: settings.activeDiet })
       : "";
-    const prompt = i18n.t('auto.przeanalizuj_to_zdjecie_p', { defaultValue: "Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj CAŁKOWITĄ orientacyjną wagę posiłku (w gramach). Następnie oszacuj CAŁKOWITĄ ilość węglowodanów (g), białek (g) i tłuszczy (g) W CAŁYM WIDOCZNYM POSIŁKU (nie na 100g, lecz w całej szacowanej porcji). Podaj również indeks glikemiczny (IG - POWINIEN BYĆ KONKRETNĄ LICZBĄ). Dodaj szczegółową analizę dla diabetyka (\"analysis\") - co zawiera posiłek i jak może wpłynąć na glikemię. {{var0}}\n    Zwróć odpowiedź absolutnie w formacie JSON (tylko czysty JSON, bez markdown):\n    {\n      \"mealName\": \"nazwa posiłku\",\n      \"weight\": 0,\n      \"carbs\": 0,\n      \"protein\": 0,\n      \"fat\": 0,\n      \"ig\": 0,\n      \"analysis\": \"Krótka analiza posiłku...\"\n    }", var0: dietInfo });
+    const currentLang = i18n.language || "pl";
+    const langInstruction = currentLang === "en" ? "Respond in ENGLISH." : "Odpowiadaj po POLSKU.";
+
+    const prompt = `Przeanalizuj to zdjęcie posiłku.
+${langInstruction}
+1. Wykryj wszystkie widoczne SKŁADNIKI posiłku i oszacuj ich orientacyjną wagę (w gramach) oraz wartości odżywcze NA 100g każdego składnika (węglowodany, białko, tłuszcz, IG).
+2. Oszacuj CAŁKOWITĄ orientacyjną wagę całego posiłku oraz CAŁKOWITĄ ilość węglowodanów, białek, tłuszczy i wypadkowe IG.
+3. Podaj wniosek diabetologiczny o wpływie na glikemię ("glycemicImpact") - np. czy cukier wzrośnie szybko, wolno, czy dwufazowo.
+4. Podaj konkretną wskazówkę bilansowania ("balanceAdvice") - co warto dodać lub zmienić, aby lepiej zbilansować posiłek pod kątem cukrzycy.
+${dietInfo}
+
+Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania markdown):
+{
+  "mealName": "nazwa posiłku",
+  "weight": 400,
+  "carbs": 50,
+  "protein": 20,
+  "fat": 15,
+  "ig": 55,
+  "analysis": "Ogólny opis posiłku...",
+  "glycemicImpact": "Spodziewany szybki skok glikemii...",
+  "balanceAdvice": "Warto dodać błonnik lub zdrowy tłuszcz...",
+  "ingredients": [
+    {
+      "name": "Nazwa składnika",
+      "weight": 200,
+      "carbsPer100g": 17,
+      "proteinPer100g": 2,
+      "fatPer100g": 0.1,
+      "ig": 65
+    }
+  ]
+}`;
 
     try {
       const text = await this.generateContent(prompt, imageData);

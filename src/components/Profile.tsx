@@ -1,4 +1,4 @@
-import { useLogsStore } from "../stores/useLogsStore";
+﻿import { useLogsStore } from "../stores/useLogsStore";
 import { useAuthStore } from "../stores/useAuthStore";
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
@@ -922,7 +922,7 @@ export default function Profile({
  const newSettings = { ...settings, customDrugDictionary: updatedDict };
  setSettings(newSettings);
  await setDoc(
- doc(db, "users", getEffectiveUid(user)),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { customDrugDictionary: updatedDict },
  { merge: true }
  );
@@ -2379,7 +2379,40 @@ export default function Profile({
  )}
  {activeCategory === "notifications" && <ProfileNotifications settings={settings} setSettings={setSettings} />}
  {activeCategory === "devices" && (
- <div className="space-y-4">
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 rounded-[2.5rem] p-6 border border-indigo-200/50 dark:border-indigo-500/20 shadow-xl backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-lg shadow-indigo-500/20">
+                  <Sparkles size={20} />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">
+                    {t('auto.inteligentne_wykrywanie_wymian', { defaultValue: 'Inteligentne wykrywanie wymian' })}
+                  </h3>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
+                    {t('auto.automatycznie_pytaj_o_wymiane', { defaultValue: 'Automatycznie pytaj o wymianę sprzętu (potrącając zapasy), gdy wykryto duży skok insuliny lub lukę w CGM.' })}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  const val = !settings.smartEquipmentDetection;
+                  setSettings({ ...settings, smartEquipmentDetection: val });
+                  Haptics.medium();
+                  if (val) toast.success(i18n.t('auto.inteligentne_wykrywanie_wlaczone', { defaultValue: 'Inteligentne wykrywanie włączone!' }));
+                  
+                  await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { smartEquipmentDetection: val }, { merge: true });
+                }}
+                className={cn(
+                  "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
+                  settings.smartEquipmentDetection && "bg-indigo-500 pl-5",
+                )}
+              >
+                <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+              </button>
+            </div>
+          </div>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
  <div
  className={cn(
@@ -4141,3 +4174,8 @@ function SettingInput({
  </div>
  );
 }
+
+
+
+
+

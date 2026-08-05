@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { UserSettings } from '../types';
 
 interface SettingsState {
@@ -22,3 +22,4 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     settings: { ...state.settings, ...newSettings } 
   }))
 }));
+

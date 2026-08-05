@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { getEffectiveUid } from '../lib/utils';
 import { doc, getDoc, collection, getDocs, writeBatch, setDoc, query, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -166,3 +166,4 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
 
   return null;
 };
+

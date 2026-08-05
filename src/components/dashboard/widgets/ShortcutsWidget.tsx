@@ -1,3 +1,4 @@
+﻿import { useAppStore } from '../../../stores/useAppStore';
 import React from 'react';
 import { cn, getEffectiveUid } from "../../../lib/utils";
 import { useTranslation } from "react-i18next";
@@ -55,7 +56,7 @@ export default function ShortcutsWidget({
         onClick={() => {
           if (!isEditingLayout) {
             Haptics.light();
-            onAction?.("food");
+            useAppStore.getState().setInitialAction('food');
             setTab("profile");
           }
         }}
@@ -76,7 +77,7 @@ export default function ShortcutsWidget({
           onClick={() => {
             if (!isEditingLayout) {
               Haptics.light();
-              onAction?.("food");
+              useAppStore.getState().setInitialAction('food');
               setTab("profile");
             }
           }}
@@ -103,3 +104,4 @@ export default function ShortcutsWidget({
     </div>
   );
 }
+

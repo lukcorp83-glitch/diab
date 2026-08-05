@@ -14,7 +14,7 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.1';
+export const CURRENT_VERSION = '6.0.4';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
@@ -1144,6 +1144,7 @@ export const APK_VERSIONS: VersionEntry[] = [
     ]
   }
 ];
+
 
 
 

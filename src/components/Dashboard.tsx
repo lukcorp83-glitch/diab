@@ -1,6 +1,7 @@
-import { Cylinder } from 'lucide-react';
+﻿import { Cylinder } from 'lucide-react';
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useAppStore } from '../stores/useAppStore';
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapacitorApp } from '@capacitor/app';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -1053,7 +1054,7 @@ export default function Dashboard({
             onClick={() => { 
               if (!isEditingLayout) {
                 Haptics.light();
-                setTab('inventory');
+                useAppStore.getState().setInitialAction('devices'); setTab('profile');
               }
             }}
             className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isSensCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
@@ -1113,7 +1114,7 @@ export default function Dashboard({
             onClick={() => { 
               if (!isEditingLayout) {
                 Haptics.light();
-                setTab('inventory');
+                useAppStore.getState().setInitialAction('devices'); setTab('profile');
               }
             }}
             className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isInfCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
@@ -1217,7 +1218,7 @@ export default function Dashboard({
           <div className="w-full h-full">
             <DidYouKnowWidget onClick={() => {
               if (!isEditingLayout) {
-                onAction?.('tutorial');
+                useAppStore.getState().setInitialAction('tutorial');
                 setTab('profile');
               }
             }} />
@@ -1379,7 +1380,7 @@ export default function Dashboard({
             onClick={() => {
               if (!isEditingLayout) {
                 Haptics.light();
-                onAction?.("training");
+                useAppStore.getState().setInitialAction("training");
                 setTab("profile");
               }
             }}
@@ -1583,7 +1584,7 @@ export default function Dashboard({
                  key={item.id} 
                  onClick={() => {
                    Haptics.light();
-                   setTab('inventory');
+                   useAppStore.getState().setInitialAction('devices'); setTab('profile');
                  }}
                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors cursor-pointer active:scale-95 ${bgClass} ${colorClass}`}
                >
@@ -1869,7 +1870,7 @@ export default function Dashboard({
                onClick={() => { 
                  Haptics.light();
                  setTab('profile'); 
-                 onAction?.('devices'); 
+                 useAppStore.getState().setInitialAction('devices'); 
                }}
                className="glass-card !p-5 flex flex-col justify-between relative overflow-hidden cursor-pointer"
              >
@@ -1944,7 +1945,7 @@ export default function Dashboard({
       {/* 6. AI Tips & Insights */}
       <motion.div className="space-y-4">
         <DidYouKnowWidget onClick={() => {
-          onAction?.('tutorial');
+          useAppStore.getState().setInitialAction('tutorial');
           setTab('profile');
         }} />
         
@@ -1988,7 +1989,7 @@ export default function Dashboard({
               <button 
                 onClick={() => {
                   Haptics.light();
-                  onAction?.("food");
+                  useAppStore.getState().setInitialAction("food");
                   setTab("profile");
                 }}
                 className="text-[9px] font-black text-accent-500 uppercase tracking-tight"
@@ -2002,7 +2003,7 @@ export default function Dashboard({
               <button
                 onClick={() => {
                   Haptics.light();
-                  onAction?.("training");
+                  useAppStore.getState().setInitialAction("training");
                   setTab("profile");
                 }}
                 className="shrink-0 glass-card !p-5 flex items-center gap-4 font-black text-xs uppercase tracking-tighter shadow-md active:scale-95 transition-all border border-emerald-500/10 dark:border-emerald-500/5 dark:text-white group min-w-[140px]"
@@ -2184,5 +2185,9 @@ export default function Dashboard({
     </div>
   );
 }
+
+
+
+
 
 

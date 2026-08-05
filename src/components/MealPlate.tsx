@@ -964,39 +964,58 @@ export default function MealPlate({
  setSearchError("");
  try {
  const result = await geminiService.analyzeMeal(
- image.dataUrl,
- settings,
- );
- const estimatedWeight =
- result.weight && result.weight > 0 ? result.weight : 100;
+            image.dataUrl,
+            settings,
+          );
 
- const p = {
- id: `ai_${Date.now()}`,
- name: result.mealName || i18n.t('auto.posilek_ai', { defaultValue: i18n.t('auto.posilek_ai', { defaultValue: "Posiłek AI" }) }),
- carbs: Number(
- (((result.carbs || 0) / estimatedWeight) * 100).toFixed(1),
- ),
- protein: Number(
- (((result.protein || 0) / estimatedWeight) * 100).toFixed(1),
- ),
- fat: Number(
- (((result.fat || 0) / estimatedWeight) * 100).toFixed(1),
- ),
- gi: result.ig || result.gi || 50,
- category: "AI Wizja",
- };
- const weight = estimatedWeight;
- setPlate((prev) => [
- ...prev,
- {
- ...p,
- weight,
- carbs: p.carbs,
- protein: p.protein,
- fat: p.fat,
- },
- ]);
- setTimeout(() => {
+          // Build HTML analysis for impact and balancing advice
+          let htmlAnalysis = "";
+          if (result.analysis) {
+            htmlAnalysis += `<div>${result.analysis}</div>`;
+          }
+          if (result.glycemicImpact) {
+            htmlAnalysis += `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);"><b>⚡ ${i18n.t('auto.przewidywany_wplyw_na_cukier', { defaultValue: 'Wpływ na glikemię' })}:</b> ${result.glycemicImpact}</div>`;
+          }
+          if (result.balanceAdvice) {
+            htmlAnalysis += `<div style="margin-top: 6px;"><b>💡 ${i18n.t('auto.wskazowka_bilansowania', { defaultValue: 'Wskazówka bilansowania' })}:</b> ${result.balanceAdvice}</div>`;
+          }
+          setAnalysis(htmlAnalysis);
+
+          if (result.ingredients && Array.isArray(result.ingredients) && result.ingredients.length > 0) {
+            const itemsToAdd = result.ingredients.map((ing: any, idx: number) => {
+              const ingWeight = ing.weight && ing.weight > 0 ? ing.weight : 100;
+              const carbs100 = ing.carbsPer100g !== undefined ? ing.carbsPer100g : (ing.carbs ? ((ing.carbs / ingWeight) * 100) : 0);
+              const prot100 = ing.proteinPer100g !== undefined ? ing.proteinPer100g : (ing.protein ? ((ing.protein / ingWeight) * 100) : 0);
+              const fat100 = ing.fatPer100g !== undefined ? ing.fatPer100g : (ing.fat ? ((ing.fat / ingWeight) * 100) : 0);
+              return {
+                id: `ai_ing_${Date.now()}_${idx}`,
+                name: ing.name || `Składnik ${idx + 1}`,
+                carbs: Number(carbs100.toFixed(1)),
+                protein: Number(prot100.toFixed(1)),
+                fat: Number(fat100.toFixed(1)),
+                gi: ing.ig || result.ig || 50,
+                weight: ingWeight,
+                category: "AI Wizja",
+              };
+            });
+
+            setPlate((prev) => [...prev, ...itemsToAdd]);
+            toast.success(i18n.t('auto.wykryto_skladniki_ai', { defaultValue: `Wykryto ${itemsToAdd.length} składników posiłku! Składniki dodano na talerz.`, count: itemsToAdd.length }));
+          } else {
+            const estimatedWeight = result.weight && result.weight > 0 ? result.weight : 100;
+            const p = {
+              id: `ai_${Date.now()}`,
+              name: result.mealName || i18n.t('auto.posilek_ai', { defaultValue: "Posiłek AI" }),
+              carbs: Number((((result.carbs || 0) / estimatedWeight) * 100).toFixed(1)),
+              protein: Number((((result.protein || 0) / estimatedWeight) * 100).toFixed(1)),
+              fat: Number((((result.fat || 0) / estimatedWeight) * 100).toFixed(1)),
+              gi: result.ig || result.gi || 50,
+              category: "AI Wizja",
+            };
+            setPlate((prev) => [...prev, { ...p, weight: estimatedWeight }]);
+          }
+
+          setTimeout(() => {
  const container = document.getElementById("meal-plate-container")?.parentElement;
  if (container) {
  container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });

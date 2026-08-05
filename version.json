@@ -1,10 +1,10 @@
 {
-    "version":  "6.0.1",
+    "version":  "6.0.4",
     "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.1_OTA.apk",
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.4_OTA.apk",
     "buildNumber":  119,
     "forceUpdate":  false,
-    "whatsNew":  "Wreszcie dopięto diagnostykę trybu dziecka. Dodano poprawione powiadomienia pustej bazy na ekranie głównym.",
-    "whatsNewEn":  "Child mode diagnostics finally fully deployed. Added proper empty DB toasts.",
+    "whatsNew":  "Wersja 6.0.4! Znalazłem i naprawiłem potężny błąd. Aplikacja zapisywała Twoją datę wymiany sprzętu do niewłaściwego folderu na serwerze (omijała folder \u0027settings\u0027), dlatego po restarcie gubiła informacje i ucinała dni do zera. Teraz liczniki sprzętu są pancerne!",
+    "whatsNewEn":  "Version 6.0.4! Fixed a major bug where equipment change dates were being saved to the wrong database path, causing them to reset to zero after app restart.",
     "otaRevision":  278
 }

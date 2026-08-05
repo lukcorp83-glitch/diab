@@ -21,9 +21,35 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
     worker.onmessage = (e) => {
       const { type, payload } = e.data;
 
-      if (type === 'SYNC_SUCCESS') {
-        if (payload.deviceStatus) {
-           setNsDeviceStatus(payload.deviceStatus);
+                      if (type === 'SYNC_SUCCESS') {
+          // --- SMART EQUIPMENT DETECTION ---
+          if (userSettingsRef.current?.smartEquipmentDetection) {
+            import('../lib/smartEquipment').then(({ detectSmartEquipmentChanges }) => {
+              // We use localStorage as a reliable backup of the previous reservoir level
+              const prevReservoir = localStorage.getItem('last_known_reservoir') ? parseFloat(localStorage.getItem('last_known_reservoir')!) : undefined;
+              const newReservoir = payload.deviceStatus?.reservoir;
+              
+              if (newReservoir !== undefined) {
+                localStorage.setItem('last_known_reservoir', newReservoir.toString());
+              }
+
+              const { triggerReservoir, triggerSensor } = detectSmartEquipmentChanges(newReservoir, prevReservoir, payload.entries || []);
+              
+              if (triggerReservoir) {
+                window.dispatchEvent(new CustomEvent('smart-equipment-trigger', { detail: 'reservoir' }));
+              } else if (triggerSensor) {
+                window.dispatchEvent(new CustomEvent('smart-equipment-trigger', { detail: 'sensor' }));
+              }
+            });
+          }
+          // ---------------------------------
+          if (payload.deviceStatus) {
+           setNsDeviceStatus(prev => {
+               if (!prev || JSON.stringify(prev) !== JSON.stringify(payload.deviceStatus)) {
+                 return payload.deviceStatus;
+               }
+               return prev;
+             });
         }
 
         const uniqueNSLogs: LogEntry[] = [];
@@ -122,4 +148,6 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
 
   return { nsLogs, setNsLogs, nsDeviceStatus };
 }
+
+
 

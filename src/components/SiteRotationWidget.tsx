@@ -1,3 +1,4 @@
+﻿import { useAppStore } from '../stores/useAppStore';
 import i18n from '../i18n';
 import { useLogsStore } from "../stores/useLogsStore";
 import React, { useMemo, useState, useEffect } from 'react';
@@ -94,7 +95,7 @@ export default function SiteRotationWidget({ settings, size, onAction, setTab }:
  onClick={() => {
  Haptics.light();
  setTab("profile");
- onAction?.("devices");
+ useAppStore.getState().setInitialAction('devices');
  }}
  className={cn(
  "glass-card w-full h-full p-4 flex flex-col relative overflow-hidden transition-all active:scale-[0.98]",
@@ -157,4 +158,5 @@ export default function SiteRotationWidget({ settings, size, onAction, setTab }:
  </div>
  );
 }
+
 

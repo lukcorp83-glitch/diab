@@ -1,4 +1,4 @@
-﻿{
+{
   "sidebar": {
     "items": {
       "profile_settings": "Ustawienia Profilu",
@@ -3694,7 +3694,21 @@
     "metabolizm_label_standardowy": "Standardowy",
     "metabolizm_label_wolny": "Wolny",
     "metabolizm_label_bardzo_wolny": "Bardzo wolny",
-    "glikosense_wykryl_ze_twoj_metabolizm": "🧬 GlikoSense wykrył, że Twój metabolizm węglowodanów i insuliny wpisuje się w profil: \"{{label}}\". Zaktualizowałem model krzywych trawienia!"
+    "glikosense_wykryl_ze_twoj_metabolizm": "🧬 GlikoSense wykrył, że Twój metabolizm węglowodanów i insuliny wpisuje się w profil: \"{{label}}\". Zaktualizowałem model krzywych trawienia!",
+    "inteligentne_wykrywanie_wymian": "Inteligentne wykrywanie wymian",
+    "automatycznie_pytaj_o_wymiane": "Automatycznie pytaj o wymianę sprzętu (potrącając zapasy), gdy wykryto duży skok insuliny lub lukę w CGM.",
+    "inteligentne_wykrywanie_wlaczone": "Inteligentne wykrywanie włączone!",
+    "wykryto_uzupelnienie_insuliny": "Wykryto skok insuliny",
+    "wykryto_przerwe_cgm": "Wykryto przerwę w CGM",
+    "czy_wymieniles_zbiorniczek_pytanie": "Zauważyliśmy nagły skok insuliny w pompie. Czy właśnie wymieniłeś zbiorniczek?",
+    "czy_wymieniles_sensor_pytanie": "Zauważyliśmy ponad godzinną lukę w odczytach cukru. Czy założyłeś nowy sensor?",
+    "wymienilem_tez_wklucie": "Wymieniłem też wkłucie",
+    "nie_to_blad": "Nie, to błąd",
+    "tak_wymienilem": "Tak, wymieniłem",
+    "wykryto_skladniki_ai": "Wykryto {{count}} składników posiłku! Składniki dodano na talerz.",
+    "wniosek_i_bilansowanie_ai": "Wniosek i Bilansowanie AI",
+    "przewidywany_wplyw_na_cukier": "Wpływ na glikemię",
+    "wskazowka_bilansowania": "Wskazówka bilansowania"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {

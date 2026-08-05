@@ -1,4 +1,4 @@
-﻿{
+{
   "sidebar": {
     "items": {
       "profile_settings": "Profile Settings",
@@ -3724,7 +3724,21 @@
     "metabolizm_label_standardowy": "Standard",
     "metabolizm_label_wolny": "Slow",
     "metabolizm_label_bardzo_wolny": "Very slow",
-    "glikosense_wykryl_ze_twoj_metabolizm": "🧬 GlikoSense detected that your carbohydrate and insulin metabolism matches the profile: \"{{label}}\". I have updated the digestion curve model!"
+    "glikosense_wykryl_ze_twoj_metabolizm": "🧬 GlikoSense detected that your carbohydrate and insulin metabolism matches the profile: \"{{label}}\". I have updated the digestion curve model!",
+    "inteligentne_wykrywanie_wymian": "Smart replacement detection",
+    "automatycznie_pytaj_o_wymiane": "Automatically prompt for equipment replacement (deducting inventory) when a large insulin jump or CGM gap is detected.",
+    "inteligentne_wykrywanie_wlaczone": "Smart detection enabled!",
+    "wykryto_uzupelnienie_insuliny": "Insulin jump detected",
+    "wykryto_przerwe_cgm": "CGM gap detected",
+    "czy_wymieniles_zbiorniczek_pytanie": "We noticed a sudden insulin increase in the pump. Did you just replace the reservoir?",
+    "czy_wymieniles_sensor_pytanie": "We noticed a >1 hour gap in glucose readings. Did you attach a new sensor?",
+    "wymienilem_tez_wklucie": "I also replaced the infusion set",
+    "nie_to_blad": "No, it is an error",
+    "tak_wymienilem": "Yes, I replaced it",
+    "wykryto_skladniki_ai": "Detected {{count}} meal ingredients! Ingredients added to your plate.",
+    "wniosek_i_bilansowanie_ai": "AI Impact & Meal Balancing",
+    "przewidywany_wplyw_na_cukier": "Impact on Glucose",
+    "wskazowka_bilansowania": "Balancing Tip"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {

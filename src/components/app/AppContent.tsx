@@ -1,4 +1,4 @@
-import { useAuthStore } from "../../stores/useAuthStore";
+﻿import { useAuthStore } from "../../stores/useAuthStore";
 import { useUserSettings, usePetStatus, useNightscoutSettings } from "../../hooks/queries/useProfileData";
 import { useLogsStore } from "../../stores/useLogsStore";
 import { useAppStore } from '../../stores/useAppStore';
@@ -22,6 +22,11 @@ const GlikoAssistant = React.lazy(() => import("../GlikoAssistant"));
 const InsulinDetective = React.lazy(() => import("../InsulinDetective"));
 const Diets = React.lazy(() => import("../Diets").then(module => ({ default: module.Diets })));
 const JetLagMode = React.lazy(() => import("../JetLagMode"));
+import { SmartEquipmentModal } from '../SmartEquipmentModal';
+import { getEffectiveUid } from '../../lib/utils';
+import { db } from '../../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { markSmartPromptShown } from '../../lib/smartEquipment';
 import { AnimatePresence, motion } from "framer-motion";
 
 export const AppContent = (props: any) => {
@@ -320,3 +325,4 @@ export const AppContent = (props: any) => {
 
   return content;
 };
+
