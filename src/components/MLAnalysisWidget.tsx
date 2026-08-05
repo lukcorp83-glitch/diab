@@ -1081,6 +1081,47 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  )}
 
+ {/* Ostatnie 3 Dni */}
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md space-y-3 w-full mb-4">
+ <div className="flex items-center gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800">
+ <CalendarDays size={16} className="text-indigo-500" />
+ <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+ {t('auto.ostatnie_3_dni', { defaultValue: 'Ostatnie 3 dni' })}
+ </span>
+ </div>
+ <div className="grid grid-cols-3 gap-2">
+ {dailyStats.map((stat, idx) => (
+ <div key={idx} className="bg-white dark:bg-slate-950/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+ <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{stat.label}</span>
+ <div className="flex flex-col items-center gap-0.5">
+ {stat.tir !== null ? (
+ <>
+ <span className="text-xl font-black text-slate-700 dark:text-slate-200">{stat.tir}%</span>
+ <span className="text-[8px] font-bold text-emerald-500 uppercase">TIR</span>
+ </>
+ ) : (
+ <span className="text-xs font-bold text-slate-300">-</span>
+ )}
+ </div>
+ <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 w-full grid grid-cols-2 gap-1">
+ <div className="flex flex-col items-center justify-center">
+ {stat.avg !== null ? (
+ <span className="text-xs font-black text-amber-500">{stat.avg}</span>
+ ) : (
+ <span className="text-xs font-bold text-slate-300">-</span>
+ )}
+ <span className="text-[7px] font-bold text-slate-400 uppercase">Śr.</span>
+ </div>
+ <div className="flex flex-col items-center justify-center border-l border-slate-100 dark:border-slate-800">
+ <span className="text-xs font-black text-indigo-500">{stat.bolus > 0 ? stat.bolus.toFixed(1) : '0'}</span>
+ <span className="text-[7px] font-bold text-slate-400 uppercase">Jedn.</span>
+ </div>
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+
  {/* Insulin Stacking Warning */}
  {mlResult.stackingAlert && mlResult.stackingAlert.isStacking && (
  <motion.div 
@@ -1117,6 +1158,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <p className={`mt-2 text-[10px] font-bold ${glikosenseAnalysis.cv > 36 ? 'text-rose-800/70 dark:text-rose-200/60' : 'text-emerald-800/70 dark:text-emerald-200/60'}`}>
  {t('auto.odchylenie_standardowe_sd', { defaultValue: 'Odchylenie standardowe (SD):' })} <strong className="font-black">{glikosenseAnalysis.sd.toFixed(1)} mg/dL</strong>
  </p>
+ <p className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[9px] text-slate-500 dark:text-slate-400 leading-tight w-full">
+ <strong className="text-slate-600 dark:text-slate-300">Cel: &lt; 36%.</strong> Zmienność glikemii (CV) określa stabilność cukrów. Zależy m.in. od precyzji szacowania posiłków (WBT), wyprzedzenia bolusa (timing) oraz stresu. Im mniejsza, tym lepsza jakość wyrównania.
+ </p>
  </div>
  
  {/* Sekcja Bolus i Baza (tylko jeśli baza > 0, wg wymagań) */}
@@ -1141,18 +1185,26 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  
  {/* Podsumowanie posiłków */}
  <div className={`col-span-1 ${glikosenseAnalysis.totalBasal > 0 ? 'md:col-span-2' : ''} grid grid-cols-2 gap-2 mt-2`}>
- {glikosenseAnalysis.mealStats.map((meal, idx) => (
+ {glikosenseAnalysis.mealStats.map((meal, idx) => {
+ const delta = meal.avgDelta;
+ const colorClass = delta <= 40 ? 'text-emerald-500' : delta <= 70 ? 'text-amber-500' : 'text-rose-500';
+ const bgClass = delta <= 40 ? 'bg-emerald-500/10' : delta <= 70 ? 'bg-amber-500/10' : 'bg-rose-500/10';
+ 
+ return (
  <div key={idx} className="bg-white dark:bg-slate-950/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
  <div className="flex items-center gap-1.5">
- <span className="text-base">{meal.icon}</span>
+ <div className={`p-1.5 rounded-lg ${bgClass}`}>
+ <span className="text-sm">{meal.icon}</span>
+ </div>
  <span className="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase">{meal.name}</span>
  </div>
  <div className="text-right flex flex-col">
- <span className="text-[10px] font-black text-amber-500">{meal.avgCarbs}g W</span>
- <span className="text-[9px] font-bold text-slate-400">Δ {meal.avgDelta} mg/dL</span>
+ <span className="text-[10px] font-black text-slate-700 dark:text-slate-300">{meal.avgCarbs}g W</span>
+ <span className={`text-[9px] font-bold ${colorClass}`}>Δ {meal.avgDelta} mg/dL</span>
  </div>
  </div>
- ))}
+ );
+ })}
  </div>
  </div>
  </div>
