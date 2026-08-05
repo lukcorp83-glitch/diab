@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { PredictionAccuracyTracker, AccuracyStats } from '../lib/predictionAccuracyTracker';
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
 import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot, Settings } from 'lucide-react';
@@ -44,7 +45,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  insights: string[],
  accuracy: number,
  datasetSize?: number,
- predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
+ predictionCurve?: { timestamp: number, offsetMs: number, value: number, confidenceMin?: number, confidenceMax?: number }[],
+  predictedPeak?: { value: number, timestamp: number },
+  predictedTrough?: { value: number, timestamp: number },
+  stackingAlert?: { isStacking: boolean, timeAgoMin?: number } | null,
  metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number },
  analyzedPeriod?: string
  } | null>(() => {
@@ -61,6 +65,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  });
 
  // Backup-related state variables
+ const realAccuracyStats: AccuracyStats = useMemo(() => {
+    return PredictionAccuracyTracker.evaluateHistoryWithLogs(logs);
+ }, [logs, mlResult]);
+
  const [backupInfo, setBackupInfo] = useState<{ timestamp: number; datasetSize?: number } | null>(null);
  const [loadingBackup, setLoadingBackup] = useState(false);
  const [hasBackupConsent, setHasBackupConsent] = useState(() => {
@@ -883,31 +891,34 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95 }}
  transition={{ duration: 0.4, ease: "easeOut" }}
- className="space-y-5 relative z-10"
+ className="space-y-4 relative z-10 w-full overflow-hidden"
  >
- <div className="grid grid-cols-2 gap-3 md:gap-5">
- {/* Prediction Box */}
- <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 dark:from-slate-950 dark:via-indigo-950 dark:to-violet-950 p-5 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group border border-indigo-500/20 flex flex-col">
- <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-6 transform-gpu">
- <TrendingUp size={160} />
+ {/* Top Cards Grid: 1 column if day, 2 columns if night */}
+ <div className={`grid ${(localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() <= 6)) ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-3 md:gap-4 w-full`}>
+ {/* 2h Direction Prediction Box */}
+ <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 dark:from-slate-950 dark:via-indigo-950 dark:to-violet-950 p-5 md:p-6 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-indigo-500/20 flex flex-col w-full">
+ <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 transform-gpu">
+ <TrendingUp size={140} />
  </div>
- {/* Inner glow */}
  <div className="absolute inset-0 bg-gradient-to-t from-indigo-500/20 to-transparent pointer-events-none" />
  
- <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4 relative z-10">
- <div className="bg-indigo-500/30 p-1.5 md:p-2 rounded-xl backdrop-blur-md">
+ <div className="flex items-center gap-2 mb-3 relative z-10">
+ <div className="bg-indigo-500/30 p-2 rounded-xl backdrop-blur-md">
  <Target size={16} className="text-indigo-200" />
  </div>
- <span className="text-[10px] md:text-[11px] font-black text-indigo-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.kierunek_2h', { defaultValue: 'Kierunek (2h)' })}</span>
+ <span className="text-xs font-black text-indigo-100 uppercase tracking-wider opacity-90">
+ {t('auto.kierunek_2h', { defaultValue: 'Kierunek Prognozy (2h)' })}
+ </span>
  </div>
- <div className="flex items-baseline gap-1 md:gap-2 relative z-10 mt-auto">
- <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{mlResult.predictedNext2Hours}</span>
- <span className="text-[10px] md:text-sm font-bold text-indigo-300 tracking-wider md:tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
+
+ <div className="flex items-baseline gap-2 relative z-10 my-auto">
+ <span className="text-5xl sm:text-6xl font-black tracking-tight leading-none">{mlResult.predictedNext2Hours}</span>
+ <span className="text-xs font-bold text-indigo-300 tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  </div>
  
  {/* Mini sparkline visualization */}
- <div className="h-10 md:h-16 w-full mt-3 md:mt-4 pr-2 md:pr-4 opacity-100 mix-blend-screen shrink-0">
- <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+ <div className="h-12 w-full mt-3 pr-2 opacity-100 shrink-0">
+ <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 300, height: 48 }}>
  <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
  <defs>
  <linearGradient id="colorSparkline" x1="0" y1="0" x2="0" y2="1">
@@ -929,13 +940,12 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  </div>
 
- {/* 6h Prediction Box for v4 TCN */}
- {localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() <= 6) ? (
- <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 dark:from-slate-950 dark:via-cyan-950 dark:to-indigo-950 p-5 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group border border-cyan-500/20 flex flex-col mt-4">
- {/* SVG Chart Background */}
+ {/* 6h Prediction Box for v4 TCN (Night Protect) */}
+ {(localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() <= 6)) ? (
+ <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 dark:from-slate-950 dark:via-cyan-950 dark:to-indigo-950 p-5 md:p-6 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-cyan-500/20 flex flex-col w-full">
  <div className="absolute inset-0 z-0 opacity-40">
  {mlResult.predictionCurve && (
- <ResponsiveContainer width="100%" height="100%">
+ <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 300, height: 120 }}>
  <AreaChart data={mlResult.predictionCurve} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
  <defs>
  <linearGradient id="nightProtect" x1="0" y1="0" x2="0" y2="1">
@@ -948,387 +958,226 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </ResponsiveContainer>
  )}
  </div>
-
- <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-6 transform-gpu z-0">
- <TrendingUp size={160} />
- </div>
- <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent pointer-events-none z-0" />
  
- <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4 relative z-10">
- <div className="bg-cyan-500/30 p-1.5 md:p-2 rounded-xl backdrop-blur-md">
+ <div className="flex items-center gap-2 mb-3 relative z-10">
+ <div className="bg-cyan-500/30 p-2 rounded-xl backdrop-blur-md">
  <ShieldAlert size={16} className="text-cyan-200" />
  </div>
- <span className="text-[10px] md:text-[11px] font-black text-cyan-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.najniższy_spadek', { defaultValue: 'Nocne Minimum' })}</span>
+ <span className="text-xs font-black text-cyan-100 uppercase tracking-wider opacity-90">{t('auto.najniższy_spadek', { defaultValue: 'Nocne Minimum' })}</span>
  </div>
- <div className="flex items-baseline gap-1 md:gap-2 relative z-10 mt-auto">
- <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{Math.round(Math.min(...(mlResult.predictionCurve?.map((p: any) => p.value) || [999])))}</span>
- <span className="text-[10px] md:text-sm font-bold text-cyan-300 tracking-wider md:tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
+ <div className="flex items-baseline gap-2 relative z-10 my-auto">
+ <span className="text-5xl sm:text-6xl font-black tracking-tight leading-none">{Math.round(Math.min(...(mlResult.predictionCurve?.map((p: any) => p.value) || [999])))}</span>
+ <span className="text-xs font-bold text-cyan-300 tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  </div>
- <div className="mt-3 md:mt-4 text-[9px] font-bold text-cyan-300/80 uppercase tracking-wider relative z-10">
+ <div className="mt-3 text-[10px] font-bold text-cyan-300/80 uppercase tracking-wider relative z-10">
  🛸 TCN Pro • Horyzont Nocny
  </div>
  </div>
  ) : null}
-
- {/* Confidence & Alerts Box */}
- <div className="flex flex-col gap-3 md:gap-5">
- <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 md:p-8 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-700/60 shadow-lg flex-1 flex flex-col justify-center relative overflow-hidden group">
- <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
- <div className="flex items-center gap-2 mb-2 md:mb-3 relative z-10">
- <div className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 md:p-2 rounded-xl">
- <GlikoSenseIcon size={16} isAnalyzing={true} />
- </div>
- <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.1em] md:tracking-[0.2em] leading-tight">{t('', { glikoName, defaultValue: i18n.t('auto.pewnosc_modelu', { glikoName, defaultValue: "Pewność Modelu" }) })}</span>
- </div>
- <div className="flex items-end gap-2 relative z-10 mt-auto">
- <span className="text-4xl md:text-5xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">{mlResult.accuracy}%</span>
- </div>
- <div className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 h-2 md:h-2.5 rounded-full mt-3 md:mt-4 overflow-hidden relative z-10">
- <motion.div 
- initial={{ width: 0 }}
- animate={{ width: `${mlResult.accuracy}%` }}
- transition={{ duration: 1.5, delay: 0.2, ease: "easeOut" }}
- className="bg-gradient-to-r from-emerald-400 to-emerald-500 h-full rounded-full" 
- />
- </div>
- {mlResult.datasetSize && (
- <div className="mt-3 flex items-center justify-between relative z-10">
- <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.model_wyuczony', { defaultValue: 'Model Wyuczony:' })}</span>
- <span className="text-[10px] font-black text-indigo-500">{mlResult.datasetSize} {t('auto.pkt_danych', { defaultValue: 'pkt danych' })}</span>
- </div>
- )}
- {mlResult.engineStatus && (
- <div className="mt-2.5 pt-2.5 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between relative z-10">
- <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.silnik_ai', { defaultValue: 'Silnik AI:' })}</span>
- <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
- mlResult.engineStatus === 'hybrid_guardrail' 
- ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' 
- : (mlResult.engineStatus === 'tcn_int8' || (typeof window !== 'undefined' && localStorage.getItem('glikosense_engine_mode') === 'v4_tcn'))
- ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
- : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
- }`}>
- {mlResult.engineStatus === 'hybrid_guardrail' 
- ? '🛡️ HYBRID GUARDRAIL' 
- : (mlResult.engineStatus === 'tcn_int8' || (typeof window !== 'undefined' && localStorage.getItem('glikosense_engine_mode') === 'v4_tcn')) 
- ? '🚀 TCN INT8' 
- : '🧠 LSTM CLASSIC'}
- </span>
- </div>
- )}
- </div>
- 
- {mlResult.riskOfHypo && (
- <motion.div 
- initial={{ opacity: 0, scale: 0.9 }}
- animate={{ opacity: 1, scale: 1 }}
- className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/40 dark:to-amber-900/20 border-2 border-amber-200 dark:border-amber-800/50 p-3 md:p-4 rounded-[2rem] flex items-center justify-center gap-2 md:gap-3 text-amber-600 dark:text-amber-400 shadow-sm"
- >
- <div className="bg-white/50 dark:bg-black/20 p-1.5 md:p-2 rounded-full">
- <AlertTriangle size={16} className="animate-pulse" />
- </div>
- <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.1em] md:tracking-[0.2em]">{t('auto.ryzyko_hipo', { defaultValue: 'Ryzyko Hipo' })}</span>
- </motion.div>
- )}
- </div>
  </div>
 
- {mlResult.metrics && (
- <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-indigo-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.unknown_key', { glikoName, defaultValue: "Profil Działania Insuliny" }) })}</span>
- <div className="flex flex-col">
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.iob.toFixed(1)} <span className="text-xs font-bold text-slate-400 tracking-normal">j</span></span>
- {mlResult.metrics.iob > 0 && (
- <span className="text-[7px] font-bold text-pink-500/80 uppercase mt-0.5 tracking-tighter">{t('auto.start_20m_szczyt_75m', { defaultValue: 'Start: ~20m • Szczyt: ~75m' })}</span>
- )}
- </div>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.aktywne_weglow', { glikoName, defaultValue: "Aktywne Węglow." }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.cob.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">g</span></span>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.opornosc_bias', { glikoName, defaultValue: "Oporność (Bias)" }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
- {mlResult.metrics.avgBias > 0 ? '+' : ''}{mlResult.metrics.avgBias.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
- </span>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-emerald-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.gmi_wskaznik', { glikoName, defaultValue: "GMI (Wskaźnik)" }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.gmiPercentage > 0 ? mlResult.metrics.gmiPercentage.toFixed(1) : '--'} <span className="text-xs font-bold text-slate-400 tracking-normal">%</span></span>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-orange-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.czulosc_weg', { glikoName, defaultValue: "Czułość (Węg.)" }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
- {mlResult.metrics.carbSensitivity > 0 ? '+' : ''}{mlResult.metrics.carbSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">{t('auto.50g', { defaultValue: '/ 50g' })}</span>
- </span>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-cyan-500 transition-colors">{t('', { glikoName, defaultValue: i18n.t('auto.wrazliwosc_ins', { glikoName, defaultValue: "Wrażliwość (Ins.)" }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
- {mlResult.metrics.insulinSensitivity > 0 ? '+' : ''}{mlResult.metrics.insulinSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">{t('auto.1j', { defaultValue: '/ 1j' })}</span>
- </span>
- </div>
- </div>
- )}
-
- <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
- <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
- <Sparkles size={14} className="text-amber-500" /> {t('auto.wnioski_systemu', { defaultValue: 'Wnioski Systemu' })}
- </h4>
- <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-2 px-2 scrollbar-hide">
- {mlResult.insights.map((insight, idx) => {
- const isWarning = insight.includes('⚠️') || insight.includes('🎯');
- const isCritical = insight.includes('🚨') || insight.includes('❗');
- const isSuccess = insight.includes('✅') || insight.includes('🌟') || insight.includes('✨') || insight.includes('👌');
- 
- // Determine style based on priority and glassmorphism setting
- let cardStyle = '';
- let glowColor = '';
- let lineGlow = '';
- if (isCritical) {
- cardStyle = glassmorphismEnabled
- ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200/50 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 backdrop-blur-md'
- : 'bg-rose-50 dark:bg-rose-950/80 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300';
- glowColor = 'bg-rose-500';
- lineGlow = 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]';
- } else if (isWarning) {
- cardStyle = glassmorphismEnabled
- ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200/50 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 backdrop-blur-md'
- : 'bg-amber-50 dark:bg-amber-950/80 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300';
- glowColor = 'bg-amber-500';
- lineGlow = 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]';
- } else if (isSuccess) {
- cardStyle = glassmorphismEnabled
- ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200/50 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300 backdrop-blur-md'
- : 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300';
- glowColor = 'bg-emerald-500';
- lineGlow = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
- } else {
- cardStyle = glassmorphismEnabled
- ? 'bg-white/80 dark:bg-slate-800/80 border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 backdrop-blur-md'
- : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300';
- glowColor = 'bg-indigo-500';
- lineGlow = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]';
- }
-
- return (
- <motion.div 
- initial={{ opacity: 0, x: 20 }}
- animate={{ opacity: 1, x: 0 }}
- transition={{ delay: 0.2 + (idx * 0.1), type: 'spring' }}
- key={`insight-text-${idx}`} 
- className={`min-w-[280px] max-w-[320px] snap-center p-5 rounded-[2rem] flex flex-col justify-between gap-4 text-sm font-medium leading-relaxed shadow-sm border relative overflow-hidden ${cardStyle} ${glassmorphismEnabled ? 'glass-target' : ''}`}
- >
- <div className="flex-1 relative z-10 pt-1">
- {insight}
- </div>
- 
- {/* Pagination dots */}
- <div className="flex gap-1.5 mt-3 mb-1 justify-start items-center">
- {mlResult.insights.map((_, dotIdx) => (
- <div 
- key={`dot-${idx}-${dotIdx}`} 
- className={`h-1.5 rounded-full transition-all duration-300 ${dotIdx === idx ? 'w-4 bg-indigo-500 dark:bg-indigo-400' : 'w-1.5 bg-slate-200 dark:bg-slate-700'}`} 
- />
- ))}
- </div>
- 
- {setTab && (
- <button 
- onClick={() => {
- sessionStorage.setItem('bot_initial_query', `Proszę, przeanalizuj ze mną ten wniosek i doradź mi: ${insight}`);
- setTab('assistant');
- }}
- className={`self-start mt-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95 ${glassmorphismEnabled ? 'bg-slate-900/5 hover:bg-slate-900/10 dark:bg-white/5 dark:hover:bg-white/10 backdrop-blur-sm' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'} z-10`}
- >
- <Bot size={14} className="opacity-70" />
- {t('auto.zapytaj_ai', { defaultValue: 'Zapytaj AI' })}
- </button>
- )}
- 
- {/* Subtle background glow depending on theme */}
- {glassmorphismEnabled && (
- <div className={`absolute -bottom-10 -right-10 w-32 h-32 blur-[40px] opacity-20 rounded-full ${glowColor}`} pointerEvents="none" />
- )}
- </motion.div>
- );
- })}
- </div>
- </div>
- 
- <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
- <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
- <CalendarDays size={14} className="text-indigo-500" /> {t('auto.ostatnie_3_dni', { defaultValue: 'Ostatnie 3 Dni' })}
- </h4>
- <div className="grid grid-cols-3 gap-3">
- {dailyStats.map((stat, idx) => (
- <div key={`insight-${idx}`} className="bg-white dark:bg-slate-800/80 p-4 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center gap-1.5 transition-all hover:border-indigo-500/30 glass-target">
- <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</span>
- <div className="flex flex-col items-center">
- <span className={cn(
- "text-lg font-black leading-none",
- stat.avg ? (stat.avg > 180 || stat.avg < 70 ? 'text-amber-500' : 'text-emerald-500') : 'text-slate-300'
- )}>
- {stat.avg || '--'}
- </span>
- <span className="text-[8px] font-bold text-slate-400 uppercase">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
- </div>
- <div className="flex flex-col items-center w-full pt-1 border-t border-slate-50 dark:border-slate-700/30">
- <div className="flex items-center gap-1">
- <Target size={10} className="text-emerald-500" />
- <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">{stat.tir != null ? `${stat.tir}%` : '--'}</span>
- </div>
- <div className="flex items-center gap-1 text-slate-400">
- <Syringe size={10} className="text-indigo-400" />
- <span className="text-[9px] font-bold">{stat.bolus > 0 ? stat.bolus.toFixed(1) : '0'} j</span>
- </div>
- </div>
- </div>
- ))}
- </div>
- </div>
- </motion.div>
- ) : (
- <motion.div 
- key="loading"
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- className="h-48 flex flex-col p-6 space-y-4 relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 glass-target animate-pulse"
- >
- <div className="w-1/3 h-6 bg-slate-200 dark:bg-slate-700 rounded-lg" />
- <div className="flex gap-4">
- <div className="w-20 h-20 bg-slate-200 dark:bg-slate-700 rounded-[1.5rem]" />
- <div className="flex-1 space-y-2 py-2">
- <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
- <div className="w-5/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
- <div className="w-4/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
- </div>
- </div>
- </motion.div>
- )}
- </AnimatePresence>
-
- {/* --- Nowa sekcja: Analiza GlikoSense --- */}
+ {/* Real-World Prediction Verification Box - FULL WIDTH */}
  {mlResult && (
- <motion.div
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- className="mt-8 pt-8 border-t border-slate-200/50 dark:border-slate-800/50 relative z-20"
- >
- <div className="flex items-center gap-3 mb-6">
- <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md shadow-blue-500/20">
- <Activity size={20} className="text-white" />
+ <div className="bg-gradient-to-br from-indigo-900/80 via-slate-900/90 to-purple-900/80 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-indigo-500/30 text-white shadow-xl w-full relative overflow-hidden">
+ <div className="flex items-center justify-between mb-3 pb-2 border-b border-indigo-500/20">
+ <div className="flex items-center gap-2.5">
+ <div className="bg-indigo-500/25 p-2 rounded-xl border border-indigo-500/30 shrink-0">
+ <Target size={16} className="text-indigo-300 animate-pulse" />
  </div>
- <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
- {t('auto.zaawansowana_analiza_glikosense', { defaultValue: 'Zaawansowana Analiza GlikoSense' })}
- </h3>
- </div>
-
- <div className={`grid grid-cols-1 ${glikosenseAnalysis.totalBasal > 0 ? 'md:grid-cols-2' : ''} gap-6`}>
- {/* 1. CV i SD */}
- <div className={`p-6 rounded-[2rem] flex flex-col items-center justify-center relative overflow-hidden group transition-all duration-500 hover:shadow-xl ${
- glikosenseAnalysis.cv > 36 
- ? 'bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-800/30 hover:shadow-rose-500/10' 
- : 'bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 hover:shadow-emerald-500/10'
- }`}>
- <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 opacity-50"></div>
- 
- <div className="relative z-10 flex flex-col items-center text-center">
- <h4 className={`text-xs font-black uppercase tracking-widest mb-1 ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/80' : 'text-emerald-500/80'}`}>
- {t('auto.wspolczynnik_zmiennosci', { defaultValue: 'Współczynnik Zmienności (CV)' })}
+ <div>
+ <h4 className="text-xs font-black uppercase tracking-wider text-indigo-100">
+ {t('auto.glikosense_real_accuracy', { defaultValue: 'Trafność Prognoz GlikoSense' })}
  </h4>
- 
- <div className="flex items-baseline gap-1 my-2">
- <span className={`text-6xl font-black tracking-tighter ${glikosenseAnalysis.cv > 36 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
- {glikosenseAnalysis.cv.toFixed(1)}
- </span>
- <span className={`text-xl font-bold ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/60' : 'text-emerald-500/60'}`}>%</span>
- </div>
- 
- <div className={`text-[10px] font-bold px-4 py-1.5 rounded-full mt-2 ${
- glikosenseAnalysis.cv > 36 
- ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300' 
- : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
- }`}>
- {glikosenseAnalysis.cv > 36 
- ? t('auto.wysokie_ryzyko_rollercoastera_c', { defaultValue: 'WYSOKIE RYZYKO ROLLERCOASTERA (Cel: <36%)' })
- : t('auto.stabilna_glikemia_cel_osiagnie', { defaultValue: 'STABILNA GLIKEMIA (Cel osiągnięty)' })
- }
- </div>
- 
- <p className={`mt-4 text-xs font-medium ${glikosenseAnalysis.cv > 36 ? 'text-rose-800/70 dark:text-rose-200/60' : 'text-emerald-800/70 dark:text-emerald-200/60'}`}>
- {t('auto.odchylenie_standardowe_sd', { defaultValue: 'Odchylenie standardowe (SD):' })} <strong className="font-black">{glikosenseAnalysis.sd.toFixed(1)} mg/dL</strong>
+ <p className="text-[10px] text-indigo-300/80 font-medium">
+ {t('auto.glikosense_evaluated_forecasts', { defaultValue: 'Zweryfikowano prognoz' })}: {realAccuracyStats.totalEvaluated}
  </p>
  </div>
  </div>
 
- {/* 2. Proporcja Baza vs Bolus (Tylko jeśli totalBasal > 0) */}
- {glikosenseAnalysis.totalBasal > 0 && (
- <div className="bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/50 p-6 rounded-[2rem] relative overflow-hidden">
- <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 text-center">
- {t('auto.proporcja_baza_vs_bolus', { defaultValue: 'Proporcja Baza vs Bolus (TDD)' })}
- </h4>
- {/* Tutaj byłby wykres */}
+ {realAccuracyStats.totalEvaluated > 0 && (
+ <div className="text-right shrink-0">
+ <span className="text-2xl font-black text-emerald-400 tracking-tight">{realAccuracyStats.realAccuracyPercentage}%</span>
  </div>
  )}
  </div>
 
- {/* 3. Analiza Posiłków */}
- <div className="mt-6">
- <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 ml-2">
- {t('auto.reakcja_na_posilki_w_porach_dn', { defaultValue: 'Reakcja na posiłki w porach dnia (Ostatnie 14 dni)' })}
- </h4>
- <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
- {glikosenseAnalysis.mealStats.map((meal, idx) => (
- <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 p-4 rounded-3xl flex flex-col transition-all hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-500/5">
- <div className="flex items-center gap-2 mb-3">
- <span className="text-xl">{meal.icon}</span>
- <span className="text-xs font-black text-slate-700 dark:text-slate-200">{meal.name}</span>
+ {realAccuracyStats.totalEvaluated > 0 ? (
+ <div className="grid grid-cols-2 gap-3 mt-2">
+ <div className="bg-slate-950/50 rounded-2xl p-2.5 border border-indigo-500/15 flex items-center justify-between">
+ <span className="text-[10px] text-slate-400 font-bold uppercase">{t('auto.glikosense_avg_error', { defaultValue: 'Śr. błąd' })}</span>
+ <span className="text-sm font-black text-amber-300">±{realAccuracyStats.avgErrorMgDl} mg/dL</span>
  </div>
- 
- {meal.count > 0 ? (
- <div className="space-y-3 mt-auto">
- <div>
- <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('auto.sredni_skok', { defaultValue: 'Średni skok' })}</span>
- <div className="flex items-baseline gap-1">
- <span className={`text-xl font-black ${meal.avgDelta > 50 ? 'text-rose-500' : 'text-emerald-500'}`}>
- {meal.avgDelta > 0 ? '+' : ''}{meal.avgDelta}
- </span>
- <span className="text-[10px] font-bold text-slate-500">mg/dL</span>
- </div>
- </div>
- 
- <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-700/50">
- <div className="flex flex-col">
- <span className="text-[9px] font-bold text-slate-400 uppercase">{t('auto.weglowodany', { defaultValue: 'Węglowodany' })}</span>
- <span className="text-xs font-black text-slate-700 dark:text-slate-300">{meal.avgCarbs} g</span>
- </div>
- <div className="flex flex-col text-right">
- <span className="text-[9px] font-bold text-slate-400 uppercase">{t('auto.bolus', { defaultValue: 'Bolus' })}</span>
- <span className="text-xs font-black text-slate-700 dark:text-slate-300">{meal.avgBolus} U</span>
- </div>
+ <div className="bg-slate-950/50 rounded-2xl p-2.5 border border-indigo-500/15 flex items-center justify-between">
+ <span className="text-[10px] text-slate-400 font-bold uppercase">{t('auto.glikosense_hit_rate', { defaultValue: 'Trafienia' })}</span>
+ <span className="text-sm font-black text-emerald-400">🎯 {realAccuracyStats.exactHitRatePercentage}%</span>
  </div>
  </div>
  ) : (
- <div className="flex-1 flex items-center justify-center mt-auto min-h-[60px]">
- <span className="text-xs font-bold text-slate-400/70">{t('auto.brak_wpisow', { defaultValue: 'Brak wpisów' })}</span>
+ <p className="text-[10px] text-indigo-200/70 italic mt-1">
+ {t('auto.glikosense_no_evaluated_yet', { defaultValue: 'Zbieram dane do weryfikacji (weryfikacja po 1-2 godzinach od pierwszej analizy)...' })}
+ </p>
+ )}
  </div>
  )}
+
+ {/* Unified Extrema Range Card (Peak & Trough) - FULL WIDTH */}
+ {mlResult.predictedPeak && mlResult.predictedTrough && (
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md space-y-3 w-full">
+ <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800">
+ <div className="flex items-center gap-2">
+ <div className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+ <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+ {t('auto.glikosense_extrema_range', { defaultValue: 'Ekstrema Prognozy (2h)' })}
+ </span>
+ </div>
+ <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
+ ⚡ GlikoSense 4.0
+ </span>
+ </div>
+
+ <div className="space-y-2.5">
+ {/* Peak Row */}
+ <div className="bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/20 rounded-2xl p-3 flex items-center justify-between">
+ <div className="flex items-center gap-2.5">
+ <div className="p-2 bg-rose-500/20 rounded-xl text-rose-500 shrink-0">
+ <TrendingUp size={18} />
+ </div>
+ <div>
+ <div className="text-xs font-black uppercase text-rose-500 tracking-tight">
+ {t('auto.glikosense_predicted_peak', { defaultValue: 'Przewidywany Szczyt' })}
+ </div>
+ <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+ {t('auto.glikosense_at', { defaultValue: 'Godz.' })} <span className="text-rose-600 dark:text-rose-300 font-extrabold">{new Date(mlResult.predictedPeak.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+ </div>
+ </div>
+ </div>
+ <div className="text-right shrink-0">
+ <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{mlResult.predictedPeak.value}</span>
+ <span className="text-[10px] font-bold text-slate-400 block">mg/dL</span>
+ </div>
+ </div>
+
+ {/* Trough Row */}
+ <div className="bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-between">
+ <div className="flex items-center gap-2.5">
+ <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-500 shrink-0">
+ <TrendingDown size={18} />
+ </div>
+ <div>
+ <div className="text-xs font-black uppercase text-emerald-500 tracking-tight">
+ {t('auto.glikosense_predicted_trough', { defaultValue: 'Przewidywany Dołek' })}
+ </div>
+ <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+ {t('auto.glikosense_at', { defaultValue: 'Godz.' })} <span className="text-emerald-600 dark:text-emerald-300 font-extrabold">{new Date(mlResult.predictedTrough.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+ </div>
+ </div>
+ </div>
+ <div className="text-right shrink-0">
+ <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{mlResult.predictedTrough.value}</span>
+ <span className="text-[10px] font-bold text-slate-400 block">mg/dL</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* Insulin Stacking Warning */}
+ {mlResult.stackingAlert && mlResult.stackingAlert.isStacking && (
+ <motion.div 
+ initial={{ opacity: 0, y: 5 }}
+ animate={{ opacity: 1, y: 0 }}
+ className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-3 flex items-center gap-2.5 text-amber-600 dark:text-amber-300 w-full"
+ >
+ <AlertTriangle size={16} className="shrink-0 animate-bounce text-amber-500" />
+ <span className="text-[10px] font-bold leading-snug">
+ {t('auto.glikosense_stacking_warning', { min: mlResult.stackingAlert.timeAgoMin || 60, defaultValue: `Ostrzeżenie TCN: Nakładanie dawek insuliny (bolus sprzed ${mlResult.stackingAlert.timeAgoMin || 60} min). Zachowaj ostrożność!` })}
+ </span>
+ </motion.div>
+ )}
+
+ {/* Zaawansowana Analiza GlikoSense */}
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full mt-4">
+ <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-800">
+ <Activity size={16} className="text-indigo-500" />
+ <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+ {t('auto.zaawansowana_analiza_glikosense', { defaultValue: 'Zaawansowana Analiza GlikoSense' })}
+ </span>
+ </div>
+ 
+ <div className={`grid grid-cols-1 ${glikosenseAnalysis.totalBasal > 0 ? 'md:grid-cols-2' : ''} gap-4`}>
+ {/* Zmienność glikemii (CV i SD) */}
+ <div className="bg-white dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+ <h4 className={`text-[10px] font-black uppercase tracking-widest mb-1 ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/80' : 'text-emerald-500/80'}`}>
+ Zmienność Glikemii (CV)
+ </h4>
+ <span className={`text-4xl font-black tracking-tighter ${glikosenseAnalysis.cv > 36 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+ {glikosenseAnalysis.cv.toFixed(1)}
+ <span className={`text-sm font-bold ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/60' : 'text-emerald-500/60'}`}>%</span>
+ </span>
+ <p className={`mt-2 text-[10px] font-bold ${glikosenseAnalysis.cv > 36 ? 'text-rose-800/70 dark:text-rose-200/60' : 'text-emerald-800/70 dark:text-emerald-200/60'}`}>
+ {t('auto.odchylenie_standardowe_sd', { defaultValue: 'Odchylenie standardowe (SD):' })} <strong className="font-black">{glikosenseAnalysis.sd.toFixed(1)} mg/dL</strong>
+ </p>
+ </div>
+ 
+ {/* Sekcja Bolus i Baza (tylko jeśli baza > 0, wg wymagań) */}
+ {glikosenseAnalysis.totalBasal > 0 && (
+ <div className="bg-white dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+ <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 text-indigo-500/80">
+ Stosunek Bolus / Baza
+ </h4>
+ <div className="flex items-center gap-2 mt-1">
+ <div className="text-center">
+ <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">{glikosenseAnalysis.totalBolus.toFixed(1)}</span>
+ <span className="text-[9px] font-bold text-slate-400 block uppercase">Bolus</span>
+ </div>
+ <div className="text-slate-300 font-black">:</div>
+ <div className="text-center">
+ <span className="text-lg font-black text-cyan-600 dark:text-cyan-400">{glikosenseAnalysis.totalBasal.toFixed(1)}</span>
+ <span className="text-[9px] font-bold text-slate-400 block uppercase">Baza</span>
+ </div>
+ </div>
+ </div>
+ )}
+ 
+ {/* Podsumowanie posiłków */}
+ <div className={`col-span-1 ${glikosenseAnalysis.totalBasal > 0 ? 'md:col-span-2' : ''} grid grid-cols-2 gap-2 mt-2`}>
+ {glikosenseAnalysis.mealStats.map((meal, idx) => (
+ <div key={idx} className="bg-white dark:bg-slate-950/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+ <div className="flex items-center gap-1.5">
+ <span className="text-base">{meal.icon}</span>
+ <span className="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase">{meal.name}</span>
+ </div>
+ <div className="text-right flex flex-col">
+ <span className="text-[10px] font-black text-amber-500">{meal.avgCarbs}g W</span>
+ <span className="text-[9px] font-bold text-slate-400">Δ {meal.avgDelta} mg/dL</span>
+ </div>
  </div>
  ))}
  </div>
  </div>
- </motion.div>
- )}
  </div>
+
+ {mlResult.insights && mlResult.insights.length > 0 && (
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full">
+ <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-800">
+ <Sparkles size={16} className="text-indigo-500" />
+ <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+ {t('auto.wnioski_glikosense', { defaultValue: 'Wnioski GlikoSense' })}
+ </span>
+ </div>
+ <div className="space-y-2">
+ {mlResult.insights.map((insight, idx) => (
+ <div key={idx} className="flex items-start gap-2.5 bg-white dark:bg-slate-950/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+ <div className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+ <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-snug">{insight}</p>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
+  </motion.div>
+  ) : null}
+  </AnimatePresence>
+  </div>
  );
-}
-
-
-
-
-
-
-
+};

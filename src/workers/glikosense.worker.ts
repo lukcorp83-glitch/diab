@@ -814,6 +814,12 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
          const trendPrediction = latestBg + (lastTrendNum * currentStep);
          const weight = currentStep / 6; // step 3 -> 50% model, step 6 -> 100% model
          actualVal = (actualVal * weight) + (trendPrediction * (1 - weight));
+
+         // Physical momentum protection: when sugar is actively rising (lastTrendNum > 0), prevent instantaneous drop from current point
+         if (lastTrendNum > 0) {
+            const inertialFloor = latestBg + (lastTrendNum * currentStep * 0.35) - (currentIob * 3);
+            actualVal = Math.max(actualVal, Math.min(latestBg + 5, inertialFloor));
+         }
       }
 
       // Clamp physiologically impossible jumps
@@ -823,14 +829,18 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
       actualVal = Math.max(40, Math.min(450, actualVal));
       
-      if (activeTopology === 'v4_tcn') {
+      // Compute confidence bounds (Chmura Pewności) for ALL models
+      let stdDev = 0;
+      if (activeTopology === 'v4_tcn' && ensembleRawPreds.length > 0) {
           const variance = ensembleRawPreds.reduce((sum, p) => sum + Math.pow(p[idx]*400 - actualVal, 2), 0) / 5;
-          let stdDev = Math.sqrt(variance);
-          if (isNaN(stdDev) || !isFinite(stdDev)) stdDev = currentStep * 1.5;
-          stdDev = Math.max(stdDev, currentStep * 0.6); // uncertainty grows with time
-          confUpper.push(Math.min(450, actualVal + stdDev * 1.5));
-          confLower.push(Math.max(40, actualVal - stdDev * 1.5));
+          stdDev = Math.sqrt(variance);
       }
+      if (isNaN(stdDev) || !isFinite(stdDev) || stdDev === 0) {
+          stdDev = Math.max(10, currentStep * 1.2);
+      }
+      stdDev = Math.max(stdDev, currentStep * 0.8);
+      confUpper.push(Math.min(450, actualVal + stdDev * 1.4));
+      confLower.push(Math.max(40, actualVal - stdDev * 1.4));
 
       previousVal = actualVal;
       previousStep = currentStep;
@@ -838,11 +848,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       return actualVal;
     });
 
-    const predictionCurve: any[] = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg }];
-    if (activeTopology === 'v4_tcn') {
-        predictionCurve[0].confidenceMin = latestBg;
-        predictionCurve[0].confidenceMax = latestBg;
-    }
+    const predictionCurve: any[] = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg, confidenceMin: latestBg, confidenceMax: latestBg }];
 
     const keypoints = [
       { step: 0, val: latestBg, min: latestBg, max: latestBg }, 
@@ -883,15 +889,17 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         nextBg += weatherBgModifier * (step / 12); 
         nextBg = Math.max(40, Math.min(600, nextBg));
         
-        let pObj: any = { timestamp: latestTimeMs + (step * 5 * 60 * 1000), offsetMs: step * 5 * 60 * 1000, value: nextBg };
-        if (activeTopology === 'v4_tcn') {
-            let nextMin = getInterpolatedValue(step, 'min');
-            let nextMax = getInterpolatedValue(step, 'max');
-            nextMin += weatherBgModifier * (step / 12);
-            nextMax += weatherBgModifier * (step / 12);
-            pObj.confidenceMin = Math.max(40, Math.min(600, nextMin));
-            pObj.confidenceMax = Math.max(40, Math.min(600, nextMax));
-        }
+        let nextMin = getInterpolatedValue(step, 'min');
+        let nextMax = getInterpolatedValue(step, 'max');
+        nextMin += weatherBgModifier * (step / 12);
+        nextMax += weatherBgModifier * (step / 12);
+        let pObj: any = { 
+          timestamp: latestTimeMs + (step * 5 * 60 * 1000), 
+          offsetMs: step * 5 * 60 * 1000, 
+          value: nextBg,
+          confidenceMin: Math.max(40, Math.min(600, nextMin)),
+          confidenceMax: Math.max(40, Math.min(600, nextMax))
+        };
         predictionCurve.push(pObj);
     }
 
@@ -1073,6 +1081,30 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
 
+    // Calculate Peak & Trough in predictionCurve
+    let peakObj = { value: Math.round(latestBg), timestamp: latestTimeMs };
+    let troughObj = { value: Math.round(latestBg), timestamp: latestTimeMs };
+    if (predictionCurve && predictionCurve.length > 0) {
+      let maxVal = -1;
+      let minVal = 999;
+      predictionCurve.forEach(p => {
+        if (p.value > maxVal) { maxVal = p.value; peakObj = { value: Math.round(p.value), timestamp: p.timestamp }; }
+        if (p.value < minVal) { minVal = p.value; troughObj = { value: Math.round(p.value), timestamp: p.timestamp }; }
+      });
+    }
+
+    // Stacking detection
+    let stackingAlert: { isStacking: boolean; timeAgoMin?: number } | null = null;
+    if (recentBolusesIn4h.length >= 2 && currentIob > 1.0) {
+      const sortedB = [...recentBolusesIn4h].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime()));
+      const lastB = sortedB[0];
+      const prevB = sortedB[1];
+      const diffMin = Math.round(((lastB.timestamp || new Date(lastB.createdAt).getTime()) - (prevB.timestamp || new Date(prevB.createdAt).getTime())) / 60000);
+      if (diffMin < 120) {
+         stackingAlert = { isStacking: true, timeAgoMin: diffMin };
+      }
+    }
+
     const accuracyValue = Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80)));
 
     self.postMessage({ 
@@ -1081,6 +1113,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         predictedNextHour: Math.round(predictedNextHour),
         predictedNext2Hours: Math.round(predictedNext2Hours),
         predictedNext6Hours: Math.round(predictedNext6Hours),
+        predictedPeak: peakObj,
+        predictedTrough: troughObj,
+        stackingAlert,
         riskOfHypo,
         insights,
         accuracy: accuracyValue,

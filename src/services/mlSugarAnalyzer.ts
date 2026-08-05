@@ -1,3 +1,4 @@
+import { PredictionAccuracyTracker } from '../lib/predictionAccuracyTracker';
 ﻿import * as tf from '@tensorflow/tfjs';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -198,6 +199,12 @@ export const MLAnalyzer = {
              const rules = GlikoSenseLearner.getRules();
              rules.pkParams = payload.learnedPkParams;
              localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
+          }
+          
+          if (payload.predictedNextHour) {
+            try {
+              PredictionAccuracyTracker.recordPrediction(payload.predictedNextHour, Date.now() + 60 * 60 * 1000);
+            } catch(e) {}
           }
           
           if (payload.riskOfHypo) {

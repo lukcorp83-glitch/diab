@@ -1,4 +1,4 @@
-import { useAuthStore } from '../stores/useAuthStore';
+﻿import { useAuthStore } from '../stores/useAuthStore';
 import { useMealPlateLogic } from '../hooks/useMealPlateLogic';
 import { ProductSearch } from "./MealPlate/ProductSearch";
 import { MealComposer } from "./MealPlate/MealComposer";
@@ -1342,7 +1342,7 @@ export default function MealPlate({
  </div>
 
  <div className="h-44 w-full mb-3 select-none">
- <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+ <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100} initialDimension={{ width: 320, height: 128 }}>
  <AreaChart
  data={activeChartData}
  margin={{ top: 10, right: 35, left: 0, bottom: 0 }}
@@ -1499,3 +1499,4 @@ export default function MealPlate({
  </motion.div>
  );
 }
+

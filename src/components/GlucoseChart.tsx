@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
@@ -7,7 +7,7 @@ import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 import { getTs } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 
-import { Plus, Minus, Maximize2, Move, Droplets, Signal, Apple, Syringe, Activity } from 'lucide-react';
+import { Plus, Minus, Maximize2, Move, Droplets, Signal, Apple, Syringe, Activity, Zap } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -56,7 +56,7 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const [crosshair, setCrosshair] = useState<{ x: number, data: any, tClick: number } | null>(null);
- const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number}[]>([]);
+ const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number, confidenceMin?: number, confidenceMax?: number}[]>([]);
  const [isMlProcessing, setIsMlProcessing] = useState(false);
 
  useEffect(() => {
@@ -74,7 +74,9 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  if (isMounted && result.predictionCurve) {
  setMlPredictionDataState(result.predictionCurve.map(p => ({
  timestamp: p.timestamp,
- value: p.value
+ value: p.value,
+ confidenceMin: p.confidenceMin,
+ confidenceMax: p.confidenceMax
  })));
  }
  } catch (err) {
@@ -413,7 +415,7 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  dataSensor.forEach(d => addPoint(d.timestamp, 'sensorVal', true, { originalSensor: d, yVal: chartMaxY }));
 
  loopPredictions.forEach(p => addPoint(p.timestamp, 'loopPrediction', p.value, { loopAction: p.actionType }));
- mlPredictionData.forEach(p => addPoint(p.timestamp, 'mlPrediction', p.value));
+ mlPredictionData.forEach(p => addPoint(p.timestamp, 'mlPrediction', p.value, { mlConfMin: p.confidenceMin, mlConfMax: p.confidenceMax }));
 
  // Stitch predictions to the last actual glucose point to ensure lines are connected
  if (dataG.length > 0) {
@@ -575,8 +577,23 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  ctx.fill();
  }
  
- // ML Prediction
+ // ML Prediction - Confidence Cloud (Chmura Pewności)
  if (showMLPrediction) {
+ const cPts = chartData.filter(d => d.mlPrediction !== undefined && d.mlConfMin !== undefined && d.mlConfMax !== undefined);
+ if (cPts.length > 1) {
+ ctx.beginPath();
+ ctx.moveTo(getX(cPts[0].timestamp), getY(cPts[0].mlConfMax));
+ for (let i = 1; i < cPts.length; i++) {
+ ctx.lineTo(getX(cPts[i].timestamp), getY(cPts[i].mlConfMax));
+ }
+ for (let i = cPts.length - 1; i >= 0; i--) {
+ ctx.lineTo(getX(cPts[i].timestamp), getY(cPts[i].mlConfMin));
+ }
+ ctx.closePath();
+ ctx.fillStyle = isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.20)';
+ ctx.fill();
+ }
+
  ctx.beginPath();
  const mPts = chartData.filter(d => d.mlPrediction !== undefined).map(d => ({ x: getX(d.timestamp), y: getY(d.mlPrediction) }));
  if (mPts.length > 0) {
@@ -945,6 +962,16 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  onTouchEnd={handleMouseUpNative}
  onTouchCancel={handleMouseUpNative}
  >
+ {/* GlikoSense 4.0 Neon Badge Overlay */}
+ {showMLPrediction && (
+ <div className="absolute top-4 right-4 z-20 pointer-events-none flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+ <Zap size={13} className="text-amber-400 fill-amber-400 animate-pulse" />
+ <span className="text-[10px] font-black tracking-wider text-amber-300 uppercase">
+ {t('auto.glikosense_v4_tcn', { defaultValue: 'GlikoSense 4.0 TCN Pro' })}
+ </span>
+ </div>
+ )}
+
  {/* View Controls */}
  <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-auto">
  <button 
@@ -1049,4 +1076,5 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  </div>
  );
 }
+
 

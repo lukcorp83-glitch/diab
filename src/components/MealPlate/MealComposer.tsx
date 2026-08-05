@@ -1,4 +1,4 @@
-import { useLogsStore } from "../../stores/useLogsStore";
+﻿import { useLogsStore } from "../../stores/useLogsStore";
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -613,7 +613,7 @@ export const MealComposer = ({
  </div>
 
  <div className="h-32 w-full select-none mt-2">
- <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+ <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100} initialDimension={{ width: 320, height: 128 }}>
  <AreaChart
  data={plateChartData}
  margin={{ top: 5, right: 10, left: -22, bottom: 0 }}
@@ -669,3 +669,4 @@ export const MealComposer = ({
  </>
  );
 };
+

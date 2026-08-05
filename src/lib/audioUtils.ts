@@ -46,7 +46,9 @@ export const playFeedSound = () => {
 
 const playMp3Alert = () => {
   try {
-    const audio = new Audio('/status_clear.mp3');
+    const baseUrl = (import.meta && import.meta.env && import.meta.env.BASE_URL) || '/';
+    const audioUrl = (baseUrl + '/status_clear.mp3').replace(/\/+/g, '/');
+    const audio = new Audio(audioUrl);
     audio.play().catch(e => console.error("Audio play blocked", e));
   } catch (e) {
     console.error("Audio error", e);

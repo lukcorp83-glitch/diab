@@ -1,4 +1,4 @@
-import { useAuthStore } from '../stores/useAuthStore';
+﻿import { useAuthStore } from '../stores/useAuthStore';
 import { getEffectiveUid } from '../lib/utils';
 import { useLogsStore } from "../stores/useLogsStore";
 import React, { useState, useEffect, useMemo } from 'react';
@@ -149,7 +149,7 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  </div>
  
  <div className="h-48 w-full">
- <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+ <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: 192 }} minWidth={100} minHeight={100}>
  <AreaChart data={chartData}>
  <defs>
  <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
@@ -360,4 +360,5 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  </>
  );
 }
+
 

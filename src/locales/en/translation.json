@@ -3738,7 +3738,22 @@
     "wykryto_skladniki_ai": "Detected {{count}} meal ingredients! Ingredients added to your plate.",
     "wniosek_i_bilansowanie_ai": "AI Impact & Meal Balancing",
     "przewidywany_wplyw_na_cukier": "Impact on Glucose",
-    "wskazowka_bilansowania": "Balancing Tip"
+    "wskazowka_bilansowania": "Balancing Tip",
+    "glikosense_v4_tcn": "GlikoSense 4.0 TCN Pro",
+    "glikosense_confidence": "Confidence Cloud",
+    "glikosense_predicted_peak": "Predicted Peak",
+    "glikosense_predicted_trough": "Predicted Trough",
+    "glikosense_stacking_warning": "TCN Warning: Insulin stacking detected (bolus {{min}} min ago). Exercise caution!",
+    "glikosense_confidence_score": "Model Confidence",
+    "glikosense_horizon_6h": "6h Night Horizon",
+    "glikosense_at": "at",
+    "glikosense_real_accuracy": "Real-World Forecast Accuracy",
+    "glikosense_avg_error": "Average Error",
+    "glikosense_hit_rate": "Exact Hits (±15 mg/dL)",
+    "glikosense_evaluated_forecasts": "Verified Forecasts",
+    "glikosense_no_evaluated_yet": "Collecting data to verify accuracy (verification after 1-2 hours)...",
+    "glikosense_last_verified": "Recently verified forecasts:",
+    "glikosense_extrema_range": "Forecast Extrema (2h)"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {

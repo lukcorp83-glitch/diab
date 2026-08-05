@@ -3708,7 +3708,22 @@
     "wykryto_skladniki_ai": "Wykryto {{count}} składników posiłku! Składniki dodano na talerz.",
     "wniosek_i_bilansowanie_ai": "Wniosek i Bilansowanie AI",
     "przewidywany_wplyw_na_cukier": "Wpływ na glikemię",
-    "wskazowka_bilansowania": "Wskazówka bilansowania"
+    "wskazowka_bilansowania": "Wskazówka bilansowania",
+    "glikosense_v4_tcn": "GlikoSense 4.0 TCN Pro",
+    "glikosense_confidence": "Chmura Pewności",
+    "glikosense_predicted_peak": "Przewidywany Szczyt",
+    "glikosense_predicted_trough": "Przewidywany Dołek",
+    "glikosense_stacking_warning": "Ostrzeżenie TCN: Nakładanie dawek insuliny (bolus sprzed {{min}} min). Zachowaj ostrożność!",
+    "glikosense_confidence_score": "Pewność modelu",
+    "glikosense_horizon_6h": "Horyzont Nocny 6h",
+    "glikosense_at": "o godz.",
+    "glikosense_real_accuracy": "Trafność Rzeczywista Prognoz",
+    "glikosense_avg_error": "Średni błąd",
+    "glikosense_hit_rate": "Trafienia w punkt (±15 mg/dL)",
+    "glikosense_evaluated_forecasts": "Zweryfikowane prognozy",
+    "glikosense_no_evaluated_yet": "Zbieram dane do weryfikacji trafności (weryfikacja po 1-2 godzinach)...",
+    "glikosense_last_verified": "Ostatnie zweryfikowane prognozy:",
+    "glikosense_extrema_range": "Ekstrema Prognozy (2h)"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {
