@@ -113,6 +113,32 @@ export default function App() {
       initDB();
     }, []);
 
+    // Cichy nasłuch na natychmiastowe aktualizacje lokalne (Optimistic UI) - naprawia niewidzialne wkłucia/sensory
+    useEffect(() => {
+      const handleLocalAdd = (e: any) => setSqliteLogs(prev => [e.detail, ...prev]);
+      const handleLocalAddBatch = (e: any) => setSqliteLogs(prev => [...e.detail, ...prev]);
+      const handleLocalUpdate = (e: any) => {
+        const { id, updates } = e.detail;
+        setSqliteLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+      };
+      const handleLocalDelete = (e: any) => {
+        const id = e.detail.id;
+        setSqliteLogs(prev => prev.filter(l => l.id !== id));
+      };
+
+      window.addEventListener('localLogAdd', handleLocalAdd);
+      window.addEventListener('localLogAddBatch', handleLocalAddBatch);
+      window.addEventListener('localLogUpdate', handleLocalUpdate);
+      window.addEventListener('localLogDelete', handleLocalDelete);
+
+      return () => {
+        window.removeEventListener('localLogAdd', handleLocalAdd);
+        window.removeEventListener('localLogAddBatch', handleLocalAddBatch);
+        window.removeEventListener('localLogUpdate', handleLocalUpdate);
+        window.removeEventListener('localLogDelete', handleLocalDelete);
+      };
+    }, []);
+
     const { data: fbLogs = EMPTY_ARRAY } = useQuery({ 
       queryKey: ['fbLogs', user ? getEffectiveUid(user) : ''], 
       enabled: !!user, 
@@ -170,6 +196,17 @@ export default function App() {
     const timer = setTimeout(() => setShowSplash(false), 2500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Automatyczny popup nowości (Changelog)
+  useEffect(() => {
+    const lastSeen = localStorage.getItem("lastSeenVersion");
+    if (lastSeen !== CURRENT_VERSION) {
+      setTimeout(() => {
+        setShowChangelog(true);
+        localStorage.setItem("lastSeenVersion", CURRENT_VERSION);
+      }, 3000); // Opóźniamy, by nie zablokowało logowania / ładowania UI
+    }
+  }, [setShowChangelog]);
 
   useEffect(() => {
     const unsubscribe = initAuthListener(setShowTutorial);

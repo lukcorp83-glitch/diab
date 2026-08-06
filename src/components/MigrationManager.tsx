@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getEffectiveUid } from '../lib/utils';
 import { doc, getDoc, collection, getDocs, writeBatch, setDoc, query, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -91,7 +91,8 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       setProgress(10);
       try {
         const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
-        const snap = await getDocs(oldLogsRef);
+        const q = query(oldLogsRef, limit(5000));
+        const snap = await getDocs(q);
         if (!snap.empty) {
           const logs = snap.docs.map(d => d.data());
           let sqliteP = 0, idbP = 0;
@@ -158,6 +159,14 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
           >
             <CheckCircle size={16} />
             Potwierdź odbiór danych
+          </button>
+        )}
+        {(migrationState === 'migrating' || migrationState === 'verify') && (
+          <button 
+            onClick={confirmMigration}
+            className="shrink-0 bg-blue-900/40 text-blue-100 hover:bg-blue-900/60 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 w-full md:w-auto justify-center"
+          >
+            Pomiń
           </button>
         )}
       </div>

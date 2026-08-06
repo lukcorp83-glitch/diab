@@ -177,7 +177,7 @@ export class DatabaseService {
     this.savePromise = new Promise(resolve => { resolveSave = resolve; });
 
     try {
-      const BATCH_SIZE = 500;
+      const BATCH_SIZE = 100;
       const total = logs.length;
       for (let i = 0; i < total; i += BATCH_SIZE) {
         const chunk = logs.slice(i, i + BATCH_SIZE);
@@ -202,6 +202,8 @@ export class DatabaseService {
           }
         }
         onProgress?.(Math.min(100, Math.round(((i + chunk.length) / total) * 100)));
+        // Yield to prevent UI thread starvation and SQLite plugin overload
+        await new Promise(r => setTimeout(r, 15));
       }
       
       if (this.isWeb) {

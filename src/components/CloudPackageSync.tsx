@@ -87,6 +87,7 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
  let decompressed = LZString.decompressFromUTF16(data.payload);
  if (!decompressed) decompressed = LZString.decompressFromBase64(data.payload);
  if (!decompressed) decompressed = LZString.decompress(data.payload);
+ if (!decompressed) decompressed = LZString.decompressFromEncodedURIComponent(data.payload);
  
  if (!decompressed) {
    console.error("All decompression methods failed for the payload");

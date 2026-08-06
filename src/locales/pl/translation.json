@@ -6632,5 +6632,10 @@
   "changelog.v5991_title": "Nowa Architektura Aplikacji",
   "changelog.v5991_change_1": "Architektura: Całkowicie nowa, odchudzona i zoptymalizowana struktura kodu.",
   "changelog.v5991_change_2": "Nowość: Centrum żywieniowe ułatwiające monitorowanie diety.",
-  "changelog.v5991_change_3": "Nowość: Silnik GlikoSense 4.0 z ulepszonymi predykcjami."
+  "changelog.v5991_change_3": "Nowość: Silnik GlikoSense 4.0 z ulepszonymi predykcjami.",
+  "auto.glikosense_autotune_title": "GlikoSense zauważył zmianę wrażliwości",
+  "auto.glikosense_autotune_desc": "Przez ostatnie dni Twoje bolusy korekcyjne działały słabiej niż zwykle. Sugeruję zmianę wrażliwości na insulinę (ISF), by obniżyć błąd wyliczeń.",
+  "auto.glikosense_autotune_action": "Zmień z {{oldISF}} na {{newISF}} mg/dL",
+  "auto.glikosense_autotune_reject": "Zignoruj",
+  "auto.glikosense_autotune_success": "Profil ISF został zaktualizowany."
 }

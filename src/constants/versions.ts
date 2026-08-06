@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.5';
+export const CURRENT_VERSION = '6.0.6';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.6",
+    date: new Date().toISOString().split('T')[0],
+    title: "Optimistic UI & Fixes",
+    changes: [
+      "Zwiększono bufor Firebase uwalniając historię zblokowaną na 4-dniach (do 40tys. odczytów)",
+      "Dodano natychmiastowe odświeżanie interfejsu (Optimistic UI) dla wkłuć i sensorów",
+      "Wdrożono przycisk Pomiń na ekranie migracji bazy dla zatrzymanych telefonów",
+      "Dodano dekompresor LZString z URI jako fallback dla starych paczek"
+    ]
+  },
   {
     version: "6.0.5",
     date: new Date().toISOString().split('T')[0],
@@ -669,6 +680,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.6",
+    date: new Date().toISOString().split('T')[0],
+    title: "Optimistic UI & Fixes",
+    changes: [
+      "Zwiększono bufor Firebase uwalniając historię zblokowaną na 4-dniach (do 40tys. odczytów)",
+      "Dodano natychmiastowe odświeżanie interfejsu (Optimistic UI) dla wkłuć i sensorów",
+      "Wdrożono przycisk Pomiń na ekranie migracji bazy dla zatrzymanych telefonów",
+      "Dodano dekompresor LZString z URI jako fallback dla starych paczek"
+    ]
+  },
   {
     version: "6.0.5",
     date: new Date().toISOString().split('T')[0],

@@ -1,10 +1,10 @@
 {
-    "version":  "6.0.5",
+    "version":  "6.0.6",
     "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.5_OTA.apk",
-    "buildNumber":  120,
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.6_OTA.apk",
+    "buildNumber":  121,
     "forceUpdate":  false,
-    "whatsNew":  "Wersja 6.0.5! Potężna aktualizacja GlikoSense 4.0 TCN Pro! Wprowadzono 20-wymiarowy wektor wejściowy (z pogodą i bolusami), dylatacje TCN dla niespotykanej dotąd precyzji, gładkie interpolacje Spline i powiększony zasób pamięci chmurowej (do 15 000 odczytów). Naprawiono również zawieszanie się synchronizacji chmury oraz brak informacji zwrotnej przy zapisywaniu sprzętu.",
-    "whatsNewEn":  "Version 6.0.5! Massive GlikoSense 4.0 TCN Pro update! Introduced 20-dim input vector (weather + bolus offset), TCN dilations for unprecedented precision, smooth Spline interpolations, and increased cloud cache to 15,000 logs. Fixed cloud sync hangs and missing feedback upon saving equipment changes.",
-    "otaRevision":  279
+    "whatsNew":  "Wersja 6.0.6! Krytyczna poprawka silnika bazy danych! Rozwiązano problem 4-dniowej historii poprzez inteligentniejsze buforowanie (limit zwiększony z 10 tys. do 40 tys.). Naprawiono uciążliwe zawieszanie się okienka migracji, dodając przycisk 'Pomiń' oraz dodatkowy algorytm dekompresji starych archiwów. Dodano też odświeżanie statystyk 'w czasie rzeczywistym' (Optimistic UI) – teraz dodane przez Ciebie wkłucia i zdarzenia wskoczą na wykres w sekundę!",
+    "whatsNewEn":  "Version 6.0.6! Critical database engine fix! Resolved the 4-day history limit by implementing smarter caching (limit increased from 10k to 40k). Fixed the annoying migration screen hang by adding a 'Skip' button and an additional decompression algorithm for old archives. Also added real-time stat refreshing (Optimistic UI) - now added infusion sites and events will pop onto the chart in a second!",
+    "otaRevision":  280
 }

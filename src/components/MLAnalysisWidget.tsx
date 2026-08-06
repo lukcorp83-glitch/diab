@@ -6,6 +6,7 @@ import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loade
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
+import { detectIsfChanges, AutoTunerResult } from '../services/isfAutoTuner';
 import { cn, getEffectiveUid } from '../lib/utils';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { db, auth } from '../lib/firebase';
@@ -34,6 +35,8 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const { t } = useTranslation();
  const glassmorphismEnabled = settings?.glassmorphismEnabled || false;
   const [engineMode, setEngineMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') || 'v3_lstm' : 'v3_lstm');
+  const [autoTuningEnabled, setAutoTuningEnabled] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_autotuning') === 'true' : false);
+  const [autoTunerResult, setAutoTunerResult] = useState<AutoTunerResult | null>(null);
   const glikoName = engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0';
   const [showEngineSettings, setShowEngineSettings] = useState(false);
  const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -258,7 +261,6 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const downloadAnchor = document.createElement('a');
  downloadAnchor.setAttribute("href", jsonString);
  downloadAnchor.setAttribute("download", `glikosense_model_backup_${Date.now()}.json`);
- document.body.appendChild(downloadAnchor);
  downloadAnchor.click();
  downloadAnchor.remove();
  toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.pomyslnie_pobrano_model_d', { glikoName, defaultValue: "Pomyślnie pobrano model do pliku JSON!" }) }));
@@ -267,6 +269,19 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  console.error(err);
  }
  };
+
+  const handleAcceptAutoTune = async () => {
+    if (!autoTunerResult?.proposedISF || !user || !settings) return;
+    try {
+      const uid = getEffectiveUid(user, settings);
+      await setDoc(doc(db, "users", uid), { isf: autoTunerResult.proposedISF }, { merge: true });
+      toast.success(t('auto.glikosense_autotune_success', { defaultValue: 'Profil ISF został zaktualizowany.' }));
+      setAutoTunerResult(null);
+    } catch (e) {
+      console.error(e);
+      toast.error("Błąd zapisu!");
+    }
+  };
 
  const handleImportFromFile = (e: React.ChangeEvent<HTMLInputElement>) => {
  const fileReader = new FileReader();
@@ -347,6 +362,13 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  try {
  // Uruchamiamy weryfikację wsteczną w tle (szybki test skuteczności na danych sprzed godziny)
  MLAnalyzer.runHindsightVerification(logs);
+
+ if (autoTuningEnabled && settings?.isf) {
+    const isfRes = detectIsfChanges(logs, settings.isf);
+    setAutoTunerResult(isfRes);
+  } else {
+    setAutoTunerResult(null);
+  }
 
  // Start quick analysis immediately
  const quickPromise = MLAnalyzer.analyzeData(logs, force, 'quick');
@@ -566,6 +588,49 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }, [logs, settings]);
 
  return (
+ <div className="flex flex-col h-full bg-slate-50/50 dark:bg-slate-900 overflow-y-auto overflow-x-hidden p-4 pb-24 gap-4">
+    
+    <AnimatePresence>
+      {autoTuningEnabled && autoTunerResult?.suggestionAvailable && autoTunerResult.proposedISF && settings?.isf && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="relative bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 p-5 rounded-3xl shadow-sm"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center shrink-0">
+              <Bot size={22} className="text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div className="flex flex-col gap-1.5 flex-1">
+              <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                {t('auto.glikosense_autotune_title', { defaultValue: 'GlikoSense zauważył zmianę wrażliwości' })}
+                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                {t('auto.glikosense_autotune_desc', { defaultValue: 'Przez ostatnie dni Twoje bolusy korekcyjne działały słabiej niż zwykle. Sugeruję zmianę wrażliwości na insulinę (ISF), by obniżyć błąd wyliczeń.' })}
+              </p>
+              
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={handleAcceptAutoTune}
+                  className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors"
+                >
+                  {t('auto.glikosense_autotune_action', { defaultValue: `Zmień z ${settings.isf} na ${autoTunerResult.proposedISF} mg/dL`, oldISF: settings.isf, newISF: autoTunerResult.proposedISF })}
+                </button>
+                <button
+                  onClick={() => setAutoTunerResult(null)}
+                  className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                >
+                  {t('auto.glikosense_autotune_reject', { defaultValue: 'Zignoruj' })}
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
  <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 md:p-8 rounded-[2.5rem] shadow-2xl border border-accent-100 dark:border-accent-900/40 relative overflow-hidden group">
  {/* Background decoration */}
  <div className="absolute -top-32 -right-32 w-[30rem] h-[30rem] bg-accent-500/10 blur-[80px] rounded-full pointer-events-none group-hover:bg-accent-500/20 transition-all duration-1000" />
@@ -674,6 +739,38 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                     ? t('auto.opis_silnika_tcn', { defaultValue: 'Sploty dylatowane (TCN) z kwantyzacją wag INT8 i bezpiecznikiem skrajnych próbek. Wysoka precyzja.' })
                     : t('auto.opis_silnika_lstm', { defaultValue: 'Pamięć sekwencyjna (LSTM). Sprawdzony, klasyczny wariant asystenta o mniejszym zapotrzebowaniu na moc.' })}
                 </p>
+
+                <div className="mt-2 border-t border-slate-200/50 dark:border-slate-700/50 pt-4 flex flex-col gap-3">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Auto-Tuning ISF (AI Sugestie)
+                      </span>
+                      <span className="text-[8px] text-slate-500 dark:text-slate-400 mt-1 max-w-[200px]">
+                        Pozwól GlikoSense wykrywać i sugerować zmiany we wrażliwości na insulinę
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newState = !autoTuningEnabled;
+                        setAutoTuningEnabled(newState);
+                        localStorage.setItem('glikosense_autotuning', newState.toString());
+                        toast.success(newState ? 'Auto-Tuning włączony (Tryb sugestii)' : 'Auto-Tuning wyłączony');
+                      }}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        autoTuningEnabled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-700'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          autoTuningEnabled ? 'translate-x-5' : 'translate-x-0'
+                        )}
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
           </motion.div>
         )}
@@ -1243,6 +1340,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
   </motion.div>
   ) : null}
   </AnimatePresence>
+  </div>
   </div>
  );
 };
