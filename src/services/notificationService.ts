@@ -13,14 +13,14 @@ export const notificationService = {
   async initChannels() {
     if (Capacitor.isNativePlatform()) {
       try {
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v9' }); } catch(e) {}
+        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v10' }); } catch(e) {}
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v10',
+          id: 'glucose_alerts_v11',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
           importance: 5,
           visibility: 1,
-          sound: 'status_clear',
+          sound: 'status_clear.mp3',
           vibration: true
         });
 
@@ -433,8 +433,8 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v10',
-            sound: 'status_clear',
+            channelId: 'glucose_alerts_v11',
+            sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: "",
             extra: null

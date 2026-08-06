@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { collection, query, onSnapshot, orderBy, limit, doc, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -42,7 +42,7 @@ export const useAppSubscriptions = (user: any) => {
     createCollectionSub(
       "logs",
       "fbLogs",
-      (coll) => isEco ? query(coll, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(6000)) : query(coll, orderBy("timestamp", "desc"), limit(6000)),
+      (coll) => isEco ? query(coll, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(10000)) : query(coll, orderBy("timestamp", "desc"), limit(10000)),
       (doc) => ({ ...doc.data(), id: doc.id })
     );
 

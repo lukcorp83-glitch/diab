@@ -155,7 +155,8 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[], rules: any) 
 const physiologicalNormalize = (inputs: number[]): number[] => {
   const [
     bg = 120, trend = 0, acc = 0, cob = 0, fastCobActive = 0, slowCobActive = 0, iob = 0,
-    timeSin = 0, timeCos = 0, pob = 0, fob = 0, isWeekend = 0, sinceMeal = 1440, sinceBolus = 1440, iobCobRatio = 0
+    timeSin = 0, timeCos = 0, pob = 0, fob = 0, isWeekend = 0, sinceMeal = 1440, sinceBolus = 1440, iobCobRatio = 0,
+    roc15 = 0, roc30 = 0, sd30 = 0, bolusOffset = 0, temp = 20
   ] = inputs;
 
   const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
@@ -175,7 +176,12 @@ const physiologicalNormalize = (inputs: number[]): number[] => {
     clamp(isWeekend, 0, 1),
     clamp(sinceMeal, 0, 1440) / 1440,
     clamp(sinceBolus, 0, 1440) / 1440,
-    clamp(iobCobRatio, 0, 10) / 10
+    clamp(iobCobRatio, 0, 10) / 10,
+    (clamp(roc15, -40, 40) + 40) / 80,
+    (clamp(roc30, -80, 80) + 80) / 160,
+    clamp(sd30, 0, 50) / 50,
+    (clamp(bolusOffset, -120, 120) + 120) / 240,
+    (clamp(temp, -10, 40) + 10) / 50
   ];
 };
 
@@ -202,8 +208,13 @@ const generateSyntheticPhysiologyLSTM = (steps: number = 6) => {
         const pob = Math.random() * 30;
         const fob = Math.random() * 30;
         const ratio = (iob + 0.1) / (cob + 0.1);
+        const roc15 = trend * 3;
+        const roc30 = trend * 6;
+        const sd30 = Math.random() * 10;
+        const bolusOffset = sinceBolus - sinceMeal;
+        const temp = 20;
 
-        const inputs = [bg, trend, acc, cob, fastCob, slowCob, iob, 0, 0, pob, fob, 0, sinceMeal, sinceBolus, ratio];
+        const inputs = [bg, trend, acc, cob, fastCob, slowCob, iob, 0, 0, pob, fob, 0, sinceMeal, sinceBolus, ratio, roc15, roc30, sd30, bolusOffset, temp];
         sequence.push(physiologicalNormalize(inputs));
     }
 
@@ -594,6 +605,19 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     let treatmentIdx = 0;
     const sequenceLength = activeTopology === 'v4_tcn' ? 36 : 6;
 
+    const temps = new Float32Array(resampledGlucose.length);
+    let lastTemp = 20;
+    let origIdxTemp = 0;
+    for (let ri = 0; ri < resampledGlucose.length; ri++) {
+        while (origIdxTemp < glucoseLogsOrig.length && (glucoseLogsOrig[origIdxTemp].timestamp || new Date(glucoseLogsOrig[origIdxTemp].createdAt).getTime()) <= resampledGlucose[ri].timestamp) {
+            if (glucoseLogsOrig[origIdxTemp].weather?.temp !== undefined) {
+                lastTemp = glucoseLogsOrig[origIdxTemp].weather!.temp;
+            }
+            origIdxTemp++;
+        }
+        temps[ri] = lastTemp;
+    }
+
     for(let i=sequenceLength-1; i < resampledGlucose.length - 36; i++) {
       const sequence = [];
       for(let step = sequenceLength - 1; step >= 0; step--) {
@@ -626,9 +650,30 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
           const isWeekend = (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0;
           const iobCobRatio = (iob + 0.1) / (cob + 0.1);
 
+          let roc15 = 0;
+          let roc30 = 0;
+          let sd30 = 0;
+          const hist30 = [];
+          for (let histStep = 0; histStep < 6; histStep++) {
+              const histIdx = i - step - histStep;
+              if (histIdx >= 0) {
+                  const histVal = resampledGlucose[histIdx].value;
+                  hist30.push(histVal);
+                  if (histStep === 3) roc15 = current.value - histVal;
+                  if (histStep === 5) roc30 = current.value - histVal;
+              }
+          }
+          if (hist30.length > 0) {
+              const mean = hist30.reduce((a, b) => a + b, 0) / hist30.length;
+              sd30 = Math.sqrt(hist30.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / hist30.length);
+          }
+          const bolusOffset = timeSinceBolus - timeSinceMeal;
+          const temp = temps[i - step];
+
           sequence.push(physiologicalNormalize([
             current.value, trendNum, accelerationNum, cob, fastCobActive, slowCobActive, iob, 
-            timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio
+            timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio,
+            roc15, roc30, sd30, bolusOffset, temp
           ]));
       }
 
@@ -643,7 +688,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     let model: tf.LayersModel;
-    const dbModelPath = activeTopology === 'v4_tcn' ? 'indexeddb://glikosense-tcn-v4-pad-fix' : 'indexeddb://glikosense-lstm-v5';
+    const dbModelPath = activeTopology === 'v4_tcn' ? 'indexeddb://glikosense-tcn-v4-pro-1' : 'indexeddb://glikosense-lstm-v5-pro';
     try {
         if (_cachedModel && _cachedModelType === activeTopology) {
             model = _cachedModel;
@@ -657,29 +702,34 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
             _cachedModelType = activeTopology;
             isModelLoaded = true;
         }
-        model.compile({ optimizer: tf.train.adam(activeTopology === 'v4_tcn' ? 0.001 : 0.001), loss: 'meanSquaredError' });
+        model.compile({ optimizer: tf.train.adam(activeTopology === 'v4_tcn' ? 0.001 : 0.001), loss: tf.losses.huberLoss });
     } catch(e) {
         model = tf.sequential();
         if (activeTopology === 'v4_tcn') {
-            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu', inputShape: [36, 15] }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu', inputShape: [36, 20] }));
+            (model as tf.Sequential).add(tf.layers.dropout({ rate: 0.15 }));
+            
             (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu' }));
+            (model as tf.Sequential).add(tf.layers.dropout({ rate: 0.15 }));
+            
             (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu' }));
+            
             (model as tf.Sequential).add(tf.layers.flatten());
             (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
             (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
-            model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+            model.compile({ optimizer: tf.train.adam(0.001), loss: tf.losses.huberLoss });
         } else {
-            (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
+            (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 20], returnSequences: false }));
             (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
             (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
-            model.compile({ optimizer: tf.train.adam(0.005), loss: 'meanSquaredError' });
+            model.compile({ optimizer: tf.train.adam(0.005), loss: tf.losses.huberLoss });
         }
         _cachedModel = model;
         _cachedModelType = activeTopology;
 
         try {
             const syntheticData = generateSyntheticPhysiologyLSTM(activeTopology === 'v4_tcn' ? 36 : 6);
-            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, activeTopology === 'v4_tcn' ? 36 : 6, 15]);
+            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, activeTopology === 'v4_tcn' ? 36 : 6, 20]);
             const synOutputsTensor = tf.tensor2d(syntheticData.map(d => d.output));
             await model.fit(synInputsTensor, synOutputsTensor, { epochs: mode === 'quick' ? 1 : 2, shuffle: true, verbose: 0 });
             synInputsTensor.dispose();
@@ -687,11 +737,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         } catch (synErr) {}
     }
 
-    const trainingDataset = dataset.slice(-50); // Maksymalnie 50 paczek by uniknąć zapchania CPU
+    const trainingDataset = dataset.slice(-200); // Zwiększono z 50 paczek
     let shouldTrain = force || !isModelLoaded || (mode === 'full' && (Date.now() - lastTrainTime > 2 * 60 * 60 * 1000));
 
     if (shouldTrain && trainingDataset.length > 0) {
-        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, activeTopology === 'v4_tcn' ? 36 : 6, 15]);
+        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, activeTopology === 'v4_tcn' ? 36 : 6, 20]);
         const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
         try {
             await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
@@ -710,7 +760,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     tf.tidy(() => {
       if (trainingDataset.length === 0) return;
       const evalSeqLen = activeTopology === 'v4_tcn' ? 36 : 6;
-      const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, evalSeqLen, 15]);
+      const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, evalSeqLen, 20]);
       let predsArray: Float32Array | Int32Array | Uint8Array;
       try {
           const preds = model.predict(evalInputs, { batchSize: 32 }) as tf.Tensor;
@@ -726,7 +776,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     const predictValue = (mdl: tf.LayersModel, sequence: number[][]) => {
         return tf.tidy(() => {
-            const pred = mdl.predict(tf.tensor3d([sequence], [1, sequence.length, 15])) as tf.Tensor;
+            const pred = mdl.predict(tf.tensor3d([sequence], [1, sequence.length, 20])) as tf.Tensor;
             return (pred.arraySync() as number[][])[0];
         });
     };
@@ -761,7 +811,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     let weatherBgModifier = 0;
-    if (weatherTemp !== null && currentIob > 0) {
+    if (activeTopology !== 'v4_tcn' && weatherTemp !== null && currentIob > 0) {
        if (weatherTemp > 25) weatherBgModifier = -((weatherTemp - 25) * 0.1 * currentIob); 
        else if (weatherTemp < 5) weatherBgModifier = ((5 - weatherTemp) * 0.05 * currentIob);
     }
@@ -775,19 +825,59 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         const { iob, cob, fastCobActive, slowCobActive, pob, fob } = calculateActiveAtTime(cur.timestamp, treatmentLogs, rules);
         const date = new Date(cur.timestamp);
         const hourDecimal = date.getHours() + (date.getMinutes() / 60);
+        
+        let roc15 = 0;
+        let roc30 = 0;
+        let sd30 = 0;
+        const hist30 = [];
+        for (let histStep = 0; histStep < 6; histStep++) {
+            const histIdx = idx - histStep;
+            if (histIdx >= 0) {
+                const histVal = resampledGlucose[histIdx].value;
+                hist30.push(histVal);
+                if (histStep === 3) roc15 = cur.value - histVal;
+                if (histStep === 5) roc30 = cur.value - histVal;
+            }
+        }
+        if (hist30.length > 0) {
+            const mean = hist30.reduce((a, b) => a + b, 0) / hist30.length;
+            sd30 = Math.sqrt(hist30.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / hist30.length);
+        }
+
+        let timeSinceMeal = 1440;
+        let timeSinceBolus = 1440;
+        for (let j = treatmentLogs.length - 1; j >= 0; j--) {
+             const t = treatmentLogs[j].timestamp || new Date(treatmentLogs[j].createdAt).getTime();
+             const minutes = (cur.timestamp - t) / 60000;
+             if (treatmentLogs[j].type === 'meal' && minutes < timeSinceMeal && timeSinceMeal === 1440 && minutes >= 0) timeSinceMeal = minutes;
+             if ((treatmentLogs[j].type === 'bolus' || treatmentLogs[j].type === 'insulin') && minutes < timeSinceBolus && timeSinceBolus === 1440 && minutes >= 0) timeSinceBolus = minutes;
+             if (minutes > 480) break;
+        }
+        const bolusOffset = timeSinceBolus - timeSinceMeal;
+        const temp = weatherTemp !== null ? weatherTemp : 20;
+
         sequenceForPrediction.push(physiologicalNormalize([
             cur.value, cur.trend, 0, cob, fastCobActive, slowCobActive, iob,
             Math.sin((hourDecimal / 24) * Math.PI * 2), Math.cos((hourDecimal / 24) * Math.PI * 2),
-            pob, fob, (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0, 120, 120, (iob + 0.1)/(cob + 0.1)
+            pob, fob, (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0, timeSinceMeal, timeSinceBolus, (iob + 0.1)/(cob + 0.1),
+            roc15, roc30, sd30, bolusOffset, temp
         ]));
       } else {
-        sequenceForPrediction.push(physiologicalNormalize([latestBg, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
+        sequenceForPrediction.push(physiologicalNormalize([latestBg, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20]));
       }
     }
 
     const nextPredNormal = predictValue(model, sequenceForPrediction);
     const stepsArr = [3,6,9,12,18,24,30,36];
-    const maxDeltaPerStep = 12; // Max realistic change: 12 mg/dL per 5 min
+    
+    let cv = 20;
+    if (resampledGlucose.length > 0) {
+        const vals = resampledGlucose.slice(-288).map(g => g.value);
+        const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const sd = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length);
+        cv = (sd / mean) * 100;
+    }
+    const maxDeltaPerStep = activeTopology === 'v4_tcn' ? Math.max(8, Math.min(18, 8 + (cv - 15) * 0.4)) : 12;
 
     let ensembleRawPreds: number[][] = [];
     if (activeTopology === 'v4_tcn') {
@@ -863,16 +953,42 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     ];
 
     const getInterpolatedValue = (s: number, key: 'val' | 'min' | 'max' = 'val') => {
-      for (let idx = 0; idx < keypoints.length - 1; idx++) {
-        if (s >= keypoints[idx].step && s <= keypoints[idx + 1].step) {
-          const frac = (s - keypoints[idx].step) / (keypoints[idx+1].step - keypoints[idx].step);
-          return (keypoints[idx] as any)[key] + frac * ((keypoints[idx+1] as any)[key] - (keypoints[idx] as any)[key]);
-        }
+      if (s >= keypoints[keypoints.length - 1].step) {
+          const lastVal = (keypoints[keypoints.length - 1] as any)[key] || keypoints[keypoints.length - 1].val;
+          const extraSteps = s - 36;
+          const reversionRate = Math.min(1, extraSteps / 36);
+          return lastVal + reversionRate * (110 - lastVal) * 0.45;
       }
-      const lastVal = (keypoints[keypoints.length - 1] as any)[key] || keypoints[keypoints.length - 1].val;
-      const extraSteps = s - 36;
-      const reversionRate = Math.min(1, extraSteps / 36);
-      return lastVal + reversionRate * (110 - lastVal) * 0.45;
+      
+      let idx = 0;
+      while (idx < keypoints.length - 2 && s > keypoints[idx + 1].step) idx++;
+      
+      const p1 = keypoints[idx];
+      const p2 = keypoints[idx + 1];
+      const p0 = idx > 0 ? keypoints[idx - 1] : p1;
+      const p3 = idx + 2 < keypoints.length ? keypoints[idx + 2] : p2;
+      
+      const t = (s - p1.step) / (p2.step - p1.step);
+      const t2 = t * t;
+      const t3 = t2 * t;
+      
+      const v0 = (p0 as any)[key];
+      const v1 = (p1 as any)[key];
+      const v2 = (p2 as any)[key];
+      const v3 = (p3 as any)[key];
+      
+      if (activeTopology !== 'v4_tcn') {
+          // Linear for v3_lstm
+          return v1 + t * (v2 - v1);
+      }
+      
+      // Catmull-Rom cubic spline for v4_tcn
+      return 0.5 * (
+        (2 * v1) +
+        (-v0 + v2) * t +
+        (2 * v0 - 5 * v1 + 4 * v2 - v3) * t2 +
+        (-v0 + 3 * v1 - 3 * v2 + v3) * t3
+      );
     };
 
     const currentHour = new Date().getHours();

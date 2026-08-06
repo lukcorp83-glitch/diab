@@ -66,7 +66,15 @@ export const PredictionAccuracyTracker = {
     history.forEach(record => {
       if (record.actualBg === undefined && record.targetTime <= Date.now()) {
         // Find closest real glucose reading within +/- 15 minutes of targetTime
-        const matched = glucoseLogs.find(g => Math.abs(g.timestamp - record.targetTime) <= 15 * 60000);
+        let matched = null;
+        let minDiff = 15 * 60000 + 1;
+        glucoseLogs.forEach(g => {
+          const diff = Math.abs(g.timestamp - record.targetTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            matched = g;
+          }
+        });
         if (matched) {
           record.actualBg = Math.round(matched.value);
           record.errorMgDl = Math.abs(record.predictedBg - record.actualBg);

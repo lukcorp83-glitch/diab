@@ -44,14 +44,35 @@ export const playFeedSound = () => {
   setTimeout(() => playTone(300, 'triangle', 0.1, 0.1), 300);
 };
 
-const playMp3Alert = () => {
+let cachedAlarmBuffer: AudioBuffer | null = null;
+
+const playMp3Alert = async () => {
   try {
-    const baseUrl = (import.meta && import.meta.env && import.meta.env.BASE_URL) || '/';
-    const audioUrl = (baseUrl + '/status_clear.mp3').replace(/\/+/g, '/');
-    const audio = new Audio(audioUrl);
-    audio.play().catch(e => console.error("Audio play blocked", e));
+    const audioCtx = getAudioCtx();
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
+
+    if (!cachedAlarmBuffer) {
+      const baseUrl = (import.meta && import.meta.env && import.meta.env.BASE_URL) || '/';
+      const audioUrl = (baseUrl + '/status_clear.mp3').replace(/\/+/g, '/');
+      const response = await fetch(audioUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      cachedAlarmBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    }
+
+    const source = audioCtx.createBufferSource();
+    source.buffer = cachedAlarmBuffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
   } catch (e) {
-    console.error("Audio error", e);
+    console.error("AudioContext play failed, fallback to Audio element", e);
+    try {
+      const baseUrl = (import.meta && import.meta.env && import.meta.env.BASE_URL) || '/';
+      const audioUrl = (baseUrl + '/status_clear.mp3').replace(/\/+/g, '/');
+      const audio = new Audio(audioUrl);
+      audio.play().catch(err => console.error("Fallback audio play blocked", err));
+    } catch(err) {}
   }
 };
 

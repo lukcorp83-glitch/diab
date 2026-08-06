@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.4';
+export const CURRENT_VERSION = '6.0.5';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.5",
+    date: new Date().toISOString().split('T')[0],
+    title: "GlikoSense 4.0 TCN Pro & Fixes",
+    changes: [
+      "Wprowadzono 20-wymiarowy wektor wejściowy z dylatacjami TCN i Spline'ami",
+      "Powiększono zasób pamięci chmurowej (do 15 000 odczytów)",
+      "Naprawiono błędy SQLite blokujące UI przy zapisywaniu sprzętu",
+      "Naprawiono nieskończone ładowanie w Cloud Package Sync ograniczając logi do 5000"
+    ]
+  },
   {
     version: "5.9.96",
     date: new Date().toISOString().split('T')[0],
@@ -658,6 +669,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.5",
+    date: new Date().toISOString().split('T')[0],
+    title: "GlikoSense 4.0 TCN Pro & Fixes",
+    changes: [
+      "Wprowadzono 20-wymiarowy wektor wejściowy z dylatacjami TCN i Spline'ami",
+      "Powiększono zasób pamięci chmurowej (do 15 000 odczytów)",
+      "Naprawiono błędy SQLite blokujące UI przy zapisywaniu sprzętu",
+      "Naprawiono nieskończone ładowanie w Cloud Package Sync ograniczając logi do 5000"
+    ]
+  },
   {
     version: "5.9.96",
     date: new Date().toISOString().split('T')[0],

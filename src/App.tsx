@@ -1,4 +1,4 @@
-﻿import {
+import {
  calculateIOB,
  calculateCOB,
  getEffectiveUid,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { auth, db } from "./lib/firebase";
+import { dbService } from "./services/databaseService";
 import {
  onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signInWithCustomToken, signInWithCredential,
 } from "firebase/auth";
@@ -99,23 +100,47 @@ export default function App() {
     };
   
   const mainRef = useRef<HTMLDivElement>(null);
-  
-  const { logs, setLogs } = useLogsStore();
-  const { data: fbLogs = EMPTY_ARRAY } = useQuery({ 
-    queryKey: ['fbLogs', user ? getEffectiveUid(user) : ''], 
-    enabled: !!user, 
-    queryFn: () => EMPTY_ARRAY 
-  });
+    const { logs, setLogs } = useLogsStore();
+    const [sqliteLogs, setSqliteLogs] = useState<any[]>([]);
+    
+    // Inicjalizacja bazy SQLite i pobranie głębokiej historii
+    useEffect(() => {
+      const initDB = async () => {
+        await dbService.init();
+        const loadedLogs = await dbService.getLogs(60000);
+        setSqliteLogs(loadedLogs);
+      };
+      initDB();
+    }, []);
 
-  useEffect(() => {
-    const allMap = new Map();
-    fbLogs.forEach((l: any) => allMap.set(l.id, l));
-    nsLogs.forEach((l: any) => {
-      if (!allMap.has(l.id)) allMap.set(l.id, l);
+    const { data: fbLogs = EMPTY_ARRAY } = useQuery({ 
+      queryKey: ['fbLogs', user ? getEffectiveUid(user) : ''], 
+      enabled: !!user, 
+      queryFn: () => EMPTY_ARRAY 
     });
-    const combined = Array.from(allMap.values()).sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
-    setLogs(combined);
-  }, [fbLogs, nsLogs, setLogs]);
+
+    // Cichy zapis nowych danych z chmury do "twardego dysku" (Local-First)
+    useEffect(() => {
+      if (fbLogs.length === 0) return;
+      const timeoutId = setTimeout(() => {
+        dbService.saveMultipleLogs(fbLogs).catch(e => console.warn("Background DB save failed", e));
+      }, 5000);
+      return () => clearTimeout(timeoutId);
+    }, [fbLogs]);
+  
+    useEffect(() => {
+      const allMap = new Map();
+      // Najpierw ładujemy "chłodną" historię ze SQLite
+      sqliteLogs.forEach((l: any) => allMap.set(l.id, l));
+      // Nadpisujemy nowszymi "gorącymi" logami z chmury Firebase
+      fbLogs.forEach((l: any) => allMap.set(l.id, l));
+      // Doklejamy ewentualne bezpośrednie uderzenia z Nightscout API
+      nsLogs.forEach((l: any) => {
+        if (!allMap.has(l.id)) allMap.set(l.id, l);
+      });
+      const combined = Array.from(allMap.values()).sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
+      setLogs(combined);
+    }, [sqliteLogs, fbLogs, nsLogs, setLogs]);
 
   const lastGlucoseValue = useMemo(() => {
     const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');

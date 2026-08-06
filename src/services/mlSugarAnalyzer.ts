@@ -151,6 +151,38 @@ export const MLAnalyzer = {
     }
   },
 
+    async runHindsightVerification(logs: any[]) {
+      try {
+        if (!logs || logs.length < 200) return;
+        const now = Date.now();
+        const cutoffTime = now - 60 * 60 * 1000;
+        const pastLogs = logs.filter(l => {
+          const t = l.timestamp || new Date(l.createdAt).getTime();
+          return t < cutoffTime;
+        });
+        if (pastLogs.length < 200) return;
+        
+        // Ciche wywołanie w trybie 'quick' na danych sprzed 1h
+        const result = await this.analyzeData(pastLogs, true, 'quick');
+        if (result && result.predictedNextHour) {
+          const historyStr = localStorage.getItem('glikosense_prediction_history_v1') || '[]';
+          const history = JSON.parse(historyStr);
+          history.push({
+            id: `hindsight_${now}`,
+            predictedAt: cutoffTime,
+            targetTime: now,
+            predictedBg: Math.round(result.predictedNextHour),
+          });
+          if (history.length > 50) history.shift();
+          localStorage.setItem('glikosense_prediction_history_v1', JSON.stringify(history));
+          
+          PredictionAccuracyTracker.evaluateHistoryWithLogs(logs);
+        }
+      } catch (e) {
+        // Cicha porażka
+      }
+    },
+
   analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<any> {
     const logsFingerprint = logs && logs.length > 0 
       ? `v4-lstm-${mode}-${i18n.language}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 

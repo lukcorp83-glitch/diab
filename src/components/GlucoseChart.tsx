@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
@@ -962,16 +962,7 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  onTouchEnd={handleMouseUpNative}
  onTouchCancel={handleMouseUpNative}
  >
- {/* GlikoSense 4.0 Neon Badge Overlay */}
- {showMLPrediction && (
- <div className="absolute top-4 right-4 z-20 pointer-events-none flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
- <Zap size={13} className="text-amber-400 fill-amber-400 animate-pulse" />
- <span className="text-[10px] font-black tracking-wider text-amber-300 uppercase">
- {t('auto.glikosense_v4_tcn', { defaultValue: 'GlikoSense 4.0 TCN Pro' })}
- </span>
- </div>
- )}
-
+ 
  {/* View Controls */}
  <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-auto">
  <button 

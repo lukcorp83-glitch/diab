@@ -24,8 +24,8 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
  }
  }
  
- // Pobierz WSZYSTKIE logi glikemii z nowej natywnej bazy SQLite (do 45000), nie z przestarzałego IndexedDB
- const sqliteLogs = await dbService.getLogs(45000);
+ // Pobierz logi glikemii z bazy SQLite (ograniczone do 5000, aby zapobiec zawieszeniom kompresji i błędom 1MB w Firebase)
+ const sqliteLogs = await dbService.getLogs(5000);
  
  // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
  const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {

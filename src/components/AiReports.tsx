@@ -1,4 +1,4 @@
-﻿import { useAuthStore } from '../stores/useAuthStore';
+import { useAuthStore } from '../stores/useAuthStore';
 import { getEffectiveUid } from '../lib/utils';
 import { useLogsStore } from "../stores/useLogsStore";
 import React, { useState, useEffect, useMemo } from 'react';
@@ -205,11 +205,15 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  </div>
  )}
 
- <div className="bg-accent-900 rounded-[2.5rem] p-8 text-white shadow-2xl text-center space-y-6 relative overflow-hidden">
- <GlikoSenseIcon className="absolute top-4 right-6 opacity-20" size={60} isAnalyzing={true} />
- <div className="relative z-10">
- <h2 className="text-2xl font-black mb-1 text-accent-300">{t('auto.raport', { defaultValue: 'Raport' })}</h2>
- <p className="text-white text-sm font-bold tracking-widest">{t('auto.inteligentna_analiza_glikemii', { defaultValue: 'Inteligentna analiza glikemii' })}</p>
+ <div className="relative p-6 sm:p-7 rounded-[2.5rem] shadow-2xl text-center flex flex-col gap-5 overflow-hidden border border-indigo-500/20 dark:border-indigo-500/30">
+ <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 backdrop-blur-3xl z-0" />
+ <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/80 -z-10" />
+ <div className="absolute -top-10 -right-10 opacity-10 blur-xl pointer-events-none">
+ <GlikoSenseIcon size={150} isAnalyzing={true} />
+ </div>
+ <div className="relative z-10 pt-2">
+ <h2 className="text-3xl font-black mb-1 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 text-transparent bg-clip-text tracking-tighter">{t('auto.raport', { defaultValue: 'Raport' })}</h2>
+ <p className="text-slate-600 dark:text-slate-300 text-[10px] font-black tracking-widest uppercase opacity-80">{t('auto.inteligentna_analiza_glikemii', { defaultValue: 'Inteligentna analiza glikemii' })}</p>
  </div>
 
  <div className="grid gap-4 relative z-10">
@@ -219,20 +223,20 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  whileHover={{ scale: 1.02 }}
  whileTap={{ scale: 0.95 }}
  animate={loading ? {} : {
- boxShadow: ["0px 0px 0px 0px rgba(99,102,241,0)", "0px 0px 20px 5px rgba(99,102,241,0.5)", "0px 0px 0px 0px rgba(99,102,241,0)"]
+ boxShadow: ["0px 0px 0px 0px rgba(99,102,241,0)", "0px 0px 30px 10px rgba(99,102,241,0.3)", "0px 0px 0px 0px rgba(99,102,241,0)"]
  }}
- transition={{ repeat: Infinity, duration: 2 }}
- className="w-full bg-white text-accent-900 py-6 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 relative overflow-hidden"
+ transition={{ repeat: Infinity, duration: 2.5 }}
+ className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-6 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 relative overflow-hidden shadow-lg border border-white/10"
  >
- {loading ? <Loader2 className="animate-spin" /> : <GlikoSenseIcon size={24} isAnalyzing={true} />}
+ {loading ? <Loader2 className="animate-spin" /> : <GlikoSenseIcon size={24} isAnalyzing={true} className="text-white drop-shadow-md" />}
  
- {t('auto.wygeneruj_raport_kompletny', { defaultValue: 'Wygeneruj Raport Kompletny' })}
+ <span className="drop-shadow-md">{t('auto.wygeneruj_raport_kompletny', { defaultValue: 'Wygeneruj Raport Kompletny' })}</span>
  
  {!loading && (
  <motion.div 
  animate={{ x: ['-100%', '200%'] }}
- transition={{ repeat: Infinity, duration: 1.5, ease: 'linear', repeatDelay: 3 }}
- className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-transparent via-accent-500/10 to-transparent skew-x-12"
+ transition={{ repeat: Infinity, duration: 2, ease: 'linear', repeatDelay: 4 }}
+ className="absolute top-0 left-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
  />
  )}
  </motion.button>
@@ -243,9 +247,9 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  onClick={() => generateReport('day')}
  whileHover={{ scale: 1.02 }}
  whileTap={{ scale: 0.95 }}
- className="bg-accent-800 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-accent-700 disabled:opacity-50"
+ className="bg-white dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800"
  >
- <Calendar size={16} />
+ <Calendar size={16} className="text-indigo-500" />
  
  {t('auto.raport_dzienny', { defaultValue: 'Raport Dzienny' })}
  </motion.button>
@@ -254,7 +258,7 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  onClick={() => setShowAGP(true)}
  whileHover={{ scale: 1.02 }}
  whileTap={{ scale: 0.95 }}
- className="bg-indigo-900/30 text-indigo-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-indigo-900 overflow-hidden"
+ className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-indigo-200 dark:border-indigo-800 shadow-sm overflow-hidden hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
  >
  <Activity size={16} />
  
@@ -266,7 +270,7 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  onClick={() => setTab && setTab('insulin_detective')}
  whileHover={{ scale: 1.02 }}
  whileTap={{ scale: 0.95 }}
- className="bg-rose-900/30 text-rose-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-rose-900 overflow-hidden"
+ className="bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-rose-200 dark:border-rose-800 shadow-sm overflow-hidden hover:bg-rose-100 dark:hover:bg-rose-900/40"
  >
  <span>⚠️</span>
  
@@ -274,9 +278,9 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  </motion.button>
  </div>
  
- <p className="text-[9px] text-accent-300 font-bold uppercase tracking-tighter opacity-60">{t('auto.analiza_obejmuje_trendy_posiłki_wzo', { defaultValue: i18n.t('auto.analiza_obejmuje_trendy_p', { defaultValue: "Analiza obejmuje: trendy, posiłki, wzorce i hba1c" }) })}</p>
- <div className="mt-4 p-3 bg-red-900/30 rounded-xl border border-red-500/30">
- <p className="text-[10px] font-bold text-red-300 text-center uppercase tracking-widest leading-relaxed">
+ <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tighter">{t('auto.analiza_obejmuje_trendy_posiłki_wzo', { defaultValue: i18n.t('auto.analiza_obejmuje_trendy_p', { defaultValue: "Analiza obejmuje: trendy, posiłki, wzorce i hba1c" }) })}</p>
+ <div className="mt-4 p-3 bg-rose-50/50 dark:bg-rose-950/30 rounded-xl border border-rose-200 dark:border-rose-900/50 backdrop-blur-sm">
+ <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 text-center uppercase tracking-widest leading-relaxed">
  {t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje lekarz." })}
  </p>
  </div>

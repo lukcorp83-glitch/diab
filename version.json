@@ -1,10 +1,10 @@
 {
-    "version":  "6.0.4",
+    "version":  "6.0.5",
     "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.4_OTA.apk",
-    "buildNumber":  119,
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.5_OTA.apk",
+    "buildNumber":  120,
     "forceUpdate":  false,
-    "whatsNew":  "Wersja 6.0.4! Znalazłem i naprawiłem potężny błąd. Aplikacja zapisywała Twoją datę wymiany sprzętu do niewłaściwego folderu na serwerze (omijała folder \u0027settings\u0027), dlatego po restarcie gubiła informacje i ucinała dni do zera. Teraz liczniki sprzętu są pancerne!",
-    "whatsNewEn":  "Version 6.0.4! Fixed a major bug where equipment change dates were being saved to the wrong database path, causing them to reset to zero after app restart.",
-    "otaRevision":  278
+    "whatsNew":  "Wersja 6.0.5! Potężna aktualizacja GlikoSense 4.0 TCN Pro! Wprowadzono 20-wymiarowy wektor wejściowy (z pogodą i bolusami), dylatacje TCN dla niespotykanej dotąd precyzji, gładkie interpolacje Spline i powiększony zasób pamięci chmurowej (do 15 000 odczytów). Naprawiono również zawieszanie się synchronizacji chmury oraz brak informacji zwrotnej przy zapisywaniu sprzętu.",
+    "whatsNewEn":  "Version 6.0.5! Massive GlikoSense 4.0 TCN Pro update! Introduced 20-dim input vector (weather + bolus offset), TCN dilations for unprecedented precision, smooth Spline interpolations, and increased cloud cache to 15,000 logs. Fixed cloud sync hangs and missing feedback upon saving equipment changes.",
+    "otaRevision":  279
 }

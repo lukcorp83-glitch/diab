@@ -2,7 +2,7 @@ import { PredictionAccuracyTracker, AccuracyStats } from '../lib/predictionAccur
 ﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot, Settings } from 'lucide-react';
+import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot, Settings, Wind } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
@@ -345,6 +345,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }, 40000); // 40 seconds max
  
  try {
+ // Uruchamiamy weryfikację wsteczną w tle (szybki test skuteczności na danych sprzed godziny)
+ MLAnalyzer.runHindsightVerification(logs);
+
  // Start quick analysis immediately
  const quickPromise = MLAnalyzer.analyzeData(logs, force, 'quick');
  
@@ -881,39 +884,49 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
  <div className="w-5/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
  <div className="w-4/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
- </div>
- </div>
- </motion.div>
- ) : mlResult ? (
- <motion.div 
- key="result"
- initial={{ opacity: 0, y: 15 }} 
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, scale: 0.95 }}
- transition={{ duration: 0.4, ease: "easeOut" }}
- className="space-y-4 relative z-10 w-full overflow-hidden"
- >
+  </div>
+  </div>
+  </motion.div>
+  ) : mlResult ? (
+  <motion.div 
+  key="result"
+  initial={{ opacity: 0, y: 15 }} 
+  animate={{ opacity: 1, y: 0 }}
+  exit={{ opacity: 0, scale: 0.95 }}
+  transition={{ duration: 0.4, ease: "easeOut" }}
+  className="space-y-4 relative z-10 w-full overflow-hidden"
+  >
  {/* Top Cards Grid: 1 column if day, 2 columns if night */}
- <div className={`grid ${(localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() <= 6)) ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-3 md:gap-4 w-full`}>
+ <div className={`grid ${(localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() < 6)) ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-3 md:gap-4 w-full`}>
  {/* 2h Direction Prediction Box */}
  <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 dark:from-slate-950 dark:via-indigo-950 dark:to-violet-950 p-5 md:p-6 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-indigo-500/20 flex flex-col w-full">
  <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 transform-gpu">
- <TrendingUp size={140} />
+ <Activity size={180} />
  </div>
- <div className="absolute inset-0 bg-gradient-to-t from-indigo-500/20 to-transparent pointer-events-none" />
  
- <div className="flex items-center gap-2 mb-3 relative z-10">
- <div className="bg-indigo-500/30 p-2 rounded-xl backdrop-blur-md">
- <Target size={16} className="text-indigo-200" />
+ <div className="flex justify-between items-start relative z-10">
+ <div className="flex flex-col">
+ <span className="text-[10px] font-black text-indigo-300/80 uppercase tracking-widest">{t('auto.kierunek_za_2h', { defaultValue: 'Kierunek za 2h' })}</span>
+ <div className="flex items-center gap-1.5 mt-0.5">
+ <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+ <span className="text-[8px] font-bold text-indigo-200/50 uppercase tracking-wider">{t('auto.na_podstawie_ai', { defaultValue: 'Na podstawie AI' })}</span>
  </div>
- <span className="text-xs font-black text-indigo-100 uppercase tracking-wider opacity-90">
- {t('auto.kierunek_2h', { defaultValue: 'Kierunek Prognozy (2h)' })}
- </span>
  </div>
-
- <div className="flex items-baseline gap-2 relative z-10 my-auto">
+ <div className="p-2 bg-white/5 rounded-xl backdrop-blur-sm border border-white/10 shrink-0">
+ <Wind size={16} className="text-indigo-300" />
+ </div>
+ </div>
+ 
+ <div className="flex items-baseline gap-2 relative z-10 my-auto pt-4">
  <span className="text-5xl sm:text-6xl font-black tracking-tight leading-none">{mlResult.predictedNext2Hours}</span>
- <span className="text-xs font-bold text-indigo-300 tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
+ <div className="flex flex-col">
+   <span className="text-xs font-bold text-indigo-300 tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
+   {realAccuracyStats && realAccuracyStats.totalEvaluated > 0 && (
+     <span className="text-[9px] font-bold text-indigo-400/80 mt-1 uppercase tracking-widest">
+       BŁĄD: ±{realAccuracyStats.avgErrorMgDl} mg/dL
+     </span>
+   )}
+ </div>
  </div>
  
  {/* Mini sparkline visualization */}
@@ -941,7 +954,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
 
  {/* 6h Prediction Box for v4 TCN (Night Protect) */}
- {(localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() <= 6)) ? (
+ {(localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() < 6)) ? (
  <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 dark:from-slate-950 dark:via-cyan-950 dark:to-indigo-950 p-5 md:p-6 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-cyan-500/20 flex flex-col w-full">
  <div className="absolute inset-0 z-0 opacity-40">
  {mlResult.predictionCurve && (

@@ -153,7 +153,7 @@ export class DatabaseService {
         await this.db.open();
         await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
       } else {
-        throw e;
+        console.warn("Failed to save log to SQLite, skipping throw to prevent UI block", e);
       }
     }
     
@@ -198,7 +198,7 @@ export class DatabaseService {
              await this.db.open();
              await this.db.executeSet(statements);
           } else {
-             throw innerE;
+             console.warn("Failed batch save to SQLite, skipping throw", innerE);
           }
         }
         onProgress?.(Math.min(100, Math.round(((i + chunk.length) / total) * 100)));
