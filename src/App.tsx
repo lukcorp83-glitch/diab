@@ -109,6 +109,14 @@ export default function App() {
       const initDB = async () => {
         await dbService.init();
         const loadedLogs = await dbService.getLogs(60000);
+        if (loadedLogs.length === 0) {
+          const hadSafeTs = !!localStorage.getItem("lastSafeTimestamp");
+          localStorage.removeItem("lastSafeTimestamp");
+          if (hadSafeTs) {
+            window.location.reload();
+            return;
+          }
+        }
         setSqliteLogs(loadedLogs);
       };
       initDB();

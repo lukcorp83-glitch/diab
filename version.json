@@ -1,10 +1,10 @@
 {
-    "version":  "6.0.7",
-    "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.7_OTA.apk",
-    "buildNumber":  122,
-    "forceUpdate":  false,
-    "whatsNew":  "Wersja 6.0.7! Inteligentna migracja Szybkich Skrótów: nowa funkcja ratunkowa, która automatycznie i bez opóźnień dociąga ze starej wersji chmury wszystkie braki. Tryb Eko został naprawiony i teraz bezlitośnie obcina animacje, cienie oraz przesył danych dla lepszej żywotności baterii. Dodatkowo w ramach rekompensaty zaimplementowano algorytm generowania pseudo-dynamicznych kolorów (będą się one automatycznie zmieniać każdego dnia przy uruchomieniu funkcji).",
-    "whatsNewEn":  "Version 6.0.7! Intelligent Quick Shortcuts migration: a new rescue feature that automatically pulls all missing shortcuts from the old cloud version without delays. Eco Mode has been fixed and now ruthlessly cuts animations, shadows, and data transfer for better battery life. Additionally, as a compensation, a pseudo-dynamic color generation algorithm has been implemented (colors will change automatically every day when this feature is enabled).",
-    "otaRevision":  281
+    "version": "6.0.8",
+    "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.8_OTA.apk",
+    "buildNumber": 123,
+    "forceUpdate": false,
+    "whatsNew": "Wersja 6.0.8! 1) Potężny fix dla problemu ERR_CONNECTION_CLOSED (zresetowano ustawienia połączenia sieciowego Firestore, co rozwiązuje błąd braku danych w chmurze na Androidzie). 2) Automatyczne odblokowywanie pełnej synchronizacji w przypadku usunięcia bazy z powodu uszkodzonego klucza szyfrowania. 3) Przywrócenie paska dolnego z brakującymi ikonami (Czat, Więcej, Pulpit).",
+    "whatsNewEn": "Version 6.0.8! 1) Powerful fix for the ERR_CONNECTION_CLOSED issue (reset Firestore network connection settings, resolving the missing cloud data bug on Android). 2) Automatic unblocking of full sync in case the database is wiped due to a corrupted encryption key. 3) Restored the bottom navigation bar with missing icons (Chat, More, Dashboard).",
+    "otaRevision": 282
 }
