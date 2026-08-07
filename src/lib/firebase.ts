@@ -1,4 +1,4 @@
-﻿import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
@@ -11,10 +11,7 @@ export const googleProvider = new GoogleAuthProvider();
 
 // Using initializeFirestore with modern persistence API
 export const db = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
     ignoreUndefinedProperties: true,
-    host: 'firestore.googleapis.com',
-    ssl: true,
     localCache: persistentLocalCache({tabManager: persistentSingleTabManager()})
 });
 

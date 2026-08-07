@@ -198,6 +198,36 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const updateProgress = () => {
+      const absorbingMeals = logs
+        .filter((l) => l.type === "meal")
+        .map((m) => {
+          const mWW = m.value !== undefined ? m.value / 10 : (m as any).carbs !== undefined ? (m as any).carbs / 10 : 0;
+          const mWBT = ((m.protein || 0) * 4 + (m.fat || 0) * 9) / 100;
+          const durationH = getMealAbsorptionTime(mWW, mWBT);
+          const durationMs = durationH * 60 * 60 * 1000;
+          const endTimeMs = (m.timestamp || 0) + durationMs;
+          const isCurrentlyAbsorbing = Date.now() < endTimeMs && durationH > 0;
+          return { m, durationH, endTimeMs, isCurrentlyAbsorbing };
+        })
+        .filter((x) => x.isCurrentlyAbsorbing);
+
+      if (absorbingMeals.length > 0) {
+        absorbingMeals.sort((a, b) => b.endTimeMs - a.endTimeMs);
+        const active = absorbingMeals[0];
+        const ageH = (Date.now() - (active.m.timestamp || 0)) / (1000 * 60 * 60);
+        setMealProgress(Math.max(0, Math.min(1, ageH / active.durationH)));
+      } else {
+        setMealProgress(null);
+      }
+    };
+
+    updateProgress();
+    const interval = setInterval(updateProgress, 60000); // Aktualizacja co minutę
+    return () => clearInterval(interval);
+  }, [logs, setMealProgress]);
+
   // Automatyczny popup nowości (Changelog)
   useEffect(() => {
     const lastSeen = localStorage.getItem("lastSeenVersion");

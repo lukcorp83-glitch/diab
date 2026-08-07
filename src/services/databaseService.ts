@@ -115,6 +115,7 @@ export class DatabaseService {
           console.warn("DB Open failed – attempting recovery by wiping old database.", openError);
           try {
             await CapacitorSQLite.deleteDatabase({ database: dbName });
+            localStorage.removeItem("lastSafeTimestamp"); // Force full cloud sync
           } catch (delError) {
             console.error("Failed to delete database", delError);
           }

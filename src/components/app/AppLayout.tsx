@@ -251,122 +251,102 @@ export function AppLayout({
  "fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl transition-all duration-300",
  isKeyboardOpen ? "opacity-0 pointer-events-none translate-y-24" : "opacity-100 translate-y-0"
  )}>
- <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
- <NavButton
- active={activeTab === "chart"}
- onClick={() => changeTab("chart")}
- icon={<Activity />}
- label={t("nav.chart")}
- ecoMode={userSettings?.ecoMode}
- />
- <NavButton
- active={activeTab === "dashboard"}
- onClick={() => changeTab("dashboard")}
- icon={<LayoutDashboard />}
- label={t("nav.dashboard")}
- ecoMode={userSettings?.ecoMode}
- />
- {!userSettings?.followerMode && (
- <NavButton
- active={activeTab === "database"}
- onClick={() => changeTab("database")}
- icon={<Database />}
- label={t("nav.database")}
- ecoMode={userSettings?.ecoMode}
- />
- )}
-
- {!userSettings?.followerMode && (
- <div className="relative -top-6">
- <motion.button
- onClick={() => changeTab("meal")}
- whileTap={{ scale: 0.85 }}
- animate={{ y: activeTab === "meal" ? -5 : 0 }}
- transition={{ type: "spring", stiffness: 400, damping: 15 }}
- className={cn(
- "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950 relative",
- activeTab === "meal"
- ? "bg-accent-600 text-white shadow-accent-500/40"
- : "bg-slate-800 text-slate-400 hover:bg-slate-700",
- )}
- >
- {mealProgress !== null && (
- <svg
- className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none"
- viewBox="0 0 56 56"
- >
- <circle
- cx="28"
- cy="28"
- r="26"
- stroke="currentColor"
- strokeWidth="4"
- fill="transparent"
- strokeDasharray="163.36"
- strokeDashoffset={163.36 * mealProgress}
- className="text-emerald-500 transition-all duration-1000 dark:text-emerald-400 opacity-80"
- />
- </svg>
- )}
- <motion.div
- animate={{
- rotate: activeTab === "meal" ? [0, -20, 20, -10, 10, 0] : 0,
- }}
- transition={{ duration: 0.5 }}
- className="z-10"
- >
- <Utensils />
- </motion.div>
- {sharedPlate.length > 0 && (
- <motion.div
- initial={{ scale: 0 }}
- animate={{ scale: 1 }}
- className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm z-20"
- >
- {sharedPlate.length}
- </motion.div>
- )}
- </motion.button>
- <motion.div
- animate={{
- opacity: activeTab === "meal" ? 1 : 0.6,
- y: activeTab === "meal" ? -2 : 0,
- }}
- className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
- >
- {t("nav.plate")}
- </motion.div>
- </div>
- )}
-
- {!userSettings?.followerMode && (
- <NavButton
- active={activeTab === "assistant"}
- onClick={() => changeTab("assistant")}
- icon={<MessageSquare />}
- label={t("nav.chat")}
- ecoMode={userSettings?.ecoMode}
- />
- )}
- {!userSettings?.followerMode && (
- <NavButton
- active={activeTab === "ai"}
- onClick={() => changeTab("ai")}
- icon={<GlikoSenseIcon size={20} isAnalyzing={activeTab === "ai"} />}
- label={t("nav.glikosense")}
- ecoMode={userSettings?.ecoMode}
- />
- )}
- <NavButton
- active={activeTab === "profile"}
- onClick={() => changeTab("profile")}
- icon={<Menu />}
- label={t("nav.more")}
- ecoMode={userSettings?.ecoMode}
- />
- </div>
- </nav>
- )}
+          <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
+            <NavButton
+              active={activeTab === "chart"}
+              onClick={() => changeTab("chart")}
+              icon={<Activity />}
+              label={t("nav.chart")}
+              ecoMode={userSettings?.ecoMode}
+            />
+            <NavButton
+              active={activeTab === "dashboard"}
+              onClick={() => changeTab("dashboard")}
+              icon={<LayoutDashboard />}
+              label={t("nav.dashboard")}
+              ecoMode={userSettings?.ecoMode}
+            />
+            {!userSettings?.followerMode && (
+              <div className="relative -top-6">
+                <motion.button
+                  onClick={() => changeTab("meal")}
+                  whileTap={{ scale: 0.85 }}
+                  animate={{ y: activeTab === "meal" ? -5 : 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                  className={cn(
+                    "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950 relative",
+                    activeTab === "meal"
+                      ? "bg-accent-600 text-white shadow-accent-500/40"
+                      : "bg-slate-800 text-slate-400 hover:bg-slate-700",
+                  )}
+                >
+                  {mealProgress !== null && (
+                    <svg
+                      className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none"
+                      viewBox="0 0 56 56"
+                    >
+                      <circle
+                        cx="28"
+                        cy="28"
+                        r="26"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="transparent"
+                        strokeDasharray="163.36"
+                        strokeDashoffset={163.36 * mealProgress}
+                        className="text-amber-500 transition-all duration-1000 dark:text-amber-400 opacity-80"
+                      />
+                    </svg>
+                  )}
+                  <motion.div
+                    animate={{
+                      rotate: activeTab === "meal" ? [0, -20, 20, -10, 10, 0] : 0,
+                    }}
+                    transition={{ duration: 0.5 }}
+                    className="z-10"
+                  >
+                    <Utensils />
+                  </motion.div>
+                  {sharedPlate.length > 0 && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm z-20"
+                    >
+                      {sharedPlate.length}
+                    </motion.div>
+                  )}
+                </motion.button>
+                <motion.div
+                  animate={{
+                    opacity: activeTab === "meal" ? 1 : 0.6,
+                    y: activeTab === "meal" ? -2 : 0,
+                  }}
+                  className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
+                >
+                  {t("nav.plate")}
+                </motion.div>
+              </div>
+            )}
+            {!userSettings?.followerMode && (
+              <NavButton
+                active={activeTab === "assistant"}
+                onClick={() => changeTab("assistant")}
+                icon={<MessageSquare />}
+                label={t("nav.chat")}
+                ecoMode={userSettings?.ecoMode}
+              />
+            )}
+            <NavButton
+              active={activeTab === "profile"}
+              onClick={() => changeTab("profile")}
+              icon={<Menu />}
+              label={t("nav.more")}
+              ecoMode={userSettings?.ecoMode}
+            />
+          </div>
+        </nav>
+      )}
 
  {/* Modals & Popups */}
         <React.Suspense fallback={null}>
@@ -462,3 +442,4 @@ export function AppLayout({
     </MotionConfig>
   );
 }
+

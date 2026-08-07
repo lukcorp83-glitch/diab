@@ -2,7 +2,7 @@ import { useLogsStore } from "../stores/useLogsStore";
 import { motion } from 'motion/react';
 import { Radio, Droplet, Cylinder, Clock, ChevronRight, Utensils } from 'lucide-react';
 import { LogEntry } from '../types';
-import { cn } from '../lib/utils';
+import { cn, getMealAbsorptionTime } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -30,6 +30,21 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  if (min < 60) return `${min}m temu`;
  return `${Math.round(min / 60)}h temu`;
  };
+
+ const currentTime = Date.now();
+ let mealProgress = -1;
+ 
+ if (lastMeal) {
+ const mWW = lastMeal.value !== undefined ? lastMeal.value / 10 : (lastMeal as any).carbs !== undefined ? (lastMeal as any).carbs / 10 : 0;
+ const mWBT = ((lastMeal.protein || 0) * 4 + (lastMeal.fat || 0) * 9) / 100;
+ const durationH = getMealAbsorptionTime(mWW, mWBT);
+ if (durationH > 0) {
+ const ageH = (currentTime - (lastMeal.timestamp || 0)) / (1000 * 60 * 60);
+ if (ageH < durationH) {
+ mealProgress = Math.max(0, Math.min(1, ageH / durationH));
+ }
+ }
+ }
 
  if (compact) {
  return (
@@ -236,7 +251,27 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between glass-target">
  <div>
  <div className="flex items-center gap-2 mb-3">
- <Utensils size={12} className="text-amber-500" />
+ {mealProgress >= 0 ? (
+  <div className="relative flex items-center justify-center w-5 h-5 -ml-1">
+  <svg className="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 48 48">
+  <circle cx="24" cy="24" r="22" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-amber-500/20" />
+  <circle 
+  cx="24" 
+  cy="24" 
+  r="22" 
+  stroke="currentColor" 
+  strokeWidth="4" 
+  fill="transparent" 
+  strokeDasharray="138.2" 
+  strokeDashoffset={138.2 * (1 - mealProgress)} 
+  className="text-amber-500 transition-all duration-1000" 
+  />
+  </svg>
+  <Utensils size={10} className="text-amber-500 z-10" />
+  </div>
+  ) : (
+  <Utensils size={12} className="text-amber-500" />
+  )}
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_węglowodany', { defaultValue: i18n.t('auto.dzis_weglowodany', { defaultValue: "Dziś Węglowodany" }) })}</span>
  </div>
  <div className="flex items-baseline gap-1">
