@@ -1,4 +1,4 @@
-﻿import { useAuthStore } from '../stores/useAuthStore';
+import { useAuthStore } from '../stores/useAuthStore';
 import { useMealPlateLogic } from '../hooks/useMealPlateLogic';
 import { ProductSearch } from "./MealPlate/ProductSearch";
 import { MealComposer } from "./MealPlate/MealComposer";
@@ -1269,11 +1269,21 @@ export default function MealPlate({
  return Math.max(0, Math.min(1, ageH / durationH));
  })()
  }
- className="text-emerald-500 transition-all duration-1000"
- />
- </svg>
- <div className="bg-emerald-500/10 w-full h-full rounded-full absolute" />
- <Zap className="text-emerald-500 z-10" size={20} />
+ className={cn(
+  "transition-all duration-1000",
+  activeMeal.type === "meal" ? "text-amber-500" : "text-emerald-500"
+  )}
+  />
+  </svg>
+  <div className={cn(
+  "w-full h-full rounded-full absolute",
+  activeMeal.type === "meal" ? "bg-amber-500/10" : "bg-emerald-500/10"
+  )} />
+  {activeMeal.type === "meal" ? (
+  <Utensils className="text-amber-500 z-10" size={20} />
+  ) : (
+  <Zap className="text-emerald-500 z-10" size={20} />
+  )}
  </div>
  <div>
  <h3 className="font-bold text-slate-800 dark:text-white text-sm">

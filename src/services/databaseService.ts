@@ -50,11 +50,25 @@ export class DatabaseService {
           if (result && result.value) {
             dbSecret = result.value;
           } else {
-            dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-            await SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret });
+            const fallback = localStorage.getItem("db_encryption_key_fallback");
+            if (fallback) {
+              dbSecret = fallback;
+              SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret }).catch(()=>{});
+            } else {
+              dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+              await SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret });
+              localStorage.setItem("db_encryption_key_fallback", dbSecret);
+            }
           }
         } catch(e) {
-          dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+          console.warn("SecureStorage failed, falling back to localStorage", e);
+          const fallback = localStorage.getItem("db_encryption_key_fallback");
+          if (fallback) {
+            dbSecret = fallback;
+          } else {
+            dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+            localStorage.setItem("db_encryption_key_fallback", dbSecret);
+          }
           await SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret }).catch(() => {});
         }
 

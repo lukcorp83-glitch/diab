@@ -111,7 +111,6 @@ import LocalSync from "./LocalSync";
 
 import ApiIntegration from "./ApiIntegration";
 const PumpSimulator = React.lazy(() => import("./PumpSimulator"));
-import { Diets } from "./Diets";
 import { dbService } from "../services/databaseService";
 import ProfileMedications from "./Profile/ProfileMedications";
 import ProfileInventory from "./Profile/ProfileInventory";
@@ -402,7 +401,6 @@ export default function Profile({
  "therapy",
  "shop",
  "devices",
- "diets",
  "stats",
  "food",
  "meds",
@@ -526,27 +524,6 @@ export default function Profile({
  sub: i18n.t('auto.cgm_wklucia', { defaultValue: i18n.t('auto.cgm_wklucia', { defaultValue: "CGM & Wkłucia" }) }),
  icon: <Signal size={24} />,
  color: "bg-indigo-500",
- },
- {
- id: "diets",
- label: i18n.t('auto.diety', { defaultValue: 'Diety' }),
- sub: i18n.t('auto.nawyki', { defaultValue: "Nawyki" }),
- icon: <BookOpen size={24} />,
- color: "bg-rose-500",
- },
- {
- id: "devices",
- label: i18n.t('auto.osprzęt', { defaultValue: i18n.t('auto.osprzet', { defaultValue: "Osprzęt" }) }),
- sub: i18n.t('auto.cgm_wklucia', { defaultValue: i18n.t('auto.cgm_wklucia', { defaultValue: "CGM & Wkłucia" }) }),
- icon: <Signal size={24} />,
- color: "bg-indigo-500",
- },
- {
- id: "diets",
- label: i18n.t('auto.diety', { defaultValue: 'Diety' }),
- sub: i18n.t('auto.nawyki', { defaultValue: "Nawyki" }),
- icon: <BookOpen size={24} />,
- color: "bg-rose-500",
  },
  {
  id: "stats",
@@ -1406,7 +1383,6 @@ export default function Profile({
  ]
  : []),
  { id: "devices", label: i18n.t('auto.osprzęt', { defaultValue: i18n.t('auto.osprzet', { defaultValue: "Osprzęt" }) }), icon: <Signal size={14} />, color: "text-indigo-500 bg-indigo-500/10" },
- { id: "diets", label: i18n.t('auto.diety', { defaultValue: 'Diety' }), icon: <BookOpen size={14} />, color: "text-rose-500 bg-rose-500/10" },
  {
  id: "stats",
  label: i18n.t('auto.statystyki', { defaultValue: 'Statystyki' }),
