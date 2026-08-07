@@ -24,21 +24,17 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
         const localMigrated = localStorage.getItem(`migrated_${uid}`) === 'true';
         const profileSnap = await getDoc(doc(db, "users", uid, "settings", "profile"));
         
-        // Sprawdzamy czy zmigrowano skróty i czy w V1 one w ogóle istnieją (aby uniknąć pętli)
-        const newShortcutsRef = collection(db, "users", uid, "shortcuts");
-        const newShortcutsSnap = await getDocs(query(newShortcutsRef, limit(1)));
-        
-        let missingShortcutsButExistInV1 = false;
-        if (newShortcutsSnap.empty) {
-            const oldShortcutsRef = collection(db, "artifacts/diacontrolapp/users", uid, "shortcuts");
-            const oldShortcutsSnap = await getDocs(query(oldShortcutsRef, limit(1)));
-            missingShortcutsButExistInV1 = !oldShortcutsSnap.empty;
-        }
-        
-        if (!missingShortcutsButExistInV1 && (localMigrated || (profileSnap.exists() && profileSnap.data().hasMigratedFromV1))) {
+        // Zabezpieczenie przed pętlą (np. przycisk Pomiń): Jeśli użytkownik ma już flagę migracji, kończymy proces.
+        if (localMigrated || (profileSnap.exists() && profileSnap.data().hasMigratedFromV1)) {
           setMigrationState('done');
           return;
         }
+        
+        // Jeśli nie zmigrował, kontynuujemy sprawdzanie, czy ma jakieś dane w V1.
+        
+        // Sprawdzamy czy zmigrowano skróty i czy w V1 one w ogóle istnieją
+        const newShortcutsRef = collection(db, "users", uid, "shortcuts");
+        const newShortcutsSnap = await getDocs(query(newShortcutsRef, limit(1)));
 
         // Sprawdzamy czy użytkownik MA starą bazę (czytamy jeden log)
         const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
@@ -167,8 +163,13 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
     if (!user) return;
     try {
       const uid = getEffectiveUid(user);
-      // Wykonujemy zapis w tle bez await, aby zapobiec zawieszeniu, jeśli kolejka Firebase jest zapchana przez getDocs
-      setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: true }, { merge: true }).catch(console.error);
+      
+      // Zapisujemy do Firebase i bezwzględnie czekamy na odpowiedź serwera (aby flaga zsynchronizowała się z chmurą)
+      // Używamy Promise.race jako bezpiecznika na wypadek zawieszenia sieci (max 3 sekundy)
+      await Promise.race([
+        setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: true }, { merge: true }),
+        new Promise(resolve => setTimeout(resolve, 3000))
+      ]);
       
       setMigrationState('done');
       toast.success(t('auto.migracja_zakonczona', { defaultValue: "Migracja poprawnie potwierdzona!" }));
@@ -176,7 +177,7 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       // Dodatkowo zapisujemy w localStorage jako szybki fallback
       localStorage.setItem(`migrated_${uid}`, 'true');
       
-      setTimeout(() => window.location.reload(), 500); // Przeładuj by wyczyścić zapchane procesy Firebase i wczytać nową ścieżkę
+      setTimeout(() => window.location.reload(), 500); 
     } catch (e) {
       toast.error(t('auto.blad', { defaultValue: "Wystąpił błąd podczas potwierdzania." }));
       setTimeout(() => window.location.reload(), 1000);

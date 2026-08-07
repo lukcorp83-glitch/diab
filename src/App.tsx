@@ -6,6 +6,7 @@ import {
  getMealAbsorptionTime,
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from "@capacitor/core";
+const MaterialYou = registerPlugin("MaterialYou");
 import { App as CapacitorApp } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
@@ -230,17 +231,59 @@ export default function App() {
       root.classList.remove('dark');
     }
 
-    // 2. Akcenty i tła
-    let activeAccent = userSettings?.accentColor || localStorage.getItem("accentColor") || "blue";
-    
-    if (userSettings?.dynamicColorsEnabled) {
-      const accents = ['blue', 'rose', 'amber', 'violet', 'emerald'];
-      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
-      activeAccent = accents[dayOfYear % accents.length];
-    }
-    
-    root.setAttribute("data-accent", activeAccent);
-    root.setAttribute("data-bg", userSettings?.bgOption || "default");
+      // 2. Akcenty i tła
+      let activeAccent = userSettings?.accentColor || localStorage.getItem("accentColor") || "blue";
+      
+      const applyColors = async () => {
+        // Zawsze czyścimy customowe style na starcie
+        root.style.removeProperty('--app-accent-50');
+        root.style.removeProperty('--app-accent-100');
+        root.style.removeProperty('--app-accent-200');
+        root.style.removeProperty('--app-accent-300');
+        root.style.removeProperty('--app-accent-400');
+        root.style.removeProperty('--app-accent-500');
+        root.style.removeProperty('--app-accent-600');
+        root.style.removeProperty('--app-accent-700');
+        root.style.removeProperty('--app-accent-800');
+        root.style.removeProperty('--app-accent-900');
+        root.style.removeProperty('--app-accent-950');
+
+        if (userSettings?.dynamicColorsEnabled) {
+          try {
+            if (Capacitor.isNativePlatform()) {
+              const result = await MaterialYou.getColors();
+              if (result && result.supported) {
+                root.style.setProperty('--app-accent-50', result.color50);
+                root.style.setProperty('--app-accent-100', result.color100);
+                root.style.setProperty('--app-accent-200', result.color200);
+                root.style.setProperty('--app-accent-300', result.color300);
+                root.style.setProperty('--app-accent-400', result.color400);
+                root.style.setProperty('--app-accent-500', result.color500);
+                root.style.setProperty('--app-accent-600', result.color600);
+                root.style.setProperty('--app-accent-700', result.color700);
+                root.style.setProperty('--app-accent-800', result.color800);
+                root.style.setProperty('--app-accent-900', result.color900);
+                root.style.setProperty('--app-accent-950', result.color950);
+                root.setAttribute("data-accent", "native");
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn("MaterialYou plugin error", e);
+          }
+
+          // Fallback dla PWA / iOS / stary Android
+          const accents = ['blue', 'rose', 'amber', 'violet', 'emerald'];
+          const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+          activeAccent = accents[dayOfYear % accents.length];
+        }
+        
+        root.setAttribute("data-accent", activeAccent);
+      };
+      
+      applyColors();
+      
+      root.setAttribute("data-bg", userSettings?.bgOption || "default");
     
     // 3. Efekty wizualne (szkło, material 3, eco)
     if (userSettings?.glassmorphismEnabled) {
