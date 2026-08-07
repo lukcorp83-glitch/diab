@@ -20,22 +20,51 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       const uid = getEffectiveUid(user);
       
       try {
+        // Sprawdzamy czy wymuszono ponowną migrację (np. po przypadkowym Pomiń)
+        const forceRemigrate = localStorage.getItem(`force_remigrate_${uid}`) === 'true';
+        
         // Sprawdzamy czy już zmigrowano (lokalnie lub w Firebase)
         const localMigrated = localStorage.getItem(`migrated_${uid}`) === 'true';
         const profileSnap = await getDoc(doc(db, "users", uid, "settings", "profile"));
         
-        // Zabezpieczenie przed pętlą (np. przycisk Pomiń): Jeśli użytkownik ma już flagę migracji, kończymy proces.
-        if (localMigrated || (profileSnap.exists() && profileSnap.data().hasMigratedFromV1)) {
-          setMigrationState('done');
-          return;
+        // Jeśli wymuszono ponowną migrację, czyścimy flagę i kontynuujemy
+        if (forceRemigrate) {
+          localStorage.removeItem(`force_remigrate_${uid}`);
+          localStorage.removeItem(`migrated_${uid}`);
+          await setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: false }, { merge: true });
+        } else if (localMigrated || (profileSnap.exists() && profileSnap.data().hasMigratedFromV1)) {
+          // INTELIGENTNA DETEKCJA: Jeśli użytkownik ma stare logi, ale nowa ścieżka Firebase jest (prawie) pusta.
+          // (Stary kod zapisywał tylko lokalnie, a nowa ścieżka może mieć kilka nowych logów, więc limit(1) nie działał)
+          try {
+            const { getCountFromServer } = await import('firebase/firestore');
+            
+            const newLogsRef = collection(db, "users", uid, "logs");
+            const newCountSnap = await getCountFromServer(newLogsRef);
+            const newCount = newCountSnap.data().count;
+
+            if (newCount < 100) {
+              const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
+              const oldCountSnap = await getCountFromServer(oldLogsRef);
+              const oldCount = oldCountSnap.data().count;
+
+              if (oldCount > newCount) {
+                console.warn(`[Migration] Smart detect: Old DB has ${oldCount} logs, new DB only has ${newCount}. Re-running migration...`);
+                // Zezwól na kontynuację migracji (nie robimy return)
+              } else {
+                setMigrationState('done');
+                return;
+              }
+            } else {
+              setMigrationState('done');
+              return;
+            }
+          } catch (countErr) {
+            console.error("Failed to verify migration count, assuming done", countErr);
+            setMigrationState('done');
+            return;
+          }
         }
         
-        // Jeśli nie zmigrował, kontynuujemy sprawdzanie, czy ma jakieś dane w V1.
-        
-        // Sprawdzamy czy zmigrowano skróty i czy w V1 one w ogóle istnieją
-        const newShortcutsRef = collection(db, "users", uid, "shortcuts");
-        const newShortcutsSnap = await getDocs(query(newShortcutsRef, limit(1)));
-
         // Sprawdzamy czy użytkownik MA starą bazę (czytamy jeden log)
         const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
         const q = query(oldLogsRef, limit(1));
@@ -45,8 +74,9 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
         const oldPackageSnap = await getDoc(doc(db, "artifacts/diacontrolapp/users", uid, "syncPackage", "latest"));
         
         if (oldLogsSnap.empty && !oldPackageSnap.exists()) {
-          // Nie ma starych danych, nie ma czego migrować, oznaczamy jako done by nie pytać ponownie
+          // Nie ma starych danych, nie ma czego migrować
           await setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: true }, { merge: true });
+          localStorage.setItem(`migrated_${uid}`, 'true');
           setMigrationState('done');
           return;
         }
@@ -88,7 +118,7 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
         console.error(`Failed to copy ${col}/${docId}`, err);
       } finally {
         copied++;
-        setProgress(Math.round((copied / docsToCopy.length) * 4)); // Postęp od 0% do 4% w trakcie szybkiego kopiowania
+        setProgress(Math.round((copied / docsToCopy.length) * 4));
       }
     }));
 
@@ -107,18 +137,16 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       console.error(`Failed to copy shortcuts`, err);
     }
 
-    // 2. Kopiujemy logi klasycznie (z Firestore logs) - omijamy zepsutą paczkę chmurową
+    // 2. Kopiujemy logi w małych partiach i od razu zapisujemy do bazy (streaming)
     setProgress(10);
     try {
       const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
       const MAX_LOGS = 30000;
-      const CHUNK_SIZE = 500;
+      const CHUNK_SIZE = 250;
       let lastDocSnap: any = null;
       let hasMore = true;
       let totalFetched = 0;
-      let allLogs: any[] = [];
 
-      // Pobieramy logi w małych partiach, aby nie zawiesić silnika przeglądarki ani kolejki Firebase na telefonach
       while (hasMore && totalFetched < MAX_LOGS) {
          let q;
          if (lastDocSnap) {
@@ -133,26 +161,34 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
            break;
          }
 
-         allLogs.push(...snap.docs.map(d => d.data()));
+         const chunkLogs = snap.docs.map(d => d.data());
+         
+         // Kopiujemy logi do NOWEJ ścieżki Firestore (users/{uid}/logs) — bez tego inne urządzenia nie widzą danych!
+         const fbBatch = writeBatch(db);
+         snap.docs.forEach(docSnap => {
+           fbBatch.set(doc(db, "users", uid, "logs", docSnap.id), docSnap.data(), { merge: true });
+         });
+         try {
+           await fbBatch.commit();
+           console.log(`[Migration] Wysłano ${snap.docs.length} logów do chmury (łącznie: ${totalFetched + snap.size})`);
+         } catch (batchErr) {
+           console.error("[Migration] Błąd wysyłania paczki do chmury:", batchErr);
+         }
+
+         // Zapisujemy też lokalnie (SQLite + localStorage) żeby ten komputer miał dane offline
+         await Promise.all([
+           saveLocalLogs(chunkLogs as any).catch(console.error),
+           dbService.saveMultipleLogs(chunkLogs).catch(console.error)
+         ]);
+
          lastDocSnap = snap.docs[snap.docs.length - 1];
          totalFetched += snap.size;
          
-         // Dajemy UI chwilę oddechu na przerysowanie ekranu między partiami (bardzo ważne dla stabilności na Androidzie)
-         setProgress(10 + Math.round((totalFetched / MAX_LOGS) * 40)); 
-         await new Promise(r => setTimeout(r, 100));
+         setProgress(10 + Math.round((totalFetched / MAX_LOGS) * 90)); 
+         await new Promise(r => setTimeout(r, 150));
       }
 
-      if (allLogs.length > 0) {
-        let sqliteP = 0, idbP = 0;
-        const updateP = () => setProgress(50 + Math.round((sqliteP + idbP) / 2 * 0.5)); // 50% - 100%
-        
-        await Promise.all([
-          saveLocalLogs(allLogs as any, (p) => { idbP = p; updateP(); }).catch(console.error),
-          dbService.saveMultipleLogs(allLogs, (p) => { sqliteP = p; updateP(); }).catch(console.error)
-        ]);
-      } else {
-        setProgress(100);
-      }
+      setProgress(100);
     } catch (err) {
       console.error("Logs migration failed", err);
       setProgress(100);
@@ -164,8 +200,6 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
     try {
       const uid = getEffectiveUid(user);
       
-      // Zapisujemy do Firebase i bezwzględnie czekamy na odpowiedź serwera (aby flaga zsynchronizowała się z chmurą)
-      // Używamy Promise.race jako bezpiecznika na wypadek zawieszenia sieci (max 3 sekundy)
       await Promise.race([
         setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: true }, { merge: true }),
         new Promise(resolve => setTimeout(resolve, 3000))
@@ -174,7 +208,6 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       setMigrationState('done');
       toast.success(t('auto.migracja_zakonczona', { defaultValue: "Migracja poprawnie potwierdzona!" }));
       
-      // Dodatkowo zapisujemy w localStorage jako szybki fallback
       localStorage.setItem(`migrated_${uid}`, 'true');
       
       setTimeout(() => window.location.reload(), 500); 
@@ -182,6 +215,12 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       toast.error(t('auto.blad', { defaultValue: "Wystąpił błąd podczas potwierdzania." }));
       setTimeout(() => window.location.reload(), 1000);
     }
+  };
+
+  // Pomiń w trakcie MIGROWANIA — tylko zamykamy baner, NIE ustawiamy flagi (dane nie zostały skopiowane!)
+  const skipDuringMigration = () => {
+    setMigrationState('done');
+    toast("Migracja pominięta tymczasowo. Przy kolejnym uruchomieniu spróbujemy ponownie.", { icon: "⚠️" });
   };
 
   if (migrationState === 'migrating' || migrationState === 'verify') {
@@ -220,18 +259,15 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
             Potwierdź odbiór danych
           </button>
         )}
-        {(migrationState === 'migrating' || migrationState === 'verify') && (
-          <button 
-            onClick={confirmMigration}
-            className="shrink-0 bg-blue-900/40 text-blue-100 hover:bg-blue-900/60 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 w-full md:w-auto justify-center"
-          >
-            Pomiń
-          </button>
-        )}
+        <button 
+          onClick={migrationState === 'migrating' ? skipDuringMigration : confirmMigration}
+          className="shrink-0 bg-blue-900/40 text-blue-100 hover:bg-blue-900/60 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 w-full md:w-auto justify-center"
+        >
+          Pomiń
+        </button>
       </div>
     );
   }
 
   return null;
 };
-

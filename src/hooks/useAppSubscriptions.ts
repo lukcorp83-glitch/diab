@@ -23,7 +23,11 @@ export const useAppSubscriptions = (user: any) => {
     ) => {
       const q = buildQuery(collection(db, "users", uid, ...pathSuffix.split('/')));
       const unsub = onSnapshot(q, (snapshot) => {
-        queryClient.setQueryData([queryKey, uid], snapshot.docs.map(mapDoc));
+        const mapped = snapshot.docs.map(mapDoc);
+        console.log(`[AppSub] ${queryKey}: received ${mapped.length} docs from users/${uid}/${pathSuffix}`);
+        queryClient.setQueryData([queryKey, uid], mapped);
+      }, (error) => {
+        console.error(`[AppSub] ${queryKey} onSnapshot error:`, error);
       });
       unsubs.push(unsub);
     };
@@ -37,7 +41,8 @@ export const useAppSubscriptions = (user: any) => {
     };
 
     // 1. Logs
-    const safeTs = localStorage.getItem("lastSafeTimestamp") || (Date.now() - 30 * 24 * 60 * 60 * 1000).toString();
+    const safeTsRaw = localStorage.getItem("lastSafeTimestamp") || (Date.now() - 30 * 24 * 60 * 60 * 1000).toString();
+    const safeTs = parseInt(safeTsRaw, 10); // MUSI być number, bo Firestore porównuje typy ściśle!
     const isEco = localStorage.getItem("ecoMode") === "true";
     createCollectionSub(
       "logs",

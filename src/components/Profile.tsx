@@ -1,4 +1,4 @@
-﻿import { useLogsStore } from "../stores/useLogsStore";
+import { useLogsStore } from "../stores/useLogsStore";
 import { useAuthStore } from "../stores/useAuthStore";
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
@@ -114,8 +114,10 @@ const PumpSimulator = React.lazy(() => import("./PumpSimulator"));
 import { Diets } from "./Diets";
 import { dbService } from "../services/databaseService";
 import ProfileMedications from "./Profile/ProfileMedications";
+import ProfileInventory from "./Profile/ProfileInventory";
 import ProfileNotifications from "./Profile/ProfileNotifications";
 import ProfileSystem from "./Profile/ProfileSystem";
+import TreatmentModeSelector from "./Profile/TreatmentModeSelector";
 import SiteRotationWidget from './SiteRotationWidget';
 import StatisticsView from "./StatisticsView";
 import TutorialView from "./TutorialView";
@@ -787,7 +789,7 @@ export default function Profile({
  console.error("Error equipping skin:", err);
  }
  };
- const handleBuyAccessory = async (acc: PetAccessory) => {
+ const handleBuyAccessory = async (acc: any) => {
  if (petData.coins < acc.price) return;
  const unlocked = petData.unlockedAccessories || ["none"];
  if (unlocked.includes(acc.id)) return;
@@ -822,7 +824,7 @@ export default function Profile({
  console.error("Error equipping accessory:", err);
  }
  };
- const handleBuyBackground = async (bg: PetBackground) => {
+ const handleBuyBackground = async (bg: any) => {
  if (petData.coins < bg.price) return;
  const unlocked = petData.unlockedBackgrounds || ["room"];
  if (unlocked.includes(bg.id)) return;
@@ -1679,10 +1681,6 @@ export default function Profile({
  {SKINS.map((skin) => {
  const isUnlocked = petData.unlockedSkins.includes(skin.id);
  const isEquipped = petData.skin === skin.id;
- const canUnlockViaAchievement =
- skin.unlockedBy &&
- unlockedAchievementIds.includes(skin.unlockedBy);
- const isAchievementSkin = !!skin.unlockedBy;
  return (
  <div
  key={skin.id}
@@ -1733,18 +1731,10 @@ export default function Profile({
  ) : (
  <button
  onClick={() => handleBuySkin(skin)}
- disabled={
- isAchievementSkin
- ? !canUnlockViaAchievement
- : petData.coins < skin.price
- }
+ disabled={petData.coins < skin.price}
  className={cn(
  "w-full py-2 rounded-2xl text-[9px] font-black uppercase flex items-center justify-center gap-1",
- (
- isAchievementSkin
- ? canUnlockViaAchievement
- : petData.coins >= skin.price
- )
+ petData.coins >= skin.price
  ? "bg-amber-500 text-white"
  : "bg-slate-200 dark:bg-slate-700 text-slate-400",
  )}
@@ -1837,7 +1827,6 @@ export default function Profile({
  petData.unlockedBackgrounds || ["room"]
  ).includes(bg.id);
  const isEquipped = petData.currentBackground === bg.id;
- const isReward = !!bg.rewardTir;
  return (
  <div
  key={bg.id}
@@ -1875,21 +1864,15 @@ export default function Profile({
  ) : (
  <button
  onClick={() => handleBuyBackground(bg)}
- disabled={isReward || petData.coins < bg.price}
+ disabled={petData.coins < bg.price}
  className={cn(
  "w-full py-2 rounded-2xl text-[9px] font-black uppercase flex items-center justify-center gap-1",
- !isReward && petData.coins >= bg.price
+ petData.coins >= bg.price
  ? "bg-amber-500 text-white"
  : "bg-slate-200 dark:bg-slate-700 text-slate-400",
  )}
  >
- {isReward ? (
- "Cel TIR"
- ) : (
- <>
  <Coins size={10} /> {bg.price}
- </>
- )}
  </button>
  )}
  </div>
@@ -1950,7 +1933,8 @@ export default function Profile({
  animate={{ opacity: 1, y: 0 }}
  className="space-y-4 pb-20"
  >
- {/* Main Therapy Parameters */}
+        <TreatmentModeSelector user={user} settings={settings} setSettings={setSettings} />
+        {/* Main Therapy Parameters */}
  <div
  className={cn(
  "rounded-[2.5rem] p-6 border shadow-xl space-y-6",
@@ -2380,39 +2364,8 @@ export default function Profile({
  {activeCategory === "notifications" && <ProfileNotifications settings={settings} setSettings={setSettings} />}
  {activeCategory === "devices" && (
         <div className="space-y-4">
-          <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 rounded-[2.5rem] p-6 border border-indigo-200/50 dark:border-indigo-500/20 shadow-xl backdrop-blur-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-500 text-white rounded-2xl shadow-lg shadow-indigo-500/20">
-                  <Sparkles size={20} />
-                </div>
-                <div className="text-left">
-                  <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">
-                    {t('auto.inteligentne_wykrywanie_wymian', { defaultValue: 'Inteligentne wykrywanie wymian' })}
-                  </h3>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
-                    {t('auto.automatycznie_pytaj_o_wymiane', { defaultValue: 'Automatycznie pytaj o wymianę sprzętu (potrącając zapasy), gdy wykryto duży skok insuliny lub lukę w CGM.' })}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={async () => {
-                  const val = !settings.smartEquipmentDetection;
-                  setSettings({ ...settings, smartEquipmentDetection: val });
-                  Haptics.medium();
-                  if (val) toast.success(i18n.t('auto.inteligentne_wykrywanie_wlaczone', { defaultValue: 'Inteligentne wykrywanie włączone!' }));
-                  
-                  await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { smartEquipmentDetection: val }, { merge: true });
-                }}
-                className={cn(
-                  "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
-                  settings.smartEquipmentDetection && "bg-indigo-500 pl-5",
-                )}
-              >
-                <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
-              </button>
-            </div>
-          </div>
+        <ProfileInventory user={user} settings={settings} setSettings={setSettings} />
+
  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
  <div
  className={cn(
@@ -4174,6 +4127,8 @@ function SettingInput({
  </div>
  );
 }
+
+
 
 
 

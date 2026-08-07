@@ -364,82 +364,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </button>
  </div>
  </div>
- {/* Treatment Mode Selector */}
- <div className={cn(
- "p-5 rounded-[2.5rem] border transition-all hover:shadow-md space-y-4",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
- )}>
- <div className="flex items-center gap-4">
- <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner">
- <Activity size={22} />
- </div>
- <div className="text-left">
- <p className="text-sm font-black dark:text-white leading-tight">
- {t('auto.treatment_mode_title', { defaultValue: 'Typ leczenia' })}
- </p>
- <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
- {t('auto.treatment_mode_desc', { defaultValue: 'Dostosuj interfejs do swoich potrzeb' })}
- </p>
- </div>
- </div>
- 
- <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
- {[
- { id: 'diet_only', icon: <Apple size={16} />, label: t('auto.treatment_mode_diet', { defaultValue: 'Dieta i tabletki' }), desc: t('auto.treatment_mode_diet_desc', { defaultValue: 'Ukrywa funkcje insulinowe' }) },
- { id: 'insulin', icon: <Zap size={16} />, label: t('auto.treatment_mode_insulin', { defaultValue: 'Insulina' }), desc: t('auto.treatment_mode_insulin_desc', { defaultValue: 'Peny lub strzykawki' }) },
- { id: 'pump', icon: <Signal size={16} />, label: t('auto.treatment_mode_pump', { defaultValue: 'Pompa' }), desc: t('auto.treatment_mode_pump_desc', { defaultValue: 'Zamknięta pętla / AID' }) }
- ].map(mode => (
- <button
- key={mode.id}
- onClick={async () => {
- const newVal = mode.id as 'diet_only' | 'insulin' | 'pump';
- setSettings((prev) => ({ ...prev, treatmentMode: newVal }));
- 
- // Natychmiastowa aktualizacja cache'u (Optimistic Update)
- localStorage.setItem("treatmentMode", newVal);
- if (user) {
-   queryClient.setQueryData(['userSettings', getEffectiveUid(user)], (old: any) => ({
-     ...(old || {}),
-     treatmentMode: newVal
-   }));
- }
-
- if (user) {
-   try {
-     await setDoc(
-       doc(db, "users", getEffectiveUid(user), "settings", "profile"),
-       { treatmentMode: newVal },
-       { merge: true }
-     );
-     queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-     toast.success(t('auto.zapisano_tryb', { defaultValue: 'Zapisano: ' }) + mode.label);
-   } catch (e: any) {
-     console.error("Failed to save treatmentMode", e);
-     toast.error("Błąd zapisu: " + e.message);
-     // Revert optimistic update
-     queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-   }
- } else {
- toast.success(mode.label + ' ' + t('auto.wymaga_odswiezenia_w_trybie_goscia', { defaultValue: '(Tryb Gościa: odśwież stronę, by zobaczyć efekt)' }));
- }
- }}
- className={cn(
- "p-3 rounded-2xl border transition-all text-left flex flex-col gap-1 items-start justify-center",
- (settings.treatmentMode === mode.id || (!settings.treatmentMode && mode.id === 'insulin'))
- ? "bg-indigo-500 border-indigo-500 text-white shadow-lg"
- : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-300"
- )}
- >
- <div className="flex items-center gap-2">
- {mode.icon}
- <span className="text-xs font-bold">{mode.label}</span>
- </div>
- <span className="text-[9px] opacity-80">{mode.desc}</span>
- </button>
- ))}
- </div>
  </div>
 
  {/* Toggles */}
@@ -1004,7 +928,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </button>
 
  <CloudPackageSync
- 
+ user={user}
  settings={settings}
  onImport={(s) => {
  setSettings((prev) => ({ ...prev, ...s }));
@@ -1024,6 +948,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  />
 
  <SettingsTransfer
+ user={user}
  settings={settings}
  onImport={(s) => {
  setSettings((prev) => ({ ...prev, ...s }));
@@ -1326,69 +1251,71 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </button>
  </div>
 
- {/* Version History */}
- <div
- className={cn(
- "rounded-[2.5rem] p-8 border shadow-sm opacity-60 hover:opacity-100 transition-opacity",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800",
- )}
- >
- <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
- <History size={14} /> {t('auto.dziennik_aktualizacji', { defaultValue: 'Dziennik Aktualizacji' })}
- </h4>
- <div className="space-y-6">
- {PWA_VERSIONS.slice(0, 3).map((v, i) => (
- <div
- key={v.version}
- className={cn(
- "relative pl-6 border-l-2",
- i === 0
- ? "border-accent-500"
- : "border-slate-200 dark:border-slate-800",
- )}
- >
- <div
- className={cn(
- "absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 bg-white dark:bg-slate-900",
- i === 0
- ? "border-accent-500"
- : "border-slate-200 dark:border-slate-800",
- )}
- />
- <div className="flex items-center justify-between mb-1">
- <span className="text-xs font-black dark:text-white">
- v{v.version}
- </span>
- <span className="text-[9px] font-bold text-slate-400">
- {v.date}
- </span>
- </div>
- <p className="text-[10px] font-bold text-accent-500 mb-2 truncate">
- {t(v.title, { defaultValue: v.title })}
- </p>
- <ul className="space-y-1">
- {v.changes.slice(0, 2).map((change: any, idx) => {
- const text = typeof change === 'string' ? change : change.descriptionKey;
- return (
- <li
- key={`v-change-${v.version}-${idx}`}
- className="text-[9px] text-slate-500 dark:text-slate-400 flex items-start gap-2"
- >
- <span className="mt-1 w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
- {t(text, { defaultValue: text })}
- </li>
- )})}
- </ul>
- </div>
- ))}
- </div>
- </div>
- </div>
- </motion.div>
- </>
- );
+       {/* Version History */}
+      <div
+        className={cn(
+          "rounded-[2.5rem] p-8 border shadow-sm opacity-60 hover:opacity-100 transition-opacity",
+          settings.glassmorphismEnabled
+            ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+            : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800"
+        )}
+      >
+        <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
+          <History size={14} /> {t('auto.dziennik_aktualizacji', { defaultValue: 'Dziennik Aktualizacji' })}
+        </h4>
+        <div className="space-y-6">
+          {PWA_VERSIONS.slice(0, 3).map((v, i) => (
+            <div
+              key={v.version}
+              className={cn(
+                "relative pl-6 border-l-2",
+                i === 0
+                  ? "border-accent-500"
+                  : "border-slate-200 dark:border-slate-800"
+              )}
+            >
+              <div
+                className={cn(
+                  "absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 bg-white dark:bg-slate-900",
+                  i === 0
+                    ? "border-accent-500"
+                    : "border-slate-200 dark:border-slate-800"
+                )}
+              />
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-black dark:text-white">
+                  v{v.version}
+                </span>
+                <span className="text-[9px] font-bold text-slate-400">
+                  {v.date}
+                </span>
+              </div>
+              <p className="text-[10px] font-bold text-accent-500 mb-2 truncate">
+                {t(v.title, { defaultValue: v.title })}
+              </p>
+              <ul className="space-y-1">
+                {v.changes.slice(0, 2).map((change, idx) => {
+                  const text = typeof change === 'string' ? change : change.descriptionKey;
+                  return (
+                    <li
+                      key={`v-change-${v.version}-${idx}`}
+                      className="text-[9px] text-slate-500 dark:text-slate-400 flex items-start gap-2"
+                    >
+                      <span className="mt-1 w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
+                      {t(text, { defaultValue: text })}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
+  </motion.div>
+  </>
+  );
 }
+
 
 
