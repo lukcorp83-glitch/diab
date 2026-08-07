@@ -14,15 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.8';
+export const CURRENT_VERSION = '6.0.9';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "6.0.8",
+    version: "6.0.9",
     date: new Date().toISOString().split('T')[0],
+    title: "Nowe Dyscypliny & Dzieci",
+    changes: [
+      "Dodano 'Bawialnię / Plac zabaw' oraz 'Rolki / Łyżwy' i 'Lekcję W-F' do listy treningów",
+      "Dodano dedykowane ostrzeżenia i porady dla dzieci bawiących się na placu zabaw",
+      "Pełne tłumaczenia PL/EN dla nowych typów aktywności sportowych"
+    ]
+  },
+  {
+    version: "6.0.8",
+    date: "2026-08-07",
     title: "Potężny Fix & Dolne Menu",
     changes: [
       "Potężny fix dla problemu ERR_CONNECTION_CLOSED (Firestore na Androidzie)",
@@ -56,8 +66,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-    version: "6.0.8",
+    version: "6.0.9",
     date: new Date().toISOString().split('T')[0],
+    title: "Nowe Dyscypliny & Dzieci",
+    changes: [
+      "Dodano 'Bawialnię / Plac zabaw' oraz 'Rolki / Łyżwy' i 'Lekcję W-F' do listy treningów",
+      "Dodano dedykowane ostrzeżenia i porady dla dzieci bawiących się na placu zabaw",
+      "Pełne tłumaczenia PL/EN dla nowych typów aktywności sportowych"
+    ]
+  },
+  {
+    version: "6.0.8",
+    date: "2026-08-07",
     title: "Potężny Fix & Dolne Menu",
     changes: [
       "Potężny fix dla problemu ERR_CONNECTION_CLOSED (Firestore na Androidzie)",

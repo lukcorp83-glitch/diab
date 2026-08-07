@@ -179,6 +179,49 @@ export const SPORTS = [
  i18n.t('auto.baw_sie_dobrze_ale_zerkaj_na_s', { defaultValue: i18n.t('auto.baw_sie_dobrze_ale_zerkaj', { defaultValue: "Baw się dobrze, ale zerkaj na sensor!" }) }),
  i18n.t('auto.alkohol_przy_tancu_np_na_impre', { defaultValue: i18n.t('auto.alkohol_przy_tancu_np_na', { defaultValue: "Alkohol przy tańcu (np. na imprezie) drastycznie zwiększa ryzyko hipo." }) })
  ]
+ },
+ {
+ id: 'playroom',
+ name: i18n.t('auto.bawialnia_plac_zabaw', { defaultValue: 'Bawialnia / Plac zabaw' }),
+ icon: Activity,
+ color: 'text-indigo-500',
+ bg: 'bg-indigo-500/10',
+ border: 'border-indigo-500/20',
+ effect: i18n.t('auto.bardzo_szybki_spadek', { defaultValue: 'Bardzo szybki spadek' }),
+ description: i18n.t('auto.szalenstwo_dzieci_w_bawialni', { defaultValue: 'Szaleństwo w małpim gaju, skakanie na trampolinach czy bieganie po placu zabaw to gigantyczny wydatek energetyczny dla dzieci.' }),
+ tips: [
+ i18n.t('auto.zdejmij_pompe_lub_zabezpiecz', { defaultValue: 'Zdejmij pompę (jeśli to możliwe) lub solidnie zabezpiecz wkłucie przed wyrwaniem.' }),
+ i18n.t('auto.prowadz_profilaktyczne_podjada', { defaultValue: 'Profilaktycznie podjadaj małe przekąski bez insuliny (np. chrupki, sok).' }),
+ i18n.t('auto.uwaga_na_adrenalina_plac', { defaultValue: 'Emocje mogą maskować objawy hipoglikemii - sprawdzaj cukier częściej!' })
+ ]
+ },
+ {
+ id: 'pe_class',
+ name: i18n.t('auto.lekcja_wf', { defaultValue: 'Lekcja W-F' }),
+ icon: Target,
+ color: 'text-sky-500',
+ bg: 'bg-sky-500/10',
+ border: 'border-sky-500/20',
+ effect: i18n.t('auto.umiarkowany_do_szybkiego_spade', { defaultValue: 'Umiarkowany/Szybki spadek' }),
+ description: i18n.t('auto.szkolne_zajecia_sportowe', { defaultValue: 'Szkolne zajęcia sportowe o zmiennej intensywności (od rozgrzewki po gry zespołowe).' }),
+ tips: [
+ i18n.t('auto.zmniejsz_bolus_sniadaniowy', { defaultValue: 'Rozważ zmniejszenie bolusa na śniadanie, jeśli W-F jest wcześnie rano.' }),
+ i18n.t('auto.zawsze_glukoza_w_plecaku', { defaultValue: 'Zawsze miej przy sobie w plecaku glukozę lub sok.' })
+ ]
+ },
+ {
+ id: 'rollerblades',
+ name: i18n.t('auto.rolki_lyzwy', { defaultValue: 'Rolki / Łyżwy' }),
+ icon: Activity,
+ color: 'text-teal-500',
+ bg: 'bg-teal-500/10',
+ border: 'border-teal-500/20',
+ effect: i18n.t('auto.staly_spadek', { defaultValue: 'Stały spadek' }),
+ description: i18n.t('auto.angazuje_cale_cialo_szczegolni', { defaultValue: 'Angażuje całe ciało, szczególnie nogi i tułów. Spala dużo glukozy podobnie do jazdy na rowerze.' }),
+ tips: [
+ i18n.t('auto.uwazaj_na_urazy_sensorow_przy_', { defaultValue: 'Uważaj na urazy sensorów przy ewentualnych upadkach.' }),
+ i18n.t('auto.podjadaj_weglowodany_zlozone_c', { defaultValue: 'Podjadaj węglowodany złożone co 40 minut jazdy.' })
+ ]
  }
 ];
 

@@ -1,4 +1,4 @@
-import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, memoryLocalCache, persistentSingleTabManager } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
@@ -9,10 +9,13 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+import { Capacitor } from '@capacitor/core';
+
 // Using initializeFirestore with modern persistence API
 export const db = initializeFirestore(app, {
     ignoreUndefinedProperties: true,
-    localCache: persistentLocalCache({tabManager: persistentSingleTabManager()})
+    localCache: Capacitor.isNativePlatform() ? memoryLocalCache() : persistentLocalCache({tabManager: persistentSingleTabManager()}),
+    experimentalForceLongPolling: Capacitor.isNativePlatform() ? true : false
 });
 
 // Verification function as per Firestore guidelines

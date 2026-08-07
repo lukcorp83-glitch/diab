@@ -1,7 +1,7 @@
 {
   "name": "diacontrolapp",
   "private": true,
-  "version": "6.0.8",
+  "version": "6.0.9",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -104,4 +104,5 @@
     "vite": "^6.2.0"
   }
 }
+
 

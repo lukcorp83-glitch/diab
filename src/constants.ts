@@ -2,8 +2,8 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.8';
-export const CURRENT_VERSION = '6.0.8';
+export const APP_VERSION = '6.0.9';
+export const CURRENT_VERSION = '6.0.9';
 
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';
@@ -122,6 +122,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
  material3Enabled: false,
  treatmentMode: (localStorage.getItem("treatmentMode") as 'diet_only' | 'insulin' | 'pump') || 'insulin',
 };
+
 
 
 
