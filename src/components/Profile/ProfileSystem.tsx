@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -965,6 +965,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  onClick={async () => {
  const mode = !settings.ecoMode;
  setSettings(prev => ({ ...prev, ecoMode: mode }));
+ localStorage.setItem("ecoMode", String(mode));
  if (user) {
  await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true }); queryClient.invalidateQueries({ queryKey: ["userSettings"] });;
  }

@@ -231,8 +231,15 @@ export default function App() {
     }
 
     // 2. Akcenty i tła
-    const savedAccent = userSettings?.accentColor || localStorage.getItem("accentColor") || "blue";
-    root.setAttribute("data-accent", savedAccent);
+    let activeAccent = userSettings?.accentColor || localStorage.getItem("accentColor") || "blue";
+    
+    if (userSettings?.dynamicColorsEnabled) {
+      const accents = ['blue', 'rose', 'amber', 'violet', 'emerald'];
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+      activeAccent = accents[dayOfYear % accents.length];
+    }
+    
+    root.setAttribute("data-accent", activeAccent);
     root.setAttribute("data-bg", userSettings?.bgOption || "default");
     
     // 3. Efekty wizualne (szkło, material 3, eco)
@@ -262,6 +269,7 @@ export default function App() {
     userSettings?.glassmorphismEnabled,
     userSettings?.material3Enabled,
     userSettings?.ecoMode,
+    userSettings?.dynamicColorsEnabled,
   ]);
 
   // Synchronizacja początkowa motywu ze Store

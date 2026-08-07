@@ -1,10 +1,10 @@
 {
-    "version":  "6.0.6",
+    "version":  "6.0.7",
     "url":  "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.6_OTA.apk",
-    "buildNumber":  121,
+    "apkUrl":  "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.7_OTA.apk",
+    "buildNumber":  122,
     "forceUpdate":  false,
-    "whatsNew":  "Wersja 6.0.6! Krytyczna poprawka silnika bazy danych! Rozwiązano problem 4-dniowej historii poprzez inteligentniejsze buforowanie (limit zwiększony z 10 tys. do 40 tys.). Naprawiono uciążliwe zawieszanie się okienka migracji, dodając przycisk 'Pomiń' oraz dodatkowy algorytm dekompresji starych archiwów. Dodano też odświeżanie statystyk 'w czasie rzeczywistym' (Optimistic UI) – teraz dodane przez Ciebie wkłucia i zdarzenia wskoczą na wykres w sekundę!",
-    "whatsNewEn":  "Version 6.0.6! Critical database engine fix! Resolved the 4-day history limit by implementing smarter caching (limit increased from 10k to 40k). Fixed the annoying migration screen hang by adding a 'Skip' button and an additional decompression algorithm for old archives. Also added real-time stat refreshing (Optimistic UI) - now added infusion sites and events will pop onto the chart in a second!",
-    "otaRevision":  280
+    "whatsNew":  "Wersja 6.0.7! Inteligentna migracja Szybkich Skrótów: nowa funkcja ratunkowa, która automatycznie i bez opóźnień dociąga ze starej wersji chmury wszystkie braki. Tryb Eko został naprawiony i teraz bezlitośnie obcina animacje, cienie oraz przesył danych dla lepszej żywotności baterii. Dodatkowo w ramach rekompensaty zaimplementowano algorytm generowania pseudo-dynamicznych kolorów (będą się one automatycznie zmieniać każdego dnia przy uruchomieniu funkcji).",
+    "whatsNewEn":  "Version 6.0.7! Intelligent Quick Shortcuts migration: a new rescue feature that automatically pulls all missing shortcuts from the old cloud version without delays. Eco Mode has been fixed and now ruthlessly cuts animations, shadows, and data transfer for better battery life. Additionally, as a compensation, a pseudo-dynamic color generation algorithm has been implemented (colors will change automatically every day when this feature is enabled).",
+    "otaRevision":  281
 }

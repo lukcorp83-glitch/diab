@@ -550,8 +550,8 @@ export const MealPlateModals = (props: any) => {
  <div className="space-y-4 mb-6">
  {mergeCandidates.map((c) => (
  <button
- key={c.id || Math.random().toString()}
- onClick={() => handleMergeMeal(c.id)}
+ key={c.id || c.nsId || Math.random().toString()}
+ onClick={() => handleMergeMeal(c.id || c.nsId)}
  className="w-full bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4 text-left hover:scale-[0.98] transition-transform"
  >
  <div className="flex-1 min-w-0">

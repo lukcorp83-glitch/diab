@@ -42,7 +42,7 @@ export const useAppSubscriptions = (user: any) => {
     createCollectionSub(
       "logs",
       "fbLogs",
-      (coll) => isEco ? query(coll, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(5000)) : query(coll, orderBy("timestamp", "desc"), limit(10000)),
+      (coll) => isEco ? query(coll, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(500)) : query(coll, orderBy("timestamp", "desc"), limit(2000)),
       (doc) => ({ ...doc.data(), id: doc.id })
     );
 

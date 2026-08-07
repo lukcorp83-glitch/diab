@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { getEffectiveUid } from '../lib/utils';
-import { doc, getDoc, collection, getDocs, writeBatch, setDoc, query, limit } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, writeBatch, setDoc, query, limit, orderBy, startAfter } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useTranslation } from 'react-i18next';
 import { Loader2, CheckCircle, Database } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { downloadCloudPackage } from './CloudPackageSync';
 import { dbService } from '../services/databaseService';
 import { saveLocalLogs } from '../lib/localLogs';
 
@@ -21,9 +20,22 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       const uid = getEffectiveUid(user);
       
       try {
-        // Sprawdzamy czy już zmigrowano
+        // Sprawdzamy czy już zmigrowano (lokalnie lub w Firebase)
+        const localMigrated = localStorage.getItem(`migrated_${uid}`) === 'true';
         const profileSnap = await getDoc(doc(db, "users", uid, "settings", "profile"));
-        if (profileSnap.exists() && profileSnap.data().hasMigratedFromV1) {
+        
+        // Sprawdzamy czy zmigrowano skróty i czy w V1 one w ogóle istnieją (aby uniknąć pętli)
+        const newShortcutsRef = collection(db, "users", uid, "shortcuts");
+        const newShortcutsSnap = await getDocs(query(newShortcutsRef, limit(1)));
+        
+        let missingShortcutsButExistInV1 = false;
+        if (newShortcutsSnap.empty) {
+            const oldShortcutsRef = collection(db, "artifacts/diacontrolapp/users", uid, "shortcuts");
+            const oldShortcutsSnap = await getDocs(query(oldShortcutsRef, limit(1)));
+            missingShortcutsButExistInV1 = !oldShortcutsSnap.empty;
+        }
+        
+        if (!missingShortcutsButExistInV1 && (localMigrated || (profileSnap.exists() && profileSnap.data().hasMigratedFromV1))) {
           setMigrationState('done');
           return;
         }
@@ -75,6 +87,7 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
         if (snap.exists()) {
           await setDoc(doc(db, "users", uid, col, docId), snap.data(), { merge: true });
         }
+        
       } catch (err) {
         console.error(`Failed to copy ${col}/${docId}`, err);
       } finally {
@@ -83,32 +96,70 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
       }
     }));
 
-    // 2. Kopiujemy logi. Najpierw próbujemy pobrać jedną szybką paczkę cloud.
-    const success = await downloadCloudPackage(userObj, (p) => setProgress(p));
-    
-    // Fallback: jeśli użytkownik nie miał utworzonej paczki cloud backup, pobieramy klasycznie (z Firestore logs)
-    if (!success) {
-      setProgress(10);
-      try {
-        const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
-        const q = query(oldLogsRef, limit(5000));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const logs = snap.docs.map(d => d.data());
-          let sqliteP = 0, idbP = 0;
-          const updateP = () => setProgress(10 + Math.round((sqliteP + idbP) / 2 * 0.9)); // 10% - 100%
-          
-          await Promise.all([
-            saveLocalLogs(logs as any, (p) => { idbP = p; updateP(); }).catch(console.error),
-            dbService.saveMultipleLogs(logs, (p) => { sqliteP = p; updateP(); }).catch(console.error)
-          ]);
-        } else {
-          setProgress(100);
-        }
-      } catch (err) {
-        console.error("Fallback logs migration failed", err);
+    // Migracja kolekcji "shortcuts" (Szybkie skróty) - bez tego skróty giną
+    try {
+      const oldShortcutsRef = collection(db, "artifacts/diacontrolapp/users", uid, "shortcuts");
+      const shortcutsSnap = await getDocs(oldShortcutsRef);
+      if (!shortcutsSnap.empty) {
+        const batch = writeBatch(db);
+        shortcutsSnap.forEach(docSnap => {
+          batch.set(doc(db, "users", uid, "shortcuts", docSnap.id), docSnap.data(), { merge: true });
+        });
+        await batch.commit();
+      }
+    } catch (err) {
+      console.error(`Failed to copy shortcuts`, err);
+    }
+
+    // 2. Kopiujemy logi klasycznie (z Firestore logs) - omijamy zepsutą paczkę chmurową
+    setProgress(10);
+    try {
+      const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
+      const MAX_LOGS = 30000;
+      const CHUNK_SIZE = 500;
+      let lastDocSnap: any = null;
+      let hasMore = true;
+      let totalFetched = 0;
+      let allLogs: any[] = [];
+
+      // Pobieramy logi w małych partiach, aby nie zawiesić silnika przeglądarki ani kolejki Firebase na telefonach
+      while (hasMore && totalFetched < MAX_LOGS) {
+         let q;
+         if (lastDocSnap) {
+           q = query(oldLogsRef, orderBy("timestamp", "desc"), startAfter(lastDocSnap), limit(CHUNK_SIZE));
+         } else {
+           q = query(oldLogsRef, orderBy("timestamp", "desc"), limit(CHUNK_SIZE));
+         }
+
+         const snap = await getDocs(q);
+         if (snap.empty) {
+           hasMore = false;
+           break;
+         }
+
+         allLogs.push(...snap.docs.map(d => d.data()));
+         lastDocSnap = snap.docs[snap.docs.length - 1];
+         totalFetched += snap.size;
+         
+         // Dajemy UI chwilę oddechu na przerysowanie ekranu między partiami (bardzo ważne dla stabilności na Androidzie)
+         setProgress(10 + Math.round((totalFetched / MAX_LOGS) * 40)); 
+         await new Promise(r => setTimeout(r, 100));
+      }
+
+      if (allLogs.length > 0) {
+        let sqliteP = 0, idbP = 0;
+        const updateP = () => setProgress(50 + Math.round((sqliteP + idbP) / 2 * 0.5)); // 50% - 100%
+        
+        await Promise.all([
+          saveLocalLogs(allLogs as any, (p) => { idbP = p; updateP(); }).catch(console.error),
+          dbService.saveMultipleLogs(allLogs, (p) => { sqliteP = p; updateP(); }).catch(console.error)
+        ]);
+      } else {
         setProgress(100);
       }
+    } catch (err) {
+      console.error("Logs migration failed", err);
+      setProgress(100);
     }
   };
 
@@ -116,12 +167,19 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
     if (!user) return;
     try {
       const uid = getEffectiveUid(user);
-      await setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: true }, { merge: true });
+      // Wykonujemy zapis w tle bez await, aby zapobiec zawieszeniu, jeśli kolejka Firebase jest zapchana przez getDocs
+      setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: true }, { merge: true }).catch(console.error);
+      
       setMigrationState('done');
       toast.success(t('auto.migracja_zakonczona', { defaultValue: "Migracja poprawnie potwierdzona!" }));
-      setTimeout(() => window.location.reload(), 1500); // Przeładuj by upewnić się, że ładuje nową ścieżkę z nowym state
+      
+      // Dodatkowo zapisujemy w localStorage jako szybki fallback
+      localStorage.setItem(`migrated_${uid}`, 'true');
+      
+      setTimeout(() => window.location.reload(), 500); // Przeładuj by wyczyścić zapchane procesy Firebase i wczytać nową ścieżkę
     } catch (e) {
       toast.error(t('auto.blad', { defaultValue: "Wystąpił błąd podczas potwierdzania." }));
+      setTimeout(() => window.location.reload(), 1000);
     }
   };
 
