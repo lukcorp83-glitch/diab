@@ -25,7 +25,7 @@ const config: CapacitorConfig = {
       version: '0.0.0'
     },
     CapacitorHttp: {
-      enabled: true
+      enabled: false
     }
   }
 };
