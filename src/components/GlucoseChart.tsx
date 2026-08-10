@@ -750,6 +750,72 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  }
  }
  }
+
+  // Automatyczne flagowanie szczytów i dołków (Callouts)
+  const windowMs = 35 * 60000; // 35 minutes window (70 mins total)
+  const gPtsData = chartData.filter(d => d.glucose !== undefined && !isNaN(d.glucose));
+  
+  for (let i = 0; i < gPtsData.length; i++) {
+    const d = gPtsData[i];
+    const val = d.glucose!;
+    const isPeak = val >= (targetMax || 140);
+    const isValley = val <= (targetMin || 70);
+    
+    if (isPeak || isValley) {
+      let strictlyLocal = true;
+      for (let j = 0; j < gPtsData.length; j++) {
+        if (i === j) continue;
+        const diffMs = Math.abs(gPtsData[j].timestamp - d.timestamp);
+        if (diffMs <= windowMs) {
+          if (isPeak && gPtsData[j].glucose! > val) { strictlyLocal = false; break; }
+          if (isValley && gPtsData[j].glucose! < val) { strictlyLocal = false; break; }
+        }
+      }
+      
+      if (strictlyLocal) {
+        const x = getX(d.timestamp);
+        const y = getY(val);
+        const labelY = isPeak ? y - 20 : y + 20;
+        
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const text = Math.round(val).toString();
+        const textWidth = ctx.measureText(text).width;
+        const padding = 5;
+        
+        // Cienka linia łącząca kropkę z pigułką
+        ctx.beginPath();
+        ctx.moveTo(x, y + (isPeak ? -6 : 6));
+        ctx.lineTo(x, labelY + (isPeak ? 8 : -8));
+        ctx.strokeStyle = isPeak ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Tło pigułki
+        ctx.beginPath();
+        const rw = textWidth + padding * 2;
+        const rh = 16;
+        const rx = x - rw / 2;
+        const ry = labelY - rh / 2;
+        if (ctx.roundRect) {
+          ctx.roundRect(rx, ry, rw, rh, 4);
+        } else {
+          ctx.fillRect(rx, ry, rw, rh); // fallback dla bardzo starych przeglądarek
+        }
+        ctx.fillStyle = isPeak ? 'rgba(239, 68, 68, 0.95)' : 'rgba(59, 130, 246, 0.95)';
+        ctx.fill();
+        ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Tekst
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(text, x, labelY);
+      }
+    }
+  }
  
  // Bolus, Meal, Site, Sensor
  ctx.font = '14px serif';
@@ -837,7 +903,7 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  ctx.restore();
  }
  if (d.sensorVal) {
- const cy = Math.round(getY(chartMaxY) + 15);
+ const cy = Math.round(getY(chartMaxY) + (d.siteVal ? 35 : 15));
  ctx.save();
  ctx.translate(x - 8, cy - 8);
  ctx.scale(0.65, 0.65);

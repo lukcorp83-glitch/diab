@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.9';
+export const CURRENT_VERSION = '6.0.10';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.10",
+    date: new Date().toISOString().split('T')[0],
+    title: "Callouts Wykresu & UI Fixes",
+    changes: [
+      "Usprawniono działanie pigułek osprzętu na pulpicie",
+      "Dodano automatyczne flagowanie (Callouts) dla szczytów i dołków na wykresie glikemii",
+      "Poprawiono wyświetlanie ikon przy jednoczesnej wymianie wkłucia i sensora"
+    ]
+  },
   {
     version: "6.0.9",
     date: new Date().toISOString().split('T')[0],
@@ -65,6 +75,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.10",
+    date: new Date().toISOString().split('T')[0],
+    title: "Callouts Wykresu & UI Fixes",
+    changes: [
+      "Usprawniono działanie pigułek osprzętu na pulpicie",
+      "Dodano automatyczne flagowanie (Callouts) dla szczytów i dołków na wykresie glikemii",
+      "Poprawiono wyświetlanie ikon przy jednoczesnej wymianie wkłucia i sensora"
+    ]
+  },
   {
     version: "6.0.9",
     date: new Date().toISOString().split('T')[0],

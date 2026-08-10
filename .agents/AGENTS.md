@@ -37,4 +37,5 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
 - **Bezpieczne Edytowanie Plików (Kodowanie i Składnia)**:
   - Aktualizując `version.json` lub inne pliki konfiguracyjne, NIGDY nie używaj komendy PowerShell `echo "..." > plik` ani `Out-File` w terminalu, ponieważ na Windowsie domyślnie generuje to pliki z kodowaniem UTF-16 LE (z BOM). To krytycznie psuje parser kompilatora Vite. Zamiast tego używaj dedykowanego narzędzia agenta `write_to_file`.
   - Podczas dodawania nowych wpisów do `src/constants/versions.ts` za pomocą `multi_replace_file_content` (szczególnie do wielkich tablic `PWA_VERSIONS` i `APK_VERSIONS`), dokładnie sprawdzaj granice klamr i nawiasów przed nadpisaniem zawartości, aby przypadkiem nie wkleić zduplikowanego bloku starych wersji czy nie zepsuć domknięcia JSONa.
+  - **KRYTYCZNE**: Dodając nowy wpis do `PWA_VERSIONS` i `APK_VERSIONS`, ZAWSZE dodawaj tablicę `changes: string[]` z listą wprowadzonych poprawek. Brak tej tablicy wywoła błąd `.map is undefined` i zawiesi ekran powitalny (ChangelogPopup) tuż po instalacji nowej aktualizacji!
 

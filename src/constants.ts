@@ -2,8 +2,8 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.9';
-export const CURRENT_VERSION = '6.0.9';
+export const APP_VERSION = '6.0.10';
+export const CURRENT_VERSION = '6.0.10';
 
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';

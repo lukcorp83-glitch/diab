@@ -267,6 +267,15 @@ export function AppLayout({
               ecoMode={userSettings?.ecoMode}
             />
             {!userSettings?.followerMode && (
+              <NavButton
+                active={activeTab === "database"}
+                onClick={() => changeTab("database")}
+                icon={<Database />}
+                label={t("sidebar.sections.database", { defaultValue: "Baza" })}
+                ecoMode={userSettings?.ecoMode}
+              />
+            )}
+            {!userSettings?.followerMode && (
               <div className="relative -top-6">
                 <motion.button
                   onClick={() => changeTab("meal")}
@@ -327,6 +336,15 @@ export function AppLayout({
                   {t("nav.plate")}
                 </motion.div>
               </div>
+            )}
+            {!userSettings?.followerMode && (
+              <NavButton
+                active={activeTab === "ai"}
+                onClick={() => changeTab("ai")}
+                icon={<GlikoSenseIcon size={24} isAnalyzing={activeTab === 'ai'} />}
+                label={"GlikoSense"}
+                ecoMode={userSettings?.ecoMode}
+              />
             )}
             {!userSettings?.followerMode && (
               <NavButton

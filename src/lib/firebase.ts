@@ -1,5 +1,5 @@
 import { initializeFirestore, persistentLocalCache, memoryLocalCache, persistentSingleTabManager } from 'firebase/firestore';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -8,6 +8,9 @@ import { getApps, getApp, initializeApp } from 'firebase/app';
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Wymuszamy localStorage (browserLocalPersistence) dla autoryzacji, aby ominąć zepsute IndexedDB na telefonach!
+setPersistence(auth, browserLocalPersistence).catch(err => console.warn("Failed to set auth persistence", err));
 
 import { Capacitor } from '@capacitor/core';
 
