@@ -1,9 +1,10 @@
-﻿import { useAuthStore } from '../stores/useAuthStore';
+import { useAuthStore } from '../stores/useAuthStore';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { Download, Upload, Loader2, FileJson } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { loadLocalLogs, saveLocalLogs } from '../lib/localLogs';
+import { dbService } from '../services/databaseService';
 
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -80,6 +81,12 @@ export default function LocalSync({
 
  if (parsed.logs && Array.isArray(parsed.logs)) {
  await saveLocalLogs(parsed.logs);
+ try {
+   await dbService.init();
+   await dbService.saveMultipleLogs(parsed.logs);
+ } catch (dbErr) {
+   console.error("Failed to save imported logs to SQLite dbService:", dbErr);
+ }
  }
 
  if (parsed.settings && user) {
