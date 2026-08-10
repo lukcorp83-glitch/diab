@@ -1,4 +1,4 @@
-﻿import { Cylinder } from 'lucide-react';
+import { Cylinder } from 'lucide-react';
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAppStore } from '../stores/useAppStore';
@@ -246,6 +246,8 @@ export default function Dashboard({
 }: DashboardProps) {
   const user = useAuthStore(state => state.user);
   const { logs } = useLogsStore();
+  const effSensorDate = Math.max(settings?.sensorChangeDate || 0, logs.find((l:any) => l.type === 'sensor_change' || l.type === 'sensor')?.timestamp || 0) || undefined;
+  const effInfusionDate = Math.max(settings?.infusionSetChangeDate || 0, logs.find((l:any) => l.type === 'site_change' || l.type === 'site')?.timestamp || 0) || undefined;
   const { t } = useTranslation();
   // Tryb leczenia: domyślnie 'insulin' dla wstecznej kompatybilności
   const treatmentMode = settings.treatmentMode ?? 'insulin';
@@ -913,7 +915,7 @@ export default function Dashboard({
   };
 
   const renderWidget = (id: string, size: "2x2" | "2x1" | "1x2" | "1x1") => {
-    const hasReminders = settings.sensorChangeDate || settings.infusionSetChangeDate;
+    const hasReminders = effSensorDate || effInfusionDate;
     const isHighGlucose = lastG && lastG.value >= (settings.targetMax || 140);
     const showCorrection = isHighGlucose && quickCorrectionWidget;
 
@@ -1033,7 +1035,7 @@ export default function Dashboard({
         return <WeatherWidget compact={size.startsWith("1")} />;
 
       case "sensor_reminder":
-        if (!settings.sensorChangeDate) {
+        if (!effSensorDate) {
           if (isEditingLayout) {
             return (
               <div className="mx-2 p-4 bg-slate-500/10 dark:bg-slate-950/20 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-[10px] text-slate-400 dark:text-slate-500 font-bold font-display flex flex-col justify-center items-center min-h-[140px] w-full">
@@ -1066,7 +1068,7 @@ export default function Dashboard({
             </div>
             <div className={isSensCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
-                const msLeft = settings.sensorChangeDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
+                const msLeft = effSensorDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
                 const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                 const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const isExpired = msLeft <= 0;
@@ -1093,7 +1095,7 @@ export default function Dashboard({
         );
 
       case "infusion_reminder":
-        if (!settings.infusionSetChangeDate) {
+        if (!effInfusionDate) {
           if (isEditingLayout) {
             return (
               <div className="mx-2 p-4 bg-slate-500/10 dark:bg-slate-950/20 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-[10px] text-slate-400 dark:text-slate-500 font-bold font-display flex flex-col justify-center items-center min-h-[140px] w-full">
@@ -1126,7 +1128,7 @@ export default function Dashboard({
             </div>
             <div className={isInfCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
-                const msLeft = settings.infusionSetChangeDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
+                const msLeft = effInfusionDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
                 const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                 const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const isExpired = msLeft <= 0;
@@ -1825,9 +1827,9 @@ export default function Dashboard({
         <>
 
       {/* 4. Equipment & Reminders */}
-      {(settings.sensorChangeDate || settings.infusionSetChangeDate) && (
+      {(effSensorDate || effInfusionDate) && (
         <motion.div className="grid grid-cols-2 gap-4">
-          {settings.sensorChangeDate && (
+          {effSensorDate && (
              <div 
                onClick={() => { 
                }}
@@ -1840,7 +1842,7 @@ export default function Dashboard({
                </div>
                <div className="mt-4">
                  {(() => {
-                   const msLeft = settings.sensorChangeDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
+                   const msLeft = effSensorDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
                    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                    const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                    const isExpired = msLeft <= 0;
@@ -1865,7 +1867,7 @@ export default function Dashboard({
                </div>
              </div>
           )}
-          {settings.infusionSetChangeDate && (
+          {effInfusionDate && (
              <div 
                onClick={() => { 
                  Haptics.light();
@@ -1881,7 +1883,7 @@ export default function Dashboard({
                </div>
                <div className="mt-4">
                  {(() => {
-                   const msLeft = settings.infusionSetChangeDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
+                   const msLeft = effInfusionDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
                    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                    const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                    const isExpired = msLeft <= 0;

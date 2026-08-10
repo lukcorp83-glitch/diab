@@ -26,7 +26,7 @@ public class WidgetUpdaterPlugin extends Plugin {
             String targetMin = call.getString("targetMin");
             String targetMax = call.getString("targetMax");
 
-            SharedPreferences prefs = getContext().getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+            SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
 
             if (url != null) {
@@ -55,7 +55,7 @@ public class WidgetUpdaterPlugin extends Plugin {
     @PluginMethod
     public void getDebugInfo(PluginCall call) {
         try {
-            SharedPreferences prefs = getContext().getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+            SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
             com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
             ret.put("lastSyncTime", prefs.getString("widget_last_sync_time", "Brak"));
             ret.put("lastSyncStatus", prefs.getString("widget_last_sync_status", "UNKNOWN"));
@@ -76,7 +76,7 @@ public class WidgetUpdaterPlugin extends Plugin {
             String deltaStr = call.getString("delta", "---");
             String time = call.getString("time", "Brak danych");
 
-            SharedPreferences prefs = getContext().getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+            SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
 
             editor.putString("widget_glucose", glucose);

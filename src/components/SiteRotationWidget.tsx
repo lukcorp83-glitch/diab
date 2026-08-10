@@ -1,4 +1,4 @@
-﻿import { useAppStore } from '../stores/useAppStore';
+import { useAppStore } from '../stores/useAppStore';
 import i18n from '../i18n';
 import { useLogsStore } from "../stores/useLogsStore";
 import React, { useMemo, useState, useEffect } from 'react';
@@ -31,7 +31,7 @@ export default function SiteRotationWidget({ settings, size, onAction, setTab }:
  return sorted.find(l => l.type === 'site_change');
  }, [logs]);
 
- const siteChangeTimestamp = settings.infusionSetChangeDate || lastSiteChange?.timestamp;
+ const siteChangeTimestamp = Math.max(settings.infusionSetChangeDate || 0, lastSiteChange?.timestamp || 0) || undefined;
  
  const rawNote = lastSiteChange?.notes || '';
  const parsedNoteLocation = rawNote.startsWith(i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia -" }) })) ? rawNote.replace(i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia -" }) }), '') : rawNote;

@@ -323,17 +323,8 @@ export default function App() {
       
       const applyColors = async () => {
         // Zawsze czyścimy customowe style na starcie
-        root.style.removeProperty('--app-accent-50');
-        root.style.removeProperty('--app-accent-100');
-        root.style.removeProperty('--app-accent-200');
-        root.style.removeProperty('--app-accent-300');
-        root.style.removeProperty('--app-accent-400');
-        root.style.removeProperty('--app-accent-500');
-        root.style.removeProperty('--app-accent-600');
-        root.style.removeProperty('--app-accent-700');
-        root.style.removeProperty('--app-accent-800');
-        root.style.removeProperty('--app-accent-900');
-        root.style.removeProperty('--app-accent-950');
+        const accentsKeys = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+        accentsKeys.forEach(k => root.style.removeProperty(`--app-accent-${k}`));
 
         if (userSettings?.dynamicColorsEnabled) {
           try {

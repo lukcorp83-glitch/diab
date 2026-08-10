@@ -50,7 +50,7 @@ public class GlucoseScreen extends Screen {
     @NonNull
     @Override
     public Template onGetTemplate() {
-        SharedPreferences prefs = getCarContext().getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+        SharedPreferences prefs = getCarContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
         String glucose = prefs.getString("widget_glucose", "---");
         String arrow = prefs.getString("widget_arrow", "");
         String delta = prefs.getString("widget_delta", "---");

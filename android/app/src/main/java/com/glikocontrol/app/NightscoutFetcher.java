@@ -192,7 +192,7 @@ public class NightscoutFetcher {
     }
 
     private static void checkAndTriggerAlert(Context context, int sgv, int targetMin, int targetMax, String entryId, long entryTime) {
-        SharedPreferences prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+        SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
         
         // Zabezpieczenie na wypadek wyłączenia wszystkich powiadomień
         boolean hypoEnabled = prefs.getBoolean("widget_hypo_alerts_enabled", true);
@@ -320,7 +320,7 @@ public class NightscoutFetcher {
 
     public static void fetchAndUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         new Thread(() -> {
-            SharedPreferences prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+            SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
             String nsUrl = prefs.getString("widget_ns_url", "");
             String secret = prefs.getString("widget_ns_secret", "");
             

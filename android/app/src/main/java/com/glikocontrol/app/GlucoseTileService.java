@@ -27,7 +27,7 @@ public class GlucoseTileService extends TileService {
         Tile tile = getQsTile();
         if (tile == null) return;
 
-        SharedPreferences prefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
         
         // Odczyt danych zapisanych w SharedPreferences
         String glucose = prefs.getString("widget_glucose", "---");

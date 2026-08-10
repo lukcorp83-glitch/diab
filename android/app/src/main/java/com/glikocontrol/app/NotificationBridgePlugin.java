@@ -99,7 +99,7 @@ public class NotificationBridgePlugin extends Plugin {
 
     @PluginMethod
     public void getGlucoseHistory(PluginCall call) {
-        android.content.SharedPreferences prefs = getContext().getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
         String history = prefs.getString("glucose_history", "");
         
         JSObject ret = new JSObject();

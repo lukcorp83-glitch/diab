@@ -767,8 +767,14 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
         if (i === j) continue;
         const diffMs = Math.abs(gPtsData[j].timestamp - d.timestamp);
         if (diffMs <= windowMs) {
-          if (isPeak && gPtsData[j].glucose! > val) { strictlyLocal = false; break; }
-          if (isValley && gPtsData[j].glucose! < val) { strictlyLocal = false; break; }
+          if (isPeak) {
+            if (gPtsData[j].glucose! > val) { strictlyLocal = false; break; }
+            if (gPtsData[j].glucose! === val && j < i) { strictlyLocal = false; break; }
+          }
+          if (isValley) {
+            if (gPtsData[j].glucose! < val) { strictlyLocal = false; break; }
+            if (gPtsData[j].glucose! === val && j < i) { strictlyLocal = false; break; }
+          }
         }
       }
       
