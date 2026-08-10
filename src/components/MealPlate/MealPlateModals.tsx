@@ -151,6 +151,7 @@ export const MealPlateModals = (props: any) => {
  <div className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2 relative shadow-inner">
  <MealScanner
  ref={scannerRef}
+ onCancel={handleCloseScanner}
  onResult={async (decodedText) => {
  // 1. Sprawdź lokalną bazę customProducts
  const localMatch = customProducts.find(p => p.barcode === decodedText);

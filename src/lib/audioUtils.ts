@@ -1,3 +1,6 @@
+import { Capacitor } from '@capacitor/core';
+import { NativeAudio } from '@capacitor-community/native-audio';
+
 const getAudioCtx = (() => {
   let ctx: AudioContext | null = null;
   return () => {
@@ -47,6 +50,22 @@ export const playFeedSound = () => {
 let cachedAlarmBuffer: AudioBuffer | null = null;
 
 const playMp3Alert = async () => {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      if (!(window as any).__nativeAudioPreloaded) {
+        await NativeAudio.preload({
+          assetId: 'status_clear',
+          assetPath: 'status_clear.mp3',
+        });
+        (window as any).__nativeAudioPreloaded = true;
+      }
+      await NativeAudio.play({ assetId: 'status_clear' });
+      return; // Odtworzono pomyślnie przez NativeAudio, koniec.
+    } catch (e) {
+      console.warn("NativeAudio play failed, falling back to Web Audio", e);
+    }
+  }
+
   try {
     const audioCtx = getAudioCtx();
     if (audioCtx.state === 'suspended') {

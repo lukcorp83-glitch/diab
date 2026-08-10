@@ -206,6 +206,55 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Smart Equipment Listener
+  useEffect(() => {
+    const handleSmartEquipment = (e: any) => {
+      const type = e.detail; // 'sensor' or 'reservoir'
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-slate-800 shadow-lg rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4`}>
+           <div className="flex-1 w-0 p-2">
+               <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  {type === 'sensor' ? i18n.t('auto.smart_sensor_title', { defaultValue: 'Wymiana sensora?' }) : i18n.t('auto.smart_reservoir_title', { defaultValue: 'Wymiana wkłucia?' })}
+               </p>
+               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {type === 'sensor' 
+                    ? i18n.t('auto.smart_sensor_desc', { defaultValue: 'GlikoSense wykrył przerwę w danych. Czy chcesz zresetować czas życia sensora?' }) 
+                    : i18n.t('auto.smart_reservoir_desc', { defaultValue: 'GlikoSense wykrył napełnienie zbiorniczka. Czy chcesz zresetować czas życia wkłucia?' })}
+               </p>
+           </div>
+           <div className="flex flex-col gap-2 border-l border-slate-200 dark:border-slate-700 pl-4 justify-center">
+               <button
+                  onClick={async () => {
+                    toast.dismiss(t.id);
+                    import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
+                    if (user) {
+                       const updates = type === 'sensor' ? { sensorChangeDate: Date.now() } : { infusionSetChangeDate: Date.now() };
+                       await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+                       toast.success(i18n.t('auto.zapisano', { defaultValue: 'Zapisano!' }));
+                    }
+                  }}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400"
+               >
+                  {i18n.t('auto.smart_action_yes', { defaultValue: 'Tak, zapisz' })}
+               </button>
+               <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
+                  }}
+                  className="text-xs font-bold text-slate-500 dark:text-slate-400"
+               >
+                  {i18n.t('auto.smart_action_no', { defaultValue: 'Ignoruj' })}
+               </button>
+           </div>
+        </div>
+      ), { duration: 20000 });
+    };
+
+    window.addEventListener('smart-equipment-trigger', handleSmartEquipment);
+    return () => window.removeEventListener('smart-equipment-trigger', handleSmartEquipment);
+  }, [user]);
+
   useEffect(() => {
     const updateProgress = () => {
       const absorbingMeals = logs

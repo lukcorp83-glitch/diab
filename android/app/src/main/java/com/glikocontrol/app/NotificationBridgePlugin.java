@@ -124,16 +124,61 @@ public class NotificationBridgePlugin extends Plugin {
                 android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT
         );
 
-        androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "gliko_foreground_service_v3")
-                .setContentTitle(title)
-                .setContentText(text)
-                .setSmallIcon(R.drawable.ic_stat_name)
-                .setContentIntent(pendingIntent)
-                .setOngoing(true)
-                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW);
-
         android.app.NotificationManager notificationManager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager != null) {
+        if (notificationManager == null) {
+            call.resolve();
+            return;
+        }
+
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+        String glucose = prefs.getString("widget_glucose", null);
+        
+        if (glucose != null && !glucose.equals("---") && !glucose.isEmpty() && text.contains("Pętla zamknięta")) {
+            String arrow = prefs.getString("widget_arrow", "");
+            String deltaStr = prefs.getString("widget_delta", "");
+            String time = prefs.getString("widget_time", "") + " (wznowiono)";
+            
+            int color = android.graphics.Color.parseColor("#10B981"); // Default green
+            try {
+                int bgVal = Integer.parseInt(glucose);
+                if (bgVal > 180) color = android.graphics.Color.parseColor("#F59E0B");
+                else if (bgVal < 70) color = android.graphics.Color.parseColor("#EF4444");
+            } catch (Exception ignored) {}
+            
+            android.widget.RemoteViews notifViews = new android.widget.RemoteViews(getContext().getPackageName(), R.layout.notification_glucose);
+            notifViews.setTextViewText(R.id.notif_glucose_val, glucose);
+            notifViews.setTextColor(R.id.notif_glucose_val, color);
+            notifViews.setTextViewText(R.id.notif_glucose_arrow, arrow);
+            notifViews.setTextColor(R.id.notif_glucose_arrow, color);
+            notifViews.setTextViewText(R.id.notif_glucose_delta, deltaStr);
+            notifViews.setTextViewText(R.id.notif_glucose_time, time);
+            
+            android.widget.RemoteViews expandedViews = new android.widget.RemoteViews(getContext().getPackageName(), R.layout.notification_glucose_expanded);
+            expandedViews.setTextViewText(R.id.notif_glucose_val, glucose);
+            expandedViews.setTextColor(R.id.notif_glucose_val, color);
+            expandedViews.setTextViewText(R.id.notif_glucose_arrow, arrow);
+            expandedViews.setTextColor(R.id.notif_glucose_arrow, color);
+            expandedViews.setTextViewText(R.id.notif_glucose_delta, deltaStr);
+            expandedViews.setTextViewText(R.id.notif_glucose_time, time);
+            
+            androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "gliko_foreground_service_v3")
+                    .setSmallIcon(R.drawable.ic_stat_name)
+                    .setCustomContentView(notifViews)
+                    .setCustomBigContentView(expandedViews)
+                    .setOngoing(true)
+                    .setContentIntent(pendingIntent)
+                    .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW);
+
+            notificationManager.notify(999, builder.build());
+        } else {
+            androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "gliko_foreground_service_v3")
+                    .setContentTitle(title)
+                    .setContentText(text)
+                    .setSmallIcon(R.drawable.ic_stat_name)
+                    .setContentIntent(pendingIntent)
+                    .setOngoing(true)
+                    .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW);
+
             notificationManager.notify(999, builder.build());
         }
         

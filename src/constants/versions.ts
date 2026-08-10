@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.10';
+export const CURRENT_VERSION = '6.0.11';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.11",
+    date: new Date().toISOString().split('T')[0],
+    title: "Skaner Hybrydowy & Stabilność Powiadomień",
+    changes: [
+      "Naprawiono błąd 'znikającego cukru' (napis 'Pętla zamknięta...') podczas usypiania powiadomienia",
+      "Przebudowano Skaner Jedzenia na hybrydowy (natywny ML Kit + PWA)",
+      "Wyeliminowano problem blokującego się sprzętowo aparatu przy przejściu na odczyt OCR"
+    ]
+  },
   {
     version: "6.0.10",
     date: new Date().toISOString().split('T')[0],
@@ -75,6 +85,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.11",
+    date: new Date().toISOString().split('T')[0],
+    title: "Skaner Hybrydowy & Stabilność Powiadomień",
+    changes: [
+      "Naprawiono błąd 'znikającego cukru' (napis 'Pętla zamknięta...') podczas usypiania powiadomienia w tle przez Androida",
+      "Przebudowano Skaner Jedzenia na hybrydowy (natywny ML Kit + PWA)",
+      "Wyeliminowano problem blokującego się sprzętowo aparatu przy przejściu na odczyt etykiet AI"
+    ]
+  },
   {
     version: "6.0.10",
     date: new Date().toISOString().split('T')[0],

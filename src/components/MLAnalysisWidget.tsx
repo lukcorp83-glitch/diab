@@ -271,16 +271,39 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  };
 
   const handleAcceptAutoTune = async () => {
-    if (!autoTunerResult?.proposedISF || !user || !settings) return;
+    if (!autoTunerResult?.proposedISF || !user || !settings || !autoTunerResult.timeBlock) return;
     try {
       const uid = getEffectiveUid(user, settings);
-      await setDoc(doc(db, "users", uid), { isf: autoTunerResult.proposedISF }, { merge: true });
+      
+      let newProfiles = [...(settings.hourlyProfiles || [])];
+      
+      if (newProfiles.length === 0) {
+        newProfiles = [
+          { time: '00:00', isf: settings.isf, wwRatio: settings.wwRatio },
+          { time: '06:00', isf: settings.isf, wwRatio: settings.wwRatio },
+          { time: '12:00', isf: settings.isf, wwRatio: settings.wwRatio },
+          { time: '18:00', isf: settings.isf, wwRatio: settings.wwRatio }
+        ];
+      }
+      
+      const blockIndex = newProfiles.findIndex(p => p.time === autoTunerResult.timeBlock!.start);
+      if (blockIndex !== -1) {
+        newProfiles[blockIndex] = { ...newProfiles[blockIndex], isf: autoTunerResult.proposedISF };
+      }
+
+      await setDoc(doc(db, "users", uid), { hourlyProfiles: newProfiles }, { merge: true });
+      localStorage.setItem('lastIsfAutoTuneTime', Date.now().toString());
       toast.success(t('auto.glikosense_autotune_success', { defaultValue: 'Profil ISF został zaktualizowany.' }));
       setAutoTunerResult(null);
     } catch (e) {
       console.error(e);
       toast.error("Błąd zapisu!");
     }
+  };
+
+  const handleDismissAutoTune = () => {
+    localStorage.setItem('lastIsfAutoTuneTime', Date.now().toString());
+    setAutoTunerResult(null);
   };
 
  const handleImportFromFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -364,7 +387,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  MLAnalyzer.runHindsightVerification(logs);
 
  if (autoTuningEnabled && settings?.isf) {
-    const isfRes = detectIsfChanges(logs, settings.isf);
+    const isfRes = detectIsfChanges(logs, settings.isf, settings.hourlyProfiles);
     setAutoTunerResult(isfRes);
   } else {
     setAutoTunerResult(null);
@@ -604,27 +627,27 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
             </div>
             <div className="flex flex-col gap-1.5 flex-1">
               <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                {t('auto.glikosense_autotune_title', { defaultValue: 'GlikoSense zauważył zmianę wrażliwości' })}
-                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-              </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                {t('auto.glikosense_autotune_desc', { defaultValue: 'Przez ostatnie dni Twoje bolusy korekcyjne działały słabiej niż zwykle. Sugeruję zmianę wrażliwości na insulinę (ISF), by obniżyć błąd wyliczeń.' })}
-              </p>
-              
-              <div className="flex items-center gap-2 mt-2">
-                <button
-                  onClick={handleAcceptAutoTune}
-                  className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors"
-                >
-                  {t('auto.glikosense_autotune_action', { defaultValue: `Zmień z ${settings.isf} na ${autoTunerResult.proposedISF} mg/dL`, oldISF: settings.isf, newISF: autoTunerResult.proposedISF })}
-                </button>
-                <button
-                  onClick={() => setAutoTunerResult(null)}
-                  className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-                >
-                  {t('auto.glikosense_autotune_reject', { defaultValue: 'Zignoruj' })}
-                </button>
-              </div>
+                  {t('auto.glikosense_autotune_title_hourly', { defaultValue: `Wrażliwość ${autoTunerResult.timeBlock.start} - ${autoTunerResult.timeBlock.end}`, start: autoTunerResult.timeBlock.start, end: autoTunerResult.timeBlock.end })}
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  {t('auto.glikosense_autotune_desc_hourly', { defaultValue: `Twoje bolusy w godzinach ${autoTunerResult.timeBlock.start} - ${autoTunerResult.timeBlock.end} działają słabiej. Zaktualizować ISF dla tego przedziału?`, start: autoTunerResult.timeBlock.start, end: autoTunerResult.timeBlock.end })}
+                </p>
+                
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={handleAcceptAutoTune}
+                    className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors"
+                  >
+                    {t('auto.glikosense_autotune_action_hourly', { defaultValue: `Zmień na ${autoTunerResult.proposedISF} mg/dL`, newISF: autoTunerResult.proposedISF })}
+                  </button>
+                  <button
+                    onClick={handleDismissAutoTune}
+                    className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    {t('auto.glikosense_autotune_reject', { defaultValue: 'Zignoruj' })}
+                  </button>
+                </div>
             </div>
           </div>
         </motion.div>

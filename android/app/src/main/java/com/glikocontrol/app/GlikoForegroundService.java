@@ -135,14 +135,57 @@ public class GlikoForegroundService extends Service {
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("GlikoControl")
-                .setContentText("Pętla zamknięta i alarmy działają w tle")
-                .setSmallIcon(R.drawable.ic_stat_name)
-                .setContentIntent(pendingIntent)
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build();
+        android.content.SharedPreferences prefs = getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+        String glucose = prefs.getString("widget_glucose", null);
+        
+        Notification notification;
+        
+        if (glucose != null && !glucose.equals("---") && !glucose.isEmpty()) {
+            String arrow = prefs.getString("widget_arrow", "");
+            String deltaStr = prefs.getString("widget_delta", "");
+            String time = prefs.getString("widget_time", "") + " (wznowiono)";
+            
+            int color = android.graphics.Color.parseColor("#10B981"); // Default green
+            try {
+                int bgVal = Integer.parseInt(glucose);
+                if (bgVal > 180) color = android.graphics.Color.parseColor("#F59E0B");
+                else if (bgVal < 70) color = android.graphics.Color.parseColor("#EF4444");
+            } catch (Exception ignored) {}
+            
+            android.widget.RemoteViews notifViews = new android.widget.RemoteViews(getPackageName(), R.layout.notification_glucose);
+            notifViews.setTextViewText(R.id.notif_glucose_val, glucose);
+            notifViews.setTextColor(R.id.notif_glucose_val, color);
+            notifViews.setTextViewText(R.id.notif_glucose_arrow, arrow);
+            notifViews.setTextColor(R.id.notif_glucose_arrow, color);
+            notifViews.setTextViewText(R.id.notif_glucose_delta, deltaStr);
+            notifViews.setTextViewText(R.id.notif_glucose_time, time);
+            
+            android.widget.RemoteViews expandedViews = new android.widget.RemoteViews(getPackageName(), R.layout.notification_glucose_expanded);
+            expandedViews.setTextViewText(R.id.notif_glucose_val, glucose);
+            expandedViews.setTextColor(R.id.notif_glucose_val, color);
+            expandedViews.setTextViewText(R.id.notif_glucose_arrow, arrow);
+            expandedViews.setTextColor(R.id.notif_glucose_arrow, color);
+            expandedViews.setTextViewText(R.id.notif_glucose_delta, deltaStr);
+            expandedViews.setTextViewText(R.id.notif_glucose_time, time);
+            
+            notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_stat_name)
+                    .setCustomContentView(notifViews)
+                    .setCustomBigContentView(expandedViews)
+                    .setOngoing(true)
+                    .setContentIntent(pendingIntent)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .build();
+        } else {
+            notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("GlikoControl")
+                    .setContentText("Uruchamianie pętli zamkniętej...")
+                    .setSmallIcon(R.drawable.ic_stat_name)
+                    .setContentIntent(pendingIntent)
+                    .setOngoing(true)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .build();
+        }
 
         startForeground(FOREGROUND_ID, notification);
 

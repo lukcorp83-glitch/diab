@@ -1,11 +1,11 @@
 {
-    "version": "6.0.10",
+    "version": "6.0.11",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.10_OTA.apk",
-    "buildNumber": 125,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.11_OTA.apk",
+    "buildNumber": 126,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.10! 1) Usprawniono działanie pigułek osprzętu na pulpicie i naprawiono płynne przejście do panelu sprzętu. 2) Poprawiono czytelność wykresu: automatyczne przesunięcie ikon przy jednoczesnej wymianie wkłucia i sensora oraz dodano inteligentne flagowanie (Callouts) dla skrajnych wartości glikemii (szczyty i dołki).",
-    "whatsNewEn": "Version 6.0.10! 1) Improved equipment pills on the dashboard and fixed smooth transitions to the devices panel. 2) Improved chart readability: automatic icon offset for simultaneous site and sensor changes, and intelligent callouts for extreme glucose values (peaks and valleys).",
-    "otaRevision": 284
+    "whatsNew": "Wersja 6.0.11! 1) Naprawiono błąd 'znikającego cukru' (napis 'Pętla zamknięta...') podczas usypiania powiadomienia w tle przez Androida (dodano pamięć absolutną). 2) Skaner kodów jest teraz hybrydowy (natywny ML Kit) - eliminuje to sprzętowe zawieszenia aparatu podczas skanowania tabel odżywczych sztuczną inteligencją.",
+    "whatsNewEn": "Version 6.0.11! 1) Fixed the 'disappearing glucose' notification bug (showing 'Closed loop...') when Android suspends the background app. 2) Food scanner is now hybrid (native ML Kit) - fixing hardware camera freezes when using AI to scan nutrition tables.",
+    "otaRevision": 285
 }
 
