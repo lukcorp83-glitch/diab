@@ -78,6 +78,7 @@ import LowGlucoseMealAlert from "./LowGlucoseMealAlert";
 import UnlinkedCarbsWidget from "./UnlinkedCarbsWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
+import { dbService } from "../services/databaseService";
 import { SPORTS } from "./GlikoTraining";
 import {
   collection,
@@ -484,15 +485,19 @@ export default function Dashboard({
     }
     Haptics.medium();
     try {
-      await addDoc(
+      const payload = {
+        id: Math.random().toString(),
+        timestamp: Date.now(),
+        type: 'glucose', createdAt: serverTimestamp(), source: 'manual', value: val,
+        notes: 'Szybki pomiar z kafelka'
+      };
+      const docRef = await addDoc(
         collection(db, "users", getEffectiveUid(user), "logs"),
-        {
-          id: Math.random().toString(),
-          timestamp: Date.now(),
-          type: 'glucose', createdAt: serverTimestamp(), source: 'manual', value: val,
-          notes: 'Szybki pomiar z kafelka'
-        }
+        payload
       );
+      await dbService.saveLog({ ...payload, id: docRef.id });
+      window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { ...payload, id: docRef.id } }));
+      
       toast.success(`Zapisano pomiar: ${val} mg/dL`);
       setInlineBgValue("");
     } catch (err) {
@@ -624,20 +629,24 @@ export default function Dashboard({
       if (!user) return;
       Haptics.medium();
       try {
-        await addDoc(
+        const payload = {
+          type: "meal", createdAt: serverTimestamp(), source: "manual", value: s.carbs,
+          timestamp: Date.now(),
+          notes: i18n.t('auto.szybki_wybor_var0', { defaultValue: "Szybki wybór: {{var0}}", var0: s.name }),
+          items: [{ name: s.name, carbs: s.carbs }],
+        };
+        const docRef = await addDoc(
           collection(
             db,
             "users",
             getEffectiveUid(user),
             "logs",
           ),
-          {
-            type: "meal", createdAt: serverTimestamp(), source: "manual", value: s.carbs,
-            timestamp: Date.now(),
-            notes: i18n.t('auto.szybki_wybor_var0', { defaultValue: "Szybki wybór: {{var0}}", var0: s.name }),
-            items: [{ name: s.name, carbs: s.carbs }],
-          },
+          payload,
         );
+        await dbService.saveLog({ ...payload, id: docRef.id });
+        window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { ...payload, id: docRef.id } }));
+        
         Haptics.success();
       } catch (e) {
         console.error("Quick log error:", e);

@@ -1,7 +1,7 @@
 import { Haptics as CapHaptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
-const AndroidHaptic = registerPlugin<any>('AndroidHaptic');
+const AndroidHaptic: any = Capacitor.Plugins?.AndroidHaptic || registerPlugin<any>('AndroidHaptic');
 
 const isEnabled = () => {
   if (typeof window === 'undefined') return false;

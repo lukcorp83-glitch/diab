@@ -1,11 +1,12 @@
 {
-    "version": "6.0.11",
+    "version": "6.0.12",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.11_OTA.apk",
-    "buildNumber": 126,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.12_OTA.apk",
+    "buildNumber": 127,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.11! 1) Naprawiono błąd 'znikającego cukru' (napis 'Pętla zamknięta...') podczas usypiania powiadomienia w tle przez Androida (dodano pamięć absolutną). 2) Skaner kodów jest teraz hybrydowy (natywny ML Kit) - eliminuje to sprzętowe zawieszenia aparatu podczas skanowania tabel odżywczych sztuczną inteligencją.",
-    "whatsNewEn": "Version 6.0.11! 1) Fixed the 'disappearing glucose' notification bug (showing 'Closed loop...') when Android suspends the background app. 2) Food scanner is now hybrid (native ML Kit) - fixing hardware camera freezes when using AI to scan nutrition tables.",
-    "otaRevision": 285
+    "whatsNew": "Wersja 6.0.12! 1) Naprawiono błąd 'Błąd zapisu' cukru/bolusa (sanitaryzacja obiektów czasu w SQLite). 2) Zwiększono limity pobierania i paczek chmurowych do 35+ dni (pełne 18k logów). 3) Naprawiono zapamiętywanie wybranego motywu i wyłączanie dynamicznych kolorów po restarcie. 4) Naprawiono własny dźwięk MP3 dla alertów glikemii w Androidzie.",
+    "whatsNewEn": "Version 6.0.12! 1) Fixed 'Save Error' for glucose/bolus entries (sanitized timestamp objects in SQLite). 2) Expanded cloud subscriptions and package export to 35+ days (full 18k logs). 3) Fixed theme selection and dynamic colors persistence across app restarts. 4) Fixed custom MP3 sound playback for Android glucose alerts.",
+    "otaRevision": 286
 }
+
 

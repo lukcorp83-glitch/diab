@@ -1,4 +1,4 @@
-﻿import { registerPlugin } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 
 export interface NotificationBridgePlugin {
   checkPermission(): Promise<{ granted: boolean }>;
@@ -12,5 +12,5 @@ export interface NotificationBridgePlugin {
   ): Promise<any>;
 }
 
-export const NotificationBridge = registerPlugin<NotificationBridgePlugin>('NotificationBridge');
+export const NotificationBridge: any = Capacitor.Plugins?.NotificationBridge || registerPlugin<NotificationBridgePlugin>('NotificationBridge');
 

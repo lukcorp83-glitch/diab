@@ -11,6 +11,8 @@ import { db } from "../lib/firebase";
 import { doc, deleteDoc } from "firebase/firestore";
 import { getEffectiveUid } from "../lib/utils";
 import toast from "react-hot-toast";
+import { useNightscoutSettings } from "../hooks/queries/useProfileData";
+import { nightscoutService } from "../services/nightscout";
 
 interface MealHistoryProps {
  
@@ -22,6 +24,7 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
+ const { data: nsSettings } = useNightscoutSettings(user);
 
  const mealLogs = useMemo(() => {
  return logs.filter(log => {
@@ -41,11 +44,18 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
  });
  }, [logs]);
 
- const handleDelete = async (id: string) => {
+ const handleDelete = async (log: LogEntry) => {
  if (!user) return;
  try {
- await deleteDoc(doc(db, "users", getEffectiveUid(user), "logs", id));
- window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id } }));
+ const eid = log.id || log.nsId;
+ if (!eid) return;
+
+ if (log.nsId && nsSettings?.url && nsSettings?.secret) {
+ nightscoutService.deleteTreatment(log.nsId, nsSettings.url, nsSettings.secret).catch(err => console.warn("Failed NS delete", err));
+ }
+
+ await deleteDoc(doc(db, "users", getEffectiveUid(user), "logs", eid));
+ window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: eid } }));
  toast.success(t('auto.usunieto', { defaultValue: "Usunięto!" }), { id: "meal-delete" });
  } catch (e) {
  toast.error("Błąd usuwania", { id: "meal-delete" });
@@ -86,7 +96,7 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
  animate={{ opacity: 1, scale: 1 }}
  exit={{ opacity: 0, scale: 0.9 }}
  >
- <SwipeableItem id={log.id || log.nsId} onDelete={() => { const eid = log.id || log.nsId; if (eid) handleDelete(eid); }}>
+ <SwipeableItem id={log.id || log.nsId || `unknown-${log.timestamp}`} onDelete={() => handleDelete(log)}>
  <div
  onClick={() => {
  if (hasItems && onMergeToLog) {

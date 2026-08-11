@@ -179,7 +179,7 @@ public class GlikoForegroundService extends Service {
         } else {
             notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle("GlikoControl")
-                    .setContentText("Uruchamianie pętli zamkniętej...")
+                    .setContentText("Monitorowanie w tle...")
                     .setSmallIcon(R.drawable.ic_stat_name)
                     .setContentIntent(pendingIntent)
                     .setOngoing(true)

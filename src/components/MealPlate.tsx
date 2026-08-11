@@ -72,6 +72,7 @@ import {
 } from "firebase/firestore";
 import { useSavedMeals } from "../hooks/queries/useSavedMeals";
 import { useCustomProducts, useCommunityProducts } from "../hooks/queries/useFoodDatabase";
+import { dbService } from "../services/databaseService";
 import { CATEGORIES } from "../constants";
 import { geminiService } from "../services/gemini";
 import { Html5Qrcode } from "html5-qrcode";
@@ -943,6 +944,7 @@ export default function MealPlate({
  ),
  payload,
  );
+ await dbService.saveLog({ ...payload, id: docRef.id });
  window.dispatchEvent(new CustomEvent("localLogAdd", { detail: { ...payload, id: docRef.id } }));
  setPlate([]);
  Haptics.success();

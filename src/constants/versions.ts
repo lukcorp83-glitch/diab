@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.11';
+export const CURRENT_VERSION = '6.0.12';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.12",
+    date: new Date().toISOString().split('T')[0],
+    title: "Naprawa Zapisów & 35 Dni Historii",
+    changes: [
+      "Wyeliminowano 'Błąd zapisu' SQLite podczas zapisu pomiarów i bolusów",
+      "Zwiększono bufor pobierania z chmury do 35+ dni i obsłużono eksport pełnych 18k logów z PC",
+      "Wdrożono trwałość wyboru motywu i wyłączania Dynamicznych Kolorów po restarcie",
+      "Naprawiono odtwarzanie własnego dźwięku MP3 w alertach glikemii na Androidzie"
+    ]
+  },
   {
     version: "6.0.11",
     date: new Date().toISOString().split('T')[0],
@@ -85,6 +96,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.12",
+    date: new Date().toISOString().split('T')[0],
+    title: "Naprawa Zapisów & 35 Dni Historii",
+    changes: [
+      "Wyeliminowano 'Błąd zapisu' SQLite podczas zapisu pomiarów i bolusów",
+      "Zwiększono bufor pobierania z chmury do 35+ dni i obsłużono eksport pełnych 18k logów z PC",
+      "Wdrożono trwałość wyboru motywu i wyłączania Dynamicznych Kolorów po restarcie",
+      "Naprawiono odtwarzanie własnego dźwięku MP3 w alertach glikemii na Androidzie"
+    ]
+  },
   {
     version: "6.0.11",
     date: new Date().toISOString().split('T')[0],

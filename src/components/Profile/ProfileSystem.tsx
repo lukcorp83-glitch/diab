@@ -659,6 +659,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  { accentColor: color },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }}
  className={cn(
  "w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center transition-all relative",
@@ -720,6 +721,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  { theme: newTheme },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }}
  className={cn(
  "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all border",
@@ -765,6 +767,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  { bgOption: val },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }}
  className={cn(
  "py-4 rounded-2xl border transition-all text-left px-5",
@@ -805,19 +808,31 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  onClick={async () => {
  const glass = style.id === 'glass';
  const material = style.id === 'material3';
+ const dynamic = style.id === 'material3';
  
- setSettings((prev) => ({
+ setSettings((prev: any) => ({
  ...prev,
  glassmorphismEnabled: glass,
  material3Enabled: material,
+ dynamicColorsEnabled: dynamic,
  }));
+ localStorage.setItem("glassmorphismEnabled", String(glass));
+ localStorage.setItem("material3Enabled", String(material));
+ localStorage.setItem("dynamicColorsEnabled", String(dynamic));
  
  if (user) {
+ const uid = getEffectiveUid(user);
+ const updates = { glassmorphismEnabled: glass, material3Enabled: material, dynamicColorsEnabled: dynamic };
  await setDoc(
- doc(db, "users", getEffectiveUid(user), "settings", "profile"),
- { glassmorphismEnabled: glass, material3Enabled: material },
+ doc(db, "users", uid, "settings", "profile"),
+ updates,
  { merge: true }
  );
+ queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+ ...(old || {}),
+ ...updates,
+ }));
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }
  }}
  className={cn(
@@ -853,13 +868,21 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  <button
  onClick={async () => {
  const newVal = !settings.dynamicColorsEnabled;
- setSettings((prev) => ({ ...prev, dynamicColorsEnabled: newVal }));
+ setSettings((prev: any) => ({ ...prev, dynamicColorsEnabled: newVal }));
+ localStorage.setItem("dynamicColorsEnabled", String(newVal));
+
  if (user) {
+ const uid = getEffectiveUid(user);
  await setDoc(
- doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", uid, "settings", "profile"),
  { dynamicColorsEnabled: newVal },
  { merge: true }
  );
+ queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+ ...(old || {}),
+ dynamicColorsEnabled: newVal,
+ }));
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }
  }}
  className={cn(

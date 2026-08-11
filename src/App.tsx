@@ -6,7 +6,7 @@ import {
  getMealAbsorptionTime,
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from "@capacitor/core";
-const MaterialYou = registerPlugin("MaterialYou");
+const MaterialYou: any = Capacitor.Plugins?.MaterialYou || registerPlugin("MaterialYou");
 import { App as CapacitorApp } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
@@ -132,7 +132,13 @@ export default function App() {
       };
       const handleLocalDelete = (e: any) => {
         const id = e.detail.id;
-        setSqliteLogs(prev => prev.filter(l => l.id !== id));
+        setSqliteLogs(prev => prev.filter(l => l.id !== id && l.nsId !== id));
+        if (deletedNsIdsRef.current) {
+          deletedNsIdsRef.current.add(id);
+        }
+        // Aby odświeżenie działało natychmiast, potrzebujemy usunąć też z nsLogs
+        // Aktualizację nsLogs musimy wywołać przez referencję lub globalny event
+        window.dispatchEvent(new CustomEvent('nsLogDelete', { detail: { id } }));
       };
 
       window.addEventListener('localLogAdd', handleLocalAdd);
@@ -182,6 +188,53 @@ export default function App() {
     if (gl.length === 0) return null;
     gl.sort((a: any, b: any) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
     return gl[0].value || null;
+  }, [logs]);
+
+  // Synchronizacja danych z widgetami systemowymi
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
+    if (gl.length === 0) return;
+    gl.sort((a: any, b: any) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
+    
+    const current = gl[0];
+    const previous = gl.length > 1 ? gl[1] : null;
+    
+    let arrow = "";
+    let deltaStr = "---";
+    if (previous && current.glucose && previous.glucose) {
+        const diff = current.glucose - previous.glucose;
+        deltaStr = (diff > 0 ? "+" : "") + diff;
+        if (diff >= 2) arrow = "↑";
+        else if (diff <= -2) arrow = "↓";
+        else arrow = "→";
+    } else if (current.direction) {
+        if (current.direction === 'Flat') arrow = '→';
+        else if (current.direction === 'FortyFiveUp') arrow = '↗';
+        else if (current.direction === 'SingleUp') arrow = '↑';
+        else if (current.direction === 'DoubleUp') arrow = '⇈';
+        else if (current.direction === 'FortyFiveDown') arrow = '↘';
+        else if (current.direction === 'SingleDown') arrow = '↓';
+        else if (current.direction === 'DoubleDown') arrow = '⇊';
+    }
+    
+    const time = new Date(current.timestamp || current.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    const pushToWidget = async () => {
+      try {
+        const { registerPlugin } = await import('@capacitor/core');
+        const WidgetUpdater = registerPlugin<any>('WidgetUpdater');
+        await WidgetUpdater.pushData({
+          glucose: current.glucose ? current.glucose.toString() : current.value ? current.value.toString() : "---",
+          arrow: arrow,
+          delta: deltaStr,
+          time: time
+        });
+      } catch (e) {
+        console.warn("Widget pushData error:", e);
+      }
+    };
+    pushToWidget();
   }, [logs]);
   
   // Provide missing methods
@@ -326,7 +379,12 @@ export default function App() {
         const accentsKeys = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
         accentsKeys.forEach(k => root.style.removeProperty(`--app-accent-${k}`));
 
-        if (userSettings?.dynamicColorsEnabled) {
+        const lsDynamic = localStorage.getItem("dynamicColorsEnabled");
+        const isDynamic = lsDynamic !== null 
+          ? (lsDynamic === "true") 
+          : (userSettings?.dynamicColorsEnabled ?? false);
+
+        if (isDynamic) {
           try {
             if (Capacitor.isNativePlatform()) {
               const result = await MaterialYou.getColors();
@@ -361,22 +419,37 @@ export default function App() {
       
       applyColors();
       
-      root.setAttribute("data-bg", userSettings?.bgOption || "default");
+      root.setAttribute("data-bg", userSettings?.bgOption || localStorage.getItem("bgOption") || "default");
     
     // 3. Efekty wizualne (szkło, material 3, eco)
-    if (userSettings?.glassmorphismEnabled) {
+    const lsGlass = localStorage.getItem("glassmorphismEnabled");
+    const isGlass = lsGlass !== null 
+      ? (lsGlass === "true") 
+      : (userSettings?.glassmorphismEnabled ?? false);
+
+    const lsMaterial3 = localStorage.getItem("material3Enabled");
+    const isMaterial3 = lsMaterial3 !== null 
+      ? (lsMaterial3 === "true") 
+      : (userSettings?.material3Enabled ?? false);
+
+    const lsEco = localStorage.getItem("ecoMode");
+    const isEco = lsEco !== null 
+      ? (lsEco === "true") 
+      : (userSettings?.ecoMode ?? false);
+
+    if (isGlass) {
       root.setAttribute("data-glassmorphism", "true");
     } else {
       root.removeAttribute("data-glassmorphism");
     }
     
-    if (userSettings?.material3Enabled) {
+    if (isMaterial3) {
       root.setAttribute("data-material3", "true");
     } else {
       root.removeAttribute("data-material3");
     }
     
-    if (userSettings?.ecoMode) {
+    if (isEco) {
       root.setAttribute("data-eco", "true");
     } else {
       root.removeAttribute("data-eco");

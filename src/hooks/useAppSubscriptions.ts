@@ -40,14 +40,15 @@ export const useAppSubscriptions = (user: any) => {
       unsubs.push(unsub);
     };
 
-    // 1. Logs
-    const safeTsRaw = localStorage.getItem("lastSafeTimestamp") || (Date.now() - 30 * 24 * 60 * 60 * 1000).toString();
-    const safeTs = parseInt(safeTsRaw, 10); // MUSI być number, bo Firestore porównuje typy ściśle!
+    // 1. Logs - pobieramy pełne 35 dni danych (ok. 10-12k logów przy pomiarze co 5 min + posiłki/bolusy)
+    const thirtyFiveDaysAgo = Date.now() - 35 * 24 * 60 * 60 * 1000;
     const isEco = localStorage.getItem("ecoMode") === "true";
     createCollectionSub(
       "logs",
       "fbLogs",
-      (coll) => isEco ? query(coll, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(500)) : query(coll, orderBy("timestamp", "desc"), limit(2000)),
+      (coll) => isEco 
+        ? query(coll, where("timestamp", ">=", Date.now() - 7 * 24 * 60 * 60 * 1000), orderBy("timestamp", "desc"), limit(2500)) 
+        : query(coll, where("timestamp", ">=", thirtyFiveDaysAgo), orderBy("timestamp", "desc"), limit(12000)),
       (doc) => ({ ...doc.data(), id: doc.id })
     );
 

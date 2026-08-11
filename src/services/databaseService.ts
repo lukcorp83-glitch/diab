@@ -157,7 +157,18 @@ export class DatabaseService {
   async saveLog(log: any) {
     if (!this.db) return;
     const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
-    const payloadStr = JSON.stringify(log);
+    
+    // Bezpieczna serializacja, usuwająca potencjalnie problematyczne obiekty (np. FieldValue.serverTimestamp())
+    const safeLog = { ...log };
+    for (const key in safeLog) {
+      if (typeof safeLog[key] === 'object' && safeLog[key] !== null) {
+        if (safeLog[key]._methodName === 'serverTimestamp' || typeof safeLog[key].isEqual === 'function') {
+          safeLog[key] = Date.now();
+        }
+      }
+    }
+    
+    const payloadStr = JSON.stringify(safeLog);
     const query = `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES (?, ?, ?, ?, 0)`;
     
     try {
@@ -198,10 +209,18 @@ export class DatabaseService {
         const chunk = logs.slice(i, i + BATCH_SIZE);
         const statements = chunk.map(log => {
           const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
-          const payloadStr = JSON.stringify(log);
+          const safeLog = { ...log };
+          for (const key in safeLog) {
+            if (typeof safeLog[key] === 'object' && safeLog[key] !== null) {
+              if (safeLog[key]._methodName === 'serverTimestamp' || typeof safeLog[key].isEqual === 'function') {
+                safeLog[key] = Date.now();
+              }
+            }
+          }
+          const payloadStr = JSON.stringify(safeLog);
           return {
             statement: `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES (?, ?, ?, ?, 0)`,
-            values: [id, log.timestamp, log.type, payloadStr]
+            values: [id, log.timestamp || Date.now(), log.type || 'unknown', payloadStr]
           };
         });
         

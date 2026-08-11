@@ -114,7 +114,7 @@ public class NotificationBridgePlugin extends Plugin {
     @PluginMethod
     public void updateForegroundNotification(PluginCall call) {
         String title = call.getString("title", "GlikoControl");
-        String text = call.getString("text", "Pętla zamknięta działa");
+        String text = call.getString("text", "GlikoSense działa w tle");
 
         Intent notificationIntent = new Intent(getContext(), MainActivity.class);
         android.app.PendingIntent pendingIntent = android.app.PendingIntent.getActivity(
@@ -133,7 +133,7 @@ public class NotificationBridgePlugin extends Plugin {
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
         String glucose = prefs.getString("widget_glucose", null);
         
-        if (glucose != null && !glucose.equals("---") && !glucose.isEmpty() && text.contains("Pętla zamknięta")) {
+        if (glucose != null && !glucose.equals("---") && !glucose.isEmpty() && (text.contains("Pętla zamknięta") || text.contains("GlikoSense"))) {
             String arrow = prefs.getString("widget_arrow", "");
             String deltaStr = prefs.getString("widget_delta", "");
             String time = prefs.getString("widget_time", "") + " (wznowiono)";

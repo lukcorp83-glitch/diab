@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LogEntry } from '../types';
 import { useAppStore } from '../stores/useAppStore';
 import { notificationService } from '../services/notificationService';
@@ -8,6 +8,12 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
   const [nsDeviceStatus, setNsDeviceStatus] = useState<any>(null);
 
   useEffect(() => {
+    const handleNsLogDelete = (e: any) => {
+      const id = e.detail.id;
+      setNsLogs(prev => prev.filter(l => l.nsId !== id && l.id !== id));
+    };
+    window.addEventListener('nsLogDelete', handleNsLogDelete);
+
     console.log("==== HOOK: useEffect uruchomiony ====", { user: !!user, nsUrl });
     if (!user) {
       console.log("==== HOOK: Brak usera, przerywam ====");
@@ -143,6 +149,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       window.removeEventListener("force-nightscout-sync", handleForceSync);
       window.removeEventListener("glikosense_hypo_alert", handleHypoAlert);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener('nsLogDelete', handleNsLogDelete);
     };
   }, [user, nsUrl, nsSecret, userSettingsRef, deletedNsIdsRef]);
 

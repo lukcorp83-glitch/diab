@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/useAuthStore';
+import { useLogsStore } from '../stores/useLogsStore';
 import React, { useState, useEffect } from 'react';
 import { CloudUpload, CloudDownload, Loader2, Cloud, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -24,8 +25,11 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
  }
  }
  
- // Pobierz logi glikemii z bazy SQLite (ograniczone do 5000, aby zapobiec zawieszeniom kompresji i błędom 1MB w Firebase)
- const sqliteLogs = await dbService.getLogs(5000);
+   // Pobierz logi glikemii ze stanu aplikacji (np. pełne 18352 logi z PC), a awaryjnie z bazy SQLite do 60000
+   const activeLogs = useLogsStore.getState().logs;
+   const logsToSave = (activeLogs && activeLogs.length > 0) ? activeLogs : await dbService.getLogs(60000);
+   
+   console.log(`[CloudPackageSync] Exporting ${logsToSave.length} logs to cloud package...`);
  
  // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
  const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
@@ -33,13 +37,13 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
  return null;
  });
 
- const exportData = {
- timestamp: Date.now(),
- localStorage: lsData,
- logs: sqliteLogs,
- mlModel: mlModelBackup,
- settings: settings
- };
+   const exportData = {
+   timestamp: Date.now(),
+   localStorage: lsData,
+   logs: logsToSave,
+   mlModel: mlModelBackup,
+   settings: settings
+   };
 
  const jsonStr = JSON.stringify(exportData);
  const compressedPayload = LZString.compressToUTF16(jsonStr);
