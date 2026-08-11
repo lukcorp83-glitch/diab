@@ -6665,5 +6665,21 @@
   "auto.smart_reservoir_title": "Wymiana wkłucia?",
   "auto.smart_reservoir_desc": "GlikoSense wykrył napełnienie zbiorniczka. Czy chcesz zresetować czas życia wkłucia?",
   "auto.smart_action_yes": "Tak, zapisz",
-  "auto.smart_action_no": "Ignoruj"
+  "auto.smart_action_no": "Ignoruj",
+  "nutrition": {
+    "center_title": "Centrum Żywienia",
+    "tab_creator": "Talerz",
+    "tab_diet": "Dieta",
+    "tab_history": "Historia",
+    "tab_nutri": "Odżywianie",
+    "nutri_header": "GlikoSense Odżywianie",
+    "nutri_subheader": "Osobisty Analityk Odpowiedzi Metabolicznej",
+    "golden_meals": "Moje Złote Posiłki",
+    "golden_meals_desc": "Posiłki o najwyższym wskaźniku tolerancji – glikemia pozostaje w normie.",
+    "tricky_meals": "Posiłki Kapryśne / Trudne",
+    "tricky_meals_desc": "Posiłki wymagające szczególnej uwagi ze względu na dużą zmienność lub tłuszcze.",
+    "overall_tolerance": "Średnia Tolerancja Posiłków",
+    "consistency_rating": "Powtarzalność Absorpcji",
+    "no_data_yet": "Zbieram pierwsze logi posiłków..."
+  }
 }

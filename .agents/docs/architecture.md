@@ -27,7 +27,10 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 *(Aktualizuj ten plik za każdym razem, gdy badasz nową część starego kodu lub tworzysz coś nowego!)*
 
 
-## Widok Talerza, Diety i Historia Posiłków
+## Widok Talerza, Diety i Historia Posiłków (Centrum Żywienia)
+- `src/components/nutrition/NutritionHub.tsx` - Główny kontener **Centrum Żywienia** z pływającym menu zakładek: `Talerz` (`MealPlate`), `Dieta` (`Diets`), `Historia` (`MealHistoryView`) oraz **`Odżywianie`** (`GlikoSenseNutriView`). Wpięty bezpośrednio w `AppContent.tsx` dla zakładki `meal`.
+- `src/components/nutrition/GlikoSenseNutriView.tsx` - Widok modułu **GlikoSense Odżywianie**. Prezentuje ogólny wskaźnik tolerancji metabolicznej posiłków, sekcję Posiłków Złotych (🟢) oraz Posiłków Kapryśnych (🔴) z podziałem na 4 pigułki statystyk: Średni Szczyt Glikemii (`avgMaxBg`), Czas Powrotu do Normy (`avgReturnTime`), Średnia Liczba Korekt (`avgCorrections`) oraz Spójność/Powtarzalność Trawienia (`consistencyIndex`).
+- `glikosense_nutri_profile` (w `localStorage` & `gemini.ts`) - Profil żywieniowy wyliczany przez `glikosense.worker.ts` na podstawie wzorców trawienia i skoków glikemii. Dołączany automatycznie do instrukcji systemowej Głównego Asystenta Gliko.
 - `src/components/MealPlate.tsx` - Główny widok "Talerza" do wprowadzania posiłków. Zawiera logikę skanowania kodów, AI (GlikoSense) oraz zakładkę z historią dodanych posiłków.
 - `src/components/MealHistoryView.tsx` - Dedykowany widok dla rekordów typu meal/carbs. Tylko tu użytkownik przegląda i ewentualnie edytuje posiłki. Edycja historii posiłków w głównej osi czasu (`HistoryView.tsx`) została zubożona do samej zmiany dawki insuliny, by uniknąć nadpisywania logiki wejść posiłkowych z notatkami AI.
 - **Wyliczanie i zliczanie kalorii (Kcal dziś):** W modułach dietetycznych (`Diets.tsx`, `DietScoreWidget.tsx`, `Dashboard.tsx`) wpisy kaloryczne i węglowodanowe są obliczane ze wszystkich źródeł: `type === 'meal'`, `type === 'carbs'` oraz `type === 'bolus'` (gdy posiada `linkedMeal`). Podczas każdej edycji w `MealEditModal.tsx` lub `DoseEditModal.tsx` pole `calories` jest od razu na nowo kalkulowane (`carbs*4 + protein*4 + fat*9`) i zapisywane na obiekcie logu i/lub `linkedMeal`.

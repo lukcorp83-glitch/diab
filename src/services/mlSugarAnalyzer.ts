@@ -246,6 +246,13 @@ export const MLAnalyzer = {
             }
           }
           
+          if (payload.nutriProfile) {
+            try {
+              localStorage.setItem('glikosense_nutri_profile', JSON.stringify(payload.nutriProfile));
+              window.dispatchEvent(new CustomEvent('glikosense_nutri_update', { detail: payload.nutriProfile }));
+            } catch(e) {}
+          }
+          
           // Persistent Brain: save valid insights, restore if missing data
           const hasEnoughData = !(payload.insights || []).some((i: string) => i.includes('Zbyt mało'));
           if (hasEnoughData && payload.insights?.length > 0) {

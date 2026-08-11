@@ -4952,5 +4952,21 @@
   "auto.smart_reservoir_title": "Site change?",
   "auto.smart_reservoir_desc": "GlikoSense detected reservoir refill. Do you want to reset the site lifespan?",
   "auto.smart_action_yes": "Yes, save",
-  "auto.smart_action_no": "Ignore"
+  "auto.smart_action_no": "Ignore",
+  "nutrition": {
+    "center_title": "Nutrition Center",
+    "tab_creator": "Plate",
+    "tab_diet": "Diet",
+    "tab_history": "History",
+    "tab_nutri": "Nutrition",
+    "nutri_header": "GlikoSense Nutrition",
+    "nutri_subheader": "Personal Metabolic Response Analyst",
+    "golden_meals": "My Golden Meals",
+    "golden_meals_desc": "Meals with highest tolerance score – glucose stays in target range.",
+    "tricky_meals": "Tricky / High-Risk Meals",
+    "tricky_meals_desc": "Meals requiring attention due to high absorption variance or slow fats.",
+    "overall_tolerance": "Average Meal Tolerance",
+    "consistency_rating": "Absorption Consistency",
+    "no_data_yet": "Gathering initial meal logs..."
+  }
 }

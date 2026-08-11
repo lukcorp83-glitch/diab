@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Activity, Dumbbell, Bike, Waves, Mountain, Wind, Play, Clock, Info, Footprints, Music, Trophy, Target, History, Calendar } from 'lucide-react';
+import { 
+  X, Activity, Dumbbell, Bike, Waves, Mountain, Wind, Play, Clock, Info, Footprints, Music, Trophy, Target, History, Calendar,
+  Flame, CircleDot, Sun, Gamepad2, GraduationCap, Zap, Sparkles, PartyPopper
+} from 'lucide-react';
 import { cn, getEffectiveUid } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 import { db } from '../lib/firebase';
@@ -12,217 +15,217 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 interface GlikoTrainingProps {
- isOpen?: boolean;
- onClose?: () => void;
- isGlassmorphic?: boolean;
- user?: any;
- settings?: any;
- currentSugar?: number | null;
+  isOpen?: boolean;
+  onClose?: () => void;
+  isGlassmorphic?: boolean;
+  user?: any;
+  settings?: any;
+  currentSugar?: number | null;
 }
 
 export const SPORTS = [
- {
- id: 'gym',
- name: i18n.t('auto.silownia_trening_silowy', { defaultValue: i18n.t('auto.silownia_trening_silowy', { defaultValue: "Siłownia (Trening Siłowy)" }) }),
- icon: Dumbbell,
- color: 'text-rose-500',
- bg: 'bg-rose-500/10',
- border: 'border-rose-500/20',
- effect: i18n.t('auto.czesto_podnosi_poziom_cukru', { defaultValue: i18n.t('auto.czesto_podnosi_poziom_cuk', { defaultValue: "Często podnosi poziom cukru" }) }),
- description: i18n.t('auto.krotki_intensywny_wysilek_uwal', { defaultValue: i18n.t('auto.krotki_intensywny_wysilek', { defaultValue: "Krótki, intensywny wysiłek uwalnia adrenalinę, która stymuluje wątrobę do wyrzutu glukozy. Często powoduje niespodziewane wzrosty glikemii w trakcie i po treningu." }) }),
- tips: [
- i18n.t('auto.mozesz_potrzebowac_malego_bolu', { defaultValue: i18n.t('auto.mozesz_potrzebowac_malego', { defaultValue: "Możesz potrzebować małego bolusa przed siłownią." }) }),
- i18n.t('auto.uwazaj_na_opoznione_spadki_cuk', { defaultValue: i18n.t('auto.uwazaj_na_opoznione_spadk', { defaultValue: "Uważaj na opóźnione spadki cukru (nawet do 24h po)." }) }),
- i18n.t('auto.nie_zaczynaj_treningu_z_wysoki', { defaultValue: i18n.t('auto.nie_zaczynaj_treningu_z_w', { defaultValue: "Nie zaczynaj treningu z wysokim cukrem (powyżej 250 mg/dL)." }) })
- ]
- },
- {
- id: 'run',
- name: i18n.t('auto.bieganie_kardio', { defaultValue: 'Bieganie / Cardio' }),
- icon: Wind,
- color: 'text-blue-500',
- bg: 'bg-blue-500/10',
- border: 'border-blue-500/20',
- effect: i18n.t('auto.szybki_spadek_cukru', { defaultValue: 'Szybki spadek cukru' }),
- description: i18n.t('auto.wysilek_tlenowy_aerobowy_gwalt', { defaultValue: i18n.t('auto.wysilek_tlenowy_aerobowy', { defaultValue: "Wysiłek tlenowy (aerobowy) gwałtownie spala glukozę, zwiększając wrażliwość na insulinę. Cukier może spadać w trakcie całego treningu." }) }),
- tips: [
- i18n.t('auto.zmniejsz_dawke_insuliny_przed', { defaultValue: i18n.t('auto.zmniejsz_dawke_insuliny_p', { defaultValue: "Zmniejsz dawkę insuliny przed biegiem." }) }),
- i18n.t('auto.miej_przy_sobie_szybko_przyswa', { defaultValue: i18n.t('auto.miej_przy_sobie_szybko_pr', { defaultValue: "Miej przy sobie szybko przyswajalne węglowodany (soki, żele)." }) }),
- 'Kontroluj cukier co 20-30 minut w trakcie biegu.'
- ]
- },
- {
- id: 'bike',
- name: i18n.t('auto.jazda_na_rowerze', { defaultValue: 'Jazda na Rowerze' }),
- icon: Bike,
- color: 'text-emerald-500',
- bg: 'bg-emerald-500/10',
- border: 'border-emerald-500/20',
- effect: i18n.t('auto.umiarkowany_spadek', { defaultValue: 'Umiarkowany spadek' }),
- description: i18n.t('auto.ciagly_wysilek_aerobowy_obniza', { defaultValue: i18n.t('auto.ciagly_wysilek_aerobowy_o', { defaultValue: "Ciągły wysiłek aerobowy obniża poziom glukozy, choć zazwyczaj nieco wolniej niż intensywne bieganie. Oczywiście zależy od intensywności (np. interwały mogą działać jak siłownia)." }) }),
- tips: [
- i18n.t('auto.jedz_male_porcje_weglowodanow', { defaultValue: i18n.t('auto.jedz_male_porcje_weglowod', { defaultValue: "Jedz małe porcje węglowodanów w trakcie jazdy (węglowodany złożone)." }) }),
- i18n.t('auto.zmniejsz_baze_o_30_50_min_1_5h', { defaultValue: i18n.t('auto.zmniejsz_baze_o_30_50_min', { defaultValue: "Zmniejsz bazę o 30-50% min. 1,5h przed wyjazdem." }) }),
- ]
- },
- {
- id: 'swim',
- name: i18n.t('auto.plywanie', { defaultValue: i18n.t('auto.plywanie', { defaultValue: "Pływanie" }) }),
- icon: Waves,
- color: 'text-cyan-500',
- bg: 'bg-cyan-500/10',
- border: 'border-cyan-500/20',
- effect: i18n.t('auto.szybki_spadek_cukru', { defaultValue: 'Szybki spadek cukru' }),
- description: i18n.t('auto.jeden_z_trudniejszych_do_kontr', { defaultValue: i18n.t('auto.jeden_z_trudniejszych_do', { defaultValue: "Jeden z trudniejszych do kontroli sportów. Zimna woda, opór i angażowanie wszystkich partii ciała powodują szybkie spalanie energii." }) }),
- tips: [
- i18n.t('auto.sprawdzaj_cukier_przed_wejscie', { defaultValue: i18n.t('auto.sprawdzaj_cukier_przed_we', { defaultValue: "Sprawdzaj cukier przed wejściem i zaraz po wejściu z wody." }) }),
- i18n.t('auto.bezpieczny_poziom_do_rozpoczec', { defaultValue: i18n.t('auto.bezpieczny_poziom_do_rozp', { defaultValue: "Bezpieczny poziom do rozpoczęcia to często pow. 150 mg/dL." }) }),
- i18n.t('auto.sensory_i_pompy_moga_tracic_za', { defaultValue: i18n.t('auto.sensory_i_pompy_moga_trac', { defaultValue: "Sensory i pompy mogą tracić zasięg lub odklejać się pod wodą." }) })
- ]
- },
- {
- id: 'mountain',
- name: i18n.t('auto.spacer_po_gorach', { defaultValue: i18n.t('auto.spacer_po_gorach', { defaultValue: "Spacer po górach" }) }),
- icon: Mountain,
- color: 'text-amber-500',
- bg: 'bg-amber-500/10',
- border: 'border-amber-500/20',
- effect: i18n.t('auto.dlugotrwaly_spadek', { defaultValue: i18n.t('auto.dlugotrwaly_spadek', { defaultValue: "Długotrwały spadek" }) }),
- description: i18n.t('auto.wysilek_o_niskiej_do_sredniej', { defaultValue: i18n.t('auto.wysilek_o_niskiej_do_sred', { defaultValue: "Wysiłek o niskiej do średniej intensywności rozłożony na wiele godzin. Prowadzi do wyczerpania zapasów glikogenu wegetatywnego i nocnych spadków cukru." }) }),
- tips: [
- i18n.t('auto.zmniejsz_baze_na_czas_wedrowki', { defaultValue: i18n.t('auto.zmniejsz_baze_na_czas_wed', { defaultValue: "Zmniejsz bazę na czas wędrówki (niektórzy zmniejszają o >50%)." }) }),
- i18n.t('auto.podjadaj_regularnie_weglowodan', { defaultValue: i18n.t('auto.podjadaj_regularnie_weglo', { defaultValue: "Podjadaj regularnie węglowodany złożone (np. batony owsiane)." }) }),
- i18n.t('auto.zabezpiecz_insuline_przed_skra', { defaultValue: i18n.t('auto.zabezpiecz_insuline_przed', { defaultValue: "Zabezpiecz insulinę przed skrajnymi temperaturami." }) })
- ]
- },
- {
- id: 'football',
- name: i18n.t('auto.pilka_nozna', { defaultValue: i18n.t('auto.pilka_nozna', { defaultValue: "Piłka Nożna" }) }),
- icon: Trophy,
- color: 'text-green-600',
- bg: 'bg-green-500/10',
- border: 'border-green-500/20',
- effect: i18n.t('auto.mieszany_spadek_wzrost', { defaultValue: 'Mieszany (spadek/wzrost)' }),
- description: i18n.t('auto.wysilek_interwalowy_sprinty_mo', { defaultValue: i18n.t('auto.wysilek_interwalowy_sprin', { defaultValue: "Wysiłek interwałowy. Sprinty mogą powodować wyrzuty adrenaliny (wzrosty), ale ogólny bilans często prowadzi do spadku cukru po meczu." }) }),
- tips: [
- 'Kontroluj cukier w przerwie meczu.',
- i18n.t('auto.miej_zel_pod_reka_przy_linii_b', { defaultValue: i18n.t('auto.miej_zel_pod_reka_przy_li', { defaultValue: "Miej żel pod ręką przy linii bocznej." }) }),
- i18n.t('auto.uwazaj_na_hipoglikemie_po_zako', { defaultValue: i18n.t('auto.uwazaj_na_hipoglikemie_po', { defaultValue: "Uważaj na hipoglikemię po zakończonym wysiłku." }) })
- ]
- },
- {
- id: 'basketball',
- name: i18n.t('auto.koszykowka', { defaultValue: i18n.t('auto.koszykowka', { defaultValue: "Koszykówka" }) }),
- icon: Target,
- color: 'text-orange-600',
- bg: 'bg-orange-500/10',
- border: 'border-orange-500/20',
- effect: i18n.t('auto.wysoka_intensywnosc', { defaultValue: i18n.t('auto.wysoka_intensywnosc', { defaultValue: "Wysoka intensywność" }) }),
- description: i18n.t('auto.dynamiczny_sport_z_duza_ilosci', { defaultValue: i18n.t('auto.dynamiczny_sport_z_duza_i', { defaultValue: "Dynamiczny sport z dużą ilością skoków i sprintów. Bardzo szybko zużywa zapasy energii." }) }),
- tips: [
- i18n.t('auto.zredukuj_bolus_do_posilku_prze', { defaultValue: i18n.t('auto.zredukuj_bolus_do_posilku', { defaultValue: "Zredukuj bolus do posiłku przed meczem." }) }),
- i18n.t('auto.uzupelniaj_plyny_i_elektrolity', { defaultValue: i18n.t('auto.uzupelniaj_plyny_i_elektr', { defaultValue: "Uzupełniaj płyny i elektrolity." }) }),
- ]
- },
- {
- id: 'tennis',
- name: i18n.t('auto.tenis', { defaultValue: 'Tenis' }),
- icon: Activity,
- color: 'text-lime-500',
- bg: 'bg-lime-500/10',
- border: 'border-lime-500/20',
- effect: i18n.t('auto.dlugotrwaly_wysilek', { defaultValue: i18n.t('auto.dlugotrwaly_wysilek', { defaultValue: "Długotrwały wysiłek" }) }),
- description: i18n.t('auto.mecz_moze_trwac_od_godziny_do', { defaultValue: i18n.t('auto.mecz_moze_trwac_od_godzin', { defaultValue: "Mecz może trwać od godziny do trzech. Wymaga stałego dopływu energii i skupienia." }) }),
- tips: [
- i18n.t('auto.podjadaj_male_porcje_w_trakcie', { defaultValue: i18n.t('auto.podjadaj_male_porcje_w_tr', { defaultValue: "Podjadaj małe porcje w trakcie przerw między gemami." }) }),
- i18n.t('auto.emocje_stres_meczowy_moga_podn', { defaultValue: i18n.t('auto.emocje_stres_meczowy_moga', { defaultValue: "Emocje (stres meczowy) mogą podnosić cukier." }) })
- ]
- },
- {
- id: 'yoga',
- name: i18n.t('auto.joga', { defaultValue: 'Joga / Pilates' }),
- icon: Activity,
- color: 'text-purple-500',
- bg: 'bg-purple-500/10',
- border: 'border-purple-500/20',
- effect: i18n.t('auto.stabilizacja_spadek', { defaultValue: 'Stabilizacja / Lekki spadek' }),
- description: i18n.t('auto.wysilek_statyczny_skupiony_na', { defaultValue: i18n.t('auto.wysilek_statyczny_skupion', { defaultValue: "Wysiłek statyczny, skupiony na oddechu i rozciąganiu. Zazwyczaj działa stabilizująco na poziom cukru." }) }),
- tips: [
- i18n.t('auto.idealny_sport_przy_wahaniach', { defaultValue: 'Idealny sport przy lekkich wahaniach glikemii.' }),
- i18n.t('auto.pamietaj_ze_niektore_pozycje_n', { defaultValue: i18n.t('auto.pamietaj_ze_niektore_pozy', { defaultValue: "Pamiętaj, że niektóre pozycje (np. odwrócone) wymagają stabilnego cukru." }) })
- ]
- },
- {
- id: 'walk',
- name: i18n.t('auto.marsz_spacer', { defaultValue: 'Spacer / Marsz' }),
- icon: Footprints,
- color: 'text-slate-500',
- bg: 'bg-slate-500/10',
- border: 'border-slate-500/20',
- effect: i18n.t('auto.delikatny_spadek', { defaultValue: 'Delikatny spadek' }),
- description: i18n.t('auto.najbezpieczniejsza_forma_ruchu', { defaultValue: i18n.t('auto.najbezpieczniejsza_forma', { defaultValue: "Najbezpieczniejsza forma ruchu. Pomaga obniżyć cukier po posiłku bez ryzyka gwałtownej hipoglikemii." }) }),
- tips: [
- i18n.t('auto.swietny_sposob_na_zbicie_wysok', { defaultValue: i18n.t('auto.swietny_sposob_na_zbicie', { defaultValue: "Świetny sposób na zbicie \"wysokiego\" po kolacji." }) }),
- i18n.t('auto.wystarczy_15_20_minut_by_zauwa', { defaultValue: i18n.t('auto.wystarczy_15_20_minut_by', { defaultValue: "Wystarczy 15-20 minut, by zauważyć różnicę." }) })
- ]
- },
- {
- id: 'dance',
- name: i18n.t('auto.taniec', { defaultValue: 'Taniec' }),
- icon: Music,
- color: 'text-pink-500',
- bg: 'bg-pink-500/10',
- border: 'border-pink-500/20',
- effect: i18n.t('auto.spalanie_cardio', { defaultValue: 'Spalanie cardio' }),
- description: i18n.t('auto.pol_godziny_intensywnego_tanca', { defaultValue: i18n.t('auto.pol_godziny_intensywnego', { defaultValue: "Pół godziny intensywnego tańca to duży wysiłek energetyczny." }) }),
- tips: [
- i18n.t('auto.baw_sie_dobrze_ale_zerkaj_na_s', { defaultValue: i18n.t('auto.baw_sie_dobrze_ale_zerkaj', { defaultValue: "Baw się dobrze, ale zerkaj na sensor!" }) }),
- i18n.t('auto.alkohol_przy_tancu_np_na_impre', { defaultValue: i18n.t('auto.alkohol_przy_tancu_np_na', { defaultValue: "Alkohol przy tańcu (np. na imprezie) drastycznie zwiększa ryzyko hipo." }) })
- ]
- },
- {
- id: 'playroom',
- name: i18n.t('auto.bawialnia_plac_zabaw', { defaultValue: 'Bawialnia / Plac zabaw' }),
- icon: Activity,
- color: 'text-indigo-500',
- bg: 'bg-indigo-500/10',
- border: 'border-indigo-500/20',
- effect: i18n.t('auto.bardzo_szybki_spadek', { defaultValue: 'Bardzo szybki spadek' }),
- description: i18n.t('auto.szalenstwo_dzieci_w_bawialni', { defaultValue: 'Szaleństwo w małpim gaju, skakanie na trampolinach czy bieganie po placu zabaw to gigantyczny wydatek energetyczny dla dzieci.' }),
- tips: [
- i18n.t('auto.zdejmij_pompe_lub_zabezpiecz', { defaultValue: 'Zdejmij pompę (jeśli to możliwe) lub solidnie zabezpiecz wkłucie przed wyrwaniem.' }),
- i18n.t('auto.prowadz_profilaktyczne_podjada', { defaultValue: 'Profilaktycznie podjadaj małe przekąski bez insuliny (np. chrupki, sok).' }),
- i18n.t('auto.uwaga_na_adrenalina_plac', { defaultValue: 'Emocje mogą maskować objawy hipoglikemii - sprawdzaj cukier częściej!' })
- ]
- },
- {
- id: 'pe_class',
- name: i18n.t('auto.lekcja_wf', { defaultValue: 'Lekcja W-F' }),
- icon: Target,
- color: 'text-sky-500',
- bg: 'bg-sky-500/10',
- border: 'border-sky-500/20',
- effect: i18n.t('auto.umiarkowany_do_szybkiego_spade', { defaultValue: 'Umiarkowany/Szybki spadek' }),
- description: i18n.t('auto.szkolne_zajecia_sportowe', { defaultValue: 'Szkolne zajęcia sportowe o zmiennej intensywności (od rozgrzewki po gry zespołowe).' }),
- tips: [
- i18n.t('auto.zmniejsz_bolus_sniadaniowy', { defaultValue: 'Rozważ zmniejszenie bolusa na śniadanie, jeśli W-F jest wcześnie rano.' }),
- i18n.t('auto.zawsze_glukoza_w_plecaku', { defaultValue: 'Zawsze miej przy sobie w plecaku glukozę lub sok.' })
- ]
- },
- {
- id: 'rollerblades',
- name: i18n.t('auto.rolki_lyzwy', { defaultValue: 'Rolki / Łyżwy' }),
- icon: Activity,
- color: 'text-teal-500',
- bg: 'bg-teal-500/10',
- border: 'border-teal-500/20',
- effect: i18n.t('auto.staly_spadek', { defaultValue: 'Stały spadek' }),
- description: i18n.t('auto.angazuje_cale_cialo_szczegolni', { defaultValue: 'Angażuje całe ciało, szczególnie nogi i tułów. Spala dużo glukozy podobnie do jazdy na rowerze.' }),
- tips: [
- i18n.t('auto.uwazaj_na_urazy_sensorow_przy_', { defaultValue: 'Uważaj na urazy sensorów przy ewentualnych upadkach.' }),
- i18n.t('auto.podjadaj_weglowodany_zlozone_c', { defaultValue: 'Podjadaj węglowodany złożone co 40 minut jazdy.' })
- ]
- }
+  {
+    id: 'gym',
+    name: i18n.t('auto.silownia_trening_silowy', { defaultValue: i18n.t('auto.silownia_trening_silowy', { defaultValue: "Siłownia (Trening Siłowy)" }) }),
+    icon: Dumbbell,
+    color: 'text-rose-500',
+    bg: 'bg-rose-500/10',
+    border: 'border-rose-500/20',
+    effect: i18n.t('auto.czesto_podnosi_poziom_cukru', { defaultValue: i18n.t('auto.czesto_podnosi_poziom_cuk', { defaultValue: "Często podnosi poziom cukru" }) }),
+    description: i18n.t('auto.krotki_intensywny_wysilek_uwal', { defaultValue: i18n.t('auto.krotki_intensywny_wysilek', { defaultValue: "Krótki, intensywny wysiłek uwalnia adrenalinę, która stymuluje wątrobę do wyrzutu glukozy. Często powoduje niespodziewane wzrosty glikemii w trakcie i po treningu." }) }),
+    tips: [
+      i18n.t('auto.mozesz_potrzebowac_malego_bolu', { defaultValue: i18n.t('auto.mozesz_potrzebowac_malego', { defaultValue: "Możesz potrzebować małego bolusa przed siłownią." }) }),
+      i18n.t('auto.uwazaj_na_opoznione_spadki_cuk', { defaultValue: i18n.t('auto.uwazaj_na_opoznione_spadk', { defaultValue: "Uważaj na opóźnione spadki cukru (nawet do 24h po)." }) }),
+      i18n.t('auto.nie_zaczynaj_treningu_z_wysoki', { defaultValue: i18n.t('auto.nie_zaczynaj_treningu_z_w', { defaultValue: "Nie zaczynaj treningu z wysokim cukrem (powyżej 250 mg/dL)." }) })
+    ]
+  },
+  {
+    id: 'run',
+    name: i18n.t('auto.bieganie_kardio', { defaultValue: 'Bieganie / Cardio' }),
+    icon: Flame,
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
+    effect: i18n.t('auto.szybki_spadek_cukru', { defaultValue: 'Szybki spadek cukru' }),
+    description: i18n.t('auto.wysilek_tlenowy_aerobowy_gwalt', { defaultValue: i18n.t('auto.wysilek_tlenowy_aerobowy', { defaultValue: "Wysiłek tlenowy (aerobowy) gwałtownie spala glukozę, zwiększając wrażliwość na insulinę. Cukier może spadać w trakcie całego treningu." }) }),
+    tips: [
+      i18n.t('auto.zmniejsz_dawke_insuliny_przed', { defaultValue: i18n.t('auto.zmniejsz_dawke_insuliny_p', { defaultValue: "Zmniejsz dawkę insuliny przed biegiem." }) }),
+      i18n.t('auto.miej_przy_sobie_szybko_przyswa', { defaultValue: i18n.t('auto.miej_przy_sobie_szybko_pr', { defaultValue: "Miej przy sobie szybko przyswajalne węglowodany (soki, żele)." }) }),
+      'Kontroluj cukier co 20-30 minut w trakcie biegu.'
+    ]
+  },
+  {
+    id: 'bike',
+    name: i18n.t('auto.jazda_na_rowerze', { defaultValue: 'Jazda na Rowerze' }),
+    icon: Bike,
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+    effect: i18n.t('auto.umiarkowany_spadek', { defaultValue: 'Umiarkowany spadek' }),
+    description: i18n.t('auto.ciagly_wysilek_aerobowy_obniza', { defaultValue: i18n.t('auto.ciagly_wysilek_aerobowy_o', { defaultValue: "Ciągły wysiłek aerobowy obniża poziom glukozy, choć zazwyczaj nieco wolniej niż intensywne bieganie. Oczywiście zależy od intensywności (np. interwały mogą działać jak siłownia)." }) }),
+    tips: [
+      i18n.t('auto.jedz_male_porcje_weglowodanow', { defaultValue: i18n.t('auto.jedz_male_porcje_weglowod', { defaultValue: "Jedz małe porcje węglowodanów w trakcie jazdy (węglowodany złożone)." }) }),
+      i18n.t('auto.zmniejsz_baze_o_30_50_min_1_5h', { defaultValue: i18n.t('auto.zmniejsz_baze_o_30_50_min', { defaultValue: "Zmniejsz bazę o 30-50% min. 1,5h przed wyjazdem." }) }),
+    ]
+  },
+  {
+    id: 'swim',
+    name: i18n.t('auto.plywanie', { defaultValue: i18n.t('auto.plywanie', { defaultValue: "Pływanie" }) }),
+    icon: Waves,
+    color: 'text-cyan-500',
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500/20',
+    effect: i18n.t('auto.szybki_spadek_cukru', { defaultValue: 'Szybki spadek cukru' }),
+    description: i18n.t('auto.jeden_z_trudniejszych_do_kontr', { defaultValue: i18n.t('auto.jeden_z_trudniejszych_do', { defaultValue: "Jeden z trudniejszych do kontroli sportów. Zimna woda, opór i angażowanie wszystkich partii ciała powodują szybkie spalanie energii." }) }),
+    tips: [
+      i18n.t('auto.sprawdzaj_cukier_przed_wejscie', { defaultValue: i18n.t('auto.sprawdzaj_cukier_przed_we', { defaultValue: "Sprawdzaj cukier przed wejściem i zaraz po wejściu z wody." }) }),
+      i18n.t('auto.bezpieczny_poziom_do_rozpoczec', { defaultValue: i18n.t('auto.bezpieczny_poziom_do_rozp', { defaultValue: "Bezpieczny poziom do rozpoczęcia to często pow. 150 mg/dL." }) }),
+      i18n.t('auto.sensory_i_pompy_moga_tracic_za', { defaultValue: i18n.t('auto.sensory_i_pompy_moga_trac', { defaultValue: "Sensory i pompy mogą tracić zasięg lub odklejać się pod wodą." }) })
+    ]
+  },
+  {
+    id: 'mountain',
+    name: i18n.t('auto.spacer_po_gorach', { defaultValue: i18n.t('auto.spacer_po_gorach', { defaultValue: "Spacer po górach" }) }),
+    icon: Mountain,
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/20',
+    effect: i18n.t('auto.dlugotrwaly_spadek', { defaultValue: i18n.t('auto.dlugotrwaly_spadek', { defaultValue: "Długotrwały spadek" }) }),
+    description: i18n.t('auto.wysilek_o_niskiej_do_sredniej', { defaultValue: i18n.t('auto.wysilek_o_niskiej_do_sred', { defaultValue: "Wysiłek o niskiej do średniej intensywności rozłożony na wiele godzin. Prowadzi do wyczerpania zapasów glikogenu wegetatywnego i nocnych spadków cukru." }) }),
+    tips: [
+      i18n.t('auto.zmniejsz_baze_na_czas_wedrowki', { defaultValue: i18n.t('auto.zmniejsz_baze_na_czas_wed', { defaultValue: "Zmniejsz bazę na czas wędrówki (niektórzy zmniejszają o >50%)." }) }),
+      i18n.t('auto.podjadaj_regularnie_weglowodan', { defaultValue: i18n.t('auto.podjadaj_regularnie_weglo', { defaultValue: "Podjadaj regularnie węglowodany złożone (np. batony owsiane)." }) }),
+      i18n.t('auto.zabezpiecz_insuline_przed_skra', { defaultValue: i18n.t('auto.zabezpiecz_insuline_przed', { defaultValue: "Zabezpiecz insulinę przed skrajnymi temperaturami." }) })
+    ]
+  },
+  {
+    id: 'football',
+    name: i18n.t('auto.pilka_nozna', { defaultValue: i18n.t('auto.pilka_nozna', { defaultValue: "Piłka Nożna" }) }),
+    icon: CircleDot,
+    color: 'text-green-600',
+    bg: 'bg-green-500/10',
+    border: 'border-green-500/20',
+    effect: i18n.t('auto.mieszany_spadek_wzrost', { defaultValue: 'Mieszany (spadek/wzrost)' }),
+    description: i18n.t('auto.wysilek_interwalowy_sprinty_mo', { defaultValue: i18n.t('auto.wysilek_interwalowy_sprin', { defaultValue: "Wysiłek interwałowy. Sprinty mogą powodować wyrzuty adrenaliny (wzrosty), ale ogólny bilans często prowadzi do spadku cukru po meczu." }) }),
+    tips: [
+      'Kontroluj cukier w przerwie meczu.',
+      i18n.t('auto.miej_zel_pod_reka_przy_linii_b', { defaultValue: i18n.t('auto.miej_zel_pod_reka_przy_li', { defaultValue: "Miej żel pod ręką przy linii bocznej." }) }),
+      i18n.t('auto.uwazaj_na_hipoglikemie_po_zako', { defaultValue: i18n.t('auto.uwazaj_na_hipoglikemie_po', { defaultValue: "Uważaj na hipoglikemię po zakończonym wysiłku." }) })
+    ]
+  },
+  {
+    id: 'basketball',
+    name: i18n.t('auto.koszykowka', { defaultValue: i18n.t('auto.koszykowka', { defaultValue: "Koszykówka" }) }),
+    icon: Target,
+    color: 'text-orange-600',
+    bg: 'bg-orange-500/10',
+    border: 'border-orange-500/20',
+    effect: i18n.t('auto.wysoka_intensywnosc', { defaultValue: i18n.t('auto.wysoka_intensywnosc', { defaultValue: "Wysoka intensywność" }) }),
+    description: i18n.t('auto.dynamiczny_sport_z_duza_ilosci', { defaultValue: i18n.t('auto.dynamiczny_sport_z_duza_i', { defaultValue: "Dynamiczny sport z dużą ilością skoków i sprintów. Bardzo szybko zużywa zapasy energii." }) }),
+    tips: [
+      i18n.t('auto.zredukuj_bolus_do_posilku_prze', { defaultValue: i18n.t('auto.zredukuj_bolus_do_posilku', { defaultValue: "Zredukuj bolus do posiłku przed meczem." }) }),
+      i18n.t('auto.uzupelniaj_plyny_i_elektrolity', { defaultValue: i18n.t('auto.uzupelniaj_plyny_i_elektr', { defaultValue: "Uzupełniaj płyny i elektrolity." }) }),
+    ]
+  },
+  {
+    id: 'tennis',
+    name: i18n.t('auto.tenis', { defaultValue: 'Tenis' }),
+    icon: Zap,
+    color: 'text-lime-500',
+    bg: 'bg-lime-500/10',
+    border: 'border-lime-500/20',
+    effect: i18n.t('auto.dlugotrwaly_wysilek', { defaultValue: i18n.t('auto.dlugotrwaly_wysilek', { defaultValue: "Długotrwały wysiłek" }) }),
+    description: i18n.t('auto.mecz_moze_trwac_od_godziny_do', { defaultValue: i18n.t('auto.mecz_moze_trwac_od_godzin', { defaultValue: "Mecz może trwać od godziny do trzech. Wymaga stałego dopływu energii i skupienia." }) }),
+    tips: [
+      i18n.t('auto.podjadaj_male_porcje_w_trakcie', { defaultValue: i18n.t('auto.podjadaj_male_porcje_w_tr', { defaultValue: "Podjadaj małe porcje w trakcie przerw między gemami." }) }),
+      i18n.t('auto.emocje_stres_meczowy_moga_podn', { defaultValue: i18n.t('auto.emocje_stres_meczowy_moga', { defaultValue: "Emocje (stres meczowy) mogą podnosić cukier." }) })
+    ]
+  },
+  {
+    id: 'yoga',
+    name: i18n.t('auto.joga', { defaultValue: 'Joga / Pilates' }),
+    icon: Sun,
+    color: 'text-purple-500',
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/20',
+    effect: i18n.t('auto.stabilizacja_spadek', { defaultValue: 'Stabilizacja / Lekki spadek' }),
+    description: i18n.t('auto.wysilek_statyczny_skupiony_na', { defaultValue: i18n.t('auto.wysilek_statyczny_skupion', { defaultValue: "Wysiłek statyczny, skupiony na oddechu i rozciąganiu. Zazwyczaj działa stabilizująco na poziom cukru." }) }),
+    tips: [
+      i18n.t('auto.idealny_sport_przy_wahaniach', { defaultValue: 'Idealny sport przy lekkich wahaniach glikemii.' }),
+      i18n.t('auto.pamietaj_ze_niektore_pozycje_n', { defaultValue: i18n.t('auto.pamietaj_ze_niektore_pozy', { defaultValue: "Pamiętaj, że niektóre pozycje (np. odwrócone) wymagają stabilnego cukru." }) })
+    ]
+  },
+  {
+    id: 'walk',
+    name: i18n.t('auto.marsz_spacer', { defaultValue: 'Spacer / Marsz' }),
+    icon: Footprints,
+    color: 'text-slate-500',
+    bg: 'bg-slate-500/10',
+    border: 'border-slate-500/20',
+    effect: i18n.t('auto.delikatny_spadek', { defaultValue: 'Delikatny spadek' }),
+    description: i18n.t('auto.najbezpieczniejsza_forma_ruchu', { defaultValue: i18n.t('auto.najbezpieczniejsza_forma', { defaultValue: "Najbezpieczniejsza forma ruchu. Pomaga obniżyć cukier po posiłku bez ryzyka gwałtownej hipoglikemii." }) }),
+    tips: [
+      i18n.t('auto.swietny_sposob_na_zbicie_wysok', { defaultValue: i18n.t('auto.swietny_sposob_na_zbicie', { defaultValue: "Świetny sposób na zbicie \"wysokiego\" po kolacji." }) }),
+      i18n.t('auto.wystarczy_15_20_minut_by_zauwa', { defaultValue: i18n.t('auto.wystarczy_15_20_minut_by', { defaultValue: "Wystarczy 15-20 minut, by zauważyć różnicę." }) })
+    ]
+  },
+  {
+    id: 'dance',
+    name: i18n.t('auto.taniec', { defaultValue: 'Taniec' }),
+    icon: Music,
+    color: 'text-pink-500',
+    bg: 'bg-pink-500/10',
+    border: 'border-pink-500/20',
+    effect: i18n.t('auto.spalanie_cardio', { defaultValue: 'Spalanie cardio' }),
+    description: i18n.t('auto.pol_godziny_intensywnego_tanca', { defaultValue: i18n.t('auto.pol_godziny_intensywnego', { defaultValue: "Pół godziny intensywnego tańca to duży wysiłek energetyczny." }) }),
+    tips: [
+      i18n.t('auto.baw_sie_dobrze_ale_zerkaj_na_s', { defaultValue: i18n.t('auto.baw_sie_dobrze_ale_zerkaj', { defaultValue: "Baw się dobrze, ale zerkaj na sensor!" }) }),
+      i18n.t('auto.alkohol_przy_tancu_np_na_impre', { defaultValue: i18n.t('auto.alkohol_przy_tancu_np_na', { defaultValue: "Alkohol przy tańcu (np. na imprezie) drastycznie zwiększa ryzyko hipo." }) })
+    ]
+  },
+  {
+    id: 'playroom',
+    name: i18n.t('auto.bawialnia_plac_zabaw', { defaultValue: 'Bawialnia / Plac zabaw' }),
+    icon: PartyPopper,
+    color: 'text-indigo-500',
+    bg: 'bg-indigo-500/10',
+    border: 'border-indigo-500/20',
+    effect: i18n.t('auto.bardzo_szybki_spadek', { defaultValue: 'Bardzo szybki spadek' }),
+    description: i18n.t('auto.szalenstwo_dzieci_w_bawialni', { defaultValue: 'Szaleństwo w małpim gaju, skakanie na trampolinach czy bieganie po placu zabaw to gigantyczny wydatek energetyczny dla dzieci.' }),
+    tips: [
+      i18n.t('auto.zdejmij_pompe_lub_zabezpiecz', { defaultValue: 'Zdejmij pompę (jeśli to możliwe) lub solidnie zabezpiecz wkłucie przed wyrwaniem.' }),
+      i18n.t('auto.prowadz_profilaktyczne_podjada', { defaultValue: 'Profilaktycznie podjadaj małe przekąski bez insuliny (np. chrupki, sok).' }),
+      i18n.t('auto.uwaga_na_adrenalina_plac', { defaultValue: 'Emocje mogą maskować objawy hipoglikemii - sprawdzaj cukier częściej!' })
+    ]
+  },
+  {
+    id: 'pe_class',
+    name: i18n.t('auto.lekcja_wf', { defaultValue: 'Lekcja W-F' }),
+    icon: GraduationCap,
+    color: 'text-sky-500',
+    bg: 'bg-sky-500/10',
+    border: 'border-sky-500/20',
+    effect: i18n.t('auto.umiarkowany_do_szybkiego_spade', { defaultValue: 'Umiarkowany/Szybki spadek' }),
+    description: i18n.t('auto.szkolne_zajecia_sportowe', { defaultValue: 'Szkolne zajęcia sportowe o zmiennej intensywności (od rozgrzewki po gry zespołowe).' }),
+    tips: [
+      i18n.t('auto.zmniejsz_bolus_sniadaniowy', { defaultValue: 'Rozważ zmniejszenie bolusa na śniadanie, jeśli W-F jest wcześnie rano.' }),
+      i18n.t('auto.zawsze_glukoza_w_plecaku', { defaultValue: 'Zawsze miej przy sobie w plecaku glukozę lub sok.' })
+    ]
+  },
+  {
+    id: 'rollerblades',
+    name: i18n.t('auto.rolki_lyzwy', { defaultValue: 'Rolki / Łyżwy' }),
+    icon: Wind,
+    color: 'text-teal-500',
+    bg: 'bg-teal-500/10',
+    border: 'border-teal-500/20',
+    effect: i18n.t('auto.staly_spadek', { defaultValue: 'Stały spadek' }),
+    description: i18n.t('auto.angazuje_cale_cialo_szczegolni', { defaultValue: 'Angażuje całe ciało, szczególnie nogi i tułów. Spala dużo glukozy podobnie do jazdy na rowerze.' }),
+    tips: [
+      i18n.t('auto.uwazaj_na_urazy_sensorow_przy_', { defaultValue: 'Uważaj na urazy sensorów przy ewentualnych upadkach.' }),
+      i18n.t('auto.podjadaj_weglowodany_zlozone_c', { defaultValue: 'Podjadaj węglowodany złożone co 40 minut jazdy.' })
+    ]
+  }
 ];
 
 const TrainingChart = ({ user, startTime, endTime, startSugar, endSugar }: { user: any, startTime: number, endTime?: number, startSugar?: number, endSugar?: number }) => {

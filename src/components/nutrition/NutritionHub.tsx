@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
-import { Utensils, PieChart, History, Sparkles, BookOpen, Activity, ArrowLeft, Camera, Mic } from "lucide-react";
+import { Utensils, PieChart, History, Salad, Sparkles, BookOpen, Activity, ArrowLeft, Camera, Mic } from "lucide-react";
 import { PlateItem, UserSettings, LogEntry } from "../../types";
 import MealPlate from "../MealPlate";
 import { Diets } from "../Diets";
 import MealHistoryView from "../MealHistoryView";
+import GlikoSenseNutriView from "./GlikoSenseNutriView";
 import { cn } from "../../lib/utils";
 import { Haptics } from "../../lib/haptics";
 
@@ -16,7 +17,7 @@ export interface NutritionHubProps {
   setSharedPlate: React.Dispatch<React.SetStateAction<PlateItem[]>>;
   settings?: UserSettings;
   logs?: LogEntry[];
-  initialSubTab?: "creator" | "diet" | "history";
+  initialSubTab?: "creator" | "diet" | "history" | "nutri";
 }
 
 export default function NutritionHub({
@@ -29,7 +30,7 @@ export default function NutritionHub({
   initialSubTab = "creator",
 }: NutritionHubProps) {
   const { t } = useTranslation();
-  const [activeSubTab, setActiveSubTab] = useState<"creator" | "diet" | "history">(initialSubTab);
+  const [activeSubTab, setActiveSubTab] = useState<"creator" | "diet" | "history" | "nutri">(initialSubTab);
 
   useEffect(() => {
     if (initialSubTab && initialSubTab !== activeSubTab) {
@@ -37,7 +38,7 @@ export default function NutritionHub({
     }
   }, [initialSubTab]);
 
-  const handleTabChange = (tab: "creator" | "diet" | "history") => {
+  const handleTabChange = (tab: "creator" | "diet" | "history" | "nutri") => {
     if (tab !== activeSubTab) {
       Haptics.selection();
       setActiveSubTab(tab);
@@ -48,28 +49,33 @@ export default function NutritionHub({
     {
       id: "creator" as const,
       label: t("nutrition.tab_creator", { defaultValue: "Talerz" }),
-      icon: <Utensils size={16} />,
+      icon: <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />,
       badge: sharedPlate.length > 0 ? sharedPlate.length : undefined,
     },
     {
       id: "diet" as const,
       label: t("nutrition.tab_diet", { defaultValue: "Dieta" }),
-      icon: <PieChart size={16} />,
-      badge: settings?.activeDiet ? "1" : undefined,
+      icon: <PieChart className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />,
+      badge: (settings?.activeDiet || (settings as any)?.activeDiets?.length) ? "1" : undefined,
     },
     {
       id: "history" as const,
       label: t("nutrition.tab_history", { defaultValue: "Historia" }),
-      icon: <History size={16} />,
+      icon: <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />,
+    },
+    {
+      id: "nutri" as const,
+      label: t("nutrition.tab_nutri", { defaultValue: "Odżywianie" }),
+      icon: <Salad className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />,
     },
   ];
 
   return (
     <div className="w-full min-h-screen pb-36 flex flex-col">
       {/* Pływający górny przełącznik zakładek (Segmented Control) */}
-      <div className="sticky top-0 z-40 px-4 pt-4 pb-3 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 transition-colors">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 p-1.5 bg-slate-200/70 dark:bg-slate-900/90 rounded-2xl border border-slate-300/40 dark:border-slate-800/80 shadow-inner w-full">
+      <div className="sticky top-0 z-40 px-2 sm:px-4 pt-2.5 sm:pt-4 pb-2 sm:pb-3 bg-slate-50/85 dark:bg-slate-950/85 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 transition-colors">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 p-1 bg-slate-200/70 dark:bg-slate-900/90 rounded-2xl border border-slate-300/40 dark:border-slate-800/80 shadow-inner w-full">
             {tabs.map((tab) => {
               const isActive = activeSubTab === tab.id;
               return (
@@ -77,7 +83,7 @@ export default function NutritionHub({
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "relative flex-1 py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer select-none",
+                    "relative flex-1 py-2 sm:py-2.5 px-1 sm:px-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-tight sm:tracking-wider flex items-center justify-center gap-1 sm:gap-1.5 transition-all duration-300 cursor-pointer select-none min-w-0",
                     isActive
                       ? "text-slate-900 dark:text-white shadow-md shadow-slate-900/5 dark:shadow-black/40"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
@@ -90,13 +96,13 @@ export default function NutritionHub({
                       transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                     />
                   )}
-                  <span className={cn("transition-transform duration-300", isActive ? "scale-110 text-sky-500 dark:text-sky-400" : "")}>
+                  <span className={cn("transition-transform duration-300 shrink-0", isActive ? "scale-110 text-sky-500 dark:text-sky-400" : "")}>
                     {tab.icon}
                   </span>
-                  <span className="truncate">{tab.label}</span>
+                  <span className="truncate leading-tight text-center">{tab.label}</span>
                   {tab.badge && (
                     <span className={cn(
-                      "ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none",
+                      "inline-flex items-center justify-center min-w-[15px] h-[15px] px-1 rounded-full text-[9px] font-black leading-none shrink-0 ml-0.5 shadow-sm",
                       isActive ? "bg-sky-500 text-white" : "bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
                     )}>
                       {tab.badge}
@@ -180,6 +186,19 @@ export default function NutritionHub({
               <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-4 sm:p-6 shadow-xl border border-slate-100 dark:border-slate-800">
                 <MealHistoryView logs={logs} user={user} />
               </div>
+            </motion.div>
+          )}
+
+          {activeSubTab === "nutri" && (
+            <motion.div
+              key="tab-nutri"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="w-full space-y-4"
+            >
+              <GlikoSenseNutriView logs={logs} />
             </motion.div>
           )}
         </AnimatePresence>

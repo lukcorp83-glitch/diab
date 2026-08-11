@@ -14,12 +14,26 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.12';
+export const CURRENT_VERSION = '6.0.13';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.13",
+    date: "2026-08-11",
+    title: "GlikoSense Odżywianie & Poprawki UI",
+    changes: [
+      "Nowy płynny algorytm tolerancji posiłków (zamiast binarnego 0/100%)",
+      "Naprawiono wskaźnik spójności trawienia (nie pokazuje już zawsze 50%)",
+      "Analizowane są tylko nazwane dania ze składem (filtr generycznych wpisów)",
+      "Rozbudowane statystyki posiłków: średni szczyt, czas powrotu, korekty, spójność",
+      "Wyszukiwarka, sortowanie i limit TOP 6 z rozwijanym przyciskiem",
+      "Poprawiona polska odmiana liczebników (1 pozycja, 3 pozycje, 5 pozycji)",
+      "Wskaźnik aktywnej diety widoczny na telefonie"
+    ]
+  },
   {
     version: "6.0.12",
     date: new Date().toISOString().split('T')[0],
@@ -96,6 +110,20 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.13",
+    date: "2026-08-11",
+    title: "GlikoSense Odżywianie & Poprawki UI",
+    changes: [
+      "Nowy płynny algorytm tolerancji posiłków (zamiast binarnego 0/100%)",
+      "Naprawiono wskaźnik spójności trawienia (nie pokazuje już zawsze 50%)",
+      "Analizowane są tylko nazwane dania ze składem (filtr generycznych wpisów)",
+      "Rozbudowane statystyki posiłków: średni szczyt, czas powrotu, korekty, spójność",
+      "Wyszukiwarka, sortowanie i limit TOP 6 z rozwijanym przyciskiem",
+      "Poprawiona polska odmiana liczebników (1 pozycja, 3 pozycje, 5 pozycji)",
+      "Wskaźnik aktywnej diety widoczny na telefonie"
+    ]
+  },
   {
     version: "6.0.12",
     date: new Date().toISOString().split('T')[0],

@@ -811,6 +811,14 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
         if (rules.pkParams) {
           medicalRulesStr = i18n.t('auto.osobnicze_tempo_wchlanian', { defaultValue: "\nOsobnicze tempo wchłaniania pacjenta: metabolizm \"{{var0}}\" (czas wchłaniania standardowych węglowodanów: {{var1}}h). Wykorzystaj to w swoich poradach dotyczących wchłaniania powołując się na system GlikoSense!", var0: rules.pkParams.label, var1: rules.pkParams.normalCarbDuration });
         }
+        
+        const nutriSaved = localStorage.getItem('glikosense_nutri_profile');
+        if (nutriSaved) {
+          const parsedNutri = JSON.parse(nutriSaved);
+          const golden = (parsedNutri.goldenMeals || []).map((m: any) => m.name).slice(0, 5).join(", ");
+          const tricky = (parsedNutri.trickyMeals || []).map((m: any) => m.name).slice(0, 5).join(", ");
+          medicalRulesStr += `\nWNIOSKI Z MODUŁU GLIKOSENSE ODŻYWIANIE:\n- Średnia tolerancja posiłków: ${parsedNutri.overallTolerance || 100}%\n- Posiłki Złote (świetna tolerancja): ${golden || 'brak danych'}\n- Posiłki Kapryśne (duża zmienność/skoki): ${tricky || 'brak danych'}\nWykorzystuj te wiedzę przy odpowiadaniu na pytania o jedzenie i potrawy!`;
+        }
       } catch(e) {}
     }
 

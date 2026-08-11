@@ -346,18 +346,40 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         }
     }
 
+    const isSpecificMealName = (name: string): boolean => {
+      if (!name || typeof name !== 'string') return false;
+      const clean = name.trim().toLowerCase();
+      if (clean.length < 3) return false;
+      const genericWords = [
+        "posiłek", "posilek", "meal", "obiad", "śniadanie", "sniadanie",
+        "kolacja", "przekąska", "przekaska", "breakfast", "lunch", "dinner",
+        "snack", "korekta", "bolus", "jedzenie", "food", "kalkulator", "calculator"
+      ];
+      if (genericWords.includes(clean)) return false;
+      if (/^\d+([\.,]\d+)?\s*(ww|wbt|g|j|j\.)?$/i.test(clean)) return false;
+      return true;
+    };
+
     allMeals.slice(0, 100).forEach(m => {
       const mealTime = m.timestamp || new Date(m.createdAt).getTime();
-      const mealName = m.note || m.name || m.description || i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) }) });
-      if (!mealName || mealName.length < 3 || mealName === i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) }) })) return;
+      let mealName = m.note || m.name || m.description || m.linkedMeal?.name;
+      if (!mealName && Array.isArray(m.linkedMeal?.items) && m.linkedMeal.items.length > 0) {
+        mealName = m.linkedMeal.items.map((i: any) => i.name).filter(Boolean).join(", ");
+      }
+      if (!mealName && Array.isArray(m.products) && m.products.length > 0) {
+        mealName = m.products.map((p: any) => p.name).filter(Boolean).join(", ");
+      }
+
+      if (!mealName || !isSpecificMealName(mealName)) return;
       const postMealBg = allGlucose.filter(g => {
         const gt = g.timestamp || new Date(g.createdAt).getTime();
         return gt > mealTime + 45*60*1000 && gt < mealTime + 180*60*1000;
       });
       if (postMealBg.length > 0) {
         const maxBg = Math.max(...postMealBg.map(g => g.value || g.bg));
-        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0, totalCorrections: 0, totalReturnTime: 0 };
+        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0, totalCorrections: 0, totalReturnTime: 0, totalMaxBg: 0 };
         mealPatterns[mealName].count++;
+        mealPatterns[mealName].totalMaxBg = (mealPatterns[mealName].totalMaxBg || 0) + maxBg;
         if (maxBg > 180) mealPatterns[mealName].spikes++;
         
         if (activeTopology === 'v4_tcn') {
@@ -1223,6 +1245,77 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     const accuracyValue = Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80)));
 
+    const nutriMeals = Object.entries(mealPatterns).map(([name, stats]: [string, any]) => {
+      const spikes = stats.spikes || 0;
+      const count = stats.count || 1;
+      const avgMaxBg = stats.totalMaxBg ? stats.totalMaxBg / count : (spikes > 0 ? 185 : 140);
+      const avgCorrections = stats.totalCorrections ? (stats.totalCorrections / count) : 0;
+      const avgReturnTime = stats.totalReturnTime ? Math.round(stats.totalReturnTime / count) : 0;
+
+      let baseScore = 100;
+      if (avgMaxBg > 140 && avgMaxBg <= 180) {
+        baseScore = 100 - ((avgMaxBg - 140) * 0.5);
+      } else if (avgMaxBg > 180 && avgMaxBg <= 250) {
+        baseScore = 80 - ((avgMaxBg - 180) * 0.57);
+      } else if (avgMaxBg > 250) {
+        baseScore = Math.max(10, 40 - ((avgMaxBg - 250) * 0.3));
+      }
+
+      const correctionPenalty = avgCorrections * 8;
+      const toleranceScore = Math.max(5, Math.min(100, Math.round(baseScore - correctionPenalty)));
+      
+      let category: 'golden' | 'tricky' | 'neutral' = 'neutral';
+      if (toleranceScore >= 75) category = 'golden';
+      else category = 'tricky';
+
+      let consistencyIndex = 85;
+      if (count === 1) {
+        if (spikes === 0 && avgMaxBg <= 150) {
+          consistencyIndex = 92;
+        } else if (spikes === 0) {
+          consistencyIndex = 80;
+        } else {
+          consistencyIndex = 65;
+        }
+      } else {
+        const successRatio = (count - spikes) / count;
+        if (spikes === 0) {
+          consistencyIndex = Math.min(98, 90 + Math.min(8, count * 2));
+        } else if (spikes === count) {
+          consistencyIndex = 85;
+        } else {
+          const variance = Math.abs(successRatio - 0.5);
+          consistencyIndex = Math.round(50 + (variance * 70));
+        }
+      }
+
+      return {
+        name,
+        count,
+        spikes,
+        avgMaxBg: Math.round(avgMaxBg),
+        toleranceScore,
+        consistencyIndex,
+        category,
+        avgCorrections: Math.round(avgCorrections * 10) / 10,
+        avgReturnTime: avgReturnTime > 0 ? avgReturnTime : 90
+      };
+    });
+
+    const goldenMeals = nutriMeals.filter(m => m.category === 'golden').sort((a, b) => b.toleranceScore - a.toleranceScore);
+    const trickyMeals = nutriMeals.filter(m => m.category === 'tricky').sort((a, b) => a.toleranceScore - b.toleranceScore);
+    const overallTolerance = nutriMeals.length > 0
+      ? Math.round(nutriMeals.reduce((sum, m) => sum + m.toleranceScore, 0) / nutriMeals.length)
+      : 100;
+
+    const nutriProfile = {
+      overallTolerance,
+      goldenMeals,
+      trickyMeals,
+      allMeals: nutriMeals,
+      updatedAt: Date.now()
+    };
+
     self.postMessage({ 
       type: 'result', 
       payload: {
@@ -1241,6 +1334,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         metrics: { iob: currentIob, cob: currentCob, carbSensitivity: Math.round(carbSensitivity), insulinSensitivity: Math.round(insulinSensitivity), gmiPercentage: gmiPercentage > 0 ? parseFloat(gmiPercentage.toFixed(2)) : undefined, avgBias: Math.round(avgBias) },
         learnedPkParams: rules.pkParams,
         discoveredRules,
+        nutriProfile,
         engineMode,
         engineStatus,
         modelParams: model ? model.countParams() : 0,
