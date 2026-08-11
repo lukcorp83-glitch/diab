@@ -48,7 +48,7 @@ export const useAppSubscriptions = (user: any) => {
       "fbLogs",
       (coll) => isEco 
         ? query(coll, where("timestamp", ">=", Date.now() - 7 * 24 * 60 * 60 * 1000), orderBy("timestamp", "desc"), limit(2500)) 
-        : query(coll, where("timestamp", ">=", thirtyFiveDaysAgo), orderBy("timestamp", "desc"), limit(12000)),
+        : query(coll, where("timestamp", ">=", thirtyFiveDaysAgo), orderBy("timestamp", "desc"), limit(4000)),
       (doc) => ({ ...doc.data(), id: doc.id })
     );
 

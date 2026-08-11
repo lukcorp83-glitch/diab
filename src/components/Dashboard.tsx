@@ -247,8 +247,17 @@ export default function Dashboard({
 }: DashboardProps) {
   const user = useAuthStore(state => state.user);
   const { logs } = useLogsStore();
-  const effSensorDate = Math.max(settings?.sensorChangeDate || 0, logs.find((l:any) => l.type === 'sensor_change' || l.type === 'sensor')?.timestamp || 0) || undefined;
-  const effInfusionDate = Math.max(settings?.infusionSetChangeDate || 0, logs.find((l:any) => l.type === 'site_change' || l.type === 'site')?.timestamp || 0) || undefined;
+  const effSensorDate = Math.max(
+    settings?.sensorChangeDate || 0,
+    Number(localStorage.getItem('sensorChangeDate') || 0),
+    logs.filter((l: any) => l.type === 'sensor_change' || l.type === 'sensor').reduce((max: number, l: any) => Math.max(max, l.timestamp || 0), 0)
+  ) || undefined;
+
+  const effInfusionDate = Math.max(
+    settings?.infusionSetChangeDate || 0,
+    Number(localStorage.getItem('infusionSetChangeDate') || 0),
+    logs.filter((l: any) => l.type === 'site_change' || l.type === 'site').reduce((max: number, l: any) => Math.max(max, l.timestamp || 0), 0)
+  ) || undefined;
   const { t } = useTranslation();
   // Tryb leczenia: domyślnie 'insulin' dla wstecznej kompatybilności
   const treatmentMode = settings.treatmentMode ?? 'insulin';

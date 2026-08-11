@@ -280,8 +280,10 @@ export default function App() {
                   onClick={async () => {
                     toast.dismiss(t.id);
                     import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
+                    const now = Date.now();
+                    const updates = type === 'sensor' ? { sensorChangeDate: now } : { infusionSetChangeDate: now };
+                    localStorage.setItem(type === 'sensor' ? 'sensorChangeDate' : 'infusionSetChangeDate', String(now));
                     if (user) {
-                       const updates = type === 'sensor' ? { sensorChangeDate: Date.now() } : { infusionSetChangeDate: Date.now() };
                        await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
                        toast.success(i18n.t('auto.zapisano', { defaultValue: 'Zapisano!' }));
                     }
