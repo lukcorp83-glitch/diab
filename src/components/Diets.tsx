@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import DietManager from './DietManager';
 import HydrationWidget from './HydrationWidget';
 import DietScoreWidget from './DietScoreWidget';
+import { DietSpecificWidgets } from './nutrition/DietSpecificWidgets';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -237,6 +238,8 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
  
  <HydrationWidget tdee={settings.tdee} />
  
+ <DietSpecificWidgets activeDietId={activeDietData.id} settings={settings} logs={logs} />
+
  <DietScoreWidget activeDiet={settings.activeDiet} settings={settings} />
 
  <DietManager settings={settings} activeDietData={activeDietData} />

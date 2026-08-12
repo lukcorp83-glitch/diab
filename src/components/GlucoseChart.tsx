@@ -495,26 +495,36 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  
  const getX = (t) => pL + ((t - start) / (end - start)) * cw;
  const getY = (v) => pT + ch - ((v - chartMinY) / (chartMaxY - chartMinY)) * ch;
- 
- // Target area
- const yMin = getY(targetMin || 70);
- const yMax = getY(targetMax || 140);
- ctx.fillStyle = isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)';
- ctx.fillRect(pL, Math.max(0, yMax), cw, Math.max(0, yMin - yMax));
+  // 5. Glass Target Band (Szklista Strefa Docelowa 70-140 mg/dL)
+  const yMin = getY(targetMin || 70);
+  const yMax = getY(targetMax || 140);
+  const tHeight = Math.max(0, yMin - yMax);
 
- // Target boundaries
- ctx.strokeStyle = isDark ? 'rgba(16, 185, 129, 0.4)' : 'rgba(16, 185, 129, 0.3)';
- ctx.lineWidth = 1;
- ctx.setLineDash([4, 4]);
- ctx.beginPath();
- ctx.moveTo(pL, yMin);
- ctx.lineTo(pL + cw, yMin);
- ctx.stroke();
- ctx.beginPath();
- ctx.moveTo(pL, yMax);
- ctx.lineTo(pL + cw, yMax);
- ctx.stroke();
- ctx.setLineDash([]);
+  const targetGrad = ctx.createLinearGradient(0, yMax, 0, yMin);
+  targetGrad.addColorStop(0, isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.12)');
+  targetGrad.addColorStop(0.5, isDark ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.04)');
+  targetGrad.addColorStop(1, isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.12)');
+  ctx.fillStyle = targetGrad;
+  ctx.fillRect(pL, Math.max(0, yMax), cw, tHeight);
+
+  ctx.strokeStyle = isDark ? 'rgba(16, 185, 129, 0.55)' : 'rgba(16, 185, 129, 0.45)';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(pL, yMin);
+  ctx.lineTo(pL + cw, yMin);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pL, yMax);
+  ctx.lineTo(pL + cw, yMax);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.font = 'bold 8px sans-serif';
+  ctx.fillStyle = isDark ? 'rgba(16, 185, 129, 0.6)' : 'rgba(5, 150, 105, 0.7)';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(`CEL ${targetMin || 70}–${targetMax || 140} mg/dL`, pL + cw - 6, yMin - 3);
  
  // X axis ticks
  ctx.font = 'bold 9px sans-serif';
@@ -558,23 +568,46 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  ctx.setLineDash([]);
  
  // Activity
- ctx.beginPath();
- let firstA = true;
- for (const d of chartData) {
- if (d.activity !== undefined && !isNaN(d.activity)) {
- const x = getX(d.timestamp);
- const y = pT + ch - Math.min(1, Math.max(0, d.activity / 5)) * ch;
- if (firstA) { ctx.moveTo(x, pT + ch); ctx.lineTo(x, y); firstA = false; }
- else ctx.lineTo(x, y);
- }
- }
- if (!firstA && chartData.length > 0) {
- ctx.lineTo(getX(chartData[chartData.length-1].timestamp), pT + ch);
- const grad = ctx.createLinearGradient(0, pT, 0, pT + ch);
- grad.addColorStop(0, 'rgba(236,72,153,0.3)');
- grad.addColorStop(1, 'rgba(236,72,153,0)');
- ctx.fillStyle = grad;
- ctx.fill();
+  // Dynamiczny Cień Aktywnej Insuliny (IOB / Insulin Activity Shadow)
+  ctx.beginPath();
+  let firstA = true;
+  const actPts: { x: number; y: number }[] = [];
+  for (const d of chartData) {
+    if (d.activity !== undefined && !isNaN(d.activity)) {
+      const x = getX(d.timestamp);
+      const y = pT + ch - Math.min(1, Math.max(0, d.activity / 5)) * ch;
+      actPts.push({ x, y });
+      if (firstA) { ctx.moveTo(x, pT + ch); ctx.lineTo(x, y); firstA = false; }
+      else ctx.lineTo(x, y);
+    }
+  }
+  if (!firstA && chartData.length > 0) {
+    const lastX = getX(chartData[chartData.length - 1].timestamp);
+    ctx.lineTo(lastX, pT + ch);
+    ctx.closePath();
+
+    // 1. Wyraźny gradient wypełnienia cienia insuliny
+    const grad = ctx.createLinearGradient(0, pT, 0, pT + ch);
+    grad.addColorStop(0, isDark ? 'rgba(244, 114, 182, 0.55)' : 'rgba(219, 39, 119, 0.45)');
+    grad.addColorStop(0.5, isDark ? 'rgba(236, 72, 153, 0.25)' : 'rgba(236, 72, 153, 0.20)');
+    grad.addColorStop(1, 'rgba(236, 72, 153, 0.02)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // 2. Wyraźna linia obrysu aktywnej insuliny
+    if (actPts.length > 0) {
+      ctx.beginPath();
+      ctx.moveTo(actPts[0].x, actPts[0].y);
+      for (let i = 1; i < actPts.length - 1; i++) {
+        const xc = (actPts[i].x + actPts[i + 1].x) / 2;
+        const yc = (actPts[i].y + actPts[i + 1].y) / 2;
+        ctx.quadraticCurveTo(actPts[i].x, actPts[i].y, xc, yc);
+      }
+      if (actPts.length > 1) ctx.lineTo(actPts[actPts.length - 1].x, actPts[actPts.length - 1].y);
+      ctx.strokeStyle = isDark ? 'rgba(244, 114, 182, 0.9)' : 'rgba(219, 39, 119, 0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
  }
  
  // ML Prediction - Confidence Cloud (Chmura Pewności)
@@ -688,25 +721,55 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
 
  ctx.beginPath();
  const gPts = chartData.filter(d => d.glucose !== undefined && !isNaN(d.glucose)).map(d => ({ x: getX(d.timestamp), y: getY(d.glucose) }));
- if (gPts.length > 0) {
- ctx.moveTo(gPts[0].x, gPts[0].y);
- for (let i = 1; i < gPts.length - 1; i++) {
- const xc = (gPts[i].x + gPts[i + 1].x) / 2;
- const yc = (gPts[i].y + gPts[i + 1].y) / 2;
- ctx.quadraticCurveTo(gPts[i].x, gPts[i].y, xc, yc);
- }
- if (gPts.length > 1) {
- ctx.lineTo(gPts[gPts.length - 1].x, gPts[gPts.length - 1].y);
- }
- }
- ctx.strokeStyle = lineGrad;
- ctx.lineWidth = 3;
- if (isDark) {
- ctx.shadowBlur = 12;
- ctx.shadowColor = 'rgba(129, 140, 248, 0.6)';
- }
- ctx.stroke();
- ctx.shadowBlur = 0;
+  if (gPts.length > 0) {
+    // 1. Ambient Glow Fill (Wypełnienie łuną świetlną pod linią wykresu)
+    if (gPts.length > 1) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(gPts[0].x, gPts[0].y);
+      for (let i = 1; i < gPts.length - 1; i++) {
+        const xc = (gPts[i].x + gPts[i + 1].x) / 2;
+        const yc = (gPts[i].y + gPts[i + 1].y) / 2;
+        ctx.quadraticCurveTo(gPts[i].x, gPts[i].y, xc, yc);
+      }
+      ctx.lineTo(gPts[gPts.length - 1].x, gPts[gPts.length - 1].y);
+      ctx.lineTo(gPts[gPts.length - 1].x, pT + ch);
+      ctx.lineTo(gPts[0].x, pT + ch);
+      ctx.closePath();
+
+      const ambientGrad = ctx.createLinearGradient(0, pT, 0, pT + ch);
+      ambientGrad.addColorStop(0, isDark ? 'rgba(99, 102, 241, 0.30)' : 'rgba(79, 70, 229, 0.20)');
+      ambientGrad.addColorStop(pMax, isDark ? 'rgba(99, 102, 241, 0.16)' : 'rgba(79, 70, 229, 0.10)');
+      ambientGrad.addColorStop(pMin, isDark ? 'rgba(99, 102, 241, 0.05)' : 'rgba(79, 70, 229, 0.03)');
+      ambientGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = ambientGrad;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 2. Rysowanie wyrazistej linii glikemii z poświatą neonową
+    ctx.beginPath();
+    ctx.moveTo(gPts[0].x, gPts[0].y);
+    for (let i = 1; i < gPts.length - 1; i++) {
+      const xc = (gPts[i].x + gPts[i + 1].x) / 2;
+      const yc = (gPts[i].y + gPts[i + 1].y) / 2;
+      ctx.quadraticCurveTo(gPts[i].x, gPts[i].y, xc, yc);
+    }
+    if (gPts.length > 1) {
+      ctx.lineTo(gPts[gPts.length - 1].x, gPts[gPts.length - 1].y);
+    }
+  }
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 3.5;
+  if (isDark) {
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = 'rgba(129, 140, 248, 0.75)';
+  } else {
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = 'rgba(99, 102, 241, 0.35)';
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
  
  // Glucose dots
  ctx.textBaseline = 'middle';
@@ -850,52 +913,206 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  "M18.237 21A15 15 0 0 0 22 11a6 6 0 0 0-10-4.472A6 6 0 0 0 2 11a15.1 15.1 0 0 0 3.763 10 3 3 0 0 0 3.648.648 5.5 5.5 0 0 1 5.178 0A3 3 0 0 0 18.237 21"
  ];
 
- for (const d of chartData) {
- const x = Math.round(getX(d.timestamp));
- if (d.bolusVal && d.originalB) {
- const yObj = Math.round(getY(chartMinY));
- const bh = Math.round(Math.min(40, (d.originalB.value || 0) * 5));
- ctx.fillStyle = 'rgba(79, 70, 229, 0.4)';
- ctx.fillRect(x - 2, yObj - bh, 4, bh);
- 
- ctx.save();
- ctx.translate(x - 8, yObj - bh - 18);
- ctx.scale(0.66, 0.66);
- ctx.strokeStyle = '#818cf8';
- ctx.lineWidth = 2 / 0.66;
- ctx.lineCap = 'round';
- ctx.lineJoin = 'round';
- syringePathStrings.forEach(s => ctx.stroke(new Path2D(s)));
- ctx.restore();
- 
- if (d.stackingWarning) {
- ctx.font = '12px serif';
- ctx.fillText('⚠️', x, yObj - bh - 26);
- }
- }
- if (d.mealVal) {
- let baseCy = Math.round(getY(chartMinY)) - 10;
- if (d.bolusVal) baseCy -= Math.round(Math.min(40, (d.originalB?.value||0)*5)) + 10;
- 
- // Tło dla ikony talerza żeby nie zlewała się z tłem
- ctx.beginPath();
- ctx.arc(x, baseCy - 5, 12, 0, 2 * Math.PI);
- ctx.fillStyle = theme === 'dark' ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)';
- ctx.fill();
- ctx.strokeStyle = '#f59e0b';
- ctx.lineWidth = 1.5;
- ctx.stroke();
+  // Rejestr narysowanych pigułek na wykresie w celu zapobiegania nachodzeniu na siebie
+  const placedBadges: { x: number; y: number; w: number; h: number }[] = [];
 
- ctx.save();
- ctx.translate(x - 8, baseCy - 13);
- ctx.scale(0.66, 0.66);
- ctx.strokeStyle = '#fbbf24';
- ctx.lineWidth = 2 / 0.66;
- ctx.lineCap = 'round';
- ctx.lineJoin = 'round';
- applePathStrings.forEach(s => ctx.stroke(new Path2D(s)));
- ctx.restore();
- }
+  const getCollisionFreeY = (targetX: number, initialY: number, width: number, height: number): number => {
+    let finalY = initialY;
+    let hasOverlap = true;
+    let attempts = 0;
+
+    while (hasOverlap && attempts < 5) {
+      hasOverlap = false;
+      for (const b of placedBadges) {
+        const dx = Math.abs(targetX - b.x);
+        const dy = Math.abs(finalY - b.y);
+        if (dx < (width + b.w) / 2 + 8 && dy < (height + b.h) / 2 + 4) {
+          hasOverlap = true;
+          if (finalY - 24 < pT + 20) {
+            finalY = b.y + b.h / 2 + height / 2 + 6;
+          } else {
+            finalY = b.y - b.h / 2 - height / 2 - 6;
+          }
+          break;
+        }
+      }
+      attempts++;
+    }
+    return finalY;
+  };
+
+  for (const d of chartData) {
+    const x = Math.round(getX(d.timestamp));
+    if (d.bolusVal && d.originalB) {
+      const rawVal = d.originalB.value || 0;
+      const bVal = Math.round(rawVal * 10) / 10;
+      const bText = bVal % 1 !== 0 ? bVal.toFixed(1) : bVal.toString();
+      const yObj = Math.round(getY(chartMinY));
+      const bh = Math.round(Math.min(40, bVal * 5));
+      const gY = d.glucose !== undefined ? getY(d.glucose) : yObj;
+
+      const isTroughOrLow = (d.glucose !== undefined && d.glucose < 85) || 
+        chartData.some(cd => Math.abs(cd.timestamp - d.timestamp) <= 20 * 60000 && cd.glucose !== undefined && cd.glucose < 85);
+      
+      // Bezpośrednia kolizja: linia glikemii przebiega bardzo nisko (tuż nad paskami bolusa)
+      const directCollision = gY >= yObj - bh - 20;
+      const shouldElevate = isTroughOrLow && directCollision;
+
+      if (shouldElevate) {
+        let targetY = gY - 35;
+        if (targetY < pT + 22) targetY = Math.min(yObj - 25, gY + 30);
+
+        const text = `${bText}J`;
+        ctx.font = 'bold 10px sans-serif';
+        const tw = ctx.measureText(text).width + 20;
+        const th = 18;
+
+        const elevatedY = getCollisionFreeY(x, targetY, tw, th);
+        placedBadges.push({ x, y: elevatedY, w: tw, h: th });
+
+        ctx.beginPath();
+        ctx.setLineDash([3, 3]);
+        ctx.moveTo(x, yObj - 5);
+        ctx.lineTo(x, elevatedY + 10);
+        ctx.strokeStyle = isDark ? 'rgba(129, 140, 248, 0.7)' : 'rgba(79, 70, 229, 0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const rx = x - tw / 2;
+        const ry = elevatedY - th / 2;
+
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(rx, ry, tw, th, 6);
+        else ctx.fillRect(rx, ry, tw, th);
+        ctx.fillStyle = isDark ? 'rgba(30, 27, 75, 0.95)' : 'rgba(238, 242, 255, 0.95)';
+        ctx.fill();
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(x - tw / 2 + 3, elevatedY - 7);
+        ctx.scale(0.55, 0.55);
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 2 / 0.55;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        syringePathStrings.forEach(s => ctx.stroke(new Path2D(s)));
+        ctx.restore();
+
+        ctx.fillStyle = isDark ? '#e0e7ff' : '#312e81';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + 5, elevatedY);
+
+        if (d.stackingWarning) {
+          ctx.font = '10px serif';
+          ctx.fillText('⚠️', x + tw / 2 + 8, elevatedY);
+        }
+      } else {
+        ctx.fillStyle = 'rgba(79, 70, 229, 0.4)';
+        ctx.fillRect(x - 2, yObj - bh, 4, bh);
+        
+        ctx.save();
+        ctx.translate(x - 8, yObj - bh - 18);
+        ctx.scale(0.66, 0.66);
+        ctx.strokeStyle = '#818cf8';
+        ctx.lineWidth = 2 / 0.66;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        syringePathStrings.forEach(s => ctx.stroke(new Path2D(s)));
+        ctx.restore();
+        
+        if (d.stackingWarning) {
+          ctx.font = '12px serif';
+          ctx.fillText('⚠️', x, yObj - bh - 26);
+        }
+      }
+    }
+    if (d.mealVal) {
+      const mVal = d.originalM?.value || d.originalM?.carbs || 0;
+      const yObj = Math.round(getY(chartMinY));
+      const gY = d.glucose !== undefined ? getY(d.glucose) : yObj;
+
+      const isTroughOrLow = (d.glucose !== undefined && d.glucose < 85) || 
+        chartData.some(cd => Math.abs(cd.timestamp - d.timestamp) <= 20 * 60000 && cd.glucose !== undefined && cd.glucose < 85);
+
+      const directCollision = gY >= yObj - 45;
+      const shouldElevate = isTroughOrLow && directCollision;
+
+      if (shouldElevate) {
+        let targetY = gY - 35;
+        if (targetY < pT + 22) targetY = Math.min(yObj - 25, gY + 30);
+
+        const mText = mVal > 0 ? `${Math.round(mVal)}g` : '';
+        ctx.font = 'bold 10px sans-serif';
+        const tw = ctx.measureText(mText).width + (mText ? 20 : 16);
+        const th = 18;
+
+        const elevatedY = getCollisionFreeY(x, targetY, tw, th);
+        placedBadges.push({ x, y: elevatedY, w: tw, h: th });
+
+        ctx.beginPath();
+        ctx.setLineDash([3, 3]);
+        ctx.moveTo(x, yObj - 5);
+        ctx.lineTo(x, elevatedY + 10);
+        ctx.strokeStyle = isDark ? 'rgba(251, 191, 36, 0.7)' : 'rgba(245, 158, 11, 0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const rx = x - tw / 2;
+        const ry = elevatedY - th / 2;
+
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(rx, ry, tw, th, 6);
+        else ctx.fillRect(rx, ry, tw, th);
+        ctx.fillStyle = isDark ? 'rgba(69, 26, 3, 0.95)' : 'rgba(254, 243, 199, 0.95)';
+        ctx.fill();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(x - tw / 2 + 3, elevatedY - 7);
+        ctx.scale(0.55, 0.55);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2 / 0.55;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        applePathStrings.forEach(s => ctx.stroke(new Path2D(s)));
+        ctx.restore();
+
+        if (mText) {
+          ctx.fillStyle = isDark ? '#fef3c7' : '#78350f';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(mText, x + 5, elevatedY);
+        }
+      } else {
+        let baseCy = Math.round(getY(chartMinY)) - 10;
+        if (d.bolusVal) baseCy -= Math.round(Math.min(40, (d.originalB?.value||0)*5)) + 10;
+        
+        ctx.beginPath();
+        ctx.arc(x, baseCy - 5, 12, 0, 2 * Math.PI);
+        ctx.fillStyle = theme === 'dark' ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+        ctx.fill();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(x - 8, baseCy - 13);
+        ctx.scale(0.66, 0.66);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2 / 0.66;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        applePathStrings.forEach(s => ctx.stroke(new Path2D(s)));
+        ctx.restore();
+      }
+    }
  if (d.siteVal) {
  const cy = Math.round(getY(chartMaxY) + 15);
  ctx.save();

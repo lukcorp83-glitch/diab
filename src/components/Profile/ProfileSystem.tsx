@@ -274,12 +274,18 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  const isFollower = !settings.followerMode;
  const updated = { ...settings, followerMode: isFollower };
  setSettings(updated);
- 
- await setDoc(
- doc(db, "users", getEffectiveUid(user!), "settings", "profile"),
- { followerMode: isFollower },
- { merge: true }
- );
+ const uid = getEffectiveUid(user!);
+ if (uid) {
+   try {
+     await setDoc(
+       doc(db, "users", uid, "settings", "profile"),
+       { followerMode: isFollower },
+       { merge: true }
+     );
+   } catch (e) {
+     console.warn("Could not sync followerMode to Firestore", e);
+   }
+ }
  
  if (isFollower) {
  toast.success(i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: "Włączono Tryb Śledzący" }) }));

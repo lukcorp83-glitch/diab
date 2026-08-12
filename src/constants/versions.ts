@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.17';
+export const CURRENT_VERSION = '6.0.18';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.18",
+    date: "2026-08-12",
+    title: "Efekty Wykresu, Cień Insuliny & Uniesienia przy Dołkach",
+    changes: [
+      "Nowe efekty wizualne wykresu (Opcja 1: Neon Ambient Glow oraz Opcja 5: Glass Target Band 70–140 mg/dL)",
+      "Wyraźny cień aktywnej insuliny (IOB) z dynamicznym obrysem krzywej opadania",
+      "Uniesione pigułki z liniami prowadzącymi aktywowane ściśle przy niskich dołkach glikemii (<85 mg/dL)",
+      "Zaokrąglenie jednostek insuliny na wykresie do 1 miejsca po przecinku (np. 2.3J)"
+    ]
+  },
   {
     version: "6.0.17",
     date: "2026-08-12",
@@ -152,6 +163,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.18",
+    date: "2026-08-12",
+    title: "Efekty Wykresu, Cień Insuliny & Uniesienia przy Dołkach",
+    changes: [
+      "Nowe efekty wizualne wykresu (Opcja 1: Neon Ambient Glow oraz Opcja 5: Glass Target Band 70–140 mg/dL)",
+      "Wyraźny cień aktywnej insuliny (IOB) z dynamicznym obrysem krzywej opadania",
+      "Uniesione pigułki z liniami prowadzącymi aktywowane ściśle przy niskich dołkach glikemii (<85 mg/dL)",
+      "Zaokrąglenie jednostek insuliny na wykresie do 1 miejsca po przecinku (np. 2.3J)"
+    ]
+  },
   {
     version: "6.0.17",
     date: "2026-08-12",

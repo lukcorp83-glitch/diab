@@ -1,10 +1,10 @@
 {
-    "version": "6.0.17",
+    "version": "6.0.18",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.17_OTA.apk",
-    "buildNumber": 132,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.18_OTA.apk",
+    "buildNumber": 133,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.17! 1) Naprawiono błąd TypeError w użyciu autoryzacji (dodano brakujący alias setupForegroundListener w serwisie powiadomień).",
-    "whatsNewEn": "Version 6.0.17! 1) Fixed TypeError in auth listener (added missing setupForegroundListener method alias in notification service).",
-    "otaRevision": 291
+    "whatsNew": "Wersja 6.0.18! 1) Nowe efekty wykresu glikemii (Neon Ambient Glow & Glass Target Band 70–140 mg/dL). 2) Wyraźny cień aktywnej insuliny (IOB). 3) Uniesienia pigułek bolusów/posiłków z liniami prowadzącymi w dołkach (<85 mg/dL). 4) Zaokrąglenie jednostek insuliny do 1 miejsca po przecinku.",
+    "whatsNewEn": "Version 6.0.18! 1) New visual chart effects (Neon Ambient Glow & Glass Target Band 70–140 mg/dL). 2) Enhanced active insulin (IOB) decay shadow. 3) Elevated bolus/meal badges with dashed leader lines strictly at low glucose troughs (<85 mg/dL). 4) Rounded insulin units on chart to 1 decimal place.",
+    "otaRevision": 292
 }
