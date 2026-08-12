@@ -350,13 +350,25 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       if (!name || typeof name !== 'string') return false;
       const clean = name.trim().toLowerCase();
       if (clean.length < 3) return false;
+
+      const genericPhrases = [
+        "kalkulator bolusa", "bolus kalkulator", "kalkulator", "calculator",
+        "posiłek", "posilek", "meal", "obiad", "śniadanie", "sniadanie",
+        "kolacja", "przekąska", "przekaska", "breakfast", "lunch", "dinner",
+        "snack", "korekta", "bolus", "jedzenie", "food", "brak opisu", "posiłek ai", "posilek ai"
+      ];
+      if (genericPhrases.includes(clean)) return false;
+
       const genericWords = [
         "posiłek", "posilek", "meal", "obiad", "śniadanie", "sniadanie",
         "kolacja", "przekąska", "przekaska", "breakfast", "lunch", "dinner",
-        "snack", "korekta", "bolus", "jedzenie", "food", "kalkulator", "calculator"
+        "snack", "korekta", "bolus", "jedzenie", "food", "kalkulator", "calculator", "wpis"
       ];
-      if (genericWords.includes(clean)) return false;
-      if (/^\d+([\.,]\d+)?\s*(ww|wbt|g|j|j\.)?$/i.test(clean)) return false;
+      
+      const words = clean.split(/[\s,.:;_\-\(\)]+/).filter(Boolean);
+      const nonGenericWords = words.filter(w => !genericWords.includes(w) && !/^\d+([\.,]\d+)?\s*(ww|wbt|g|j|j\.)?$/i.test(w));
+      
+      if (nonGenericWords.length === 0) return false;
       return true;
     };
 

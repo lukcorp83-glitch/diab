@@ -220,6 +220,28 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  </div>
  )}
 
+  <div className="p-3.5 bg-indigo-50/50 dark:bg-slate-800/60 rounded-2xl border border-indigo-100 dark:border-slate-700 flex items-center justify-between gap-3 my-3">
+    <div className="flex items-center gap-2.5">
+      <Volume2 className="text-indigo-500" size={18} />
+      <div>
+        <p className="text-xs font-black dark:text-white leading-tight">
+          Test Dźwięku MP3
+        </p>
+        <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+          Odtwórz dźwięk status_clear.mp3
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={() => {
+        import('../../lib/audioUtils').then(m => m.playLowGlucoseSound());
+        toast.success('Odtwarzam testowy dźwięk MP3!', { icon: '🔊' });
+      }}
+      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all active:scale-95 shrink-0"
+    >
+      Graj MP3
+    </button>
+  </div>
 
  <div
  className={cn(

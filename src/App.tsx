@@ -36,6 +36,7 @@ import { notificationService } from "./services/notificationService";
 import { Toaster, toast, ToastBar } from "react-hot-toast";
 
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
+import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,6 +49,7 @@ import GlikoControlLogo from "./components/LogoAnimation";
 import { CURRENT_VERSION } from "./constants/versions";
 
 import { MigrationManager } from "./components/MigrationManager";
+import { GlucoseAlarmModal } from "./components/GlucoseAlarmModal";
 import { AppLayout } from "./components/app/AppLayout";
 import { AppContent } from "./components/app/AppContent";
 
@@ -182,6 +184,9 @@ export default function App() {
       const combined = Array.from(allMap.values()).sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
       setLogs(combined);
     }, [sqliteLogs, fbLogs, nsLogs, setLogs]);
+
+  // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
+  useGlucoseAlerts(logs, userSettings);
 
   const lastGlucoseValue = useMemo(() => {
     const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
@@ -606,6 +611,7 @@ export default function App() {
 
   return (
     <>
+      <GlucoseAlarmModal />
       <MigrationManager user={user} />
       <AppLayout
       mainRef={mainRef}

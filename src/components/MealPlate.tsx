@@ -1060,64 +1060,10 @@ export default function MealPlate({
  <Camera size={24} />
  </button>
  </div>
-
- {/* Tab Toggle */}
- <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl mx-2 mb-6">
- <button
- onClick={() => setPlateView("composer")}
- className={cn(
- "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
- plateView === "composer" 
- ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
- : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
- )}
- >
- {t('auto.kompozytor', { defaultValue: "Kompozytor" })}
- </button>
- <button
- onClick={() => setPlateView("diets")}
- className={cn(
- "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
- plateView === "diets" 
- ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
- : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
- )}
- >
- {t('auto.diety', { defaultValue: "Diety" })}
- </button>
- <button
- onClick={() => setPlateView("history")}
- className={cn(
- "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
- plateView === "history" 
- ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
- : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
- )}
- >
- {t('auto.historia', { defaultValue: "Historia" })}
- </button>
- </div>
  </>
  )}
 
- {(mode === "plate" || mode === "both") && plateView === "history" ? (
- <MealHistoryView 
- user={user}
- hasItems={plate.length > 0}
- onMergeToLog={(log) => {
- if (plate.length > 0) {
- handleMergeMeal(log.id!);
- setPlateView("plate");
- } else {
- toast.error(i18n.t('auto.najpierw_skomponuj_talerz', { defaultValue: `Najpierw skomponuj talerz!` }));
- }
- }}
- />
- ) : (mode === "plate" || mode === "both") && plateView === "diets" ? (
-  <React.Suspense fallback={<div className="flex justify-center p-4"><Loader2 className="animate-spin text-blue-500" /></div>}>
-  <Diets user={user} setTab={setTab} settings={settings} logs={logs} />
-  </React.Suspense>
- ) : (
+ {(mode === "plate" || mode === "both") && (
  <>
  <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-2 flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 mx-2"></div>
  {/* Weight Modal etc. */}

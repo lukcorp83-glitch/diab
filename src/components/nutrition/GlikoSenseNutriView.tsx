@@ -81,13 +81,25 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
       if (!name || typeof name !== 'string') return false;
       const clean = name.trim().toLowerCase();
       if (clean.length < 3) return false;
+
+      const genericPhrases = [
+        "kalkulator bolusa", "bolus kalkulator", "kalkulator", "calculator",
+        "posiłek", "posilek", "meal", "obiad", "śniadanie", "sniadanie",
+        "kolacja", "przekąska", "przekaska", "breakfast", "lunch", "dinner",
+        "snack", "korekta", "bolus", "jedzenie", "food", "brak opisu", "posiłek ai", "posilek ai"
+      ];
+      if (genericPhrases.includes(clean)) return false;
+
       const genericWords = [
         "posiłek", "posilek", "meal", "obiad", "śniadanie", "sniadanie",
         "kolacja", "przekąska", "przekaska", "breakfast", "lunch", "dinner",
-        "snack", "korekta", "bolus", "jedzenie", "food", "kalkulator", "calculator"
+        "snack", "korekta", "bolus", "jedzenie", "food", "kalkulator", "calculator", "wpis"
       ];
-      if (genericWords.includes(clean)) return false;
-      if (/^\d+([\.,]\d+)?\s*(ww|wbt|g|j|j\.)?$/i.test(clean)) return false;
+      
+      const words = clean.split(/[\s,.:;_\-\(\)]+/).filter(Boolean);
+      const nonGenericWords = words.filter(w => !genericWords.includes(w) && !/^\d+([\.,]\d+)?\s*(ww|wbt|g|j|j\.)?$/i.test(w));
+      
+      if (nonGenericWords.length === 0) return false;
       return true;
     };
 
@@ -406,7 +418,7 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
                     </div>
                     <div className="p-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20">
                       <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 block">Korekty</span>
-                      <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">{meal.avgCorrections || 0}j</span>
+                      <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">{meal.avgCorrections || 0}×</span>
                     </div>
                     <div className="p-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20">
                       <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 block">Spójność</span>
@@ -498,7 +510,7 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
                     </div>
                     <div className="p-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/20">
                       <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 block">Korekty</span>
-                      <span className="text-xs font-black text-amber-700 dark:text-amber-300">{meal.avgCorrections || 0}j</span>
+                      <span className="text-xs font-black text-amber-700 dark:text-amber-300">{meal.avgCorrections || 0}×</span>
                     </div>
                     <div className="p-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/20">
                       <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 block">Spójność</span>

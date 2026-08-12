@@ -14,12 +14,54 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.13';
+export const CURRENT_VERSION = '6.0.17';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.17",
+    date: "2026-08-12",
+    title: "Naprawa Błędu Autoryzacji (setupForegroundListener)",
+    changes: [
+      "Poprawiono alias metody setupForegroundListener w notificationService.ts naprawiając wyjście TypeError z useAuthStore.ts"
+    ]
+  },
+  {
+    version: "6.0.16",
+    date: "2026-08-12",
+    title: "Przycisk Wycisz na Pasku Androida & Brak Dublowania",
+    changes: [
+      "Dodano natywny przycisk 'Wycisz alarm' bezpośrednio na pasku powiadomień Androida",
+      "Wyeliminowano podwójny dźwięk po nakładaniu się kanału systemowego i odtwarzacza wewnątrz aplikacji",
+      "Obsłużono akcję otwarcia z powiadomienia Androida bez ponownego uruchamiania dźwięku po wejściu do aplikacji"
+    ]
+  },
+  {
+    version: "6.0.15",
+    date: "2026-08-12",
+    title: "Natywny Dźwięk Paska Powiadomień Android (v14)",
+    changes: [
+      "Nowy natywny kanał powiadomień Android (glucose_alerts_v14) wymuszający odtwarzanie pliku status_clear.mp3 na systemowym pasku Androida",
+      "Gwarantowany dźwięk powiadomienia na pasku nawet gdy aplikacja jest zminimalizowana lub zamknięta",
+      "Przycisk Wycisz i Zatrzymaj Dźwięk w stałym okienku alarmowym"
+    ]
+  },
+  {
+    version: "6.0.14",
+    date: "2026-08-12",
+    title: "Alerty MP3, Filtrowanie & Poprawki Talerza",
+    changes: [
+      "Usunięcie zduplikowanych zakładek w sekcji Talerza posiłków",
+      "Zaokrąglenie wartości odżywczych (carbs, protein, fat) w historii posiłków",
+      "Odrzucanie generycznych kalkulatorów bolusa w GlikoSense Nutri (tylko nazwane dania ze składem)",
+      "Zmieniono jednostkę pod-statystyki Korekty z 'j' na '×'",
+      "Pancerny silnik odtwarzania MP3 (status_clear.mp3) z autounlock i syntezą sygnału beepera",
+      "Odnawialne alarmy MP3 przy utrzymującym się niskim (15 min) i wysokim cukrze (30 min)",
+      "Przycisk testu dźwięku MP3 w Centrum Powiadomień"
+    ]
+  },
   {
     version: "6.0.13",
     date: "2026-08-11",
@@ -110,6 +152,48 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.17",
+    date: "2026-08-12",
+    title: "Naprawa Błędu Autoryzacji (setupForegroundListener)",
+    changes: [
+      "Poprawiono alias metody setupForegroundListener w notificationService.ts naprawiając wyjście TypeError z useAuthStore.ts"
+    ]
+  },
+  {
+    version: "6.0.16",
+    date: "2026-08-12",
+    title: "Przycisk Wycisz na Pasku Androida & Brak Dublowania",
+    changes: [
+      "Dodano natywny przycisk 'Wycisz alarm' bezpośrednio na pasku powiadomień Androida",
+      "Wyeliminowano podwójny dźwięk po nakładaniu się kanału systemowego i odtwarzacza wewnątrz aplikacji",
+      "Obsłużono akcję otwarcia z powiadomienia Androida bez ponownego uruchamiania dźwięku po wejściu do aplikacji"
+    ]
+  },
+  {
+    version: "6.0.15",
+    date: "2026-08-12",
+    title: "Natywny Dźwięk Paska Powiadomień Android (v14)",
+    changes: [
+      "Nowy natywny kanał powiadomień Android (glucose_alerts_v14) wymuszający odtwarzanie pliku status_clear.mp3 na systemowym pasku Androida",
+      "Gwarantowany dźwięk powiadomienia na pasku nawet gdy aplikacja jest zminimalizowana lub zamknięta",
+      "Przycisk Wycisz i Zatrzymaj Dźwięk w stałym okienku alarmowym"
+    ]
+  },
+  {
+    version: "6.0.14",
+    date: "2026-08-12",
+    title: "Alerty MP3, Filtrowanie & Poprawki Talerza",
+    changes: [
+      "Usunięcie zduplikowanych zakładek w sekcji Talerza posiłków",
+      "Zaokrąglenie wartości odżywczych (carbs, protein, fat) w historii posiłków",
+      "Odrzucanie generycznych kalkulatorów bolusa w GlikoSense Nutri (tylko nazwane dania ze składem)",
+      "Zmieniono jednostkę pod-statystyki Korekty z 'j' na '×'",
+      "Pancerny silnik odtwarzania MP3 (status_clear.mp3) z autounlock i syntezą sygnału beepera",
+      "Odnawialne alarmy MP3 przy utrzymującym się niskim (15 min) i wysokim cukrze (30 min)",
+      "Przycisk testu dźwięku MP3 w Centrum Powiadomień"
+    ]
+  },
   {
     version: "6.0.13",
     date: "2026-08-11",

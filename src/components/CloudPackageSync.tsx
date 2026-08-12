@@ -134,6 +134,11 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
    saveLocalLogs(parsed.logs, (p) => { idbP = p; updateP(); }).catch(console.error),
    dbService.saveMultipleLogs(parsed.logs, (p) => { sqliteP = p; updateP(); }).catch(console.error)
  ]);
+
+  // Natychmiastowa aktualizacja pamięci RAM i aplikacji po pobraniu paczki chmurowej
+  useLogsStore.getState().setLogs(parsed.logs);
+  window.dispatchEvent(new CustomEvent('localLogAddBatch', { detail: parsed.logs }));
+  localStorage.setItem("lastSafeTimestamp", Date.now().toString());
  } else {
    onProgress?.(100);
  }

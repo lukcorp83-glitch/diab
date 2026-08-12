@@ -6,6 +6,7 @@ import { getToken, onMessage } from 'firebase/messaging';
 import { messaging, auth, db } from '../lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import i18n from "../i18n";
+import { stopAllAudio } from '../lib/audioUtils';
 
 const VAPID_KEY = 'BDpTWMeEWqqbg9i1S4P33GC51S2TgPs_cozqFLQrYJl0y6RXMXUym50gG-1d3xvGsSH7EjVGRyERPQ1i-K2h3D4';
 
@@ -16,10 +17,12 @@ export const notificationService = {
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v10' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v11' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v12' }); } catch(e) {}
+        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v13' }); } catch(e) {}
+        
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v13',
+          id: 'glucose_alerts_v14',
           name: 'Krytyczne Alerty Glikemii',
-          description: 'Powiadomienia o niskim lub wysokim poziomie cukru',
+          description: 'Powiadomienia o niskim lub wysokim poziomie cukru z dźwiękiem MP3',
           importance: 5,
           visibility: 1,
           sound: 'status_clear',
@@ -34,6 +37,39 @@ export const notificationService = {
           visibility: 1,
           vibration: true
         });
+
+        // Register Action Button (Wycisz) directly on Android Notification Bar
+        await LocalNotifications.registerActionTypes({
+          types: [
+            {
+              id: 'GLUCOSE_ALARM_ACTIONS',
+              actions: [
+                {
+                  id: 'snooze_alarm',
+                  title: '🔕 Wycisz alarm'
+                }
+              ]
+            }
+          ]
+        }).catch(() => {});
+
+        // Listen to notification clicks or action button clicks on Android notification bar
+        if (!(window as any).__localNotifListenerRegistered) {
+          (window as any).__localNotifListenerRegistered = true;
+          LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+            console.log('[NotificationService] Action clicked on Android notification bar:', action);
+            const isHigh = action.notification.id === 888 || action.notification.extra?.isHigh;
+            const snoozeMs = isHigh ? 30 * 60 * 1000 : 15 * 60 * 1000;
+            const snoozeUntil = Date.now() + snoozeMs;
+
+            // Set snooze flag immediately when notification is clicked/snoozed from Android status bar
+            localStorage.setItem('glucose_alarm_snooze_until', snoozeUntil.toString());
+            localStorage.setItem('glucose_alarm_snooze_type', isHigh ? 'high' : 'low');
+
+            // Stop any active playing audio immediately
+            stopAllAudio();
+          });
+        }
       } catch (err) {
         console.warn('Failed to create notification channel:', err);
       }
@@ -107,7 +143,6 @@ export const notificationService = {
         return null;
       }
 
-      // Use base URL for service worker to handle subdirectories (like GitHub Pages)
       const swPath = `${import.meta.env.BASE_URL}firebase-messaging-sw.js`.replace(/\/+/g, '/');
       let registration = await navigator.serviceWorker.getRegistration(swPath);
       
@@ -118,33 +153,53 @@ export const notificationService = {
 
       const token = await getToken(msg, { 
         vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: registration 
+        serviceWorkerRegistration: registration
       });
 
       if (token) {
-        console.log('FCM Token:', token);
+        console.log('FCM Token obtained:', token);
         await this.saveTokenToFirestore(token);
         return token;
       }
       return null;
     } catch (error) {
-      console.error('Token registration failed:', error);
-      const errMsg = error instanceof Error ? error.message : String(error);
-      if (errMsg.includes('Permission denied')) {
-        alert(i18n.t('auto.dostep_do_powiadomien_zostal_z', { defaultValue: i18n.t('auto.dostep_do_powiadomien_zos', { defaultValue: "Dostęp do powiadomień został zablokowany. Zresetuj uprawnienia w ustawieniach przeglądarki." }) }));
-      } else if (errMsg.includes('bad HTTP response code (404)')) {
-        alert(i18n.t('auto.blad_serwera_404_przy_pobieran', { defaultValue: i18n.t('auto.blad_serwera_404_przy_pob', { defaultValue: "Błąd serwera (404) przy pobieraniu pliku powiadomień. Spróbuj odświeżyć stronę." }) }));
-      } else {
-        alert(`Błąd rejestracji tokena Push: ${errMsg}`);
-      }
+      console.error('Error getting FCM token:', error);
       return null;
     }
   },
 
-  async sendHypoProtectionAlert() {
-    const title = i18n.t('auto.ochrona_przed_hipo', { defaultValue: "Ochrona przed hipo (AI)" });
-    const body = i18n.t('auto.uwaga_glikosense_przewiduje_hipo', { defaultValue: "Ostrzeżenie: GlikoSense przewiduje spadek poniżej normy (hipoglikemia)!" });
-    
+  async saveTokenToFirestore(token: string) {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        fcmToken: token,
+        fcmTokenUpdatedAt: serverTimestamp(),
+        platform: Capacitor.getPlatform(),
+        isNative: Capacitor.isNativePlatform()
+      }, { merge: true });
+
+      console.log('FCM token saved to Firestore for user:', user.uid);
+    } catch (error) {
+      console.error('Error saving FCM token to Firestore:', error);
+    }
+  },
+
+  listenForegroundMessages(callback: (payload: any) => void) {
+    messaging().then(msg => {
+      if (!msg) return;
+      onMessage(msg, (payload) => {
+        console.log('Foreground FCM Message received:', payload);
+        callback(payload);
+      });
+    }).catch(err => {
+      console.warn('Foreground messaging listener setup failed:', err);
+    });
+  },
+
+  async scheduleDeviceReminder(title: string, body: string) {
     if (Capacitor.isNativePlatform()) {
       await this.initChannels();
       await LocalNotifications.requestPermissions();
@@ -237,7 +292,6 @@ export const notificationService = {
       const perms = await LocalNotifications.checkPermissions();
       if (perms.display !== 'granted') return;
 
-      // Anuluj poprzednie powiadomienia leków (IDs 2000-2099)
       const idsToCancel = Array.from({ length: 100 }, (_, i) => ({ id: 2000 + i }));
       await LocalNotifications.cancel({ notifications: idsToCancel }).catch(() => {});
 
@@ -247,155 +301,50 @@ export const notificationService = {
       const activeMeds = (medications || []).filter((m: any) => m.active && m.reminders?.length > 0);
 
       for (const med of activeMeds) {
-        for (const reminderTime of med.reminders) {
-          const [hours, minutes] = reminderTime.split(':').map(Number);
-          if (isNaN(hours) || isNaN(minutes)) continue;
-
+        for (const rem of med.reminders) {
+          if (!rem.time) continue;
+          const [hours, minutes] = rem.time.split(':').map(Number);
           const now = new Date();
-          const scheduleDate = new Date();
-          scheduleDate.setHours(hours, minutes, 0, 0);
+          const scheduledTime = new Date();
+          scheduledTime.setHours(hours, minutes, 0, 0);
 
-          // Jeśli godzina już minęła dziś, zaplanuj na jutro
-          if (scheduleDate <= now) {
-            scheduleDate.setDate(scheduleDate.getDate() + 1);
+          if (scheduledTime.getTime() <= now.getTime()) {
+            scheduledTime.setDate(scheduledTime.getDate() + 1);
           }
-
-          const dosageInfo = med.dosage ? ` (${med.dosage})` : '';
 
           notificationsToSchedule.push({
             id: notifId++,
-            title: `💊 ${i18n.t('auto.czas_na_lek', { defaultValue: 'Czas na lek' })}: ${med.name}`,
-            body: `${i18n.t('auto.pamietaj_o_dawce', { defaultValue: 'Pamiętaj o dawce' })}${dosageInfo}`,
-            schedule: { at: scheduleDate, repeats: true, every: 'day' },
+            title: `⏰ Czas na lek: ${med.name}`,
+            body: `Dawka: ${rem.dose || med.dose || '1 szt.'}`,
+            schedule: { at: scheduledTime, repeats: true, every: 'day' },
             channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
-            extra: { medId: med.id },
+            extra: { medicationId: med.id }
           });
-
-          if (notifId >= 2100) break;
         }
-        if (notifId >= 2100) break;
       }
 
       if (notificationsToSchedule.length > 0) {
         await LocalNotifications.schedule({ notifications: notificationsToSchedule });
-        console.log(`[Notifications] Zaplanowano ${notificationsToSchedule.length} przypomnienie(ń) leków.`);
+        console.log(`Scheduled ${notificationsToSchedule.length} medication reminders.`);
       }
     } catch (e) {
       console.error('Failed to schedule medication reminders', e);
     }
   },
 
-  async scheduleLocalNotification(title: string, body: string, delayMinutes: number) {
-    const delayMs = delayMinutes * 60 * 1000;
-    toast.success(`Przypomnienie ustawione na za ${delayMinutes} minut! ⏰`);
-
-    if (Capacitor.isNativePlatform()) {
-      const scheduleDate = new Date(Date.now() + delayMs);
-      await this.initChannels();
-      await LocalNotifications.requestPermissions();
-      await LocalNotifications.schedule({
-        notifications: [{
-          title,
-          body,
-          id: Math.floor(Math.random() * 100000),
-          schedule: { at: scheduleDate },
-          channelId: 'glikocontrol_reminders_v1',
-          attachments: null,
-          actionTypeId: '',
-          extra: null
-        }]
-      });
-      return;
-    }
-
-    if (!window.Notification) {
-      toast.error(i18n.t('auto.powiadomienia_nie_sa_obslugiwa', { defaultValue: i18n.t('auto.powiadomienia_nie_sa_obsl', { defaultValue: "Powiadomienia nie są obsługiwane na tym urządzeniu." }) }));
-      return;
-    }
-
-    if (window.Notification && window.Notification.permission !== 'granted') {
-      const permission = await window.Notification.requestPermission();
-      if (permission !== 'granted') {
-        toast.error(i18n.t('auto.brak_uprawnien_do_powiadomien', { defaultValue: i18n.t('auto.brak_uprawnien_do_powiado', { defaultValue: "Brak uprawnień do powiadomień. Nie można ustawić przypomnienia." }) }));
-        return;
-      }
-    }
-
-    setTimeout(async () => {
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
-
-      toast(body, {
-        icon: '🍽️',
-        duration: 20000,
-        position: 'top-center',
-        style: { border: '2px solid #6366f1', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
-      });
-
-      const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');
-      if (apkPref !== 'false') {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          if (registration) {
-            registration.showNotification(title, {
-              body,
-              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
-              vibrate: [200, 100, 200, 100, 200],
-              tag: 'glikocontrol-reminder',
-              requireInteraction: true
-            } as any);
-          } else {
-            new window.Notification(title, { body });
-          }
-        } catch (e) {
-          console.log("Fallback powiadomienia", e);
-          try { new window.Notification(title, { body }); } catch(err) {}
-        }
-      }
-    }, delayMs);
+  setupForegroundListener() {
+    this.setupForegroundNotificationHandler();
   },
 
-  async updateStickyNotification(glucoseText: string, trendArrow: string, iob: number, cob: number, delta: number) {
-    // Usunięto na życzenie użytkownika (skasowano powiadomienie glikemii na belce)
-  },
-
-  async saveTokenToFirestore(token: string) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      await setDoc(doc(db, 'users', user.uid, 'settings', 'fcm_token'), {
-        token,
-        updatedAt: serverTimestamp(),
-        userId: user.uid,
-        email: user.email,
-        platform: 'web'
-      }, { merge: true });
-    } catch (e) {
-      console.error('Error saving FCM token:', e);
-    }
-  },
-
-  async setupForegroundListener() {
-    if (Capacitor.isNativePlatform()) {
-      // Listeners are added inside registerToken() to avoid duplicates
-      return;
-    }
-
-    const msg = await messaging();
-    if (!msg) return;
-
-    onMessage(msg, async (payload) => {
-      console.log('Message received in foreground:', payload);
-      
-      const title = payload.notification?.title || 'GlikoSense';
+  setupForegroundNotificationHandler() {
+    this.listenForegroundMessages((payload) => {
+      const title = payload.notification?.title || i18n.t('auto.alerty_glikemii', { defaultValue: 'Alert Glikemii' });
       const body = payload.notification?.body || '';
 
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-      
-      toast(body, { 
-        icon: '⚠️', 
+      toast(body ? `${title}: ${body}` : title, {
+        icon: '🚨',
         duration: 20000, 
         position: 'top-center',
         style: { border: '2px solid #f43f5e', padding: '16px', color: '#1e293b', fontWeight: 'bold' }
@@ -404,17 +353,21 @@ export const notificationService = {
       const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');
       if (apkPref !== 'false' && window.Notification && window.Notification.permission === 'granted') {
         try {
-          const registration = await navigator.serviceWorker.ready;
-          if (registration) {
-            registration.showNotification(title, {
-              body,
-              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
-              vibrate: [200, 100, 200],
-              tag: 'glikosense-alert'
-            } as any);
-          } else {
-            new window.Notification(title, { body });
-          }
+          const registration = navigator.serviceWorker.ready;
+          registration.then(reg => {
+            if (reg) {
+              reg.showNotification(title, {
+                body,
+                icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+                vibrate: [200, 100, 200],
+                tag: 'glikosense-alert'
+              } as any);
+            } else {
+              new window.Notification(title, { body });
+            }
+          }).catch(() => {
+            try { new window.Notification(title, { body }) } catch(err) {}
+          });
         } catch(e) {
           try { new window.Notification(title, { body }) } catch(err) {}
         }
@@ -435,11 +388,11 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v13',
+            channelId: 'glucose_alerts_v14',
             sound: 'status_clear',
             attachments: null,
-            actionTypeId: "",
-            extra: null
+            actionTypeId: 'GLUCOSE_ALARM_ACTIONS',
+            extra: { isHigh, value }
           }
         ]
       });

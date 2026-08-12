@@ -124,12 +124,12 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
  {(() => {
  // Dla bolusów z pompy dane są w linkedMeal
  const src = (log.type === 'bolus' && log.linkedMeal) ? log.linkedMeal : log;
- const carbs = src.carbs || (log.type === 'meal' ? log.value : 0) || 0;
- const protein = src.protein || 0;
- const fat = src.fat || 0;
- const calories = src.calories || (carbs > 0 || protein > 0 || fat > 0
- ? Math.round(carbs * 4 + protein * 4 + fat * 9)
- : 0);
+ const carbs = Math.round((src.carbs || (log.type === 'meal' ? log.value : 0) || 0) * 10) / 10;
+ const protein = Math.round((src.protein || 0) * 10) / 10;
+ const fat = Math.round((src.fat || 0) * 10) / 10;
+ const calories = Math.round(src.calories || (carbs > 0 || protein > 0 || fat > 0
+ ? carbs * 4 + protein * 4 + fat * 9
+ : 0));
  return (
  <div className="flex flex-wrap gap-2 mt-2">
  {calories > 0 && (
@@ -139,7 +139,7 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
  )}
  {carbs > 0 && (
  <span className="text-[10px] bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md font-bold">
- {Number(carbs).toFixed(1)}g W
+ {carbs}g W
  </span>
  )}
  {protein > 0 && (

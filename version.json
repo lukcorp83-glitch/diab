@@ -1,10 +1,10 @@
 {
-    "version": "6.0.13",
+    "version": "6.0.17",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.13_OTA.apk",
-    "buildNumber": 128,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.17_OTA.apk",
+    "buildNumber": 132,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.13! 1) Moduł GlikoSense Odżywianie: nowy algorytm tolerancji posiłków (płynna formuła zamiast binarnej). 2) Naprawiono wskaźnik spójności trawienia (nie pokazuje już zawsze 50%). 3) Filtrowanie posiłków: analizowane są tylko nazwane dania ze składem. 4) Rozbudowane statystyki posiłków: średni szczyt, czas powrotu, korekty, spójność. 5) Wyszukiwarka i sortowanie posiłków, limit TOP 6 z rozwijaniem. 6) Poprawiona polska odmiana liczebników. 7) Wskaźnik aktywnej diety widoczny na telefonie.",
-    "whatsNewEn": "Version 6.0.13! 1) GlikoSense Nutrition module: new smooth meal tolerance algorithm (replaces binary formula). 2) Fixed digestion consistency index (no longer always showing 50%). 3) Meal filtering: only named dishes with composition are analyzed. 4) Enhanced meal stats: average peak, return time, corrections, consistency. 5) Live search, sorting, and TOP 6 limit with expand button. 6) Fixed Polish number declension grammar. 7) Active diet indicator now visible on mobile.",
-    "otaRevision": 287
+    "whatsNew": "Wersja 6.0.17! 1) Naprawiono błąd TypeError w użyciu autoryzacji (dodano brakujący alias setupForegroundListener w serwisie powiadomień).",
+    "whatsNewEn": "Version 6.0.17! 1) Fixed TypeError in auth listener (added missing setupForegroundListener method alias in notification service).",
+    "otaRevision": 291
 }

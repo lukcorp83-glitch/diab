@@ -83,7 +83,7 @@ function setCachedData<T>(key: string, data: T) {
 }
 
 export const nightscoutService = {
-  async fetchEntries(url: string, secret?: string, count = 1000, forceSync = false): Promise<LogEntry[]> {
+  async fetchEntries(url: string, secret?: string, count = 4000, forceSync = false): Promise<LogEntry[]> {
     const cacheKey = `ns-entries-${url}-${count}`;
     if (!forceSync) {
       const cached = getCachedData<LogEntry[]>(cacheKey);
@@ -130,7 +130,7 @@ export const nightscoutService = {
     }
   },
 
-  async fetchTreatments(url: string, secret?: string, count = 1000, forceSync = false): Promise<LogEntry[]> {
+  async fetchTreatments(url: string, secret?: string, count = 4000, forceSync = false): Promise<LogEntry[]> {
     const cacheKey = `ns-treatments-${url}-${count}`;
     if (!forceSync) {
       const cached = getCachedData<LogEntry[]>(cacheKey);

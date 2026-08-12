@@ -10,9 +10,9 @@ export function useMealPlateLogic(plate: any[], cookingMethod: string) {
  const totalWeight = plate.reduce((s: number, i: any) => s + i.weight, 0);
  const rawCals = plate.reduce((s: number, i: any) => s + (i.calories || i.kcal || i.carbs * 4 + i.protein * 4 + i.fat * 9) * (i.weight / 100), 0);
 
- const totalCarbs = Math.max(0, rawCarbs - rawPolyols); // Net carbs
- const totalProtein = rawProtein;
- const totalFat = cookingMethod === "fried" ? rawFat + (totalWeight / 100) * 10 : rawFat;
+ const totalCarbs = Math.round(Math.max(0, rawCarbs - rawPolyols) * 10) / 10; // Net carbs
+ const totalProtein = Math.round(rawProtein * 10) / 10;
+ const totalFat = Math.round((cookingMethod === "fried" ? rawFat + (totalWeight / 100) * 10 : rawFat) * 10) / 10;
 
  const totalCalsFromMacros = totalCarbs * 4 + totalProtein * 4 + totalFat * 9;
  const totalCals = Math.max(rawCals, totalCalsFromMacros);

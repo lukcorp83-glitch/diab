@@ -80,14 +80,17 @@ export default function LocalSync({
  }
 
  if (parsed.logs && Array.isArray(parsed.logs)) {
- await saveLocalLogs(parsed.logs);
- try {
-   await dbService.init();
-   await dbService.saveMultipleLogs(parsed.logs);
- } catch (dbErr) {
-   console.error("Failed to save imported logs to SQLite dbService:", dbErr);
- }
- }
+  await saveLocalLogs(parsed.logs);
+  try {
+    await dbService.init();
+    await dbService.saveMultipleLogs(parsed.logs);
+  } catch (dbErr) {
+    console.error("Failed to save imported logs to SQLite dbService:", dbErr);
+  }
+  useLogsStore.getState().setLogs(parsed.logs);
+  window.dispatchEvent(new CustomEvent('localLogAddBatch', { detail: parsed.logs }));
+  localStorage.setItem("lastSafeTimestamp", Date.now().toString());
+  }
 
  if (parsed.settings && user) {
  try {
