@@ -12,6 +12,7 @@ const Dashboard = React.lazy(() => import("../Dashboard"));
 const ChartFullView = React.lazy(() => import("../ChartFullView"));
 const BolusCalculator = React.lazy(() => import("../BolusCalculator"));
 const MealPlate = React.lazy(() => import("../MealPlate"));
+const FoodDatabase = React.lazy(() => import("../FoodDatabase"));
 const NutritionHub = React.lazy(() => import("../nutrition/NutritionHub"));
 const AiReports = React.lazy(() => import("../AiReports"));
 const Profile = React.lazy(() => import("../Profile"));
@@ -187,7 +188,7 @@ export const AppContent = (props: any) => {
                 (activeTab === "chat" || activeTab === "assistant") && "flex-1 flex flex-col h-full",
               )}
             >
-              {activeTab === "chat" && <GlikoChat petData={petData} />}
+              {activeTab === "chat" && <GlikoChat petData={petData} settings={userSettings || undefined} />}
               {activeTab === "assistant" && (
                 <GlikoAssistant
                   settings={userSettings || undefined}

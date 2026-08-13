@@ -445,15 +445,37 @@ const saveInventoryItem = async () => {
  <h4 className="font-bold text-sm dark:text-white leading-tight">
  {item.name}
  </h4>
- <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
- 
- {t('auto.kategoria', { defaultValue: 'Kategoria:' })} {item.category}
- </p>
- {item.category === "pens" && item.penCapacity && (
- <p className="text-[10px] font-bold mt-0.5 uppercase tracking-widest text-indigo-500">
- {t('auto.pojemnosc', { defaultValue: 'Pojemność:' })} {item.penCapacity} j.
- </p>
- )}
+  {(() => {
+    const getCategoryLabel = (catKey: string) => {
+      switch (catKey) {
+        case 'sensors': return t('auto.sensory', { defaultValue: 'Sensory CGM' });
+        case 'insulin': return t('auto.insulina', { defaultValue: 'Insulina' });
+        case 'pens': return t('auto.peny', { defaultValue: 'Wstrzykiwacze (Peny)' });
+        case 'reservoirs': return t('auto.zbiorniczki', { defaultValue: 'Zbiorniczki' });
+        case 'infusion_sets': return t('auto.wkłucia', { defaultValue: 'Wkłucia' });
+        case 'strips': return t('auto.paski', { defaultValue: 'Paski i Igły' });
+        case 'other': return t('auto.inne', { defaultValue: 'Inne' });
+        default: return catKey;
+      }
+    };
+    return (
+      <>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+          {t('auto.kategoria', { defaultValue: 'Kategoria:' })} {getCategoryLabel(item.category)}
+        </p>
+        {item.category === "pens" && item.penCapacity && (
+          <p className="text-[10px] font-bold mt-0.5 uppercase tracking-widest text-indigo-500">
+            {t('auto.pojemnosc', { defaultValue: 'Pojemność:' })} {item.penCapacity} j.
+          </p>
+        )}
+        {item.category === "reservoirs" && (item.capacity || settings?.reservoirCapacityUnits) && (
+          <p className="text-[10px] font-bold mt-0.5 uppercase tracking-widest text-purple-500">
+            {t('auto.pojemnosc', { defaultValue: 'Pojemność:' })} {item.capacity || settings?.reservoirCapacityUnits} j.
+          </p>
+        )}
+      </>
+    );
+  })()}
  {item.expiryDate && (
  <p className="text-[9px] font-bold mt-1 uppercase tracking-widest flex items-center gap-1 text-amber-600 dark:text-amber-500">
  <Calendar size={10} /> {t('auto.data_ważn', { defaultValue: i18n.t('auto.data_wazn', { defaultValue: "Data ważn:" }) })} {item.expiryDate}

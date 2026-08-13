@@ -91,7 +91,6 @@ import { useLogsStore } from "../stores/useLogsStore";
 import { useMealPlateStore } from "../stores/useMealPlateStore";
 
 const getDietBadge = (product: Product, activeDiet: string | null) => {
- const logs = useLogsStore((state) => state.logs);
  if (!activeDiet) return null;
  const pName = getProductName(product, i18n.language).toLowerCase();
 
@@ -1086,6 +1085,8 @@ export default function MealPlate({
  handleLogMeal={handleLogMeal} setMergeCandidates={setMergeCandidates}
  getProductName={getProductName} setIsScannerOpen={setIsScannerOpen}
  />
+ </>
+ )}
 
  { (mode === "search" || mode === "both") && (
  <ProductSearch openWeightModal={openWeightModal} openShortcutConfirmModal={openShortcutConfirmModal} startScanner={startScanner} startCameraAnalysis={startCameraAnalysis} isAnalyzing={isAnalyzing} searchError={searchError} setSearchError={setSearchError} allLocal={allLocal} activeDiet={settings?.activeDiet || null} mode={mode} publishToCommunity={publishToCommunity} saveToCustomDb={saveToCustomDb} handleScrollHaptics={handleScrollHaptics} addToPlate={addToPlate} settings={settings} isLoadingSavedMeals={isLoadingSavedMeals} savedMeals={savedMeals} plate={plate} setPlate={setPlate} cookingMethod={cookingMethod} db={db} getEffectiveUid={getEffectiveUid} />
@@ -1422,39 +1423,38 @@ export default function MealPlate({
  </div>
  )}
 
- {/* Plate Stats */}
-<MealComposer
- mode={mode}
- plate={plate}
- setPlate={setPlate}
- removeFromPlate={removeFromPlate}
- updateWeight={updateWeight}
- totalWW={totalWW}
- totalWBT={totalWBT}
- totalCarbs={totalCarbs}
- totalProtein={totalProtein}
- totalFat={totalFat}
- cookingMethod={cookingMethod}
- setCookingMethod={setCookingMethod}
- settings={settings}
- activeBolus={activeBolus}
- entryTime={entryTime}
- setEntryTime={setEntryTime}
- handleMergeMeal={handleMergeMeal}
- handleLogMeal={handleLogMeal}
- totalKcal={totalCarbs * 4 + totalProtein * 4 + totalFat * 9}
- saveMealToLibrary={saveMealToLibrary}
- setIsMealSaved={setIsMealSaved}
- totalGL={totalGL}
- prepareToLogMeal={prepareToLogMeal}
- analyzeMeal={analyzeMeal}
- isAnalyzing={isAnalyzing}
- analysis={analysis}
- setTab={setTab}
- />
- </>
- )}
- </motion.div>
- );
+  {/* Plate Stats */}
+  {(mode === "plate" || mode === "both") && (
+  <MealComposer
+  mode={mode}
+  plate={plate}
+  setPlate={setPlate}
+  removeFromPlate={removeFromPlate}
+  updateWeight={updateWeight}
+  totalWW={totalWW}
+  totalWBT={totalWBT}
+  totalCarbs={totalCarbs}
+  totalProtein={totalProtein}
+  totalFat={totalFat}
+  cookingMethod={cookingMethod}
+  setCookingMethod={setCookingMethod}
+  settings={settings}
+  activeBolus={activeBolus}
+  entryTime={entryTime}
+  setEntryTime={setEntryTime}
+  handleMergeMeal={handleMergeMeal}
+  handleLogMeal={handleLogMeal}
+  totalKcal={totalCarbs * 4 + totalProtein * 4 + totalFat * 9}
+  saveMealToLibrary={saveMealToLibrary}
+  setIsMealSaved={setIsMealSaved}
+  totalGL={totalGL}
+  prepareToLogMeal={prepareToLogMeal}
+  analyzeMeal={analyzeMeal}
+  isAnalyzing={isAnalyzing}
+  analysis={analysis}
+  setTab={setTab}
+  />
+  )}
+  </motion.div>
+  );
 }
-

@@ -348,18 +348,21 @@ export default function GlikoAssistant({
  )}
  >
  <AnimatePresence initial={false}>
- {messages.map((message) => (
+ {messages.map((message) => {
+ const msgText = message.text || (message as any).content || "";
+ const isUser = message.role === 'user';
+ return (
  <motion.div
  key={`msg-${message.id}-${message.timestamp}`}
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  className={cn(
  "flex gap-4",
- message.role === 'user' ? "flex-row-reverse" : "flex-row"
+ isUser ? "flex-row-reverse" : "flex-row"
  )}
  >
  <div className="shrink-0 pt-1">
- {message.role === 'user' ? (
+ {isUser ? (
  <div className={cn(
  "w-10 h-10 rounded-full flex items-center justify-center",
  "bg-slate-100 dark:bg-slate-800 text-slate-500"
@@ -373,17 +376,17 @@ export default function GlikoAssistant({
  
  <div className={cn(
  "max-w-[85%] py-2",
- message.role === 'user' 
+ isUser 
  ? "px-5 py-3 bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 rounded-3xl"
  : "text-slate-800 dark:text-slate-100"
  )}>
  <div 
  className={cn(
  "text-base md:text-lg leading-relaxed prose prose-base max-w-none dark:prose-invert",
- message.role === 'user' ? "[&_p]:text-slate-900 dark:[&_p]:text-slate-100" : "dark:prose-invert",
+ isUser ? "[&_p]:text-slate-900 dark:[&_p]:text-slate-100" : "dark:prose-invert",
  !isChild && "font-sans"
  )}
- dangerouslySetInnerHTML={{ __html: message.text }}
+ dangerouslySetInnerHTML={{ __html: msgText }}
  />
  
  {message.appAction && message.appAction.action && (
@@ -423,7 +426,8 @@ export default function GlikoAssistant({
  </div>
  </div>
  </motion.div>
- ))}
+ );
+ })}
  </AnimatePresence>
  
  {isTyping && (

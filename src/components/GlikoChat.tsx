@@ -307,7 +307,7 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  parts: [{ text: m.text }]
  }));
 
- const response = await geminiService.getGlikoChatResponse(messageText, history, petData, userSettings?.treatmentMode);
+ const response = await geminiService.getGlikoChatResponse(messageText, history, petData, settings?.treatmentMode);
  
  let cleanResponse = response;
  const plateActionMatches = Array.from(response.matchAll(/<plate_action>([\s\S]*?)<\/plate_action>/g));
@@ -338,6 +338,12 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  }
  if (appActionMatches.length > 0) {
  cleanResponse = cleanResponse.replace(/<app_action>[\s\S]*?<\/app_action>/g, '').trim();
+ }
+
+ if (!cleanResponse || !cleanResponse.trim()) {
+ cleanResponse = (plateActionMatches.length > 0 || appActionMatches.length > 0) 
+ ? i18n.t('auto.gotowe_wykonalem_polecenie', { defaultValue: "Gotowe! Wykonałem Twoje polecenie. ✨" })
+ : i18n.t('auto.zrobione_odpowiedz', { defaultValue: "Zrobione! ✨" });
  }
 
  const modelMessage: Message = {

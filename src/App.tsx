@@ -251,12 +251,60 @@ export default function App() {
   const setUserSettings = () => {};
   
   const sendAssistantMessage = async (msg: string) => {
-      setAssistantMessages((prev: any[]) => [...prev, { id: Date.now().toString(), role: 'user', content: msg, timestamp: Date.now() }]);
+      if (!msg.trim()) return;
+      const userMsg = { id: Date.now().toString(), role: 'user', text: msg, content: msg, timestamp: Date.now() };
+      setAssistantMessages((prev: any[]) => [...prev, userMsg]);
       setIsAssistantTyping(true);
-      setTimeout(() => {
-          setAssistantMessages((prev: any[]) => [...prev, { id: Date.now().toString(), role: 'assistant', content: "To jest przykładowa odpowiedź.", timestamp: Date.now() }]);
-          setIsAssistantTyping(false);
-      }, 1000);
+
+      try {
+        const history = (assistantMessages || []).slice(-10).map((m: any) => ({
+          role: (m.role === 'model' || m.role === 'assistant' ? 'model' : 'user') as "user" | "model",
+          parts: [{ text: m.text || m.content || "" }]
+        }));
+
+        const response = await geminiService.getGlikoChatResponse(
+          msg,
+          history,
+          null,
+          userSettings?.treatmentMode
+        );
+
+        let cleanText = response || "";
+        const appActionMatches = Array.from(cleanText.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g));
+        let parsedAppAction = null;
+        for (const match of appActionMatches) {
+          try { parsedAppAction = JSON.parse(match[1]); } catch (e) {}
+        }
+
+        cleanText = cleanText.replace(/<plate_action>[\s\S]*?<\/plate_action>/g, '').replace(/<app_action>[\s\S]*?<\/app_action>/g, '').trim();
+        if (!cleanText) cleanText = "Gotowe! Wykonałem Twoje polecenie. ✨";
+
+        setAssistantMessages((prev: any[]) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'model',
+            text: cleanText,
+            content: cleanText,
+            appAction: parsedAppAction,
+            timestamp: Date.now()
+          }
+        ]);
+      } catch (err) {
+        console.error("sendAssistantMessage error:", err);
+        setAssistantMessages((prev: any[]) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'model',
+            text: "Ojej, wystąpił błąd połączenia z Asystentem. Spróbuj ponownie!",
+            content: "Ojej, wystąpił błąd połączenia z Asystentem. Spróbuj ponownie!",
+            timestamp: Date.now()
+          }
+        ]);
+      } finally {
+        setIsAssistantTyping(false);
+      }
   };
 
   useEffect(() => {

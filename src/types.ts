@@ -1,4 +1,4 @@
-﻿export interface Product {
+export interface Product {
   id?: string;
   name: string;
   nameEn?: string;
@@ -104,6 +104,7 @@ export interface InventoryItem {
   barcode?: string;
   penCapacity?: number; // Pojemność pojedynczego pena (dla category === 'pens')
   currentPenUnits?: number; // Jednostki w aktualnie rozpoczętym penie
+  capacity?: number; // Pojemność zbiorniczka (dla category === 'reservoirs', w U lub ml)
 }
 
 export interface UserSettings {
@@ -135,6 +136,7 @@ export interface UserSettings {
   sensorDurationDays?: number;
   infusionSetDurationDays?: number;
   reservoirDurationDays?: number;
+  reservoirCapacityUnits?: number; // Pojemność zbiorniczka w pompie w jednostkach (np. 180U / 300U)
   notificationsEnabled?: boolean;
   apkSystemNotificationsEnabled?: boolean;
   notificationPrefs?: {

@@ -52,6 +52,11 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
  const deviceName = isPump ? fallbackPumpName : (data.uploader?.type || t('auto.cgm_uploader', { defaultValue: 'CGM / Uploader' }));
  const deviceSource = isPump ? (serverPumpName ? "Nightscout / AID" : "Nightscout") : "Nightscout";
 
+  // Obliczanie pojemności zbiorniczka
+  const reservoirItem = inventory.find(i => i.category === 'reservoirs' && i.capacity);
+  const reservoirCap = reservoirItem?.capacity || (data as any)?.reservoirCapacity || 300;
+  const fillPct = Math.min(100, Math.max(0, ((data.reservoir || 0) / reservoirCap) * 100));
+
  return (
  <motion.div 
  initial={{ opacity: 0, scale: 0.95 }}
@@ -86,17 +91,19 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, loading, compa
  {/* Reservoir */}
  {isPump ? (
  <div className="flex flex-col gap-1">
- <div className="flex items-center gap-1 text-[8px] font-black text-slate-400 uppercase tracking-widest">
- <Cylinder size={10} /> {t('auto.zbiornik', { defaultValue: 'Zbiornik' })}
+ <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest">
+ <span className="flex items-center gap-1"><Cylinder size={10} /> {t('auto.zbiornik', { defaultValue: 'Zbiornik' })}</span>
+ <span className="text-[7px] text-blue-500 font-bold">{Math.round(fillPct)}%</span>
  </div>
  <div className={cn("text-lg font-black", getReservoirColor(data.reservoir))}>
- {data.reservoir != null ? Number(data.reservoir).toFixed(0) : '--'} <span className="text-[10px] opacity-70">U</span>
+ {data.reservoir != null ? Number(data.reservoir).toFixed(0) : '--'} <span className="text-[10px] opacity-70">U / {reservoirCap}U</span>
  </div>
- <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+ <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden relative p-0.5 border border-blue-500/10">
  <motion.div 
  initial={{ width: 0 }}
- animate={{ width: `${Math.min(((data.reservoir || 0) / 300) * 100, 100)}%` }}
- className="bg-blue-500 h-full"
+ animate={{ width: `${fillPct}%` }}
+ transition={{ duration: 1, ease: 'easeOut' }}
+ className="bg-gradient-to-r from-blue-600 to-cyan-400 h-full rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"
  />
  </div>
  </div>
