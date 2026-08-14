@@ -220,7 +220,7 @@ export const MLAnalyzer = {
       const timeoutId = setTimeout(() => {
         worker.terminate();
         reject(new Error("GlikoSense Worker timeout"));
-      }, mode === 'quick' ? 120000 : 240000);
+      }, mode === 'quick' ? 15000 : 45000);
 
       worker.onmessage = (e) => {
         clearTimeout(timeoutId);
@@ -314,6 +314,14 @@ export const MLAnalyzer = {
         }
       }
       return res;
+    }).catch((err) => {
+      console.warn("GlikoSense Worker analysis failed, using fallback:", err?.message || err);
+      if (_cachedResult) return _cachedResult;
+      const persistentCache = localStorage.getItem('glikosense_last_result_v5_lstm');
+      if (persistentCache) {
+        try { return JSON.parse(persistentCache); } catch(e) {}
+      }
+      return { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [], accuracy: 0, datasetSize: logs.length };
     }).finally(() => {
       if (mode === 'full') _currentFullAnalysisPromise = null;
       else _currentQuickAnalysisPromise = null;

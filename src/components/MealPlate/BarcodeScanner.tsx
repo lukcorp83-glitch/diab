@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { motion } from "framer-motion";
 import { Camera, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
@@ -12,6 +12,14 @@ export const MealScanner = forwardRef(({ onResult, onCancel }: { onResult: (res:
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [scanner, setScanner] = useState<any>(null);
   const isNative = Capacitor.isNativePlatform();
+
+  const onResultRef = useRef(onResult);
+  const onCancelRef = useRef(onCancel);
+
+  useEffect(() => {
+    onResultRef.current = onResult;
+    onCancelRef.current = onCancel;
+  }, [onResult, onCancel]);
 
   useImperativeHandle(ref, () => ({
     stopScanner: async () => {
@@ -45,15 +53,15 @@ export const MealScanner = forwardRef(({ onResult, onCancel }: { onResult: (res:
         
         if (isActive) {
           if (barcodes.length > 0) {
-            onResult(barcodes[0].rawValue);
+            onResultRef.current(barcodes[0].rawValue);
           } else {
-            if (onCancel) onCancel();
+            if (onCancelRef.current) onCancelRef.current();
           }
         }
       } catch (err: any) {
         console.error("ML Kit error:", err);
         if (isActive) {
-          if (onCancel) onCancel();
+          if (onCancelRef.current) onCancelRef.current();
         }
       }
     };
@@ -63,7 +71,7 @@ export const MealScanner = forwardRef(({ onResult, onCancel }: { onResult: (res:
     return () => {
       isActive = false;
     };
-  }, [isNative, onResult, onCancel]);
+  }, [isNative]);
 
   // Web (PWA) Logic - HTML5Qrcode Init
   useEffect(() => {
@@ -93,13 +101,13 @@ export const MealScanner = forwardRef(({ onResult, onCancel }: { onResult: (res:
             videoConstraints: typeof config === 'string' ? undefined : { facingMode: config.facingMode },
           },
           (decodedText: string) => {
-            scanner.stop().then(() => onResult(decodedText)).catch((e: any) => console.error(e));
+            scanner.stop().then(() => onResultRef.current(decodedText)).catch((e: any) => console.error(e));
           },
           () => {}
         ).catch((err: any) => {
           console.error("Scanner start error", err);
           if (config.facingMode) {
-            scanner.start({ facingMode: 'environment' }, { fps: 20 }, (txt: string) => { scanner.stop(); onResult(txt); }, () => {}).catch(console.error);
+            scanner.start({ facingMode: 'environment' }, { fps: 20 }, (txt: string) => { scanner.stop(); onResultRef.current(txt); }, () => {}).catch(console.error);
           }
         });
       };
@@ -126,7 +134,7 @@ export const MealScanner = forwardRef(({ onResult, onCancel }: { onResult: (res:
         startWithConfig({ facingMode });
       });
     }
-  }, [scanner, facingMode, isNative, onResult]);
+  }, [scanner, facingMode, isNative]);
 
   const switchCamera = () => {
     if (isNative) return;

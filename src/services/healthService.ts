@@ -9,21 +9,27 @@ export interface HealthDataResult {
 }
 
 export const healthService = {
-  isAvailable(): boolean {
-    if (!Capacitor.isNativePlatform()) return false;
+  getHealthObj(): any {
+    if (typeof window === 'undefined') return null;
     const win = window as any;
-    return !!(win.navigator && (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health)));
+    return win.navigator?.health || 
+           win.cordova?.plugins?.health || 
+           win.Capacitor?.Plugins?.Health || 
+           win.Capacitor?.Plugins?.HealthConnect ||
+           win.Health;
+  },
+
+  isAvailable(): boolean {
+    if (this.getHealthObj()) return true;
+    if (Capacitor.isNativePlatform()) return true;
+    return false;
   },
 
   async requestAuthorization(): Promise<boolean> {
-    if (!this.isAvailable()) return false;
+    const healthObj = this.getHealthObj();
+    if (!healthObj) return false;
 
     return new Promise((resolve) => {
-      
-      const win = window as any;
-      const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
-      if (!healthObj) { resolve(false); return; }
-
       healthObj.requestAuthorization(
         {
           read: ['steps', 'blood_glucose'],
@@ -35,7 +41,6 @@ export const healthService = {
         },
         (err: any) => {
           console.error('[HealthConnect] Authorization failed:', err);
-          toast.error('Odmowa: ' + (typeof err === 'string' ? err : JSON.stringify(err)));
           resolve(false);
         }
       );
@@ -43,21 +48,16 @@ export const healthService = {
   },
 
   async getStepsLast24h(): Promise<number | null> {
-    if (!this.isAvailable()) return null;
+    const healthObj = this.getHealthObj();
+    if (!healthObj) return null;
 
     return new Promise((resolve) => {
-      
       const now = new Date();
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-      
-      const win = window as any;
-      const healthObj = (win.navigator.health || (win.cordova && win.cordova.plugins && win.cordova.plugins.health));
-      if (!healthObj) { resolve(0); return; }
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
       healthObj.queryAggregated(
         {
-          startDate: yesterday,
+          startDate: today,
           endDate: now,
           dataType: 'steps',
         },
@@ -67,7 +67,6 @@ export const healthService = {
             resolve(0);
             return;
           }
-          // queryAggregated może zwrócić tablicę obiektów lub pojedynczy obiekt
           let totalSteps = 0;
           if (Array.isArray(data)) {
             totalSteps = data.reduce((acc, curr) => acc + (Number(curr?.value) || 0), 0);
@@ -77,8 +76,24 @@ export const healthService = {
           resolve(Math.round(totalSteps));
         },
         (err: any) => {
-          console.warn('[HealthConnect] Error querying steps:', err);
-          resolve(null);
+          console.warn('[HealthConnect] Error querying aggregated steps, fallback to raw query:', err);
+          // Fallback to raw query if queryAggregated fails
+          healthObj.query(
+            {
+              startDate: today,
+              endDate: now,
+              dataType: 'steps',
+            },
+            (rawData: any) => {
+              if (Array.isArray(rawData)) {
+                const total = rawData.reduce((acc, curr) => acc + (Number(curr?.value) || 0), 0);
+                resolve(Math.round(total));
+              } else {
+                resolve(0);
+              }
+            },
+            () => resolve(null)
+          );
         }
       );
     });

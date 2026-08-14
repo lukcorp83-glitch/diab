@@ -14,12 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.18';
+export const CURRENT_VERSION = '6.0.19';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.19",
+    date: "2026-08-14",
+    title: "Szybkie Menu Dolne, Skanery Kodów & Smart Equipment",
+    changes: [
+      "Zoptymalizowano ładowanie zakładek z menu dolnego (prefetching w tle oraz przejście popLayout)",
+      "Odblokowano skaner kodów kreskowych w widoku Bazy Produktów",
+      "Wyeliminowano pętlę restartowania skanera w sekcji Talerz",
+      "Poprawiono testowanie połączenia z własnym kluczem Gemini AI w Profilu",
+      "Dodano bezawaryjny backend CPU dla GlikoSense ML Web Workera",
+      "Naprawiono nasłuch powiadomień w tle na Androidzie oraz dodano modal z automatycznym odejmowaniem elementów z apteczki przy wymianie osprzętu"
+    ]
+  },
   {
     version: "6.0.18",
     date: "2026-08-12",
@@ -163,6 +176,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.19",
+    date: "2026-08-14",
+    title: "Szybkie Menu Dolne, Skanery Kodów & Smart Equipment",
+    changes: [
+      "Zoptymalizowano ładowanie zakładek z menu dolnego (prefetching w tle oraz przejście popLayout)",
+      "Odblokowano skaner kodów kreskowych w widoku Bazy Produktów",
+      "Wyeliminowano pętlę restartowania skanera w sekcji Talerz",
+      "Poprawiono testowanie połączenia z własnym kluczem Gemini AI w Profilu",
+      "Dodano bezawaryjny backend CPU dla GlikoSense ML Web Workera",
+      "Naprawiono nasłuch powiadomień w tle na Androidzie oraz dodano modal z automatycznym odejmowaniem elementów z apteczki przy wymianie osprzętu"
+    ]
+  },
   {
     version: "6.0.18",
     date: "2026-08-12",

@@ -248,25 +248,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     try {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile) {
-         try { await tf.setBackend('cpu'); } catch(e) {}
-      } else {
-        setWasmPaths('/wasm/');
-        if (typeof OffscreenCanvas !== 'undefined') {
-          await tf.setBackend('webgl');
-        } else {
-          throw new Error('No webgl');
-        }
-      }
+      await tf.setBackend('cpu');
+      await tf.ready();
     } catch (e) {
-      try { 
-        await tf.setBackend('wasm'); 
-      } catch (e2) {
-        try { await tf.setBackend('cpu'); } catch (e3) {}
-      }
+      console.warn("TF Worker backend set warning:", e);
     }
-    await tf.ready();
     const activeBackend = tf.getBackend() || 'cpu';
     self.postMessage({ type: 'storage_update', key: 'glikosense_active_backend', value: activeBackend });
 
@@ -360,9 +346,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       if (genericPhrases.includes(clean)) return false;
 
       const genericWords = [
-        "posiłek", "posilek", "meal", "obiad", "śniadanie", "sniadanie",
-        "kolacja", "przekąska", "przekaska", "breakfast", "lunch", "dinner",
-        "snack", "korekta", "bolus", "jedzenie", "food", "kalkulator", "calculator", "wpis"
+        "kalkulator", "calculator", "korekta", "bolus", "dane z kalkulatora"
       ];
       
       const words = clean.split(/[\s,.:;_\-\(\)]+/).filter(Boolean);
@@ -372,7 +356,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       return true;
     };
 
-    allMeals.slice(0, 100).forEach(m => {
+    allMeals.forEach(m => {
       const mealTime = m.timestamp || new Date(m.createdAt).getTime();
       let mealName = m.note || m.name || m.description || m.linkedMeal?.name;
       if (!mealName && Array.isArray(m.linkedMeal?.items) && m.linkedMeal.items.length > 0) {

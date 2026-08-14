@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import React, { useState, useMemo } from 'react';
+import { LIB_BASE } from '../data/foodDatabase';
 import { useLogsStore } from "../stores/useLogsStore";
 import { LogEntry, Product } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -49,15 +50,7 @@ export default function UnlinkedCarbsWidget({ user, onAddCarbs }: Props) {
  return unlinkedLogs.length > 0 ? unlinkedLogs[0] : null;
  }, [logs]);
 
-  const [libBase, setLibBase] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (searchQuery.trim().length > 1) {
-      import("../data/foodDatabase").then((module) => {
-        setLibBase(module.LIB_BASE);
-      });
-    }
-  }, [searchQuery]);
+  const libBase = LIB_BASE;
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim() || libBase.length === 0) return [];

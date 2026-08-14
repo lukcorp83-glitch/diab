@@ -69,7 +69,7 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
   });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'tolerance' | 'count' | 'maxBg'>('tolerance');
+  const [sortBy, setSortBy] = useState<string>('tolerance_desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAllGolden, setShowAllGolden] = useState(false);
   const [showAllTricky, setShowAllTricky] = useState(false);
@@ -85,10 +85,8 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
   }, []);
 
   const computedProfile = React.useMemo(() => {
-    if (profile && profile.allMeals && profile.allMeals.length > 0) return profile;
-
     const mealPatterns: Record<string, { spikes: number; count: number; totalCorrections: number; totalMaxBg: number }> = {};
-    const meals = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && l.linkedMeal?.carbs));
+    const meals = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && (l.linkedMeal?.carbs || l.note || (l as any).description)));
     const glucoseLogs = logs.filter(l => l.type === 'glucose' || l.bg).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     const bolusLogs = logs.filter(l => l.type === 'bolus' || l.type === 'insulin');
 
@@ -96,19 +94,23 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
       if (!name) return false;
       const clean = name.trim().toLowerCase();
       const genericNames = [
-        'posiłek', 'posilek', 'jedzenie', 'snack', 'przekąska', 'przekaska',
-        'kalkulator', 'bolus', 'korekta', 'dane z kalkulatora', 'kalkulator bolusa',
-        'obiad', 'śniadanie', 'sniadanie', 'kolacja', 'wpis posiłku', 'meal'
+        'kalkulator', 'bolus', 'korekta', 'dane z kalkulatora', 'kalkulator bolusa'
       ];
       if (genericNames.includes(clean)) return false;
-      if (/^posiłek\s*\d+$/i.test(clean)) return false;
       if (/^kalkulator/i.test(clean)) return false;
-      return clean.length >= 3;
+      return clean.length >= 2;
     };
 
     meals.forEach(m => {
-      let rawName = m.note || m.name || m.linkedMeal?.name || '';
-      if (!isSpecificMealName(rawName)) return;
+      let rawName = m.note || m.name || (m as any).description || m.linkedMeal?.name;
+      if (!rawName && Array.isArray(m.linkedMeal?.items) && m.linkedMeal.items.length > 0) {
+        rawName = m.linkedMeal.items.map((i: any) => i.name).filter(Boolean).join(", ");
+      }
+      if (!rawName && Array.isArray((m as any).products) && (m as any).products.length > 0) {
+        rawName = (m as any).products.map((p: any) => p.name).filter(Boolean).join(", ");
+      }
+
+      if (!rawName || !isSpecificMealName(rawName)) return;
 
       const name = rawName.trim().toLowerCase();
       const mealTime = m.timestamp || (m.createdAt ? new Date(m.createdAt).getTime() : 0);
@@ -226,8 +228,12 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
     }
 
     result.sort((a, b) => {
-      if (sortBy === 'count') return b.count - a.count;
-      if (sortBy === 'maxBg') return (a.avgMaxBg || 0) - (b.avgMaxBg || 0);
+      if (sortBy === 'count_desc') return b.count - a.count;
+      if (sortBy === 'count_asc') return a.count - b.count;
+      if (sortBy === 'maxBg_desc') return (b.avgMaxBg || 0) - (a.avgMaxBg || 0);
+      if (sortBy === 'maxBg_asc') return (a.avgMaxBg || 0) - (b.avgMaxBg || 0);
+      if (sortBy === 'name_asc') return a.name.localeCompare(b.name, 'pl');
+      if (sortBy === 'tolerance_asc') return a.toleranceScore - b.toleranceScore;
       return b.toleranceScore - a.toleranceScore;
     });
 
@@ -235,10 +241,10 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
   };
 
   const filteredGolden = filterAndSort(goldenMeals);
-  const visibleGolden = showAllGolden ? filteredGolden : filteredGolden.slice(0, 6);
+  const visibleGolden = (showAllGolden || searchQuery.trim() !== '') ? filteredGolden : filteredGolden.slice(0, 6);
 
   const filteredTricky = filterAndSort(trickyMeals);
-  const visibleTricky = showAllTricky ? filteredTricky : filteredTricky.slice(0, 6);
+  const visibleTricky = (showAllTricky || searchQuery.trim() !== '') ? filteredTricky : filteredTricky.slice(0, 6);
 
   const isGoodTolerance = overallTolerance >= 75;
 
@@ -464,9 +470,12 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
                 }}
                 className="bg-transparent text-slate-900 dark:text-white text-xs font-bold focus:outline-none cursor-pointer"
               >
-                <option value="tolerance">Wg tolerancji</option>
-                <option value="count">Wg częstotliwości</option>
-                <option value="maxBg">Wg szczytu glikemii</option>
+                <option value="tolerance_desc">Wg tolerancji (najwyższa)</option>
+                <option value="tolerance_asc">Wg tolerancji (najniższa)</option>
+                <option value="count_desc">Wg częstotliwości (najczęstsze)</option>
+                <option value="maxBg_desc">Wg szczytu cukru (najwyższy)</option>
+                <option value="maxBg_asc">Wg szczytu cukru (najniższy)</option>
+                <option value="name_asc">Wg nazwy (A-Z)</option>
               </select>
             </div>
 

@@ -5,9 +5,8 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import i18n from "../i18n";
 
-export const NotificationListenerSync: React.FC<{ user: any }> = ({ user }) => {
+export const NotificationListenerSync: React.FC<{ user?: any }> = ({ user }) => {
  useEffect(() => {
- if (!user) return;
  if (!Capacitor.isNativePlatform()) return;
  let listener: any = null;
  let appStateListener: any = null;

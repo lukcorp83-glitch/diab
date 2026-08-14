@@ -1,4 +1,4 @@
-﻿/// <reference lib="webworker" />
+/// <reference lib="webworker" />
 
 interface NightscoutEntry {
   sgv: number;
@@ -213,11 +213,20 @@ function processDeviceStatus(data: any[]): any {
                         latest.battery ?? 
                         pumpInfo?.battery?.voltage ?? 0;
   if (!pumpInfo && !uploaderInfo) return null;
+
+  let resVal = pumpInfo?.reservoir ?? latest?.reservoir ?? pumpInfo?.status?.reservoir ?? latest?.openaps?.enacted?.reservoir ?? latest?.openaps?.suggested?.reservoir;
+  if (resVal && typeof resVal === 'object') {
+    resVal = resVal.amount ?? resVal.units ?? resVal.value ?? resVal.reservoir;
+  }
+  if (typeof resVal === 'string') {
+    resVal = parseFloat(resVal);
+  }
+  const parsedRes = (typeof resVal === 'number' && !isNaN(resVal)) ? resVal : undefined;
   
   return {
     battery: batteryPercent,
-    reservoir: pumpInfo?.reservoir ?? undefined,
-    activeInsulin: pumpInfo?.iob?.iob ?? undefined,
+    reservoir: parsedRes,
+    activeInsulin: pumpInfo?.iob?.iob ?? latest?.openaps?.enacted?.iob ?? undefined,
     model: pumpInfo?.model ?? pumpInfo?.name ?? null,
     basal: {
        rate: pumpInfo?.status?.currentbasal ?? 0,

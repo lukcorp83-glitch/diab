@@ -50,6 +50,7 @@ import { CURRENT_VERSION } from "./constants/versions";
 
 import { MigrationManager } from "./components/MigrationManager";
 import { GlucoseAlarmModal } from "./components/GlucoseAlarmModal";
+import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { AppLayout } from "./components/app/AppLayout";
 import { AppContent } from "./components/app/AppContent";
 
@@ -266,7 +267,8 @@ export default function App() {
           msg,
           history,
           null,
-          userSettings?.treatmentMode
+          userSettings?.treatmentMode,
+          userSettings?.childMode
         );
 
         let cleanText = response || "";
@@ -312,56 +314,75 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Smart Equipment Listener
+  // Smart Equipment Listener & Modal State
+  const [smartEquipmentType, setSmartEquipmentType] = useState<'reservoir' | 'sensor' | null>(null);
+
   useEffect(() => {
     const handleSmartEquipment = (e: any) => {
       const type = e.detail; // 'sensor' or 'reservoir'
-      toast.custom((t) => (
-        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-slate-800 shadow-lg rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4`}>
-           <div className="flex-1 w-0 p-2">
-               <p className="text-sm font-bold text-slate-900 dark:text-white">
-                  {type === 'sensor' ? i18n.t('auto.smart_sensor_title', { defaultValue: 'Wymiana sensora?' }) : i18n.t('auto.smart_reservoir_title', { defaultValue: 'Wymiana wkłucia?' })}
-               </p>
-               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {type === 'sensor' 
-                    ? i18n.t('auto.smart_sensor_desc', { defaultValue: 'GlikoSense wykrył przerwę w danych. Czy chcesz zresetować czas życia sensora?' }) 
-                    : i18n.t('auto.smart_reservoir_desc', { defaultValue: 'GlikoSense wykrył napełnienie zbiorniczka. Czy chcesz zresetować czas życia wkłucia?' })}
-               </p>
-           </div>
-           <div className="flex flex-col gap-2 border-l border-slate-200 dark:border-slate-700 pl-4 justify-center">
-               <button
-                  onClick={async () => {
-                    toast.dismiss(t.id);
-                    import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
-                    const now = Date.now();
-                    const updates = type === 'sensor' ? { sensorChangeDate: now } : { infusionSetChangeDate: now };
-                    localStorage.setItem(type === 'sensor' ? 'sensorChangeDate' : 'infusionSetChangeDate', String(now));
-                    if (user) {
-                       await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
-                       toast.success(i18n.t('auto.zapisano', { defaultValue: 'Zapisano!' }));
-                    }
-                  }}
-                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400"
-               >
-                  {i18n.t('auto.smart_action_yes', { defaultValue: 'Tak, zapisz' })}
-               </button>
-               <button
-                  onClick={() => {
-                    toast.dismiss(t.id);
-                    import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
-                  }}
-                  className="text-xs font-bold text-slate-500 dark:text-slate-400"
-               >
-                  {i18n.t('auto.smart_action_no', { defaultValue: 'Ignoruj' })}
-               </button>
-           </div>
-        </div>
-      ), { duration: 20000 });
+      if (type === 'sensor' || type === 'reservoir') {
+        setSmartEquipmentType(type);
+      }
     };
 
     window.addEventListener('smart-equipment-trigger', handleSmartEquipment);
     return () => window.removeEventListener('smart-equipment-trigger', handleSmartEquipment);
-  }, [user]);
+  }, []);
+
+  const handleConfirmSmartEquipment = async (replaceInfusionSet: boolean) => {
+    const type = smartEquipmentType;
+    setSmartEquipmentType(null);
+    if (!type) return;
+
+    import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
+    const now = Date.now();
+
+    const currentSettings = userSettingsRef.current || {};
+    const currentInv = currentSettings.inventory || [];
+    let updatedInv = [...currentInv];
+
+    const updates: any = {};
+
+    if (type === 'sensor') {
+      updates.sensorChangeDate = now;
+      localStorage.setItem('sensorChangeDate', String(now));
+
+      const sensorIdx = updatedInv.findIndex(i => i.category === 'sensors' && i.quantity > 0);
+      if (sensorIdx !== -1) {
+        updatedInv[sensorIdx] = { ...updatedInv[sensorIdx], quantity: Math.max(0, updatedInv[sensorIdx].quantity - 1) };
+        updates.inventory = updatedInv;
+      }
+    } else if (type === 'reservoir') {
+      updates.reservoirChangeDate = now;
+      localStorage.setItem('reservoirChangeDate', String(now));
+
+      const resIdx = updatedInv.findIndex(i => i.category === 'reservoirs' && i.quantity > 0);
+      if (resIdx !== -1) {
+        updatedInv[resIdx] = { ...updatedInv[resIdx], quantity: Math.max(0, updatedInv[resIdx].quantity - 1) };
+      }
+
+      if (replaceInfusionSet) {
+        updates.infusionSetChangeDate = now;
+        localStorage.setItem('infusionSetChangeDate', String(now));
+
+        const setIdx = updatedInv.findIndex(i => i.category === 'infusion_sets' && i.quantity > 0);
+        if (setIdx !== -1) {
+          updatedInv[setIdx] = { ...updatedInv[setIdx], quantity: Math.max(0, updatedInv[setIdx].quantity - 1) };
+        }
+      }
+
+      updates.inventory = updatedInv;
+    }
+
+    if (user) {
+      await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+      toast.success(
+        type === 'sensor' 
+          ? "Wymieniono sensor. Odjęto 1 szt. z apteczki!" 
+          : (replaceInfusionSet ? "Wymieniono zbiorniczek i wkłucie. Odjęto z apteczki!" : "Wymieniono zbiorniczek. Odjęto z apteczki!")
+      );
+    }
+  };
 
   useEffect(() => {
     const updateProgress = () => {
@@ -660,6 +681,11 @@ export default function App() {
   return (
     <>
       <GlucoseAlarmModal />
+      <SmartEquipmentModal
+        type={smartEquipmentType}
+        onClose={() => setSmartEquipmentType(null)}
+        onConfirm={handleConfirmSmartEquipment}
+      />
       <MigrationManager user={user} />
       <AppLayout
       mainRef={mainRef}

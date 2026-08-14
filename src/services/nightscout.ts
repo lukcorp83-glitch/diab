@@ -284,10 +284,19 @@ export const nightscoutService = {
       // If no pump info, but we have uploader info, still return something
       if (!pumpInfo && !uploaderInfo) return null;
       
+      let resVal = pumpInfo?.reservoir ?? latest?.reservoir ?? pumpInfo?.status?.reservoir ?? latest?.openaps?.enacted?.reservoir ?? latest?.openaps?.suggested?.reservoir;
+      if (resVal && typeof resVal === 'object') {
+        resVal = resVal.amount ?? resVal.units ?? resVal.value ?? resVal.reservoir;
+      }
+      if (typeof resVal === 'string') {
+        resVal = parseFloat(resVal);
+      }
+      const parsedRes = (typeof resVal === 'number' && !isNaN(resVal)) ? resVal : 0;
+
       const result = {
         battery: batteryPercent,
-        reservoir: pumpInfo?.reservoir ?? 0,
-        activeInsulin: pumpInfo?.iob?.iob ?? 0,
+        reservoir: parsedRes,
+        activeInsulin: pumpInfo?.iob?.iob ?? latest?.openaps?.enacted?.iob ?? 0,
         model: pumpInfo?.model ?? pumpInfo?.name ?? null,
         basal: {
            rate: pumpInfo?.status?.currentbasal ?? 0,

@@ -4,18 +4,32 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 
 ## Główne pliki i komponenty
 - `src/App.tsx` (ogromny plik ~3400 linii) - Główny punkt wejścia, główny layout, zarządzanie routingiem i duża część logiki UI.
-- `src/constants.ts` - Główne stałe, w tym `APP_VERSION`, adresy URL oraz bazy produktów.
-- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Wymaga aktualizacji przy każdym OTA.
+- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.19'), adresy URL oraz bazy produktów.
+- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.19.
 
-## GlikoSense (Sztuczna Inteligencja / ML)
-- `src/components/MLAnalysisWidget.tsx` - Główny widżet UI analizy GlikoSense wyświetlany na pulpicie. Zawiera logikę przywracania i backupu modelu neuronowego z/do Firebase (m.in. obsługa okna zgody).
-- `src/services/mlSugarAnalyzer.ts` - Serwis zarządzający modelami ML, logiką TensorFlow.js oraz eksportem/importem plików modelu (backup JSON).
-- `src/workers/glikosense.worker.ts` - Web Worker używany w tle do trenowania modeli oraz wyliczania predykcji.
+## GlikoSense oraz Integracja z Gemini API
+- `src/services/gemini.ts` - Główny serwis obsługujący komunikację z Google Gemini API (`GoogleGenAI`).
+  - `getApiKey()` - Pobiera klucz z `SecureStoragePlugin` (`gemini_api_key`), zmiennych env lub proxy Worker.
+  - `resetClient()` - Czyści skacheksowaną instancję klienta SDK po zmianie klucza.
+  - `testConnection(customKey?)` - Wykonuje testowy prompt do API Gemini w celu empirycznej weryfikacji poprawności klucza.
+  - `getAiStatus()` - Zwraca obiekt `{ type, label, color }` określający aktywne źródło klucza (Local Custom / Proxy / Vite Env).
+- `src/components/MLAnalysisWidget.tsx` - Główny widżet UI analizy GlikoSense wyświetlany na pulpicie.
+- `src/services/mlSugarAnalyzer.ts` - Serwis zarządzający modelami ML, logiką TensorFlow.js oraz eksportem/importem plików modelu. Posiada zabezpieczenia timeoutu (15s/45s) oraz bezawaryjny fallback (`.catch`) w przypadku zatrzymania Workera.
+- `src/workers/glikosense.worker.ts` - Web Worker używany w tle do trenowania modeli oraz wyliczania predykcji. Używa stabilnego backendu `cpu` w wątku Workera, zapobiegając zacinaniu się przy braku plików WASM/WebGL.
 
 ## Zarządzanie Sprzętem, Apteczką i Pojemnością Zbiorniczka
-- `src/components/Profile/ProfileInventory.tsx` - Moduł Apteczki i Zapasów. Przetłumaczono surowe nazwy kategorii z angielskiego (`sensors`, `insulin`, `pens`, `reservoirs`, `infusion_sets`, `strips`, `other`) na czytelne polskie odpowiedniki (`Sensory CGM`, `Insulina`, `Wstrzykiwacze (Peny)`, `Zbiorniczki`, `Wkłucia`, `Paski i Igły`, `Inne`). Dodano pole do wprowadzania indywidualnej pojemności zbiorniczka (`capacity` w U lub ml, np. 180U / 300U).
-- `src/components/PumpStatusCard.tsx` - Kafel statusu pompy i zbiorniczka na pulpicie. Wylicza wskaźnik wypełnienia i rysuje dynamiczną animację opróżniającego się zbiorniczka (od 100% do 0%) na podstawie podanej w apteczce/ustawieniach pojemności (`reservoirCapacityUnits` / `capacity`).
+- `src/components/Profile/ProfileInventory.tsx` - Moduł Apteczki i Zapasów z polskimi nazwami kategorii oraz własną pojemnością zbiorniczka.
+- `src/components/PumpStatusCard.tsx` - Kafel statusu pompy i zbiorniczka z dynamiczną animacją.
+- `src/components/SmartEquipmentModal.tsx` - Modal potwierdzenia Smart Equipment. Przy wykryciu zmiany pompy/zbiorniczka pyta, czy wymieniono sam zbiorniczek, czy również wkłucie.
+- `src/App.tsx` - Wyświetla `SmartEquipmentModal` i natychmiast odejmuje odpowiednie elementy (zbiorniczki `reservoirs`, wkłucia `infusion_sets` oraz sensory `sensors`) z apteczki `inventory` użytkownika.
 
-## Widok Talerza, Diety i Dedykowane Widżety (`DietSpecificWidgets.tsx`)
-- `src/components/nutrition/NutritionHub.tsx` - Główny kontener **Centrum Żywienia** z pływającym menu zakładek: `Talerz` (`MealPlate`), `Dieta` (`Diets`), `Historia` (`MealHistoryView`) oraz **`Odżywianie`** (`GlikoSenseNutriView`).
-- `src/components/nutrition/DietSpecificWidgets.tsx` - Widżety danych dedykowane dla każdej diety: Dziennik i rejestr ciał ketonowych ($mmol/L$) + kalkulator WBT dla Keto, Pasek proporcji 50/25/25 dla Talerza Diabetologicznego, Timer Okna Postu 16/8 dla IF z alertami hypo, Licznik Błonnika dla DASH oraz wskaźnik GI zamienników dla diety Bezglutenowej.
+- `src/services/gemini.ts`, `src/App.tsx` & `src/components/GlikoChat.tsx` - Naprawiono sprawdzanie `childMode` w `getGlikoChatResponse`. Gdy tryb dziecka jest wyłączony (dorośli), Asystent AI odpowiada jako profesjonalny i zwięzły doradca ds. cukrzycy GlikoControl i KATEGORYCZNIE nie nazywa się "stworkiem". Włączając tryb dziecka, Asystent przyjmuje wesołą, przyjazną dzieciom postać.
+- `src/components/nutrition/NutritionHub.tsx` - Kontener Centrum Żywienia z widokami Talerza, Diet, Historii i Odżywiania.
+- `src/components/nutrition/GlikoSenseNutriView.tsx` - Widok statystyk tolerancji potraw. Dodano pełny wybór opcji sortowania (tolerancja rosnąco/malejąco, częstotliwość, szczyt cukru oraz alfabet A-Z).
+- `src/components/nutrition/DietSpecificWidgets.tsx` - Widżety danych dedykowane dla każdej diety.
+
+## Skanery Kodów Kreskowych i Nawigacja Menu Dolnego
+- `src/components/MealPlate/BarcodeScanner.tsx` - Komponent `MealScanner` (ML Kit / Html5Qrcode). Używa `useRef` dla `onResult`/`onCancel`, zapobiegając zapętlaniu skanera przy re-renderach.
+- `src/components/MealPlate/MealPlateModals.tsx` - Kontener modali (w tym skanera) montowany bezwarunkowo w `MealPlate.tsx` (działa w zakładkach `meal` i `database`).
+- `src/components/app/AppContent.tsx` - Ładowanie zakładek z prefetchowaniem modułów w tle po 1.5s od startu.
+- `src/components/app/AppLayout.tsx` - Układ dolnego paska nawigacji z animacją `AnimatePresence mode="popLayout"`.

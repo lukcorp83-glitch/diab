@@ -72,6 +72,7 @@ import {
 } from "firebase/firestore";
 import { useSavedMeals } from "../hooks/queries/useSavedMeals";
 import { useCustomProducts, useCommunityProducts } from "../hooks/queries/useFoodDatabase";
+import { LIB_BASE } from "../data/foodDatabase";
 import { dbService } from "../services/databaseService";
 import { CATEGORIES } from "../constants";
 import { geminiService } from "../services/gemini";
@@ -216,14 +217,7 @@ export default function MealPlate({
  const { data: qCustomProducts = [] } = useCustomProducts(user);
  const { data: qCommunityProducts = [] } = useCommunityProducts(user);
 
-  const [libBase, setLibBase] = useState<any[]>([]);
-  useEffect(() => {
-    let isMounted = true;
-    import("../data/foodDatabase").then(module => {
-      if (isMounted) setLibBase(module.LIB_BASE);
-    });
-    return () => { isMounted = false };
-  }, []);
+  const libBase = LIB_BASE;
 
   const allLocal = useMemo(() => {
     const allLocalRaw = [
@@ -1063,9 +1057,9 @@ export default function MealPlate({
  )}
 
  {(mode === "plate" || mode === "both") && (
- <>
  <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-2 flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 mx-2"></div>
- {/* Weight Modal etc. */}
+ )}
+
  <MealPlateModals
  labelFileInputRef={labelFileInputRef} setIsAnalyzingLabel={setIsAnalyzingLabel}
  unrecognizedBarcode={unrecognizedBarcode} setUnrecognizedBarcode={setUnrecognizedBarcode}
@@ -1085,8 +1079,6 @@ export default function MealPlate({
  handleLogMeal={handleLogMeal} setMergeCandidates={setMergeCandidates}
  getProductName={getProductName} setIsScannerOpen={setIsScannerOpen}
  />
- </>
- )}
 
  { (mode === "search" || mode === "both") && (
  <ProductSearch openWeightModal={openWeightModal} openShortcutConfirmModal={openShortcutConfirmModal} startScanner={startScanner} startCameraAnalysis={startCameraAnalysis} isAnalyzing={isAnalyzing} searchError={searchError} setSearchError={setSearchError} allLocal={allLocal} activeDiet={settings?.activeDiet || null} mode={mode} publishToCommunity={publishToCommunity} saveToCustomDb={saveToCustomDb} handleScrollHaptics={handleScrollHaptics} addToPlate={addToPlate} settings={settings} isLoadingSavedMeals={isLoadingSavedMeals} savedMeals={savedMeals} plate={plate} setPlate={setPlate} cookingMethod={cookingMethod} db={db} getEffectiveUid={getEffectiveUid} />
@@ -1177,283 +1169,281 @@ export default function MealPlate({
  </motion.div>
  )}
 
- {(mode === "plate" || mode === "both") && activeMeal && (
- <div className="mt-6 mb-6 space-y-4">
- <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
- <div className="flex justify-between items-center mb-6">
- <div className="flex items-center gap-3">
- <div className="relative w-12 h-12 flex items-center justify-center">
- <svg
- className="absolute inset-0 w-full h-full transform -rotate-90"
- viewBox="0 0 48 48"
- >
- <circle
- cx="24"
- cy="24"
- r="22"
- stroke="currentColor"
- strokeWidth="3"
- fill="transparent"
- className="text-slate-200 dark:text-slate-800"
- />
- <circle
- cx="24"
- cy="24"
- r="22"
- stroke="currentColor"
- strokeWidth="3"
- fill="transparent"
- strokeDasharray="138.2"
- strokeDashoffset={
- 138.2 *
- (() => {
- if (!activeMeal) return 0;
- const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
- if (!mSrc) return 0;
- const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
- const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
- const durationH = getMealAbsorptionTime(mWW, mWBT);
- if (durationH <= 0) return 1;
- const ageH = (currentTime - (activeMeal.timestamp || 0)) / (1000 * 60 * 60);
- return Math.max(0, Math.min(1, ageH / durationH));
- })()
- }
- className={cn(
-  "transition-all duration-1000",
-  activeMeal.type === "meal" ? "text-amber-500" : "text-emerald-500"
-  )}
-  />
-  </svg>
-  <div className={cn(
-  "w-full h-full rounded-full absolute",
-  activeMeal.type === "meal" ? "bg-amber-500/10" : "bg-emerald-500/10"
-  )} />
-  {activeMeal.type === "meal" ? (
-  <Utensils className="text-amber-500 z-10" size={20} />
-  ) : (
-  <Zap className="text-emerald-500 z-10" size={20} />
-  )}
- </div>
- <div>
- <h3 className="font-bold text-slate-800 dark:text-white text-sm">
- {activeMeal.type === "bolus" && activeMeal.linkedMeal
- ? activeMeal.linkedMeal.name || t('meal.pump_meal_fallback', { defaultValue: i18n.t('auto.posilek_z_pompy', { defaultValue: "Posiłek z pompy" }) })
- : activeMeal.name ||
- activeMeal.notes ||
- t('meal.active_meal_fallback', { defaultValue: i18n.t('auto.aktywny_posilek', { defaultValue: "Aktywny posiłek" }) })}
- </h3>
- <p className="text-xs text-slate-500 dark:text-slate-400">
- {t('meal.given_at', { defaultValue: 'Podano:' })}{" "}
- {new Date(activeMeal.timestamp).toLocaleTimeString([], {
- hour: "2-digit",
- minute: "2-digit",
- })}
- </p>
- </div>
- </div>
- </div>
-
- <div className="grid grid-cols-2 gap-3">
- <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
- <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
- {t('meal.estimated_macros', { defaultValue: 'Szacowane Makro' })}
- </div>
- <div className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
- <span className="text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-lg">
- {activeChartData[0]?.WW?.toFixed(1) || "?"} {t('auto.ww', { defaultValue: 'WW' })}
- </span>
- <span className="text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-lg">
- {activeChartData[0]?.WBT?.toFixed(1) || "?"} {t('auto.wbt', { defaultValue: 'WBT' })}
- </span>
- </div>
- </div>
- <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
- <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
- {t('meal.absorption_end', { defaultValue: i18n.t('auto.koniec_wchlaniania', { defaultValue: "Koniec wchłaniania" }) })}
- </div>
- <div className="text-xl font-black text-slate-800 dark:text-white">
- {new Date(
- (activeMeal.timestamp || 0) +
- getMealAbsorptionTime(
- activeChartData[0]?.WW || 0,
- activeChartData[0]?.WBT || 0,
- ) *
- 60 *
- 60 *
- 1000,
- ).toLocaleTimeString([], {
- hour: "2-digit",
- minute: "2-digit",
- })}
- </div>
- </div>
- </div>
- </div>
-
- <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
- <div className="mb-4">
- <h3 className="font-bold text-slate-800 dark:text-white text-sm">
- {t('meal.absorption_chart', { defaultValue: i18n.t('auto.wykres_wchlaniania', { defaultValue: "Wykres wchłaniania" }) })}
- </h3>
- <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[250px]">
- {t('meal.absorption_chart_desc', { defaultValue: i18n.t('auto.przebieg_uwalniania_sie_g', { defaultValue: "Przebieg uwalniania się glukozy oraz insuliny w czasie" }) })}
- </p>
- </div>
-
- <div className="h-44 w-full mb-3 select-none">
- <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100} initialDimension={{ width: 320, height: 128 }}>
- <AreaChart
- data={activeChartData}
- margin={{ top: 10, right: 35, left: 0, bottom: 0 }}
- >
- <defs>
- <linearGradient
- id="colorPosilekAct"
- x1="0"
- y1="0"
- x2="0"
- y2="1"
- >
- <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4} />
- <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
- </linearGradient>
- <linearGradient
- id="colorInsulinaAct"
- x1="0"
- y1="0"
- x2="0"
- y2="1"
- >
- <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
- <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
- </linearGradient>
- </defs>
- <XAxis
- dataKey="time"
- stroke="#94a3b8"
- fontSize={10}
- tickLine={false}
- axisLine={false}
- />
- <YAxis yAxisId="left" hide />
- <YAxis
- yAxisId="right"
- orientation="right"
- stroke="#94a3b8"
- fontSize={10}
- tickLine={false}
- axisLine={false}
- domain={["dataMin - 20", "dataMax + 20"]}
- />
- <Tooltip
- contentStyle={{
- backgroundColor: "rgba(15, 23, 42, 0.9)",
- border: "1px solid #1e293b",
- borderRadius: "16px",
- fontSize: "12px",
- color: "#f8fafc",
- fontWeight: "bold",
- boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
- backdropFilter: "blur(8px)",
- }}
- itemStyle={{ color: "#f8fafc" }}
- formatter={(value: any, name: any) => [`${value}`, name]}
- labelStyle={{ color: "#94a3b8", marginBottom: "4px" }}
- />
- <Area
- yAxisId="left"
- type="monotone"
- dataKey="Posiłek" name={i18n.t('auto.posilek', { defaultValue: 'Posiłek' })}
- stroke="#f43f5e"
- strokeWidth={3}
- fillOpacity={1}
- fill="url(#colorPosilekAct)"
- />
- <Area
- yAxisId="left"
- type="monotone"
- dataKey="Insulina"
- stroke="#3b82f6"
- strokeWidth={3}
- fillOpacity={1}
- fill="url(#colorInsulinaAct)"
- />
- <Area
- yAxisId="left"
- type="monotone"
- dataKey="Netto"
- stroke="#10b981"
- strokeWidth={3}
- fillOpacity={0}
- />
- <Area
- yAxisId="right"
- type="monotone"
- dataKey="Cukier"
- stroke="#fbbf24"
- strokeWidth={3}
- fillOpacity={0}
- strokeDasharray="4 4"
- connectNulls={true}
- />
- </AreaChart>
- </ResponsiveContainer>
- </div>
-
- <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-4">
- <span className="text-rose-500 font-bold">{t('meal.chart_legend_red_zone', { defaultValue: 'Czerwona strefa' })}</span>{" "}
- {t('meal.chart_legend_red_zone_desc', { defaultValue: i18n.t('auto.to_wchlanianie_posilku', { defaultValue: "to wchłanianie posiłku." }) })}{" "}
- <span className="text-blue-500 font-bold">{t('meal.chart_legend_blue_zone', { defaultValue: 'Niebieska' })}</span>{" "}
- {t('meal.chart_legend_blue_zone_desc', { defaultValue: i18n.t('auto.to_dzialanie_insuliny', { defaultValue: "to działanie insuliny." }) })}
- <span className="text-emerald-500 dark:text-emerald-400 font-bold">
- {" "}
- {t('meal.chart_legend_green_line', { defaultValue: 'Zielona linia' })}{" "}
- </span>
- {t('meal.chart_legend_green_line_desc', { defaultValue: 'to profil netto.' })}
- <span className="text-amber-500 dark:text-amber-400 font-bold">
- {" "}
- {t('meal.chart_legend_yellow_line', { defaultValue: i18n.t('auto.zolta_linia_przerywana', { defaultValue: "Żółta linia (przerywana)" }) })}{" "}
- </span>
- {t('meal.chart_legend_yellow_line_desc', { defaultValue: i18n.t('auto.to_rzeczywista_glikemia_p', { defaultValue: "to rzeczywista glikemia (prawa oś)." }) })}{" "}
- {activeBolus
- ? `${t('meal.bolus_included', { defaultValue: 'Obliczono z ujęciem bolusa:' })} ${Number(activeBolus.value).toFixed(1)}U.`
- : t('meal.no_bolus_registered', { defaultValue: 'Brak zarejestrowanego bolusa.' })}
- </p>
- </div>
- </div>
- )}
-
-  {/* Plate Stats */}
+  {/* Plate Stats & Composed Products */}
   {(mode === "plate" || mode === "both") && (
-  <MealComposer
-  mode={mode}
-  plate={plate}
-  setPlate={setPlate}
-  removeFromPlate={removeFromPlate}
-  updateWeight={updateWeight}
-  totalWW={totalWW}
-  totalWBT={totalWBT}
-  totalCarbs={totalCarbs}
-  totalProtein={totalProtein}
-  totalFat={totalFat}
-  cookingMethod={cookingMethod}
-  setCookingMethod={setCookingMethod}
-  settings={settings}
-  activeBolus={activeBolus}
-  entryTime={entryTime}
-  setEntryTime={setEntryTime}
-  handleMergeMeal={handleMergeMeal}
-  handleLogMeal={handleLogMeal}
-  totalKcal={totalCarbs * 4 + totalProtein * 4 + totalFat * 9}
-  saveMealToLibrary={saveMealToLibrary}
-  setIsMealSaved={setIsMealSaved}
-  totalGL={totalGL}
-  prepareToLogMeal={prepareToLogMeal}
-  analyzeMeal={analyzeMeal}
-  isAnalyzing={isAnalyzing}
-  analysis={analysis}
-  setTab={setTab}
+    <MealComposer
+      mode={mode}
+      plate={plate}
+      setPlate={setPlate}
+      removeFromPlate={removeFromPlate}
+      updateWeight={updateWeight}
+      totalWW={totalWW}
+      totalWBT={totalWBT}
+      totalCarbs={totalCarbs}
+      totalProtein={totalProtein}
+      totalFat={totalFat}
+      cookingMethod={cookingMethod}
+      setCookingMethod={setCookingMethod}
+      settings={settings}
+      activeBolus={activeBolus}
+      entryTime={entryTime}
+      setEntryTime={setEntryTime}
+      handleMergeMeal={handleMergeMeal}
+      handleLogMeal={handleLogMeal}
+      totalKcal={totalCarbs * 4 + totalProtein * 4 + totalFat * 9}
+      saveMealToLibrary={saveMealToLibrary}
+      setIsMealSaved={setIsMealSaved}
+      totalGL={totalGL}
+      prepareToLogMeal={prepareToLogMeal}
+      analyzeMeal={analyzeMeal}
+      isAnalyzing={isAnalyzing}
+      analysis={analysis}
+      setTab={setTab}
+    />
+  )}
+
+  {(mode === "plate" || mode === "both") && activeMeal && (
+  <div className="mt-6 mb-6 space-y-4">
+  <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
+  <div className="flex justify-between items-center mb-6">
+  <div className="flex items-center gap-3">
+  <div className="relative w-12 h-12 flex items-center justify-center">
+  <svg
+  className="absolute inset-0 w-full h-full transform -rotate-90"
+  viewBox="0 0 48 48"
+  >
+  <circle
+  cx="24"
+  cy="24"
+  r="22"
+  stroke="currentColor"
+  strokeWidth="3"
+  fill="transparent"
+  className="text-slate-200 dark:text-slate-800"
   />
+  <circle
+  cx="24"
+  cy="24"
+  r="22"
+  stroke="currentColor"
+  strokeWidth="3"
+  fill="transparent"
+  strokeDasharray="138.2"
+  strokeDashoffset={
+  138.2 *
+  (() => {
+  if (!activeMeal) return 0;
+  const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
+  if (!mSrc) return 0;
+  const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
+  const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+  const durationH = getMealAbsorptionTime(mWW, mWBT);
+  if (durationH <= 0) return 1;
+  const ageH = (currentTime - (activeMeal.timestamp || 0)) / (1000 * 60 * 60);
+  return Math.max(0, Math.min(1, ageH / durationH));
+  })()
+  }
+  className={cn(
+   "transition-all duration-1000",
+   activeMeal.type === "meal" ? "text-amber-500" : "text-emerald-500"
+   )}
+   />
+   </svg>
+   <div className={cn(
+   "w-full h-full rounded-full absolute",
+   activeMeal.type === "meal" ? "bg-amber-500/10" : "bg-emerald-500/10"
+   )} />
+   {activeMeal.type === "meal" ? (
+   <Utensils className="text-amber-500 z-10" size={20} />
+   ) : (
+   <Zap className="text-emerald-500 z-10" size={20} />
+   )}
+  </div>
+  <div>
+  <h3 className="font-bold text-slate-800 dark:text-white text-sm">
+  {activeMeal.type === "bolus" && activeMeal.linkedMeal
+  ? activeMeal.linkedMeal.name || t('meal.pump_meal_fallback', { defaultValue: i18n.t('auto.posilek_z_pompy', { defaultValue: "Posiłek z pompy" }) })
+  : activeMeal.name ||
+  activeMeal.notes ||
+  t('meal.active_meal_fallback', { defaultValue: i18n.t('auto.aktywny_posilek', { defaultValue: "Aktywny posiłek" }) })}
+  </h3>
+  <p className="text-xs text-slate-500 dark:text-slate-400">
+  {t('meal.given_at', { defaultValue: 'Podano:' })}{" "}
+  {new Date(activeMeal.timestamp).toLocaleTimeString([], {
+  hour: "2-digit",
+  minute: "2-digit",
+  })}
+  </p>
+  </div>
+  </div>
+  </div>
+ 
+  <div className="grid grid-cols-2 gap-3">
+  <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
+  {t('meal.estimated_macros', { defaultValue: 'Szacowane Makro' })}
+  </div>
+  <div className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
+  <span className="text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-lg">
+  {activeChartData[0]?.WW?.toFixed(1) || "?"} {t('auto.ww', { defaultValue: 'WW' })}
+  </span>
+  <span className="text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-lg">
+  {activeChartData[0]?.WBT?.toFixed(1) || "?"} {t('auto.wbt', { defaultValue: 'WBT' })}
+  </span>
+  </div>
+  </div>
+  <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
+  {t('meal.absorption_end', { defaultValue: i18n.t('auto.koniec_wchlaniania', { defaultValue: "Koniec wchłaniania" }) })}
+  </div>
+  <div className="text-sm font-black text-slate-800 dark:text-white">
+  {(() => {
+  if (!activeMeal) return "--:--";
+  const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
+  if (!mSrc) return "--:--";
+  const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
+  const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+  const durationH = getMealAbsorptionTime(mWW, mWBT);
+  return new Date(
+  activeMeal.timestamp + durationH * 60 * 60 * 1000,
+  ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  })()}
+  </div>
+  </div>
+  </div>
+ 
+  {/* Absorption Chart */}
+  <div className="mt-6 pt-4 border-t border-slate-200/50 dark:border-slate-800">
+  <div className="flex justify-between items-center mb-4">
+  <div>
+  <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+  <Zap size={14} className="text-accent-500" />
+  {t('meal.active_profile_title', { defaultValue: i18n.t('auto.profil_aktywnego_posilku_i_', { defaultValue: "Profil Aktywnego Posiłku i Bolusa" }) })}
+  </h4>
+  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+  {t('meal.active_profile_desc', { defaultValue: i18n.t('auto.krzywa_wchlaniania_glukozy', { defaultValue: "Krzywa wchłaniania glukozy z posiłku vs krzywa insuliny" }) })}
+  </p>
+  </div>
+  </div>
+ 
+  <div className="h-44 w-full">
+  <ResponsiveContainer width="100%" height="100%">
+  <AreaChart
+  data={activeChartData}
+  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+  >
+  <defs>
+  <linearGradient id="colorPosilekAct" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4} />
+  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0} />
+  </linearGradient>
+  <linearGradient id="colorInsulinaAct" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+  </linearGradient>
+  </defs>
+  <XAxis
+  dataKey="time"
+  stroke="#94a3b8"
+  fontSize={9}
+  tickLine={false}
+  axisLine={false}
+  />
+  <YAxis
+  yAxisId="left"
+  stroke="#94a3b8"
+  fontSize={9}
+  tickLine={false}
+  axisLine={false}
+  domain={[0, "auto"]}
+  />
+  <YAxis
+  yAxisId="right"
+  orientation="right"
+  stroke="#fbbf24"
+  fontSize={9}
+  tickLine={false}
+  axisLine={false}
+  domain={['dataMin - 10', 'dataMax + 10']}
+  hide={false}
+  />
+  <Tooltip
+  contentStyle={{
+  backgroundColor: "rgba(15, 23, 42, 0.9)",
+  borderColor: "rgba(255, 255, 255, 0.1)",
+  borderRadius: "16px",
+  fontSize: "12px",
+  color: "#f8fafc",
+  fontWeight: "bold",
+  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
+  backdropFilter: "blur(8px)",
+  }}
+  itemStyle={{ color: "#f8fafc" }}
+  formatter={(value: any, name: any) => [`${value}`, name]}
+  labelStyle={{ color: "#94a3b8", marginBottom: "4px" }}
+  />
+  <Area
+  yAxisId="left"
+  type="monotone"
+  dataKey="Posiłek" name={i18n.t('auto.posilek', { defaultValue: 'Posiłek' })}
+  stroke="#f43f5e"
+  strokeWidth={3}
+  fillOpacity={1}
+  fill="url(#colorPosilekAct)"
+  />
+  <Area
+  yAxisId="left"
+  type="monotone"
+  dataKey="Insulina"
+  stroke="#3b82f6"
+  strokeWidth={3}
+  fillOpacity={1}
+  fill="url(#colorInsulinaAct)"
+  />
+  <Area
+  yAxisId="left"
+  type="monotone"
+  dataKey="Netto"
+  stroke="#10b981"
+  strokeWidth={3}
+  fillOpacity={0}
+  />
+  <Area
+  yAxisId="right"
+  type="monotone"
+  dataKey="Cukier"
+  stroke="#fbbf24"
+  strokeWidth={3}
+  fillOpacity={0}
+  strokeDasharray="4 4"
+  connectNulls={true}
+  />
+  </AreaChart>
+  </ResponsiveContainer>
+  </div>
+ 
+  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-4">
+  <span className="text-rose-500 font-bold">{t('meal.chart_legend_red_zone', { defaultValue: 'Czerwona strefa' })}</span>{" "}
+  {t('meal.chart_legend_red_zone_desc', { defaultValue: i18n.t('auto.to_wchlanianie_posilku', { defaultValue: "to wchłanianie posiłku." }) })}{" "}
+  <span className="text-blue-500 font-bold">{t('meal.chart_legend_blue_zone', { defaultValue: 'Niebieska' })}</span>{" "}
+  {t('meal.chart_legend_blue_zone_desc', { defaultValue: i18n.t('auto.to_dzialanie_insuliny', { defaultValue: "to działanie insuliny." }) })}
+  <span className="text-emerald-500 dark:text-emerald-400 font-bold">
+  {" "}
+  {t('meal.chart_legend_green_line', { defaultValue: 'Zielona linia' })}{" "}
+  </span>
+  {t('meal.chart_legend_green_line_desc', { defaultValue: 'to profil netto.' })}
+  <span className="text-amber-500 dark:text-amber-400 font-bold">
+  {" "}
+  {t('meal.chart_legend_yellow_line', { defaultValue: i18n.t('auto.zolta_linia_przerywana', { defaultValue: "Żółta linia (przerywana)" }) })}{" "}
+  </span>
+  {t('meal.chart_legend_yellow_line_desc', { defaultValue: i18n.t('auto.to_rzeczywista_glikemia_p', { defaultValue: "to rzeczywista glikemia (prawa oś)." }) })}{" "}
+  {activeBolus
+  ? `${t('meal.bolus_included', { defaultValue: 'Obliczono z ujęciem bolusa:' })} ${Number(activeBolus.value).toFixed(1)}U.`
+  : t('meal.no_bolus_registered', { defaultValue: 'Brak zarejestrowanego bolusa.' })}
+  </p>
+  </div>
+  </div>
+  </div>
   )}
   </motion.div>
   );

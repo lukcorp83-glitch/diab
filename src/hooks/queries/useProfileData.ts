@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { getEffectiveUid } from '../../lib/utils';
+import { DEFAULT_SETTINGS } from '../../constants';
 
 export const usePetStatus = (user: any) => {
  return useQuery({
@@ -57,39 +58,48 @@ export const useNightscoutSettings = (user: any) => {
 
 export const useUserSettings = (user: any) => {
   return useQuery({
-    queryKey: ['userSettings', user ? getEffectiveUid(user) : ''],
+    queryKey: ['userSettings', user ? getEffectiveUid(user) : 'local'],
     queryFn: async () => {
-      if (!user) return null;
+      let localSettings: Partial<UserSettings> = {};
+      try {
+        const saved = localStorage.getItem("glikocontrol_user_settings");
+        if (saved) localSettings = JSON.parse(saved);
+      } catch (e) {}
+
+      if (!user) {
+        return { ...DEFAULT_SETTINGS, ...localSettings };
+      }
+
       try {
         const uid = getEffectiveUid(user);
         const settingsRef = doc(db, "users", uid, "settings", "profile");
         const d = await getDoc(settingsRef);
         if (d.exists()) {
-           return d.data();
-        } else {
-           import('react-hot-toast').then(m => m.toast("Baza główna pusta dla UID: " + uid.substring(0,5) + "... Szukam w awaryjnej."));
+           const merged = { ...DEFAULT_SETTINGS, ...localSettings, ...d.data() };
+           try { localStorage.setItem("glikocontrol_user_settings", JSON.stringify(merged)); } catch(e){}
+           return merged;
         }
       } catch (e: any) {
-        import('react-hot-toast').then(m => m.toast.error("Błąd odczytu nowej bazy: " + e.message));
-        console.warn("Brak dostępu do nowej struktury settings/profile. Próba ze starej ścieżki...");
+        console.warn("Brak dostępu do nowej struktury settings/profile.");
       }
+
       try {
         const uid = getEffectiveUid(user);
         const oldSettingsRef = doc(db, "artifacts", "diacontrolapp", "users", uid, "settings", "profile");
         const oldD = await getDoc(oldSettingsRef);
         if (oldD.exists()) {
-           return oldD.data();
-        } else {
-           import('react-hot-toast').then(m => m.toast.error("UWAGA: Obie bazy są całkowicie PUSTE dla UID: " + uid.substring(0,5) + "... Dlatego tryb dziecka gaśnie!"));
+           const merged = { ...DEFAULT_SETTINGS, ...localSettings, ...oldD.data() };
+           try { localStorage.setItem("glikocontrol_user_settings", JSON.stringify(merged)); } catch(e){}
+           return merged;
         }
       } catch (err: any) {
-        import('react-hot-toast').then(m => m.toast.error("Błąd odczytu starej bazy: " + err.message));
-        console.error("Zarówno nowa jak i stara ścieżka ustawień profilu zawiodła", err);
+        console.error("Ścieżka ustawień zawiodła", err);
       }
-      return null;
+
+      return { ...DEFAULT_SETTINGS, ...localSettings };
     },
-    enabled: !!user,
     staleTime: 1000 * 60 * 5,
+    placeholderData: (previousData) => previousData,
   });
 };
 

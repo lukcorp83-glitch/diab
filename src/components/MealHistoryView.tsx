@@ -78,7 +78,7 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
  {editingLog && (
  <MealEditModal
  log={editingLog}
- 
+ user={user}
  onClose={() => setEditingLog(null)}
  />
  )}

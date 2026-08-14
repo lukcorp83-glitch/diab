@@ -106,18 +106,16 @@ export const geminiService = {
     
     prompt = prompt + langInstruction;
 
-    // Zaktualizowane modele zgodnie z nowymi wytycznymi
     let modelsToTry = imageData
-      ? ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash"]
+      ? ["gemini-2.5-flash", "gemini-1.5-flash"]
       : [
-          "gemini-flash-latest",
           "gemini-2.5-flash",
-          "gemini-pro-latest",
+          "gemini-1.5-flash",
         ];
 
-    // Proxy obsługuje tylko flash, nie doliczmy kosztów PRO do konta globalnego
+    // Proxy obsługuje aktywne wersje flash dla oszczędności limitów
     if (isProxyUrl) {
-      modelsToTry = ["gemini-flash-latest", "gemini-2.0-flash"];
+      modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash"];
     }
 
     let contents;
@@ -576,6 +574,47 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
     }
   },
 
+  resetClient() {
+    genAITuple = null;
+  },
+
+  async testConnection(customKey?: string) {
+    try {
+      this.resetClient();
+      let apiKeyToTest = customKey?.trim();
+      let baseUrlToTest: string | undefined = undefined;
+
+      if (!apiKeyToTest) {
+        const creds = await getApiKey();
+        apiKeyToTest = creds.key;
+        baseUrlToTest = creds.baseUrl;
+      }
+
+      if (!apiKeyToTest || apiKeyToTest === "proxy") {
+        return { success: true, message: "Używasz serwera proxy Gliko" };
+      }
+
+      const client = new GoogleGenAI({
+        apiKey: apiKeyToTest,
+        ...(baseUrlToTest ? { baseUrl: baseUrlToTest } : {}),
+      });
+
+      const response = await client.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: "Ping",
+      });
+
+      if (response && response.text) {
+        return { success: true };
+      }
+      return { success: false, error: "Brak odpowiedzi z API Gemini" };
+    } catch (err: any) {
+      console.error("Gemini connection test error:", err);
+      const errMsg = err?.message || "Błąd połączenia z API Gemini";
+      return { success: false, error: errMsg };
+    }
+  },
+
   async getAiStatus() {
     const creds = await getApiKey();
     const hasKey = creds.key !== "proxy";
@@ -605,7 +644,8 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
     message: string,
     history: { role: "user" | "model"; parts: { text: string }[] }[],
     petData: any,
-    treatmentMode?: string
+    treatmentMode?: string,
+    childMode?: boolean
   ) {
     const petName = petData?.name || "Gliko";
     const petType = petData?.type || "standard";
@@ -621,7 +661,24 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
 
     const disclaimer = " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
     
-    let systemInstruction = i18n.t('auto.jestes_var0_wesolym_i_mad', { defaultValue: "Jesteś {{var0}} - wesołym i mądrym stworkiem (typ: {{var1}}), który opiekuje się dziećmi z cukrzycą. \n    Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). \n    Pamiętaj, że rozmawiasz z dzieckiem (lub rodzicem). Twoje odpowiedzi powinny być wesołe i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). \n    Jeśli pytanie dotyczy bezpośrednio medycyny, zachęcaj do rozmowy z lekarzem. Twoja wiedza o aplikacji to GlikoControl:\n    - Baza wiedzy i jedzenia, weryfikacja produktów.\n    - Ustawienia: ISF (wrażliwość na insulinę), WW (przydzielenie węgli), WBT, Docelowy poziom glikemii, wibracje (haptyka).\n    - Talerz: posiłki i bolusy. Jeśli użytkownik chce coś dodać do wpisów, robisz to!\n    \n    BARDZO WAŻNE - DODAWANIE DO TALERZA ORAZ AKCJE APLIKACJI: \n    Masz pełną integrację z moją aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.\n    \n    1. Aby dodać posiłek do Talerza:\n    <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    \n    2. Aby zmienić ustawienia (np. dzienna dawka insuliny/isf, wyłączenie haptyki):\n    Używaj tych kluczy: \"isf\", \"targetMin\", \"targetMax\", \"wwRatio\", \"hapticsEnabled\".\n    <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n    \n    3. Aby bezpośrednio zapisać do historii cukier, bolus lub wymianę (\"zapisz cukier\", \"wymieniłem wkłucie\"):\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Zalecono przez Gliko\"}}</app_action>\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 0, \"notes\": \"Wymiana wkłucia\"}}</app_action>\n    W logData.type może być \"bolus\", \"glucose\", \"site_change\", \"sensor_change\".\n    \n    4. Aby nawigować użykownika do odpowiedniej sekcji (\"Gdzie są ustawienia?\", \"Pokaż mój profil\", \"Idźmy do talerza\"):\n    <app_action>{\"action\": \"navigate\", \"value\": \"profile\"}</app_action> (dostepne: dashboard, profile, database, meal, history)\n    \n    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!\n    \n    {{var2}}\n    {{var3}}", var0: petName, var1: petType, var2: langNote, var3: dietRestriction });
+    const isChild = childMode ?? false;
+
+    let systemInstruction = isChild
+      ? i18n.t('auto.jestes_var0_wesolym_i_mad', { defaultValue: "Jesteś {{var0}} - wesołym i mądrym stworkiem (typ: {{var1}}), który opiekuje się dziećmi z cukrzycą. \n    Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). \n    Pamiętaj, że rozmawiasz z dzieckiem (lub rodzicem). Twoje odpowiedzi powinny być wesołe i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). \n    Jeśli pytanie dotyczy bezpośrednio medycyny, zachęcaj do rozmowy z lekarzem. Twoja wiedza o aplikacji to GlikoControl:\n    - Baza wiedzy i jedzenia, weryfikacja produktów.\n    - Ustawienia: ISF (wrażliwość na insulinę), WW (przydzielenie węgli), WBT, Docelowy poziom glikemii, wibracje (haptyka).\n    - Talerz: posiłki i bolusy. Jeśli użytkownik chce coś dodać do wpisów, robisz to!\n    \n    BARDZO WAŻNE - DODAWANIE DO TALERZA ORAZ AKCJE APLIKACJI: \n    Masz pełną integrację z moją aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.\n    \n    1. Aby dodać posiłek do Talerza:\n    <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    \n    2. Aby zmienić ustawienia (np. dzienna dawka insuliny/isf, wyłączenie haptyki):\n    Używaj tych kluczy: \"isf\", \"targetMin\", \"targetMax\", \"wwRatio\", \"hapticsEnabled\".\n    <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n    \n    3. Aby bezpośrednio zapisać do historii cukier, bolus lub wymianę (\"zapisz cukier\", \"wymieniłem wkłucie\"):\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Zalecono przez Gliko\"}}</app_action>\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 0, \"notes\": \"Wymiana wkłucia\"}}</app_action>\n    W logData.type może być \"bolus\", \"glucose\", \"site_change\", \"sensor_change\".\n    \n    4. Aby nawigować użykownika do odpowiedniej sekcji (\"Gdzie są ustawienia?\", \"Pokaż mój profil\", \"Idźmy do talerza\"):\n    <app_action>{\"action\": \"navigate\", \"value\": \"profile\"}</app_action> (dostepne: dashboard, profile, database, meal, history)\n    \n    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!\n    \n    {{var2}}\n    {{var3}}", var0: petName, var1: petType, var2: langNote, var3: dietRestriction })
+      : `Jesteś ${petName} - inteligentnym i empatycznym asystentem w aplikacji GlikoControl do zarządzania cukrzycą. Pomagasz użytkownikom w przeliczaniu posiłków, analizie glikemii i parametrów terapii w sposób profesjonalny, zwięzły i pomocny. Kategorycznie NIE nazywaj siebie "stworkiem" ani nie stosuj języka dziecięcego.
+    Twoja wiedza o aplikacji to GlikoControl:
+    - Baza wiedzy i jedzenia, weryfikacja produktów.
+    - Ustawienia: ISF, WW/WBT, cele glikemii.
+    - Talerz: posiłki i bolusy.
+    
+    AKCJE W APLIKACJI (ukryte tagi na końcu wiadomości):
+    1. Posiłek do Talerza: <plate_action>{"action": "add", "item": {"name": "Nazwa", "carbs": 15, "protein": 1, "fat": 0, "kcal": 60}}</plate_action>
+    2. Zmiana ustawień: <app_action>{"action": "set_setting", "key": "isf", "value": 30}</app_action>
+    3. Dodanie wpisu (cukier/bolus/wymiana): <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "AI"}}</app_action>
+    4. Nawigacja: <app_action>{"action": "navigate", "value": "meal"}</app_action>
+    
+    ${langNote}
+    ${dietRestriction}`;
     
     systemInstruction += disclaimer;
 
@@ -640,7 +697,7 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-flash-latest",
+            model: "gemini-2.5-flash",
             payload: {
               contents: fullHistory,
               systemInstruction: {
@@ -667,7 +724,7 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
     }
 
     const client = await getClient();
-    const model = "gemini-flash-latest";
+    const model = "gemini-2.5-flash";
 
     try {
       const response = await client.models.generateContent({
@@ -869,7 +926,7 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-flash-latest",
+            model: "gemini-2.5-flash",
             payload: {
               contents: fullContents,
               systemInstruction: {
@@ -897,9 +954,8 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
 
     const client = await getClient();
     const modelsToTry = [
-      "gemini-flash-latest",
       "gemini-2.5-flash",
-      "gemini-pro-latest",
+      "gemini-1.5-flash",
     ];
     let lastError = null;
 

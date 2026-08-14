@@ -1,4 +1,4 @@
-﻿import { useLogsStore } from "../../stores/useLogsStore";
+import { useLogsStore } from "../../stores/useLogsStore";
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -524,7 +524,7 @@ export const MealComposer = ({
  onClick={prepareToLogMeal}
  className="flex-3 bg-accent-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
  >
- {t('meal.add_to_diary', { defaultValue: 'Dodaj do Dziennika' })}
+ {t('meal.add_to_diary', { defaultValue: 'Zapisz posiłek / Połącz z wpisem' })}
  </button>
  <button
  onClick={analyzeMeal}

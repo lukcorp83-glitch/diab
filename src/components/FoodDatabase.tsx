@@ -3,6 +3,7 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from "react";
 import { useQueryClient } from '@tanstack/react-query';
 import { useCustomProducts, useCommunityProducts } from '../hooks/queries/useFoodDatabase';
+import { LIB_BASE } from '../data/foodDatabase';
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
@@ -118,14 +119,7 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  }
  };
 
-  const [libBase, setLibBase] = useState<any[]>([]);
-  useEffect(() => {
-    let isMounted = true;
-    import("../data/foodDatabase").then(module => {
-      if (isMounted) setLibBase(module.LIB_BASE);
-    });
-    return () => { isMounted = false };
-  }, []);
+  const libBase = LIB_BASE;
 
   const allProducts = [...customProducts, ...communityProducts, ...libBase];
  const uniqueProducts = Array.from(

@@ -96,6 +96,7 @@ import { notificationService } from "../services/notificationService";
 import { UserSettings, LogEntry, InventoryItem } from "../types";
 import {
  APP_VERSION,
+ DEFAULT_SETTINGS,
  MEDICAL_DICTIONARY,
  extractGTIN,
  lookupMedicalDictionary,
@@ -156,15 +157,12 @@ export default function Profile({
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
   const updatePetName = async () => { if (!user || !newName.trim()) return; setEditingName(false); try { await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "pet"), { name: newName.trim() }, { merge: true }); toast.success("Zapisano"); } catch (e) { toast.error("Błąd"); } };
- const [settings, setSettings] = useState<UserSettings>(initialSettings);
+ const [settings, setSettings] = useState<UserSettings>(() => ({ ...DEFAULT_SETTINGS, ...initialSettings }));
  useEffect(() => {
- setSettings(initialSettings);
- }, [initialSettings]);
- useEffect(() => {
-   if (user) {
-     queryClient.setQueryData(['userSettings', getEffectiveUid(user)], settings);
+   if (initialSettings && Object.keys(initialSettings).length > 0) {
+     setSettings(prev => ({ ...prev, ...initialSettings }));
    }
- }, [settings, user, queryClient]);
+ }, [initialSettings]);
  const [learnedRules, setLearnedRules] = useState<any>(() => {
  try {
  return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
@@ -288,16 +286,24 @@ export default function Profile({
  const testKey = async () => {
    setIsTestingKey(true);
    try {
-     const status = await geminiService.getAiStatus();
-     if (status === "ready") {
-       toast.success(i18n.t('auto.polaczenie_udane', { defaultValue: "Połączenie udane!" }), { icon: "✅" });
-     } else {
-       toast.error(i18n.t('auto.blad_klucza', { defaultValue: "Błąd klucza lub połączenia" }), { icon: "❌" });
+     const val = geminiApiKey.trim();
+     if (val) {
+       try {
+         await SecureStoragePlugin.set({ key: "gemini_api_key", value: val });
+       } catch(e) {}
      }
-     setAiStatus(status);
-   } catch (e) {
+     geminiService.resetClient();
+
+     const result = await geminiService.testConnection(val || undefined);
+     if (result.success) {
+       toast.success(i18n.t('auto.polaczenie_udane', { defaultValue: "Połączenie z API Gemini udane!" }), { icon: "✅" });
+     } else {
+       toast.error(result.error || i18n.t('auto.blad_klucza', { defaultValue: "Błąd klucza lub połączenia" }), { icon: "❌" });
+     }
+     const updatedStatus = await geminiService.getAiStatus();
+     setAiStatus(updatedStatus);
+   } catch (e: any) {
      toast.error(i18n.t('auto.blad_klucza', { defaultValue: "Błąd klucza lub połączenia" }), { icon: "❌" });
-     setAiStatus("error");
    } finally {
      setIsTestingKey(false);
    }
@@ -1024,6 +1030,8 @@ export default function Profile({
  }
  setSettings(targetSettings);
  try {
+ localStorage.setItem("glikocontrol_user_settings", JSON.stringify(targetSettings));
+ if (user) {
  await setDoc(
  doc(
  db,
@@ -1035,7 +1043,12 @@ export default function Profile({
  targetSettings,
  { merge: true },
  );
- toast(i18n.t('auto.ustawienia_zapisane_pomyslnie', { defaultValue: i18n.t('auto.ustawienia_zapisane_pomys', { defaultValue: "Ustawienia zapisane pomyślnie!" }) }));
+ }
+ const uidKey = user ? getEffectiveUid(user) : 'local';
+ queryClient.setQueryData(['userSettings', uidKey], targetSettings);
+ queryClient.setQueryData(['userSettings', 'local'], targetSettings);
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+ toast.success(i18n.t('auto.ustawienia_zapisane_pomyslnie', { defaultValue: i18n.t('auto.ustawienia_zapisane_pomys', { defaultValue: "Ustawienia zapisane pomyślnie!" }) }));
  } catch (e) {
  console.error("Save settings error:", e);
  alert(

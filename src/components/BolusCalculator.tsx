@@ -1,6 +1,7 @@
 import { useAuthStore } from '../stores/useAuthStore';
 import i18n from '../i18n';
 import { useLogsStore } from "../stores/useLogsStore";
+import { useMealPlateStore } from "../stores/useMealPlateStore";
 import { getEffectiveUid } from "../lib/utils";
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from 'react-i18next';
@@ -60,6 +61,30 @@ export default function BolusCalculator({ setTab,
 }) {
   const user = useAuthStore(state => state.user);
   const logs = useLogsStore((state) => state.logs);
+  const plate = useMealPlateStore((state) => state.plate);
+
+  useEffect(() => {
+    if (plate && plate.length > 0) {
+      const totalCarbs = plate.reduce((sum, item) => sum + ((item.carbs || 0) * (item.weight || 100) / 100), 0);
+      const totalProtein = plate.reduce((sum, item) => sum + ((item.protein || 0) * (item.weight || 100) / 100), 0);
+      const totalFat = plate.reduce((sum, item) => sum + ((item.fat || 0) * (item.weight || 100) / 100), 0);
+      const totalPolyols = plate.reduce((sum, item) => sum + ((item.polyols || 0) * (item.weight || 100) / 100), 0);
+
+      setCarbs((Math.round(totalCarbs * 10) / 10).toString());
+      setProtein(totalProtein > 0 ? (Math.round(totalProtein * 10) / 10).toString() : "");
+      setFat(totalFat > 0 ? (Math.round(totalFat * 10) / 10).toString() : "");
+      setPolyols(totalPolyols > 0 ? (Math.round(totalPolyols * 10) / 10).toString() : "");
+      setItems(plate);
+
+      const names = plate.map(i => i.name).filter(Boolean).join(", ");
+      if (names) setMealName(names);
+
+      const kcalFromWBT = totalProtein * 4 + totalFat * 9;
+      if (kcalFromWBT >= 100) {
+        setIsPizzaMode(true);
+      }
+    }
+  }, [plate]);
 
  const { t } = useTranslation();
  const [bg, setBg] = useState<string>("");
@@ -572,6 +597,7 @@ export default function BolusCalculator({ setTab,
  if (setSharedPlate) {
  setSharedPlate([]);
  }
+ useMealPlateStore.getState().clearPlate();
  } catch (err: any) {
  Haptics.error();
  console.error("[BolusCalculator] Error:", err);

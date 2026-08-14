@@ -1,10 +1,10 @@
 {
-    "version": "6.0.18",
+    "version": "6.0.19",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.18_OTA.apk",
-    "buildNumber": 133,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.19_OTA.apk",
+    "buildNumber": 134,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.18! 1) Nowe efekty wykresu glikemii (Neon Ambient Glow & Glass Target Band 70–140 mg/dL). 2) Wyraźny cień aktywnej insuliny (IOB). 3) Uniesienia pigułek bolusów/posiłków z liniami prowadzącymi w dołkach (<85 mg/dL). 4) Zaokrąglenie jednostek insuliny do 1 miejsca po przecinku.",
-    "whatsNewEn": "Version 6.0.18! 1) New visual chart effects (Neon Ambient Glow & Glass Target Band 70–140 mg/dL). 2) Enhanced active insulin (IOB) decay shadow. 3) Elevated bolus/meal badges with dashed leader lines strictly at low glucose troughs (<85 mg/dL). 4) Rounded insulin units on chart to 1 decimal place.",
-    "otaRevision": 292
+    "whatsNew": "Wersja 6.0.19! 1) Naprawiono opóźnienia menu dolnego (prefetching zakładek & popLayout). 2) Odblokowano skaner kodów kreskowych w sekcji Baza. 3) Usunięto zapętlanie skanera w Talerzu. 4) Poprawiono testowanie własnego klucza Gemini AI. 5) Dodano bezawaryjny backend CPU dla GlikoSense ML w Web Workerze. 6) Naprawiono nasłuchiwanie powiadomień w tle na Androidzie oraz dodano modal odejmowania z apteczki Smart Equipment.",
+    "whatsNewEn": "Version 6.0.19! 1) Fixed bottom menu loading delays (tab prefetching & popLayout). 2) Unlocked barcode scanner in Database section. 3) Fixed scanner auto-looping in Plate section. 4) Fixed custom Gemini AI key connection test. 5) Added robust CPU fallback for GlikoSense ML Web Worker. 6) Fixed background notification listener sync on Android & added Smart Equipment inventory deduction modal.",
+    "otaRevision": 293
 }

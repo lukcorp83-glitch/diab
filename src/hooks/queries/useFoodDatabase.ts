@@ -32,6 +32,7 @@ export const useCommunityProducts = () => {
  },
  staleTime: 1000 * 60 * 60, // 1 hour
  gcTime: 1000 * 60 * 60 * 24, // 24 hours
+ placeholderData: (previousData) => previousData,
  });
 };
 
@@ -50,5 +51,6 @@ export const useCustomProducts = (user: any) => {
  },
  enabled: !!user,
  staleTime: 1000 * 60 * 5, // 5 minutes
+ placeholderData: (previousData) => previousData,
  });
 };
