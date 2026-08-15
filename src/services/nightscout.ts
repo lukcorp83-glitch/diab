@@ -349,6 +349,46 @@ export const nightscoutService = {
       console.error("Nightscout deleteTreatment error:", error instanceof Error ? error.message : error);
       return false;
     }
+  },
+
+  async postTreatment(treatment: any, url: string, apiSecret: string): Promise<boolean> {
+    if (!url || !treatment) return false;
+
+    let cleanUrl = url.trim();
+    if (!cleanUrl.startsWith("http")) cleanUrl = "https://" + cleanUrl;
+    cleanUrl = cleanUrl.replace(/\/$/, "");
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (apiSecret) {
+        const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(apiSecret.trim()));
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        headers["api-secret"] = hash;
+      }
+
+      const apiUrl = `${cleanUrl}/api/v1/treatments`;
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(treatment),
+      });
+
+      if (response.ok) {
+        console.log("Successfully posted treatment to NS");
+        return true;
+      } else {
+        console.warn("NS postTreatment returned status:", response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error("Nightscout postTreatment error:", error instanceof Error ? error.message : error);
+      return false;
+    }
   }
 };
+
 

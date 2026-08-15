@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.19';
+export const CURRENT_VERSION = '6.0.20';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.20",
+    date: "2026-08-15",
+    title: "Poprawa czytelności pulpitu i edycji kroków",
+    changes: [
+      "Poprawa edycji na urządzeniach mobilnych w widżecie Aktywności (lepsza klawiatura, większe przyciski)",
+      "Nowy poziomy układ widżetu Statusu Pompy z wyświetlaniem dokładnego modelu urządzenia",
+      "Odchudzenie pigułek powiadomień na górnym pasku w celu zaoszczędzenia miejsca na małych ekranach",
+      "Naprawa błędu blokującego ustawienie szerokiego układu widżetu pompy na pulpicie"
+    ]
+  },
   {
     version: "6.0.19",
     date: "2026-08-14",
@@ -176,6 +187,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.20",
+    date: "2026-08-15",
+    title: "Poprawa czytelności pulpitu i edycji kroków",
+    changes: [
+      "Poprawa edycji na urządzeniach mobilnych w widżecie Aktywności (lepsza klawiatura, większe przyciski)",
+      "Nowy poziomy układ widżetu Statusu Pompy z wyświetlaniem dokładnego modelu urządzenia",
+      "Odchudzenie pigułek powiadomień na górnym pasku w celu zaoszczędzenia miejsca na małych ekranach",
+      "Naprawa błędu blokującego ustawienie szerokiego układu widżetu pompy na pulpicie"
+    ]
+  },
   {
     version: "6.0.19",
     date: "2026-08-14",

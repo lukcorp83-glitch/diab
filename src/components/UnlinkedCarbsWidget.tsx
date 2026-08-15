@@ -211,80 +211,86 @@ export default function UnlinkedCarbsWidget({ user, onAddCarbs }: Props) {
  );
  })}
  
- {/* Custom entry button */}
- {searchQuery.trim().length > 0 && (
- <button
- disabled={isSaving || isAiEstimating}
- onClick={async () => {
- const mealName = searchQuery.trim();
- setIsAiEstimating(true);
- const toastId = toast.loading(t('auto.ai_szuka_informacji_o_posilku', { defaultValue: 'AI analizuje posiłek i wylicza makroskładniki...' }));
- 
- try {
- const { geminiService } = await import('../services/gemini');
- const prompt = `Pacjent zjadł "${mealName}". Wiemy, że porcja ta zawiera DOKŁADNIE ${carbs}g węglowodanów.
+ {(isAiEstimating || isSaving) && (
+  <div className="flex items-center gap-3 bg-emerald-950/90 border border-emerald-400/50 p-3 rounded-xl w-full mb-3 shadow-lg animate-pulse">
+  <Loader2 size={18} className="animate-spin text-emerald-400 shrink-0" />
+  <div className="flex flex-col">
+  <span className="text-[12px] font-black text-white">AI szuka i wylicza makroskładniki...</span>
+  <span className="text-[10px] font-bold text-emerald-200">GlikoSense dopasowuje wartości odżywcze</span>
+  </div>
+  </div>
+  )}
+
+  {searchQuery.trim().length > 0 && (
+  <button
+  disabled={isSaving || isAiEstimating}
+  onClick={async () => {
+  const mealName = searchQuery.trim();
+  setIsAiEstimating(true);
+  const toastId = toast.loading(t('auto.ai_szuka_informacji_o_posilku', { defaultValue: 'AI analizuje posiłek i wylicza makroskładniki...' }));
+  
+  try {
+  const { geminiService } = await import('../services/gemini');
+  const prompt = `Pacjent zjadł "${mealName}". Wiemy, że porcja ta zawiera DOKŁADNIE ${carbs}g węglowodanów.
 Na podstawie typowych proporcji makroskładników dla "${mealName}", oszacuj ile gramów białka i tłuszczu zjadł w tej porcji, oraz podaj Indeks Glikemiczny (IG).
 Odpowiedz WYŁĄCZNIE czystym formatem JSON (bez \`\`\`json):
 {"protein": <liczba>, "fat": <liczba>, "ig": <liczba>}`;
- 
- const response = await geminiService.generateContent(prompt);
- const match = response.match(/\{[\s\S]*\}/);
- let estimatedProtein = 0;
- let estimatedFat = 0;
- let estimatedIg = 50;
- 
- if (match) {
- const json = JSON.parse(match[0]);
- estimatedProtein = Number(json.protein) || 0;
- estimatedFat = Number(json.fat) || 0;
- estimatedIg = Number(json.ig) || 50;
- }
- 
- // Proporcje na 100g, aby amount = 100 i calculations in handleQuickAdd worked correctly
- // handleQuickAdd robi: amount = Math.round((targetCarbs / product.carbs) * 100)
- // czyli dla targetCarbs=carbs i product.carbs=carbs, amount=100.
- // Wtedy computedFat = (product.fat * amount)/100 = product.fat.
- const customProduct = {
- id: "custom_" + Date.now(),
- namePl: mealName + " (AI)",
- name: mealName + " (AI)",
- carbs: carbs,
- fat: estimatedFat,
- protein: estimatedProtein,
- ig: estimatedIg
- };
- 
- toast.dismiss(toastId);
- handleQuickAdd(customProduct, carbs);
- } catch(err) {
- console.error(err);
- toast.dismiss(toastId);
- toast.error("Błąd AI. Zapisano tylko węglowodany.");
- const fallbackProduct = {
- id: "custom_" + Date.now(),
- namePl: mealName,
- name: mealName,
- carbs: carbs,
- fat: 0,
- protein: 0,
- gi: 50
- };
- handleQuickAdd(fallbackProduct, carbs);
- } finally {
- setIsAiEstimating(false);
- }
- }}
- className="flex items-center justify-between bg-emerald-500/20 hover:bg-emerald-500/30 px-3 py-2 rounded-xl transition-colors text-left mt-1 border border-emerald-500/30"
- >
- <span className="text-[11px] font-bold text-emerald-100 truncate flex items-center gap-1.5">
- {isAiEstimating ? <Loader2 size={12} className="animate-spin text-emerald-400" /> : <Sparkles size={12} className="text-emerald-400" />}
- {isAiEstimating ? t('auto.ai_analizuje', { defaultValue: 'AI Analizuje...' }) : t('auto.wygeneruj_z_ai', { defaultValue: 'Wygeneruj makro (AI):' })} "{searchQuery.trim()}"
- </span>
- <span className="text-[10px] font-black text-emerald-200 bg-emerald-900/40 px-2 py-1 rounded-lg shrink-0">
- {carbs}g W
- </span>
- </button>
- )}
+  
+  const response = await geminiService.generateContent(prompt);
+  const match = response.match(/\{[\s\S]*\}/);
+  let estimatedProtein = 0;
+  let estimatedFat = 0;
+  let estimatedIg = 50;
+  
+  if (match) {
+  const json = JSON.parse(match[0]);
+  estimatedProtein = Number(json.protein) || 0;
+  estimatedFat = Number(json.fat) || 0;
+  estimatedIg = Number(json.ig) || 50;
+  }
+  
+  const customProduct = {
+  id: "custom_" + Date.now(),
+  namePl: mealName + " (AI)",
+  name: mealName + " (AI)",
+  carbs: carbs,
+  fat: estimatedFat,
+  protein: estimatedProtein,
+  ig: estimatedIg
+  };
+  
+  toast.dismiss(toastId);
+  toast.success(`✨ Zapisano z AI! Białko: ${estimatedProtein}g, Tłuszcz: ${estimatedFat}g, IG: ${estimatedIg}`);
+  await handleQuickAdd(customProduct, carbs);
+  } catch(err) {
+  console.error(err);
+  toast.dismiss(toastId);
+  toast.error("Błąd AI. Zapisano tylko węglowodany.");
+  const fallbackProduct = {
+  id: "custom_" + Date.now(),
+  namePl: mealName,
+  name: mealName,
+  carbs: carbs,
+  fat: 0,
+  protein: 0,
+  gi: 50
+  };
+  await handleQuickAdd(fallbackProduct, carbs);
+  } finally {
+  setIsAiEstimating(false);
+  }
+  }}
+  className="flex items-center justify-between bg-emerald-500/20 hover:bg-emerald-500/30 px-3 py-2 rounded-xl transition-colors text-left mt-1 border border-emerald-500/30"
+  >
+  <span className="text-[11px] font-bold text-emerald-100 truncate flex items-center gap-1.5">
+  {isAiEstimating ? <Loader2 size={12} className="animate-spin text-emerald-400" /> : <Sparkles size={12} className="text-emerald-400" />}
+  {isAiEstimating ? t('auto.ai_analizuje', { defaultValue: 'AI Analizuje...' }) : t('auto.wygeneruj_z_ai', { defaultValue: 'Wygeneruj makro (AI):' })} "{searchQuery.trim()}"
+  </span>
+  <span className="text-[10px] font-black text-emerald-200 bg-emerald-900/40 px-2 py-1 rounded-lg shrink-0">
+  {carbs}g W
+  </span>
+  </button>
+  )}
  </div>
  )}
  </div>

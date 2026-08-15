@@ -139,7 +139,7 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
     case "history_treatments":
       return ["2x1", "1x2", "2x2"];
     case "pump":
-      return ["1x1", "2x1"];
+      return ["2x1"];
     default:
       return ["1x1", "2x1", "1x2", "2x2"];
   }
@@ -1070,15 +1070,19 @@ export default function Dashboard({
         }
         const isSensCompact = size.startsWith("1");
         return (
-          <div 
-            onClick={() => { 
-              if (!isEditingLayout) {
-                Haptics.light();
-                useAppStore.getState().setInitialAction('devices'); setTab('profile');
-              }
-            }}
-            className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isSensCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
-          >
+            <motion.div 
+              key={`sensor-anim-${effSensorDate}`}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1, backgroundColor: ["rgba(139,92,246,0.3)", "rgba(139,92,246,0)"] }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              onClick={() => { 
+                if (!isEditingLayout) {
+                  Haptics.light();
+                  useAppStore.getState().setInitialAction('devices'); setTab('profile');
+                }
+              }}
+              className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isSensCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
+            >
             <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
             <div className="flex justify-between items-start w-full">
               <div className="p-1.5 bg-violet-500/10 rounded-xl border border-violet-500/20 text-violet-500"><Signal size={14} /></div>
@@ -1103,13 +1107,18 @@ export default function Dashboard({
                       )}
                     </div>
                     <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
-                      <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} 
+                      />
                     </div>
                   </div>
                 );
               })()}
             </div>
-          </div>
+          </motion.div>
         );
 
       case "infusion_reminder":
@@ -1130,15 +1139,19 @@ export default function Dashboard({
         }
         const isInfCompact = size.startsWith("1");
         return (
-          <div 
-            onClick={() => { 
-              if (!isEditingLayout) {
-                Haptics.light();
-                useAppStore.getState().setInitialAction('devices'); setTab('profile');
-              }
-            }}
-            className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isInfCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
-          >
+            <motion.div 
+              key={`infusion-anim-${effInfusionDate}`}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1, backgroundColor: ["rgba(6,182,212,0.3)", "rgba(6,182,212,0)"] }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              onClick={() => { 
+                if (!isEditingLayout) {
+                  Haptics.light();
+                  useAppStore.getState().setInitialAction('devices'); setTab('profile');
+                }
+              }}
+              className={cn("glass-card flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all w-full h-full", isInfCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]")}
+            >
             <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
             <div className="flex justify-between items-start w-full">
               <div className="p-1.5 bg-cyan-500/10 rounded-xl border border-cyan-500/20 text-cyan-500"><Droplets size={14} /></div>
@@ -1163,13 +1176,18 @@ export default function Dashboard({
                       )}
                     </div>
                     <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
-                      <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} 
+                      />
                     </div>
                   </div>
                 );
               })()}
             </div>
-          </div>
+          </motion.div>
         );
 
       case "assistant":
@@ -1545,11 +1563,11 @@ export default function Dashboard({
                    bgClass = "bg-amber-500/10 border-amber-500/20";
                  }
                  return (
-                   <div className={`relative overflow-hidden shrink-0 flex items-center px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
+                   <div className={`relative overflow-hidden shrink-0 flex items-center px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-wider shadow-sm transition-colors ${bgClass} ${colorClass}`}>
                      <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${fillClass}`} style={{ width: `${bat}%` }} />
-                     <div className="relative z-10 flex items-center gap-1.5">
+                     <div className="relative z-10 flex items-center gap-1.5 whitespace-nowrap">
                        <Zap size={12} className={bat < 25 ? "animate-pulse" : ""} />
-                       {bat}%
+                       <span>{bat}%</span>
                      </div>
                    </div>
                  );
@@ -1572,11 +1590,11 @@ export default function Dashboard({
 
                  const percent = Math.min(100, (res / 300) * 100);
                  return (
-                   <div className={`relative overflow-hidden shrink-0 flex items-center px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors ${bgClass} ${colorClass}`}>
+                   <div className={`relative overflow-hidden shrink-0 flex items-center px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-wider shadow-sm transition-colors ${bgClass} ${colorClass}`}>
                      <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${fillClass}`} style={{ width: `${percent}%` }} />
-                     <div className="relative z-10 flex items-center gap-1.5">
+                     <div className="relative z-10 flex items-center gap-1.5 whitespace-nowrap">
                        <Cylinder size={12} className={res <= 20 ? "animate-pulse" : ""} />
-                       {res} J.
+                       <span>{res} U</span>
                      </div>
                    </div>
                  );
@@ -1590,7 +1608,7 @@ export default function Dashboard({
          {settings?.inventory && settings.inventory.filter((item: any) => ['cannulas', 'infusion_sets', 'sensors', 'reservoirs'].includes(item.category)).map((item: any) => {
              let colorClass = "text-slate-600 dark:text-slate-300";
              let fillClass = "bg-slate-100/80 dark:bg-slate-800/80";
-             let bgClass = "bg-slate-100/50 border-slate-200/50 dark:border-slate-700/50";
+             let bgClass = "bg-slate-100/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10";
              
              const threshold = typeof item.lowStockThreshold === 'number' ? item.lowStockThreshold : 1;
              if (item.quantity <= threshold) {
@@ -1608,7 +1626,7 @@ export default function Dashboard({
                  }}
                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors cursor-pointer active:scale-95 ${bgClass} ${colorClass}`}
                >
-                 {(item.category === 'cannulas' || item.category === 'infusion_sets') && <Droplet size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-sky-500"} />}
+                 {(item.category === 'cannulas' || item.category === 'infusion_sets') && <Droplets size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-sky-500"} />}
                  {item.category === 'sensors' && <Signal size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-violet-500"} />}
                  {item.category === 'reservoirs' && <Cylinder size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-purple-500"} />}
                  {item.quantity} {item.unit || 'szt.'}
@@ -1638,7 +1656,7 @@ export default function Dashboard({
               "flex items-center gap-1.5 px-3 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all active:scale-95 glass-target select-none",
               isEditingLayout
                 ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10"
-                : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
+                : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:bg-slate-300 border-slate-200 dark:border-white/10"
             )}
             title={t('auto.kustonizuj_kafelki_pulpitu', { defaultValue: 'Kustonizuj kafelki pulpitu' })}
           >
@@ -1786,7 +1804,7 @@ export default function Dashboard({
           widgets.map((w, index) => {
              if (!w.visible) return null;
              if (["hydration", "weather"].includes(w.id)) return null;
-             if (!isInsulinMode && ["pump", "site_rotation", "infusion_reminder", "quick_bolus", "sensor_reminder", "pen_tracker"].includes(w.id)) return null;
+             if (!isInsulinMode && ["pump", "site_rotation", "infusion_reminder", "quick_bolus", "sensor_reminder"].includes(w.id)) return null;
              if (settings.treatmentMode === 'insulin' && ["pump", "infusion_reminder"].includes(w.id)) return null;
              if (settings.treatmentMode === 'pump' && w.id === "pen_tracker") return null;
              if (settings.followerMode && !["main_stats", "history_measurements", "history_treatments"].includes(w.id)) return null;
@@ -1795,7 +1813,6 @@ export default function Dashboard({
                    w.id === "weather" || 
                    w.id === "sensor_reminder" || 
                    w.id === "infusion_reminder" || 
-                   w.id === "pump" ||
                    w.id === "quick_measurement" ||
                    w.id === "quick_bolus"
                      ? "1x1" 
@@ -2157,12 +2174,7 @@ export default function Dashboard({
         )}
       </div>
 
-      {/* Pump Status - Final Bento Piece */}
-      {pumpStatus && settings?.showPumpWidget !== false && (
-        <motion.div>
-           <PumpStatusCard data={pumpStatus} />
-        </motion.div>
-      )}
+
       </>
       )}
 

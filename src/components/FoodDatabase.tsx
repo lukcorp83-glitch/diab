@@ -7,7 +7,12 @@ import { LIB_BASE } from '../data/foodDatabase';
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
-import { Search, Plus, Trash2, Tag, Info, X } from "lucide-react";
+import { Search, Plus, Trash2, Tag, Info, X, ArrowUpDown, Globe, Mic, Scan, Camera, Loader2, Sparkles, Barcode } from "lucide-react";
+import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { SpeechRecognition as CapSpeechRecognition } from "@capacitor-community/speech-recognition";
+import { Capacitor } from "@capacitor/core";
+import { Haptics } from "../lib/haptics";
+import toast from "react-hot-toast";
 import SwipeableItem from "./SwipeableItem";
 import { cn } from "../lib/utils";
 import { db } from "../lib/firebase";
@@ -34,10 +39,98 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
 
  const { t } = useTranslation();
  const [searchTerm, setSearchTerm] = useState("");
+ const [isSearchingOnline, setIsSearchingOnline] = useState(false);
+ const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+ const [isListening, setIsListening] = useState(false);
+ const [aiSearchResults, setAiSearchResults] = useState<Product[]>([]);
+
  const { data: customProductsData } = useCustomProducts(user);
  const { data: communityProductsData } = useCommunityProducts();
  const customProducts = customProductsData || [];
  const communityProducts = communityProductsData || [];
+
+ const handleOnlineSearch = async () => {
+   if (!searchTerm.trim()) return;
+   setIsSearchingOnline(true);
+   try {
+     const results = await geminiService.searchFood(searchTerm);
+     if (results && results.length > 0) {
+       setAiSearchResults(results);
+       toast.success(`Znaleziono ${results.length} produktów w internecie!`);
+     } else {
+       toast.error("Nie znaleziono produktów w chmurze AI.");
+     }
+   } catch(e) {
+     console.error(e);
+     toast.error("Błąd wyszukiwania AI.");
+   } finally {
+     setIsSearchingOnline(false);
+   }
+ };
+
+ const handleVoiceSearch = async () => {
+   if (isListening) return;
+   if (Capacitor.isNativePlatform()) {
+     try {
+       const permStatus = await CapSpeechRecognition.checkPermissions();
+       if (permStatus.speechRecognition !== 'granted') {
+         await CapSpeechRecognition.requestPermissions();
+       }
+       setIsListening(true);
+       Haptics.light();
+       const { matches } = await CapSpeechRecognition.start({
+         language: 'pl-PL',
+         maxResults: 1,
+         prompt: 'Mów nazwę produktu...',
+         popup: true
+       });
+       if (matches && matches.length > 0) {
+         setSearchTerm(matches[0]);
+       }
+     } catch (e) {
+       console.error(e);
+     } finally {
+       setIsListening(false);
+     }
+     return;
+   }
+   if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+     toast.error("Brak obsługi rozpoznawania głosu.");
+     return;
+   }
+   const SpeechRecAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+   const recognition = new SpeechRecAPI();
+   recognition.lang = "pl-PL";
+   recognition.onstart = () => setIsListening(true);
+   recognition.onresult = (e: any) => setSearchTerm(e.results[0][0].transcript);
+   recognition.onend = () => setIsListening(false);
+   recognition.start();
+ };
+
+ const handleCameraPhoto = async () => {
+   setIsAnalyzingPhoto(true);
+   try {
+     const image = await CapCamera.getPhoto({
+       quality: 80,
+       allowEditing: false,
+       resultType: CameraResultType.DataUrl,
+       source: CameraSource.Camera
+     });
+     if (image.dataUrl) {
+       toast.loading("AI analizuje zdjęcie produktu...");
+       const result = await geminiService.analyzeMeal(image.dataUrl);
+       toast.dismiss();
+       if (result.ingredients && result.ingredients.length > 0) {
+         toast.success(`AI zidentyfikowało: ${result.ingredients.map((i: any) => i.name).join(', ')}`);
+         setSearchTerm(result.ingredients[0].name || "");
+       }
+     }
+   } catch(e: any) {
+     console.error(e);
+   } finally {
+     setIsAnalyzingPhoto(false);
+   }
+ };
  const queryClient = useQueryClient();
  const [activeCategory, setActiveCategory] = useState("Wszystko");
  const [activeSource, setActiveSource] = useState<'all' | 'system' | 'own' | 'community'>('all');
@@ -121,7 +214,7 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
 
   const libBase = LIB_BASE;
 
-  const allProducts = [...customProducts, ...communityProducts, ...libBase];
+  const allProducts = [...customProducts, ...communityProducts, ...aiSearchResults, ...libBase];
  const uniqueProducts = Array.from(
  new Map(
  allProducts
@@ -150,7 +243,12 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  else if (activeSource === 'system') matchesSource = isSystem;
 
  return matchesSearch && matchesCategory && matchesSource;
- }).sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+ }).sort((a, b) => {
+    if (sortBy === 'date_desc') return (b.createdAt || b.timestamp || 0) - (a.createdAt || a.timestamp || 0);
+    if (sortBy === 'carbs_desc') return (b.carbs || 0) - (a.carbs || 0);
+    if (sortBy === 'carbs_asc') return (a.carbs || 0) - (b.carbs || 0);
+    return getProductName(a, i18n.language).localeCompare(getProductName(b, i18n.language), 'pl');
+  });
 
  return (
  <motion.div
@@ -158,27 +256,92 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  animate={{ opacity: 1 }}
  className="space-y-6"
  >
- <div className="flex gap-2 mb-4">
- <div className="relative flex-1">
- <Search
- className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"
- size={18}
- />
- <input
- type="text"
- placeholder={t('auto.szukaj_produktu', { defaultValue: 'Szukaj produktu...' })}
- value={searchTerm}
- onChange={(e) => setSearchTerm(e.target.value)}
- className="w-full bg-white dark:bg-slate-900 p-5 pl-14 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:ring-2 ring-accent-500/20 shadow-sm"
- />
- </div>
- <button
- onClick={() => setIsModalOpen(true)}
- className="bg-accent-600 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 transition-all"
- >
- <Plus size={24} />
- </button>
- </div>
+  <div className="flex flex-col gap-3 mb-4">
+  <div className="flex flex-wrap sm:flex-nowrap gap-2">
+  <div className="relative flex-1 min-w-[200px]">
+  <Search
+  className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"
+  size={18}
+  />
+  <input
+  type="text"
+  placeholder={t('auto.szukaj_produktu', { defaultValue: 'Szukaj produktu...' })}
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  onKeyDown={(e) => { if (e.key === 'Enter') handleOnlineSearch(); }}
+  className="w-full bg-white dark:bg-slate-900 p-5 pl-14 pr-12 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-sm font-bold dark:text-white outline-none focus:ring-2 ring-accent-500/20 shadow-sm"
+  />
+  {searchTerm && (
+  <button
+  onClick={() => setSearchTerm("")}
+  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+  >
+  <X size={16} />
+  </button>
+  )}
+  </div>
+
+  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-white dark:bg-slate-900 px-4 py-3 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
+  <ArrowUpDown size={14} className="text-slate-400" />
+  <select
+  value={sortBy}
+  onChange={e => setSortBy(e.target.value as any)}
+  className="bg-transparent text-slate-900 dark:text-white text-xs font-bold focus:outline-none cursor-pointer"
+  >
+  <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="date_desc">📅 Najnowsze</option>
+  <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="name_asc">🔤 Nazwa (A-Z)</option>
+  <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="carbs_desc">📈 Węglowodany (Najwięcej)</option>
+  <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="carbs_asc">📉 Węglowodany (Najmniej)</option>
+  </select>
+  </div>
+
+  <button
+  onClick={() => setIsModalOpen(true)}
+  className="bg-accent-600 text-white p-5 rounded-[1.5rem] shadow-lg active:scale-95 transition-all shrink-0"
+  title="Dodaj nowy produkt"
+  >
+  <Plus size={24} />
+  </button>
+  </div>
+
+  {/* Quick Action Search Bar */}
+  <div className="flex gap-2 pb-1 overflow-x-auto hide-scrollbar snap-x snap-mandatory">
+  <button
+  onClick={() => {
+  window.dispatchEvent(new CustomEvent('open_barcode_scanner'));
+  }}
+  className="snap-start shrink-0 flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-accent-500 transition-all active:scale-95 shadow-sm"
+  >
+  <Barcode size={18} strokeWidth={2.5} className="text-accent-500" />
+  <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white">Kody</span>
+  </button>
+
+  <button
+  onClick={handleCameraPhoto}
+  className="snap-start shrink-0 flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-accent-500 transition-all active:scale-95 shadow-sm"
+  >
+  {isAnalyzingPhoto ? <Loader2 size={18} className="animate-spin text-rose-500" /> : <Camera size={18} strokeWidth={2.5} className="text-accent-500" />}
+  <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white">Aparat AI</span>
+  </button>
+
+  <button
+  onClick={handleVoiceSearch}
+  className="snap-start shrink-0 flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:text-accent-500 transition-all active:scale-95 shadow-sm"
+  >
+  <Mic size={18} strokeWidth={2.5} className={isListening ? "text-rose-500 animate-pulse" : "text-accent-500"} />
+  <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white">Głosowe</span>
+  </button>
+
+  <button
+  onClick={handleOnlineSearch}
+  disabled={!searchTerm.trim() || isSearchingOnline}
+  className="snap-start shrink-0 flex items-center gap-2 bg-accent-500 text-white px-4 py-2.5 rounded-2xl hover:bg-accent-600 disabled:opacity-50 transition-all active:scale-95 shadow-sm"
+  >
+  {isSearchingOnline ? <Loader2 size={18} className="animate-spin" /> : <Globe size={18} strokeWidth={2.5} />}
+  <span className="text-[10px] font-black uppercase tracking-widest">Szukaj w Internecie (AI)</span>
+  </button>
+  </div>
+  </div>
 
  {typeof document !== 'undefined' ? createPortal(
  <AnimatePresence>

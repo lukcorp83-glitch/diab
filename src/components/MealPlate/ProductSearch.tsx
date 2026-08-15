@@ -1,6 +1,6 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Loader2, Globe, Mic, Plus, Info, Scale, Share2, BookMarked, Tag, X, Scan, Camera } from "lucide-react";
+import { Search, Loader2, Globe, Mic, Plus, Info, Scale, Share2, BookMarked, Tag, X, Scan, Camera, Barcode } from "lucide-react";
 import { Haptics } from "../../lib/haptics";
 import { useMealPlateStore } from "../../stores/useMealPlateStore";
 import { Product } from "../../types/product";
@@ -167,9 +167,21 @@ export const ProductSearch = ({
  return base.sort((a, b) => getProductName(a, i18n.language).localeCompare(getProductName(b, i18n.language), 'pl'));
  }, [allLocal, activeCategory, searchTerm]);
 
- return (
- <>
- <div className="p-4 sm:p-5 flex flex-col gap-3">
+  return (
+  <>
+  {isAnalyzing && (
+  <div className="mx-4 sm:mx-5 mt-3 flex items-center justify-between bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white p-3.5 rounded-2xl shadow-xl border border-white/20 animate-pulse">
+  <div className="flex items-center gap-3">
+  <Loader2 size={20} className="animate-spin text-white shrink-0" />
+  <div className="flex flex-col">
+  <span className="text-xs font-black uppercase tracking-wider">Aparat AI Analizuje Posiłek</span>
+  <span className="text-[11px] font-bold text-indigo-100">Rozpoznawanie produktów i przeliczanie węgli...</span>
+  </div>
+  </div>
+  </div>
+  )}
+
+  <div className="p-4 sm:p-5 flex flex-col gap-3">
  <div className="relative group">
  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent-500 transition-colors" size={18} />
  <input
@@ -194,8 +206,8 @@ export const ProductSearch = ({
 
  <div className="flex gap-2 pb-1 overflow-x-auto hide-scrollbar snap-x snap-mandatory">
  <button onClick={startScanner} className="snap-start shrink-0 flex items-center gap-2 bg-white dark:bg-slate-800/80 px-4 py-2.5 rounded-2xl border-2 border-slate-100 dark:border-slate-700/50 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shadow-sm">
- <Scan size={18} strokeWidth={2.5} className="text-accent-500" />
- <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white">{t('meal.barcode_scanner', { defaultValue: 'Kody Kreskowe' })}</span>
+ <Barcode size={18} strokeWidth={2.5} className="text-accent-500" />
+ <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white">{t('meal.barcode_scanner', { defaultValue: 'Kody' })}</span>
  </button>
 
  <button onClick={startCameraAnalysis} className="snap-start shrink-0 flex items-center gap-2 bg-white dark:bg-slate-800/80 px-4 py-2.5 rounded-2xl border-2 border-slate-100 dark:border-slate-700/50 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shadow-sm">

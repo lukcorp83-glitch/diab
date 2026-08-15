@@ -211,7 +211,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <div className="text-right">
  <div className="flex items-baseline justify-end gap-1.5 mb-2">
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block">{t('auto.insulina_aktywna', { defaultValue: 'Insulina Aktywna' })}</span>
- <span className="text-xl font-black text-accent-600 dark:text-accent-400 tracking-tight">{iob.toFixed(2)}<span className="text-[10px] ml-0.5 opacity-50">j</span></span>
+ <span className="text-xl font-black text-accent-600 dark:text-accent-400 tracking-tight tabular-nums">{iob.toFixed(2)}<span className="text-[10px] ml-0.5 opacity-50">j</span></span>
  </div>
  
  <motion.div 

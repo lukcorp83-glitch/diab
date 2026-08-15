@@ -69,7 +69,7 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
   });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<string>('tolerance_desc');
+  const [sortBy, setSortBy] = useState<string>('date_desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAllGolden, setShowAllGolden] = useState(false);
   const [showAllTricky, setShowAllTricky] = useState(false);
@@ -85,7 +85,7 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
   }, []);
 
   const computedProfile = React.useMemo(() => {
-    const mealPatterns: Record<string, { spikes: number; count: number; totalCorrections: number; totalMaxBg: number }> = {};
+    const mealPatterns: Record<string, { spikes: number; count: number; totalCorrections: number; totalMaxBg: number; lastTimestamp: number }> = {};
     const meals = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && (l.linkedMeal?.carbs || l.note || (l as any).description)));
     const glucoseLogs = logs.filter(l => l.type === 'glucose' || l.bg).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     const bolusLogs = logs.filter(l => l.type === 'bolus' || l.type === 'insulin');
@@ -135,17 +135,20 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
       });
 
       if (!mealPatterns[name]) {
-        mealPatterns[name] = { spikes: 0, count: 0, totalCorrections: 0, totalMaxBg: 0 };
+        mealPatterns[name] = { spikes: 0, count: 0, totalCorrections: 0, totalMaxBg: 0, lastTimestamp: 0 };
       }
 
       mealPatterns[name].count += 1;
       mealPatterns[name].totalMaxBg += (maxBg > 0 ? maxBg : 130);
       mealPatterns[name].totalCorrections += postMealBoluses.length;
       if (hasSpike) mealPatterns[name].spikes += 1;
+      if (mealTime > mealPatterns[name].lastTimestamp) {
+        mealPatterns[name].lastTimestamp = mealTime;
+      }
     });
 
-    const nutriMeals: NutriMealEntry[] = Object.keys(mealPatterns).map(name => {
-      const { spikes, count, totalCorrections, totalMaxBg } = mealPatterns[name];
+    const nutriMeals: (NutriMealEntry & { lastTimestamp?: number })[] = Object.keys(mealPatterns).map(name => {
+      const { spikes, count, totalCorrections, totalMaxBg, lastTimestamp } = mealPatterns[name];
       const avgMaxBg = totalMaxBg / count;
       const avgCorrections = totalCorrections / count;
 
@@ -195,12 +198,13 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
         consistencyIndex,
         category,
         avgCorrections: Math.round(avgCorrections * 10) / 10,
-        avgReturnTime: 120
+        avgReturnTime: 120,
+        lastTimestamp
       };
     });
 
-    const goldenMeals = nutriMeals.filter(m => m.category === 'golden').sort((a, b) => b.toleranceScore - a.toleranceScore);
-    const trickyMeals = nutriMeals.filter(m => m.category === 'tricky').sort((a, b) => a.toleranceScore - b.toleranceScore);
+    const goldenMeals = nutriMeals.filter(m => m.category === 'golden').sort((a, b) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0));
+    const trickyMeals = nutriMeals.filter(m => m.category === 'tricky').sort((a, b) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0));
     const overallTolerance = nutriMeals.length > 0
       ? Math.round(nutriMeals.reduce((sum, m) => sum + m.toleranceScore, 0) / nutriMeals.length)
       : 100;
@@ -220,7 +224,7 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
     return Math.round(allMeals.reduce((acc, m) => acc + (m.avgMaxBg || 135), 0) / allMeals.length);
   }, [allMeals]);
 
-  const filterAndSort = (mealsList: NutriMealEntry[]) => {
+  const filterAndSort = (mealsList: (NutriMealEntry & { lastTimestamp?: number })[]) => {
     let result = [...mealsList];
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -228,13 +232,17 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
     }
 
     result.sort((a, b) => {
+      if (sortBy === 'date_desc') return (b.lastTimestamp || 0) - (a.lastTimestamp || 0);
+      if (sortBy === 'date_asc') return (a.lastTimestamp || 0) - (b.lastTimestamp || 0);
+      if (sortBy === 'tolerance_desc') return b.toleranceScore - a.toleranceScore;
+      if (sortBy === 'tolerance_asc') return a.toleranceScore - b.toleranceScore;
       if (sortBy === 'count_desc') return b.count - a.count;
       if (sortBy === 'count_asc') return a.count - b.count;
       if (sortBy === 'maxBg_desc') return (b.avgMaxBg || 0) - (a.avgMaxBg || 0);
       if (sortBy === 'maxBg_asc') return (a.avgMaxBg || 0) - (b.avgMaxBg || 0);
       if (sortBy === 'name_asc') return a.name.localeCompare(b.name, 'pl');
-      if (sortBy === 'tolerance_asc') return a.toleranceScore - b.toleranceScore;
-      return b.toleranceScore - a.toleranceScore;
+      if (sortBy === 'name_desc') return b.name.localeCompare(a.name, 'pl');
+      return (b.lastTimestamp || 0) - (a.lastTimestamp || 0);
     });
 
     return result;
@@ -470,12 +478,16 @@ export default function GlikoSenseNutriView({ logs }: GlikoSenseNutriViewProps) 
                 }}
                 className="bg-transparent text-slate-900 dark:text-white text-xs font-bold focus:outline-none cursor-pointer"
               >
-                <option value="tolerance_desc">Wg tolerancji (najwyższa)</option>
-                <option value="tolerance_asc">Wg tolerancji (najniższa)</option>
-                <option value="count_desc">Wg częstotliwości (najczęstsze)</option>
-                <option value="maxBg_desc">Wg szczytu cukru (najwyższy)</option>
-                <option value="maxBg_asc">Wg szczytu cukru (najniższy)</option>
-                <option value="name_asc">Wg nazwy (A-Z)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="date_desc">📅 Wg daty (Najnowsze)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="date_asc">📅 Wg daty (Najstarsze)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="tolerance_desc">💚 Wg tolerancji (Najwyższa)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="tolerance_asc">⚠️ Wg tolerancji (Najniższa)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="count_desc">🔥 Wg częstotliwości (Najczęstsze)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="count_asc">🧊 Wg częstotliwości (Najrzadsze)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="maxBg_desc">📈 Wg szczytu cukru (Najwyższy)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="maxBg_asc">📉 Wg szczytu cukru (Najniższy)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="name_asc">🔤 Wg nazwy (A-Z)</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="name_desc">🔤 Wg nazwy (Z-A)</option>
               </select>
             </div>
 

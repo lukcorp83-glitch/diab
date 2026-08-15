@@ -87,10 +87,10 @@ export default function HealthWidget() {
               setManualInput(steps ? steps.toString() : "0");
               setIsEditing(!isEditing);
             }}
-            className="p-1 text-slate-400 hover:text-emerald-500 rounded-lg transition-colors"
+            className="p-2 -mr-2 text-slate-400 hover:text-emerald-500 rounded-xl transition-colors active:scale-95"
             title="Wpisz kroki ręcznie"
           >
-            <Edit2 size={12} />
+            <Edit2 size={16} />
           </button>
         </div>
 
@@ -98,28 +98,34 @@ export default function HealthWidget() {
           {loading ? (
             <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-8 w-24 rounded mt-1"></div>
           ) : isEditing ? (
-            <div className="flex items-center gap-2 mt-1">
+            <form 
+              onSubmit={(e) => { e.preventDefault(); handleSaveManual(); }} 
+              className="flex items-center gap-2 mt-1"
+            >
               <input
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={manualInput}
                 onChange={(e) => setManualInput(e.target.value)}
                 placeholder="np. 6500"
-                className="w-24 px-2 py-1 bg-white dark:bg-slate-800 border border-emerald-500/30 rounded-lg text-sm font-bold text-slate-800 dark:text-white focus:outline-none"
+                className="w-24 px-3 py-2 bg-white dark:bg-slate-800 border border-emerald-500/50 rounded-xl text-base font-black text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
                 autoFocus
               />
               <button
-                onClick={handleSaveManual}
-                className="p-1 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                type="submit"
+                className="p-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors shadow-sm active:scale-95"
               >
-                <Check size={14} />
+                <Check size={16} />
               </button>
               <button
+                type="button"
                 onClick={() => setIsEditing(false)}
-                className="p-1 bg-slate-200 dark:bg-slate-800 text-slate-500 rounded-lg hover:bg-slate-300 transition-colors"
+                className="p-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-300 transition-colors shadow-sm active:scale-95"
               >
-                <X size={14} />
+                <X size={16} />
               </button>
-            </div>
+            </form>
           ) : steps !== null ? (
             <div className="flex flex-col">
               <div className="flex items-baseline gap-1 mt-1">
@@ -132,13 +138,13 @@ export default function HealthWidget() {
               </div>
               {steps === 0 && (
                 <div className="mt-2 text-[9px] text-slate-400 dark:text-slate-500 italic leading-tight">
-                  {t('auto.połącz_gliko_z_google_fit_health_co', { defaultValue: i18n.t('auto.polacz_gliko_z_google_fit', { defaultValue: "Kliknij ikonkę ✏️, aby wpisać kroki ręcznie lub połącz z Health Connect w Profilu." }) })}
+                  Kliknij ikonkę ołówka ✏️ w rogu, aby wpisać kroki ręcznie. (Upewnij się, że masz aplikację Health Connect).
                 </div>
               )}
             </div>
           ) : (
-            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 italic">
-              {t('auto.brak_uprawnień_kliknij_ikonkę_w_ust', { defaultValue: i18n.t('auto.brak_uprawnien_kliknij_ik', { defaultValue: "Brak uprawnień. Kliknij ✏️ aby wpisać kroki ręcznie lub ⚙️ w Profilu." }) })}
+            <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 italic leading-tight">
+              Brak uprawnień. Kliknij ✏️ u góry aby wpisać kroki ręcznie lub nadaj uprawnienia Health Connect w Profilu.
             </div>
           )}
         </div>

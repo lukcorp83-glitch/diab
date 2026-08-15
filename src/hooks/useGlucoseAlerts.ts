@@ -122,11 +122,7 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
       console.log(`[GlucoseAlerts] 🚨 LOW GLUCOSE MP3 ALARM FIRED: ${val} mg/dL!`);
       // Trigger system notification
       notificationService.triggerGlucoseAlarm(false, Math.round(val));
-      
-      // On web, play MP3 audio directly. On native Android, channel sound plays status_clear.mp3
-      if (!Capacitor.isNativePlatform()) {
-        playLowGlucoseSound();
-      }
+      playLowGlucoseSound();
       Haptics.heavy();
 
       // Emit event for persistent UI Alarm Modal with STOP SOUND button
@@ -137,11 +133,7 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
       console.log(`[GlucoseAlerts] 📈 HIGH GLUCOSE MP3 ALARM FIRED: ${val} mg/dL!`);
       // Trigger system notification
       notificationService.triggerGlucoseAlarm(true, Math.round(val));
-      
-      // On web, play MP3 audio directly. On native Android, channel sound plays status_clear.mp3
-      if (!Capacitor.isNativePlatform()) {
-        playHighGlucoseSound();
-      }
+      playHighGlucoseSound();
       Haptics.medium();
 
       // Emit event for persistent UI Alarm Modal with STOP SOUND button

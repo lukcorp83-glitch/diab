@@ -33,6 +33,7 @@ import { CATEGORIES, APP_VERSION } from "./constants";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { notificationService } from "./services/notificationService";
+import { nightscoutService } from "./services/nightscout";
 import { Toaster, toast, ToastBar } from "react-hot-toast";
 
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
@@ -49,6 +50,7 @@ import GlikoControlLogo from "./components/LogoAnimation";
 import { CURRENT_VERSION } from "./constants/versions";
 
 import { MigrationManager } from "./components/MigrationManager";
+import { downloadCloudPackage } from "./components/CloudPackageSync";
 import { GlucoseAlarmModal } from "./components/GlucoseAlarmModal";
 import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { AppLayout } from "./components/app/AppLayout";
@@ -81,6 +83,17 @@ export default function App() {
   const { data: fbPumpStatus = null } = usePumpStatus(user);
   const { data: userSettings = null } = useUserSettings(user) as any;
   const { data: nsSettings } = useNightscoutSettings(user);
+
+  useEffect(() => {
+    if (userSettings) {
+      notificationService.updateDeviceReminders(userSettings);
+    }
+  }, [
+    userSettings?.sensorChangeDate,
+    userSettings?.infusionSetChangeDate,
+    userSettings?.sensorDurationDays,
+    userSettings?.infusionSetDurationDays
+  ]);
   
   const userSettingsRef = useRef(userSettings);
   useEffect(() => { userSettingsRef.current = userSettings; }, [userSettings]);
@@ -171,6 +184,34 @@ export default function App() {
       }, 5000);
       return () => clearTimeout(timeoutId);
     }, [fbLogs]);
+
+    // Automatyczne przywracanie danych z chmury po aktualizacji (gdy baza lokalna jest pusta)
+    useEffect(() => {
+      if (!user) return;
+      const autoRestoreCloudData = async () => {
+        const isRestoring = localStorage.getItem('auto_cloud_restore_active');
+        if (isRestoring) return;
+
+        const localLogsCount = (sqliteLogs?.length || 0) + (logs?.length || 0);
+        if (localLogsCount < 10) {
+          console.log('[App] Wykryto brak logów po aktualizacji. Automatycznie pobieram paczkę z chmury...');
+          localStorage.setItem('auto_cloud_restore_active', 'true');
+          try {
+            const success = await downloadCloudPackage(user);
+            if (success) {
+              console.log('[App] Pomyślnie automatycznie przywrócono paczkę z chmury!');
+            }
+          } catch (e) {
+            console.warn('[App] Automatyczne przywracanie paczki z chmury nie powiodło się:', e);
+          } finally {
+            localStorage.removeItem('auto_cloud_restore_active');
+          }
+        }
+      };
+
+      const timer = setTimeout(autoRestoreCloudData, 3000);
+      return () => clearTimeout(timer);
+    }, [user, sqliteLogs.length, logs.length]);
   
     useEffect(() => {
       const allMap = new Map();
@@ -185,6 +226,26 @@ export default function App() {
       const combined = Array.from(allMap.values()).sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
       setLogs(combined);
     }, [sqliteLogs, fbLogs, nsLogs, setLogs]);
+
+  // Automatyczna synchronizacja dat wymian osprzętu z najnowszymi wpisami z historii / Nightscout
+  useEffect(() => {
+    if (!user || !userSettings) return;
+    const latestSiteLog = logs.find((l: any) => l.type === 'site_change');
+    const latestSensorLog = logs.find((l: any) => l.type === 'sensor_change');
+
+    const updates: any = {};
+    if (latestSiteLog && latestSiteLog.timestamp > (userSettings.infusionSetChangeDate || 0)) {
+      updates.infusionSetChangeDate = latestSiteLog.timestamp;
+    }
+    if (latestSensorLog && latestSensorLog.timestamp > (userSettings.sensorChangeDate || 0)) {
+      updates.sensorChangeDate = latestSensorLog.timestamp;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      console.log('[App] Auto-synced device replacement dates from latest logs:', updates);
+      setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+    }
+  }, [user, userSettings, logs]);
 
   // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
   useGlucoseAlerts(logs, userSettings);
@@ -314,6 +375,29 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle Android system back button
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let listener: any;
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      const state = useAppStore.getState();
+      if (state.isShortcutMode) {
+        state.setIsShortcutMode(false);
+      } else if (state.activeTab !== 'dashboard') {
+        state.setTab('dashboard');
+      } else {
+        CapacitorApp.exitApp();
+      }
+    }).then(l => { listener = l; });
+
+    return () => {
+      if (listener && listener.remove) {
+        listener.remove();
+      }
+    };
+  }, []);
+
   // Smart Equipment Listener & Modal State
   const [smartEquipmentType, setSmartEquipmentType] = useState<'reservoir' | 'sensor' | null>(null);
 
@@ -352,6 +436,15 @@ export default function App() {
         updatedInv[sensorIdx] = { ...updatedInv[sensorIdx], quantity: Math.max(0, updatedInv[sensorIdx].quantity - 1) };
         updates.inventory = updatedInv;
       }
+      
+      if (currentSettings.nsUrl && currentSettings.nsSecret) {
+         nightscoutService.postTreatment({
+           eventType: 'Sensor Change',
+           created_at: new Date(now).toISOString(),
+           enteredBy: 'GlikoControl',
+           notes: 'Wymiana sensora'
+         }, currentSettings.nsUrl, currentSettings.nsSecret).catch(console.warn);
+      }
     } else if (type === 'reservoir') {
       updates.reservoirChangeDate = now;
       localStorage.setItem('reservoirChangeDate', String(now));
@@ -369,6 +462,24 @@ export default function App() {
         if (setIdx !== -1) {
           updatedInv[setIdx] = { ...updatedInv[setIdx], quantity: Math.max(0, updatedInv[setIdx].quantity - 1) };
         }
+        
+        if (currentSettings.nsUrl && currentSettings.nsSecret) {
+           nightscoutService.postTreatment({
+             eventType: 'Site Change',
+             created_at: new Date(now).toISOString(),
+             enteredBy: 'GlikoControl',
+             notes: 'Wymiana wkłucia i zbiorniczka'
+           }, currentSettings.nsUrl, currentSettings.nsSecret).catch(console.warn);
+        }
+      } else {
+        if (currentSettings.nsUrl && currentSettings.nsSecret) {
+           nightscoutService.postTreatment({
+             eventType: 'Insulin Change',
+             created_at: new Date(now).toISOString(),
+             enteredBy: 'GlikoControl',
+             notes: 'Wymiana zbiorniczka'
+           }, currentSettings.nsUrl, currentSettings.nsSecret).catch(console.warn);
+        }
       }
 
       updates.inventory = updatedInv;
@@ -376,6 +487,20 @@ export default function App() {
 
     if (user) {
       await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+        
+      try {
+        const logPayload = {
+          type: type === 'sensor' ? 'sensor_change' : (replaceInfusionSet ? 'site_change' : 'insulin_change'),
+          timestamp: now,
+          createdAt: serverTimestamp(),
+          source: 'manual',
+          notes: type === 'sensor' ? 'Wymiana sensora (Smart Equipment)' : (replaceInfusionSet ? 'Wymiana wkłucia i zbiorniczka (Smart Equipment)' : 'Wymiana zbiorniczka (Smart Equipment)')
+        };
+        await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), logPayload);
+      } catch (e) {
+        console.warn("Failed saving equipment change to logs:", e);
+      }
+
       toast.success(
         type === 'sensor' 
           ? "Wymieniono sensor. Odjęto 1 szt. z apteczki!" 

@@ -93,6 +93,7 @@ import {
  serverTimestamp,
 } from "firebase/firestore";
 import { notificationService } from "../services/notificationService";
+import { nightscoutService } from "../services/nightscout";
 import { UserSettings, LogEntry, InventoryItem } from "../types";
 import {
  APP_VERSION,

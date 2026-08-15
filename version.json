@@ -1,10 +1,10 @@
 {
-    "version": "6.0.19",
+    "version": "6.0.20",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.19_OTA.apk",
-    "buildNumber": 134,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.20_OTA.apk",
+    "buildNumber": 135,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.19! 1) Naprawiono opóźnienia menu dolnego (prefetching zakładek & popLayout). 2) Odblokowano skaner kodów kreskowych w sekcji Baza. 3) Usunięto zapętlanie skanera w Talerzu. 4) Poprawiono testowanie własnego klucza Gemini AI. 5) Dodano bezawaryjny backend CPU dla GlikoSense ML w Web Workerze. 6) Naprawiono nasłuchiwanie powiadomień w tle na Androidzie oraz dodano modal odejmowania z apteczki Smart Equipment.",
-    "whatsNewEn": "Version 6.0.19! 1) Fixed bottom menu loading delays (tab prefetching & popLayout). 2) Unlocked barcode scanner in Database section. 3) Fixed scanner auto-looping in Plate section. 4) Fixed custom Gemini AI key connection test. 5) Added robust CPU fallback for GlikoSense ML Web Worker. 6) Fixed background notification listener sync on Android & added Smart Equipment inventory deduction modal.",
-    "otaRevision": 293
+    "whatsNew": "Wersja 6.0.20! 1) Poprawa widżetu Aktywności na urządzeniach mobilnych (powiększenie przycisków, obsługa natywnej klawiatury numerycznej). 2) Zmiana układu widżetu statusu pompy na czytelniejszy (wyświetlanie modelu urządzenia i brak przycinania). 3) Odchudzenie pigułek powiadomień na pasku górnym pulpitu (pozostawiono same ikony). 4) Odblokowanie możliwości ustawienia szerokiego widżetu pompy na pulpicie.",
+    "whatsNewEn": "Version 6.0.20! 1) Fixed Activity widget editing on mobile devices (larger buttons, native numpad support). 2) Redesigned Pump Status widget layout for better readability (showing device model, no text clipping). 3) Streamlined notification pills on the top dashboard bar (icons only). 4) Unlocked wide layout option for the Pump widget on the dashboard.",
+    "otaRevision": 294
 }

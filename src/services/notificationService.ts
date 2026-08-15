@@ -233,53 +233,70 @@ export const notificationService = {
   },
 
   async updateDeviceReminders(settings: any) {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!settings) return;
     try {
-      const perms = await LocalNotifications.checkPermissions();
-      if (perms.display !== 'granted') return;
-
       const notificationsToSchedule: any[] = [];
+      const now = Date.now();
 
+      // 1. Wymiana sensora (12h przed wygaśnięciem)
       if (settings.sensorChangeDate && settings.sensorDurationDays) {
         const expiryDate = settings.sensorChangeDate + (settings.sensorDurationDays * 24 * 60 * 60 * 1000);
         const reminderDate = new Date(expiryDate - (12 * 60 * 60 * 1000));
         
-        if (reminderDate.getTime() > Date.now()) {
+        if (reminderDate.getTime() > now) {
           notificationsToSchedule.push({
             id: 998,
             title: 'Wymiana sensora',
-            body: i18n.t('auto.twoj_sensor_wygasa_za_12_godzi', { defaultValue: i18n.t('auto.twoj_sensor_wygasa_za_12', { defaultValue: "Twój sensor wygasa za 12 godzin!" }) }),
+            body: i18n.t('auto.twoj_sensor_wygasa_za_12_godzi', { defaultValue: 'Twój sensor wygasa za 12 godzin!' }),
             schedule: { at: reminderDate },
             channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: null
           });
+        } else if (now >= reminderDate.getTime() && now < expiryDate) {
+          const notifKey = `notif_12h_sensor_${new Date(expiryDate).toDateString()}`;
+          if (!localStorage.getItem(notifKey)) {
+            localStorage.setItem(notifKey, 'true');
+            this.scheduleDeviceReminder('Wymiana sensora', i18n.t('auto.twoj_sensor_wygasa_za_12_godzi', { defaultValue: 'Twój sensor wygasa za mniej niż 12 godzin!' }));
+          }
         }
       }
 
+      // 2. Wymiana wkłucia (12h przed wygaśnięciem)
       if (settings.infusionSetChangeDate && settings.infusionSetDurationDays) {
         const expiryDate = settings.infusionSetChangeDate + (settings.infusionSetDurationDays * 24 * 60 * 60 * 1000);
         const reminderDate = new Date(expiryDate - (12 * 60 * 60 * 1000));
         
-        if (reminderDate.getTime() > Date.now()) {
+        if (reminderDate.getTime() > now) {
           notificationsToSchedule.push({
             id: 999,
-            title: i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia" }) }),
-            body: i18n.t('auto.twoje_wklucie_wygasa_za_12_god', { defaultValue: i18n.t('auto.twoje_wklucie_wygasa_za_1', { defaultValue: "Twoje wkłucie wygasa za 12 godzin!" }) }),
+            title: i18n.t('auto.wymiana_wklucia', { defaultValue: 'Wymiana wkłucia' }),
+            body: i18n.t('auto.twoje_wklucie_wygasa_za_12_god', { defaultValue: 'Twoje wkłucie wygasa za 12 godzin!' }),
             schedule: { at: reminderDate },
             channelId: 'glikocontrol_reminders_v1',
             attachments: null,
             actionTypeId: '',
             extra: null
           });
+        } else if (now >= reminderDate.getTime() && now < expiryDate) {
+          const notifKey = `notif_12h_infusion_${new Date(expiryDate).toDateString()}`;
+          if (!localStorage.getItem(notifKey)) {
+            localStorage.setItem(notifKey, 'true');
+            this.scheduleDeviceReminder(i18n.t('auto.wymiana_wklucia', { defaultValue: 'Wymiana wkłucia' }), i18n.t('auto.twoje_wklucie_wygasa_za_12_god', { defaultValue: 'Twoje wkłucie wygasa za mniej niż 12 godzin!' }));
+          }
         }
       }
 
-      await LocalNotifications.cancel({ notifications: [{ id: 998 }, { id: 999 }] }).catch(() => {});
-
-      if (notificationsToSchedule.length > 0) {
-        await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+      if (Capacitor.isNativePlatform()) {
+        const perms = await LocalNotifications.checkPermissions();
+        if (perms.display === 'granted') {
+          await LocalNotifications.cancel({ notifications: [{ id: 998 }, { id: 999 }] }).catch(() => {});
+          if (notificationsToSchedule.length > 0) {
+            await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+            console.log('[NotificationService] Zaplanowano natywne powiadomienia 12h o sprzęcie:', notificationsToSchedule);
+          }
+        }
       }
     } catch (e) {
       console.error('Failed to schedule device reminders', e);

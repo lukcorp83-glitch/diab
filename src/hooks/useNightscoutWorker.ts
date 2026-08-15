@@ -14,9 +14,10 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
     };
     window.addEventListener('nsLogDelete', handleNsLogDelete);
 
-    console.log("==== HOOK: useEffect uruchomiony ====", { user: !!user, nsUrl });
-    if (!user) {
-      console.log("==== HOOK: Brak usera, przerywam ====");
+    const effectiveUrl = nsUrl || (typeof window !== 'undefined' ? localStorage.getItem('nightscout_url') || '' : '');
+    console.log("==== HOOK: useEffect uruchomiony ====", { user: !!user, nsUrl: effectiveUrl });
+    if (!effectiveUrl) {
+      console.log("==== HOOK: Brak Nightscout URL, przerywam ====");
       return;
     }
 

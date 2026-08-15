@@ -23,7 +23,7 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/components/SmartEquipmentModal.tsx` - Modal potwierdzenia Smart Equipment. Przy wykryciu zmiany pompy/zbiorniczka pyta, czy wymieniono sam zbiorniczek, czy również wkłucie.
 - `src/App.tsx` - Wyświetla `SmartEquipmentModal` i natychmiast odejmuje odpowiednie elementy (zbiorniczki `reservoirs`, wkłucia `infusion_sets` oraz sensory `sensors`) z apteczki `inventory` użytkownika.
 
-- `src/services/gemini.ts`, `src/App.tsx` & `src/components/GlikoChat.tsx` - Naprawiono sprawdzanie `childMode` w `getGlikoChatResponse`. Gdy tryb dziecka jest wyłączony (dorośli), Asystent AI odpowiada jako profesjonalny i zwięzły doradca ds. cukrzycy GlikoControl i KATEGORYCZNIE nie nazywa się "stworkiem". Włączając tryb dziecka, Asystent przyjmuje wesołą, przyjazną dzieciom postać.
+- `src/components/nutrition/GlikoSenseNutriView.tsx` & `src/components/FoodDatabase.tsx` - Poprawiono widoczność opcji sortowania w rozwijanym menu `<select>`. Dodano jawne style tła i koloru tekstu (`bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold`) dla każdego elementu `<option>`, dzięki czemu wszystkie nazwy trybów sortowania są czytelne i widoczne przez cały czas, a nie dopiero po najechaniu kursorem.
 - `src/components/nutrition/NutritionHub.tsx` - Kontener Centrum Żywienia z widokami Talerza, Diet, Historii i Odżywiania.
 - `src/components/nutrition/GlikoSenseNutriView.tsx` - Widok statystyk tolerancji potraw. Dodano pełny wybór opcji sortowania (tolerancja rosnąco/malejąco, częstotliwość, szczyt cukru oraz alfabet A-Z).
 - `src/components/nutrition/DietSpecificWidgets.tsx` - Widżety danych dedykowane dla każdej diety.

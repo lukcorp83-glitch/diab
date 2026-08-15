@@ -246,13 +246,16 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
   const baseUrl = url.replace(/\/$/, '');
   const cacheBust = `_t=${Date.now()}`;
   
+  const entriesCount = count;
+  const treatmentsCount = count > 500 ? 20000 : 1000;
+  
   const entriesUrl = secret && secret.includes('-') 
-    ? `${baseUrl}/api/v1/entries.json?count=${count}&${cacheBust}&token=${secret}` 
-    : `${baseUrl}/api/v1/entries.json?count=${count}&${cacheBust}`;
+    ? `${baseUrl}/api/v1/entries.json?count=${entriesCount}&${cacheBust}&token=${secret}` 
+    : `${baseUrl}/api/v1/entries.json?count=${entriesCount}&${cacheBust}`;
     
   const treatmentsUrl = secret && secret.includes('-') 
-    ? `${baseUrl}/api/v1/treatments.json?count=${count}&${cacheBust}&token=${secret}` 
-    : `${baseUrl}/api/v1/treatments.json?count=${count}&${cacheBust}`;
+    ? `${baseUrl}/api/v1/treatments.json?count=${treatmentsCount}&${cacheBust}&token=${secret}` 
+    : `${baseUrl}/api/v1/treatments.json?count=${treatmentsCount}&${cacheBust}`;
 
   const deviceUrl = secret && secret.includes('-') 
     ? `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}&token=${secret}` 

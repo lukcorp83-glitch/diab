@@ -247,7 +247,7 @@ export function AppLayout({
         {/* Navigation */}
         {!isShortcutMode && (
           <nav className={cn(
-            "fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl transition-all duration-300",
+            "fixed bottom-4 left-4 right-4 glass backdrop-blur-3xl border border-black/5 dark:border-white/10 z-50 rounded-[2rem] shadow-2xl transition-all duration-300",
             isKeyboardOpen ? "opacity-0 pointer-events-none translate-y-24" : "opacity-100 translate-y-0"
           )}>
             <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">

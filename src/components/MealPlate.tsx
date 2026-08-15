@@ -945,19 +945,19 @@ export default function MealPlate({
  };
 
 
- const startCameraAnalysis = async () => {
- try {
- const image = await CapCamera.getPhoto({
- quality: 80,
- allowEditing: false,
- resultType: CameraResultType.DataUrl,
- source: CameraSource.Camera
- });
+  const startCameraAnalysis = async () => {
+  setIsAnalyzing(true);
+  setSearchError("");
+  try {
+  const image = await CapCamera.getPhoto({
+  quality: 80,
+  allowEditing: false,
+  resultType: CameraResultType.DataUrl,
+  source: CameraSource.Camera
+  });
 
- if (image.dataUrl) {
- setIsAnalyzing(true);
- setSearchError("");
- try {
+  if (image.dataUrl) {
+  try {
  const result = await geminiService.analyzeMeal(
             image.dataUrl,
             settings,

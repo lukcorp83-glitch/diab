@@ -1,4 +1,4 @@
-﻿import { Haptics } from '../lib/haptics';
+import { Haptics } from '../lib/haptics';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useLogsStore } from "../stores/useLogsStore";
 import {  SKINS, PetSkin, ACCESSORIES, BACKGROUNDS, PetAccessory, PetBackground, ITEMS, PetItem  } from '../data/petDatabase';
@@ -239,10 +239,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
 
  if (prevGlucoseZone.current !== null && prevGlucoseZone.current !== currentZone) {
  if (currentZone === 'low') {
- playLowGlucoseSound();
  notificationService.triggerGlucoseAlarm(false, glucose);
  } else if (currentZone === 'high') {
- playHighGlucoseSound();
  notificationService.triggerGlucoseAlarm(true, glucose);
  } else if (currentZone === 'normal') {
  playNormalGlucoseSound();
