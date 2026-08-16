@@ -99,6 +99,21 @@ export default function App() {
   useEffect(() => { userSettingsRef.current = userSettings; }, [userSettings]);
   const deletedNsIdsRef = useRef(new Set<string>());
 
+  // Wczytanie z pamięci lokalnej (aby Nightscout nie "ożywiał" starych usuniętych wpisów po restarcie aplikacji)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('diab_deleted_ns_ids');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          deletedNsIdsRef.current = new Set(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load deleted NS ids", e);
+    }
+  }, []);
+
   const { nsLogs, nsDeviceStatus } = useNightscoutWorker(
     user, 
     nsSettings?.url || "", 
@@ -151,6 +166,13 @@ export default function App() {
         setSqliteLogs(prev => prev.filter(l => l.id !== id && l.nsId !== id));
         if (deletedNsIdsRef.current) {
           deletedNsIdsRef.current.add(id);
+          // Persist to localStorage to prevent Nightscout from reviving it across app restarts
+          try {
+            const arr = Array.from(deletedNsIdsRef.current);
+            // Keep only the last 1000 deleted IDs to prevent localStorage bloat
+            if (arr.length > 1000) arr.splice(0, arr.length - 1000);
+            localStorage.setItem('diab_deleted_ns_ids', JSON.stringify(arr));
+          } catch (err) {}
         }
         // Aby odświeżenie działało natychmiast, potrzebujemy usunąć też z nsLogs
         // Aktualizację nsLogs musimy wywołać przez referencję lub globalny event
@@ -813,25 +835,25 @@ export default function App() {
       />
       <MigrationManager user={user} />
       <AppLayout
-      mainRef={mainRef}
-      mealProgress={mealProgress}
-      userSettings={userSettings}
-      user={user}
-      lastGlucoseValue={lastGlucoseValue}
-      changeTab={changeTab}
-      handleLogout={handleLogout}
-      toggleTheme={toggleTheme}
-      tabVariants={tabVariants}
-      handleSwipe={handleSwipe}
-      logs={logs}
-      pumpStatus={pumpStatus}
-      getEffectiveIOB={getEffectiveIOB}
-      handleAcceptPrivacy={handleAcceptPrivacy}
-      handleCloseChangelog={handleCloseChangelog}
-      setUserSettings={setUserSettings}
-    >
-      {currentTabContent}
-    </AppLayout>
+        mainRef={mainRef}
+        mealProgress={mealProgress}
+        userSettings={userSettings}
+        user={user}
+        lastGlucoseValue={lastGlucoseValue}
+        changeTab={changeTab}
+        handleLogout={handleLogout}
+        toggleTheme={toggleTheme}
+        tabVariants={tabVariants}
+        handleSwipe={handleSwipe}
+        logs={logs}
+        pumpStatus={pumpStatus}
+        getEffectiveIOB={getEffectiveIOB}
+        handleAcceptPrivacy={handleAcceptPrivacy}
+        handleCloseChangelog={handleCloseChangelog}
+        setUserSettings={setUserSettings}
+      >
+        {currentTabContent}
+      </AppLayout>
     </>
   );
 }

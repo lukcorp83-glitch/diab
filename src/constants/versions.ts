@@ -14,12 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.20';
+export const CURRENT_VERSION = '6.0.21';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.21",
+    date: "2026-08-16",
+    title: "Szybka Korekta i Przypomnienia Sprzętowe w Pigułce",
+    changes: [
+      "Zintegrowano funkcję Sugerowanej Szybkiej Korekty bezpośrednio w Inteligentnej Pigułce, usuwając stary widżet z pulpitu",
+      "Dodano system przypomnień o sprzęcie (sensor, wkłucie) widoczny na 2 godziny przed wygaśnięciem w miejscu domyślnej Pigułki",
+      "Poprawiono wymuszanie systemowego powiadomienia dźwiękowego (Custom MP3) dla alarmów glikemii na urządzeniach z systemem Android"
+    ]
+  },
   {
     version: "6.0.20",
     date: "2026-08-15",
@@ -187,6 +197,16 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.21",
+    date: "2026-08-16",
+    title: "Szybka Korekta i Przypomnienia Sprzętowe w Pigułce",
+    changes: [
+      "Zintegrowano funkcję Sugerowanej Szybkiej Korekty bezpośrednio w Inteligentnej Pigułce, usuwając stary widżet z pulpitu",
+      "Dodano system przypomnień o sprzęcie (sensor, wkłucie) widoczny na 2 godziny przed wygaśnięciem w miejscu domyślnej Pigułki",
+      "Poprawiono wymuszanie systemowego powiadomienia dźwiękowego (Custom MP3) dla alarmów glikemii na urządzeniach z systemem Android"
+    ]
+  },
   {
     version: "6.0.20",
     date: "2026-08-15",

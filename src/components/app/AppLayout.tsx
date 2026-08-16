@@ -29,9 +29,10 @@ import {
   Globe,
   Database
 } from "lucide-react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, addDoc, collection, serverTimestamp, query, onSnapshot } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { getEffectiveUid } from "../../lib/utils";
+import { dbService } from "../../services/databaseService";
 
 import { NotificationListenerSync } from "../NotificationListenerSync";
 import RemoteAlertsListener from "../RemoteAlertsListener";
@@ -47,6 +48,7 @@ import NotificationCenter from "../NotificationCenter";
 const NotebookManager = React.lazy(() => import("../NotebookManager"));
 import GlikoSenseIcon from "../GlikoSenseIcon";
 import { NavButton } from "./NavButton";
+import { DynamicActionCapsule } from "./DynamicActionCapsule";
 import { useMealPlateStore } from "../../stores/useMealPlateStore";
 
 export function AppLayout({
@@ -89,6 +91,44 @@ export function AppLayout({
   } = useAppStore();
   const { t } = useTranslation();
   const sharedPlate = useMealPlateStore((state) => state.plate);
+
+  const [shortcuts, setShortcuts] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(
+        db,
+        "users",
+        getEffectiveUid(user),
+        "shortcuts",
+      ),
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setShortcuts(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleQuickAdd = async (s: any) => {
+    if (s.carbs > 0) {
+      if (!user) return;
+      Haptics.medium();
+      try {
+        const payload = {
+          type: "meal", createdAt: serverTimestamp(), source: "manual", value: s.carbs,
+          timestamp: Date.now(),
+          notes: i18n.t('auto.szybki_wybor_var0', { defaultValue: "Szybki wybór: {{var0}}", var0: s.name }),
+          items: [{ name: s.name, carbs: s.carbs }],
+        };
+        const docRef = await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), payload);
+        await dbService.saveLog({ ...payload, id: docRef.id });
+        toast.success(i18n.t('auto.dodano_var0', { defaultValue: "Dodano: {{var0}}", var0: s.name }), { icon: '🍽️', id: 'quick-add' });
+      } catch (error) {
+        toast.error(i18n.t('auto.błąd_podczas_zapisywan', { defaultValue: "Błąd podczas zapisywania" }));
+      }
+    }
+  };
 
   return (
     <MotionConfig reducedMotion={userSettings?.ecoMode ? "always" : "user"}>
@@ -274,68 +314,24 @@ export function AppLayout({
                   ecoMode={userSettings?.ecoMode}
                 />
               )}
+              
               {!userSettings?.followerMode && (
-                <div className="relative -top-6">
-                  <motion.button
-                    onClick={() => changeTab("meal")}
-                    whileTap={{ scale: 0.85 }}
-                    animate={{ y: activeTab === "meal" ? -5 : 0 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                    className={cn(
-                      "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950 relative",
-                      activeTab === "meal"
-                        ? "bg-accent-600 text-white shadow-accent-500/40"
-                        : "bg-slate-800 text-slate-400 hover:bg-slate-700",
-                    )}
-                  >
-                    {mealProgress !== null && (
-                      <svg
-                        className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none"
-                        viewBox="0 0 56 56"
-                      >
-                        <circle
-                          cx="28"
-                          cy="28"
-                          r="26"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="transparent"
-                          strokeDasharray="163.36"
-                          strokeDashoffset={163.36 * mealProgress}
-                          className="text-amber-500 transition-all duration-1000 dark:text-amber-400 opacity-80"
-                        />
-                      </svg>
-                    )}
-                    <motion.div
-                      animate={{
-                        rotate: activeTab === "meal" ? [0, -20, 20, -10, 10, 0] : 0,
-                      }}
-                      transition={{ duration: 0.5 }}
-                      className="z-10"
-                    >
-                      <Utensils />
-                    </motion.div>
-                    {sharedPlate.length > 0 && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm z-20"
-                      >
-                        {sharedPlate.length}
-                      </motion.div>
-                    )}
-                  </motion.button>
-                  <motion.div
-                    animate={{
-                      opacity: activeTab === "meal" ? 1 : 0.6,
-                      y: activeTab === "meal" ? -2 : 0,
+                  <DynamicActionCapsule 
+                    lastGlucose={lastGlucoseValue ? Math.round(lastGlucoseValue) : null}
+                    mealProgress={mealProgress}
+                    shortcuts={shortcuts}
+                    plateCount={sharedPlate.length}
+                    userSettings={userSettings}
+                    getEffectiveIOB={getEffectiveIOB}
+                    changeTab={changeTab}
+                    onClickMain={() => {
+                      Haptics.light();
+                      changeTab("meal");
                     }}
-                    className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
-                  >
-                    {t("nav.plate")}
-                  </motion.div>
-                </div>
-              )}
+                    onQuickAdd={handleQuickAdd}
+                  />
+                )}
+
               {!userSettings?.followerMode && (
                 <NavButton
                   active={activeTab === "ai"}

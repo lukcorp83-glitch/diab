@@ -32,4 +32,5 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/components/MealPlate/BarcodeScanner.tsx` - Komponent `MealScanner` (ML Kit / Html5Qrcode). Używa `useRef` dla `onResult`/`onCancel`, zapobiegając zapętlaniu skanera przy re-renderach.
 - `src/components/MealPlate/MealPlateModals.tsx` - Kontener modali (w tym skanera) montowany bezwarunkowo w `MealPlate.tsx` (działa w zakładkach `meal` i `database`).
 - `src/components/app/AppContent.tsx` - Ładowanie zakładek z prefetchowaniem modułów w tle po 1.5s od startu.
-- `src/components/app/AppLayout.tsx` - Układ dolnego paska nawigacji z animacją `AnimatePresence mode="popLayout"`.
+- `src/components/app/AppLayout.tsx` - Układ dolnego paska nawigacji z animacją `AnimatePresence mode="popLayout"`. Renderuje `DynamicActionCapsule` pośrodku.
+- `src/components/app/DynamicActionCapsule.tsx` - Pigułka akcji głównej. Zastąpiła statyczną ikonę `Utensils` oraz stary widget `LowGlucoseMealAlert`. Obsługuje 3 stany: (1) domyślny przycisk talerza, (2) pomarańczową pigułkę wchłaniania węglowodanów, (3) czerwoną, rozwijaną pigułkę Hipoglikemii wyświetlającą szybkie skróty ratunkowe.

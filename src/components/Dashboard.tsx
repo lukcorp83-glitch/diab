@@ -74,7 +74,6 @@ import WeatherWidget from "./WeatherWidget";
 import DailyTirWidget from "./DailyTirWidget";
 import GlikoSenseIcon from "./GlikoSenseIcon";
 import DidYouKnowWidget from "./DidYouKnowWidget";
-import LowGlucoseMealAlert from "./LowGlucoseMealAlert";
 import UnlinkedCarbsWidget from "./UnlinkedCarbsWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
@@ -113,7 +112,6 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
       return ["1x1", "2x1", "2x2"];
     case "neural_pet":
       return ["2x2"];
-    case "quick_correction":
       return ["2x2", "2x1"];
     case "weather":
     case "sensor_reminder":
@@ -163,7 +161,6 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
   { id: "pump", name: i18n.t('auto.status_pompy_insulinowej_xdrip', { defaultValue: 'Status pompy insulinowej / xDrip' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "daily_tir", name: i18n.t('auto.dzienny_tir_wykres', { defaultValue: 'Dzienny TIR (Wykres)' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
-  { id: "quick_correction", name: i18n.t('auto.sugerowana_szybka_korekta_alerty', { defaultValue: 'Sugerowana szybka korekta (Alerty)' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
   { id: "training_widget", name: i18n.t('auto.trening_i_aktywność_fizyczna', { defaultValue: i18n.t('auto.trening_i_aktywnosc_fizyc', { defaultValue: "Trening i Aktywność fizyczna" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
   { id: "medications", name: i18n.t('auto.leki_przypomnienia', { defaultValue: 'Leki (Przypomnienia)' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
   { id: "carbs_balance", name: i18n.t('auto.dzienny_bilans_węglowodanów', { defaultValue: i18n.t('auto.dzienny_bilans_weglowodan', { defaultValue: "Dzienny bilans węglowodanów" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
@@ -350,7 +347,7 @@ export default function Dashboard({
             if (match && match.size) {
               const sz = match.size;
               if (sz === 'full' || sz === '2x1' || sz === '2x2') {
-                const ids_2x2 = ['main_stats', 'neural_pet', 'history', 'quick_correction', 'tips', 'shortcuts'];
+                const ids_2x2 = ['main_stats', 'neural_pet', 'history', 'tips', 'shortcuts'];
                 mappedSize = ids_2x2.includes(dw.id) ? '2x2' : '2x1';
               } else if (sz === 'half' || sz === '1x1') {
                 mappedSize = '1x1';
@@ -839,93 +836,7 @@ export default function Dashboard({
 
   const todayStats = getTodayStats();
 
-  const quickCorrectionWidget = useMemo(() => {
-    if (!lastG) return null;
-    const bgNum = lastG.value;
-    const targetMax = settings.targetMax || 140;
-    
-    // Check if glucose is above target range
-    const isHigh = bgNum >= targetMax;
-    if (!isHigh) return null;
 
-    // Resolve current ISF based on hourly profiles
-    let currentIsfValue = settings.isf || 50;
-    if (settings.hourlyProfiles && settings.hourlyProfiles.length > 0) {
-      const nowTime = new Date();
-      const currentHourStr =
-        nowTime.getHours().toString().padStart(2, "0") +
-        ":" +
-        nowTime.getMinutes().toString().padStart(2, "0");
-      const sorted = [...settings.hourlyProfiles].sort((a, b) =>
-        a.time.localeCompare(b.time)
-      );
-      let activeProfile = sorted
-        .slice()
-        .reverse()
-        .find((p) => p.time <= currentHourStr);
-      if (!activeProfile && sorted.length > 0)
-        activeProfile = sorted[sorted.length - 1];
-
-      if (activeProfile) {
-        currentIsfValue = activeProfile.isf || currentIsfValue;
-      }
-    }
-
-    const targetBg = Math.round(((settings.targetMin || 70) + (settings.targetMax || 140)) / 2);
-    const rawCorr = bgNum > targetBg ? (bgNum - targetBg) / currentIsfValue : 0;
-    
-    // IOB is already defined as `iob`
-    const rawSuggestedDose = Math.max(0, rawCorr - iob);
-    const roundedSuggestedDose = Math.round(rawSuggestedDose * 10) / 10;
-
-    if (roundedSuggestedDose <= 0) {
-      return null;
-    }
-
-    const timeString = new Date(lastG.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    return (
-      <div className="mx-2 p-6 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-[2.5rem] border border-indigo-100/70 dark:border-indigo-900/30 space-y-4 shadow-xl shadow-indigo-500/5">
-        <div className="flex justify-between items-start gap-4">
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-            <span className="text-xl">⚡</span>
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider">{t('auto.sugerowana_szybka_korekta', { defaultValue: 'Sugerowana Szybka Korekta' })}</h4>
-              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{t('auto.na_podstawie_pomiaru_z_godziny', { defaultValue: 'Na podstawie pomiaru z godziny' })} {timeString}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              Haptics.medium();
-              sessionStorage.setItem("pending_correction", JSON.stringify({
-                bg: bgNum,
-                dose: roundedSuggestedDose
-              }));
-              toast.success(`Przeniesiono korektę ${roundedSuggestedDose}j do kalkulatora`);
-              setTab("bolus");
-            }}
-            className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 active:scale-95 cursor-pointer pointer-events-auto shrink-0"
-          >
-            
-                                {t('auto.podaj', { defaultValue: 'Podaj' })} {roundedSuggestedDose.toFixed(1)}  {t('auto.j', { defaultValue: 'j.' })}
-                              </button>
-        </div>
-
-        <div className="p-4 bg-white/70 dark:bg-slate-900/60 rounded-3xl text-[11px] text-indigo-950 dark:text-indigo-200 font-bold border border-indigo-100 dark:border-indigo-900/20 leading-normal space-y-2">
-          <div>
-            
-                                {t('auto.glikemia_w_wysokim_zakresie', { defaultValue: '⚠️ Glikemia w wysokim zakresie (' })}{Math.round(bgNum)}  {t('auto.mg_dl_sugerujemy_podanie', { defaultValue: 'mg/dL)! Sugerujemy podanie' })} <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm">{roundedSuggestedDose.toFixed(1)}  {t('auto.j', { defaultValue: 'j.' })}</span>  {t('auto.insuliny', { defaultValue: 'insuliny.' })}
-                              </div>
-          <div className="text-[9px] text-slate-500 dark:text-indigo-400/65 font-mono leading-relaxed border-t border-indigo-100 dark:border-indigo-950/50 pt-2 flex flex-wrap gap-x-3 gap-y-1">
-            <span>{t('auto.sugerowany_bolus', { defaultValue: 'Sugerowany bolus:' })} {roundedSuggestedDose.toFixed(1)}j</span>
-            <span>{t('auto.cel', { defaultValue: 'Cel:' })} {targetBg}  {t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
-            <span>{t('auto.isf', { defaultValue: 'ISF:' })} {currentIsfValue}  {t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
-            <span>{t('auto.iob', { defaultValue: 'IOB:' })} {iob.toFixed(1)}j</span>
-          </div>
-        </div>
-      </div>
-    );
-  }, [lastG, settings, iob, setTab]);
 
   const widgetProps = {
     size: "1x1", isEditingLayout, user, settings, logs, lastG, petData, shortcuts, setTab, handleDeleteLog, setEditingLog, setListFilter, pumpStatus,
@@ -934,94 +845,13 @@ export default function Dashboard({
 
   const renderWidget = (id: string, size: "2x2" | "2x1" | "1x2" | "1x1") => {
     const hasReminders = effSensorDate || effInfusionDate;
-    const isHighGlucose = lastG && lastG.value >= (settings.targetMax || 140);
-    const showCorrection = isHighGlucose && quickCorrectionWidget;
 
     switch (id) {
       case "main_stats":
           return <MainStatsWidget {...widgetProps} size={size} />;
 
 
-      case "quick_correction":
-        if (!showCorrection) {
-          if (isEditingLayout) {
-            return (
-              <div className="mx-2 p-6 bg-slate-500/5 dark:bg-slate-950/10 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-xs text-slate-400 dark:text-slate-500 font-bold flex flex-col justify-center items-center min-h-[140px] w-full">
-                
-                                    {t('auto.sugerowana_szybka_korekta_nieaktywn', { defaultValue: '⚡ Sugerowana Szybka Korekta [Nieaktywna]' })}
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-600 font-normal mt-1">
-                  
-                                          {t('auto.pojawia_się_automatycznie_grawitacyjnie', { defaultValue: i18n.t('auto.pojawia_sie_automatycznie', { defaultValue: "Pojawia się automatycznie grawitacyjnie powyżej celu glikemii." }) })}
-                                        </p>
-              </div>
-            );
-          }
-          return null;
-        }
-        if (size.startsWith("1") || size.endsWith("1")) {
-          const bgNum = lastG ? lastG.value : 100;
-          const targetBg = Math.round(((settings.targetMin || 70) + (settings.targetMax || 140)) / 2);
-          
-          let currentIsfValue = settings.isf || 50;
-          if (settings.hourlyProfiles && settings.hourlyProfiles.length > 0) {
-            const nowTime = new Date();
-            const currentHourStr =
-              nowTime.getHours().toString().padStart(2, "0") +
-              ":" +
-              nowTime.getMinutes().toString().padStart(2, "0");
-            const sorted = [...settings.hourlyProfiles].sort((a, b) =>
-              a.time.localeCompare(b.time)
-            );
-            let activeProfile = sorted
-              .slice()
-              .reverse()
-              .find((p) => p.time <= currentHourStr);
-            if (!activeProfile && sorted.length > 0)
-              activeProfile = sorted[sorted.length - 1];
 
-            if (activeProfile) {
-              currentIsfValue = activeProfile.isf || currentIsfValue;
-            }
-          }
-
-          const rawCorr = bgNum > targetBg ? (bgNum - targetBg) / currentIsfValue : 0;
-          const rawSuggestedDose = Math.max(0, rawCorr - iob);
-          const roundedSuggestedDose = Math.round(rawSuggestedDose * 10) / 10;
-
-          return (
-            <div className="mx-2 p-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-[2.5rem] border border-indigo-100/70 dark:border-indigo-900/30 flex flex-col justify-between h-full min-h-[140px] shadow-xl font-display w-full">
-              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 mb-1">
-                <span className="text-lg">⚡</span>
-                <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-wider leading-none">{t('auto.korekta', { defaultValue: 'Korekta' })}</h4>
-                  <span className="text-[8px] text-slate-400 dark:text-slate-500 font-bold">{t('auto.cel', { defaultValue: 'Cel:' })} {targetBg}  {t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
-                </div>
-              </div>
-
-              <div className="my-2 text-center">
-                <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{roundedSuggestedDose.toFixed(1)} <span className="text-xs font-bold text-slate-400">{t('auto.j', { defaultValue: 'j.' })}</span></p>
-                <p className="text-[8px] text-slate-400 dark:text-slate-500 font-black">{t('auto.glikemia', { defaultValue: 'Glikemia:' })} {Math.round(bgNum)}  {t('auto.mg_dl', { defaultValue: 'mg/dL' })}</p>
-              </div>
-
-              <button
-                onClick={() => {
-                  Haptics.medium();
-                  sessionStorage.setItem("pending_correction", JSON.stringify({
-                    bg: bgNum,
-                    dose: roundedSuggestedDose
-                  }));
-                  toast.success(`Przeniesiono korektę ${roundedSuggestedDose}j do kalkulatora`);
-                  setTab("bolus");
-                }}
-                className="w-full py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
-              >
-                
-                                      {t('auto.dodaj', { defaultValue: 'Dodaj' })} {roundedSuggestedDose.toFixed(1)}j
-              </button>
-            </div>
-          );
-        }
-        return quickCorrectionWidget;
 
       case "neural_pet":
         return (
@@ -1535,7 +1365,6 @@ export default function Dashboard({
     <div
       className="space-y-6 pb-20 will-change-transform relative"
     >
-      <LowGlucoseMealAlert logs={logs} lastGlucose={lastG ? Math.round(lastG.value) : null} onAddCarbs={() => setTab("meal")} shortcuts={shortcuts} onQuickAdd={quickAdd} />
       <UnlinkedCarbsWidget user={user} logs={logs} onAddCarbs={() => setTab("meal")} />
 
       {/* Pasek Pigułek - Linia 1 (Hydratacja, Pogoda, Bateria, Zbiornik) */}
@@ -1635,14 +1464,13 @@ export default function Dashboard({
            })}
       </div>
 
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-black italic uppercase tracking-tighter text-slate-800 dark:text-white font-display">{t('auto.pulpit', { defaultValue: 'Pulpit' })}</h2>
+      <div className="relative flex items-center justify-center px-2 min-h-[40px]">
+        <div className="absolute left-2 flex items-baseline gap-2 z-10 pointer-events-none">
           {isEditingLayout && (
             <span className="animate-pulse px-2 py-0.5 bg-indigo-500/20 text-indigo-500 rounded-full text-[8px] font-black uppercase tracking-wider border border-indigo-500/25">{t('auto.tryb_edycji', { defaultValue: 'Tryb Edycji' })}</span>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 relative z-20">
           <button 
             onClick={() => { 
                 Haptics.light(); 
@@ -1656,7 +1484,7 @@ export default function Dashboard({
               "flex items-center gap-1.5 px-3 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all active:scale-95 glass-target select-none",
               isEditingLayout
                 ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10"
-                : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:bg-slate-300 border-slate-200 dark:border-white/10"
+                : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
             )}
             title={t('auto.kustonizuj_kafelki_pulpitu', { defaultValue: 'Kustonizuj kafelki pulpitu' })}
           >
@@ -1669,7 +1497,7 @@ export default function Dashboard({
               href={nsUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all glass-target"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all glass-target"
             >
               
                                         {t('auto.nightscout', { defaultValue: 'Nightscout' })}
@@ -1677,7 +1505,7 @@ export default function Dashboard({
           )}
           <button 
             onClick={() => { Haptics.light(); setTab('chart'); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-accent-500/10 text-accent-600 text-[10px] font-black uppercase tracking-widest border border-accent-500/20 active:scale-95 transition-all shadow-xl shadow-accent-500/10"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-accent-500/10 text-accent-600 text-[10px] font-black uppercase tracking-widest border border-accent-500/20 active:scale-95 transition-all shadow-xl shadow-accent-500/10"
           >
             <Activity size={12} />
             

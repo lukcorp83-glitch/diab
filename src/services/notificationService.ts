@@ -18,14 +18,15 @@ export const notificationService = {
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v11' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v12' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v13' }); } catch(e) {}
+        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v14' }); } catch(e) {}
         
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v14',
+          id: 'glucose_alerts_v15',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Powiadomienia o niskim lub wysokim poziomie cukru z dźwiękiem MP3',
           importance: 5,
           visibility: 1,
-          sound: 'status_clear',
+          sound: 'status_clear.mp3',
           vibration: true
         });
 
@@ -199,7 +200,7 @@ export const notificationService = {
     });
   },
 
-  async scheduleDeviceReminder(title: string, body: string) {
+  async scheduleDeviceReminder(title: string, body: string, id?: number) {
     if (Capacitor.isNativePlatform()) {
       await this.initChannels();
       await LocalNotifications.requestPermissions();
@@ -208,7 +209,7 @@ export const notificationService = {
           {
             title,
             body,
-            id: 888,
+            id: id || Date.now(),
             schedule: { at: new Date(Date.now() + 1000) },
             channelId: 'glikocontrol_reminders_v1',
             attachments: null,
@@ -405,8 +406,8 @@ export const notificationService = {
             title,
             body,
             id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v14',
-            sound: 'status_clear',
+            channelId: 'glucose_alerts_v15',
+            sound: 'status_clear.mp3',
             attachments: null,
             actionTypeId: 'GLUCOSE_ALARM_ACTIONS',
             extra: { isHigh, value }

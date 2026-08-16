@@ -1,10 +1,10 @@
 {
-    "version": "6.0.20",
+    "version": "6.0.21",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.20_OTA.apk",
-    "buildNumber": 135,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.21_OTA.apk",
+    "buildNumber": 136,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.20! 1) Poprawa widżetu Aktywności na urządzeniach mobilnych (powiększenie przycisków, obsługa natywnej klawiatury numerycznej). 2) Zmiana układu widżetu statusu pompy na czytelniejszy (wyświetlanie modelu urządzenia i brak przycinania). 3) Odchudzenie pigułek powiadomień na pasku górnym pulpitu (pozostawiono same ikony). 4) Odblokowanie możliwości ustawienia szerokiego widżetu pompy na pulpicie.",
-    "whatsNewEn": "Version 6.0.20! 1) Fixed Activity widget editing on mobile devices (larger buttons, native numpad support). 2) Redesigned Pump Status widget layout for better readability (showing device model, no text clipping). 3) Streamlined notification pills on the top dashboard bar (icons only). 4) Unlocked wide layout option for the Pump widget on the dashboard.",
-    "otaRevision": 294
+    "whatsNew": "Wersja 6.0.21! 1) Usunięto widżet 'Sugerowana Szybka Korekta' z pulpitu i wbudowano jego logikę prosto w dolną Inteligentną Pigułkę. 2) Inteligentna Pigułka od teraz subtelnie zasygnalizuje wygasający sensor lub wkłucie na 2 godziny przed czasem, zamieniając się w ikonę danego urządzenia. 3) Naprawiono odtwarzanie własnych plików MP3 w powiadomieniach o glikemii na systemie Android (wymagany reset uprawnień powiadomień przez stworzenie nowego kanału v15).",
+    "whatsNewEn": "Version 6.0.21! 1) Removed the 'Quick Correction' widget from the dashboard and integrated its logic directly into the bottom Smart Action Pill. 2) The Smart Pill will now subtly warn you about expiring sensors or infusion sets 2 hours in advance by transforming into the respective device icon. 3) Fixed custom MP3 playback for glucose alarms on Android devices (requires new notification channel v15).",
+    "otaRevision": 295
 }
