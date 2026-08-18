@@ -31,10 +31,19 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
 
   const now = Date.now();
   const threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000);
-  const recentLogs = logs.filter(l => (l.timestamp || 0) >= threeDaysAgo);
+  const recentLogs = logs.filter(l => (Number(l.timestamp) || 0) >= threeDaysAgo);
 
-  const insulinLogs = recentLogs.filter(l => l.type === 'insulin' && l.value > 0);
-  if (insulinLogs.length < 3) {
+  const getInsulinVal = (l: any): number => Number(l.value || l.insulin || l.amount || (l.type === 'bolus' ? l.value : 0) || 0);
+  const getGlucoseVal = (l: any): number => Number(l.value || l.sgv || 0);
+  const hasCarbs = (l: any): boolean => Boolean(l.carbs > 0 || l.linkedMeal?.carbs > 0 || l.type === 'meal');
+
+  const insulinLogs = recentLogs.filter(l => 
+    (l.type === 'insulin' || l.type === 'bolus') && 
+    getInsulinVal(l) > 0 &&
+    !hasCarbs(l) // Tylko czyste bolusy korekcyjne bez posiłku
+  );
+
+  if (insulinLogs.length < 2) {
     return { suggestionAvailable: false, proposedISF: null, reasonType: null };
   }
 
@@ -68,7 +77,7 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
       return m >= startMins && m < endMins;
     });
 
-    if (blockBoluses.length < 3) continue;
+    if (blockBoluses.length < 2) continue;
 
     let totalExpectedDrop = 0;
     let totalActualDrop = 0;
@@ -76,30 +85,47 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
     
     // Używamy ISF z profilu użytkownika dla tego bloku, jeśli istnieje, w przeciwnym razie głównego ISF
     let blockIsf = currentIsf;
-    if (block.profileIndex !== undefined && hourlyProfiles) {
+    if (block.profileIndex !== undefined && hourlyProfiles && hourlyProfiles[block.profileIndex]?.isf) {
       blockIsf = hourlyProfiles[block.profileIndex].isf;
     }
 
     blockBoluses.forEach(bolus => {
-      const bolusTime = bolus.timestamp;
-      const glucoseAtBolus = recentLogs.find(l => l.type === 'glucose' && Math.abs(l.timestamp - bolusTime) < 15 * 60 * 1000);
+      const bolusTime = Number(bolus.timestamp);
+      const bolusVal = getInsulinVal(bolus);
+      if (bolusVal <= 0) return;
+
+      const glucoseAtBolus = recentLogs.find(l => 
+        (l.type === 'glucose' || l.type === 'cgm' || l.type === 'sgv') && 
+        Math.abs(Number(l.timestamp) - bolusTime) < 20 * 60 * 1000
+      );
       const threeHoursLater = bolusTime + (3 * 60 * 60 * 1000);
-      const glucoseAfter = recentLogs.find(l => l.type === 'glucose' && Math.abs(l.timestamp - threeHoursLater) < 30 * 60 * 1000);
-      const mealsDuringWindow = recentLogs.some(l => l.type === 'meal' && l.timestamp >= bolusTime && l.timestamp <= threeHoursLater);
+      const glucoseAfter = recentLogs.find(l => 
+        (l.type === 'glucose' || l.type === 'cgm' || l.type === 'sgv') && 
+        Math.abs(Number(l.timestamp) - threeHoursLater) < 35 * 60 * 1000
+      );
+      const mealsDuringWindow = recentLogs.some(l => 
+        hasCarbs(l) && 
+        Number(l.timestamp) >= bolusTime && 
+        Number(l.timestamp) <= threeHoursLater
+      );
 
       if (glucoseAtBolus && glucoseAfter && !mealsDuringWindow) {
-        const expectedDrop = bolus.value * blockIsf;
-        const actualDrop = glucoseAtBolus.value - glucoseAfter.value;
-        totalExpectedDrop += expectedDrop;
-        totalActualDrop += actualDrop;
-        validEvaluations++;
+        const startG = getGlucoseVal(glucoseAtBolus);
+        const endG = getGlucoseVal(glucoseAfter);
+        if (startG > 0 && endG > 0) {
+          const expectedDrop = bolusVal * blockIsf;
+          const actualDrop = startG - endG;
+          totalExpectedDrop += expectedDrop;
+          totalActualDrop += actualDrop;
+          validEvaluations++;
+        }
       }
     });
 
-    if (validEvaluations >= 3) {
+    if (validEvaluations >= 2) {
       const averageEfficiency = totalActualDrop / totalExpectedDrop;
 
-      if (averageEfficiency < 0.75 && averageEfficiency > 0.1) {
+      if (averageEfficiency < 0.8 && averageEfficiency > 0.1) {
         const calculatedNewIsf = Math.round(blockIsf * averageEfficiency);
         const proposedISF = Math.max(calculatedNewIsf, Math.round(blockIsf * 0.75));
         if (proposedISF < blockIsf) {
@@ -107,7 +133,7 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
         }
       }
 
-      if (averageEfficiency > 1.3 && averageEfficiency < 3.0) {
+      if (averageEfficiency > 1.25 && averageEfficiency < 3.0) {
         const calculatedNewIsf = Math.round(blockIsf * averageEfficiency);
         const proposedISF = Math.min(calculatedNewIsf, Math.round(blockIsf * 1.3));
         if (proposedISF > blockIsf) {

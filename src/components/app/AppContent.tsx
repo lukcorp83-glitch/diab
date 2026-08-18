@@ -8,22 +8,22 @@ import { useMealPlateStore } from "../../stores/useMealPlateStore";
 import { LocalErrorBoundary } from "../LocalErrorBoundary";
 import { DEFAULT_SETTINGS } from "../../constants";
 
-const Dashboard = React.lazy(() => import("../Dashboard"));
-const ChartFullView = React.lazy(() => import("../ChartFullView"));
-const BolusCalculator = React.lazy(() => import("../BolusCalculator"));
-const MealPlate = React.lazy(() => import("../MealPlate"));
-const FoodDatabase = React.lazy(() => import("../FoodDatabase"));
-const NutritionHub = React.lazy(() => import("../nutrition/NutritionHub"));
-const AiReports = React.lazy(() => import("../AiReports"));
-const Profile = React.lazy(() => import("../Profile"));
-const Achievements = React.lazy(() => import("../Achievements"));
-const HistoryView = React.lazy(() => import("../HistoryView"));
-const GlikoGames = React.lazy(() => import("../GlikoGames"));
-const GlikoChat = React.lazy(() => import("../GlikoChat"));
-const GlikoAssistant = React.lazy(() => import("../GlikoAssistant"));
-const InsulinDetective = React.lazy(() => import("../InsulinDetective"));
-const Diets = React.lazy(() => import("../Diets").then(module => ({ default: module.Diets })));
-const JetLagMode = React.lazy(() => import("../JetLagMode"));
+import Dashboard from "../Dashboard";
+import ChartFullView from "../ChartFullView";
+import BolusCalculator from "../BolusCalculator";
+import MealPlate from "../MealPlate";
+import FoodDatabase from "../FoodDatabase";
+import NutritionHub from "../nutrition/NutritionHub";
+import AiReports from "../AiReports";
+import Profile from "../Profile";
+import Achievements from "../Achievements";
+import HistoryView from "../HistoryView";
+import GlikoGames from "../GlikoGames";
+import GlikoChat from "../GlikoChat";
+import GlikoAssistant from "../GlikoAssistant";
+import InsulinDetective from "../InsulinDetective";
+import { Diets } from "../Diets";
+import JetLagMode from "../JetLagMode";
 
 // Dynamic preloader functions for bottom navigation & key views
 const preloadMainViews = () => {
@@ -75,16 +75,7 @@ export const AppContent = (props: any) => {
 
   const content = (
     <LocalErrorBoundary>
-      <React.Suspense
-        fallback={
-          <div className="w-full h-full flex flex-col p-4 space-y-4 pt-10 animate-pulse">
-            <div className="w-1/3 h-8 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-            <div className="w-full h-48 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
-            <div className="w-full h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
-            <div className="w-full h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
-          </div>
-        }
-      >
+      <div className="flex-1 w-full relative z-0 h-full overflow-hidden">
         {/* 1. Grupa 1: Wykres i Pulpit */}
         {["dashboard", "chart"].includes(activeTab) && (
           <>
@@ -320,7 +311,7 @@ export const AppContent = (props: any) => {
             )}
           </div>
         )}
-      </React.Suspense>
+      </div>
     </LocalErrorBoundary>
   );
 

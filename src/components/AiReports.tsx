@@ -14,6 +14,7 @@ import { useAiReports } from '../hooks/queries/useAiReports';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, AreaChart, Area } from 'recharts';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import MLAnalysisWidget from './MLAnalysisWidget';
+import InfusionPerformanceWidget from './InfusionPerformanceWidget';
 import InsulinDetectiveAlert from './InsulinDetectiveAlert';
 import AGPReport from './AGPReport';
 import { toast } from 'react-hot-toast';
@@ -134,6 +135,7 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
  <InsulinDetectiveAlert />
  <MLAnalysisWidget settings={settings} setTab={setTab} />
+ <InfusionPerformanceWidget settings={settings} />
  
  {/* Glucose Trend Chart */}
  {chartData.length > 0 && (

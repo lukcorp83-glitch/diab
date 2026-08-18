@@ -15,7 +15,9 @@ const tips = [
  i18n.t('auto.czy_wiesz_ze_mozesz_uzyc_apara', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_uzyc', { defaultValue: "Czy wiesz, że możesz użyć aparatu AI, aby zrobić zdjęcie swojego talerza, a sztuczna inteligencja automatycznie rozpozna i oszacuje dla Ciebie posiłek?" }) }),
  i18n.t('auto.czy_wiesz_ze_mozesz_dodac_wlas', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_dodac', { defaultValue: "Czy wiesz, że możesz dodać własny klucz API w ustawieniach 'Integracje', aby korzystać z szybszego asystenta AI oraz podnieść limit zapytań?" }) }),
  i18n.t('auto.czy_wiesz_ze_mozesz_zainstalow', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_zains', { defaultValue: "Czy wiesz, że możesz zainstalować tę aplikację na telefonie? Użyj opcji 'Dodaj do ekranu głównego' w przeglądarce, by mieć do niej szybki dostęp!" }) }),
- i18n.t('auto.czy_wiesz_ze_mozesz_stworzyc_w', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_stwor', { defaultValue: "Czy wiesz, że możesz stworzyć własny serwer do łączenia z xDrip przez wygenerowanie kodu w zakładce 'Integracje (API)'?" }) })
+ i18n.t('auto.czy_wiesz_ze_mozesz_stworzyc_w', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_stwor', { defaultValue: "Czy wiesz, że możesz stworzyć własny serwer do łączenia z xDrip przez wygenerowanie kodu w zakładce 'Integracje (API)'?" }) }),
+ i18n.t('auto.czy_wiesz_ze_pigulka_na_dole', { defaultValue: "Czy wiesz, że Pigułka na dole ekranu zamieni się w przypomnienie, gdy do końca ważności sensora lub wkłucia zostaną mniej niż 2 godziny?" }),
+ i18n.t('auto.czy_wiesz_ze_szybka_korekta', { defaultValue: "Czy wiesz, że gdy Twój cukier wzrośnie powyżej normy, kafel Bolusa na pulpicie automatycznie zaproponuje Ci szybkie podanie dawki korekcyjnej?" })
 ];
 
 export default function DidYouKnowWidget({ onClick }: { onClick: () => void }) {

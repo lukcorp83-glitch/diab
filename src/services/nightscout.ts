@@ -174,38 +174,48 @@ export const nightscoutService = {
         const insulin = Number(t.insulin || (t as any).amount || 0);
         const carbs = Number(t.carbs || 0);
 
-          const rawNotes = t.notes || t.eventType || "";
-          const cleanNotes = rawNotes === "<none>" ? "" : rawNotes;
+          const mealName = (t as any).food || (t as any).description || (t.notes && t.notes !== '<none>' ? t.notes : '') || '';
+          const cleanNotes = mealName || (t.eventType && t.eventType !== '<none>' ? t.eventType : '');
           const nsSource = t.enteredBy ? `nightscout (${t.enteredBy})` : 'nightscout';
           
           if (insulin > 0) {
             const payload: any = {
               id: `ns-insulin-${t._id || timestamp}`,
+              nsId: t._id,
               type: 'bolus',
               value: insulin,
               timestamp,
               notes: cleanNotes,
+              description: mealName || undefined,
               source: nsSource
             };
 
             if (carbs > 0) {
               payload.linkedMeal = {
                 carbs,
-                protein: 0,
-                fat: 0
+                protein: Number((t as any).protein || 0),
+                fat: Number((t as any).fat || 0),
+                name: mealName || undefined
               };
             }
 
             logs.push(payload);
           } else if (carbs > 0) {
-            logs.push({
+            const payload: any = {
               id: `ns-meal-${t._id || timestamp}`,
+              nsId: t._id,
               type: 'meal',
               value: carbs,
+              carbs,
+              protein: Number((t as any).protein || 0),
+              fat: Number((t as any).fat || 0),
               timestamp,
               notes: cleanNotes,
+              description: mealName || undefined,
+              name: mealName || undefined,
               source: nsSource
-            });
+            };
+            logs.push(payload);
           }
 
           const lowerEventType = (t.eventType || '').toLowerCase();

@@ -74,7 +74,6 @@ import WeatherWidget from "./WeatherWidget";
 import DailyTirWidget from "./DailyTirWidget";
 import GlikoSenseIcon from "./GlikoSenseIcon";
 import DidYouKnowWidget from "./DidYouKnowWidget";
-import UnlinkedCarbsWidget from "./UnlinkedCarbsWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
 import { dbService } from "../services/databaseService";
@@ -156,7 +155,6 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "glikosense_suggestions", name: i18n.t('auto.sugestie_i_analizy_glikosense', { defaultValue: 'Sugestie i analizy GlikoSense' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "shortcuts", name: i18n.t('auto.szybkie_akcje_i_ulubione_posiłki', { defaultValue: i18n.t('auto.szybkie_akcje_i_ulubione', { defaultValue: "Szybkie akcje i ulubione posiłki" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "quick_measurement", name: i18n.t('auto.szybki_pomiar_glikemii_przycisk', { defaultValue: 'Szybki pomiar glikemii (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
-  { id: "health_connect", name: i18n.t('auto.aktywność_health_connect', { defaultValue: i18n.t('auto.aktywnosc_health_connect', { defaultValue: "Aktywność (Health Connect)" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
   { id: "history_measurements", name: i18n.t('auto.historia_ostatnich_pomiarów', { defaultValue: i18n.t('auto.historia_ostatnich_pomiar', { defaultValue: "Historia ostatnich pomiarów" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
   { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
   { id: "pump", name: i18n.t('auto.status_pompy_insulinowej_xdrip', { defaultValue: 'Status pompy insulinowej / xDrip' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
@@ -1227,9 +1225,6 @@ export default function Dashboard({
 
       case "hydration":
         return <HydrationWidget size={size} />;
-      
-      case "health_connect":
-        return <HealthWidget />;
 
       case "site_rotation":
         if (!isInsulinMode) return null;
@@ -1336,10 +1331,16 @@ export default function Dashboard({
           );
         }
 
+        const latestGlucoseLog = logs.filter(l => l.type === 'glucose' || (l.type as any) === 'sgv').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
+        const lastGlucoseVal = latestGlucoseLog ? latestGlucoseLog.value : null;
+
         return (
           <QuickBolusWidget
             isEditingLayout={isEditingLayout}
             setTab={setTab}
+            lastGlucose={lastGlucoseVal}
+            userSettings={settings}
+            iob={iob}
           />
         );
       }
@@ -1365,8 +1366,6 @@ export default function Dashboard({
     <div
       className="space-y-6 pb-20 will-change-transform relative"
     >
-      <UnlinkedCarbsWidget user={user} logs={logs} onAddCarbs={() => setTab("meal")} />
-
       {/* Pasek Pigułek - Linia 1 (Hydratacja, Pogoda, Bateria, Zbiornik) */}
       <div className="px-2 flex gap-2 overflow-x-auto scrollbar-none pb-1 mt-2">
          {widgets.find(w => w.id === 'hydration')?.visible && (
@@ -1914,19 +1913,12 @@ export default function Dashboard({
           </button>
 
           {isInsulinMode && (
-            <button
-              onClick={() => {
-                Haptics.light();
-                setTab("bolus");
-              }}
-              className="bg-accent-600 h-32 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-2xl shadow-accent-600/40 active:scale-95 group transition-all text-white overflow-hidden relative"
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-white/20 transition-all"></div>
-              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                <Zap size={32} />
-              </div>
-              <span className="font-black text-[11px] uppercase tracking-widest font-display">{t('auto.bolus', { defaultValue: 'Bolus' })}</span>
-            </button>
+            <QuickBolusWidget
+              setTab={setTab}
+              lastGlucose={lastGlucoseVal}
+              userSettings={settings}
+              iob={iob}
+            />
           )}
         </div>
       </motion.div>

@@ -324,6 +324,7 @@ export function AppLayout({
                     userSettings={userSettings}
                     getEffectiveIOB={getEffectiveIOB}
                     changeTab={changeTab}
+                    user={user}
                     onClickMain={() => {
                       Haptics.light();
                       changeTab("meal");

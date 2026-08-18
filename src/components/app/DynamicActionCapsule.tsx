@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Utensils, AlertTriangle, Plus, X, Pizza, Signal, Droplet } from 'lucide-react';
+import { Utensils, AlertTriangle, Plus, X, Pizza, Signal, Droplet, ChevronUp, Merge, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Haptics } from '../../lib/haptics';
 import { useTranslation } from "react-i18next";
 import { useLogsStore } from '../../stores/useLogsStore';
+import UnlinkedCarbsWidget from '../UnlinkedCarbsWidget';
 
 interface DynamicActionCapsuleProps {
   lastGlucose: number | null;
@@ -16,6 +17,7 @@ interface DynamicActionCapsuleProps {
   userSettings?: any;
   getEffectiveIOB?: () => number;
   changeTab?: (tab: string) => void;
+  user?: any;
 }
 
 export function DynamicActionCapsule({ 
@@ -27,7 +29,8 @@ export function DynamicActionCapsule({
   plateCount = 0,
   userSettings,
   getEffectiveIOB,
-  changeTab
+  changeTab,
+  user
 }: DynamicActionCapsuleProps) {
   const { t } = useTranslation();
   const logs = useLogsStore((state) => state.logs);
@@ -37,11 +40,29 @@ export function DynamicActionCapsule({
     return false;
   });
 
-  const [dismissedCorr, setDismissedCorr] = useState(() => {
-    const val = sessionStorage.getItem('capsule_corr_dismissed');
-    if (val && Date.now() - Number(val) < 60 * 60 * 1000) return true;
-    return false;
-  });
+  const [dismissedUnlinkedTime, setDismissedUnlinkedTime] = useState<number>(() => Number(sessionStorage.getItem('capsule_unlinked_dismissed_time') || 0));
+  const [showUnlinkedModal, setShowUnlinkedModal] = useState(false);
+
+  // Wykrywanie bolusa/posiłku bez składników (z ostatnich 3h, nowszych niż czas wyciszenia)
+  const latestUnlinked = useMemo(() => {
+    const timeLimit = 3 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    const unlinkedLogs = logs.filter(l => 
+      (l.type === "bolus" || l.type === "meal") &&
+      now - Number(l.timestamp) < timeLimit &&
+      now - Number(l.timestamp) >= 0 &&
+      Number(l.timestamp) > dismissedUnlinkedTime &&
+      (!l.items || l.items.length === 0) &&
+      ((l as any).carbs > 0 || l.linkedMeal?.carbs > 0 || (l.type === "meal" && l.value > 0))
+    ).sort((a,b) => b.timestamp - a.timestamp);
+
+    return unlinkedLogs.length > 0 ? unlinkedLogs[0] : null;
+  }, [logs, dismissedUnlinkedTime]);
+
+  const unlinkedCarbs = latestUnlinked 
+    ? Math.round(((latestUnlinked as any).carbs || latestUnlinked.linkedMeal?.carbs || (latestUnlinked.type === 'meal' ? latestUnlinked.value : 0)) * 10) / 10 
+    : 0;
 
   const isLow = useMemo(() => {
     if (dismissed) return false;
@@ -64,34 +85,6 @@ export function DynamicActionCapsule({
 
     return recentCarbs.length === 0;
   }, [logs, lastGlucose, dismissed]);
-
-  const correctionData = useMemo(() => {
-    if (dismissedCorr || !lastGlucose || !userSettings || !getEffectiveIOB) return null;
-    
-    const targetBg = Math.round(((userSettings.targetMin || 70) + (userSettings.targetMax || 140)) / 2);
-    // Suggest only if significantly above target to avoid micro-corrections pinging all the time
-    if (lastGlucose <= targetBg + 20) return null;
-    
-    let currentIsfValue = userSettings.isf || 50;
-    if (userSettings.hourlyProfiles && userSettings.hourlyProfiles.length > 0) {
-      const nowTime = new Date();
-      const currentHourStr = nowTime.getHours().toString().padStart(2, "0") + ":" + nowTime.getMinutes().toString().padStart(2, "0");
-      const sorted = [...userSettings.hourlyProfiles].sort((a, b) => a.time.localeCompare(b.time));
-      let activeProfile = sorted.slice().reverse().find((p) => p.time <= currentHourStr);
-      if (!activeProfile && sorted.length > 0) activeProfile = sorted[sorted.length - 1];
-      if (activeProfile) currentIsfValue = activeProfile.isf || currentIsfValue;
-    }
-
-    const iob = getEffectiveIOB();
-    const rawCorr = (lastGlucose - targetBg) / currentIsfValue;
-    const rawSuggestedDose = Math.max(0, rawCorr - iob);
-    const roundedSuggestedDose = Math.round(rawSuggestedDose * 10) / 10;
-    
-    if (roundedSuggestedDose < 0.5) return null;
-    return { dose: roundedSuggestedDose, target: targetBg };
-  }, [lastGlucose, userSettings, getEffectiveIOB, dismissedCorr]);
-
-  const isHigh = correctionData !== null;
 
   // Calculate hardware warnings
   const hardwareWarning = useMemo(() => {
@@ -137,10 +130,13 @@ export function DynamicActionCapsule({
     sessionStorage.setItem('capsule_hypo_dismissed', Date.now().toString());
   };
 
-  const handleDismissCorr = (e: React.MouseEvent) => {
+  const handleDismissUnlinked = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setDismissedCorr(true);
-    sessionStorage.setItem('capsule_corr_dismissed', Date.now().toString());
+    Haptics.light();
+    const now = Date.now();
+    sessionStorage.setItem('capsule_unlinked_dismissed_time', now.toString());
+    setDismissedUnlinkedTime(now);
+    setShowUnlinkedModal(false);
   };
 
   const isAbsorbing = mealProgress !== null && mealProgress !== undefined && mealProgress > 0;
@@ -148,29 +144,36 @@ export function DynamicActionCapsule({
   // Filter shortcuts for quick carbs if available
   const quickCarbs = useMemo(() => {
     if (!shortcuts) return [];
-    // Pokaż po prostu pierwsze 4 skróty
     return shortcuts.slice(0, 4);
   }, [shortcuts]);
 
-  const springTransition = { type: "spring", stiffness: 400, damping: 25, mass: 0.8 };
+  const springTransition = { type: "spring", stiffness: 340, damping: 28, mass: 0.75 };
+
+  const hasUnlinked = latestUnlinked !== null && unlinkedCarbs > 0 && !isLow;
 
   return (
     <div className="relative w-14 h-14 flex items-center justify-center">
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {isLow ? (
           <motion.div
             layoutId="action-capsule"
             key="low-glucose-capsule"
             initial={{ width: 56, height: 56, borderRadius: 28, x: "-50%" }}
             animate={{ width: 340, height: 'auto', borderRadius: 24, x: "-50%" }}
-            exit={{ width: 56, height: 56, borderRadius: 28, x: "-50%" }}
+            exit={{ width: 56, height: 56, borderRadius: 28, x: "-50%", opacity: 0 }}
             transition={springTransition}
             className="absolute bottom-0 left-1/2 flex flex-col bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30 overflow-hidden min-w-[56px] max-w-[95vw] z-[100] -translate-y-5"
             style={{ transformOrigin: "bottom center" }}
           >
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
             
-            <div className="flex flex-col w-full h-full z-10 p-2 gap-1">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col w-full h-full z-10 p-2 gap-1"
+            >
               {/* Top Row: Warning + Buttons */}
               <div className="flex items-center justify-between w-full px-2 pt-1 pb-1">
                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => { Haptics.light(); onClickMain(); }}>
@@ -224,60 +227,72 @@ export function DynamicActionCapsule({
                   ))}
                 </div>
               )}
-            </div>
+            </motion.div>
           </motion.div>
-        ) : isHigh ? (
+        ) : hasUnlinked ? (
+          /* Wysuwana w bok pozioma kapsuła oczekującego posiłku z majestatycznym morfingiem */
           <motion.div
             layoutId="action-capsule"
-            key="high-glucose-capsule"
+            key="unlinked-glucose-capsule"
             initial={{ width: 56, height: 56, borderRadius: 28, x: "-50%" }}
-            animate={{ width: 340, height: 'auto', borderRadius: 40, x: "-50%" }}
+            animate={{ width: 330, height: 56, borderRadius: 28, x: "-50%" }}
             exit={{ width: 56, height: 56, borderRadius: 28, x: "-50%" }}
             transition={springTransition}
-            className="absolute bottom-0 left-1/2 flex flex-col bg-gradient-to-r from-indigo-500 to-violet-600 shadow-xl shadow-indigo-500/30 overflow-hidden min-w-[56px] max-w-[95vw] z-[100] -translate-y-5"
+            className="absolute bottom-0 left-1/2 flex items-center justify-between px-3 z-[100] bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 shadow-2xl shadow-indigo-500/40 border border-indigo-300/30 -translate-y-5 min-w-[56px] max-w-[95vw] overflow-hidden"
             style={{ transformOrigin: "bottom center" }}
           >
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
-            
-            <div className="flex flex-col w-full h-full z-10 p-1.5 gap-1">
-              <div className="flex items-center justify-between w-full px-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="bg-white/20 p-1.5 rounded-full">
-                    <span className="text-[14px] leading-none">⚡</span>
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <span className="text-[11px] font-black text-white/90 uppercase tracking-widest leading-none mb-0.5">
-                      Sugerowana Korekta
-                    </span>
-                    <span className="text-[10px] text-white/80 uppercase font-bold leading-none">Cel: {correctionData?.target} mg/dL</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={(e) => { 
-                      e.preventDefault();
-                      e.stopPropagation(); 
-                      Haptics.light();
-                      sessionStorage.setItem("pending_correction", JSON.stringify({
-                        bg: lastGlucose,
-                        dose: correctionData?.dose
-                      }));
-                      if (changeTab) changeTab("bolus");
-                    }}
-                    className="h-8 px-3 rounded-full bg-white text-indigo-600 text-[10px] font-black uppercase tracking-wider flex items-center justify-center active:scale-90 transition-transform shadow-md"
-                  >
-                    Dodaj {correctionData?.dose}j
-                  </button>
-                  <button
-                    onClick={handleDismissCorr}
-                    className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 active:scale-95 transition-all"
-                  >
-                    <X size={14} strokeWidth={3} />
-                  </button>
-                </div>
+            {/* Left side: Icon + Info */}
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-2.5 cursor-pointer z-10 select-none overflow-hidden" 
+              onClick={() => { Haptics.medium(); setShowUnlinkedModal(true); }}
+            >
+              <div className="bg-white/20 p-2 rounded-full shrink-0 flex items-center justify-center shadow-inner">
+                <Merge size={16} className="text-amber-300 animate-pulse" />
               </div>
-            </div>
+              <div className="flex flex-col justify-center truncate">
+                <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-0.5">
+                  {t('auto.oczekujący_posiłek', { defaultValue: 'Oczekujący Posiłek' })}
+                </span>
+                <span className="text-[12px] text-white uppercase font-black tracking-tight leading-none truncate">
+                  +{unlinkedCarbs}g Węglowodanów
+                </span>
+              </div>
+            </motion.div>
+
+            {/* Right side: Action + Dismiss Button */}
+            <motion.div 
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-1.5 shrink-0 z-10"
+            >
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  Haptics.medium();
+                  setShowUnlinkedModal(true);
+                }}
+                className="bg-white text-indigo-600 hover:bg-indigo-50 active:scale-95 font-black text-[10px] uppercase tracking-wider py-1.5 px-3 rounded-full shadow-md transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <Sparkles size={12} className="text-amber-500" />
+                <span>AI / Baza</span>
+              </button>
+              <button
+                onClick={handleDismissUnlinked}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 active:scale-90 transition-all cursor-pointer"
+                title="Pomiń"
+              >
+                <X size={14} strokeWidth={3} />
+              </button>
+            </motion.div>
           </motion.div>
         ) : isAbsorbing ? (
           <motion.div
@@ -288,13 +303,20 @@ export function DynamicActionCapsule({
             exit={{ scale: 0.8, opacity: 0, width: 56, height: 56, borderRadius: 28, x: "-50%" }}
             transition={springTransition}
             onClick={() => { Haptics.light(); onClickMain(); }}
-            className="absolute bottom-0 left-1/2 flex items-center justify-center z-50 bg-amber-500 shadow-lg shadow-amber-500/30 cursor-pointer overflow-hidden active:scale-95 -translate-y-5"
+            className="absolute bottom-0 left-1/2 flex items-center justify-center z-50 bg-amber-500 shadow-lg shadow-amber-500/30 cursor-pointer overflow-hidden active:scale-95 -translate-y-5 w-14 h-14 rounded-full"
+            style={{ transformOrigin: "bottom center" }}
           >
             <div 
-              className="absolute top-0 left-0 right-0 bg-black/30 transition-all duration-1000 ease-linear"
+              className="absolute top-0 left-0 right-0 bg-black/30 transition-all duration-1000 ease-linear pointer-events-none"
               style={{ height: `${(mealProgress || 0) * 100}%` }}
             />
-            <Utensils className="text-white relative z-10" size={24} />
+            <motion.div
+              initial={{ scale: 0.5, rotate: -15 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.05 }}
+            >
+              <Utensils className="text-white relative z-10" size={24} />
+            </motion.div>
             <div className="absolute inset-0 border-[3px] border-amber-400 rounded-full z-20 pointer-events-none" />
             
             {plateCount > 0 && (
@@ -307,7 +329,7 @@ export function DynamicActionCapsule({
               </motion.div>
             )}
             <motion.div
-              className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
+              className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400 pointer-events-none"
             >
               {t("nav.plate")}
             </motion.div>
@@ -322,11 +344,18 @@ export function DynamicActionCapsule({
             transition={springTransition}
             onClick={() => { Haptics.light(); onClickMain(); }}
             className={cn(
-              "absolute bottom-0 left-1/2 flex items-center justify-center z-50 shadow-lg cursor-pointer overflow-hidden active:scale-95 -translate-y-5",
+              "absolute bottom-0 left-1/2 flex items-center justify-center z-50 shadow-lg cursor-pointer overflow-hidden active:scale-95 -translate-y-5 w-14 h-14 rounded-full",
               hardwareWarning ? "bg-slate-800 shadow-slate-900/30" : "bg-indigo-600 shadow-indigo-500/30"
             )}
+            style={{ transformOrigin: "bottom center" }}
           >
-            {hardwareWarning ? hardwareWarning.icon : <Utensils className="text-white relative z-10" size={24} />}
+            <motion.div
+              initial={{ scale: 0.5, rotate: -15 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.05 }}
+            >
+              {hardwareWarning ? hardwareWarning.icon : <Utensils className="text-white relative z-10" size={24} />}
+            </motion.div>
             
             {plateCount > 0 && !hardwareWarning && (
               <motion.div
@@ -349,13 +378,26 @@ export function DynamicActionCapsule({
             )}
 
             <motion.div
-              className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
+              className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400 pointer-events-none"
             >
-              {hardwareWarning ? (hardwareWarning.type === 'sensor' ? 'Sensor' : 'Wkłucie') : t("nav.plate")}
+              {hardwareWarning ? (hardwareWarning.type === 'sensor' ? t('auto.sensor', { defaultValue: 'Sensor' }) : t('auto.wkłucie', { defaultValue: 'Wkłucie' })) : t("nav.plate")}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Unlinked Meal Modal / Bottom Sheet */}
+      {showUnlinkedModal && (
+        <UnlinkedCarbsWidget
+          user={user}
+          isModal={true}
+          onClose={() => setShowUnlinkedModal(false)}
+          onAddCarbs={() => {
+            setShowUnlinkedModal(false);
+            onClickMain();
+          }}
+        />
+      )}
     </div>
   );
 }

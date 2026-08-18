@@ -92,26 +92,17 @@ export default function LocalSync({
   localStorage.setItem("lastSafeTimestamp", Date.now().toString());
   }
 
- if (parsed.settings && user) {
- try {
- await setDoc(
- doc(db, "users", getEffectiveUid(user), "settings", "profile"),
- parsed.settings,
- { merge: true }
- );
- } catch (e) {
- console.warn("Zapis ustawień z kopii do nowej ścieżki odrzucony, awaryjny zapis do artifacts...", e);
- try {
- await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
- parsed.settings,
- { merge: true }
- );
- } catch (err) {
- console.error("Awaryjny zapis ustawień również się nie powiódł", err);
- }
- }
- }
+  if (parsed.settings && user) {
+    try {
+      await setDoc(
+        doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+        parsed.settings,
+        { merge: true }
+      );
+    } catch (e) {
+      console.error("Zapis ustawień z kopii do nowej ścieżki nie powiódł się", e);
+    }
+  }
 
  toast.success(i18n.t('auto.pomyslnie_zaimportowano_odswie', { defaultValue: i18n.t('auto.pomyslnie_zaimportowano_o', { defaultValue: "Pomyślnie zaimportowano. Odświeżam..." }) }));
  setTimeout(() => {

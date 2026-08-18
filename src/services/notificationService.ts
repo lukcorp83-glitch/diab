@@ -200,24 +200,71 @@ export const notificationService = {
     });
   },
 
+  async sendHypoProtectionAlert() {
+    const title = i18n.t('auto.ochrona_przed_hipo', { defaultValue: "Ochrona przed hipo (AI)" });
+    const body = i18n.t('auto.uwaga_glikosense_przewiduje_hipo', { defaultValue: "Ostrzeżenie: GlikoSense przewiduje spadek poniżej normy (hipoglikemia)!" });
+    
+    if (Capacitor.isNativePlatform()) {
+      await this.initChannels();
+      let perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') {
+        perms = await LocalNotifications.requestPermissions();
+      }
+      if (perms.display === 'granted') {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body,
+              id: 887,
+              schedule: { at: new Date(Date.now() + 500) },
+              channelId: 'glucose_alerts_v15',
+              sound: 'status_clear.mp3',
+              attachments: null,
+              actionTypeId: '',
+              extra: null
+            }
+          ]
+        });
+      }
+    } else {
+      if (window.Notification && window.Notification.permission === 'granted') {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration) {
+             registration.showNotification(title, {
+              body,
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/')
+            });
+          }
+        } catch (e) { console.warn(e); }
+      }
+    }
+  },
+
   async scheduleDeviceReminder(title: string, body: string, id?: number) {
     if (Capacitor.isNativePlatform()) {
       await this.initChannels();
-      await LocalNotifications.requestPermissions();
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            title,
-            body,
-            id: id || Date.now(),
-            schedule: { at: new Date(Date.now() + 1000) },
-            channelId: 'glikocontrol_reminders_v1',
-            attachments: null,
-            actionTypeId: '',
-            extra: null
-          }
-        ]
-      });
+      let perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') {
+        perms = await LocalNotifications.requestPermissions();
+      }
+      if (perms.display === 'granted') {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body,
+              id: id || Date.now(),
+              schedule: { at: new Date(Date.now() + 1000) },
+              channelId: 'glikocontrol_reminders_v1',
+              attachments: null,
+              actionTypeId: '',
+              extra: null
+            }
+          ]
+        });
+      }
     } else {
       if (window.Notification && window.Notification.permission === 'granted') {
         try {
@@ -290,7 +337,11 @@ export const notificationService = {
       }
 
       if (Capacitor.isNativePlatform()) {
-        const perms = await LocalNotifications.checkPermissions();
+        await this.initChannels();
+        let perms = await LocalNotifications.checkPermissions();
+        if (perms.display !== 'granted') {
+          perms = await LocalNotifications.requestPermissions();
+        }
         if (perms.display === 'granted') {
           await LocalNotifications.cancel({ notifications: [{ id: 998 }, { id: 999 }] }).catch(() => {});
           if (notificationsToSchedule.length > 0) {
@@ -399,21 +450,26 @@ export const notificationService = {
 
     if (Capacitor.isNativePlatform()) {
       await this.initChannels();
-      await LocalNotifications.requestPermissions();
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            title,
-            body,
-            id: isHigh ? 888 : 889,
-            channelId: 'glucose_alerts_v15',
-            sound: 'status_clear.mp3',
-            attachments: null,
-            actionTypeId: 'GLUCOSE_ALARM_ACTIONS',
-            extra: { isHigh, value }
-          }
-        ]
-      });
+      let perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') {
+        perms = await LocalNotifications.requestPermissions();
+      }
+      if (perms.display === 'granted') {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body,
+              id: isHigh ? 888 : 889,
+              channelId: 'glucose_alerts_v15',
+              sound: 'status_clear.mp3',
+              attachments: null,
+              actionTypeId: 'GLUCOSE_ALARM_ACTIONS',
+              extra: { isHigh, value }
+            }
+          ]
+        });
+      }
     } else {
       // Wersja web/PWA
       const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');

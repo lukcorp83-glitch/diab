@@ -192,7 +192,7 @@ export default function App() {
       };
     }, []);
 
-    const { data: fbLogs = EMPTY_ARRAY } = useQuery({ 
+    const { data: fbLogs = EMPTY_ARRAY, isFetched: isFbLogsFetched } = useQuery({ 
       queryKey: ['fbLogs', user ? getEffectiveUid(user) : ''], 
       enabled: !!user, 
       queryFn: () => EMPTY_ARRAY 
@@ -237,17 +237,50 @@ export default function App() {
   
     useEffect(() => {
       const allMap = new Map();
-      // Najpierw ładujemy "chłodną" historię ze SQLite
-      sqliteLogs.forEach((l: any) => allMap.set(l.id, l));
+      const fbLogIds = new Set(fbLogs.map((l: any) => l.id));
+      const thirtyFourDaysAgo = Date.now() - 34 * 24 * 60 * 60 * 1000;
+
+      // Najpierw ładujemy "chłodną" historię ze SQLite, odsiewając te, które zostały usunięte w chmurze
+      sqliteLogs.forEach((l: any) => {
+        const logTime = l.timestamp || l.createdAt || 0;
+        // Jeśli log jest nowszy niż 34 dni, a fbLogs zostało już pobrane i NIE ma w nim tego loga, to znaczy że został usunięty na innym urządzeniu
+        if (isFbLogsFetched && logTime > thirtyFourDaysAgo && !fbLogIds.has(l.id)) {
+          // Triggerujemy ciche usunięcie z bazy lokalnej (cleanup) i nie dodajemy do pamięci
+          dbService.deleteLog(l.id).catch(() => {});
+          return;
+        }
+        allMap.set(l.id, l);
+      });
+
       // Nadpisujemy nowszymi "gorącymi" logami z chmury Firebase
       fbLogs.forEach((l: any) => allMap.set(l.id, l));
+      
       // Doklejamy ewentualne bezpośrednie uderzenia z Nightscout API
-      nsLogs.forEach((l: any) => {
-        if (!allMap.has(l.id)) allMap.set(l.id, l);
+      nsLogs.forEach((nsLog: any) => {
+        if (allMap.has(nsLog.id)) return;
+
+        // Sprawdzamy czy ten wpis (np. posiłek, bolus, wymiana) już istnieje w bazie lokalnej / Firebase
+        if (nsLog.type === 'bolus' || nsLog.type === 'meal' || nsLog.type === 'site_change' || nsLog.type === 'sensor_change') {
+          for (const existingLog of allMap.values()) {
+            if (existingLog.type === nsLog.type && Math.abs((existingLog.timestamp || 0) - (nsLog.timestamp || 0)) <= 90000) {
+              const diffVal = Math.abs((existingLog.value || 0) - (nsLog.value || 0));
+              if (diffVal < 0.2) {
+                // To ten sam wpis – łączymy metadane (np. nsId), ale zachowujemy bogate dane posiłku (opis, składniki)
+                if (nsLog.nsId && !existingLog.nsId) existingLog.nsId = nsLog.nsId;
+                if (!existingLog.description && nsLog.description) existingLog.description = nsLog.description;
+                if (!existingLog.notes && nsLog.notes) existingLog.notes = nsLog.notes;
+                return; // Nie tworzymy zduplikowanego pustego wpisu
+              }
+            }
+          }
+        }
+
+        allMap.set(nsLog.id, nsLog);
       });
+      
       const combined = Array.from(allMap.values()).sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
       setLogs(combined);
-    }, [sqliteLogs, fbLogs, nsLogs, setLogs]);
+    }, [sqliteLogs, fbLogs, nsLogs, setLogs, isFbLogsFetched]);
 
   // Automatyczna synchronizacja dat wymian osprzętu z najnowszymi wpisami z historii / Nightscout
   useEffect(() => {

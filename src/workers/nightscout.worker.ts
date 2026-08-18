@@ -131,8 +131,8 @@ function processTreatments(data: any[]): any[] {
     const timestamp = ts;
     const insulin = Number(t.insulin || t.amount || 0);
     const carbs = Number(t.carbs || 0);
-    const rawNotes = t.notes || t.eventType || "";
-    const cleanNotes = rawNotes === "<none>" ? "" : rawNotes;
+    const mealName = t.food || t.description || (t.notes && t.notes !== '<none>' ? t.notes : '') || '';
+    const cleanNotes = mealName || (t.eventType && t.eventType !== '<none>' ? t.eventType : '');
     const nsSource = t.enteredBy ? `nightscout (${t.enteredBy})` : 'nightscout';
     
     if (insulin > 0) {
@@ -143,10 +143,16 @@ function processTreatments(data: any[]): any[] {
         value: insulin,
         timestamp,
         notes: cleanNotes,
+        description: mealName || undefined,
         source: nsSource
       };
       if (carbs > 0) {
-        payload.linkedMeal = { carbs, protein: 0, fat: 0 };
+        payload.linkedMeal = {
+          carbs,
+          protein: Number(t.protein || 0),
+          fat: Number(t.fat || 0),
+          name: mealName || undefined
+        };
       }
       logs.push(payload);
     } else if (carbs > 0) {
@@ -155,8 +161,13 @@ function processTreatments(data: any[]): any[] {
         nsId: t._id,
         type: 'meal',
         value: carbs,
+        carbs,
+        protein: Number(t.protein || 0),
+        fat: Number(t.fat || 0),
         timestamp,
         notes: cleanNotes,
+        description: mealName || undefined,
+        name: mealName || undefined,
         source: nsSource
       });
     }

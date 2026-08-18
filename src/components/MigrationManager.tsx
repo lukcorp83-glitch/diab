@@ -33,36 +33,9 @@ export const MigrationManager: React.FC<{ user: any }> = ({ user }) => {
           localStorage.removeItem(`migrated_${uid}`);
           await setDoc(doc(db, "users", uid, "settings", "profile"), { hasMigratedFromV1: false }, { merge: true });
         } else if (localMigrated || (profileSnap.exists() && profileSnap.data().hasMigratedFromV1)) {
-          // INTELIGENTNA DETEKCJA: Jeśli użytkownik ma stare logi, ale nowa ścieżka Firebase jest (prawie) pusta.
-          // (Stary kod zapisywał tylko lokalnie, a nowa ścieżka może mieć kilka nowych logów, więc limit(1) nie działał)
-          try {
-            const { getCountFromServer } = await import('firebase/firestore');
-            
-            const newLogsRef = collection(db, "users", uid, "logs");
-            const newCountSnap = await getCountFromServer(newLogsRef);
-            const newCount = newCountSnap.data().count;
-
-            if (newCount < 100) {
-              const oldLogsRef = collection(db, "artifacts/diacontrolapp/users", uid, "logs");
-              const oldCountSnap = await getCountFromServer(oldLogsRef);
-              const oldCount = oldCountSnap.data().count;
-
-              if (oldCount > newCount) {
-                console.warn(`[Migration] Smart detect: Old DB has ${oldCount} logs, new DB only has ${newCount}. Re-running migration...`);
-                // Zezwól na kontynuację migracji (nie robimy return)
-              } else {
-                setMigrationState('done');
-                return;
-              }
-            } else {
-              setMigrationState('done');
-              return;
-            }
-          } catch (countErr) {
-            console.error("Failed to verify migration count, assuming done", countErr);
-            setMigrationState('done');
-            return;
-          }
+          // Już zmigrowano – nie wolno nadpisywać nowej bazy starymi danymi
+          setMigrationState('done');
+          return;
         }
         
         // Sprawdzamy czy użytkownik MA starą bazę (czytamy jeden log)

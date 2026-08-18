@@ -307,8 +307,11 @@ export default function HistoryView({ user, onBack, settings }: HistoryProps) {
  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
  <span className="text-[9px] font-bold text-slate-500 truncate italic">
  {(() => {
- let n = log.notes || log.description || "";
+ let n = log.linkedMeal?.name || log.name || log.description || log.notes || "";
  if (n === "<none>") n = "";
+ if (log.items && Array.isArray(log.items) && log.items.length > 0 && (!n || n === "Kalkulator bolusa" || n === "Pobrano z kalkulatora")) {
+ n = log.items.map((i: any) => i.name).filter(Boolean).join(", ");
+ }
  if (
  n === "Kalkulator bolusa" ||
  n === "Pobrano z kalkulatora" ||

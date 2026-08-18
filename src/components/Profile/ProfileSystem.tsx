@@ -402,12 +402,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
            { merge: true }
          );
        } catch (e) {
-         console.warn("Zapis childMode do nowej ścieżki odrzucony, awaryjny zapis do artifacts...");
-         await setDoc(
-           doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
-           { childMode: newVal },
-           { merge: true }
-         );
+         console.error("Błąd zapisu childMode do settings/profile", e);
        }
        queryClient.invalidateQueries({ queryKey: ['userSettings'] });
      }

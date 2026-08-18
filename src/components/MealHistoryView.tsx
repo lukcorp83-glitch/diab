@@ -113,9 +113,9 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
  
  <div className="flex-1 min-w-0">
  <div className="flex justify-between items-start mb-1">
- <p className="text-sm font-black text-slate-800 dark:text-white truncate">
- {log.description || log.notes || log.linkedMeal?.name || t('auto.posilek', { defaultValue: "Posiłek" })}
- </p>
+    <p className="text-sm font-black text-slate-800 dark:text-white truncate">
+      {log.name || log.description || (log.notes !== '<none>' ? log.notes : '') || log.linkedMeal?.name || (log.items && log.items.length > 0 ? log.items.map((i: any) => i.name).filter(Boolean).join(', ') : '') || t('auto.posilek', { defaultValue: "Posiłek" })}
+    </p>
  <span className="text-[10px] font-bold text-slate-400 shrink-0 ml-2 mt-0.5">
  {new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
  </span>

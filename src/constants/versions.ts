@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.21';
+export const CURRENT_VERSION = '6.0.22';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.22",
+    date: "2026-08-18",
+    title: "Inteligentny Kafel Bolusa, Asystent Posiłku i Kody QR",
+    changes: [
+      "Kafel Szybkiego Bolusa na pulpicie automatycznie wylicza i sugeruje dawkę korekty (BG-cel/ISF-IOB)",
+      "Pigułka nawigacyjna zyskała wysuwany w bok asystent oczekującego posiłku z bazą dań i instant wyliczaniem makroskładników przez AI",
+      "Wdrożono nowoczesne kody QR w stylu Android 14 Material You z celownikami skanera i odliczaniem czasu wygaśnięcia",
+      "Płynny morfing animacji fizyki sprężynowej i jednorazowe wyciszanie powiadomień posiłków"
+    ]
+  },
   {
     version: "6.0.21",
     date: "2026-08-16",
@@ -197,6 +208,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.22",
+    date: "2026-08-18",
+    title: "Inteligentny Kafel Bolusa, Asystent Posiłku i Kody QR",
+    changes: [
+      "Kafel Szybkiego Bolusa na pulpicie automatycznie wylicza i sugeruje dawkę korekty (BG-cel/ISF-IOB)",
+      "Pigułka nawigacyjna zyskała wysuwany w bok asystent oczekującego posiłku z bazą dań i instant wyliczaniem makroskładników przez AI",
+      "Wdrożono nowoczesne kody QR w stylu Android 14 Material You z celownikami skanera i odliczaniem czasu wygaśnięcia",
+      "Płynny morfing animacji fizyki sprężynowej i jednorazowe wyciszanie powiadomień posiłków"
+    ]
+  },
   {
     version: "6.0.21",
     date: "2026-08-16",

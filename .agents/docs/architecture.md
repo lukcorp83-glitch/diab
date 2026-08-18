@@ -17,7 +17,9 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/services/mlSugarAnalyzer.ts` - Serwis zarządzający modelami ML, logiką TensorFlow.js oraz eksportem/importem plików modelu. Posiada zabezpieczenia timeoutu (15s/45s) oraz bezawaryjny fallback (`.catch`) w przypadku zatrzymania Workera.
 - `src/workers/glikosense.worker.ts` - Web Worker używany w tle do trenowania modeli oraz wyliczania predykcji. Używa stabilnego backendu `cpu` w wątku Workera, zapobiegając zacinaniu się przy braku plików WASM/WebGL.
 
-## Zarządzanie Sprzętem, Apteczką i Pojemnością Zbiorniczka
+## Zarządzanie Sprzętem, Apteczką i Wydajnością Wkłuć
+- `src/services/infusionAnalysisService.ts` - Serwis analityczny badający degradację wchłaniania insuliny w zależności od wieku kaniuli (Doba 1 vs Doba 2 vs Doba 3+). Wylicza procentową sprawność kaniuli, średni czas powrotu do normy, optymalną długość noszenia wkłucia oraz detektor ryzyka niedrożności / zagięcia kaniuli (occlusion alert przy nieskutecznych bolusach korekcyjnych).
+- `src/components/InfusionPerformanceWidget.tsx` - Karta analityczna wydajności wkłucia wyświetlana w module Raportów AI (`AiReports.tsx`), prezentująca wiek bieżącego wkłucia, szacowaną sprawność wchłaniania, porównanie kolejnych dób i wnioski GlikoSense AI.
 - `src/components/Profile/ProfileInventory.tsx` - Moduł Apteczki i Zapasów z polskimi nazwami kategorii oraz własną pojemnością zbiorniczka.
 - `src/components/PumpStatusCard.tsx` - Kafel statusu pompy i zbiorniczka z dynamiczną animacją.
 - `src/components/SmartEquipmentModal.tsx` - Modal potwierdzenia Smart Equipment. Przy wykryciu zmiany pompy/zbiorniczka pyta, czy wymieniono sam zbiorniczek, czy również wkłucie.
@@ -33,4 +35,19 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/components/MealPlate/MealPlateModals.tsx` - Kontener modali (w tym skanera) montowany bezwarunkowo w `MealPlate.tsx` (działa w zakładkach `meal` i `database`).
 - `src/components/app/AppContent.tsx` - Ładowanie zakładek z prefetchowaniem modułów w tle po 1.5s od startu.
 - `src/components/app/AppLayout.tsx` - Układ dolnego paska nawigacji z animacją `AnimatePresence mode="popLayout"`. Renderuje `DynamicActionCapsule` pośrodku.
-- `src/components/app/DynamicActionCapsule.tsx` - Pigułka akcji głównej. Zastąpiła statyczną ikonę `Utensils` oraz stary widget `LowGlucoseMealAlert`. Obsługuje 3 stany: (1) domyślny przycisk talerza, (2) pomarańczową pigułkę wchłaniania węglowodanów, (3) czerwoną, rozwijaną pigułkę Hipoglikemii wyświetlającą szybkie skróty ratunkowe.
+- `src/components/app/DynamicActionCapsule.tsx` - Pigułka akcji głównej na dolnym pasku nawigacji. Obsługuje płynną animację morphingu poziomego (`springTransition`): (1) domyślny okrągły przycisk talerza / ostrzeżenie o sprzęcie (<2h), (2) pomarańczową pigułkę wchłaniania węglowodanów z postępem, (3) czerwoną rozwijaną pigułkę Hipoglikemii przy cukrze <70 mg/dL, (4) rozwijany poziomo baner oczekującego posiłku `+Xg Węglowodanów` z przyciskiem `AI / Baza` oraz krzyżykiem `✕` do pominięcia.
+- `src/components/UnlinkedCarbsWidget.tsx` - Asystent przypisywania potraw do bolusa (baza produktów, szybkie propozycje AI, generator makroskładników Gemini z przyciskiem Sparkles oraz ręczny Talerz). Obsługuje tryb modalny (`isModal`) renderowany przez portal z zamykaniem tłem i krzyżykiem.
+- `src/components/dashboard/widgets/QuickBolusWidget.tsx` - Inteligentny kafel Bolusa na pulpicie. Gdy cukier przekracza cel i IOB nie pokrywa hiperglikemii, kafel automatycznie podświetla sugerowaną dawkę korekty (np. `+1.5 j.` z uwzględnieniem IOB i ISF). Jedno kliknięcie natychmiast przenosi do kalkulatora z wpisanym cukrem i dawką.
+- `src/components/ModernQRCard.tsx` - Stylowy moduł renderowania kodów QR w estetyce Android 14 Material You / Quick Share (zaokrąglone narożniki, celowniki skanera, centralne logo z korekcją błędów Level H, dynamiczny licznik odliczania czasu). Używany w `DevicePairing.tsx` i `SettingsSync.tsx`.
+
+## Architektura Bazy Danych i Synchronizacja (Jedno Źródło Prawdy)
+- Nowa kanoniczna ścieżka Firestore: `users/{uid}/...` (settings/profile, logs, pet/status, syncPackage).
+- Usunięto przestarzałe fallbacki i pętle re-migracji ze starej bazy `artifacts/diacontrolapp/users/{uid}/...`, które powodowały przywracanie starych stanów magazynu apteczki (liczby wkłuć/zbiorniczków) oraz starych logów bez nazw posiłków.
+- Zunifikowano parsowanie zabiegów Nightscout (`nightscout.ts` i `nightscout.worker.ts`) – wyciągane są nazwy potraw z `t.food`, `t.description` i `t.notes`, a deduplikacja w `App.tsx` zabezpiecza przed nadpisywaniem nazwanych posiłków przez puste wpisy z pompy.
+
+## Moduł Monitorowania i Wydajności Wkłucia (Infusion Performance & Live Cannula)
+- `src/services/infusionAnalysisService.ts` - Serwis analizujący na żywo **aktualnie założone wkłucie** (od momentu ostatniej wymiany `site_change` lub `settings.infusionSetChangeDate`). Wylicza dokładny wiek w godzinach i dobach, czas do zalecanej wymiany (72h), liczbę podanych bolusów, średni cukier od wymiany oraz procentową sprawność wchłaniania insuliny. Posiada wbudowany detektor okluzji/zagięcia (ostrzega przy >=2 bolusach korekcyjnych w ostatnich 2h bez spadku glikemii).
+- `src/components/InfusionPerformanceWidget.tsx` - Kompaktowy widżet w Raportach AI / GlikoSense. Prezentuje:
+  1. Główne podsumowanie: wiek kaniuli, kolorowy pasek i procent sprawności wchłaniania (`currentEfficiency%`), liczbę bolusów, średni cukier i czas do wymiany.
+  2. Rozwijaną sekcję etapów (`AnimatePresence` / akordeon ze stanem `isExpanded`): kafelki 4 dób cyklu (Doba 1 aktywna, Doby 2-4 zablokowane/oczekujące) oraz rekomendację AI.
+

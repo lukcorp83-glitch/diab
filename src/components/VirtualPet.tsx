@@ -28,13 +28,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
     try {
       await setDoc(docRef, data, { merge: true });
     } catch (e) {
-      console.warn("safeUpdateDoc fallback...", e);
-      try {
-        const oldRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "pet", "status");
-        await setDoc(oldRef, data, { merge: true });
-      } catch (e2) {
-        console.error("safeUpdateDoc fallback failed", e2);
-      }
+      console.error("safeUpdateDoc failed", e);
     }
   };
 

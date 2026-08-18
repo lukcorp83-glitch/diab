@@ -289,9 +289,12 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
       const blockIndex = newProfiles.findIndex(p => p.time === autoTunerResult.timeBlock!.start);
       if (blockIndex !== -1) {
         newProfiles[blockIndex] = { ...newProfiles[blockIndex], isf: autoTunerResult.proposedISF };
+      } else {
+        newProfiles.push({ time: autoTunerResult.timeBlock!.start, isf: autoTunerResult.proposedISF, wwRatio: settings.wwRatio });
       }
 
       await setDoc(doc(db, "users", uid), { hourlyProfiles: newProfiles }, { merge: true });
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: { hourlyProfiles: newProfiles } }));
       localStorage.setItem('lastIsfAutoTuneTime', Date.now().toString());
       toast.success(t('auto.glikosense_autotune_success', { defaultValue: 'Profil ISF został zaktualizowany.' }));
       setAutoTunerResult(null);

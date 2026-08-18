@@ -18,7 +18,7 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
     // Get all glucose logs sorted by timestamp descending
     const glucoseLogs = logs
       .filter(l => {
-        const hasBg = l.type === 'glucose' || l.type === 'sgv' || (l as any).bg !== undefined;
+        const hasBg = l.type === 'glucose' || (l.type as any) === 'sgv' || (l as any).bg !== undefined;
         const val = l.value || (l as any).bg || 0;
         return hasBg && val > 0;
       })
@@ -41,8 +41,8 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
 
     const val = latest.value || (latest as any).bg;
 
-    // Ignore logs older than 20 minutes
-    if (Date.now() - latestTime > 20 * 60 * 1000) return;
+    // Ignore logs older than 45 minutes (zabezpieczenie przed opóźnieniami z Nightscout / CGM)
+    if (Date.now() - latestTime > 45 * 60 * 1000) return;
 
     // Strict deduplication: skip if this exact log item & timestamp was already processed
     if (latestId && latestId === lastProcessedIdRef.current && latestTime === lastProcessedTimeRef.current) {
@@ -50,6 +50,9 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
     }
     lastProcessedIdRef.current = latestId;
     lastProcessedTimeRef.current = latestTime;
+
+    // Check if user disabled notifications in settings
+    if (settings?.notificationsEnabled === false) return;
 
     const targetMin = settings?.targetMin || 70;
     const targetMax = settings?.targetMax || 180;

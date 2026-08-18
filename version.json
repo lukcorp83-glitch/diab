@@ -1,10 +1,10 @@
 {
-    "version": "6.0.21",
+    "version": "6.0.22",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.21_OTA.apk",
-    "buildNumber": 136,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.22_OTA.apk",
+    "buildNumber": 137,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.21! 1) Usunięto widżet 'Sugerowana Szybka Korekta' z pulpitu i wbudowano jego logikę prosto w dolną Inteligentną Pigułkę. 2) Inteligentna Pigułka od teraz subtelnie zasygnalizuje wygasający sensor lub wkłucie na 2 godziny przed czasem, zamieniając się w ikonę danego urządzenia. 3) Naprawiono odtwarzanie własnych plików MP3 w powiadomieniach o glikemii na systemie Android (wymagany reset uprawnień powiadomień przez stworzenie nowego kanału v15).",
-    "whatsNewEn": "Version 6.0.21! 1) Removed the 'Quick Correction' widget from the dashboard and integrated its logic directly into the bottom Smart Action Pill. 2) The Smart Pill will now subtly warn you about expiring sensors or infusion sets 2 hours in advance by transforming into the respective device icon. 3) Fixed custom MP3 playback for glucose alarms on Android devices (requires new notification channel v15).",
-    "otaRevision": 295
+    "whatsNew": "Wersja 6.0.22! 1) Inteligentny Kafel Bolusa na pulpicie automatycznie sugeruje dawkę korekty (BG-cel/ISF-IOB) z natychmiastowym przejściem do kalkulatora. 2) Pigułka nawigacyjna zyskała wysuwany w bok asystent oczekującego posiłku z bazą dań i instant wyliczaniem makroskładników przez AI (Gemini). 3) Nowoczesne kody QR w stylu Android 14 Material You z celownikami skanera i odliczaniem czasu. 4) Płynne animacje morphingu oraz jednorazowe wyciszanie powiadomień posiłków.",
+    "whatsNewEn": "Version 6.0.22! 1) Smart Bolus widget on the dashboard automatically calculates and suggests correction doses (BG-target/ISF-IOB) with 1-tap prefill. 2) Navigation pill now morphs into an unlinked meal assistant with local food database and instant Gemini AI macronutrient estimator. 3) Modern Android 14 Material You QR cards with scanner brackets and countdown timer. 4) Ultra-smooth morphing animations and clean 1-click notification dismiss.",
+    "otaRevision": 296
 }

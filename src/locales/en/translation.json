@@ -1377,6 +1377,20 @@
     "dzień_wymiany_sensora": "Sensor replacement day",
     "dzień_wymiany_wkłucia": "Cannula replacement day",
     "wymiana_wkłucia": "Changing the catheter",
+    "wydajnosc_wklucia": "Infusion Set Performance",
+    "analiza_degradacji_w_czasie": "Insulin absorption analysis based on cannula age",
+    "uwaga_mozliwa_niedroznosc": "Warning: Risk of cannula occlusion or kink!",
+    "biezace_wklucie": "Current cannula:",
+    "stan_optymalny": "Optimal State",
+    "stan_dobry": "Good Absorption",
+    "spadek_wchlaniania": "Degraded Absorption",
+    "wymagane_nowe": "Replace Infusion Set",
+    "szacowana_sprawnosc": "Estimated absorption efficiency",
+    "wchlanianie_w_kolejnych_dobach": "Insulin absorption in consecutive days",
+    "wydajnosc": "efficiency",
+    "sr_cukier": "Avg glucose",
+    "powrot_do_normy": "Recovery time",
+    "rekomendacja_glikosense_ai": "GlikoSense AI Insight",
     "wymiana_sensora": "Sensor replacement",
     "odśwież_lokalizację_gps": "Refresh GPS location",
     "aszystent_ai_odpowiedział": "THE AI ASSISTANT ANSWERED!",
@@ -4969,5 +4983,10 @@
     "overall_tolerance": "Average Meal Tolerance",
     "consistency_rating": "Absorption Consistency",
     "no_data_yet": "Gathering initial meal logs..."
+  },
+  "auto": {
+    "czy_wiesz_ze_pigulka_na_dole": "Did you know that the Smart Pill at the bottom of the screen turns into a reminder when there is less than 2 hours left before the sensor or infusion set expires?",
+    "czy_wiesz_ze_szybka_korekta": "Did you know that when your glucose rises above the target, the Bolus tile on the dashboard will automatically suggest a quick correction dose?",
+    "podaj_bolus": "Deliver Bolus"
   }
 }
