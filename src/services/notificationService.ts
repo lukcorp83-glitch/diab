@@ -242,6 +242,53 @@ export const notificationService = {
     }
   },
 
+  async scheduleLocalNotification(title: string, body: string, delayMinutes: number, id?: number) {
+    const notifId = id || Math.floor(Date.now() % 1000000);
+    const scheduledTime = new Date(Date.now() + Math.max(1, delayMinutes) * 60 * 1000);
+    if (Capacitor.isNativePlatform()) {
+      await this.initChannels();
+      let perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') {
+        perms = await LocalNotifications.requestPermissions();
+      }
+      if (perms.display === 'granted') {
+        try {
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                title,
+                body,
+                id: notifId,
+                schedule: { at: scheduledTime },
+                channelId: 'glikocontrol_reminders_v1',
+                sound: 'status_clear.mp3',
+                attachments: null,
+                actionTypeId: '',
+                extra: null
+              }
+            ]
+          });
+        } catch (e) {
+          console.warn('[NotificationService] Failed scheduling local notification:', e);
+        }
+      }
+    } else {
+      if (window.Notification && window.Notification.permission === 'granted') {
+        setTimeout(async () => {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            if (registration) {
+              registration.showNotification(title, {
+                body,
+                icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/')
+              });
+            }
+          } catch (e) { console.warn(e); }
+        }, Math.max(1, delayMinutes) * 60 * 1000);
+      }
+    }
+  },
+
   async scheduleDeviceReminder(title: string, body: string, id?: number) {
     if (Capacitor.isNativePlatform()) {
       await this.initChannels();

@@ -216,7 +216,7 @@ export function AppLayout({
                 <React.Suspense fallback={<div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />}>
                   <NotebookManager />
                 </React.Suspense>
-                <NotificationCenter userSettings={userSettings} theme={theme} />
+                <NotificationCenter userSettings={userSettings} theme={theme} setUserSettings={setUserSettings} />
                 <button
                   onClick={() => {
                     Haptics.light();

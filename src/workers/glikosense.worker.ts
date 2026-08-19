@@ -429,72 +429,109 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(insightMsg);
     }
 
-    if (mode === 'full') {
-      const daysStats: { [day: string]: { sum: number, count: number } } = { "Niedziela": { sum: 0, count: 0 }, "Poniedziałek": { sum: 0, count: 0 }, "Wtorek": { sum: 0, count: 0 }, "Środa": { sum: 0, count: 0 }, "Czwartek": { sum: 0, count: 0 }, "Piątek": { sum: 0, count: 0 }, "Sobota": { sum: 0, count: 0 } };
-      const dayNames = ["Niedziela", i18n.t('auto.poniedzialek', { defaultValue: i18n.t('auto.poniedzialek', { defaultValue: i18n.t('auto.poniedzialek', { defaultValue: "Poniedziałek" }) }) }), "Wtorek", i18n.t('auto.sroda', { defaultValue: i18n.t('auto.sroda', { defaultValue: i18n.t('auto.sroda', { defaultValue: "Środa" }) }) }), "Czwartek", i18n.t('auto.piatek', { defaultValue: i18n.t('auto.piatek', { defaultValue: i18n.t('auto.piatek', { defaultValue: "Piątek" }) }) }), "Sobota"];
-      allGlucose.forEach(g => {
-        const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
-        const dayName = dayNames[d.getDay()];
-        daysStats[dayName].sum += (g.value || g.bg);
-        daysStats[dayName].count++;
+    // --- AKTYWNE ODKRYWANIE WZORCÓW I REGUŁ METABOLICZNYCH ---
+    // 1. Zjawisko Brzasku (Dawn Phenomenon)
+    const morningDawnRises: number[] = [];
+    const uniqueDays = new Set(allGlucose.map(g => new Date(g.timestamp || new Date(g.createdAt).getTime()).toDateString()));
+    uniqueDays.forEach(dayStr => {
+      const dayStart = new Date(dayStr).getTime();
+      const morningLogs = allGlucose.filter(g => {
+        const t = g.timestamp || new Date(g.createdAt).getTime();
+        const hour = new Date(t).getHours();
+        return hour >= 5 && hour < 9;
       });
-      const activeDays = Object.entries(daysStats).filter(([_, s]) => s.count > 10);
-      if (activeDays.length >= 3) {
-         activeDays.sort((a,b) => (b[1].sum / b[1].count) - (a[1].sum / a[1].count));
-         const worstDay = activeDays[0];
-         const bestDay = activeDays[activeDays.length - 1];
-         if ((worstDay[1].sum / worstDay[1].count) - (bestDay[1].sum / bestDay[1].count) > 25) {
-             insights.push(`📅 Analiza 14-dniowa ujawnia: Twój cukier jest stale niższy w te dni tygodnia: ${bestDay[0]} (prawdopodobnie większa wrażliwość, może regularny trening?). Z kolei ${worstDay[0]} często bywa trudny i wymaga więcej insuliny lub ostrożności.`);
-         }
+      if (morningLogs.length >= 2) {
+        const first = morningLogs[0].value || morningLogs[0].bg;
+        const last = morningLogs[morningLogs.length - 1].value || morningLogs[morningLogs.length - 1].bg;
+        if (last - first >= 12) {
+          const hasEarlyMeal = allMeals.some(m => {
+            const mt = m.timestamp || new Date(m.createdAt).getTime();
+            return mt >= dayStart + 4 * 3600000 && mt <= dayStart + 9 * 3600000;
+          });
+          if (!hasEarlyMeal) morningDawnRises.push(last - first);
+        }
       }
+    });
+    if (morningDawnRises.length >= 1) {
+      discoveredRules.dawnPhenomenonEnabled = true;
+    }
 
-       let weekendSum = 0, weekendCount = 0, weekdaySum = 0, weekdayCount = 0;
-       let weekdayMorningValues: number[] = [];
-       allGlucose.forEach(g => {
-         const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
-         const val = g.value || g.bg;
-         if (d.getDay() === 0 || d.getDay() === 6) {
-           weekendSum += val;
-           weekendCount++;
-         } else {
-           weekdaySum += val;
-           weekdayCount++;
-           if (d.getHours() >= 6 && d.getHours() < 11) {
-             weekdayMorningValues.push(val);
-           }
-         }
-       });
-       if (weekendCount > 20 && weekdayCount > 50) {
-         const weekendAvg = weekendSum / weekendCount;
-         const weekdayAvg = weekdaySum / weekdayCount;
-         if (Math.abs(weekendAvg - weekdayAvg) > 18) {
-           discoveredRules.weekendInertiaEnabled = true;
-           if (weekendAvg > weekdayAvg) {
-             insights.push(`🏖️ Bezwładność Weekendowa: Twoja średnia glikemia w weekendy (${Math.round(weekendAvg)} mg/dL) jest wyższa niż w dni robocze (${Math.round(weekdayAvg)} mg/dL). Wskazuje to na opóźnione wchłanianie poranne lub inny rytm snu.`);
-           } else {
-             insights.push(`🏖️ Bezwładność Weekendowa: W weekendy wykazujesz o 15-25% większą wrażliwość na insulinę (${Math.round(weekendAvg)} mg/dL vs ${Math.round(weekdayAvg)} mg/dL w tygodniu).`);
-           }
-         }
-       }
+    // 2. Efekt Somogyi (Odbicie po hipoglikemii)
+    for (let i = 0; i < allGlucose.length - 1; i++) {
+      const g = allGlucose[i];
+      const val = g.value || g.bg;
+      if (val < 70) {
+        const t = g.timestamp || new Date(g.createdAt).getTime();
+        const postHypo = allGlucose.filter(post => {
+          const pt = post.timestamp || new Date(post.createdAt).getTime();
+          return pt > t && pt <= t + 2.5 * 3600000;
+        });
+        if (postHypo.some(p => (p.value || p.bg) >= 170)) {
+          discoveredRules.somogyiEnabled = true;
+          break;
+        }
+      }
+    }
 
-       const hasExercise = logs.some(l => {
-         const desc = (l.description || l.note || l.name || "").toLowerCase();
-         return l.activity || ["trening", "spacer", "sport", "bieg", "rower", "siłownia", "basen"].some(kw => desc.includes(kw));
-       });
-       if (hasExercise) {
-         discoveredRules.delayedExerciseEnabled = true;
-         insights.push(`🏃 Opóźniony Spadek Powysiłkowy: Wykryto odnotowaną aktywność fizyczną. Pamiętaj, że zwiększona wrażliwość po treningu utrzymuje się przez 6 do 12 godzin – zwróć uwagę na bazę nocną.`);
-       }
+    // 3. Efekt Pizzy / FPU (Tłuszcze & Białka)
+    const hasFatProteinMeal = allMeals.some(m => {
+      const desc = (m.description || m.note || m.name || m.linkedMeal?.name || "").toLowerCase();
+      const f = m.fat || m.linkedMeal?.fat || 0;
+      const p = m.protein || m.linkedMeal?.protein || 0;
+      return f > 10 || p > 15 || ["pizza", "kebab", "burger", "ser", "frytki", "orzechy", "mięso", "mieso", "makaron"].some(kw => desc.includes(kw));
+    });
+    if (hasFatProteinMeal || currentFob > 5 || currentPob > 8) {
+      discoveredRules.pizzaEffectMultiplier = 1.2;
+    }
 
-       if (weekdayMorningValues.length > 25) {
-         const mean = weekdayMorningValues.reduce((a,b) => a+b, 0) / weekdayMorningValues.length;
-         const variance = weekdayMorningValues.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / weekdayMorningValues.length;
-         const stdDev = Math.sqrt(variance);
-         if (stdDev / mean > 0.32) {
-           discoveredRules.stressSensitivityEnabled = true;
-           insights.push(`⚡ Wrażliwość Cykliczna (Stres/Rytm): Wykryto znaczne wahania porannej glikemii w dni robocze (zmienność ${Math.round((stdDev/mean)*100)}%). Może to wynikać ze zmiennego poziomu porannego kortyzolu i stresu.`);
-         }
-       }
+    // 4. Opóźniony Spadek Powysiłkowy
+    const hasExercise = logs.some(l => {
+      const desc = (l.description || l.note || l.name || "").toLowerCase();
+      return l.activity || ["trening", "spacer", "sport", "bieg", "rower", "siłownia", "basen", "marsz"].some(kw => desc.includes(kw));
+    });
+    if (hasExercise) {
+      discoveredRules.delayedExerciseEnabled = true;
+      insights.push(`🏃 Opóźniony Spadek Powysiłkowy: Wykryto odnotowaną aktywność fizyczną. Pamiętaj, że zwiększona wrażliwość po treningu utrzymuje się przez 6 do 12 godzin – zwróć uwagę na bazę nocną.`);
+    }
+
+    // 5. Bezwładność Weekendowa i Zmienność Dniowa
+    let weekendSum = 0, weekendCount = 0, weekdaySum = 0, weekdayCount = 0;
+    let weekdayMorningValues: number[] = [];
+    allGlucose.forEach(g => {
+      const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
+      const val = g.value || g.bg;
+      if (d.getDay() === 0 || d.getDay() === 6) {
+        weekendSum += val;
+        weekendCount++;
+      } else {
+        weekdaySum += val;
+        weekdayCount++;
+        if (d.getHours() >= 6 && d.getHours() < 11) {
+          weekdayMorningValues.push(val);
+        }
+      }
+    });
+    if (weekendCount >= 5 && weekdayCount >= 10) {
+      const weekendAvg = weekendSum / weekendCount;
+      const weekdayAvg = weekdaySum / weekdayCount;
+      if (Math.abs(weekendAvg - weekdayAvg) > 10) {
+        discoveredRules.weekendInertiaEnabled = true;
+        if (weekendAvg > weekdayAvg) {
+          insights.push(`🏖️ Bezwładność Weekendowa: Twoja średnia glikemia w weekendy (${Math.round(weekendAvg)} mg/dL) jest wyższa niż w dni robocze (${Math.round(weekdayAvg)} mg/dL). Wskazuje to na opóźnione wchłanianie poranne lub inny rytm snu.`);
+        } else {
+          insights.push(`🏖️ Bezwładność Weekendowa: W weekendy wykazujesz o 15-25% większą wrażliwość na insulinę (${Math.round(weekendAvg)} mg/dL vs ${Math.round(weekdayAvg)} mg/dL w tygodniu).`);
+        }
+      }
+    }
+
+    if (weekdayMorningValues.length >= 10) {
+      const mean = weekdayMorningValues.reduce((a,b) => a+b, 0) / weekdayMorningValues.length;
+      const variance = weekdayMorningValues.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / weekdayMorningValues.length;
+      const stdDev = Math.sqrt(variance);
+      if (stdDev / mean > 0.28) {
+        discoveredRules.stressSensitivityEnabled = true;
+        insights.push(`⚡ Wrażliwość Cykliczna (Stres/Rytm): Wykryto znaczne wahania porannej glikemii w dni robocze (zmienność ${Math.round((stdDev/mean)*100)}%). Może to wynikać ze zmiennego poziomu porannego kortyzolu i stresu.`);
+      }
     }
 
     if (glucoseLogsOrig.length < 5) {
@@ -1094,7 +1131,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const accuracyPhrases = [
         i18n.t('auto.oparlem_sie_o_moje_doswia', { defaultValue: "🧠 Oparłem się o moje doświadczenie z Twoich ostatnich dni. Mój margines błędu to około {{0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl))),
         i18n.t('auto.wciaz_zbieram_dane_moje_o', { defaultValue: "🧠 Wciąż zbieram dane. Moje odchylenie na tę chwilę to ok. {{0}} mg/dL. Im więcej danych, tym mniejszy błąd.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl))),
-        i18n.t('auto.przeanalizowalem_twoje_wy', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika LSTM. Błąd w przewidywaniach to {{0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl)))
+        (activeTopology === 'v4_tcn' || engineMode === 'v4_tcn')
+          ? i18n.t('auto.przeanalizowalem_twoje_wy_tcn', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika TCN Pro (GlikoSense 4.0). Błąd w przewidywaniach to {{0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl)))
+          : i18n.t('auto.przeanalizowalem_twoje_wy', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika LSTM (GlikoSense 3.0). Błąd w przewidywaniach to {{0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl)))
     ];
     insights.push(accuracyPhrases[Math.floor(Math.random() * accuracyPhrases.length)]);
 

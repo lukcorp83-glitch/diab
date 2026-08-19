@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Settings2, Activity, Globe, Signal, Apple, Baby, Utensils, CloudRain, Moon, Sun, RefreshCw, Lock as LucideLock, Sparkles, Network, ChevronRight, Info, Cloud, ShieldCheck, LogOut, Play, History, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Palette, Layers, Monitor, RotateCcw, Smartphone, Zap, FileJson, Share2, Search, Database } from 'lucide-react';
+import { Settings2, Activity, Globe, Signal, Apple, Baby, Utensils, CloudRain, Moon, Sun, RefreshCw, Lock as LucideLock, Sparkles, Network, ChevronRight, Info, Cloud, ShieldCheck, LogOut, Play, History, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Palette, Layers, Monitor, RotateCcw, Smartphone, Zap, FileJson, Share2, Search, Database, FlaskConical } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { updateDoc, doc, setDoc, addDoc, collection, serverTimestamp, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -930,6 +930,93 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  )}
  />
  </button>
+ </div>
+ </div>
+
+ {/* Program Testów Beta OTA */}
+ <div
+ className={cn(
+ "p-6 rounded-[2.5rem] border space-y-4 mt-4 transition-all relative overflow-hidden",
+ settings.betaProgram
+ ? "bg-gradient-to-br from-pink-500/10 via-rose-500/5 to-amber-500/10 border-pink-500/40 dark:border-pink-500/30 shadow-lg shadow-pink-500/5"
+ : settings.glassmorphismEnabled
+ ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+ : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
+ )}
+ >
+ <div className="flex items-start justify-between gap-4">
+ <div className="flex items-start gap-3.5">
+ <div className={cn(
+ "p-3 rounded-2xl shrink-0 mt-0.5 transition-colors",
+ settings.betaProgram ? "bg-pink-500 text-white shadow-md shadow-pink-500/30" : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300"
+ )}>
+ <FlaskConical size={22} />
+ </div>
+ <div className="flex flex-col gap-1 text-left">
+ <div className="flex items-center gap-2 flex-wrap">
+ <h3 className="text-sm font-black dark:text-white leading-tight">
+ {t('auto.program_testow_beta', { defaultValue: 'Program Testów Beta' })}
+ </h3>
+ <span className={cn(
+ "px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full border",
+ settings.betaProgram 
+ ? "bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-500/30 animate-pulse"
+ : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600"
+ )}>
+ {settings.betaProgram ? t('auto.kanal_beta_aktywny', { defaultValue: 'Kanał Beta Aktywny' }) : t('auto.wersja_stabilna', { defaultValue: 'Kanał Stabilny' })}
+ </span>
+ </div>
+ <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed mt-0.5">
+ {t('auto.opis_programu_beta', { defaultValue: 'Otrzymuj najnowsze eksperymentalne funkcje i poprawki OTA szybciej niż inni bezpośrednio z gałęzi testowej.' })}
+ </p>
+ </div>
+ </div>
+
+ <button
+ onClick={async () => {
+ const isBeta = !settings.betaProgram;
+ setSettings(prev => ({ ...prev, betaProgram: isBeta }));
+ localStorage.setItem("betaProgramEnabled", String(isBeta));
+ if (user) {
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { betaProgram: isBeta }, { merge: true });
+ queryClient.invalidateQueries({ queryKey: ["userSettings"] });
+ }
+ if (isBeta) {
+ toast.success("Włączono kanał Beta! Zrestartuj aplikację, aby pobrać wersję testową.");
+ } else {
+ toast.success("Przywrócono kanał Stabilny.");
+ }
+ }}
+ className={cn(
+ "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 mt-1",
+ settings.betaProgram ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-700"
+ )}
+ >
+ <div
+ className={cn(
+ "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+ settings.betaProgram ? "translate-x-6" : "translate-x-0"
+ )}
+ />
+ </button>
+ </div>
+
+ {/* Ostrzeżenie o niestabilności */}
+ <div className={cn(
+ "p-3.5 rounded-2xl border flex items-start gap-2.5 text-[11px] leading-relaxed transition-all",
+ settings.betaProgram
+ ? "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-300"
+ : "bg-slate-100/70 dark:bg-slate-800/40 border-slate-200/50 dark:border-slate-700/50 text-slate-500 dark:text-slate-400"
+ )}>
+ <AlertTriangle size={16} className={cn("shrink-0 mt-0.5", settings.betaProgram ? "text-amber-500" : "text-slate-400")} />
+ <div>
+ <strong className="font-black uppercase tracking-wider block text-[10px] mb-0.5">
+ {t('auto.ostrzezenie_o_niestabilnosci', { defaultValue: 'Uwaga dotycząca stabilności' })}
+ </strong>
+ <span>
+ {t('auto.ostrzezenie_tekst_beta', { defaultValue: 'Wersje testowe (Beta) są stale rozwijane i mogą zawierać błędy, błędy wizualne lub powodować niestabilne działanie aplikacji. Włączasz na własną odpowiedzialność.' })}
+ </span>
+ </div>
  </div>
  </div>
 

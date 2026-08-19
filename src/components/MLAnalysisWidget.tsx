@@ -2,7 +2,7 @@ import { PredictionAccuracyTracker, AccuracyStats } from '../lib/predictionAccur
 ﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot, Settings, Wind } from 'lucide-react';
+import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot, Settings, Wind, ChevronDown, ChevronUp, Dna, Fingerprint } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
@@ -77,8 +77,92 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const [hasBackupConsent, setHasBackupConsent] = useState(() => {
  return localStorage.getItem('glikosense_backup_consent') === 'true';
  });
- const [showBackupPanel, setShowBackupPanel] = useState(false);
- const [isBackupActionRunning, setIsBackupActionRunning] = useState(false);
+  const [showBackupPanel, setShowBackupPanel] = useState(false);
+  const [isBackupActionRunning, setIsBackupActionRunning] = useState(false);
+  const [isInsightsExpanded, setIsInsightsExpanded] = useState(false);
+  const [isPatternsExpanded, setIsPatternsExpanded] = useState(false);
+
+  const activePatterns = useMemo(() => {
+    let localRules: any = {};
+    try {
+      localRules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+    } catch {}
+    const rules = { ...localRules, ...(mlResult?.discoveredRules || {}) };
+    const patterns: { id: string; title: string; desc: string; icon: string; tag: string }[] = [];
+
+    if (rules.dawnPhenomenonEnabled) {
+      patterns.push({
+        id: 'dawn',
+        title: t('auto.wzorzec_brzask_tytul', { defaultValue: 'Zjawisko Brzasku' }),
+        desc: t('auto.wzorzec_brzask_opis', { defaultValue: 'Wykryto poranny wyrzut hormonów budzących i podwyższoną glikemię rano bez posiłku.' }),
+        icon: '🌅',
+        tag: 'Hormonalny'
+      });
+    }
+
+    if (rules.somogyiEnabled) {
+      patterns.push({
+        id: 'somogyi',
+        title: t('auto.wzorzec_somogyi_tytul', { defaultValue: 'Efekt Somogyi (Odbicie)' }),
+        desc: t('auto.wzorzec_somogyi_opis', { defaultValue: 'Wykryto obronny wyrzut zapasów glukozy po głębokim nocnym lub popołudniowym spadku.' }),
+        icon: '🔄',
+        tag: 'Obronny'
+      });
+    }
+
+    if (rules.pizzaEffectMultiplier && rules.pizzaEffectMultiplier > 1.0) {
+      patterns.push({
+        id: 'pizza',
+        title: t('auto.wzorzec_pizza_tytul', { defaultValue: 'Efekt Pizzy (FPU / Tłuszcze-Białka)' }),
+        desc: t('auto.wzorzec_pizza_opis', { defaultValue: 'Wykryto opóźniony szczyt glikemii po 3-5 godzinach od spożycia potraw tłustych i bogatobiałkowych.' }),
+        icon: '🍕',
+        tag: 'Trawienny'
+      });
+    }
+
+    if (rules.weekendInertiaEnabled) {
+      patterns.push({
+        id: 'weekend',
+        title: t('auto.wzorzec_weekend_tytul', { defaultValue: 'Bezwładność Weekendowa' }),
+        desc: t('auto.wzorzec_weekend_opis', { defaultValue: 'Wykryto istotną zmianę średniej glikemii i wrażliwości na insulinę w dni wolne od pracy.' }),
+        icon: '🏖️',
+        tag: 'Rytm dobowy'
+      });
+    }
+
+    if (rules.delayedExerciseEnabled) {
+      patterns.push({
+        id: 'exercise',
+        title: t('auto.wzorzec_sport_tytul', { defaultValue: 'Opóźniony Spadek Powysiłkowy' }),
+        desc: t('auto.wzorzec_sport_opis', { defaultValue: 'Wykryto wydłużone działanie insuliny (do 12h po treningu). Zwiększona wrażliwość w nocy.' }),
+        icon: '🏃',
+        tag: 'Wysiłkowy'
+      });
+    }
+
+    if (rules.stressSensitivityEnabled) {
+      patterns.push({
+        id: 'stress',
+        title: t('auto.wzorzec_stres_tytul', { defaultValue: 'Wrażliwość na Stres / Kortyzol' }),
+        desc: t('auto.wzorzec_stres_opis', { defaultValue: 'Wykryto regularne wahania porannej glikemii w dni robocze związane z rytmem pracy.' }),
+        icon: '⚡',
+        tag: 'Stres'
+      });
+    }
+
+    if (rules.insulinResistanceMultiplier && (rules.insulinResistanceMultiplier > 1.05 || rules.insulinResistanceMultiplier < 0.95)) {
+      const isResistant = rules.insulinResistanceMultiplier > 1.05;
+      patterns.push({
+        id: 'resistance',
+        title: isResistant ? t('auto.wzorzec_opornosc_tytul', { defaultValue: 'Lekka Oporność na Insulinę' }) : t('auto.wzorzec_wrazliwosc_tytul', { defaultValue: 'Zwiększona Wrażliwość na Dawkę' }),
+        desc: t('auto.wzorzec_mnoznik_opis', { mult: Math.round(rules.insulinResistanceMultiplier * 100), defaultValue: `Wyuczony mnożnik wrażliwości: ${Math.round(rules.insulinResistanceMultiplier * 100)}% normy.` }),
+        icon: isResistant ? '💪' : '📉',
+        tag: 'Metaboliczny'
+      });
+    }
+
+    return patterns;
+  }, [mlResult, t]);
 
  function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
  const errInfo = {
@@ -724,6 +808,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                       setEngineMode('v3_lstm');
                       toast.success(t('auto.przelaczono_na_silnik_lstm', { defaultValue: "Przełączono na GlikoSense 3.0 LSTM Klasyczny" }));
                       if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                      setTimeout(() => runML(true), 50);
                     }}
                     className={cn(
                       "flex-1 flex items-center justify-center py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300",
@@ -732,7 +817,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                         : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                     )}
                   >
-                    v3.0 Klasyczny
+                    v3.0 Klasyczny (LSTM)
                   </button>
                   
                   <button
@@ -742,6 +827,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                       setEngineMode('v4_tcn');
                       toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
                       if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                      setTimeout(() => runML(true), 50);
                     }}
                     className={cn(
                       "flex-1 flex items-center justify-center py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300 gap-1.5",
@@ -756,7 +842,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                         : "text-slate-500 dark:text-slate-400 hover:text-indigo-500"
                     )}
                   >
-                    🚀 v4.0 Pro INT8
+                    🚀 v4.0 Pro (TCN)
                   </button>
                 </div>
                 
@@ -1345,22 +1431,121 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  </div>
 
+            {/* Sekcja Odkryte Wzorce i Reguły Metaboliczne */}
+            <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full transition-all">
+              <button
+                type="button"
+                onClick={() => setIsPatternsExpanded(prev => !prev)}
+                className="w-full flex items-center justify-between text-left group focus:outline-none"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-amber-500/10 dark:bg-amber-500/20 text-amber-500 rounded-xl">
+                    <Dna size={16} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                      {t('auto.odkryte_wzorce_glikosense', { defaultValue: 'Odkryte Wzorce i Reguły' })}
+                    </span>
+                    <span className={cn(
+                      "px-2 py-0.5 text-[9px] font-black uppercase rounded-full border",
+                      activePatterns.length > 0
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                        : "bg-slate-200 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700"
+                    )}>
+                      {activePatterns.length > 0 ? activePatterns.length : t('auto.monitorowanie', { defaultValue: 'Aktywne uczenie' })}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-xl group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50 transition-colors">
+                  <span>{isPatternsExpanded ? (t('auto.zwin', { defaultValue: 'Zwiń' })) : (t('auto.pokaz_wzorce', { defaultValue: 'Pokaż wzorce' }))}</span>
+                  {isPatternsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {isPatternsExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
+                      {activePatterns.length > 0 ? (
+                        activePatterns.map((pat) => (
+                          <div key={pat.id} className="flex items-start gap-3 bg-white dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <span className="text-xl shrink-0 mt-0.5">{pat.icon}</span>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <h4 className="text-xs font-black dark:text-white leading-tight">{pat.title}</h4>
+                                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                  {pat.tag}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug font-medium">{pat.desc}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3.5 bg-white dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                            {t('auto.brak_odkrytych_wzorcow_info', { defaultValue: 'Silnik GlikoSense stale analizuje Twoje reakcje na posiłki, aktywność i pory dnia. Nowo wykryte reguły (np. Zjawisko Brzasku, Efekt Pizzy, Bezwładność Weekendowa) pojawią się tutaj automatycznie.' })}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
  {mlResult.insights && mlResult.insights.length > 0 && (
- <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full">
- <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-800">
- <Sparkles size={16} className="text-indigo-500" />
- <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full transition-all">
+ <button
+ type="button"
+ onClick={() => setIsInsightsExpanded(prev => !prev)}
+ className="w-full flex items-center justify-between text-left group focus:outline-none"
+ >
+ <div className="flex items-center gap-2.5">
+ <div className="p-1.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 rounded-xl">
+ <Sparkles size={16} />
+ </div>
+ <div className="flex items-center gap-2">
+ <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
  {t('auto.wnioski_glikosense', { defaultValue: 'Wnioski GlikoSense' })}
  </span>
+ <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-500/20">
+ {mlResult.insights.length}
+ </span>
  </div>
- <div className="space-y-2">
+ </div>
+ <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-xl group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
+ <span>{isInsightsExpanded ? (t('auto.zwin', { defaultValue: 'Zwiń' })) : (t('auto.pokaz_wnioski', { defaultValue: 'Pokaż wnioski' }))}</span>
+ {isInsightsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+ </div>
+ </button>
+
+ <AnimatePresence>
+ {isInsightsExpanded && (
+ <motion.div
+ initial={{ opacity: 0, height: 0 }}
+ animate={{ opacity: 1, height: 'auto' }}
+ exit={{ opacity: 0, height: 0 }}
+ transition={{ duration: 0.25, ease: 'easeInOut' }}
+ className="overflow-hidden"
+ >
+ <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
  {mlResult.insights.map((insight, idx) => (
- <div key={idx} className="flex items-start gap-2.5 bg-white dark:bg-slate-950/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+ <div key={idx} className="flex items-start gap-2.5 bg-white dark:bg-slate-950/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
  <div className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-snug">{insight}</p>
  </div>
  ))}
  </div>
+ </motion.div>
+ )}
+ </AnimatePresence>
  </div>
  )}
   </motion.div>

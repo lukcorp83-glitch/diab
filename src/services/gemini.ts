@@ -496,6 +496,78 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
     }
   },
 
+  async analyzeRestaurantMenu(imageData: string, settings?: any) {
+    const activeDietName = settings?.activeDiet || "";
+    const dietInfo = activeDietName
+      ? `UŻYTKOWNIK PRZESTRZEGA DIETY: ${activeDietName}. Dla każdego dania oceń czy pasuje do tej diety ("dietMatch": true/false), podaj uzasadnienie ("dietNote") oraz praktyczną wskazówkę jak zmodyfikować zamówienie u kelnera ("dietOrderTip"), np. "poproś o sos w osobnym naczyniu", "zamień frytki na pieczone warzywa", "zamów burgera w liściach sałaty bez bułki".`
+      : `Użytkownik nie wybrał specjalnej diety wykluczeniowej.`;
+
+    const currentLang = i18n.language || "pl";
+    const langInstruction = currentLang === "en" ? "Respond entirely in ENGLISH." : "Odpowiadaj WYŁĄCZNIE w języku POLSKIM.";
+
+    const prompt = `Jesteś ekspertem diabetologii, dietetyki i doradcą pacjenta z cukrzycą w restauracji.
+Przeanalizuj to zdjęcie karty dań / menu restauracyjnego.
+${langInstruction}
+${dietInfo}
+
+Zadanie:
+1. Odczytaj wszystkie widoczne na zdjęciu dania i pozycje z menu.
+2. Dla każdego dania oszacuj realistyczne makroskładniki dla standardowej porcji restauracyjnej:
+   - carbs: węglowodany w gramach (WW)
+   - protein: białko w gramach
+   - fat: tłuszcz w gramach
+   - kcal: szacowane kalorie
+   - ig: indeks glikemiczny (1-100)
+   - wbt: wymienniki białkowo-tłuszczowe (wyliczone jako (białko*4 + tłuszcz*9)/100)
+3. Określ profil wchłaniania ("absorptionProfile"):
+   - "fast": szybki skok glikemii w 40-60 minut (np. makarony z sosem pomidorowym, naleśniki, biały ryż, desery).
+   - "delayed": opóźniony wyrzut cukru po 2.5-4h z powodu dużej ilości tłuszczu i białka (efekt pizzy, burgera, żeberek, sera).
+   - "stable": stabilne, powolne wchłanianie (dania z dużą ilością warzyw, błonnika, ryb/drobiu z oliwą).
+4. Podaj konkretną wskazówkę podania insuliny ("bolusAdvice"), np. "Podaj bolus standardowy 10-15 min przed posiłkiem", "Zalecany bolus dwufazowy / przedłużony (np. 50% od razu, 50% na 3-4 godziny)", "Znikoma ilość węglowodanów - ostrożnie z dawką".
+5. Określ ocenę bezpieczeństwa ("safetyRating"): "safe" (bezpieczne), "medium" (umiarkowane), "challenging" (wymagające uwagi / bolusa łączonego).
+
+Zwróć odpowiedź WYŁĄCZNIE jako poprawny format JSON (bez markdownu):
+{
+  "restaurantType": "np. Kuchnia Włoska / Burgery / Azjatycka / Tradycyjna",
+  "menuItems": [
+    {
+      "name": "Pełna nazwa dania",
+      "category": "np. Dania główne / Przystawki / Zupy",
+      "description": "Krótki opis składników dania",
+      "estimatedWeight": 350,
+      "carbs": 48,
+      "protein": 24,
+      "fat": 16,
+      "kcal": 430,
+      "ig": 55,
+      "wbt": 2.4,
+      "absorptionProfile": "fast",
+      "absorptionText": "Krótki opis dynamiki wchłaniania",
+      "bolusAdvice": "Konkretna wskazówka bolusowa",
+      "safetyRating": "safe",
+      "dietMatch": true,
+      "dietNote": "Komentarz pod kątem diety użytkownika",
+      "dietOrderTip": "Jak zamówić u kelnera, aby było najzdrowiej"
+    }
+  ]
+}`;
+
+    try {
+      const text = await this.generateContent(prompt, imageData);
+      console.log("Raw AI vision response for restaurant menu:", text);
+      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      let cleanJson = jsonMatch ? jsonMatch[0] : text;
+      cleanJson = cleanJson
+        .replace(/^```json/, "")
+        .replace(/```$/, "")
+        .trim();
+      return JSON.parse(cleanJson);
+    } catch (error) {
+      console.error("Gemini Vision Error in analyzeRestaurantMenu:", error);
+      throw error;
+    }
+  },
+
   async analyzeNutritionLabel(imageData: string) {
     const prompt = i18n.t('auto.przeanalizuj_etykiete_odzywcza', { defaultValue: "Przeanalizuj to zdjęcie tabeli wartości odżywczych (etykiety) z opakowania produktu. Znajdź wartości dla 100g produktu (lub 100ml). Zwróć wynik absolutnie jako czysty JSON bez formatowania markdown:\n    {\n      \"name\": \"Opcjonalna nazwa produktu jeśli widoczna (np. na froncie opakowania)\",\n      \"carbs\": 0,\n      \"protein\": 0,\n      \"fat\": 0,\n      \"kcal\": 0,\n      \"gi\": 50\n    }\n    Wartość węglowodanów, białka, tłuszczu podaj w gramach. Jeśli czegoś brakuje, wstaw 0." });
   

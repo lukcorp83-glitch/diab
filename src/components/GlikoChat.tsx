@@ -463,32 +463,35 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{message.text}</p>
  {message.appAction && message.appAction.action && (
  <button
- onClick={() => window.dispatchEvent(new CustomEvent('ai_app_action', { detail: message.appAction }))}
+ onClick={() => {
+ const target = message.appAction.target || message.appAction.value || message.appAction.tab || (message.appAction.action !== 'navigate' ? message.appAction.action : 'meal');
+ if (message.appAction.action === 'navigate' || target) {
+ window.dispatchEvent(new CustomEvent('ai_app_action', { detail: { action: 'navigate', target } }));
+ window.dispatchEvent(new CustomEvent('changeTab', { detail: target }));
+ } else {
+ window.dispatchEvent(new CustomEvent('ai_app_action', { detail: message.appAction }));
+ }
+ }}
  className={cn(
  "mt-3 flex items-center justify-between w-full px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
  "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md active:scale-95"
  )}
  >
  <span>
- {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })} {
- message.appAction.action === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
- message.appAction.action === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
- message.appAction.action === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
- message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
- message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
- message.appAction.action === 'navigate' ? (
- (message.appAction.target || message.appAction.value) === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
- (message.appAction.target || message.appAction.value) === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
- (message.appAction.target || message.appAction.value) === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
- (message.appAction.target || message.appAction.value) === 'profile' ? t('nav.profile', { defaultValue: 'Profil' }) :
- (message.appAction.target || message.appAction.value) === 'history' ? t('nav.history', { defaultValue: 'Historia' }) :
- (message.appAction.target || message.appAction.value) === 'games' ? t('nav.games', { defaultValue: 'Gry' }) :
- (message.appAction.target || message.appAction.value) === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
- (message.appAction.target || message.appAction.value) === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
- (message.appAction.target || message.appAction.value)
- ) :
- message.appAction.action
- }
+ {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })}{' '}
+ {(() => {
+ const raw = String(message.appAction.target || message.appAction.value || message.appAction.tab || (message.appAction.action !== 'navigate' ? message.appAction.action : 'meal')).toLowerCase();
+ if (raw === 'meal' || raw === 'plate' || raw === 'talerz') return t('nav.plate', { defaultValue: 'Talerz' });
+ if (raw === 'dashboard' || raw === 'pulpit') return t('nav.dashboard', { defaultValue: 'Pulpit' });
+ if (raw === 'chart' || raw === 'wykres') return t('nav.chart', { defaultValue: 'Wykres' });
+ if (raw === 'database' || raw === 'baza') return t('nav.database', { defaultValue: 'Baza Produktów' });
+ if (raw === 'ai' || raw === 'glikosense') return t('nav.glikosense', { defaultValue: 'GlikoSense' });
+ if (raw === 'profile' || raw === 'profil') return t('nav.profile', { defaultValue: 'Profil' });
+ if (raw === 'history' || raw === 'historia') return t('nav.history', { defaultValue: 'Historia' });
+ if (raw === 'games' || raw === 'gry') return t('nav.games', { defaultValue: 'Gry' });
+ if (raw === 'navigate') return t('nav.plate', { defaultValue: 'Talerz' });
+ return raw;
+ })()}
  </span>
  <ArrowRight size={14} />
  </button>

@@ -3,6 +3,8 @@ import { useMealPlateLogic } from '../hooks/useMealPlateLogic';
 import { ProductSearch } from "./MealPlate/ProductSearch";
 import { MealComposer } from "./MealPlate/MealComposer";
 import { MealPlateModals } from "./MealPlate/MealPlateModals";
+import CameraModeModal from "./MealPlate/CameraModeModal";
+import RestaurantMenuModal, { MenuItemAnalysis, RestaurantMenuResult } from "./MealPlate/RestaurantMenuModal";
 
 
 import i18n from '../i18n';
@@ -191,6 +193,9 @@ export default function MealPlate({
  const [isScannerOpen, setIsScannerOpen] = useState(false);
  const [unrecognizedBarcode, setUnrecognizedBarcode] = useState<string | null>(null);
  const [isAnalyzingLabel, setIsAnalyzingLabel] = useState(false);
+  const [showCameraModeModal, setShowCameraModeModal] = useState(false);
+  const [restaurantMenuResult, setRestaurantMenuResult] = useState<RestaurantMenuResult | null>(null);
+  const [showRestaurantMenuModal, setShowRestaurantMenuModal] = useState(false);
  const labelFileInputRef = useRef<HTMLInputElement>(null);
  const scannerRef = useRef<any>(null);
 
@@ -945,25 +950,29 @@ export default function MealPlate({
  };
 
 
-  const startCameraAnalysis = async () => {
-  setIsAnalyzing(true);
-  setSearchError("");
-  try {
-  const image = await CapCamera.getPhoto({
-  quality: 80,
-  allowEditing: false,
-  resultType: CameraResultType.DataUrl,
-  source: CameraSource.Camera
-  });
+  const startCameraAnalysis = () => {
+    Haptics.light();
+    setShowCameraModeModal(true);
+  };
 
-  if (image.dataUrl) {
-  try {
- const result = await geminiService.analyzeMeal(
+  const startPlateCameraAnalysis = async () => {
+    setIsAnalyzing(true);
+    setSearchError("");
+    try {
+      const image = await CapCamera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera
+      });
+
+      if (image.dataUrl) {
+        try {
+          const result = await geminiService.analyzeMeal(
             image.dataUrl,
             settings,
           );
 
-          // Build HTML analysis for impact and balancing advice
           let htmlAnalysis = "";
           if (result.analysis) {
             htmlAnalysis += `<div>${result.analysis}</div>`;
@@ -1009,26 +1018,96 @@ export default function MealPlate({
             };
             setPlate((prev) => [...prev, { ...p, weight: estimatedWeight }]);
           }
+        } catch (err) {
+          console.error("Camera vision analysis:", err);
+          setSearchError(i18n.t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: "Błąd analizy zdjęcia posiłku." }));
+        } finally {
+          setIsAnalyzing(false);
+        }
+      }
+    } catch (e) {
+      setIsAnalyzing(false);
+      console.error("Camera cancelled or failed", e);
+    }
+  };
 
-          setTimeout(() => {
- const container = document.getElementById("meal-plate-container")?.parentElement;
- if (container) {
- container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
- }
- }, 50);
- } catch (err) {
- console.error("Camera vision analysis:", err);
- setSearchError(
- i18n.t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: i18n.t('auto.blad_analizy_zdjecia_spro', { defaultValue: "Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie." }) }),
- );
- } finally {
- setIsAnalyzing(false);
- }
- }
- } catch (e) {
- console.error("Camera cancelled or failed", e);
- }
- };
+  const startRestaurantMenuCameraAnalysis = async () => {
+    setIsAnalyzing(true);
+    setSearchError("");
+    const toastId = toast.loading(i18n.t('menu_advisor.analyzing_menu', { defaultValue: 'AI analizuje kartę dań i profil diety...' }));
+    try {
+      const image = await CapCamera.getPhoto({
+        quality: 85,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera
+      });
+
+      if (image.dataUrl) {
+        try {
+          const result = await geminiService.analyzeRestaurantMenu(image.dataUrl, settings);
+          toast.dismiss(toastId);
+
+          if (result && Array.isArray(result.menuItems) && result.menuItems.length > 0) {
+            setRestaurantMenuResult(result);
+            setShowRestaurantMenuModal(true);
+            toast.success(i18n.t('menu_advisor.detected_success', { 
+              count: result.menuItems.length,
+              defaultValue: `Rozpoznano ${result.menuItems.length} dań z karty menu!`
+            }));
+          } else {
+            toast.error(i18n.t('menu_advisor.no_dishes_found', { defaultValue: 'Nie udało się rozpoznać dań z tego zdjęcia menu. Spróbuj zrobić wyraźniejsze ujęcie.' }));
+          }
+        } catch (err) {
+          toast.dismiss(toastId);
+          console.error("Menu vision analysis error:", err);
+          toast.error(i18n.t('menu_advisor.err_analysis', { defaultValue: 'Błąd analizy karty menu. Spróbuj ponownie.' }));
+        } finally {
+          setIsAnalyzing(false);
+        }
+      } else {
+        toast.dismiss(toastId);
+        setIsAnalyzing(false);
+      }
+    } catch (e) {
+      toast.dismiss(toastId);
+      setIsAnalyzing(false);
+      console.error("Menu camera cancelled or failed", e);
+    }
+  };
+
+  const handleSelectCameraMode = (selectedMode: 'plate' | 'menu' | 'label') => {
+    setShowCameraModeModal(false);
+    if (selectedMode === 'plate') {
+      startPlateCameraAnalysis();
+    } else if (selectedMode === 'menu') {
+      startRestaurantMenuCameraAnalysis();
+    } else if (selectedMode === 'label') {
+      labelFileInputRef.current?.click();
+    }
+  };
+
+  const handleSelectRestaurantDish = (dish: MenuItemAnalysis) => {
+    const weight = dish.estimatedWeight || 350;
+    const carbsPer100 = Number((((dish.carbs || 0) / weight) * 100).toFixed(1));
+    const protPer100 = Number((((dish.protein || 0) / weight) * 100).toFixed(1));
+    const fatPer100 = Number((((dish.fat || 0) / weight) * 100).toFixed(1));
+    
+    const newItem: PlateItem = {
+      id: `menu_${Date.now()}`,
+      name: dish.name,
+      carbs: carbsPer100,
+      protein: protPer100,
+      fat: fatPer100,
+      gi: dish.ig || 50,
+      weight: weight,
+      category: dish.category || 'Menu restauracji',
+    };
+
+    setPlate(prev => [...prev, newItem]);
+    setShowRestaurantMenuModal(false);
+    toast.success(`Dodano: ${dish.name} (+${dish.carbs}g W)`);
+  };
 
  const startScanner = () => {
  setIsScannerOpen(true);

@@ -124,6 +124,14 @@ export const Haptics = {
       await CapHaptics.selectionEnd();
     }
   },
+  notification: async (type: NotificationType = NotificationType.Success) => {
+    if (!isEnabled()) return;
+    if (Capacitor.isNativePlatform()) {
+      await CapHaptics.notification({ type });
+    } else {
+      safeVibrate([20, 40, 20]);
+    }
+  },
   success: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {

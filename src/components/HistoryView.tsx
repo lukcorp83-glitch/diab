@@ -17,7 +17,10 @@ import {
 import { cn } from "../lib/utils";
 import SwipeableItem from "./SwipeableItem";
 import { db } from "../lib/firebase";
-import { doc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { toast } from "react-hot-toast";
+import { Haptics } from "../lib/haptics";
+import { useAuthStore } from "../stores/useAuthStore";
 import DoseEditModal from "./DoseEditModal";
 import { nightscoutService } from "../services/nightscout";
 import { useTranslation } from "react-i18next";
@@ -233,63 +236,68 @@ export default function HistoryView({ user, onBack, settings }: HistoryProps) {
  )}
  </div>
  <div className="flex-1 min-w-0">
- <div className="flex items-center gap-2 justify-between">
- <p className="font-black text-sm dark:text-white truncate">
- {typeof log.value === "number"
- ? log.type === "glucose"
- ? Math.round(log.value)
- : log.type === "activity"
- ? log.value
- : log.type === "site_change" ||
- log.type === "sensor_change"
- ? ""
- : Number(log.value.toFixed(2))
- : log.type === "bolus" ||
- (log.type as any) === "insulin"
- ? Number(Number(log.value).toFixed(2))
- : log.value}
- {log.type === "site_change" ||
- log.type === "sensor_change"
- ? log.notes || "Wymiana"
- : log.type === "glucose"
- ? " mg/dL"
- : log.type === "meal"
- ? "g W"
- : log.type === "activity"
- ? " min"
- : " j."}
- {log.type === "meal" &&
- (log.polyols || log.protein || log.fat) && (
- <span className="text-[10px] font-bold text-slate-400 ml-2">
- {log.polyols
- ? `${log.polyols.toFixed(0)}P / `
- : ""}
- {log.protein?.toFixed(0)}{t('auto.b', { defaultValue: 'B /' })} {log.fat?.toFixed(0)}
- T
- </span>
- )}
- {(log.type === "bolus" ||
- (log.type as any) === "insulin") &&
- log.linkedMeal && (
- <span className="text-[10px] font-bold text-amber-500 ml-2">
- (+{(log.linkedMeal.carbs || 0).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W' })}
- {log.linkedMeal.polyols
- ? `, ${(log.linkedMeal.polyols || 0).toFixed(1)}P`
- : ""}
- )
- </span>
- )}
- </p>
- {(log.type === "carbs" ||
- log.type === "glucose" ||
- log.type === "bolus" ||
- (log.type as any) === "insulin") && (
- <Edit2
- size={14}
- className="text-slate-300 dark:text-slate-600 group-hover:text-amber-500 transition-colors shrink-0"
- />
- )}
- </div>
+  <div className="flex items-center gap-2 justify-between">
+    <div className="flex items-center gap-1.5 min-w-0 truncate">
+      <p className="font-black text-sm dark:text-white truncate">
+      {typeof log.value === "number"
+      ? log.type === "glucose"
+      ? Math.round(log.value)
+      : log.type === "activity"
+      ? log.value
+      : log.type === "site_change" ||
+      log.type === "sensor_change"
+      ? ""
+      : Number(log.value.toFixed(2))
+      : log.type === "bolus" ||
+      (log.type as any) === "insulin"
+      ? Number(Number(log.value).toFixed(2))
+      : log.value}
+      {log.type === "site_change" ||
+      log.type === "sensor_change"
+      ? log.notes || "Wymiana"
+      : log.type === "glucose"
+      ? " mg/dL"
+      : log.type === "meal"
+      ? "g W"
+      : log.type === "activity"
+      ? " min"
+      : " j."}
+      {log.type === "meal" &&
+      (log.polyols || log.protein || log.fat) && (
+      <span className="text-[10px] font-bold text-slate-400 ml-2">
+      {log.polyols
+      ? `${log.polyols.toFixed(0)}P / `
+      : ""}
+      {log.protein?.toFixed(0)}{t('auto.b', { defaultValue: 'B /' })} {log.fat?.toFixed(0)}
+      T
+      </span>
+      )}
+      {(log.type === "bolus" ||
+      (log.type as any) === "insulin") &&
+      log.linkedMeal && (
+      <span className="text-[10px] font-bold text-amber-500 ml-2">
+      (+{(log.linkedMeal.carbs || 0).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W' })}
+      {log.linkedMeal.polyols
+      ? `, ${(log.linkedMeal.polyols || 0).toFixed(1)}P`
+      : ""}
+      )
+      </span>
+      )}
+      </p>
+    </div>
+
+    <div className="flex items-center gap-2 shrink-0">
+      {(log.type === "carbs" ||
+      log.type === "glucose" ||
+      log.type === "bolus" ||
+      (log.type as any) === "insulin") && (
+      <Edit2
+      size={14}
+      className="text-slate-300 dark:text-slate-600 group-hover:text-amber-500 transition-colors shrink-0"
+      />
+      )}
+    </div>
+  </div>
  <div className="flex items-center gap-2 mt-0.5">
  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
  {!isNaN(new Date(log.timestamp).getTime()) ? (
@@ -362,7 +370,8 @@ export default function HistoryView({ user, onBack, settings }: HistoryProps) {
  return baseLabel;
  })()}
  </span>
- <div className="flex items-center gap-1 ml-auto">
+ <div className="flex items-center gap-1.5 ml-auto flex-wrap justify-end">
+
  {log.source?.startsWith("nightscout") ? (
  <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
  

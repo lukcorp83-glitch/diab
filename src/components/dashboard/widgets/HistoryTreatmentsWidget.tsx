@@ -3,7 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../../lib/utils';
 import { useTranslation } from 'react-i18next';
 // Import any needed icons from lucide-react here
-import { Activity, Target, Zap, Clock, Droplet, ArrowRight, ArrowDown, ArrowUp, ArrowDownRight, ArrowUpRight, CheckCircle2, AlertCircle, Syringe, Cpu } from 'lucide-react';
+import { Activity, Target, Zap, Clock, Droplet, ArrowRight, ArrowDown, ArrowUp, ArrowDownRight, ArrowUpRight, CheckCircle2, AlertCircle, Syringe, Cpu, Utensils } from 'lucide-react';
+import { db } from '../../../lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { getEffectiveUid } from '../../../lib/utils';
+import { toast } from 'react-hot-toast';
 import { Haptics } from '../../../lib/haptics';
 import i18n from '../../../i18n';
 import SwipeableItem from '../../SwipeableItem';

@@ -210,10 +210,13 @@ export const ProductSearch = ({
  <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white">{t('meal.barcode_scanner', { defaultValue: 'Kody' })}</span>
  </button>
 
- <button onClick={startCameraAnalysis} className="snap-start shrink-0 flex items-center gap-2 bg-white dark:bg-slate-800/80 px-4 py-2.5 rounded-2xl border-2 border-slate-100 dark:border-slate-700/50 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shadow-sm">
- {isAnalyzing ? <Loader2 size={18} className="animate-spin text-rose-500" /> : <Camera size={18} strokeWidth={2.5} className="text-accent-500" />}
- <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white">{t('meal.ai_camera', { defaultValue: 'Aparat AI' })}</span>
- </button>
+  <button onClick={startCameraAnalysis} className="snap-start shrink-0 flex items-center gap-2 bg-white dark:bg-slate-800/80 px-4 py-2.5 rounded-2xl border-2 border-slate-100 dark:border-slate-700/50 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shadow-sm">
+  {isAnalyzing ? <Loader2 size={18} className="animate-spin text-rose-500" /> : <Camera size={18} strokeWidth={2.5} className="text-accent-500" />}
+  <div className="flex flex-col text-left">
+    <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-white leading-tight">{t('meal.ai_camera', { defaultValue: 'Aparat AI' })}</span>
+    <span className="text-[7.5px] font-bold text-indigo-500 dark:text-indigo-400 leading-none mt-0.5">Talerz • Menu • Etykieta</span>
+  </div>
+  </button>
 
  <button onClick={startVoiceSearch} className="snap-start shrink-0 flex items-center gap-2 bg-white dark:bg-slate-800/80 px-4 py-2.5 rounded-2xl border-2 border-slate-100 dark:border-slate-700/50 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shadow-sm">
  <Mic size={18} strokeWidth={2.5} className={isListening ? "text-rose-500 animate-pulse" : "text-accent-500"} />

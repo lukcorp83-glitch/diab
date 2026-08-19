@@ -39,6 +39,7 @@ import { Toaster, toast, ToastBar } from "react-hot-toast";
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
+import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePetStatus, useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
@@ -50,7 +51,7 @@ import GlikoControlLogo from "./components/LogoAnimation";
 import { CURRENT_VERSION } from "./constants/versions";
 
 import { MigrationManager } from "./components/MigrationManager";
-import { downloadCloudPackage } from "./components/CloudPackageSync";
+import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPackageSync";
 import { GlucoseAlarmModal } from "./components/GlucoseAlarmModal";
 import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { AppLayout } from "./components/app/AppLayout";
@@ -198,14 +199,17 @@ export default function App() {
       queryFn: () => EMPTY_ARRAY 
     });
 
-    // Cichy zapis nowych danych z chmury do "twardego dysku" (Local-First)
+    // Cichy zapis nowych danych z chmury i Nightscout do lokalnej bazy SQLite (Local-First)
     useEffect(() => {
-      if (fbLogs.length === 0) return;
+      if (fbLogs.length === 0 && nsLogs.length === 0) return;
       const timeoutId = setTimeout(() => {
-        dbService.saveMultipleLogs(fbLogs).catch(e => console.warn("Background DB save failed", e));
+        const toSave = [...fbLogs, ...nsLogs];
+        if (toSave.length > 0) {
+          dbService.saveMultipleLogs(toSave).catch(e => console.warn("Background DB save failed", e));
+        }
       }, 5000);
       return () => clearTimeout(timeoutId);
-    }, [fbLogs]);
+    }, [fbLogs, nsLogs]);
 
     // Automatyczne przywracanie danych z chmury po aktualizacji (gdy baza lokalna jest pusta)
     useEffect(() => {
@@ -234,28 +238,38 @@ export default function App() {
       const timer = setTimeout(autoRestoreCloudData, 3000);
       return () => clearTimeout(timer);
     }, [user, sqliteLogs.length, logs.length]);
+
+    // Automatyczne codzienne tworzenie paczki zapasowej w chmurze (raz na 24h w tle)
+    useEffect(() => {
+      if (!user || !userSettings) return;
+      const autoUploadDailyPackage = async () => {
+        const lastSync = Number(localStorage.getItem('last_cloud_package_sync') || 0);
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+        if (Date.now() - lastSync > ONE_DAY_MS && logs.length > 50) {
+          console.log('[App] Automatyczne codzienne wysyłanie paczki synchronizacyjnej w tle...');
+          const ok = await uploadCloudPackage(user, userSettings);
+          if (ok) {
+            console.log('[App] Paczka dzienna pomyślnie zaktualizowana w chmurze!');
+          }
+        }
+      };
+
+      const timer = setTimeout(autoUploadDailyPackage, 15000);
+      return () => clearTimeout(timer);
+    }, [user, userSettings, logs.length]);
   
     useEffect(() => {
       const allMap = new Map();
-      const fbLogIds = new Set(fbLogs.map((l: any) => l.id));
-      const thirtyFourDaysAgo = Date.now() - 34 * 24 * 60 * 60 * 1000;
 
-      // Najpierw ładujemy "chłodną" historię ze SQLite, odsiewając te, które zostały usunięte w chmurze
+      // 1. Ładujemy pełną historię ze SQLite (nigdy jej nie kasujemy)
       sqliteLogs.forEach((l: any) => {
-        const logTime = l.timestamp || l.createdAt || 0;
-        // Jeśli log jest nowszy niż 34 dni, a fbLogs zostało już pobrane i NIE ma w nim tego loga, to znaczy że został usunięty na innym urządzeniu
-        if (isFbLogsFetched && logTime > thirtyFourDaysAgo && !fbLogIds.has(l.id)) {
-          // Triggerujemy ciche usunięcie z bazy lokalnej (cleanup) i nie dodajemy do pamięci
-          dbService.deleteLog(l.id).catch(() => {});
-          return;
-        }
         allMap.set(l.id, l);
       });
 
-      // Nadpisujemy nowszymi "gorącymi" logami z chmury Firebase
+      // 2. Nadpisujemy nowszymi danymi z chmury Firebase
       fbLogs.forEach((l: any) => allMap.set(l.id, l));
       
-      // Doklejamy ewentualne bezpośrednie uderzenia z Nightscout API
+      // 3. Doklejamy wpisy z Nightscout API
       nsLogs.forEach((nsLog: any) => {
         if (allMap.has(nsLog.id)) return;
 
@@ -269,7 +283,7 @@ export default function App() {
                 if (nsLog.nsId && !existingLog.nsId) existingLog.nsId = nsLog.nsId;
                 if (!existingLog.description && nsLog.description) existingLog.description = nsLog.description;
                 if (!existingLog.notes && nsLog.notes) existingLog.notes = nsLog.notes;
-                return; // Nie tworzymy zduplikowanego pustego wpisu
+                return;
               }
             }
           }
@@ -280,7 +294,7 @@ export default function App() {
       
       const combined = Array.from(allMap.values()).sort((a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
       setLogs(combined);
-    }, [sqliteLogs, fbLogs, nsLogs, setLogs, isFbLogsFetched]);
+    }, [sqliteLogs, fbLogs, nsLogs, setLogs]);
 
   // Automatyczna synchronizacja dat wymian osprzętu z najnowszymi wpisami z historii / Nightscout
   useEffect(() => {
@@ -304,6 +318,17 @@ export default function App() {
 
   // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
   useGlucoseAlerts(logs, userSettings);
+
+  // Automatyczne wykrywanie bolusa z pompy i posiłków z kompensacją opóźnienia
+  useEffect(() => {
+    if (!logs || logs.length === 0) return;
+    const latestGlucose = logs.find((l: any) => l.type === 'glucose' || l.type === 'sgv');
+    const glValue = latestGlucose?.value ? Math.round(latestGlucose.value) : null;
+    const glTrend = latestGlucose?.direction || null;
+
+    checkAndNotifyPumpBolus(logs, glValue, glTrend, userSettings);
+    checkAndNotifyNewMeal(logs, userSettings);
+  }, [logs, userSettings]);
 
   const lastGlucoseValue = useMemo(() => {
     const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
@@ -426,6 +451,44 @@ export default function App() {
   };
 
   useEffect(() => {
+    const handleAppAction = (e: any) => {
+      const detail = e.detail;
+      if (!detail) return;
+      const target = detail.target || detail.value || detail.tab || (detail.action !== 'navigate' ? detail.action : 'dashboard');
+      if (target) {
+        const cleanTarget = String(target).toLowerCase();
+        if (cleanTarget === 'meal' || cleanTarget === 'plate' || cleanTarget === 'talerz') setActiveTab('meal');
+        else if (cleanTarget === 'dashboard' || cleanTarget === 'pulpit') setActiveTab('dashboard');
+        else if (cleanTarget === 'chart' || cleanTarget === 'wykres') setActiveTab('chart');
+        else if (cleanTarget === 'database' || cleanTarget === 'baza') setActiveTab('database');
+        else if (cleanTarget === 'ai' || cleanTarget === 'glikosense') setActiveTab('ai');
+        else if (cleanTarget === 'profile' || cleanTarget === 'profil') setActiveTab('profile');
+        else if (cleanTarget === 'history' || cleanTarget === 'historia') setActiveTab('history');
+        else setActiveTab(cleanTarget);
+      }
+    };
+    const handleChangeTab = (e: any) => {
+      if (e.detail) {
+        const cleanTarget = String(e.detail).toLowerCase();
+        if (cleanTarget === 'meal' || cleanTarget === 'plate' || cleanTarget === 'talerz') setActiveTab('meal');
+        else if (cleanTarget === 'dashboard' || cleanTarget === 'pulpit') setActiveTab('dashboard');
+        else if (cleanTarget === 'chart' || cleanTarget === 'wykres') setActiveTab('chart');
+        else if (cleanTarget === 'database' || cleanTarget === 'baza') setActiveTab('database');
+        else if (cleanTarget === 'ai' || cleanTarget === 'glikosense') setActiveTab('ai');
+        else if (cleanTarget === 'profile' || cleanTarget === 'profil') setActiveTab('profile');
+        else if (cleanTarget === 'history' || cleanTarget === 'historia') setActiveTab('history');
+        else setActiveTab(cleanTarget);
+      }
+    };
+    window.addEventListener('ai_app_action', handleAppAction);
+    window.addEventListener('changeTab', handleChangeTab);
+    return () => {
+      window.removeEventListener('ai_app_action', handleAppAction);
+      window.removeEventListener('changeTab', handleChangeTab);
+    };
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2500);
     return () => clearTimeout(timer);
   }, []);
@@ -435,14 +498,60 @@ export default function App() {
     if (!Capacitor.isNativePlatform()) return;
 
     let listener: any;
-    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+    let lastBackPress = 0;
+
+    CapacitorApp.addListener('backButton', () => {
       const state = useAppStore.getState();
+
+      // 1. Emisja eventu do zamykania aktywnych modali / sheetów
+      const backEvent = new CustomEvent('android-back-press', { cancelable: true });
+      const defaultPrevented = !window.dispatchEvent(backEvent);
+      if (defaultPrevented) return;
+
+      // 2. Zamykanie aktywnych popupów
+      if (state.showTutorial) {
+        state.setShowTutorial(false);
+        return;
+      }
+      if (state.showChangelog) {
+        state.setShowChangelog(false);
+        return;
+      }
+      if (state.showPrivacyPopup) {
+        state.setShowPrivacyPopup(false);
+        return;
+      }
+      if (state.showStatusPopup) {
+        state.setShowStatusPopup(false);
+        return;
+      }
+      if (state.isSidebarOpen) {
+        state.setIsSidebarOpen(false);
+        return;
+      }
+
+      // 3. Wyjście z trybu skrótów
       if (state.isShortcutMode) {
         state.setIsShortcutMode(false);
-      } else if (state.activeTab !== 'dashboard') {
-        state.setTab('dashboard');
-      } else {
+        return;
+      }
+
+      // 4. Jeśli jesteśmy w innej zakładce niż pulpit – powrót do pulpitu
+      if (state.activeTab !== 'dashboard') {
+        state.setActiveTab('dashboard');
+        return;
+      }
+
+      // 5. Podwójne kliknięcie Wstecz do wyjścia z aplikacji
+      const now = Date.now();
+      if (now - lastBackPress < 2000) {
         CapacitorApp.exitApp();
+      } else {
+        lastBackPress = now;
+        toast(i18n.t('app.press_back_again_to_exit', { defaultValue: 'Naciśnij ponownie Wstecz, aby wyjść' }), {
+          duration: 2000,
+          id: 'exit-toast'
+        });
       }
     }).then(l => { listener = l; });
 
@@ -468,7 +577,7 @@ export default function App() {
     return () => window.removeEventListener('smart-equipment-trigger', handleSmartEquipment);
   }, []);
 
-  const handleConfirmSmartEquipment = async (replaceInfusionSet: boolean) => {
+  const handleConfirmSmartEquipment = async (replaceInfusionSet: boolean, selectedSite?: string) => {
     const type = smartEquipmentType;
     setSmartEquipmentType(null);
     if (!type) return;
@@ -513,6 +622,11 @@ export default function App() {
         updates.infusionSetChangeDate = now;
         localStorage.setItem('infusionSetChangeDate', String(now));
 
+        if (selectedSite) {
+          updates.infusionSite = selectedSite;
+          localStorage.setItem('infusionSite', selectedSite);
+        }
+
         const setIdx = updatedInv.findIndex(i => i.category === 'infusion_sets' && i.quantity > 0);
         if (setIdx !== -1) {
           updatedInv[setIdx] = { ...updatedInv[setIdx], quantity: Math.max(0, updatedInv[setIdx].quantity - 1) };
@@ -523,7 +637,8 @@ export default function App() {
              eventType: 'Site Change',
              created_at: new Date(now).toISOString(),
              enteredBy: 'GlikoControl',
-             notes: 'Wymiana wkłucia i zbiorniczka'
+             notes: `Wymiana wkłucia (${selectedSite || ''}) i zbiorniczka`,
+             site: selectedSite
            }, currentSettings.nsUrl, currentSettings.nsSecret).catch(console.warn);
         }
       } else {
@@ -544,14 +659,28 @@ export default function App() {
       await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
         
       try {
-        const logPayload = {
+        const logPayload: any = {
           type: type === 'sensor' ? 'sensor_change' : (replaceInfusionSet ? 'site_change' : 'insulin_change'),
           timestamp: now,
           createdAt: serverTimestamp(),
           source: 'manual',
-          notes: type === 'sensor' ? 'Wymiana sensora (Smart Equipment)' : (replaceInfusionSet ? 'Wymiana wkłucia i zbiorniczka (Smart Equipment)' : 'Wymiana zbiorniczka (Smart Equipment)')
+          site: replaceInfusionSet ? selectedSite : undefined,
+          notes: type === 'sensor' 
+            ? 'Wymiana sensora (Smart Equipment)' 
+            : (replaceInfusionSet 
+                ? (selectedSite ? `Wymiana wkłucia: ${selectedSite} (Smart Equipment)` : 'Wymiana wkłucia i zbiorniczka (Smart Equipment)') 
+                : 'Wymiana zbiorniczka (Smart Equipment)')
         };
-        await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), logPayload);
+        const docRef = await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), logPayload);
+
+        // Synchronizacja z lokalną bazą i UI w czasie rzeczywistym
+        window.dispatchEvent(new CustomEvent('localLogAdd', { 
+          detail: { 
+            id: docRef.id, 
+            ...logPayload, 
+            createdAt: new Date().toISOString() 
+          } 
+        }));
       } catch (e) {
         console.warn("Failed saving equipment change to logs:", e);
       }
@@ -559,7 +688,9 @@ export default function App() {
       toast.success(
         type === 'sensor' 
           ? "Wymieniono sensor. Odjęto 1 szt. z apteczki!" 
-          : (replaceInfusionSet ? "Wymieniono zbiorniczek i wkłucie. Odjęto z apteczki!" : "Wymieniono zbiorniczek. Odjęto z apteczki!")
+          : (replaceInfusionSet 
+              ? (selectedSite ? `Wymieniono zbiorniczek i wkłucie (${selectedSite}). Odjęto z apteczki!` : "Wymieniono zbiorniczek i wkłucie. Odjęto z apteczki!")
+              : "Wymieniono zbiorniczek. Odjęto z apteczki!")
       );
     }
   };
@@ -573,16 +704,17 @@ export default function App() {
           const mWBT = ((m.protein || 0) * 4 + (m.fat || 0) * 9) / 100;
           const durationH = getMealAbsorptionTime(mWW, mWBT);
           const durationMs = durationH * 60 * 60 * 1000;
-          const endTimeMs = (m.timestamp || 0) + durationMs;
-          const isCurrentlyAbsorbing = Date.now() < endTimeMs && durationH > 0;
-          return { m, durationH, endTimeMs, isCurrentlyAbsorbing };
+          const mealStartTime = m.eatenAt || m.timestamp || 0;
+          const endTimeMs = mealStartTime + durationMs;
+          const isCurrentlyAbsorbing = Date.now() < endTimeMs && durationH > 0 && Date.now() >= mealStartTime;
+          return { m, durationH, mealStartTime, endTimeMs, isCurrentlyAbsorbing };
         })
         .filter((x) => x.isCurrentlyAbsorbing);
 
       if (absorbingMeals.length > 0) {
         absorbingMeals.sort((a, b) => b.endTimeMs - a.endTimeMs);
         const active = absorbingMeals[0];
-        const ageH = (Date.now() - (active.m.timestamp || 0)) / (1000 * 60 * 60);
+        const ageH = (Date.now() - active.mealStartTime) / (1000 * 60 * 60);
         setMealProgress(Math.max(0, Math.min(1, ageH / active.durationH)));
       } else {
         setMealProgress(null);
@@ -863,6 +995,8 @@ export default function App() {
       <GlucoseAlarmModal />
       <SmartEquipmentModal
         type={smartEquipmentType}
+        logs={logs}
+        userSettings={userSettings}
         onClose={() => setSmartEquipmentType(null)}
         onConfirm={handleConfirmSmartEquipment}
       />

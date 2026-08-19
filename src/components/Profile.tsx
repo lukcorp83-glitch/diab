@@ -2714,12 +2714,14 @@ export default function Profile({
  >
  <option value="Lewy brzuch">{t('auto.lewy_brzuch', { defaultValue: 'Lewy brzuch' })}</option>
  <option value="Prawy brzuch">{t('auto.prawy_brzuch', { defaultValue: 'Prawy brzuch' })}</option>
+ <option value="Lewy pośladek">{t('auto.lewy_pośladek', { defaultValue: 'Lewy pośladek' })}</option>
+ <option value="Prawy pośladek">{t('auto.prawy_pośladek', { defaultValue: 'Prawy pośladek' })}</option>
+ <option value="Lewy boczek / plecy">{t('auto.lewy_boczek_plecy', { defaultValue: 'Lewy boczek / plecy' })}</option>
+ <option value="Prawy boczek / plecy">{t('auto.prawy_boczek_plecy', { defaultValue: 'Prawy boczek / plecy' })}</option>
  <option value="Lewe udo">{t('auto.lewe_udo', { defaultValue: 'Lewe udo' })}</option>
  <option value="Prawe udo">{t('auto.prawe_udo', { defaultValue: 'Prawe udo' })}</option>
- <option value={i18n.t('auto.lewy_posladek', { defaultValue: i18n.t('auto.lewy_posladek', { defaultValue: "Lewy pośladek" }) })}>{t('auto.lewy_pośladek', { defaultValue: i18n.t('auto.lewy_posladek', { defaultValue: "Lewy pośladek" }) })}</option>
- <option value={i18n.t('auto.prawy_posladek', { defaultValue: i18n.t('auto.prawy_posladek', { defaultValue: "Prawy pośladek" }) })}>{t('auto.prawy_pośladek', { defaultValue: i18n.t('auto.prawy_posladek', { defaultValue: "Prawy pośladek" }) })}</option>
- <option value={i18n.t('auto.lewe_ramie', { defaultValue: i18n.t('auto.lewe_ramie', { defaultValue: "Lewe ramię" }) })}>{t('auto.lewe_ramię', { defaultValue: i18n.t('auto.lewe_ramie', { defaultValue: "Lewe ramię" }) })}</option>
- <option value={i18n.t('auto.prawe_ramie', { defaultValue: i18n.t('auto.prawe_ramie', { defaultValue: "Prawe ramię" }) })}>{t('auto.prawe_ramię', { defaultValue: i18n.t('auto.prawe_ramie', { defaultValue: "Prawe ramię" }) })}</option>
+ <option value="Lewe ramię">{t('auto.lewe_ramię', { defaultValue: 'Lewe ramię' })}</option>
+ <option value="Prawe ramię">{t('auto.prawe_ramię', { defaultValue: 'Prawe ramię' })}</option>
  <option value="Inne">{t('auto.inne', { defaultValue: 'Inne' })}</option>
  </select>
  </div>
@@ -3665,43 +3667,6 @@ export default function Profile({
  </button>
  </div>
  )}
- {/* Kanał Beta OTA */}
- <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
- <div className="flex items-center justify-between mb-2">
- <div className="text-left">
- <p className="text-[10px] font-black uppercase dark:text-white flex items-center gap-1.5">
- <span className="text-pink-500">🧪</span> Program testów Beta
- </p>
- <p className="text-[9px] text-slate-400 mt-1 max-w-[200px] leading-tight">
- {t('auto.otrzymuj_eksperymentalne_aktualiza', { defaultValue: 'Otrzymuj eksperymentalne aktualizacje szybciej. Wymaga restartu aplikacji.' })}
- </p>
- </div>
- <button
- onClick={async () => {
- const isBeta = !settings.betaProgram;
- const updated = { ...settings, betaProgram: isBeta };
- setSettings(updated);
- localStorage.setItem("betaProgramEnabled", String(isBeta));
- await setDoc(
- doc(db, "users", getEffectiveUid(user), "settings", "profile"),
- { betaProgram: isBeta },
- { merge: true }
- );
- }}
- className={cn(
- "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
- settings.betaProgram ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
- settings.betaProgram ? "translate-x-6" : "translate-x-0"
- )}
- />
- </button>
- </div>
- </div>
  <CgmImport
  
  onComplete={() =>

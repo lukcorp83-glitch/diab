@@ -389,24 +389,35 @@ export default function GlikoAssistant({
  dangerouslySetInnerHTML={{ __html: msgText }}
  />
  
- {message.appAction && message.appAction.action && (
+ {message.appAction && (
  <button
  onClick={() => {
+ const target = message.appAction.target || message.appAction.value || message.appAction.tab || (message.appAction.action !== 'navigate' ? message.appAction.action : 'meal');
+ if (message.appAction.action === 'navigate' || target) {
+ window.dispatchEvent(new CustomEvent('ai_app_action', { detail: { action: 'navigate', target } }));
+ window.dispatchEvent(new CustomEvent('changeTab', { detail: target }));
+ } else {
  window.dispatchEvent(new CustomEvent('ai_app_action', { detail: message.appAction }));
+ }
  }}
  className={cn(
  "mt-3 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
  "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md active:scale-95"
  )}
  >
- {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })} {
- message.appAction.action === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
- message.appAction.action === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
- message.appAction.action === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
- message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
- message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
- message.appAction.action
- }
+ {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })}{' '}
+ {(() => {
+ const raw = String(message.appAction.target || message.appAction.value || message.appAction.tab || (message.appAction.action !== 'navigate' ? message.appAction.action : 'meal')).toLowerCase();
+ if (raw === 'meal' || raw === 'plate' || raw === 'talerz') return t('nav.plate', { defaultValue: 'Talerz' });
+ if (raw === 'dashboard' || raw === 'pulpit') return t('nav.dashboard', { defaultValue: 'Pulpit' });
+ if (raw === 'chart' || raw === 'wykres') return t('nav.chart', { defaultValue: 'Wykres' });
+ if (raw === 'database' || raw === 'baza') return t('nav.database', { defaultValue: 'Baza Produktów' });
+ if (raw === 'ai' || raw === 'glikosense') return t('nav.glikosense', { defaultValue: 'GlikoSense' });
+ if (raw === 'profile' || raw === 'profil') return t('nav.profile', { defaultValue: 'Profil' });
+ if (raw === 'history' || raw === 'historia') return t('nav.history', { defaultValue: 'Historia' });
+ if (raw === 'navigate') return t('nav.plate', { defaultValue: 'Talerz' });
+ return raw;
+ })()}
  <ArrowRight size={14} />
  </button>
  )}

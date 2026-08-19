@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.22';
+export const CURRENT_VERSION = '6.0.23';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.23",
+    date: "2026-08-19",
+    title: "Inteligentna Rotacja Wkłuć, Regeneracja Tkanek i Auto-Nauka",
+    changes: [
+      "Wdrożono inteligentnego asystenta rotacji wkłuć – system automatycznie uczy się naturalnej sekwencji pacjenta z historii wymian",
+      "Dodano interaktywny modal rotacji (Przód / Tył) z mapą cieplną regeneracji tkanek, profilami wchłaniania i 1-Click wymianą z apteczką",
+      "Wprowadzono konfigurator „Moje Strefy” umożliwiający wykluczenie nieużywanych miejsc i automatyczne omijanie sensora CGM",
+      "Odblokowano przełącznik wyświetlania informacji o glikemii na pasku powiadomień w telefonie dla wszystkich platform"
+    ]
+  },
   {
     version: "6.0.22",
     date: "2026-08-18",
@@ -208,6 +219,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.23",
+    date: "2026-08-19",
+    title: "Inteligentna Rotacja Wkłuć, Regeneracja Tkanek i Auto-Nauka",
+    changes: [
+      "Wdrożono inteligentnego asystenta rotacji wkłuć – system automatycznie uczy się naturalnej sekwencji pacjenta z historii wymian",
+      "Dodano interaktywny modal rotacji (Przód / Tył) z mapą cieplną regeneracji tkanek, profilami wchłaniania i 1-Click wymianą z apteczką",
+      "Wprowadzono konfigurator „Moje Strefy” umożliwiający wykluczenie nieużywanych miejsc i automatyczne omijanie sensora CGM",
+      "Odblokowano przełącznik wyświetlania informacji o glikemii na pasku powiadomień w telefonie dla wszystkich platform"
+    ]
+  },
   {
     version: "6.0.22",
     date: "2026-08-18",

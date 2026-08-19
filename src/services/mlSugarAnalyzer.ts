@@ -184,9 +184,10 @@ export const MLAnalyzer = {
     },
 
   analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<any> {
+    const currentEngine = typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') || 'v3_lstm' : 'v3_lstm';
     const logsFingerprint = logs && logs.length > 0 
-      ? `v4-lstm-${mode}-${i18n.language}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
-      : `empty-${i18n.language}`;
+      ? `gliko-${currentEngine}-${mode}-${i18n.language}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
+      : `empty-${currentEngine}-${i18n.language}`;
 
     if (!force) {
       if (_cachedResult && _lastLogsFingerprint === logsFingerprint) {
@@ -269,6 +270,14 @@ export const MLAnalyzer = {
              }
           }
           
+          if (payload && payload.discoveredRules && typeof window !== 'undefined') {
+            try {
+              const existingRules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+              const merged = { ...existingRules, ...payload.discoveredRules };
+              localStorage.setItem('glikosense_medical_rules', JSON.stringify(merged));
+            } catch (e) {}
+          }
+
           resolve(payload);
         } else if (type === 'storage_update') {
           localStorage.setItem(key, value);

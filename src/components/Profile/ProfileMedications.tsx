@@ -351,6 +351,63 @@ const saveInventoryItem = async () => {
       className="space-y-4 pb-20"
     >
 
+  {/* Wybór typu insuliny szybkodziałającej (do wyliczania stopera i wchłaniania) */}
+  <div className={cn(
+    "rounded-[2.5rem] p-5 border shadow-xl space-y-3",
+    settings.glassmorphismEnabled
+      ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 border border-white/30 dark:border-white/10 ring-1 ring-white/20 shadow-lg"
+      : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800"
+  )}>
+    <div className="flex items-center gap-2.5">
+      <div className="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-2xl">
+        <Droplets size={20} />
+      </div>
+      <div>
+        <h3 className="text-xs font-black dark:text-white uppercase tracking-wider leading-tight">
+          {t('auto.insulina_bolusowa', { defaultValue: 'Insulina szybkodziałająca' })}
+        </h3>
+        <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+          {t('auto.insulina_bolusowa_opis', { defaultValue: 'Wpływa na kalkulator i stoper przedposiłkowy' })}
+        </p>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+      {[
+        { id: 'fiasp', name: 'Fiasp / Lyumjev', badge: '⚡ Ultraszybka (~5 min)' },
+        { id: 'novorapid', name: 'NovoRapid / Humalog', badge: '⏱️ Standard (~10-15 min)' },
+        { id: 'regular', name: 'Gensulin R / Actrapid', badge: '🌙 Klasyczna (~25-35 min)' },
+      ].map((ins) => {
+        const isSelected = (settings.insulinType || 'novorapid') === ins.id;
+        return (
+          <button
+            key={ins.id}
+            type="button"
+            onClick={async () => {
+              Haptics.selection();
+              const newSettings = { ...settings, insulinType: ins.id };
+              setSettings(newSettings);
+              if (user) {
+                await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { insulinType: ins.id }, { merge: true });
+              }
+              toast.success(`Wybrano: ${ins.name}`);
+            }}
+            className={cn(
+              "p-3 rounded-2xl border text-left transition-all flex flex-col justify-between",
+              isSelected 
+                ? "bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.01]" 
+                : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+            )}
+          >
+            <span className="text-[11px] font-black leading-tight block">{ins.name}</span>
+            <span className={cn("text-[9px] font-bold mt-1 block", isSelected ? "text-indigo-200" : "text-slate-400")}>
+              {ins.badge}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  </div>
 
  <div
  className={cn(

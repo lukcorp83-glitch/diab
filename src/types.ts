@@ -35,6 +35,7 @@ export interface LogEntry {
   notes?: string;
   source?: string;
   nsId?: string;
+  eatenAt?: number; // Rzeczywisty moment zjedzenia posiłku (może być np. 15 min po bolusie)
   userModified?: boolean;
   direction?: string;
   delta?: number;
@@ -122,6 +123,7 @@ export interface UserSettings {
   linkedUid?: string;      // Zapamiętuje na twardo w chmurze klucz sparowanego Głównego konta
   isLinkedAdmin?: boolean; // Zapamiętuje na twardo w chmurze uprawnienia administratora
   dia?: number; // Duration of Insulin Action in hours
+  insulinType?: string; // e.g. 'novorapid', 'fiasp', 'humalog', 'lyumjev', 'apidra'
   hourlyProfiles?: HourlyProfile[];
   customDrugDictionary?: Record<string, DrugKnowledge>; // Globalny słownik wiedzy wygenerowany przez AI
   smartEquipmentDetection?: boolean; // Inteligentne wykrywanie zmiany osprzetu
@@ -133,6 +135,8 @@ export interface UserSettings {
   infusionSetChangeDate?: number;
   reservoirChangeDate?: number;
   infusionSetSite?: string;
+  sensorSite?: string;
+  allowedInfusionSites?: string[];
   sensorDurationDays?: number;
   infusionSetDurationDays?: number;
   reservoirDurationDays?: number;

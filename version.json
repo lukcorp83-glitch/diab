@@ -1,10 +1,10 @@
 {
-    "version": "6.0.22",
+    "version": "6.0.23",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.22_OTA.apk",
-    "buildNumber": 137,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.23_OTA.apk",
+    "buildNumber": 138,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.22! 1) Inteligentny Kafel Bolusa na pulpicie automatycznie sugeruje dawkę korekty (BG-cel/ISF-IOB) z natychmiastowym przejściem do kalkulatora. 2) Pigułka nawigacyjna zyskała wysuwany w bok asystent oczekującego posiłku z bazą dań i instant wyliczaniem makroskładników przez AI (Gemini). 3) Nowoczesne kody QR w stylu Android 14 Material You z celownikami skanera i odliczaniem czasu. 4) Płynne animacje morphingu oraz jednorazowe wyciszanie powiadomień posiłków.",
-    "whatsNewEn": "Version 6.0.22! 1) Smart Bolus widget on the dashboard automatically calculates and suggests correction doses (BG-target/ISF-IOB) with 1-tap prefill. 2) Navigation pill now morphs into an unlinked meal assistant with local food database and instant Gemini AI macronutrient estimator. 3) Modern Android 14 Material You QR cards with scanner brackets and countdown timer. 4) Ultra-smooth morphing animations and clean 1-click notification dismiss.",
-    "otaRevision": 296
+    "whatsNew": "Wersja 6.0.23! 1) Inteligentna Rotacja Wkłuć i Regeneracja Tkanek – algorytm uczy się naturalnego cyklu pacjenta, analizuje czas odpoczynku stref i chroni przed zrostami. 2) Interaktywny Modal Rotacji (Przód/Tył) z mapą cieplną regeneracji, profilami wchłaniania i 1-Click wymianą z apteczką. 3) Konfigurator „Moje Strefy” i unikanie kolizji z sensorem CGM. 4) Odblokowany przełącznik informacji o glikemii na pasku stanu telefonu.",
+    "whatsNewEn": "Version 6.0.23! 1) Smart Site Rotation & Tissue Recovery – auto-learns patient insertion sequence, tracks rest days, and prevents lipohypertrophy. 2) Interactive Front/Back Modal with tissue heatmap, absorption profiles, and 1-Click site change. 3) 'My Zones' configurator and automatic CGM sensor collision avoidance. 4) Restored status bar glucose notifications toggle.",
+    "otaRevision": 297
 }
