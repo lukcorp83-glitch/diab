@@ -475,7 +475,10 @@
     "w_normie": "W normie",
     "dzienny_tir": "Dzienny TIR",
     "brak_pomiarów_dzisiaj": "Brak pomiarów dzisiaj",
-    "brak_pomiarow_dzisiaj": "Brak pomiarów dzisiaj"
+    "brak_pomiarow_dzisiaj": "Brak pomiarów dzisiaj",
+    "notatka_zapisana": "Notatka została zapisana!",
+    "notatka_usunieta": "Notatka została usunięta.",
+    "zapisanych_wpisow": "zapisanych wpisów"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {

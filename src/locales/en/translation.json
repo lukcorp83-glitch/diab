@@ -475,7 +475,10 @@
     "w_normie": "In range",
     "dzienny_tir": "Daily TIR",
     "brak_pomiarów_dzisiaj": "No readings today",
-    "brak_pomiarow_dzisiaj": "No readings today"
+    "brak_pomiarow_dzisiaj": "No readings today",
+    "notatka_zapisana": "Note saved successfully!",
+    "notatka_usunieta": "Note deleted.",
+    "zapisanych_wpisow": "saved entries"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {
