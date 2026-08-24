@@ -8,6 +8,7 @@ import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 import { detectIsfChanges, AutoTunerResult } from '../services/isfAutoTuner';
 import { cn, getEffectiveUid } from '../lib/utils';
+import { Haptics } from '../lib/haptics';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { db, auth } from '../lib/firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -355,18 +356,26 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  };
 
   const handleAcceptAutoTune = async () => {
-    if (!autoTunerResult?.proposedISF || !user || !settings || !autoTunerResult.timeBlock) return;
+    const authUser = auth.currentUser;
+    const effectiveUser = user || authUser;
+    if (!autoTunerResult?.proposedISF || !effectiveUser || !autoTunerResult.timeBlock) {
+      console.warn('[AutoTune] Missing prerequisites to apply autotune', { autoTunerResult, effectiveUser });
+      return;
+    }
     try {
-      const uid = getEffectiveUid(user, settings);
+      Haptics.impact();
+      const uid = getEffectiveUid(effectiveUser, settings);
       
-      let newProfiles = [...(settings.hourlyProfiles || [])];
+      let newProfiles = [...(settings?.hourlyProfiles || [])];
       
       if (newProfiles.length === 0) {
+        const baseIsf = settings?.isf || 50;
+        const baseWw = settings?.wwRatio || 10;
         newProfiles = [
-          { time: '00:00', isf: settings.isf, wwRatio: settings.wwRatio },
-          { time: '06:00', isf: settings.isf, wwRatio: settings.wwRatio },
-          { time: '12:00', isf: settings.isf, wwRatio: settings.wwRatio },
-          { time: '18:00', isf: settings.isf, wwRatio: settings.wwRatio }
+          { time: '00:00', isf: baseIsf, wwRatio: baseWw },
+          { time: '06:00', isf: baseIsf, wwRatio: baseWw },
+          { time: '12:00', isf: baseIsf, wwRatio: baseWw },
+          { time: '18:00', isf: baseIsf, wwRatio: baseWw }
         ];
       }
       
@@ -374,17 +383,33 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
       if (blockIndex !== -1) {
         newProfiles[blockIndex] = { ...newProfiles[blockIndex], isf: autoTunerResult.proposedISF };
       } else {
-        newProfiles.push({ time: autoTunerResult.timeBlock!.start, isf: autoTunerResult.proposedISF, wwRatio: settings.wwRatio });
+        newProfiles.push({ 
+          time: autoTunerResult.timeBlock!.start, 
+          isf: autoTunerResult.proposedISF, 
+          wwRatio: settings?.wwRatio || 10 
+        });
       }
 
-      await setDoc(doc(db, "users", uid), { hourlyProfiles: newProfiles }, { merge: true });
-      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: { hourlyProfiles: newProfiles } }));
+      newProfiles.sort((a, b) => a.time.localeCompare(b.time));
+
+      const updates: any = {
+        hourlyProfiles: newProfiles
+      };
+
+      // Zaktualizuj także bazowy ISF jeśli dotyczy głównego przedziału lub braku profili
+      if (autoTunerResult.timeBlock.start === '00:00' || autoTunerResult.timeBlock.start === '12:00' || newProfiles.length <= 1) {
+        updates.isf = autoTunerResult.proposedISF;
+      }
+
+      await setDoc(doc(db, "users", uid, "settings", "profile"), updates, { merge: true });
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updates }));
       localStorage.setItem('lastIsfAutoTuneTime', Date.now().toString());
-      toast.success(t('auto.glikosense_autotune_success', { defaultValue: 'Profil ISF został zaktualizowany.' }));
+      Haptics.success();
+      toast.success(t('auto.glikosense_autotune_success', { defaultValue: 'Profil ISF został pomyślnie zaktualizowany!' }));
       setAutoTunerResult(null);
-    } catch (e) {
-      console.error(e);
-      toast.error("Błąd zapisu!");
+    } catch (e: any) {
+      console.error('[AutoTune] Failed to accept auto-tune:', e);
+      toast.error(`Błąd zapisu ustawień: ${e?.message || ''}`);
     }
   };
 

@@ -299,14 +299,14 @@ export default function App() {
   // Automatyczna synchronizacja dat wymian osprzętu z najnowszymi wpisami z historii / Nightscout
   useEffect(() => {
     if (!user || !userSettings) return;
-    const latestSiteLog = logs.find((l: any) => l.type === 'site_change');
+    const latestSiteLog = logs.find((l: any) => l.type === 'site_change' && !l.notes?.toLowerCase().includes('zbiorniczk'));
     const latestSensorLog = logs.find((l: any) => l.type === 'sensor_change');
 
     const updates: any = {};
-    if (latestSiteLog && latestSiteLog.timestamp > (userSettings.infusionSetChangeDate || 0)) {
+    if (latestSiteLog && latestSiteLog.timestamp && latestSiteLog.timestamp !== userSettings.infusionSetChangeDate) {
       updates.infusionSetChangeDate = latestSiteLog.timestamp;
     }
-    if (latestSensorLog && latestSensorLog.timestamp > (userSettings.sensorChangeDate || 0)) {
+    if (latestSensorLog && latestSensorLog.timestamp && latestSensorLog.timestamp !== userSettings.sensorChangeDate) {
       updates.sensorChangeDate = latestSensorLog.timestamp;
     }
 

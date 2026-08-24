@@ -470,7 +470,12 @@
     "konfigurator_stref_pomoc": "Zaznacz strefy, z których rzeczywiście korzystasz do wkłuć pompy. Algorytm inteligentnej rotacji będzie proponował kolejne miejsca wyłącznie spośród Twoich aktywnych stref.",
     "nastepne_skrot": "Następne",
     "rotacja_wkluc": "Rotacja Wkłuć",
-    "wymien_wklucie": "Wymień!"
+    "wymien_wklucie": "Wymień!",
+    "wymien": "Wymień",
+    "w_normie": "W normie",
+    "dzienny_tir": "Dzienny TIR",
+    "brak_pomiarów_dzisiaj": "Brak pomiarów dzisiaj",
+    "brak_pomiarow_dzisiaj": "Brak pomiarów dzisiaj"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {

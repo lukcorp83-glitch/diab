@@ -75,7 +75,7 @@ export const ANATOMICAL_ZONES: AnatomicalZone[] = [
     view: 'front',
     side: 'left',
     group: 'thigh',
-    dotPos: { top: '72%', left: '32%' },
+    dotPos: { top: '65%', left: '34%' },
     absorptionSpeed: 'slow',
     absorptionDesc: 'Wolne i stabilne wchłanianie, dobre na spokojne dni.'
   },
@@ -86,7 +86,7 @@ export const ANATOMICAL_ZONES: AnatomicalZone[] = [
     view: 'front',
     side: 'right',
     group: 'thigh',
-    dotPos: { top: '72%', left: '68%' },
+    dotPos: { top: '65%', left: '66%' },
     absorptionSpeed: 'slow',
     absorptionDesc: 'Wolne i stabilne wchłanianie, dobre na spokojne dni.'
   },
@@ -99,7 +99,7 @@ export const ANATOMICAL_ZONES: AnatomicalZone[] = [
     view: 'back',
     side: 'left',
     group: 'buttock',
-    dotPos: { top: '54%', left: '35%' },
+    dotPos: { top: '52%', left: '36%' },
     absorptionSpeed: 'slow',
     absorptionDesc: 'Bardzo stabilne, długie uwalnianie. Doskonałe na noc.'
   },
@@ -110,7 +110,7 @@ export const ANATOMICAL_ZONES: AnatomicalZone[] = [
     view: 'back',
     side: 'right',
     group: 'buttock',
-    dotPos: { top: '54%', left: '65%' },
+    dotPos: { top: '52%', left: '64%' },
     absorptionSpeed: 'slow',
     absorptionDesc: 'Bardzo stabilne, długie uwalnianie. Doskonałe na noc.'
   },

@@ -19,14 +19,15 @@ export const notificationService = {
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v12' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v13' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v14' }); } catch(e) {}
+        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v15' }); } catch(e) {}
         
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v15',
+          id: 'glucose_alerts_v16',
           name: 'Krytyczne Alerty Glikemii',
-          description: 'Powiadomienia o niskim lub wysokim poziomie cukru z dźwiękiem MP3',
+          description: 'Głośne powiadomienia o niskim i wysokim cukrze',
           importance: 5,
           visibility: 1,
-          sound: 'status_clear.mp3',
+          sound: 'default',
           vibration: true
         });
 
@@ -218,8 +219,8 @@ export const notificationService = {
               body,
               id: 887,
               schedule: { at: new Date(Date.now() + 500) },
-              channelId: 'glucose_alerts_v15',
-              sound: 'status_clear.mp3',
+              channelId: 'glucose_alerts_v16',
+              sound: 'default',
               attachments: null,
               actionTypeId: '',
               extra: null

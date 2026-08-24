@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.23';
+export const CURRENT_VERSION = '6.0.24';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.24",
+    date: "2026-08-24",
+    title: "Nowy Dzienny TIR, Pierścień Rotacji Wkłuć i Uporządkowane Alerty",
+    changes: [
+      "Nowy wizualny widżet Dziennego TIR: pierścień tarczy z neonowym blaskiem na normie, tłem toru i trójkolorowymi kapsułkami",
+      "Nowy pierścień Smart Rotation Ring na pulpicie: cykl stref, czytelna typografia i nowoczesna pigułka rekomendacji",
+      "Uporządkowano i naprawiono system powiadomień Androida oraz alertów glikemii (brak spamu przy otwarciu, głośny dźwięk systemowy)",
+      "Trwała synchronizacja preferencji powiadomień i eliminacja fałszywych alarmów o zagięciu kaniuli",
+      "Dodano modal potwierdzenia dla przycisku „Zjadłem teraz” oraz naprawiono edycję dat osprzętu bez duplikatów"
+    ]
+  },
   {
     version: "6.0.23",
     date: "2026-08-19",
@@ -219,6 +231,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.24",
+    date: "2026-08-24",
+    title: "Nowy Dzienny TIR, Pierścień Rotacji Wkłuć i Uporządkowane Alerty",
+    changes: [
+      "Nowy wizualny widżet Dziennego TIR: pierścień tarczy z neonowym blaskiem na normie, tłem toru i trójkolorowymi kapsułkami",
+      "Nowy pierścień Smart Rotation Ring na pulpicie: cykl stref, czytelna typografia i nowoczesna pigułka rekomendacji",
+      "Uporządkowano i naprawiono system powiadomień Androida oraz alertów glikemii (brak spamu przy otwarciu, głośny dźwięk systemowy)",
+      "Trwała synchronizacja preferencji powiadomień i eliminacja fałszywych alarmów o zagięciu kaniuli",
+      "Dodano modal potwierdzenia dla przycisku „Zjadłem teraz” oraz naprawiono edycję dat osprzętu bez duplikatów"
+    ]
+  },
   {
     version: "6.0.23",
     date: "2026-08-19",

@@ -12,6 +12,17 @@ import { Capacitor } from '@capacitor/core';
 import { notificationService } from '../../services/notificationService';
 // import { enableNotifications, registerServiceWorker } from '../../lib/firebase';
 
+const DEFAULT_NOTIFICATION_PREFS = {
+  hypo: true,
+  hyper: true,
+  reminders: true,
+  predictions: true,
+  pumpBolusPreMeal: true,
+  mealDetected: true,
+  nightSnackReminder: false,
+  hypoProtection: true
+};
+
 export default function ProfileNotifications({ user, settings, setSettings, isIOS, pushSupported }: any) {
  const { t } = useTranslation();
  

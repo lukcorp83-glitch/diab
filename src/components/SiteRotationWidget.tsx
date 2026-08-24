@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { RefreshCw, Sparkles, AlertTriangle, ChevronRight, Layers, Edit3 } from 'lucide-react';
-import { LogEntry, UserSettings } from '../types';
+import { RefreshCw, Sparkles, ArrowRight } from 'lucide-react';
+import { UserSettings } from '../types';
 import { 
   normalizeSiteToZoneId, 
   getZoneById, 
   calculateTissueRecovery, 
   getNextRecommendedSite, 
-  detectLipohypertrophyWarning,
-  DEFAULT_ALLOWED_SITES
+  DEFAULT_ALLOWED_SITES,
+  ANATOMICAL_ZONES
 } from '../services/siteRotationService';
 import SiteRotationModal from './SiteRotationModal';
 import { cn } from '../lib/utils';
@@ -16,6 +16,7 @@ import { useLogsStore } from '../stores/useLogsStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
+import { motion } from 'motion/react';
 
 interface SiteRotationWidgetProps {
   settings: UserSettings;
@@ -34,8 +35,6 @@ export default function SiteRotationWidget({
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const isCompact = size === '1x1' || size === '1x2';
 
   const lastSiteChange = useMemo(() => {
     const sorted = [...(logs || [])].sort((a, b) => b.timestamp - a.timestamp);
@@ -65,18 +64,19 @@ export default function SiteRotationWidget({
     return getNextRecommendedSite(currentZoneId, allowedSiteIds, settings.sensorSite, recoveryMap, logs);
   }, [currentZoneId, allowedSiteIds, settings.sensorSite, recoveryMap, logs]);
 
-  const lipoWarning = useMemo(() => detectLipohypertrophyWarning(logs), [logs]);
-
   const elapsedDays = siteChangeTimestamp ? Math.floor((Date.now() - siteChangeTimestamp) / (1000 * 60 * 60 * 24)) : 0;
   const maxDays = settings?.infusionSetDurationDays || 3;
+  const currentDay = Math.min(maxDays + 1, elapsedDays + 1);
   const isOverdue = elapsedDays >= maxDays;
-
-  // Automatyczny wybór perspektywy (Przód lub Tył) w zależności od aktualnego wkłucia
-  const view = currentZone.view;
   const nextZone = nextRecommendation.zone;
 
-  const currentDotPos = currentZone.dotPos;
-  const nextDotPos = (nextZone.view === view) ? nextZone.dotPos : null;
+  // Obliczenie punktów na pierścieniu rotacji dla aktywnych stref
+  const allowedZonesList = useMemo(() => {
+    return ANATOMICAL_ZONES.filter(z => allowedSiteIds.includes(z.id));
+  }, [allowedSiteIds]);
+
+  const currentZoneIndex = Math.max(0, allowedZonesList.findIndex(z => z.id === currentZoneId));
+  const totalZones = allowedZonesList.length || 6;
 
   return (
     <>
@@ -86,76 +86,140 @@ export default function SiteRotationWidget({
           setIsModalOpen(true);
         }}
         className={cn(
-          "glass-card w-full h-full p-3.5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:shadow-md cursor-pointer active:scale-[0.98] group border border-slate-200/60 dark:border-slate-800"
+          "glass-card w-full h-full p-3.5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:shadow-xl cursor-pointer active:scale-[0.98] group rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl"
         )}
       >
+        {/* Poświata w tle */}
+        <div className={cn(
+          "absolute -top-10 -right-10 w-28 h-28 blur-3xl rounded-full pointer-events-none transition-colors duration-500",
+          isOverdue ? "bg-rose-500/20" : "bg-emerald-500/15"
+        )} />
+
         {/* Header */}
-        <div className="flex items-center justify-between w-full z-10 relative">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between w-full shrink-0 z-10">
+          <div className="flex items-center gap-1.5 min-w-0">
             <div className={cn(
-              "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110",
-              isOverdue ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 shadow-xs transition-transform group-hover:rotate-90 duration-500",
+              isOverdue 
+                ? "bg-rose-500/15 text-rose-500 border border-rose-500/30" 
+                : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
             )}>
-              <RefreshCw size={14} />
+              <RefreshCw size={11} strokeWidth={2.5} />
             </div>
-            <span className="font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider leading-none">
+            <span className="font-black text-[9.5px] text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
               {t('auto.rotacja_wkluc', { defaultValue: 'Rotacja Wkłuć' })}
             </span>
           </div>
 
-          <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center transition-colors">
-            <Edit3 size={11} />
-          </div>
+          {/* Doba lub status */}
+          <span className={cn(
+            "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tight flex items-center gap-1 shrink-0 border shadow-xs",
+            isOverdue
+              ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+          )}>
+            <span className={cn("w-1.5 h-1.5 rounded-full", isOverdue ? "bg-rose-500 animate-pulse" : "bg-emerald-500")} />
+            {isOverdue ? t('auto.wymien', { defaultValue: 'Wymień' }) : `Doba ${currentDay}/${maxDays}`}
+          </span>
         </div>
 
-        {/* Sylwetka Ciała 2D w Tle */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden opacity-35 dark:opacity-40">
-          <div className="relative h-[85%] max-h-[160px] aspect-[1/2] mt-3">
-            <svg fill="currentColor" viewBox="0 0 100 200" className="w-full h-full text-slate-400 dark:text-slate-600">
-              <path d="M50 30 C58 30 65 24 65 15 C65 6 58 0 50 0 C42 0 35 6 35 15 C35 24 42 30 50 30 Z" />
-              <path d="M68 35 C75 35 80 40 85 55 C90 70 95 95 90 95 C85 95 80 70 75 60 C75 60 70 50 68 50 C68 50 68 100 68 100 C68 120 75 180 75 190 C75 200 60 200 60 190 C60 150 55 110 50 110 C45 110 40 150 40 190 C40 200 25 200 25 190 C25 180 32 120 32 100 C32 100 32 50 32 50 C30 50 25 60 25 60 C20 70 15 95 10 95 C5 95 10 70 15 55 C20 40 25 35 32 35 C40 35 60 35 68 35 Z" opacity="0.85"/>
+        {/* Smart Rotation Dial / Pierścień Cyklu Rotacji */}
+        <div className="relative w-full flex-1 flex items-center justify-center my-0.5 min-h-[90px] max-h-[115px] pointer-events-none">
+          <div className="relative w-[105px] h-[105px] flex items-center justify-center">
+            {/* Pierścień bazowy tarczy */}
+            <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+              <defs>
+                <filter id="site-ring-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="2.5" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+
+              {/* Tło toru obwodowego */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="5"
+                className="text-slate-100 dark:text-slate-800/90"
+              />
+
+              {/* Punkty/Segmenty stref na okręgu */}
+              {allowedZonesList.map((z, idx) => {
+                const angle = (idx / totalZones) * 2 * Math.PI;
+                const cx = 50 + 40 * Math.cos(angle);
+                const cy = 50 + 40 * Math.sin(angle);
+                const isCurr = z.id === currentZoneId;
+                const isNxt = z.id === nextZone.id;
+
+                let fill = '#94a3b8'; // slate-400
+                let radius = 2.5;
+
+                if (isCurr) {
+                  fill = isOverdue ? '#f43f5e' : '#10b981';
+                  radius = 4.5;
+                } else if (isNxt) {
+                  fill = '#6366f1';
+                  radius = 3.5;
+                }
+
+                return (
+                  <circle
+                    key={z.id}
+                    cx={cx}
+                    cy={cy}
+                    r={radius}
+                    fill={fill}
+                    filter={isCurr ? 'url(#site-ring-glow)' : undefined}
+                    className="transition-all duration-500"
+                  />
+                );
+              })}
+
+              {/* Łuk postępu cyklu rotacji */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="none"
+                stroke={isOverdue ? '#f43f5e' : '#10b981'}
+                strokeWidth="4.5"
+                strokeLinecap="round"
+                strokeDasharray="251.2"
+                strokeDashoffset={251.2 * (1 - (currentZoneIndex + 1) / totalZones)}
+                className="transition-all duration-1000 ease-out opacity-85"
+              />
             </svg>
 
-            {/* Aktualne wkłucie (Zielony / Czerwony punkt) */}
-            <div 
-              className={cn(
-                "absolute w-3 h-3 rounded-full shadow-lg transform -translate-x-1/2 -translate-y-1/2 z-20 border-2 border-white dark:border-slate-900",
-                isOverdue ? "bg-rose-500 shadow-rose-500/50" : "bg-emerald-500 shadow-emerald-500/50"
-              )}
-              style={{ top: currentDotPos.top, left: currentDotPos.left }}
-            >
-              <div className={cn("absolute inset-0 rounded-full animate-ping opacity-75", isOverdue ? "bg-rose-400" : "bg-emerald-400")} />
+            {/* Centrum Tarczy - Czytelna nazwa i status strefy */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
+              <span className={cn(
+                "font-black text-xs md:text-sm tracking-tight leading-tight max-w-[78px] truncate",
+                isOverdue ? "text-rose-600 dark:text-rose-400" : "text-slate-800 dark:text-white"
+              )}>
+                {currentZone.shortName || currentZone.name}
+              </span>
+              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 font-mono">
+                {currentZoneIndex + 1}/{totalZones} strefa
+              </span>
             </div>
-
-            {/* Rekomendowane następne miejsce (Niebieski pulsujący punkt) */}
-            {nextDotPos && (
-              <div 
-                className="absolute w-2.5 h-2.5 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,1)] transform -translate-x-1/2 -translate-y-1/2 z-10 border border-white dark:border-slate-900"
-                style={{ top: nextDotPos.top, left: nextDotPos.left }}
-              >
-                <div className="absolute inset-0 rounded-full bg-indigo-400 animate-ping opacity-60" />
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Dolne Informacje i Rekomendacja */}
-        <div className="flex flex-col gap-1 z-10 relative">
-          <div className="flex items-baseline justify-between">
-            <span className={cn(
-              "font-black text-xs md:text-sm tracking-tight leading-tight line-clamp-1",
-              isOverdue ? "text-rose-600 dark:text-rose-400" : "text-slate-800 dark:text-white"
-            )}>
-              {currentZone.name}
-            </span>
-          </div>
-
-          {/* Sugerowane kolejne */}
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 rounded-xl w-full">
-            <Sparkles size={11} className="text-indigo-500 shrink-0" />
-            <span className="text-[9px] font-bold text-indigo-700 dark:text-indigo-300 truncate">
-              {t('auto.nastepne_skrot', { defaultValue: 'Następne' })}: {nextZone.name}
-            </span>
+        {/* Dolny Panel - Nowoczesna Pigułka Następnego Wkłucia (Capsule Pill) */}
+        <div className="w-full z-10 shrink-0">
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 dark:from-indigo-500/20 dark:via-purple-500/15 dark:to-indigo-500/20 border border-indigo-500/25 dark:border-indigo-500/35 shadow-sm shadow-indigo-500/5 transition-all group-hover:border-indigo-400/50">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[8px] font-black uppercase text-indigo-500/90 dark:text-indigo-400/90 tracking-wider shrink-0">
+                {t('auto.nastepne_skrot', { defaultValue: 'Następne' })}:
+              </span>
+              <span className="text-[9.5px] font-black text-indigo-700 dark:text-indigo-300 truncate">
+                {nextZone.name}
+              </span>
+            </div>
+            <ArrowRight size={10} className="text-indigo-500 shrink-0 group-hover:translate-x-0.5 transition-transform ml-1" />
           </div>
         </div>
       </div>

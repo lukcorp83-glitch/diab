@@ -470,7 +470,12 @@
     "konfigurator_stref_pomoc": "Select the zones you actually use for pump infusion sets. The smart rotation algorithm will suggest next sites exclusively from your active zones.",
     "nastepne_skrot": "Next",
     "rotacja_wkluc": "Site Rotation",
-    "wymien_wklucie": "Change!"
+    "wymien_wklucie": "Change!",
+    "wymien": "Replace",
+    "w_normie": "In range",
+    "dzienny_tir": "Daily TIR",
+    "brak_pomiarów_dzisiaj": "No readings today",
+    "brak_pomiarow_dzisiaj": "No readings today"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {

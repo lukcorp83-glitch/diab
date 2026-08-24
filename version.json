@@ -1,10 +1,10 @@
 {
-    "version": "6.0.23",
+    "version": "6.0.24",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.23_OTA.apk",
-    "buildNumber": 138,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.24_OTA.apk",
+    "buildNumber": 139,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.23! 1) Inteligentna Rotacja Wkłuć i Regeneracja Tkanek – algorytm uczy się naturalnego cyklu pacjenta, analizuje czas odpoczynku stref i chroni przed zrostami. 2) Interaktywny Modal Rotacji (Przód/Tył) z mapą cieplną regeneracji, profilami wchłaniania i 1-Click wymianą z apteczką. 3) Konfigurator „Moje Strefy” i unikanie kolizji z sensorem CGM. 4) Odblokowany przełącznik informacji o glikemii na pasku stanu telefonu.",
-    "whatsNewEn": "Version 6.0.23! 1) Smart Site Rotation & Tissue Recovery – auto-learns patient insertion sequence, tracks rest days, and prevents lipohypertrophy. 2) Interactive Front/Back Modal with tissue heatmap, absorption profiles, and 1-Click site change. 3) 'My Zones' configurator and automatic CGM sensor collision avoidance. 4) Restored status bar glucose notifications toggle.",
-    "otaRevision": 297
+    "whatsNew": "Wersja 6.0.24! 1) Nowoczesny Dzienny TIR – pierścień tarczy z neonowym blaskiem, torem zegarowym i trójkolorowymi kapsułkami zakresów. 2) Nowy Pierścień Rotacji Wkłuć – tarcza zegarowa z łukiem cyklu, czytelną nazwą strefy i pigułką rekomendacji. 3) Uporządkowane alerty i powiadomienia – eliminacja ataku alertów po otwarciu aplikacji, natywny dźwięk systemowy na Androidzie i trwała synchronizacja reguł powiadomień. 4) Poprawki aparatu AI, edycji dat osprzętu bez duplikatów i potwierdzenie „Zjadłem teraz”.",
+    "whatsNewEn": "Version 6.0.24! 1) Modern Daily TIR – dial gauge with neon glow, background track, and tri-color range pills. 2) New Site Rotation Ring – dial gauge with cycle progress arc, crisp zone label, and recommendation pill. 3) Cleaned up alerts & notifications – eliminated alert surge on app launch, native system alert sounds on Android, and persistent notification settings. 4) AI camera fixes, non-duplicate equipment date editing, and \"Eaten now\" confirmation modal.",
+    "otaRevision": 298
 }

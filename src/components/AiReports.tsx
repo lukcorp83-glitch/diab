@@ -134,7 +134,7 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  <>
  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
  <InsulinDetectiveAlert />
- <MLAnalysisWidget settings={settings} setTab={setTab} />
+ <MLAnalysisWidget user={user} settings={settings} setTab={setTab} />
  <InfusionPerformanceWidget settings={settings} />
  
  {/* Glucose Trend Chart */}

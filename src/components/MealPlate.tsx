@@ -1126,7 +1126,7 @@ export default function MealPlate({
  {t('auto.talerz', { defaultValue: "Centrum Żywieniowe" })}
  </h1>
  <button
- onClick={() => setIsScannerOpen(true)}
+ onClick={startCameraAnalysis}
  className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-500 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shrink-0"
  >
  <Camera size={24} />
@@ -1157,6 +1157,21 @@ export default function MealPlate({
  mergeCandidates={mergeCandidates} handleMergeMeal={handleMergeMeal}
  handleLogMeal={handleLogMeal} setMergeCandidates={setMergeCandidates}
  getProductName={getProductName} setIsScannerOpen={setIsScannerOpen}
+ />
+
+ <CameraModeModal
+   isOpen={showCameraModeModal}
+   onClose={() => setShowCameraModeModal(false)}
+   onSelectMode={handleSelectCameraMode}
+   activeDiet={settings?.activeDiet || null}
+ />
+
+ <RestaurantMenuModal
+   isOpen={showRestaurantMenuModal}
+   onClose={() => setShowRestaurantMenuModal(false)}
+   result={restaurantMenuResult}
+   onSelectDish={handleSelectRestaurantDish}
+   activeDiet={settings?.activeDiet || null}
  />
 
  { (mode === "search" || mode === "both") && (

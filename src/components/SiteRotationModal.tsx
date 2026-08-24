@@ -286,9 +286,16 @@ export default function SiteRotationModal({
 
                 {/* SVG Silhouette */}
                 <div className="relative w-[130px] h-[240px] drop-shadow-md">
-                  <svg fill="currentColor" viewBox="0 0 100 200" className="w-full h-full text-slate-300 dark:text-slate-700 transition-colors duration-500">
-                    <path d="M50 30 C58 30 65 24 65 15 C65 6 58 0 50 0 C42 0 35 6 35 15 C35 24 42 30 50 30 Z" />
-                    <path d="M68 35 C75 35 80 40 85 55 C90 70 95 95 90 95 C85 95 80 70 75 60 C75 60 70 50 68 50 C68 50 68 100 68 100 C68 120 75 180 75 190 C75 200 60 200 60 190 C60 150 55 110 50 110 C45 110 40 150 40 190 C40 200 25 200 25 190 C25 180 32 120 32 100 C32 100 32 50 32 50 C30 50 25 60 25 60 C20 70 15 95 10 95 C5 95 10 70 15 55 C20 40 25 35 32 35 C40 35 60 35 68 35 Z" opacity="0.85"/>
+                  <svg viewBox="0 0 100 180" className="w-full h-full text-slate-300 dark:text-slate-700 drop-shadow-sm transition-colors duration-500">
+                    <ellipse cx="50" cy="18" rx="9" ry="12" fill="currentColor" opacity="0.9" />
+                    <path 
+                      d="M45,30 C38,32 30,36 24,42 C19,47 16,56 14,66 C13,76 15,90 17,98 C18,101 22,100 23,96 C24,88 26,70 28,60 C30,55 33,54 34,58 C34,66 33,82 34,98 C35,112 37,126 39,144 C41,156 44,166 46,172 C48,176 50,175 50,166 C50,144 49,122 49,104 C51,104 50,144 50,166 C50,175 52,176 54,172 C56,166 59,156 61,144 C63,126 65,112 66,98 C67,82 66,66 66,58 C67,54 70,55 72,60 C74,70 76,88 77,96 C78,100 82,101 83,98 C85,90 87,76 86,66 C84,56 81,47 76,42 C70,36 62,32 55,30 Z" 
+                      fill="currentColor" 
+                      opacity="0.85"
+                    />
+                    <path d="M42,50 C46,54 54,54 58,50" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.4" />
+                    <path d="M40,82 C46,85 54,85 60,82" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.3" />
+                    <line x1="50" y1="52" x2="50" y2="92" stroke="currentColor" strokeWidth="1" strokeDasharray="2,3" opacity="0.3" />
                   </svg>
 
                   {/* Punkty Stref na Sylwetce */}

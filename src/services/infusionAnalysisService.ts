@@ -206,28 +206,44 @@ export class InfusionAnalysisService {
       lowCount: siteLows
     };
 
-    // Detektor zagięcia kaniuli w bieżącym wkłuciu (ostatnie 2h)
+    // Detektor zagięcia kaniuli w bieżącym wkłuciu (ostatnie 3h)
     let isRiskDetected = false;
     let recentFailedBolusCount = 0;
     let riskMessage = '';
 
-    const twoHoursAgo = now - 2.5 * 60 * 60 * 1000;
-    const recentBoluses = currentSiteBoluses.filter(b => Number(b.timestamp) >= twoHoursAgo && !hasCarbs(b));
+    const threeHoursAgo = now - 3 * 60 * 60 * 1000;
+    const recentBoluses = currentSiteBoluses
+      .filter(b => Number(b.timestamp) >= threeHoursAgo && !hasCarbs(b))
+      .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
     
+    // Weryfikacja: Wymagamy co najmniej 2 bolusów korekcyjnych z odstępem min. 45 min lub min. 60 min od pierwszego bolusa
     if (recentBoluses.length >= 2) {
-      const recentGlucoses = currentSiteGlucoses
-        .filter(g => Number(g.timestamp) >= twoHoursAgo)
-        .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+      const firstBolusTime = Number(recentBoluses[0].timestamp);
+      const timeSinceFirstBolusMin = (now - firstBolusTime) / (1000 * 60);
 
-      if (recentGlucoses.length >= 2) {
-        const firstG = getGlucoseVal(recentGlucoses[0]);
-        const lastG = getGlucoseVal(recentGlucoses[recentGlucoses.length - 1]);
-        if (lastG >= firstG && lastG > 160) {
-          isRiskDetected = true;
-          recentFailedBolusCount = recentBoluses.length;
-          riskMessage = 'Podano ' + recentBoluses.length + ' bolusy korekcyjne w ostatnich 2h, a cukier wzrósł z ' + firstG + ' do ' + lastG + ' mg/dL. Sprawdź drożność tego wkłucia!';
+      // Czekamy min. 50 minut od pierwszego bolusa, aby insulina miała fizjologiczny czas rozwinąć działanie
+      if (timeSinceFirstBolusMin >= 50) {
+        const recentGlucoses = currentSiteGlucoses
+          .filter(g => Number(g.timestamp) >= firstBolusTime - 15 * 60 * 1000)
+          .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+
+        if (recentGlucoses.length >= 2) {
+          const firstG = getGlucoseVal(recentGlucoses[0]);
+          const lastG = getGlucoseVal(recentGlucoses[recentGlucoses.length - 1]);
+          // Jeśli cukier wzrósł lub nie spadł mimo podania korekt i wynosi > 160 mg/dL
+          if (lastG >= firstG - 10 && lastG > 160) {
+            isRiskDetected = true;
+            recentFailedBolusCount = recentBoluses.length;
+            riskMessage = `Podano ${recentBoluses.length} bolusy korekcyjne w ostatnich ${Math.round(timeSinceFirstBolusMin)} min, a cukier nie spadł (${firstG} ➔ ${lastG} mg/dL). Sprawdź drożność tego wkłucia!`;
+          }
         }
       }
+    }
+
+    // Jeśli wykryto ryzyko zatkania w tej chwili, dostosuj bieżącą sprawność i status
+    if (isRiskDetected) {
+      calculatedEfficiency = Math.min(calculatedEfficiency, 60);
+      statusLevel = 'degraded';
     }
 
     let recommendation = 'Bieżące wkłucie założono ' + currentAgeHours + 'h temu. ';

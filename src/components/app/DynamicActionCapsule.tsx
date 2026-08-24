@@ -38,7 +38,7 @@ export function DynamicActionCapsule({
   
   const [dismissed, setDismissed] = useState(() => {
     const val = sessionStorage.getItem('capsule_hypo_dismissed');
-    if (val && Date.now() - Number(val) < 60 * 60 * 1000) return true;
+    if (val && Date.now() - Number(val) < 15 * 60 * 1000) return true;
     return false;
   });
 
@@ -87,25 +87,10 @@ export function DynamicActionCapsule({
 
   const isLow = useMemo(() => {
     if (dismissed) return false;
+    // Cukier poniżej lub równy 70 mg/dL to bezwzględna hipoglikemia o najwyższym priorytecie
     if (!lastGlucose || lastGlucose > 70) return false;
-    
-    const now = Date.now();
-    const twoHoursAgo = now - 2 * 60 * 60 * 1000;
-    
-    const sortedLogs = [...(logs || [])].sort((a, b) => {
-      const tsA = a.timestamp || new Date(a.createdAt).getTime();
-      const tsB = b.timestamp || new Date(b.createdAt).getTime();
-      return tsB - tsA;
-    });
-
-    const recentCarbs = sortedLogs.filter(l => {
-      if (l.type !== 'meal') return false;
-      const ts = l.timestamp || new Date(l.createdAt).getTime();
-      return ts >= twoHoursAgo;
-    });
-
-    return recentCarbs.length === 0;
-  }, [logs, lastGlucose, dismissed]);
+    return true;
+  }, [lastGlucose, dismissed]);
 
   // Calculate hardware warnings
   const hardwareWarning = useMemo(() => {

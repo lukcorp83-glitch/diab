@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Utensils, BookOpen, Tag, Sparkles, ChevronRight, Camera } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -54,7 +55,7 @@ export default function CameraModeModal({
     }
   ];
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <motion.div
@@ -134,6 +135,7 @@ export default function CameraModeModal({
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

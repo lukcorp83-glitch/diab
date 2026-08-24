@@ -37,6 +37,17 @@ interface AppNotification {
   read: boolean;
 }
 
+const DEFAULT_NOTIFICATION_PREFS = {
+  hypo: true,
+  hyper: true,
+  reminders: true,
+  predictions: true,
+  pumpBolusPreMeal: true,
+  mealDetected: true,
+  nightSnackReminder: false,
+  hypoProtection: true
+};
+
 interface NotificationCenterProps {
   userSettings: UserSettings | null;
   theme: 'light' | 'dark';
@@ -53,13 +64,15 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [localPrefs, setLocalPrefs] = useState<any>(() => {
-    return userSettings?.notificationPrefs || {
-      hypo: true,
-      hyper: true,
-      reminders: true,
-      predictions: true,
-      pumpBolusPreMeal: true,
-      mealDetected: true
+    let savedLocal: any = {};
+    try {
+      const saved = localStorage.getItem('notificationPrefs');
+      if (saved) savedLocal = JSON.parse(saved);
+    } catch(e) {}
+    return {
+      ...DEFAULT_NOTIFICATION_PREFS,
+      ...savedLocal,
+      ...(userSettings?.notificationPrefs || {})
     };
   });
 
@@ -69,7 +82,11 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
 
   useEffect(() => {
     if (userSettings?.notificationPrefs) {
-      setLocalPrefs(userSettings.notificationPrefs);
+      setLocalPrefs((prev: any) => ({
+        ...DEFAULT_NOTIFICATION_PREFS,
+        ...prev,
+        ...userSettings.notificationPrefs
+      }));
     }
     if (userSettings?.apkSystemNotificationsEnabled !== undefined) {
       setApkNotificationsEnabled(userSettings.apkSystemNotificationsEnabled);
@@ -209,9 +226,9 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
 
   const togglePref = async (prefKey: string) => {
     Haptics.selection();
-    const currentVal = localPrefs[prefKey] ?? true;
+    const currentVal = localPrefs[prefKey] ?? (DEFAULT_NOTIFICATION_PREFS as any)[prefKey] ?? true;
     const newVal = !currentVal;
-    const updatedPrefs = { ...localPrefs, [prefKey]: newVal };
+    const updatedPrefs = { ...DEFAULT_NOTIFICATION_PREFS, ...localPrefs, [prefKey]: newVal };
 
     setLocalPrefs(updatedPrefs);
     if (setUserSettings && userSettings) {
