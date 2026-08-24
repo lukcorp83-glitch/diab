@@ -1,3 +1,4 @@
+import { Haptics } from '../lib/haptics';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -38,7 +39,19 @@ interface Message {
 export default function GlikoChat({ petData, settings }: { petData: any, settings?: any }) {
  const { t } = useTranslation();
  const isKidMode = settings?.childMode ?? true;
+  const [activeAiModel, setActiveAiModel] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-2.5-flash');
+
+  useEffect(() => {
+    const handleModelUsed = (e: any) => {
+      if (e.detail?.model) {
+        setActiveAiModel(e.detail.model);
+      }
+    };
+    window.addEventListener('glikocontrol_ai_model_used', handleModelUsed);
+    return () => window.removeEventListener('glikocontrol_ai_model_used', handleModelUsed);
+  }, []);
  const [isListening, setIsListening] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
  const [isSpeaking, setIsSpeaking] = useState(false);
  const [voiceEnabled, setVoiceEnabled] = useState(() => {
  const saved = localStorage.getItem('gliko_voice_enabled');
@@ -365,17 +378,26 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  }
  };
 
- const clearChat = () => {
- if (window.confirm(i18n.t('auto.czy_na_pewno_chcesz_wyczyscic', { defaultValue: i18n.t('auto.czy_na_pewno_chcesz_wyczy', { defaultValue: "Czy na pewno chcesz wyczyścić naszą rozmowę? 🐾" }) }))) {
- const initialMessage: Message = {
- id: 'initial-' + Date.now(),
- role: 'model',
- text: !isKidMode ? i18n.t('auto.wyczyscilem_rozmowe_w_czym_mog', { defaultValue: i18n.t('auto.wyczyscilem_rozmowe_w_czy', { defaultValue: "Wyczyściłem rozmowę. W czym mogę pomóc?" }) }) : i18n.t('auto.czesc_znowu_o_czym_chcesz_tera', { defaultValue: i18n.t('auto.czesc_znowu_o_czym_chcesz', { defaultValue: "Cześć znowu! ✨ O czym chcesz teraz pogadać?" }) }),
- timestamp: Date.now()
- };
- setMessages([initialMessage]);
- }
- };
+  const handleConfirmClear = () => {
+    setShowClearConfirm(false);
+    Haptics.medium();
+    const initialMessage: Message = {
+      id: 'initial-' + Date.now(),
+      role: 'model',
+      text: !isKidMode 
+        ? i18n.t('auto.wyczyscilem_rozmowe_w_czym_mog', { defaultValue: "Wyczyściłem rozmowę. W czym mogę pomóc?" }) 
+        : i18n.t('auto.czesc_znowu_o_czym_chcesz_tera', { defaultValue: "Cześć znowu! ✨ O czym chcesz teraz pogadać?" }),
+      timestamp: Date.now()
+    };
+    setMessages([initialMessage]);
+    localStorage.removeItem('gliko_chat_history');
+    toast.success(t('auto.rozmowa_wyczyszczona', { defaultValue: "Rozmowa została wyczyszczona" }));
+  };
+
+  const clearChat = () => {
+    Haptics.light();
+    setShowClearConfirm(true);
+  };
 
  const suggestions = [
  "Co to jest insulina?",
@@ -394,14 +416,20 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  <div className="absolute bottom-0 left-0 w-24 h-24 bg-pink-400/20 rounded-full -ml-10 -mb-10 blur-xl" />
  
  <div className="flex items-center gap-3 landscape:gap-2 relative z-10">
- <div className="landscape:hidden">{renderPetAvatar('md')}</div>
- <div className="hidden landscape:block">{renderPetAvatar('sm')}</div>
- <div>
- <h2 className="text-xl landscape:text-lg md:text-2xl font-black flex items-center gap-2">
- {(!isKidMode) ? 'Asystent Medyczny' : (petData?.name || 'Gliko')}
- <Sparkles size={16} className="text-yellow-300 animate-pulse" />
- </h2>
- </div>
+          <div className="landscape:hidden">{renderPetAvatar('md')}</div>
+          <div className="hidden landscape:block">{renderPetAvatar('sm')}</div>
+          <div>
+            <h2 className="text-xl landscape:text-lg md:text-2xl font-black flex items-center gap-2">
+              {(!isKidMode) ? t('auto.asystent_medyczny_ai', { defaultValue: 'Inteligentny Asystent AI' }) : (petData?.name || 'Gliko')}
+              <Sparkles size={16} className="text-yellow-300 animate-pulse" />
+            </h2>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-white bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20 shadow-sm">
+                ⚡ {activeAiModel.replace('gemini-', 'Gemini ').replace('-flash', ' Flash').replace('-pro', ' Pro')}
+              </span>
+            </div>
+          </div>
  </div>
  <div className="flex items-center gap-2">
  <button 
@@ -599,7 +627,46 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  <div className="h-px bg-slate-100 dark:bg-slate-800 flex-1" />
  </div>
  </div>
- </div>
+ 
+      {/* Custom In-App Modal do czyszczenia czatu */}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center text-center overflow-hidden"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 text-rose-500 flex items-center justify-center mb-4 shadow-sm">
+                <Trash2 size={26} />
+              </div>
+              <h3 className="font-black text-base text-slate-900 dark:text-white mb-1.5">
+                {t('auto.wyczyscic_historie_rozmowy', { defaultValue: "Wyczyścić rozmowę?" })}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-6 max-w-[260px] leading-relaxed">
+                {t('auto.wszystkie_wiadomosci_zostana_usuniete', { defaultValue: "Wszystkie dotychczasowe wiadomości zostaną bezpowrotnie usunięte." })}
+              </p>
+
+              <div className="flex gap-2.5 w-full">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-black text-xs uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95 cursor-pointer"
+                >
+                  {t('auto.anuluj', { defaultValue: "Anuluj" })}
+                </button>
+                <button
+                  onClick={handleConfirmClear}
+                  className="flex-1 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-rose-500/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  {t('auto.wyczysc', { defaultValue: "Wyczyść" })}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
  );
 }
-

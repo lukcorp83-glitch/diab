@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.24';
+export const CURRENT_VERSION = '6.0.25';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+      {
+    version: "6.0.25",
+    date: "2026-08-24",
+    title: "Najnowsze Modele Gemini (3.6/2.5), Widżet Posiłków, Szybkie Skróty i Nowy Czat",
+    changes: [
+      "Nowy kaskadowy silnik AI – automatyczne łączenie z najnowszymi modelami Gemini (3.7 / 3.6 / 2.5 Flash) oraz podgląd aktywnego modelu na żywo",
+      "Nowy widżet „Zapisane Posiłki & Przepisy” na Pulpicie z obsługą przeciągania myszką w przeglądarce i 1-Click wrzucaniem na Talerz",
+      "Zastąpienie systemowych okienek przeglądarki autorskim, eleganckim modalem czyszczenia historii rozmowy",
+      "Dodano stałe ostrzeżenia medyczne o konieczności konsultacji dawek z lekarzem diabetologiem",
+      "Inteligentne wyszukiwanie produktów z wagami prefiksowymi i pełną tolerancją polskich znaków diakrytycznych"
+    ]
+  },
   {
     version: "6.0.24",
     date: "2026-08-24",
@@ -231,6 +243,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+      {
+    version: "6.0.25",
+    date: "2026-08-24",
+    title: "Najnowsze Modele Gemini (3.6/2.5), Widżet Posiłków, Szybkie Skróty i Nowy Czat",
+    changes: [
+      "Nowy kaskadowy silnik AI – automatyczne łączenie z najnowszymi modelami Gemini (3.7 / 3.6 / 2.5 Flash) oraz podgląd aktywnego modelu na żywo",
+      "Nowy widżet „Zapisane Posiłki & Przepisy” na Pulpicie z obsługą przeciągania myszką w przeglądarce i 1-Click wrzucaniem na Talerz",
+      "Zastąpienie systemowych okienek przeglądarki autorskim, eleganckim modalem czyszczenia historii rozmowy",
+      "Dodano stałe ostrzeżenia medyczne o konieczności konsultacji dawek z lekarzem diabetologiem",
+      "Inteligentne wyszukiwanie produktów z wagami prefiksowymi i pełną tolerancją polskich znaków diakrytycznych"
+    ]
+  },
   {
     version: "6.0.24",
     date: "2026-08-24",

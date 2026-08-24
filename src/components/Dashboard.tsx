@@ -64,6 +64,7 @@ import GlikoWidget from "./GlikoWidget";
 import QuickBolusWidget from './dashboard/widgets/QuickBolusWidget';
 import QuickMeasurementWidget from './dashboard/widgets/QuickMeasurementWidget';
 import ShortcutsWidget from './dashboard/widgets/ShortcutsWidget';
+import SavedMealsWidget from './dashboard/widgets/SavedMealsWidget';
 import MainStatsWidget from './dashboard/widgets/MainStatsWidget';
 import HistoryMeasurementsWidget from './dashboard/widgets/HistoryMeasurementsWidget';
 import HistoryTreatmentsWidget from './dashboard/widgets/HistoryTreatmentsWidget';
@@ -117,8 +118,6 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
     case "infusion_reminder":
     case "pen_tracker":
       return ["1x1", "2x1"];
-    case "assistant":
-      return ["2x1", "1x1"];
     case "tips":
       return ["2x1", "2x2"];
     case "glikosense_suggestions":
@@ -150,10 +149,10 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "infusion_reminder", name: i18n.t('auto.wymiana_wkłucia_urządzenie', { defaultValue: i18n.t('auto.wymiana_wklucia_urzadzeni', { defaultValue: "Wymiana wkłucia (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
   { id: "pen_tracker", name: i18n.t('auto.widzet_peny', { defaultValue: "Zasoby Insuliny (Peny)" }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
   { id: "quick_bolus", name: i18n.t('auto.zapis_bolusa_kalkulator_przycisk', { defaultValue: 'Zapis bolusa / kalkulator (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
-  { id: "assistant", name: i18n.t('auto.skrót_do_asystenta_ai', { defaultValue: i18n.t('auto.skrot_do_asystenta_ai', { defaultValue: "Skrót do Asystenta AI" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "tips", name: i18n.t('auto.porady_i_ciekawostki_didyouknow', { defaultValue: 'Porady i ciekawostki (DidYouKnow)' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "glikosense_suggestions", name: i18n.t('auto.sugestie_i_analizy_glikosense', { defaultValue: 'Sugestie i analizy GlikoSense' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
-  { id: "shortcuts", name: i18n.t('auto.szybkie_akcje_i_ulubione_posiłki', { defaultValue: i18n.t('auto.szybkie_akcje_i_ulubione', { defaultValue: "Szybkie akcje i ulubione posiłki" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "shortcuts", name: i18n.t('auto.szybkie_skroty', { defaultValue: "Szybkie skróty" }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "saved_meals", name: i18n.t('auto.zapisane_posilki_widzet', { defaultValue: "Zapisane posiłki i przepisy" }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
   { id: "quick_measurement", name: i18n.t('auto.szybki_pomiar_glikemii_przycisk', { defaultValue: 'Szybki pomiar glikemii (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
   { id: "history_measurements", name: i18n.t('auto.historia_ostatnich_pomiarów', { defaultValue: i18n.t('auto.historia_ostatnich_pomiar', { defaultValue: "Historia ostatnich pomiarów" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
   { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
@@ -321,11 +320,11 @@ export default function Dashboard({
   }, [logs]);
 
 
-  const [widgets, setWidgets] = useState<DashboardWidget[]>(() => {
+    const [widgets, setWidgets] = useState<DashboardWidget[]>(() => {
     let saved = null;
     let fromFirebase = false;
 
-    if (settings && (settings as any).dashboardLayout && Array.isArray((settings as any).dashboardLayout)) {
+    if (settings && (settings as any).dashboardLayout && Array.isArray((settings as any).dashboardLayout) && (settings as any).dashboardLayout.length > 0) {
       saved = JSON.stringify((settings as any).dashboardLayout);
       fromFirebase = true;
     } else {
@@ -337,15 +336,18 @@ export default function Dashboard({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           // Merge with DEFAULT_WIDGETS in case we added new widgets in future versions
           const merged = DEFAULT_WIDGETS.map(dw => {
             const match = parsed.find(w => w && w.id === dw.id);
+            if (!match) {
+              return dw;
+            }
             let mappedSize = dw.size;
             if (match && match.size) {
               const sz = match.size;
               if (sz === 'full' || sz === '2x1' || sz === '2x2') {
-                const ids_2x2 = ['main_stats', 'neural_pet', 'history', 'tips', 'shortcuts'];
+                const ids_2x2 = ['main_stats', 'neural_pet', 'history', 'tips', 'shortcuts', 'saved_meals'];
                 mappedSize = ids_2x2.includes(dw.id) ? '2x2' : '2x1';
               } else if (sz === 'half' || sz === '1x1') {
                 mappedSize = '1x1';
@@ -355,16 +357,19 @@ export default function Dashboard({
                 mappedSize = sz;
               }
             }
-            // Zapewniamy sensowny rozmiar omijając złe / zepsute rozmiary
             const allowed = getAllowedSizesForWidget(dw.id);
             if (!allowed.includes(mappedSize as any)) {
               mappedSize = allowed[0];
             }
             const restoredShape = match?.shape ? match.shape : dw.shape;
-            return match ? { ...dw, visible: match.visible !== false, size: dw.canResize ? (mappedSize as any) : dw.size, shape: restoredShape } : dw;
+            return {
+              ...dw,
+              visible: match.visible !== false,
+              size: dw.canResize ? (mappedSize as any) : dw.size,
+              shape: restoredShape
+            };
           });
           
-          // Sorter according to parsed order
           const order = parsed.filter(w => w && w.id).map(w => w.id);
           const sorted = [...merged].sort((a, b) => {
             const idxA = order.indexOf(a.id);
@@ -377,8 +382,13 @@ export default function Dashboard({
           loadedWidgets = sorted;
         }
       } catch (e) {
-        console.error("Error loading dashboard layout:", e);
+        console.error("Failed to parse dashboard widgets from localStorage/Firebase:", e);
       }
+    }
+
+    // Bezpiecznik: jeśli z jakiegokolwiek powodu wszystkie widżety zostały wyłączone lub tablica jest pusta, załaduj domyślne
+    if (!loadedWidgets || loadedWidgets.filter(w => w && w.visible).length === 0) {
+      loadedWidgets = DEFAULT_WIDGETS;
     }
 
     return loadedWidgets;
@@ -1213,6 +1223,17 @@ export default function Dashboard({
           />
         );
 
+      case "saved_meals":
+        return (
+          <SavedMealsWidget
+            user={user}
+            isEditingLayout={isEditingLayout}
+            setTab={setTab}
+            onAction={onAction}
+            size={size}
+          />
+        );
+
       case "medications":
         return (
           <div className="w-full h-full p-0">
@@ -1849,7 +1870,7 @@ export default function Dashboard({
         {shortcuts.length > 0 && (
           <div className="glass-card !p-6 flex flex-col gap-4 border border-white/50 dark:border-white/5 shadow-lg">
             <div className="flex justify-between items-center px-1">
-              <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">{t('auto.moje_ulubione', { defaultValue: 'MOJE ULUBIONE' })}</h4>
+              <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">{t('auto.szybkie_skroty_naglowek', { defaultValue: 'SZYBKIE SKRÓTY' })}</h4>
               <button 
                 onClick={() => {
                   Haptics.light();

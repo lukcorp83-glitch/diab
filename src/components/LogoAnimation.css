@@ -3,30 +3,43 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #f4f5f7; /* Jasne tło z projektu */
+  background-color: #f4f5f7;
   height: 100vh;
+  width: 100vw;
+  transition: background-color 0.3s ease;
+}
+
+html.dark .logo-container,
+body.dark .logo-container,
+.dark .logo-container {
+  background-color: #020617 !important;
 }
 
 /* Animacja wjazdu głównego klocka */
 .logo-box {
   width: 150px;
   height: 150px;
-  background-color: #4a4e5d; /* Ciemnoszary kolor ikony */
+  background-color: #4a4e5d;
   border-radius: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
   animation: boxEntrance 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+html.dark .logo-box,
+body.dark .logo-box,
+.dark .logo-box {
+  background-color: #1e293b;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(138,43,226,0.2);
+}
+
 /* Efekt "rysowania" łuku za pomocą stroke-dash */
-/* Długość ścieżki (path) wynosi ok 175 jednostek. */
 .animated-arc {
   stroke-dasharray: 180;
   stroke-dashoffset: 180;
   transform-origin: center;
-  /* Usunięto transform: rotate(-90deg) ponieważ path ma już właściwe koordynaty wycięcia! */
   animation: drawArc 1.2s 0.4s ease-in-out forwards;
 }
 
@@ -49,6 +62,12 @@
   animation: fadeInText 0.6s 1.5s ease-out forwards;
 }
 
+html.dark .logo-text,
+body.dark .logo-text,
+.dark .logo-text {
+  color: #64748b;
+}
+
 /* --- KEYFRAMES --- */
 @keyframes boxEntrance {
   0% { transform: scale(0.5); opacity: 0; }
@@ -57,7 +76,7 @@
 
 @keyframes drawArc {
   0% { stroke-dashoffset: 180; }
-  100% { stroke-dashoffset: 0; } /* Rysujemy idealnie całą ścieżkę path (wycięcie jest już w niej wbudowane) */
+  100% { stroke-dashoffset: 0; }
 }
 
 @keyframes arrowEntrance {

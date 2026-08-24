@@ -196,6 +196,26 @@ export default function MealPlate({
   const [showCameraModeModal, setShowCameraModeModal] = useState(false);
   const [restaurantMenuResult, setRestaurantMenuResult] = useState<RestaurantMenuResult | null>(null);
   const [showRestaurantMenuModal, setShowRestaurantMenuModal] = useState(false);
+
+  useEffect(() => {
+    const checkPendingLoad = () => {
+      const pending = localStorage.getItem("glikocontrol_pending_plate_load");
+      if (pending) {
+        try {
+          const items = JSON.parse(pending);
+          if (Array.isArray(items) && items.length > 0) {
+            setPlate(items);
+            localStorage.removeItem("glikocontrol_pending_plate_load");
+          }
+        } catch (e) {
+          console.error("Error loading pending plate:", e);
+        }
+      }
+    };
+    checkPendingLoad();
+    window.addEventListener("glikocontrol_load_plate", checkPendingLoad);
+    return () => window.removeEventListener("glikocontrol_load_plate", checkPendingLoad);
+  }, [setPlate]);
  const labelFileInputRef = useRef<HTMLInputElement>(null);
  const scannerRef = useRef<any>(null);
 
@@ -221,26 +241,44 @@ export default function MealPlate({
  const [searchError, setSearchError] = useState<string | null>(null);
  const { data: qCustomProducts = [] } = useCustomProducts(user);
  const { data: qCommunityProducts = [] } = useCommunityProducts(user);
+ const { data: savedMeals = [], isLoading: isLoadingSavedMeals } = useSavedMeals(user);
 
   const libBase = LIB_BASE;
 
   const allLocal = useMemo(() => {
+    const mappedMeals = (savedMeals || []).map((sm: any) => {
+      const totalCarbs = sm.totalCarbs || sm.items?.reduce((s: number, i: any) => s + (i.carbs || 0), 0) || 0;
+      const totalProtein = sm.totalProtein || sm.items?.reduce((s: number, i: any) => s + (i.protein || 0), 0) || 0;
+      const totalFat = sm.totalFat || sm.items?.reduce((s: number, i: any) => s + (i.fat || 0), 0) || 0;
+      const totalKcal = sm.totalCalories || sm.items?.reduce((s: number, i: any) => s + (i.calories || i.kcal || 0), 0) || 0;
+      return {
+        id: sm.id,
+        name: sm.name,
+        namePl: sm.name,
+        carbs: Number(totalCarbs.toFixed(1)),
+        protein: Number(totalProtein.toFixed(1)),
+        fat: Number(totalFat.toFixed(1)),
+        calories: Number(totalKcal.toFixed(0)),
+        gi: 45,
+        category: "Gotowe Posiłki",
+        isSavedMeal: true,
+        isCustom: true,
+        recipe: sm.recipe || '',
+        description: sm.description || '',
+        dietName: sm.dietName || '',
+        items: sm.items || [],
+        timestamp: sm.timestamp || Date.now()
+      } as any;
+    });
+
     const allLocalRaw = [
+      ...mappedMeals,
       ...qCustomProducts.map((p: any) => ({ ...p, isCustom: true })), 
       ...qCommunityProducts.map((p: any) => ({ ...p, isCommunity: true })), 
       ...libBase
     ];
- // Remove duplicates based on lowercased name
- const uniqueMap = new Map();
- for (const prod of allLocalRaw) {
- if (!prod) continue;
- const key = getProductName(prod, i18n.language).toLowerCase().trim();
- if (!uniqueMap.has(key)) {
- uniqueMap.set(key, prod);
- }
- }
- return Array.from(uniqueMap.values());
- }, [qCustomProducts, qCommunityProducts, libBase, i18n.language]);
+    return allLocalRaw;
+  }, [savedMeals, qCustomProducts, qCommunityProducts, libBase]);
 
 
  const openShortcutConfirmModal = (product: Product) => {
@@ -357,8 +395,7 @@ export default function MealPlate({
  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
  const [isMealSaved, setIsMealSaved] = useState(false);
  const saveMealToLibrary = () => { setIsSaveModalOpen(true); };
- const [expandedMeal, setExpandedMeal] = useState<{ meal: any; items: any[] } | null>(null);
- const { data: savedMeals = [], isLoading: isLoadingSavedMeals } = useSavedMeals(user);
+  const [expandedMeal, setExpandedMeal] = useState<{ meal: any; items: any[] } | null>(null);
 
  const now = new Date();
  const tzOffset = now.getTimezoneOffset() * 60000;
@@ -985,6 +1022,11 @@ export default function MealPlate({
           }
           setAnalysis(htmlAnalysis);
 
+          // Automatycznie ustawiamy nazwę posiłku rozpoznaną przez AI
+          if (result.mealName) {
+            setMealName(result.mealName);
+          }
+
           if (result.ingredients && Array.isArray(result.ingredients) && result.ingredients.length > 0) {
             const itemsToAdd = result.ingredients.map((ing: any, idx: number) => {
               const ingWeight = ing.weight && ing.weight > 0 ? ing.weight : 100;
@@ -1004,7 +1046,12 @@ export default function MealPlate({
             });
 
             setPlate((prev) => [...prev, ...itemsToAdd]);
-            toast.success(i18n.t('auto.wykryto_skladniki_ai', { defaultValue: `Wykryto ${itemsToAdd.length} składników posiłku! Składniki dodano na talerz.`, count: itemsToAdd.length }));
+            toast.success(
+              result.mealName 
+                ? `Rozpoznano: ${result.mealName} (${itemsToAdd.length} składników dodano na talerz)`
+                : `Wykryto ${itemsToAdd.length} składników posiłku!`,
+              { duration: 4000 }
+            );
           } else {
             const estimatedWeight = result.weight && result.weight > 0 ? result.weight : 100;
             const p = {

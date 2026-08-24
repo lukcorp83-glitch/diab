@@ -3,6 +3,7 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect } from "react";
 import { useQueryClient } from '@tanstack/react-query';
 import { useCustomProducts, useCommunityProducts } from '../hooks/queries/useFoodDatabase';
+import { useSavedMeals } from '../hooks/queries/useSavedMeals';
 import { LIB_BASE } from '../data/foodDatabase';
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";

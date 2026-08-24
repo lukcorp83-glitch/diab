@@ -2,24 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { getEffectiveUid } from '../lib/utils';
 import { UserSettings } from '../types';
 import { geminiService } from '../services/gemini';
-import { Loader2, Zap, Target, Edit2, ChevronDown, ChevronUp, Sparkles, Heart, RefreshCw, ChefHat, Info } from 'lucide-react';
+import { Loader2, Zap, Target, Edit2, ChevronDown, ChevronUp, Sparkles, Heart, RefreshCw, ChefHat, Info, Bookmark, Check, Trash2, BookOpen, Utensils } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
+import { useQueryClient } from '@tanstack/react-query';
+
 interface DietManagerProps {
- user: User;
+ user?: User | null;
  settings: UserSettings;
  activeDietData: any;
 }
 
 export default function DietManager({ user, settings, activeDietData }: DietManagerProps) {
  const { t } = useTranslation();
+ const queryClient = useQueryClient();
  const [tdee, setTdee] = useState<number | ''>(settings?.tdee || '');
  const [isEditingTdee, setIsEditingTdee] = useState(!settings?.tdee);
  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
@@ -52,9 +55,14 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  
  Haptics.medium();
  
+ const effectiveUser = user || auth.currentUser;
+ const targetUid = getEffectiveUid(effectiveUser);
+
  try {
  const updated = { ...settings, tdee: Number(tdee), allergies };
- await setDoc(doc(db, 'users', getEffectiveUid(user), 'settings', 'profile'), updated, { merge: true });
+ if (targetUid) {
+ await setDoc(doc(db, 'users', targetUid, 'settings', 'profile'), updated, { merge: true });
+ }
  setIsEditingTdee(false);
  toast.success('Zapisano ustawienia');
  } catch (e) {
@@ -64,16 +72,29 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  };
 
  const generatePlan = async () => {
- if (!settings.tdee) {
- toast.error('Najpierw ustaw swoje TDEE!');
- setIsEditingTdee(true);
- return;
- }
+    const effectiveTdee = Number(tdee) || Number(settings?.tdee) || 2000;
+    if (effectiveTdee < 800) {
+      toast.error('Ustaw poprawne zapotrzebowanie kaloryczne (np. 2000 kcal)');
+      setIsEditingTdee(true);
+      return;
+    }
+
+    const effectiveUser = user || auth.currentUser;
+    const targetUid = getEffectiveUid(effectiveUser);
+
+    if (!settings.tdee || settings.tdee !== effectiveTdee) {
+      try {
+        const updated = { ...settings, tdee: effectiveTdee, allergies };
+        if (targetUid) {
+          setDoc(doc(db, 'users', targetUid, 'settings', 'profile'), updated, { merge: true }).catch(() => {});
+        }
+      } catch(e) {}
+    }
  
- Haptics.impact();
- setIsLoadingPlan(true);
+    Haptics.impact();
+    setIsLoadingPlan(true);
  
- const plan = await geminiService.generateMealPlan(activeDietData.name, settings.tdee, 3, settings.allergies);
+    const plan = await geminiService.generateMealPlan(activeDietData.name, effectiveTdee, 3, settings?.allergies || allergies);
  
  if (plan && plan.days) {
  setMealPlan(plan);
@@ -109,24 +130,20 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  };
 
  const generateSingleMeal = async () => {
- if (!settings.tdee) {
- toast.error('Najpierw ustaw zapotrzebowanie kaloryczne');
- return;
- }
- 
- Haptics.impact();
- setIsLoadingSingleMeal(true);
- setSingleMealResult(null);
- 
- // Estimate kcal based on type
- let fraction = 0.3; // Default 30%
- if (singleMealType === i18n.t('auto.sniadanie', { defaultValue: i18n.t('auto.sniadanie', { defaultValue: "Śniadanie" }) }) || singleMealType === 'Kolacja') fraction = 0.25;
- if (singleMealType === 'Obiad') fraction = 0.35;
- if (singleMealType === i18n.t('auto.przekaska', { defaultValue: i18n.t('auto.przekaska', { defaultValue: "Przekąska" }) }) || singleMealType === 'Deser') fraction = 0.15;
+    const effectiveTdee = Number(tdee) || Number(settings?.tdee) || 2000;
 
- const targetKcal = Math.round(settings.tdee * fraction);
+    Haptics.impact();
+    setIsLoadingSingleMeal(true);
+    setSingleMealResult(null);
  
- const meal = await geminiService.generateReplacementMeal(activeDietData.name, targetKcal, singleMealType, settings.allergies);
+    let fraction = 0.3;
+    if (singleMealType === 'Śniadanie' || singleMealType === 'Kolacja') fraction = 0.25;
+    if (singleMealType === 'Obiad') fraction = 0.35;
+    if (singleMealType === 'Przekąska' || singleMealType === 'Deser') fraction = 0.15;
+
+    const targetKcal = Math.round(effectiveTdee * fraction);
+ 
+    const meal = await geminiService.generateReplacementMeal(activeDietData.name, targetKcal, singleMealType, settings?.allergies || allergies);
  
  if (meal) {
  setSingleMealResult(meal);
@@ -138,39 +155,76 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  setIsLoadingSingleMeal(false);
  };
 
- const saveToCookbook = async (e: React.MouseEvent, meal: any, dayIdx: number, mealIdx: number) => {
- e.stopPropagation();
+ const saveToCookbook = async (e: React.MouseEvent | null, meal: any, key: string) => {
+ if (e) e.stopPropagation();
  
- const mealKey = `${dayIdx}-${mealIdx}`;
- if (savedMealIds.has(mealKey)) {
- toast(i18n.t('auto.ten_posilek_jest_juz_w_twojej', { defaultValue: i18n.t('auto.ten_posilek_jest_juz_w_tw', { defaultValue: "Ten posiłek jest już w Twojej bazie" }) }), { icon: 'ℹ️' });
+ if (savedMealIds.has(key)) {
+ toast(i18n.t('auto.ten_posilek_jest_juz_w_twojej', { defaultValue: "Ten posiłek jest już w Twojej bazie" }), { icon: 'ℹ️' });
+ return;
+ }
+
+ const effectiveUser = user || auth.currentUser;
+ const targetUid = getEffectiveUid(effectiveUser);
+
+ if (!targetUid) {
+ toast.error('Zaloguj się, aby zapisać przepis');
  return;
  }
 
  Haptics.medium();
  
  try {
- await addDoc(collection(db, 'users', getEffectiveUid(user), 'savedMeals'), {
+ await addDoc(collection(db, 'users', targetUid, 'savedMeals'), {
  name: meal.name,
+ recipe: meal.recipe || '',
+ description: meal.description || '',
+ dietName: activeDietData?.name || 'Dieta',
+ type: meal.type || 'Posiłek',
+ totalCarbs: meal.carbs || 0,
+ totalProtein: meal.protein || 0,
+ totalFat: meal.fat || 0,
+ totalCalories: meal.kcal || 0,
  items: [{
+ id: `diet_${Date.now()}`,
  name: meal.name,
- carbs: meal.carbs,
- protein: meal.protein,
- fat: meal.fat,
- calories: meal.kcal,
+ carbs: meal.carbs || 0,
+ protein: meal.protein || 0,
+ fat: meal.fat || 0,
+ calories: meal.kcal || 0,
  weight: 100,
  quantity: 1,
- isAI: true
+ isAI: true,
+ recipe: meal.recipe || '',
+ category: activeDietData?.name || 'Dieta'
  }],
- cookingMethod: 'raw', // placeholder
+ cookingMethod: 'diet_ai',
  timestamp: Date.now()
  });
+
+ // Zapis do Własnych Produktów / Dań (widoczne w Bazie Żywności i Wyszukiwarce Talerza)
+ await addDoc(collection(db, 'users', targetUid, 'customProducts'), {
+ name: `${meal.name} (${activeDietData?.name || 'Dieta'})`,
+ carbs: Number((meal.carbs || 0).toFixed(1)),
+ protein: Number((meal.protein || 0).toFixed(1)),
+ fat: Number((meal.fat || 0).toFixed(1)),
+ calories: Number((meal.kcal || 0).toFixed(0)),
+ gi: 45,
+ category: activeDietData?.name || 'Diety AI',
+ recipe: meal.recipe || '',
+ description: meal.description || '',
+ isCustom: true,
+ isDietAI: true,
+ timestamp: Date.now()
+ });
+
+ queryClient.invalidateQueries({ queryKey: ['customProducts'] });
+ queryClient.invalidateQueries({ queryKey: ['savedMeals'] });
  
- setSavedMealIds(prev => new Set(prev).add(mealKey));
- toast.success(i18n.t('auto.dodano_do_bazy_moj_talerz_zjed', { defaultValue: i18n.t('auto.dodano_do_bazy_moj_talerz', { defaultValue: "Dodano do Bazy Mój Talerz (Zjedz)!" }) }));
+ setSavedMealIds(prev => new Set(prev).add(key));
+ toast.success('Przepis zapisano w Mojej Bazie Dań (Talerz / Baza)!');
  } catch (err) {
- console.error(err);
- toast.error(i18n.t('auto.blad_podczas_zapisywania', { defaultValue: i18n.t('auto.blad_podczas_zapisywania', { defaultValue: "Błąd podczas zapisywania" }) }));
+ console.error("[DietManager] Error saving meal:", err);
+ toast.error(i18n.t('auto.blad_podczas_zapisywania', { defaultValue: "Błąd podczas zapisywania" }));
  }
  };
 
@@ -324,7 +378,7 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  )}
  </button>
  <button 
- onClick={(e) => saveToCookbook(e, m, day.dayNumber, idx)}
+ onClick={(e) => saveToCookbook(e, m, `${day.dayNumber}-${idx}`)}
  className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
  savedMealIds.has(`${day.dayNumber}-${idx}`) 
  ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-500' 
@@ -354,6 +408,28 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  <div className="flex-1 text-[9px] font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded text-center">{t('auto.b', { defaultValue: 'B:' })} {m.protein}g</div>
  <div className="flex-1 text-[9px] font-bold bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 px-2 py-1 rounded text-center">{t('auto.t', { defaultValue: 'T:' })} {m.fat}g</div>
  </div>
+
+ <button
+   type="button"
+   onClick={(e) => saveToCookbook(e, m, `${day.dayNumber}-${idx}`)}
+   className={`w-full mt-2.5 py-2 px-3 rounded-xl font-bold text-[11px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xs cursor-pointer ${
+     savedMealIds.has(`${day.dayNumber}-${idx}`)
+       ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+       : 'bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-rose-500/20'
+   }`}
+ >
+   {savedMealIds.has(`${day.dayNumber}-${idx}`) ? (
+     <>
+       <Check size={14} />
+       <span>Przepis zapisany w Mojej Bazie</span>
+     </>
+   ) : (
+     <>
+       <Bookmark size={14} />
+       <span>Zapisz ten przepis do Mojej Bazy</span>
+     </>
+   )}
+ </button>
  </div>
  ))}
  </motion.div>
@@ -441,6 +517,28 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  <div className="flex-1 text-[9px] font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-1.5 rounded-lg text-center">{t('auto.b', { defaultValue: 'B:' })} {singleMealResult.protein}g</div>
  <div className="flex-1 text-[9px] font-bold bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 px-2 py-1.5 rounded-lg text-center">{t('auto.t', { defaultValue: 'T:' })} {singleMealResult.fat}g</div>
  </div>
+
+ <button
+   type="button"
+   onClick={(e) => saveToCookbook(e, singleMealResult, `single-${singleMealResult.name}`)}
+   className={`w-full mt-3 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm cursor-pointer ${
+     savedMealIds.has(`single-${singleMealResult.name}`)
+       ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+       : 'bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-rose-500/20'
+   }`}
+ >
+   {savedMealIds.has(`single-${singleMealResult.name}`) ? (
+     <>
+       <Check size={15} />
+       <span>Przepis zapisany w Mojej Bazie</span>
+     </>
+   ) : (
+     <>
+       <Bookmark size={15} />
+       <span>Zapisz ten przepis do Mojej Bazy</span>
+     </>
+   )}
+ </button>
  </div>
  )}
  </div>
@@ -448,4 +546,3 @@ export default function DietManager({ user, settings, activeDietData }: DietMana
  </div>
  );
 }
-

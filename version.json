@@ -1,10 +1,10 @@
 {
-    "version": "6.0.24",
+    "version": "6.0.25",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.24_OTA.apk",
-    "buildNumber": 139,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.25_OTA.apk",
+    "buildNumber": 140,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.24! 1) Nowoczesny Dzienny TIR – pierścień tarczy z neonowym blaskiem, torem zegarowym i trójkolorowymi kapsułkami zakresów. 2) Nowy Pierścień Rotacji Wkłuć – tarcza zegarowa z łukiem cyklu, czytelną nazwą strefy i pigułką rekomendacji. 3) Uporządkowane alerty i powiadomienia – eliminacja ataku alertów po otwarciu aplikacji, natywny dźwięk systemowy na Androidzie i trwała synchronizacja reguł powiadomień. 4) Poprawki aparatu AI, edycji dat osprzętu bez duplikatów i potwierdzenie „Zjadłem teraz”.",
-    "whatsNewEn": "Version 6.0.24! 1) Modern Daily TIR – dial gauge with neon glow, background track, and tri-color range pills. 2) New Site Rotation Ring – dial gauge with cycle progress arc, crisp zone label, and recommendation pill. 3) Cleaned up alerts & notifications – eliminated alert surge on app launch, native system alert sounds on Android, and persistent notification settings. 4) AI camera fixes, non-duplicate equipment date editing, and \"Eaten now\" confirmation modal.",
-    "otaRevision": 298
+    "whatsNew": "Wersja 6.0.25! 1) Nowy silnik AI i kaskada modeli – automatyczne łączenie z najnowszymi wersjami Gemini (3.7/3.6/2.5 Flash) z podglądem aktywnego modelu na żywo. 2) Nowy widżet „Zapisane Posiłki & Przepisy” na Pulpicie z płynnym przesuwanem myszką w przeglądarce i 1-Click wrzucaniem na Talerz. 3) Dyskretne banery medyczne i autorski modal czyszczenia czatu (bez systemowych alertów). 4) Inteligentne wyszukiwanie produktów i synchronizacja bazy.",
+    "whatsNewEn": "Version 6.0.25! 1) New AI Engine & Model Cascade – real-time connection to latest Gemini (3.7/3.6/2.5 Flash) with live active model badge. 2) New \"Saved Meals & Recipes\" Dashboard Widget with mouse drag-to-scroll and 1-Click plate loading. 3) Discreet medical disclaimers and native in-app chat clearing modal. 4) Smart food search and database synchronization.",
+    "otaRevision": 299
 }

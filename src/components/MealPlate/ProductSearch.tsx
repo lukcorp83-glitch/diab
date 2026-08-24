@@ -150,22 +150,72 @@ export const ProductSearch = ({
 
  const handleOnlineSearch = () => performOnlineSearch(localSearchTerm);
 
- const browseResults = useMemo(() => {
- if (!allLocal) return [];
- let base = allLocal;
-  if (activeCategory === "custom") base = base.filter((p: Product) => p.isCustom);
-  else if (activeCategory === "community") base = base.filter((p: Product) => p.isCommunity);
-  else if (activeCategory !== "all") base = base.filter((p: Product) => p.category?.toLowerCase().includes(activeCategory.toLowerCase()));
- 
- if (searchTerm.trim()) {
- const term = searchTerm.toLowerCase();
- base = base.filter((p: Product) => {
- const name = getProductName(p, i18n.language).toLowerCase();
- return name.includes(term) || (p.brand && p.brand.toLowerCase().includes(term));
- });
- }
- return base.sort((a, b) => getProductName(a, i18n.language).localeCompare(getProductName(b, i18n.language), 'pl'));
- }, [allLocal, activeCategory, searchTerm]);
+  const normalizeStr = (str: string) => {
+    return (str || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ł/g, "l")
+      .replace(/Ł/g, "L")
+      .trim();
+  };
+
+  const browseResults = useMemo(() => {
+    if (!allLocal) return [];
+    let base = allLocal;
+    if (activeCategory === "meals") {
+      base = base.filter((p: any) => Boolean(p.isSavedMeal));
+    } else if (activeCategory === "custom") {
+      base = base.filter((p: any) => Boolean(p.isCustom) && !p.isSavedMeal);
+    } else if (activeCategory === "community") {
+      base = base.filter((p: Product) => Boolean(p.isCommunity));
+    } else if (activeCategory !== "all") {
+      base = base.filter((p: Product) => (p.category || "").toLowerCase().includes(activeCategory.toLowerCase()));
+    }
+  
+    const rawTerm = searchTerm.trim();
+    if (!rawTerm) {
+      return base.sort((a, b) => {
+        if (activeCategory === "meals") {
+          return (b.timestamp || 0) - (a.timestamp || 0);
+        }
+        return getProductName(a, i18n.language).localeCompare(getProductName(b, i18n.language), 'pl');
+      });
+    }
+
+    const termNorm = normalizeStr(rawTerm);
+
+    // Scoring dla wyszukiwania opartego o trafność prefiksową
+    const scored = base.map((p: any) => {
+      const name = getProductName(p, i18n.language);
+      const nameNorm = normalizeStr(name);
+      const words = nameNorm.split(/\s+/);
+
+      let score = 0;
+      if (nameNorm.startsWith(termNorm)) {
+        score = 100; // Nazwa zaczyna się dokładnie od szukanej frazy (np. "Ser" dla "s")
+      } else if (words.some(w => w.startsWith(termNorm))) {
+        score = 80; // Któreś ze słów zaczyna się od frazy (np. "Chleb słonecznikowy")
+      } else if (nameNorm.includes(termNorm)) {
+        score = 50; // Zawiera frazę w środku słowa
+      } else if (p.brand && normalizeStr(p.brand).includes(termNorm)) {
+        score = 30; // Marka
+      } else if (p.recipe && normalizeStr(p.recipe).includes(termNorm)) {
+        score = 10; // W treści przepisu
+      }
+
+      return { product: p, score, nameNorm };
+    }).filter(item => item.score > 0);
+
+    return scored.sort((a, b) => {
+      // 1. Najwyższy wynik trafności
+      if (b.score !== a.score) return b.score - a.score;
+      // 2. Krótsza nazwa (bardziej precyzyjne dopasowanie)
+      if (a.nameNorm.length !== b.nameNorm.length) return a.nameNorm.length - b.nameNorm.length;
+      // 3. Alfabetycznie
+      return a.nameNorm.localeCompare(b.nameNorm, 'pl');
+    }).map(item => item.product);
+  }, [allLocal, activeCategory, searchTerm]);
 
   return (
   <>
@@ -232,20 +282,30 @@ export const ProductSearch = ({
  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest px-2 mb-2">Wyniki wyszukiwania</h3>
  </div>
  ) : null}
- <div className="flex items-center gap-2 overflow-x-auto pb-4 -mb-4 snap-x snap-mandatory hide-scrollbar">
- {['all', 'custom', 'community', 'nabiał', 'mięso', 'owoce', 'warzywa', 'zbożowe'].map((cat) => (
- <button
- key={cat}
- onClick={() => { setActiveCategory(cat); Haptics.light(); }}
- className={cn(
- "snap-start px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all border-2",
- activeCategory === cat ? "bg-slate-800 text-white dark:bg-accent-500" : "bg-white text-slate-500 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700/50"
- )}
- >
- {cat === 'all' ? t('meal.all', { defaultValue: 'Wszystkie' }) : cat === 'custom' ? t('meal.custom', { defaultValue: 'Własne' }) : cat === 'community' ? t('meal.community', { defaultValue: 'Społeczność' }) : cat.charAt(0).toUpperCase() + cat.slice(1)}
- </button>
- ))}
- </div>
+  <div className="flex items-center gap-2 overflow-x-auto pb-4 -mb-4 snap-x snap-mandatory hide-scrollbar">
+  {[
+    { id: 'all', label: 'Wszystkie' },
+    { id: 'meals', label: 'Posiłki' },
+    { id: 'custom', label: 'Własne' },
+    { id: 'community', label: 'Społeczność' },
+    { id: 'nabiał', label: 'Nabiał' },
+    { id: 'mięso', label: 'Mięso i Ryby' },
+    { id: 'owoce', label: 'Owoce' },
+    { id: 'warzywa', label: 'Warzywa' },
+    { id: 'zbożowe', label: 'Zbożowe' }
+  ].map((cat) => (
+  <button
+  key={cat.id}
+  onClick={() => { setActiveCategory(cat.id); Haptics.light(); }}
+  className={cn(
+  "snap-start px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all border-2 cursor-pointer",
+  activeCategory === cat.id ? "bg-slate-800 text-white dark:bg-accent-500 border-slate-800 dark:border-accent-500 shadow-sm" : "bg-white text-slate-500 dark:bg-slate-800/80 dark:text-slate-400 border-slate-200 dark:border-slate-700/50"
+  )}
+  >
+  {cat.label}
+  </button>
+  ))}
+  </div>
  </div>
 
  <div className="flex-1 overflow-y-auto px-4 sm:px-5 pb-8 space-y-3" onScroll={handleScrollHaptics}>

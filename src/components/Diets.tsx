@@ -242,7 +242,7 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
 
  <DietScoreWidget activeDiet={settings.activeDiet} settings={settings} />
 
- <DietManager settings={settings} activeDietData={activeDietData} />
+ <DietManager user={user} settings={settings} activeDietData={activeDietData} />
  
  <div className="pt-2">
  <button

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -10,11 +10,24 @@
     <link rel="apple-touch-icon" href="/pwa-icon.svg" />
     <link rel="manifest" href="manifest.webmanifest" />
     <title>GlikoControl</title>
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('app-storage');
+          var theme = stored ? JSON.parse(stored).state?.theme : localStorage.getItem('theme');
+          if (theme === 'dark' || (!theme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.backgroundColor = '#020617';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.backgroundColor = '#f4f5f7';
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body>
-
+  <body class="bg-[#f4f5f7] dark:bg-[#020617] text-slate-900 dark:text-slate-100 transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

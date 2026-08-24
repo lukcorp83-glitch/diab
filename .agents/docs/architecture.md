@@ -4,10 +4,13 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 
 ## Główne pliki i komponenty
 - `src/App.tsx` (ogromny plik ~3400 linii) - Główny punkt wejścia, główny layout, zarządzanie routingiem i duża część logiki UI.
-- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.24'), adresy URL oraz bazy produktów.
-- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.24.
+- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.25'), adresy URL oraz bazy produktów.
+- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.25.
 
 ## Główne Widżety Pulpitu i Nowy Design System
+- `src/components/dashboard/widgets/SavedMealsWidget.tsx` - Nowy horyzontalny widżet „Zapisane Posiłki & Przepisy” na Pulpicie: przewijany stos kart ze szklistym tłem (*glassmorphism*), badge'ami diet, szczegółowymi makroskładnikami (W, B, T, kcal), 1-Click wrzucaniem całego dania na Talerz oraz pełnym modalem podglądu przepisu kulinarnego wprost z Pulpitu.
+- `src/components/dashboard/widgets/ShortcutsWidget.tsx` - Uporządkowany kafelek „Szybkie skróty” (dawniej „Szybkie akcje i ulubione posiłki”) z natychmiastowym 1-Click zapisem zdefiniowanych ulubionych posiłków.
+- `src/components/MealPlate/ProductSearch.tsx` & `src/components/FoodDatabase.tsx` - Nowy inteligentny algorytm wyszukiwania w bazie żywności: normalizacja znaków diakrytycznych (s/ś, c/ć, l/ł itp.), scoring prefiksowy (faworyzowanie słów zaczynających się od frazy) oraz pełna widoczność bazy od A do Ż.
 - `src/components/DailyTirWidget.tsx` - Wizualny widżet Dziennego TIR: radialny pierścień z neonowym blaskiem na segmencie normy (`emerald-glow`), torem zegarowym (`background track`), plakietką sukcesu `≥70%` oraz trójkolorowymi kapsułkami zakresów (`<70`, `70-180`, `>180`).
 - `src/components/SiteRotationWidget.tsx` - Nowy Smart Rotation Ring (Koncepcja 2): minimalistyczna tarcza zegarowa z łukiem cyklu rotacji, czytelną nazwą aktywnej strefy i nowoczesną pigułką następnego miejsca bez zbędnych grafik.
 - `src/hooks/useGlucoseAlerts.ts` & `src/services/notificationService.ts` - Zoptymalizowany system powiadomień i alertów glikemii z trwałą pamięcią `localStorage`, natywnym głośnym dźwiękiem systemowym Androida (`sound: 'default'`) i spójną drzemką/wyciszaniem.
