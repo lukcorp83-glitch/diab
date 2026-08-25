@@ -1,5 +1,6 @@
 import { LogEntry, UserSettings } from '../types';
 import { notificationService } from './notificationService';
+import { NotificationBridge } from '../lib/notificationBridge';
 import { Haptics } from '../lib/haptics';
 import { toast } from 'react-hot-toast';
 import i18n from '../i18n';
@@ -115,7 +116,7 @@ export function startPreBolusTimer(
 
   localStorage.setItem('prebolus_timer_state', JSON.stringify(state));
 
-  // Planujemy powiadomienie lokalne na telefonie
+  // 1. Planujemy powiadomienie lokalne na telefonie
   notificationService.scheduleLocalNotification(
     i18n.t('bolus.reminder_title', { defaultValue: 'Czas na posiłek! 🍽️' }),
     i18n.t('bolus.reminder_body', { 
@@ -125,6 +126,21 @@ export function startPreBolusTimer(
     remainingMinutes,
     777
   );
+
+  // 2. Uruchamiamy natywny chronometr Androida na belce i ekranie blokady (Live Chronometer)
+  try {
+    NotificationBridge.startLiveTimer({
+      targetTime,
+      title: i18n.t('bolus.live_timer_title', { defaultValue: 'Czas do posiłku 🍽️' }),
+      text: i18n.t('bolus.live_timer_desc', { 
+        units: bolusUnits ? `(${bolusUnits} j.) ` : '',
+        defaultValue: `Odliczanie przedposiłkowe ${bolusUnits ? `(${bolusUnits} j.) ` : ''}w toku...` 
+      }),
+      id: 777
+    }).catch((e: any) => console.log('Live timer non-native or unsupported:', e));
+  } catch (e) {
+    // Ignore on Web
+  }
 
   window.dispatchEvent(new CustomEvent('prebolus_timer_update', { detail: getPreBolusTimerState() }));
 }
@@ -157,6 +173,9 @@ export function getPreBolusTimerState(): PreBolusTimerState {
     // Jeśli od zakończenia minęło ponad 45 minut, wygaszamy stoper
     if (remainingSeconds < -45 * 60) {
       localStorage.removeItem('prebolus_timer_state');
+      try {
+        NotificationBridge.stopLiveTimer({ id: 777 }).catch(() => {});
+      } catch (e) {}
       return {
         active: false,
         remainingSeconds: 0,
@@ -196,6 +215,9 @@ export function getPreBolusTimerState(): PreBolusTimerState {
  */
 export function cancelPreBolusTimer(): void {
   localStorage.removeItem('prebolus_timer_state');
+  try {
+    NotificationBridge.stopLiveTimer({ id: 777 }).catch(() => {});
+  } catch (e) {}
   window.dispatchEvent(new CustomEvent('prebolus_timer_update', { detail: getPreBolusTimerState() }));
 }
 

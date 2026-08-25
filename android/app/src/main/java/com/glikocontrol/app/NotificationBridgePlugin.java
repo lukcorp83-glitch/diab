@@ -184,4 +184,94 @@ public class NotificationBridgePlugin extends Plugin {
         
         call.resolve();
     }
+
+    private void createMealTimerChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.app.NotificationManager notificationManager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                        "gliko_meal_timer_v1",
+                        "Odliczanie do posiłku (Timer)",
+                        android.app.NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Wyświetla biegnący stoper odliczający czas do posiłku na pasku stanu i ekranie blokady");
+                channel.setShowBadge(true);
+                channel.enableVibration(true);
+                channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    @PluginMethod
+    public void startLiveTimer(PluginCall call) {
+        long targetTime = 0;
+        try {
+            Long targetObj = call.getLong("targetTime");
+            if (targetObj != null && targetObj > 0) {
+                targetTime = targetObj;
+            } else {
+                Double targetDouble = call.getDouble("targetTime");
+                if (targetDouble != null && targetDouble > 0) {
+                    targetTime = targetDouble.longValue();
+                }
+            }
+        } catch (Exception e) {
+            targetTime = System.currentTimeMillis() + 15 * 60 * 1000L;
+        }
+
+        if (targetTime <= 0) {
+            targetTime = System.currentTimeMillis() + 15 * 60 * 1000L;
+        }
+
+        String title = call.getString("title", "Czas do posiłku 🍽️");
+        String text = call.getString("text", "Odliczanie przedposiłkowe w toku...");
+        int notificationId = call.getInt("id", 777);
+
+        createMealTimerChannel();
+
+        android.app.NotificationManager notificationManager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if (notificationManager == null) {
+            call.resolve();
+            return;
+        }
+
+        Intent appIntent = new Intent(getContext(), MainActivity.class);
+        appIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        android.app.PendingIntent pendingIntent = android.app.PendingIntent.getActivity(
+                getContext(),
+                notificationId,
+                appIntent,
+                android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "gliko_meal_timer_v1")
+                .setSmallIcon(R.drawable.ic_stat_name)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setWhen(targetTime)
+                .setShowWhen(true)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setOnlyAlertOnce(true)
+                .setContentIntent(pendingIntent)
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
+
+        notificationManager.notify(notificationId, builder.build());
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void stopLiveTimer(PluginCall call) {
+        int notificationId = call.getInt("id", 777);
+        android.app.NotificationManager notificationManager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if (notificationManager != null) {
+            notificationManager.cancel(notificationId);
+        }
+        call.resolve();
+    }
 }
