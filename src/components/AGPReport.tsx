@@ -15,6 +15,7 @@ import { LogEntry, UserSettings } from '../types';
 import { ChevronLeft, Info, Calendar, AlertTriangle, ActivitySquare } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { useBackButton } from "../hooks/useBackButton";
 
 interface AGPReportProps {
  settings: UserSettings;
@@ -33,6 +34,7 @@ const getPercentile = (sortedData: number[], p: number) => {
 };
 
 export default function AGPReport({ settings, onClose, theme }: AGPReportProps) {
+ useBackButton(true, onClose);
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const [daysBack, setDaysBack] = useState(14);

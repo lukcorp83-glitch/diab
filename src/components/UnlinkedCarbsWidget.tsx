@@ -15,6 +15,7 @@ import { toast } from "react-hot-toast";
 import { getEffectiveUid, cn } from "../lib/utils";
 import { db } from "../lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { useBackButton } from "../hooks/useBackButton";
 
 interface Props {
  user?: any;
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function UnlinkedCarbsWidget({ user: propUser, onAddCarbs, onClose, isModal }: Props) {
+ useBackButton(!!isModal && !!onClose, onClose || (() => {}));
  const authUser = useAuthStore((state) => state.user);
  const user = propUser || authUser;
  const logs = useLogsStore((state) => state.logs);

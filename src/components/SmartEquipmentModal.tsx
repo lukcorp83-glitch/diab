@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 import { ANATOMICAL_ZONES, calculateTissueRecovery, getNextRecommendedSite, getZoneById, AnatomicalZone } from '../services/siteRotationService';
 import { LogEntry, UserSettings } from '../types';
+import { useBackButton } from '../hooks/useBackButton';
 
 interface SmartEquipmentModalProps {
   type: 'reservoir' | 'sensor' | null;
@@ -17,6 +18,7 @@ interface SmartEquipmentModalProps {
 
 export function SmartEquipmentModal({ type, logs = [], userSettings, onClose, onConfirm }: SmartEquipmentModalProps) {
   const { t } = useTranslation();
+  useBackButton(!!type, onClose);
   const [replaceInfusionSet, setReplaceInfusionSet] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
   const [showAllSites, setShowAllSites] = useState(false);

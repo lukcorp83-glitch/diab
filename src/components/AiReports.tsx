@@ -4,7 +4,7 @@ import { useLogsStore } from "../stores/useLogsStore";
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry, UserSettings } from '../types';
-import { MessageSquare, Calculator, History, TrendingUp, Activity, Loader2, Calendar, Trash2 } from 'lucide-react';
+import { MessageSquare, Calculator, History, TrendingUp, Activity, Loader2, Calendar, Trash2, Plane } from 'lucide-react';
 import { db } from '../lib/firebase';
 import SwipeableItem from './SwipeableItem';
 import { collection, addDoc, doc, deleteDoc } from 'firebase/firestore';
@@ -277,6 +277,17 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  <span>⚠️</span>
  
  {t('auto.insulina_nie_działa', { defaultValue: i18n.t('auto.insulina_nie_dziala', { defaultValue: "Insulina nie działa?" }) })}
+ </motion.button>
+
+ <motion.button 
+ disabled={loading}
+ onClick={() => setTab && setTab('travel')}
+ whileHover={{ scale: 1.02 }}
+ whileTap={{ scale: 0.95 }}
+ className="bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-sky-200 dark:border-sky-800 shadow-sm overflow-hidden hover:bg-sky-100 dark:hover:bg-sky-900/40"
+ >
+ <Plane size={16} />
+ {t('auto.jet_lag_mode', { defaultValue: 'Asystent Podróży' })}
  </motion.button>
  </div>
  

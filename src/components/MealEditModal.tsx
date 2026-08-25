@@ -35,10 +35,11 @@ import { dbService } from "../services/databaseService";
 import { geminiService } from "../services/gemini";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { useBackButton } from "../hooks/useBackButton";
 
 interface MealEditModalProps {
  log: LogEntry;
- 
+ user?: any;
  onClose: () => void;
 }
 
@@ -48,6 +49,7 @@ export default function MealEditModal({
  onClose,
 }: MealEditModalProps) {
  const { t } = useTranslation();
+ useBackButton(true, onClose);
  const isBolus = log.type === "bolus";
  const formatVal = (v: any) =>
  typeof v === "number"

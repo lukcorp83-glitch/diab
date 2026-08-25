@@ -13,11 +13,15 @@ import { db } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { getEffectiveUid } from '../../lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import { useBackButton } from '../../hooks/useBackButton';
 
 export default function TreatmentModeSelector({ user, settings, setSettings }: any) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showEmergencyGuide, setShowEmergencyGuide] = useState(false);
+
+  // Obsługa systemowego przycisku Wstecz
+  useBackButton(showEmergencyGuide, () => setShowEmergencyGuide(false));
 
   // Tryb wprowadzania węgli: gramy lub WW
   const [carbMode, setCarbMode] = useState<'grams' | 'ww'>('grams');

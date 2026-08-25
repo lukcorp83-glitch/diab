@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
+import { useBackButton } from '../hooks/useBackButton';
 
 interface MedicationsWidgetProps {
   medications: Medication[];
@@ -79,6 +80,9 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
   const [currentTime, setCurrentTime] = useState(new Date());
   const [takenMeds, setTakenMeds] = useState<Record<string, string>>({}); // id -> iso date
   const [confirmingMed, setConfirmingMed] = useState<Medication | null>(null);
+
+  // Obsługa systemowego przycisku Wstecz
+  useBackButton(!!confirmingMed, () => setConfirmingMed(null));
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);

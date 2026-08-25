@@ -304,7 +304,7 @@ export const AppContent = (props: any) => {
               />
             )}
             {activeTab === "travel" && (
-              <JetLagMode />
+              <JetLagMode onClose={() => changeTab('dashboard')} />
             )}
             {activeTab === "insulin_detective" && (
               <InsulinDetective onClose={() => changeTab('dashboard')} />

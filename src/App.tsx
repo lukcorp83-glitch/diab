@@ -61,6 +61,7 @@ import { Haptics } from "./lib/haptics";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import { cn } from "./lib/utils";
+import { handleBackPress } from "./lib/modalStack";
 
 
 
@@ -497,22 +498,40 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle Android system back button
+  // Handle Android system back button & Web/PWA modal closing
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+    // 1. Web / Desktop Escape key & Popstate listener for modals
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (handleBackPress()) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    if (!Capacitor.isNativePlatform()) {
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
 
     let listener: any;
     let lastBackPress = 0;
 
     CapacitorApp.addListener('backButton', () => {
+      // 1. Sprawdź zarejestrowany stos aktywnych modali i okien popup (LIFO)
+      if (handleBackPress()) {
+        return;
+      }
+
       const state = useAppStore.getState();
 
-      // 1. Emisja eventu do zamykania aktywnych modali / sheetów
+      // 2. Emisja eventu awaryjnego (dla subskrypcji CustomEvent)
       const backEvent = new CustomEvent('android-back-press', { cancelable: true });
       const defaultPrevented = !window.dispatchEvent(backEvent);
       if (defaultPrevented) return;
 
-      // 2. Zamykanie aktywnych popupów
+      // 3. Zamykanie aktywnych popupów systemowych ze store'a
       if (state.showTutorial) {
         state.setShowTutorial(false);
         return;
@@ -534,19 +553,19 @@ export default function App() {
         return;
       }
 
-      // 3. Wyjście z trybu skrótów
+      // 4. Wyjście z trybu skrótów
       if (state.isShortcutMode) {
         state.setIsShortcutMode(false);
         return;
       }
 
-      // 4. Jeśli jesteśmy w innej zakładce niż pulpit – powrót do pulpitu
+      // 5. Jeśli jesteśmy w innej zakładce niż pulpit – powrót do pulpitu
       if (state.activeTab !== 'dashboard') {
         state.setActiveTab('dashboard');
         return;
       }
 
-      // 5. Podwójne kliknięcie Wstecz do wyjścia z aplikacji
+      // 6. Podwójne kliknięcie Wstecz do wyjścia z aplikacji (w ciągu 2 sekund)
       const now = Date.now();
       if (now - lastBackPress < 2000) {
         CapacitorApp.exitApp();
@@ -560,6 +579,7 @@ export default function App() {
     }).then(l => { listener = l; });
 
     return () => {
+      window.removeEventListener('keydown', handleKeyDown);
       if (listener && listener.remove) {
         listener.remove();
       }

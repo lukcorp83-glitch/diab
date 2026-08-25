@@ -6,6 +6,7 @@ import { useSavedMeals } from "../../../hooks/queries/useSavedMeals";
 import { Haptics } from "../../../lib/haptics";
 import { cn } from "../../../lib/utils";
 import toast from "react-hot-toast";
+import { useBackButton } from "../../../hooks/useBackButton";
 
 interface SavedMealsWidgetProps {
   user: any;
@@ -25,6 +26,9 @@ export const SavedMealsWidget: React.FC<SavedMealsWidgetProps> = ({
   const { t } = useTranslation();
   const { data: savedMeals = [], isLoading } = useSavedMeals(user);
   const [selectedRecipe, setSelectedRecipe] = useState<any | null>(null);
+
+  // Obsługa systemowego przycisku Wstecz
+  useBackButton(!!selectedRecipe, () => setSelectedRecipe(null));
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
