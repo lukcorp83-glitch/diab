@@ -125,7 +125,7 @@ export default function DailyTirWidget({ settings }: DailyTirWidgetProps) {
             key={tir}
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter shadow-sm font-display leading-none"
+            className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter shadow-sm font-display leading-none tabular-nums"
           >
             {tir}%
           </motion.span>
@@ -140,19 +140,19 @@ export default function DailyTirWidget({ settings }: DailyTirWidgetProps) {
         {/* Low */}
         <div className="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/20 text-center transition-all hover:scale-105">
           <span className="text-[7.5px] font-bold text-rose-500 uppercase tracking-tight leading-none">&lt;70</span>
-          <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 tracking-tight leading-tight mt-0.5">{metrics.low}%</span>
+          <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 tracking-tight leading-tight mt-0.5 tabular-nums">{metrics.low}%</span>
         </div>
 
         {/* In Range (Highlight) */}
         <div className="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 shadow-sm shadow-emerald-500/10 text-center transition-all hover:scale-105">
           <span className="text-[7.5px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tight leading-none">70-180</span>
-          <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-tight mt-0.5">{metrics.inRange}%</span>
+          <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-tight mt-0.5 tabular-nums">{metrics.inRange}%</span>
         </div>
 
         {/* High */}
         <div className="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 text-center transition-all hover:scale-105">
           <span className="text-[7.5px] font-bold text-amber-500 uppercase tracking-tight leading-none">&gt;180</span>
-          <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 tracking-tight leading-tight mt-0.5">{metrics.high}%</span>
+          <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 tracking-tight leading-tight mt-0.5 tabular-nums">{metrics.high}%</span>
         </div>
       </div>
     </div>

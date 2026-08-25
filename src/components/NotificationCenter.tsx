@@ -17,8 +17,12 @@ import {
   Utensils, 
   Activity, 
   Zap, 
-  Shield 
+  Shield,
+  Volume2,
+  Square,
+  Play
 } from 'lucide-react';
+import { playMp3Alert, stopAllAudio } from '../lib/audioUtils';
 import { UserSettings } from '../types';
 import { cn, getEffectiveUid } from '../lib/utils';
 import { useTranslation } from "react-i18next";
@@ -79,6 +83,25 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
   const [apkNotificationsEnabled, setApkNotificationsEnabled] = useState(() => {
     return userSettings?.apkSystemNotificationsEnabled ?? true;
   });
+
+  const [isPlayingTestSound, setIsPlayingTestSound] = useState(false);
+
+  const handleToggleTestSound = async () => {
+    if (isPlayingTestSound) {
+      Haptics.light();
+      await stopAllAudio();
+      setIsPlayingTestSound(false);
+      toast.success('Zatrzymano dźwięk testowy');
+    } else {
+      Haptics.medium();
+      setIsPlayingTestSound(true);
+      toast.success('Odtwarzanie dźwięku alarmu MP3 (status_clear.mp3)...', { icon: '🔔' });
+      await playMp3Alert();
+      setTimeout(() => {
+        setIsPlayingTestSound(false);
+      }, 5000);
+    }
+  };
 
   useEffect(() => {
     if (userSettings?.notificationPrefs) {
@@ -541,6 +564,47 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
                         )}
                       >
                         <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                      </button>
+                    </div>
+
+                    {/* Narzędzie testowe dźwięku alarmu MP3 */}
+                    <div className="p-3.5 bg-slate-100/70 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 pr-2">
+                        <div className={cn(
+                          "p-2 rounded-xl shrink-0 transition-colors",
+                          isPlayingTestSound ? "bg-rose-500 text-white animate-pulse" : "bg-accent-500/10 text-accent-500"
+                        )}>
+                          <Volume2 size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black leading-tight">
+                            Dźwięk alarmu glikemii (MP3)
+                          </p>
+                          <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+                            Plik status_clear.mp3 (niski / wysoki cukier)
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleToggleTestSound}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer",
+                          isPlayingTestSound 
+                            ? "bg-rose-500 hover:bg-rose-600 text-white animate-pulse" 
+                            : "bg-accent-500 hover:bg-accent-600 text-white"
+                        )}
+                      >
+                        {isPlayingTestSound ? (
+                          <>
+                            <Square size={13} fill="currentColor" />
+                            <span>Stop</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play size={13} fill="currentColor" />
+                            <span>Testuj</span>
+                          </>
+                        )}
                       </button>
                     </div>
 

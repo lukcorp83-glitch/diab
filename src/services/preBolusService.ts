@@ -29,8 +29,8 @@ export function calculatePreBolusWaitTime(
   insulinType?: string
 ): PreBolusCalculation {
   const normInsulin = (insulinType || '').toLowerCase();
-  const isUltraFast = normInsulin.includes('fiasp') || normInsulin.includes('lyumjev');
-  const isRegular = normInsulin.includes('actrapid') || normInsulin.includes('regular') || normInsulin.includes('gensulin r');
+  const isUltraFast = normInsulin.includes('fiasp') || normInsulin.includes('lyumjev') || normInsulin.includes('ultrafast');
+  const isRegular = normInsulin.includes('actrapid') || normInsulin.includes('regular') || normInsulin.includes('gensulin') || normInsulin.includes('humulin') || normInsulin.includes('polhumin');
 
   if (glucoseValue === null || glucoseValue === undefined) {
     const defaultWait = isUltraFast ? 5 : (isRegular ? 25 : 10);

@@ -156,6 +156,30 @@ export default function TutorialView({ setTab, onComplete }: TutorialViewProps) 
  {
  title: i18n.t('auto.zasady_podczas_podrozy_z_cukrz', { defaultValue: i18n.t('auto.zasady_podczas_podrozy_z', { defaultValue: "Zasady podczas podróży z Cukrzycą" }) }),
  content: i18n.t('auto.do_samolotu_insuline_i_osprzet', { defaultValue: i18n.t('auto.do_samolotu_insuline_i_os', { defaultValue: "Do samolotu: insulinę i osprzęt ratujący życie ZAWSZE bierzemy do bagażu podręcznego (w luku bagażowym insulina by zamarzła). Warto mieć przy sobie pisemne zaświadczenie o chorobie (po polsku i angielsku). Gdy przekraczamy kilka stref czasowych, dawkę bazy z penów trzeba odpowiednio skrócić lub nakładać, a pożywienie dopasować do rytmu sen-czuwanie." }) }),
+ },
+ {
+ title: i18n.t('auto.kompendium_awaria_pompy_title', { defaultValue: 'Awaria Pompy i Przejście na Peny' }),
+ content: i18n.t('auto.kompendium_awaria_pompy_content', { defaultValue: "W razie awarii pompy natychmiast przejdź na wstrzykiwacze (peny). Dobową bazę z pompy przeliczamy 1:1 na pen długodziałający (np. Lantus, Tresiba, Levemir, Toujeo). Bolusy posiłkowe i korekcyjne podawaj penem szybkodziałającym. Pamiętaj: bez insuliny bazowej kwasica ketonowa (DKA) może rozwinąć się już po 2-4 godzinach od odpięcia pompy!" }),
+ },
+ {
+ title: i18n.t('auto.kompendium_technika_penem_title', { defaultValue: 'Prawidłowa Technika Iniekcji Penem' }),
+ content: i18n.t('auto.kompendium_technika_penem_content', { defaultValue: "1. Strzał kontrolny: przed każdym wkłuciem wypuść 1-2j w powietrze, by usunąć pęcherzyki powietrza i sprawdzić drożność igły.\n2. Wkłucie: pod kątem 90° w fałd skórny (lub 45° u bardzo szczupłych osób).\n3. Reguła 10 sekund: po wciśnięciu tłoczka odlicz powoli do 10 przed wyjęciem igły, aby insulina nie wyciekła.\n4. Jednorazowość igieł: zmieniaj igłę po każdym użyciu – tępa igła szarpie tkanki i przyspiesza powstawanie bolesnych zrostów." }),
+ },
+ {
+ title: i18n.t('auto.kompendium_wskazniki_cgm_title', { defaultValue: 'Wskaźniki CGM: TIR, TBR, TAR i Zmienność (CV)' }),
+ content: i18n.t('auto.kompendium_wskazniki_cgm_content', { defaultValue: "- TIR (Czas w normie 70-180 mg/dL): cel to minimum 70% czasu.\n- TBR (Czas poniżej normy <70 mg/dL): cel to mniej niż 4% czasu (a <54 mg/dL poniżej 1%).\n- TAR (Czas powyżej normy >180 mg/dL): cel to mniej niż 25% czasu.\n- CV (Współczynnik zmienności): cel to ≤36%. Wartość poniżej 36% oznacza stabilną glikemię bez gwałtownych wahań i skoków." }),
+ },
+ {
+ title: i18n.t('auto.kompendium_sick_days_title', { defaultValue: 'Reguły Dni Chorobowych (Sick Day Rules)' }),
+ content: i18n.t('auto.kompendium_sick_days_content', { defaultValue: "Podczas infekcji i gorączki organizm wydziela hormony stresu wywołujące silną insulinooporność. Zapotrzebowanie na insulinę może wzrosnąć o 10-20% na każdy 1°C powyżej 37.5°C.\nNIGDY nie odstawiaj insuliny bazowej, nawet gdy nic nie jesz (wątroba ciągle wyrzuca glukozę). Pij dużo płynów z elektrolitami i mierz ketony co 2-4 godziny." }),
+ },
+ {
+ title: i18n.t('auto.kompendium_iob_stacking_title', { defaultValue: 'Aktywna Insulina (IOB) i Zjawisko Nakładania Dawek' }),
+ content: i18n.t('auto.kompendium_iob_stacking_content', { defaultValue: "Nowoczesne analogi szybkodziałające działają w organizmie przez 3 do 5 godzin (IOB - Insulin on Board), a ich szczyt przypada na 60-90 minutę. Zjawisko nakładania dawek (stacking) polega na zbyt częstym dopijaniu/dostrzykiwaniu korekt (np. co 30-60 min) w panice przed wysokim cukrem. Skutkuje to nagłą, ciężką hipoglikemią po skumulowaniu się dawek. Odczekaj minimum 2.5-3h przed kolejną korektą!" }),
+ },
+ {
+ title: i18n.t('auto.kompendium_zrosty_lipohipertrofia_title', { defaultValue: 'Zrosty Podskórne (Lipohipertrofia)' }),
+ content: i18n.t('auto.kompendium_zrosty_lipohipertrofia_content', { defaultValue: "Wstrzykiwanie insuliny lub wbijanie kaniuli w to samo miejsce powoduje rozrost tkanki tłuszczowej i powstawanie twardych guzków (lipohipertrofii). Insulina podana w zrost wchłania się wolno i nieprzewidywalnie (np. zalega godzinami i uderza nagle w nocy). Dotknięta strefa wymaga bezwzględnego odpoczynku przez minimum 3-4 tygodnie." }),
  }
  ];
 

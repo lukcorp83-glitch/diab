@@ -4,6 +4,7 @@ import { NativeAudio } from '@capacitor-community/native-audio';
 let globalAudioCtx: AudioContext | null = null;
 let activeAudioElement: HTMLAudioElement | null = null;
 let activeAudioSource: AudioBufferSourceNode | null = null;
+let nativeAudioPreloaded = false;
 
 export const getAudioCtx = (): AudioContext | null => {
   if (!globalAudioCtx && typeof window !== 'undefined') {
@@ -12,7 +13,7 @@ export const getAudioCtx = (): AudioContext | null => {
       try {
         globalAudioCtx = new AudioCtxClass();
       } catch (e) {
-        console.warn('[Audio] AudioContext creation postponed until user gesture:', e);
+        console.warn('[Audio] AudioContext creation error:', e);
       }
     }
   }
@@ -24,28 +25,93 @@ export const getAudioCtx = (): AudioContext | null => {
   return globalAudioCtx;
 };
 
-// Autounlock AudioContext on first user gesture
+// Helper: Get robust absolute URL to sound files
+export const getAbsoluteAudioUrl = (filename: string = 'status_clear.mp3'): string => {
+  if (typeof window === 'undefined') return filename;
+  try {
+    const base = import.meta.env.BASE_URL || '/';
+    // Ensure base ends with /
+    const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+    return new URL(filename, new URL(normalizedBase, window.location.origin)).href;
+  } catch (e) {
+    return `/${filename}`.replace(/\/+/g, '/');
+  }
+};
+
+// Preload native audio on Android / iOS
+export const preloadNativeAudio = async (): Promise<boolean> => {
+  if (!Capacitor.isNativePlatform()) return false;
+  
+  // Try public/ first (Capacitor Android standard assets location)
+  try {
+    await NativeAudio.preload({
+      assetId: 'status_clear',
+      assetPath: 'public/status_clear.mp3',
+      volume: 1.0,
+      audioChannelNum: 1,
+      isUrl: false
+    });
+    nativeAudioPreloaded = true;
+    console.log('[Audio] NativeAudio preloaded public/status_clear.mp3 successfully');
+    return true;
+  } catch (e1) {
+    // Fallback try root assets status_clear.mp3
+    try {
+      await NativeAudio.preload({
+        assetId: 'status_clear',
+        assetPath: 'status_clear.mp3',
+        volume: 1.0,
+        audioChannelNum: 1,
+        isUrl: false
+      });
+      nativeAudioPreloaded = true;
+      console.log('[Audio] NativeAudio preloaded status_clear.mp3 successfully');
+      return true;
+    } catch (e2) {
+      console.warn('[Audio] NativeAudio preload failed for all paths:', e1, e2);
+      return false;
+    }
+  }
+};
+
+// Autounlock AudioContext and HTML5 Audio on first user gesture
 let isUnlocked = false;
 export const initAudioUnlock = () => {
   if (isUnlocked || typeof window === 'undefined') return;
-  const unlock = () => {
+
+  const unlock = async () => {
     try {
+      // 1. Unlock Web Audio Context
       const ctx = getAudioCtx();
       if (ctx && ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
+        await ctx.resume().catch(() => {});
       }
+
+      // 2. Unlock HTML5 Audio via silent buffer
+      try {
+        const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+        await silentAudio.play();
+        silentAudio.pause();
+      } catch(e) {}
+
+      // 3. Preload Native Audio on device
+      if (Capacitor.isNativePlatform()) {
+        preloadNativeAudio().catch(() => {});
+      }
+
       isUnlocked = true;
-      window.removeEventListener('click', unlock);
-      window.removeEventListener('touchstart', unlock);
-      window.removeEventListener('keydown', unlock);
-      console.log('[Audio] Web Audio unlocked successfully via user gesture');
+      ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(evt => {
+        window.removeEventListener(evt, unlock);
+      });
+      console.log('[Audio] Web & Native Audio unlocked successfully via user gesture');
     } catch (e) {
-      console.warn('[Audio] Failed to unlock AudioContext:', e);
+      console.warn('[Audio] Failed to unlock audio:', e);
     }
   };
-  window.addEventListener('click', unlock, { passive: true });
-  window.addEventListener('touchstart', unlock, { passive: true });
-  window.addEventListener('keydown', unlock, { passive: true });
+
+  ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(evt => {
+    window.addEventListener(evt, unlock, { passive: true, once: true });
+  });
 };
 
 // Initialize unlock immediately on module load
@@ -56,7 +122,10 @@ if (typeof window !== 'undefined') {
 function playTone(freq: number, type: OscillatorType, duration: number, vol: number = 0.2) {
   try {
     const audioCtx = getAudioCtx();
-    if (!audioCtx || audioCtx.state === 'suspended') return;
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
     
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
@@ -78,9 +147,10 @@ function playTone(freq: number, type: OscillatorType, duration: number, vol: num
 }
 
 export const playEmergencyBeepAlarm = () => {
-  playTone(880, 'sawtooth', 0.2, 0.3);
-  setTimeout(() => playTone(880, 'sawtooth', 0.2, 0.3), 250);
-  setTimeout(() => playTone(1760, 'sawtooth', 0.4, 0.4), 500);
+  playTone(880, 'sawtooth', 0.25, 0.5);
+  setTimeout(() => playTone(880, 'sawtooth', 0.25, 0.5), 250);
+  setTimeout(() => playTone(1760, 'sawtooth', 0.4, 0.6), 500);
+  setTimeout(() => playTone(1760, 'sawtooth', 0.4, 0.6), 950);
 };
 
 export const playPetSound = () => {
@@ -130,48 +200,46 @@ export const playMp3Alert = async () => {
   // Tier 1: Capacitor Native Audio (for Android / iOS native apps)
   if (Capacitor.isNativePlatform()) {
     try {
-      if (!(window as any).__nativeAudioPreloaded) {
-        await NativeAudio.preload({
-          assetId: 'status_clear',
-          assetPath: 'status_clear.mp3',
-        }).catch(() => {});
-        (window as any).__nativeAudioPreloaded = true;
+      if (!nativeAudioPreloaded) {
+        await preloadNativeAudio();
       }
       await NativeAudio.play({ assetId: 'status_clear' });
       playedSuccessfully = true;
-      console.log('[Audio] NativeAudio played status_clear.mp3 successfully');
+      console.log('[Audio] Tier 1: NativeAudio played status_clear.mp3 successfully');
       return;
     } catch (e) {
-      console.warn('[Audio] NativeAudio play failed, fallback to HTML5 Audio', e);
+      console.warn('[Audio] Tier 1: NativeAudio play failed, fallback to Tier 2 (HTML5 Audio)', e);
     }
   }
 
-  // Tier 2: HTML5 Audio Element (Works everywhere including PWA / WebViews)
+  // Tier 2: HTML5 Audio Element (Works in WebViews, PWA, Browser)
   if (!playedSuccessfully) {
     try {
-      const baseUrl = (import.meta && import.meta.env && import.meta.env.BASE_URL) || '/';
-      const audioUrl = (baseUrl + '/status_clear.mp3').replace(/\/+/g, '/');
+      const audioUrl = getAbsoluteAudioUrl('status_clear.mp3');
       const audio = new Audio(audioUrl);
       audio.volume = 1.0;
       activeAudioElement = audio;
       audio.onended = () => { activeAudioElement = null; };
       await audio.play();
       playedSuccessfully = true;
-      console.log('[Audio] HTML5 Audio played status_clear.mp3 successfully');
+      console.log('[Audio] Tier 2: HTML5 Audio played status_clear.mp3 successfully from', audioUrl);
       return;
     } catch (err) {
-      console.warn('[Audio] HTML5 Audio play failed, fallback to Web Audio API', err);
+      console.warn('[Audio] Tier 2: HTML5 Audio play failed, fallback to Tier 3 (Web Audio API)', err);
     }
   }
 
-  // Tier 3: Web Audio API (AudioBuffer source)
+  // Tier 3: Web Audio API (AudioBuffer Source Node)
   if (!playedSuccessfully) {
     try {
       const audioCtx = getAudioCtx();
-      if (audioCtx && audioCtx.state !== 'suspended') {
+      if (audioCtx) {
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume().catch(() => {});
+        }
+
         if (!cachedAlarmBuffer) {
-          const baseUrl = (import.meta && import.meta.env && import.meta.env.BASE_URL) || '/';
-          const audioUrl = (baseUrl + '/status_clear.mp3').replace(/\/+/g, '/');
+          const audioUrl = getAbsoluteAudioUrl('status_clear.mp3');
           const response = await fetch(audioUrl);
           const arrayBuffer = await response.arrayBuffer();
           cachedAlarmBuffer = await audioCtx.decodeAudioData(arrayBuffer);
@@ -184,15 +252,15 @@ export const playMp3Alert = async () => {
         source.onended = () => { activeAudioSource = null; };
         source.start(0);
         playedSuccessfully = true;
-        console.log('[Audio] Web Audio API played status_clear.mp3 successfully');
+        console.log('[Audio] Tier 3: Web Audio API played status_clear.mp3 successfully');
         return;
       }
     } catch (e) {
-      console.warn('[Audio] Web Audio API play failed, fallback to Emergency Beep Alarm', e);
+      console.warn('[Audio] Tier 3: Web Audio API play failed, fallback to Tier 4 (Emergency Tone)', e);
     }
   }
 
-  // Tier 4: Fail-Safe Emergency Alarm Tone (GUARANTEED SOUND)
+  // Tier 4: Fail-Safe Emergency Alarm Tone (GUARANTEED SOUND GENERATION)
   if (!playedSuccessfully) {
     console.warn('[Audio] MP3 play failed all tiers. Triggering emergency beep alarm tone.');
     playEmergencyBeepAlarm();

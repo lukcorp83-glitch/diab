@@ -1,10 +1,10 @@
 {
-    "version": "6.0.25",
+    "version": "6.0.26",
     "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.25_OTA.apk",
-    "buildNumber": 140,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.26_OTA.apk",
+    "buildNumber": 141,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.25! 1) Nowy silnik AI i kaskada modeli – automatyczne łączenie z najnowszymi wersjami Gemini (3.7/3.6/2.5 Flash) z podglądem aktywnego modelu na żywo. 2) Nowy widżet „Zapisane Posiłki & Przepisy” na Pulpicie z płynnym przesuwanem myszką w przeglądarce i 1-Click wrzucaniem na Talerz. 3) Dyskretne banery medyczne i autorski modal czyszczenia czatu (bez systemowych alertów). 4) Inteligentne wyszukiwanie produktów i synchronizacja bazy.",
-    "whatsNewEn": "Version 6.0.25! 1) New AI Engine & Model Cascade – real-time connection to latest Gemini (3.7/3.6/2.5 Flash) with live active model badge. 2) New \"Saved Meals & Recipes\" Dashboard Widget with mouse drag-to-scroll and 1-Click plate loading. 3) Discreet medical disclaimers and native in-app chat clearing modal. 4) Smart food search and database synchronization.",
-    "otaRevision": 299
+    "whatsNew": "Wersja 6.0.26! 1) Przywrócenie i pancerny silnik odtwarzania dźwięków MP3 (status_clear.mp3) przy niskim i wysokim cukrze. 2) Nowy kanał powiadomień Androida (glucose_alerts_v17) z jawnym dźwiękiem alarmu. 3) Eliminacja fałszywych powiadomień „Ochrona przed hipo (AI)” przy wysokim cukrze dzięki fizjologicznym guardrailom. 4) Narzędzie testowania dźwięku MP3 bezpośrednio w Centrum Powiadomień.",
+    "whatsNewEn": "Version 6.0.26! 1) Restored and bulletproof MP3 alarm sound engine (status_clear.mp3) for low and high glucose alerts. 2) New Android notification channel (glucose_alerts_v17) with loud custom alarm sound. 3) Fixed false \"Hypo protection (AI)\" alerts on high glucose with strict physiological guardrails. 4) MP3 alarm sound testing tool directly in Notification Center settings.",
+    "otaRevision": 300
 }

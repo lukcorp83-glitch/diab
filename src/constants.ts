@@ -2,8 +2,8 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.25';
-export const CURRENT_VERSION = '6.0.25';
+export const APP_VERSION = '6.0.26';
+export const CURRENT_VERSION = '6.0.26';
 
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';
@@ -26,8 +26,17 @@ export const MEDICAL_DICTIONARY: Record<string, { name: string; namePl?: string;
   "5712249127619": { name: "NovoRapid FlexPen", namePl: "NovoRapid FlexPen", nameEn: "NovoRapid FlexPen", category: "insulin" },
   "5909991306298": { name: "Fiasp Penfill", namePl: "Fiasp Penfill", nameEn: "Fiasp Penfill", category: "insulin" },
   "5712249127527": { name: "Fiasp FlexTouch", namePl: "Fiasp FlexTouch", nameEn: "Fiasp FlexTouch", category: "insulin" },
+  "5909991402280": { name: "Lyumjev KwikPen", namePl: "Lyumjev KwikPen", nameEn: "Lyumjev KwikPen", category: "insulin" },
+  "5909991402273": { name: "Lyumjev Junior KwikPen", namePl: "Lyumjev Junior KwikPen", nameEn: "Lyumjev Junior KwikPen", category: "insulin" },
   "5909990692422": { name: "Humalog Penfill", namePl: "Humalog Penfill", nameEn: "Humalog Penfill", category: "insulin" },
   "0300028799598": { name: "Humalog KwikPen", namePl: "Humalog KwikPen", nameEn: "Humalog KwikPen", category: "insulin" },
+  "5909990930777": { name: "Liprolog KwikPen", namePl: "Liprolog KwikPen", nameEn: "Liprolog KwikPen", category: "insulin" },
+  "5909990930760": { name: "Liprolog Penfill", namePl: "Liprolog Penfill", nameEn: "Liprolog Penfill", category: "insulin" },
+  "5909991208929": { name: "Liprolog Junior KwikPen", namePl: "Liprolog Junior KwikPen", nameEn: "Liprolog Junior KwikPen", category: "insulin" },
+  "5909990038817": { name: "Gensulin R (Wkłady)", namePl: "Gensulin R (Wkłady)", nameEn: "Gensulin R (Wkłady)", category: "insulin" },
+  "5909990038824": { name: "Gensulin N (Wkłady)", namePl: "Gensulin N (Wkłady)", nameEn: "Gensulin N (Wkłady)", category: "insulin" },
+  "5909990422111": { name: "Actrapid Penfill", namePl: "Actrapid Penfill", nameEn: "Actrapid Penfill", category: "insulin" },
+  "5909990692514": { name: "Humulin R (Wkłady)", namePl: "Humulin R (Wkłady)", nameEn: "Humulin R (Wkłady)", category: "insulin" },
   "5909990962778": { name: "Lantus SoloStar", namePl: "Lantus SoloStar", nameEn: "Lantus SoloStar", category: "insulin" },
   "5909990962761": { name: i18n.t('auto.lantus_wklad', { defaultValue: i18n.t('auto.lantus_wklad', { defaultValue: "Lantus Wkład" }) }), category: "insulin" },
   "5909991206109": { name: "Toujeo SoloStar", namePl: "Toujeo SoloStar", nameEn: "Toujeo SoloStar", category: "insulin" },

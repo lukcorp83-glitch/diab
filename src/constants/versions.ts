@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.25';
+export const CURRENT_VERSION = '6.0.26';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
-      {
+  {
+    version: "6.0.26",
+    date: "2026-08-25",
+    title: "Pancerny Dźwięk Alarmu MP3, Nowy Kanał Powiadomień i Ochrona Hipo AI",
+    changes: [
+      "Przywrócono i wzmocniono silnik odtwarzania dźwięków MP3 (status_clear.mp3) przy alertach niskiego i wysokiego cukru (4-stopniowy fallback i autounlock)",
+      "Nowy dedykowany kanał powiadomień Androida (glucose_alerts_v17) z jawnym głośnym dźwiękiem alarmowym status_clear.mp3",
+      "Wyeliminowano fałszywe powiadomienia „Ochrona przed hipo (AI)” przy wysokim cukrze dzięki fizjologicznym guardrailom w silniku GlikoSense",
+      "Dodano narzędzie testowania dźwięku alarmu MP3 bezpośrednio w Centrum Powiadomień (Ustawienia -> Dźwięk alarmu glikemii)",
+      "Zoptymalizowano cache PWA Workbox dla plików dźwiękowych"
+    ]
+  },
+  {
     version: "6.0.25",
     date: "2026-08-24",
     title: "Najnowsze Modele Gemini (3.6/2.5), Widżet Posiłków, Szybkie Skróty i Nowy Czat",
@@ -243,7 +255,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
-      {
+  {
+    version: "6.0.26",
+    date: "2026-08-25",
+    title: "Pancerny Dźwięk Alarmu MP3, Nowy Kanał Powiadomień i Ochrona Hipo AI",
+    changes: [
+      "Przywrócono i wzmocniono silnik odtwarzania dźwięków MP3 (status_clear.mp3) przy alertach niskiego i wysokiego cukru (4-stopniowy fallback i autounlock)",
+      "Nowy dedykowany kanał powiadomień Androida (glucose_alerts_v17) z jawnym głośnym dźwiękiem alarmowym status_clear.mp3",
+      "Wyeliminowano fałszywe powiadomienia „Ochrona przed hipo (AI)” przy wysokim cukrze dzięki fizjologicznym guardrailom w silniku GlikoSense",
+      "Dodano narzędzie testowania dźwięku alarmu MP3 bezpośrednio w Centrum Powiadomień (Ustawienia -> Dźwięk alarmu glikemii)",
+      "Zoptymalizowano cache PWA Workbox dla plików dźwiękowych"
+    ]
+  },
+  {
     version: "6.0.25",
     date: "2026-08-24",
     title: "Najnowsze Modele Gemini (3.6/2.5), Widżet Posiłków, Szybkie Skróty i Nowy Czat",

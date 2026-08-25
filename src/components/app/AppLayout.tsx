@@ -134,7 +134,7 @@ export function AppLayout({
     <MotionConfig reducedMotion={userSettings?.ecoMode ? "always" : "user"}>
       <div
         className={cn(
-          "min-h-[100dvh] flex flex-col transition-colors duration-500 overflow-x-hidden relative z-10",
+          "h-full h-[100dvh] max-h-[100dvh] flex flex-col transition-colors duration-500 overflow-hidden relative z-10",
           isShortcutMode 
             ? "bg-transparent dark:bg-transparent"
             : (userSettings?.glassmorphismEnabled
@@ -260,7 +260,7 @@ export function AppLayout({
         {/* Main Content with Swipe Navigation */}
         <main
           ref={mainRef}
-          className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden"
+          className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto overscroll-y-contain overscroll-x-none touch-pan-y overflow-x-hidden no-scrollbar"
         >
           <AnimatePresence mode="popLayout" custom={direction} initial={false}>
             <motion.div

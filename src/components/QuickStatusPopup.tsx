@@ -53,7 +53,7 @@ export default function QuickStatusPopup({ isOpen, onClose, lastGlucose, iob }: 
  <Activity size={14} />
  <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.glikemia', { defaultValue: 'Glikemia' })}</span>
  </div>
- <p className="text-2xl font-black tracking-tighter dark:text-white">
+ <p className="text-2xl font-black tracking-tighter dark:text-white tabular-nums">
  {lastGlucose || '--'} <span className="text-xs text-slate-500">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  </p>
  </div>
@@ -63,7 +63,7 @@ export default function QuickStatusPopup({ isOpen, onClose, lastGlucose, iob }: 
  <Droplets size={14} />
  <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.aktywna_iob', { defaultValue: 'Aktywna (IOB)' })}</span>
  </div>
- <p className="text-2xl font-black tracking-tighter dark:text-white">
+ <p className="text-2xl font-black tracking-tighter dark:text-white tabular-nums">
  {iob.toFixed(1)} <span className="text-xs text-slate-500">j</span>
  </p>
  </div>

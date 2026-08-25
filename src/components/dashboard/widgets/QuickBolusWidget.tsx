@@ -94,10 +94,10 @@ export default function QuickBolusWidget({
 
           {/* Center suggested dose */}
           <div className="flex flex-col items-center justify-center my-auto z-10 pointer-events-none">
-            <span className="text-3xl font-black tracking-tight text-white drop-shadow-md">
+            <span className="text-3xl font-black tracking-tight text-white drop-shadow-md tabular-nums">
               +{correctionData.dose} <span className="text-sm font-extrabold text-indigo-200">{t('auto.j', { defaultValue: 'j.' })}</span>
             </span>
-            <span className="text-[9px] font-bold text-white/70 mt-0.5">
+            <span className="text-[9px] font-bold text-white/70 mt-0.5 tabular-nums">
               {iob > 0 ? `IOB: ${iob.toFixed(1)} j.` : `${t('auto.cel', { defaultValue: 'Cel' })}: ${correctionData.target}`}
             </span>
           </div>

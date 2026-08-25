@@ -91,6 +91,9 @@ export interface Medication {
   active: boolean;
   expiryDate?: string; // "YYYY-MM-DD"
   aiData?: DrugKnowledge; // Zapamiętana wiedza AI o danym przypisanym leku
+  stockQuantity?: number; // Pozostała ilość tabletek/sztuk w apteczce
+  stockThreshold?: number; // Próg ostrzegania o kończącym się leku
+  pillsPerDose?: number; // Liczba tabletek przyjmowana na jedno przypomnienie (domyślnie 1)
 }
 
 export interface InventoryItem {

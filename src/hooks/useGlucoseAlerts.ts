@@ -13,8 +13,8 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
     const glucoseLogs = logs
       .filter(l => {
         const hasBg = l.type === 'glucose' || (l.type as any) === 'sgv' || (l as any).bg !== undefined;
-        const val = l.value || (l as any).bg || 0;
-        return hasBg && val > 0;
+        const val = parseFloat((l.value !== undefined ? l.value : (l as any).bg) || 0);
+        return hasBg && !isNaN(val) && val > 0;
       })
       .sort((a, b) => {
         const ta = a.timestamp || (a.createdAt ? new Date(a.createdAt).getTime() : 0);
@@ -33,10 +33,12 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
     }
     if (!latestTime || isNaN(latestTime)) return;
 
-    const val = latest.value || (latest as any).bg;
+    const rawVal = latest.value !== undefined ? latest.value : (latest as any).bg;
+    const val = typeof rawVal === 'number' ? rawVal : parseFloat(rawVal);
+    if (!val || isNaN(val) || val <= 0) return;
 
-    // Ignore logs older than 30 minutes (zabezpieczenie przed archiwalnymi wpisami)
-    if (Date.now() - latestTime > 30 * 60 * 1000) return;
+    // Ignore logs older than 45 minutes (zabezpieczenie przed archiwalnymi wpisami)
+    if (Date.now() - latestTime > 45 * 60 * 1000) return;
 
     // Check if user disabled notifications in settings
     if (settings?.notificationsEnabled === false) return;

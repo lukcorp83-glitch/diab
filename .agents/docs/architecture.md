@@ -4,8 +4,8 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 
 ## Główne pliki i komponenty
 - `src/App.tsx` (ogromny plik ~3400 linii) - Główny punkt wejścia, główny layout, zarządzanie routingiem i duża część logiki UI.
-- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.25'), adresy URL oraz bazy produktów.
-- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.25.
+- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.26'), adresy URL oraz bazy produktów.
+- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.26.
 
 ## Główne Widżety Pulpitu i Nowy Design System
 - `src/components/dashboard/widgets/SavedMealsWidget.tsx` - Nowy horyzontalny widżet „Zapisane Posiłki & Przepisy” na Pulpicie: przewijany stos kart ze szklistym tłem (*glassmorphism*), badge'ami diet, szczegółowymi makroskładnikami (W, B, T, kcal), 1-Click wrzucaniem całego dania na Talerz oraz pełnym modalem podglądu przepisu kulinarnego wprost z Pulpitu.
@@ -13,7 +13,7 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/components/MealPlate/ProductSearch.tsx` & `src/components/FoodDatabase.tsx` - Nowy inteligentny algorytm wyszukiwania w bazie żywności: normalizacja znaków diakrytycznych (s/ś, c/ć, l/ł itp.), scoring prefiksowy (faworyzowanie słów zaczynających się od frazy) oraz pełna widoczność bazy od A do Ż.
 - `src/components/DailyTirWidget.tsx` - Wizualny widżet Dziennego TIR: radialny pierścień z neonowym blaskiem na segmencie normy (`emerald-glow`), torem zegarowym (`background track`), plakietką sukcesu `≥70%` oraz trójkolorowymi kapsułkami zakresów (`<70`, `70-180`, `>180`).
 - `src/components/SiteRotationWidget.tsx` - Nowy Smart Rotation Ring (Koncepcja 2): minimalistyczna tarcza zegarowa z łukiem cyklu rotacji, czytelną nazwą aktywnej strefy i nowoczesną pigułką następnego miejsca bez zbędnych grafik.
-- `src/hooks/useGlucoseAlerts.ts` & `src/services/notificationService.ts` - Zoptymalizowany system powiadomień i alertów glikemii z trwałą pamięcią `localStorage`, natywnym głośnym dźwiękiem systemowym Androida (`sound: 'default'`) i spójną drzemką/wyciszaniem.
+- `src/hooks/useGlucoseAlerts.ts` & `src/services/notificationService.ts` & `src/lib/audioUtils.ts` - Zoptymalizowany, 4-stopniowy pancerny silnik powiadomień i odtwarzania MP3 (`status_clear.mp3`) dla niskiego i wysokiego cukru: Tier 1 (Capacitor NativeAudio z preloadem `public/status_clear.mp3`), Tier 2 (HTML5 Audio z automatycznym odblokowaniem gestem użytkownika), Tier 3 (Web Audio API Buffer Source) oraz Tier 4 (syntezator awaryjny). Kanał Android zsynchronizowany na `glucose_alerts_v17` z dźwiękiem `status_clear.mp3`. Dodano narzędzie testowe w Ustawieniach Powiadomień.
 
 ## GlikoSense oraz Integracja z Gemini API
 - `src/services/gemini.ts` - Główny serwis obsługujący komunikację z Google Gemini API (`GoogleGenAI`).
@@ -62,5 +62,15 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
   1. Główne podsumowanie: wiek kaniuli, kolorowy pasek i procent sprawności wchłaniania (`currentEfficiency%`), liczbę bolusów, średni cukier i czas do wymiany.
   2. Rozwijaną sekcję etapów (`AnimatePresence` / akordeon ze stanem `isExpanded`): kafelki 4 dób cyklu (Doba 1 aktywna, Doby 2-4 zablokowane/oczekujące) oraz rekomendację AI.
 - `src/services/siteRotationService.ts` - Serwis inteligentnej rotacji 10 stref anatomicznych ciała. Analizuje czas odpoczynku każdej strefy (`daysSinceLastUse`), klasyfikuje stan regeneracji tkanek (Wypoczęta >14 dni, W regeneracji 4-14 dni, Zmęczona <4 dni), generuje rekomendację kolejnego optymalnego miejsca (`getNextRecommendedSite`) z rotacją stron i uwzględnieniem preferencji pacjenta (`allowedInfusionSites`) oraz ochroną przed kolizją z sensorem CGM. Posiada detektor ryzyka zrostów tłuszczowych (lipohipertrofii).
-- `src/components/SiteRotationModal.tsx` & `src/components/SiteRotationWidget.tsx` - Interaktywny pulpit i modal rotacji wkłuć. Prezentuje sylwetkę 2D z przełącznikiem Przód/Tył, kolorową mapą regeneracji, wskaźnikiem obecnego wkłucia oraz pulsującym znacznikiem kolejnego polecanego miejsca, 1-click wymianą wkłucia (z automatycznym odliczeniem z apteczki) oraz konfiguratorem dozwolonych stref pacjenta.
+## Moduł Leków, Apteczki i Przypomnień Cross-Platform (Mobile & Web)
+- `src/components/MedicationsWidget.tsx` - Nowoczesny widżet leków na pulpicie:
+  - Kolorowa paleta pigułek (`PILL_THEMES`: Teal, Indigo, Purple, Amber, Sky, Rose) z dopasowanymi ramkami, tłami i badge'ami dawek/godzin.
+  - Inteligentny detektor postaci leku (`getMedicationIcon`): automatycznie dobiera ikony dla iniekcji/penów (`Syringe`), kropli/syropów (`Droplets`), aerozoli/wziewów (`Wind`), saszetek (`Package`) oraz tabletek (`Pill`).
+  - Modal potwierdzenia zażycia leku (`confirmingMed`): czytelny pop-up z nazwą, dawką, stanem zapasu po zażyciu i przyciskami Potwierdź / Anuluj.
+  - Automatyczne odejmowanie przyjętej dawki (`pillsPerDose`) ze stanu magazynowego `stockQuantity` w Firebase po zatwierdzeniu.
+- `src/components/Profile/ProfileMedications.tsx` - Panel zarządzania lekami w profilu użytkownika: dotykowy edytor przypomnień z szybkimi presetami pór dnia, pełnoekranowy asystent AI Gemini z opcją usuwania i ponawiania analizy, kalkulator wyczerpania zapasu tabletek na podstawie dziennego dawkowania oraz stałe przyciski Edycji i Usuwania.
+- `src/services/notificationService.ts` - Pancerny silnik powiadomień o lekach działający cross-platformowo:
+  - **Android Native (Capacitor LocalNotifications)**: planowanie codziennych, powtarzalnych powiadomień systemowych w kanale `glikocontrol_reminders_v1` z poprawnym parsowaniem godzin `HH:mm`.
+  - **Web / PWA (Browser Web Notifications & Service Worker)**: aktywny monitoring w czasie rzeczywistym z wyzwalaniem systemowego `Notification API` oraz komunikatów Toast wewnątrz aplikacji.
+- `src/components/Profile/TreatmentModeSelector.tsx` - Wybór trybu leczenia (Dieta, Insulina MDI, Pompa). Dla trybu Pompa renderuje dedykowany kafel i modal **„Procedura Awaryjna: Przejście na Peny”** z automatycznym wyliczaniem dobowej bazy zastępczej z profili bazy, regułami zaokrągleń bolusa (0.5j/1j) oraz instrukcją podawania i kontroli ketonów.
 

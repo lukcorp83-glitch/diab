@@ -348,7 +348,7 @@ const saveInventoryItem = async () => {
  <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="space-y-4 pb-20"
+      className="space-y-4"
     >
 
       <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 rounded-[2.5rem] p-6 border border-indigo-200/50 dark:border-indigo-500/20 shadow-xl backdrop-blur-sm">

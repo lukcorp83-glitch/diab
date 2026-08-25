@@ -1091,12 +1091,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         }
     }
 
-    const predictedNextHour = predictionCurve[12]?.value || latestBg;
-    const predictedNext2Hours = predictionCurve[24]?.value || latestBg;
+    const predictedNextHour = predictionCurve[Math.min(12, predictionCurve.length - 1)]?.value || latestBg;
+    const predictedNext2Hours = predictionCurve[Math.min(24, predictionCurve.length - 1)]?.value || latestBg;
     const predictedNext6Hours = predictionCurve[Math.min(72, predictionCurve.length - 1)]?.value || latestBg;
-    // We only trigger heuristic hypo alert if the ML prediction DOES NOT firmly predict a safe rise above 95
-    const riskOfHypo = latestBg > 75 && (predictedNextHour < 80 || predictedNext2Hours < 80 || (latestBg < 100 && lastTrendNum < -3 && predictedNextHour < 95));
-
     
     // HEURISTIC: Calculate GMI & Avg Bias
     let sumGlucose = 0;
@@ -1243,17 +1240,6 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(i18n.t('auto.trend_leci_masz_solidny_ladune', { defaultValue: i18n.t('auto.trend_leci_masz_solidny_l', { defaultValue: i18n.t('auto.trend_leci_masz_solidny_l', { defaultValue: "🎯 Trend leci! Masz solidny ładunek aktywnej insuliny w ciele i ani trochę zabezpieczonych węglowodanów w żołądku. Koniecznie zjedz ok. 15g soku lub glukozy!" }) }) }));
     }
 
-    if (riskOfHypo) {
-        const hypoPhrases = [i18n.t('auto.przeczucie_mi_mowi_ze_zbliza_s', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: "⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały." }) }) }), i18n.t('auto.bardzo_czerwone_swiatlo_u_mnie', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku." }) }) }), i18n.t('auto.spadek_i_maly_zakres_konieczni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!" }) }) })];
-        insights.push(hypoPhrases[Math.floor(Math.random() * hypoPhrases.length)]);
-    } else if (predictedNextHour > 180) {
-        const hyperPhrases = [i18n.t('auto.powoli_wybiegamy_w_teren_wysok', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: "📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem." }) }) }), i18n.t('auto.sklaniamy_sie_gwaltownie_przed', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: "📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę." }) }) }), i18n.t('auto.wydaje_mi_sie_ze_ostatnio_musi', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: "📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Spodziewaj się lotu powyżej linii." }) }) })]
-        insights.push(hyperPhrases[Math.floor(Math.random() * hyperPhrases.length)]);
-    } else {
-        const normalPhrases = [i18n.t('auto.piekna_chwila_homeostazy_napra', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: "✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!" }) }) }), i18n.t('auto.krok_po_kroku_i_mamy_idealny_m', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: "✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!" }) }) }), i18n.t('auto.w_tej_minucie_mozna_powiedziec', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: "✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!" }) }) })];
-        insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
-    }
-
     // Calculate Peak & Trough in predictionCurve
     let peakObj = { value: Math.round(latestBg), timestamp: latestTimeMs };
     let troughObj = { value: Math.round(latestBg), timestamp: latestTimeMs };
@@ -1264,6 +1250,28 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         if (p.value > maxVal) { maxVal = p.value; peakObj = { value: Math.round(p.value), timestamp: p.timestamp }; }
         if (p.value < minVal) { minVal = p.value; troughObj = { value: Math.round(p.value), timestamp: p.timestamp }; }
       });
+    }
+
+    // Guardrail medyczny Ochrony Hipo:
+    // 1. Jeśli cukier jest wysoki (>130 mg/dL) i IOB nie pokrywa drastycznego spadku do normy, to NIE MA hipo
+    // 2. Alert jest włączany tylko gdy min. punkt trajektorii lub prognoza 1h/2h faktycznie zagraża spadkiem < 75 mg/dL
+    const isCurrentSugarHigh = latestBg > 130 && (latestBg - (currentIob * 35)) > 80 && lastTrendNum > -3;
+    const riskOfHypo = !isCurrentSugarHigh && latestBg >= 70 && (
+      troughObj.value < 75 ||
+      predictedNextHour < 75 ||
+      predictedNext2Hours < 75 ||
+      (latestBg <= 95 && lastTrendNum < -2.5 && predictedNextHour < 85)
+    );
+
+    if (riskOfHypo) {
+        const hypoPhrases = [i18n.t('auto.przeczucie_mi_mowi_ze_zbliza_s', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: "⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały." }) }) }), i18n.t('auto.bardzo_czerwone_swiatlo_u_mnie', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku." }) }) }), i18n.t('auto.spadek_i_maly_zakres_konieczni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!" }) }) })];
+        insights.push(hypoPhrases[Math.floor(Math.random() * hypoPhrases.length)]);
+    } else if (predictedNextHour > 180) {
+        const hyperPhrases = [i18n.t('auto.powoli_wybiegamy_w_teren_wysok', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: "📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem." }) }) }), i18n.t('auto.sklaniamy_sie_gwaltownie_przed', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: "📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę." }) }) }), i18n.t('auto.wydaje_mi_sie_ze_ostatnio_musi', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: "📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Spodziewaj się lotu powyżej linii." }) }) })]
+        insights.push(hyperPhrases[Math.floor(Math.random() * hyperPhrases.length)]);
+    } else {
+        const normalPhrases = [i18n.t('auto.piekna_chwila_homeostazy_napra', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: "✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!" }) }) }), i18n.t('auto.krok_po_kroku_i_mamy_idealny_m', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: "✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!" }) }) }), i18n.t('auto.w_tej_minucie_mozna_powiedziec', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: "✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!" }) }) })];
+        insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
 
     // Stacking detection

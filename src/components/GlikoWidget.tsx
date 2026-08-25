@@ -91,7 +91,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  key={`val-${lastGlucose?.timestamp || 'none'}`}
  initial={{ scale: 0.8, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}
- className="text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter"
+ className="text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
  >
  {lastGlucose?.value || '--'}
  </motion.span>
@@ -183,7 +183,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  initial={{ scale: 0.8, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}
  transition={{ type: "spring", bounce: 0.3 }}
- className="text-5xl font-black text-slate-900 dark:text-white leading-none tracking-tighter"
+ className="text-5xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
  >
  {lastGlucose?.value || '--'}
  </motion.span>

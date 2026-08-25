@@ -88,12 +88,16 @@ export default function App() {
   useEffect(() => {
     if (userSettings) {
       notificationService.updateDeviceReminders(userSettings);
+      if (userSettings.medications) {
+        notificationService.scheduleMedicationReminders(userSettings.medications);
+      }
     }
   }, [
     userSettings?.sensorChangeDate,
     userSettings?.infusionSetChangeDate,
     userSettings?.sensorDurationDays,
-    userSettings?.infusionSetDurationDays
+    userSettings?.infusionSetDurationDays,
+    userSettings?.medications
   ]);
   
   const userSettingsRef = useRef(userSettings);

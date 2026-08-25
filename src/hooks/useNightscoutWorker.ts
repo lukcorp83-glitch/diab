@@ -127,6 +127,22 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       if (userSettingsRef.current?.notificationsEnabled === false) return;
       const prefs = userSettingsRef.current?.notificationPrefs;
       if (prefs?.hypoProtection !== false) {
+        const payload = e?.detail;
+        const latestBg = payload?.predictionCurve?.[0]?.value;
+        const pred1h = payload?.predictedNextHour;
+        const trough = payload?.predictedTrough?.value;
+
+        // Jeśli aktualny cukier jest wysoki (>130) i prognoza nie wykazuje drastycznego spadku <80, zignoruj alert
+        if (latestBg && latestBg > 130 && (pred1h === undefined || pred1h >= 80)) {
+          console.log(`[HypoProtection] Zignorowano fałszywy alert: aktualny cukier jest wysoki (${latestBg} mg/dL)`);
+          return;
+        }
+
+        if (trough !== undefined && trough >= 80 && (pred1h === undefined || pred1h >= 80)) {
+          console.log(`[HypoProtection] Zignorowano alert: prognoza jest bezpieczna (trough: ${trough} mg/dL)`);
+          return;
+        }
+
         const lastSent = parseInt(localStorage.getItem('last_hypo_protect_alert') || '0', 10);
         if (Date.now() - lastSent > 60 * 60 * 1000) {
           localStorage.setItem('last_hypo_protect_alert', Date.now().toString());

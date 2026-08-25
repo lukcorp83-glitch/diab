@@ -43,6 +43,9 @@ import {
  Sparkles,
  Check,
  Calendar,
+ CalendarDays,
+ Clock,
+ Package,
  Brain,
  Signal,
  Droplets,
@@ -127,19 +130,21 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
- const deleteMedication = async (id: string) => {
- if (!user) return;
- try {
- const updatedMeds = (settings.medications || []).filter((m: any) => m.id !== id);
- const cleanMeds = JSON.parse(JSON.stringify(updatedMeds));
-   const newSettings = { ...settings, medications: cleanMeds };
- setSettings(newSettings);
- await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { medications: JSON.parse(JSON.stringify(updatedMeds)) }, { merge: true });
- toast.success("Lek usunięty");
- } catch (e) {
- toast.error("Błąd usuwania leku");
- }
- };
+  const deleteMedication = async (id: string) => {
+    if (!user) return;
+    try {
+      const updatedMeds = (settings.medications || []).filter((m: any) => m.id !== id);
+      const cleanMeds = JSON.parse(JSON.stringify(updatedMeds));
+      const newSettings = { ...settings, medications: cleanMeds };
+      setSettings(newSettings);
+      await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { medications: cleanMeds }, { merge: true });
+      queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
+      toast.success(t('auto.lek_usuniety', { defaultValue: "Lek usunięty" }));
+    } catch (e) {
+      console.error(e);
+      toast.error(t('auto.blad_usuwania_leku', { defaultValue: "Błąd usuwania leku" }));
+    }
+  };
 
  const deleteInventoryItem = async (id: string) => {
  if (!user) return;
@@ -155,17 +160,47 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
  }
  };
 
- const [newMedication, setNewMedication] = useState<{
- id: string;
- name: string;
- dosage: string;
- reminders: string[];
- expiryDate: string;
- active: boolean;
- aiData?: any;
- } | null>(null);
-const [isAnalyzingDrug, setIsAnalyzingDrug] = useState(false);
-const [medLoading, setMedLoading] = useState(false);
+  const [newMedication, setNewMedication] = useState<Partial<Medication> | null>(null);
+
+  const calculateMedicationRunout = (med: Partial<Medication> | null | undefined) => {
+    if (!med || typeof med.stockQuantity !== 'number' || med.stockQuantity <= 0) return null;
+    const remindersCount = Array.isArray(med.reminders) && med.reminders.length > 0 ? med.reminders.length : 1;
+    const pillsPerDose = med.pillsPerDose && med.pillsPerDose > 0 ? med.pillsPerDose : 1;
+    const dailyDose = remindersCount * pillsPerDose;
+    const daysRemaining = Math.floor(med.stockQuantity / dailyDose);
+    const targetDate = new Date(Date.now() + daysRemaining * 24 * 60 * 60 * 1000);
+    const formattedDate = targetDate.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+      day: 'numeric',
+      month: 'short'
+    });
+    const isLowStock = med.stockQuantity <= (med.stockThreshold || 7) || daysRemaining <= 5;
+    return {
+      dailyDose,
+      daysRemaining,
+      formattedDate,
+      isLowStock
+    };
+  };
+
+  const takeMedicationDose = async (med: Medication) => {
+    if (!user) return;
+    Haptics.success();
+    const pillsToDeduct = med.pillsPerDose || 1;
+    const currentStock = typeof med.stockQuantity === 'number' ? med.stockQuantity : null;
+    const newStock = currentStock !== null ? Math.max(0, currentStock - pillsToDeduct) : undefined;
+    
+    const updatedMeds = (settings.medications || []).map((m: any) => 
+      m.id === med.id ? { ...m, ...(newStock !== undefined ? { stockQuantity: newStock } : {}) } : m
+    );
+    const cleanMeds = JSON.parse(JSON.stringify(updatedMeds));
+    setSettings({ ...settings, medications: cleanMeds });
+    await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { medications: cleanMeds }, { merge: true });
+    queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
+    toast.success(`${t('auto.zazyto_lek', { defaultValue: 'Zażyto' })}: ${med.name} (${med.dosage || '1 dawka'})`);
+  };
+
+  const [isAnalyzingDrug, setIsAnalyzingDrug] = useState(false);
+  const [medLoading, setMedLoading] = useState(false);
   const [newInventoryItem, setNewInventoryItem] =
     useState<InventoryItem | null>(null);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -258,6 +293,27 @@ const analyzeDrug = async () => {
  setIsAnalyzingDrug(false);
  }
  }
+  const clearAiAnalysis = async () => {
+    if (!newMedication) return;
+    const medName = newMedication.name;
+    setNewMedication({ ...newMedication, aiData: undefined });
+    if (medName && settings.customDrugDictionary?.[medName]) {
+      const updatedDict = { ...(settings.customDrugDictionary || {}) };
+      delete updatedDict[medName];
+      const newSettings = { ...settings, customDrugDictionary: updatedDict };
+      setSettings(newSettings);
+      if (user) {
+        await setDoc(
+          doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+          { customDrugDictionary: updatedDict },
+          { merge: true }
+        );
+        queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
+      }
+    }
+    toast.success(t('auto.analiza_ai_usunieta', { defaultValue: "Analiza AI została usunięta" }));
+  };
+
 const saveMedication = async () => {
  if (!newMedication?.name || !user) return;
  setMedLoading(true);
@@ -364,19 +420,34 @@ const saveInventoryItem = async () => {
       </div>
       <div>
         <h3 className="text-xs font-black dark:text-white uppercase tracking-wider leading-tight">
-          {t('auto.insulina_bolusowa', { defaultValue: 'Insulina szybkodziałająca' })}
+          {t('auto.rodzaj_stosowanej_insuliny', { defaultValue: 'Rodzaje i Typ Stosowanej Insuliny' })}
         </h3>
         <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
-          {t('auto.insulina_bolusowa_opis', { defaultValue: 'Wpływa na kalkulator i stoper przedposiłkowy' })}
+          {t('auto.rodzaj_stosowanej_insuliny_opis', { defaultValue: 'Konfiguracja tempa wchłaniania dla Kalkulatora Bolusa i Stopera Pre-Bolus' })}
         </p>
       </div>
     </div>
 
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
       {[
-        { id: 'fiasp', name: 'Fiasp / Lyumjev', badge: '⚡ Ultraszybka (~5 min)' },
-        { id: 'novorapid', name: 'NovoRapid / Humalog', badge: '⏱️ Standard (~10-15 min)' },
-        { id: 'regular', name: 'Gensulin R / Actrapid', badge: '🌙 Klasyczna (~25-35 min)' },
+        { 
+          id: 'fiasp', 
+          category: t('auto.insulina_ultraszybka_urli', { defaultValue: '⚡ Ultraszybka (URLi)' }), 
+          meds: 'Fiasp, Lyumjev',
+          timeInfo: t('auto.insulina_prebolus_0_5', { defaultValue: 'start: ~5 min (pre-bolus 0-5 min)' })
+        },
+        { 
+          id: 'novorapid', 
+          category: t('auto.insulina_standardowy_analog', { defaultValue: '⏱️ Standardowy analog' }), 
+          meds: 'NovoRapid, Humalog, Liprolog, Apidra',
+          timeInfo: t('auto.insulina_prebolus_10_15', { defaultValue: 'start: ~10-15 min (pre-bolus 10-15 min)' })
+        },
+        { 
+          id: 'regular', 
+          category: t('auto.insulina_klasyczna_ludzka', { defaultValue: '🌙 Klasyczna ludzka' }), 
+          meds: 'Gensulin R, Actrapid, Humulin R',
+          timeInfo: t('auto.insulina_prebolus_20_30', { defaultValue: 'start: ~25-35 min (pre-bolus 20-30 min)' })
+        },
       ].map((ins) => {
         const isSelected = (settings.insulinType || 'novorapid') === ins.id;
         return (
@@ -390,18 +461,23 @@ const saveInventoryItem = async () => {
               if (user) {
                 await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { insulinType: ins.id }, { merge: true });
               }
-              toast.success(`Wybrano: ${ins.name}`);
+              toast.success(`${ins.category}`);
             }}
             className={cn(
-              "p-3 rounded-2xl border text-left transition-all flex flex-col justify-between",
+              "p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-2",
               isSelected 
                 ? "bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.01]" 
                 : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
             )}
           >
-            <span className="text-[11px] font-black leading-tight block">{ins.name}</span>
-            <span className={cn("text-[9px] font-bold mt-1 block", isSelected ? "text-indigo-200" : "text-slate-400")}>
-              {ins.badge}
+            <div>
+              <span className="text-[11px] font-black leading-tight block">{ins.category}</span>
+              <span className={cn("text-[9.5px] font-bold leading-tight block mt-1", isSelected ? "text-indigo-100" : "text-slate-800 dark:text-slate-200")}>
+                {ins.meds}
+              </span>
+            </div>
+            <span className={cn("text-[8.5px] font-semibold mt-0.5 block opacity-90", isSelected ? "text-indigo-200" : "text-slate-400 dark:text-slate-500")}>
+              {ins.timeInfo}
             </span>
           </button>
         );
@@ -531,44 +607,98 @@ const saveInventoryItem = async () => {
  </div>
  </div>
 
- {med.expiryDate && (
- <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
- <p
- className={cn(
- "text-[9px] font-bold flex items-center gap-1.5",
- new Date(med.expiryDate).getTime() <
- Date.now() + 7 * 24 * 60 * 60 * 1000
- ? "text-rose-500 animate-pulse"
- : "text-slate-400",
- )}
- >
- <Calendar size={12} />
- 
- {t('auto.data_ważności', { defaultValue: i18n.t('auto.data_waznosci', { defaultValue: "Data ważności:" }) })}{" "}
- <span className="uppercase">{med.expiryDate}</span>
- </p>
+      {/* Wskaźnik zapasu tabletek i szacunkowy czas wyczerpania */}
+      {(() => {
+        const runout = calculateMedicationRunout(med);
+        if (!runout) return null;
+        return (
+          <div className={cn(
+            "mt-3 p-2.5 rounded-2xl border flex items-center justify-between text-[9.5px]",
+            runout.isLowStock 
+              ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+              : "bg-teal-500/5 border-teal-500/15 text-slate-700 dark:text-slate-300"
+          )}>
+            <div className="flex items-center gap-2">
+              <Package size={13} className={runout.isLowStock ? "text-rose-500 shrink-0" : "text-teal-500 shrink-0"} />
+              <div>
+                <span className="font-bold">
+                  {t('auto.zapas_etykieta', { defaultValue: 'Zapas:' })} <strong className="font-black text-slate-900 dark:text-white">{med.stockQuantity} szt.</strong>
+                </span>
+                <span className="opacity-80 ml-1.5 font-medium">
+                  • {t('auto.zapas_wystarczy_na', { days: runout.daysRemaining, date: runout.formattedDate, defaultValue: `Zapas na ok. ${runout.daysRemaining} dni (do ${runout.formattedDate})` })}
+                </span>
+              </div>
+            </div>
 
- <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
- <button
- onClick={() =>
- setNewMedication({
- ...med,
- expiryDate: med.expiryDate || "",
- })
- }
- className="p-2 text-slate-400 hover:text-accent-500 transition-colors"
- >
- <Settings size={14} />
- </button>
- <button
- onClick={() => deleteMedication(med.id)}
- className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
- >
- <Trash size={14} />
- </button>
- </div>
- </div>
- )}
+            {/* Szybki przycisk Zażyj 1 dawkę */}
+            <button
+              type="button"
+              onClick={() => takeMedicationDose(med)}
+              title={t('auto.zazyj_dawke', { defaultValue: 'Zażyj dawkę' })}
+              className={cn(
+                "px-2.5 py-1 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1 shadow-sm shrink-0 ml-2",
+                runout.isLowStock
+                  ? "bg-rose-600 text-white hover:bg-rose-700"
+                  : "bg-teal-600 text-white hover:bg-teal-700"
+              )}
+            >
+              <Check size={10} />
+              {t('auto.zazyj_dawke', { defaultValue: 'Zażyj' })}
+            </button>
+          </div>
+        );
+      })()}
+
+  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+    {med.expiryDate ? (
+      <p
+        className={cn(
+          "text-[9px] font-bold flex items-center gap-1.5",
+          new Date(med.expiryDate).getTime() < Date.now() + 7 * 24 * 60 * 60 * 1000
+            ? "text-rose-500 animate-pulse"
+            : "text-slate-400 dark:text-slate-500"
+        )}
+      >
+        <Calendar size={12} />
+        {t('auto.data_ważności', { defaultValue: i18n.t('auto.data_waznosci', { defaultValue: "Ważność:" }) })}{" "}
+        <span className="uppercase">{med.expiryDate}</span>
+      </p>
+    ) : (
+      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+        {med.active ? "● Aktywny" : "○ Wstrzymany"}
+      </span>
+    )}
+
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => {
+          Haptics.light();
+          setNewMedication({
+            ...med,
+            expiryDate: med.expiryDate || "",
+          });
+        }}
+        className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-teal-900/30 transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
+      >
+        <Edit2 size={11} />
+        <span>{t('auto.edytuj', { defaultValue: 'Edytuj' })}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          Haptics.medium();
+          if (confirm(`Czy na pewno chcesz usunąć lek "${med.name}"?`)) {
+            deleteMedication(med.id);
+          }
+        }}
+        className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all border border-rose-200 dark:border-rose-900/40 active:scale-95"
+      >
+        <Trash size={11} />
+        <span>{t('auto.usun', { defaultValue: 'Usuń' })}</span>
+      </button>
+    </div>
+  </div>
  </motion.div>
  ))}
 
@@ -623,76 +753,203 @@ const saveInventoryItem = async () => {
  </button>
  </div>
 
- <div className="grid grid-cols-2 gap-3">
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.nazwa', { defaultValue: 'Nazwa' })}
+  <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-1">
+      <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+        {t('auto.nazwa', { defaultValue: 'Nazwa' })}
+      </label>
+      <input
+        type="text"
+        list="medication-dict"
+        placeholder={t('auto.np_metformina', { defaultValue: 'np. Metformina' })}
+        value={newMedication.name}
+        onChange={(e) => {
+          const val = e.target.value;
+          const existingAi = settings.customDrugDictionary?.[val];
+          setNewMedication({
+            ...newMedication,
+            name: val,
+            aiData: existingAi || newMedication.aiData
+          });
+        }}
+        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
+      />
+      <datalist id="medication-dict">
+        {Object.keys(settings.customDrugDictionary || {}).map(k => <option key={k} value={k} />)}
+      </datalist>
+    </div>
+
+    <div className="space-y-1">
+      <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+        {t('auto.dawka', { defaultValue: 'Dawka' })}
+      </label>
+      <input
+        type="text"
+        placeholder={t('auto.np_500mg', { defaultValue: 'np. 500mg' })}
+        value={newMedication.dosage}
+        onChange={(e) =>
+          setNewMedication({
+            ...newMedication,
+            dosage: e.target.value,
+          })
+        }
+        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
+      />
+    </div>
+  </div>
+
+  {/* Sekcja AI na całą szerokość widżetu */}
+  {newMedication.name && !newMedication.aiData && (
+    <div className="w-full pt-1">
+      <button 
+        type="button"
+        onClick={analyzeDrug} 
+        disabled={isAnalyzingDrug} 
+        className="w-full text-xs bg-teal-500/10 text-teal-600 dark:text-teal-400 p-3 rounded-2xl font-black border border-teal-500/20 flex items-center justify-center gap-2 hover:bg-teal-500/20 transition-all active:scale-95"
+      >
+        {isAnalyzingDrug ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} className="text-teal-500" />}
+        <span>{t('auto.przeanalizuj_lek_z_ai', { defaultValue: "Przeanalizuj lek z AI" })}</span>
+      </button>
+    </div>
+  )}
+
+  {newMedication.aiData && (
+    <div className="w-full p-3.5 bg-white/60 dark:bg-slate-900/60 border border-teal-500/20 rounded-2xl text-[10.5px] text-slate-600 dark:text-slate-300 leading-relaxed shadow-sm space-y-2">
+      <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-800 pb-2">
+        <div className="flex items-center gap-1.5 font-black text-teal-600 dark:text-teal-400">
+          <Sparkles size={13} />
+          <span>{t('auto.analiza_farmakologiczna_ai', { defaultValue: "Analiza AI Gemini" })}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={analyzeDrug}
+            disabled={isAnalyzingDrug}
+            title={t('auto.ponow_analize_ai', { defaultValue: "Ponów analizę AI" })}
+            className="p-1 text-slate-400 hover:text-teal-500 transition-colors rounded-lg flex items-center gap-1 text-[9px] font-bold"
+          >
+            {isAnalyzingDrug ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+            <span>{t('auto.ponow_analize_ai', { defaultValue: "Ponów" })}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setNewMedication({ ...newMedication, aiData: null })}
+            title={t('auto.usun_analize_ai', { defaultValue: "Usuń analizę AI" })}
+            className="p-1 text-slate-400 hover:text-rose-500 transition-colors rounded-lg flex items-center gap-1 text-[9px] font-bold ml-1"
+          >
+            <X size={12} />
+            <span>{t('auto.usun_analize_ai', { defaultValue: "Usuń" })}</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-1 text-[10px]">
+        <div>
+          <strong className="text-slate-800 dark:text-slate-200">{t('auto.substancja', { defaultValue: "Substancja czynna:" })}</strong> {newMedication.aiData.activeIngredient}
+        </div>
+        <div>
+          <strong className="text-slate-800 dark:text-slate-200">{t('auto.glikemia', { defaultValue: "Wpływ na glikemię:" })}</strong>{" "}
+          <span className={cn("font-black uppercase px-1.5 py-0.5 rounded-md text-[9px]", newMedication.aiData.sugarImpact === 'lowers' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : newMedication.aiData.sugarImpact === 'raises' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-slate-500/10 text-slate-600 dark:text-slate-400')}>
+            {newMedication.aiData.sugarImpact === 'lowers' ? t('auto.obniza_cukier', { defaultValue: 'OBNIŻA CUKIER' }) : newMedication.aiData.sugarImpact === 'raises' ? t('auto.podnosi_cukier', { defaultValue: 'PODNOSI CUKIER' }) : t('auto.neutralny', { defaultValue: 'NEUTRALNY' })}
+          </span>
+        </div>
+        <div>
+          <strong className="text-slate-800 dark:text-slate-200">{t('auto.opis', { defaultValue: "Opis działania:" })}</strong> {newMedication.aiData.description}
+        </div>
+        {newMedication.aiData.interactions && (
+          <div>
+            <strong className="text-slate-800 dark:text-slate-200">{t('auto.interakcje', { defaultValue: "Interakcje:" })}</strong> {newMedication.aiData.interactions}
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+
+ <div className="grid grid-cols-1 gap-4">
+ <div className="space-y-2">
+ <div className="flex items-center justify-between">
+ <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5 ml-1">
+ <Bell size={12} className="text-teal-500" />
+ {t('auto.przypomnienia', { defaultValue: 'Przypomnienia' })}
  </label>
- <input
- type="text"
- list="medication-dict"
- placeholder={t('auto.np_metformina', { defaultValue: 'np. Metformina' })}
- value={newMedication.name}
- onChange={(e) => {
- const val = e.target.value;
- const existingAi = settings.customDrugDictionary?.[val];
- setNewMedication({
- ...newMedication,
- name: val,
- aiData: existingAi || newMedication.aiData
- });
- }}
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
- />
- <datalist id="medication-dict">
- {Object.keys(settings.customDrugDictionary || {}).map(k => <option key={k} value={k} />)}
- </datalist>
- {newMedication.name && !settings.customDrugDictionary?.[newMedication.name] && (
- <button onClick={analyzeDrug} disabled={isAnalyzingDrug} className="mt-2 text-[10px] bg-teal-500/10 text-teal-600 dark:text-teal-400 p-2 rounded-xl font-bold flex items-center gap-1">
- {isAnalyzingDrug ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} {t('auto.przeanalizuj_lek_z_ai', { defaultValue: "Przeanalizuj lek z AI" })}
- </button>
- )}
- {newMedication.aiData && (
- <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
- <strong>{t('auto.substancja', { defaultValue: "Substancja:" })}</strong> {newMedication.aiData.activeIngredient}<br/>
- <strong>{t('auto.glikemia', { defaultValue: "Glikemia:" })}</strong> <span className={newMedication.aiData.sugarImpact === 'lowers' ? 'text-blue-500 font-bold uppercase' : newMedication.aiData.sugarImpact === 'raises' ? 'text-rose-500 font-bold uppercase' : 'text-slate-500 font-bold uppercase'}>{newMedication.aiData.sugarImpact === 'lowers' ? t('auto.obniza_cukier', { defaultValue: 'OBNIŻA CUKIER' }) : newMedication.aiData.sugarImpact === 'raises' ? t('auto.podnosi_cukier', { defaultValue: 'PODNOSI CUKIER' }) : t('auto.neutralny', { defaultValue: 'NEUTRALNY' })}</span><br/>
- <strong>{t('auto.opis', { defaultValue: "Wpływ:" })}</strong> {newMedication.aiData.description}
  </div>
- )}
+
+ {/* Szybkie schematy 1-Click */}
+ <div className="space-y-1.5">
+ <div className="flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase tracking-wider px-1">
+ <span>{t('auto.szybkie_szablony', { defaultValue: 'Szybkie pory:' })}</span>
  </div>
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.dawka', { defaultValue: 'Dawka' })}
- </label>
- <input
- type="text"
- placeholder={t('auto.np_500mg', { defaultValue: 'np. 500mg' })}
- value={newMedication.dosage}
- onChange={(e) =>
- setNewMedication({
- ...newMedication,
- dosage: e.target.value,
- })
+ <div className="flex flex-wrap gap-1.5">
+ {[
+ { label: t('auto.rano', { defaultValue: 'Rano (08:00)' }), time: '08:00' },
+ { label: t('auto.poludnie', { defaultValue: 'Obiad (13:00)' }), time: '13:00' },
+ { label: t('auto.wieczor', { defaultValue: 'Wieczór (19:00)' }), time: '19:00' },
+ { label: t('auto.noc_baza', { defaultValue: 'Noc (22:00)' }), time: '22:00' },
+ ].map((preset) => {
+ const isAlreadyAdded = (newMedication.reminders || []).includes(preset.time);
+ return (
+ <button
+ key={preset.time}
+ type="button"
+ onClick={() => {
+ Haptics.selection();
+ const current = newMedication.reminders || [];
+ if (isAlreadyAdded) {
+ setNewMedication({ ...newMedication, reminders: current.filter(r => r !== preset.time) });
+ } else {
+ setNewMedication({ ...newMedication, reminders: [...current, preset.time].sort() });
  }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20 transition-all"
- />
+ }}
+ className={cn(
+ "px-2.5 py-1 rounded-xl text-[9px] font-bold transition-all border flex items-center gap-1 active:scale-95",
+ isAlreadyAdded
+ ? "bg-teal-500 text-white border-teal-500 shadow-sm"
+ : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-teal-400"
+ )}
+ >
+ <span>{isAlreadyAdded ? '✓' : '+'}</span>
+ <span>{preset.label}</span>
+ </button>
+ );
+ })}
+ </div>
+
+ {/* Schematy wielokrotne */}
+ <div className="flex flex-wrap gap-1.5 pt-0.5">
+ {[
+ { label: t('auto.schemat_1x', { defaultValue: '1x rano' }), times: ['08:00'] },
+ { label: t('auto.schemat_2x', { defaultValue: '2x dziennie' }), times: ['08:00', '20:00'] },
+ { label: t('auto.schemat_3x', { defaultValue: '3x dziennie' }), times: ['08:00', '14:00', '20:00'] },
+ ].map((sch) => (
+ <button
+ key={sch.label}
+ type="button"
+ onClick={() => {
+ Haptics.selection();
+ setNewMedication({ ...newMedication, reminders: sch.times });
+ }}
+ className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-slate-200/60 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-teal-500/20 hover:text-teal-600 dark:hover:text-teal-400 transition-all active:scale-95"
+ >
+ ⚡ {sch.label}
+ </button>
+ ))}
  </div>
  </div>
 
- <div className="grid grid-cols-1 gap-4">
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.przypomnienia', { defaultValue: 'Przypomnienia' })}
- </label>
- <div className="flex flex-wrap gap-1.5 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl">
- {newMedication.reminders.map((rem, idx) => (
+ {/* Aktywne przypomnienia (Duże, wygodne kafelki) */}
+ <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+ {(newMedication.reminders || []).length === 0 ? (
+ <p className="text-[9px] text-slate-400 font-medium text-center py-2">
+ {t('auto.brak_przypomnien_wybierz', { defaultValue: 'Brak przypomnień. Wybierz porę powyżej lub dodaj godzinę.' })}
+ </p>
+ ) : (
+ <div className="flex flex-wrap gap-2">
+ {(newMedication.reminders || []).map((rem, idx) => (
  <div
  key={`new-med-rem-${idx}`}
- className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 rounded-lg py-1 px-1.5 border border-slate-100 dark:border-slate-700"
+ className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl py-1.5 px-2.5 border border-slate-200 dark:border-slate-700 shadow-sm"
  >
+ <Clock size={12} className="text-teal-500 shrink-0" />
  <input
  type="time"
  value={rem}
@@ -704,38 +961,129 @@ const saveInventoryItem = async () => {
  reminders: updatedRems,
  });
  }}
- className="text-[9px] font-black bg-transparent outline-none dark:text-white w-12"
+ className="text-xs font-black bg-transparent outline-none dark:text-white cursor-pointer"
  />
  <button
+ type="button"
  onClick={() => {
- const updatedRems =
- newMedication.reminders.filter(
- (_, i) => i !== idx,
- );
+ Haptics.selection();
+ const updatedRems = newMedication.reminders.filter((_, i) => i !== idx);
  setNewMedication({
  ...newMedication,
  reminders: updatedRems,
  });
  }}
- className="p-0.5 text-rose-500"
+ className="p-1 text-slate-400 hover:text-rose-500 transition-colors rounded-lg"
  >
- <X size={10} />
+ <X size={12} />
  </button>
  </div>
  ))}
+ </div>
+ )}
+
+ <div className="pt-1 flex justify-end">
  <button
- onClick={() =>
+ type="button"
+ onClick={() => {
+ Haptics.selection();
+ const current = newMedication.reminders || [];
+ const nextHour = current.length > 0 ? "12:00" : "08:00";
  setNewMedication({
  ...newMedication,
- reminders: [...newMedication.reminders, "12:00"],
- })
- }
- className="w-6 h-6 rounded-full bg-teal-500 text-white flex items-center justify-center active:scale-90 transition-all"
+ reminders: [...current, nextHour],
+ });
+ }}
+ className="py-1.5 px-3 rounded-xl bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 text-[9px] font-black uppercase tracking-wider border border-teal-200 dark:border-teal-800/50 flex items-center gap-1 hover:bg-teal-100 transition-all active:scale-95"
  >
- <Plus size={12} />
+ <Plus size={12} /> {t('auto.dodaj_godzine', { defaultValue: 'Dodaj' })}
  </button>
  </div>
  </div>
+ </div>
+
+  {/* Sekcja Zapasy i Kalkulator Końca Tabletek */}
+  <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-3">
+    <div className="flex items-center justify-between">
+      <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+        <Package size={13} className="text-teal-500" />
+        {t('auto.stan_zapasu_tabletek', { defaultValue: 'Stan zapasu i zużycie' })}
+      </label>
+    </div>
+
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+      <div className="space-y-1">
+        <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+          {t('auto.stan_zapasu_tabletek', { defaultValue: 'Ilość tabletek' })}
+        </label>
+        <input
+          type="number"
+          min="0"
+          placeholder="np. 60"
+          value={newMedication.stockQuantity !== undefined ? newMedication.stockQuantity : ""}
+          onChange={(e) => {
+            const val = e.target.value === "" ? undefined : parseInt(e.target.value, 10);
+            setNewMedication({ ...newMedication, stockQuantity: isNaN(val as any) ? undefined : val });
+          }}
+          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+          {t('auto.tabletek_na_dawke', { defaultValue: 'Na 1 dawkę' })}
+        </label>
+        <input
+          type="number"
+          min="1"
+          placeholder="1"
+          value={newMedication.pillsPerDose || 1}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10);
+            setNewMedication({ ...newMedication, pillsPerDose: isNaN(val) || val <= 0 ? 1 : val });
+          }}
+          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20"
+        />
+      </div>
+
+      <div className="space-y-1 col-span-2 sm:col-span-1">
+        <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+          {t('auto.prog_ostrzezenia', { defaultValue: 'Próg alertu' })}
+        </label>
+        <input
+          type="number"
+          min="1"
+          placeholder="np. 7"
+          value={newMedication.stockThreshold !== undefined ? newMedication.stockThreshold : 7}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10);
+            setNewMedication({ ...newMedication, stockThreshold: isNaN(val) ? 7 : val });
+          }}
+          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-teal-500/20"
+        />
+      </div>
+    </div>
+
+    {/* Live estymacja kiedy skończą się tabletki */}
+    {(() => {
+      const runout = calculateMedicationRunout(newMedication);
+      if (!runout) return null;
+      return (
+        <div className={cn(
+          "p-2.5 rounded-xl border flex items-center gap-2 text-[10px] font-bold leading-tight mt-2",
+          runout.isLowStock
+            ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+            : "bg-teal-500/10 border-teal-500/20 text-teal-700 dark:text-teal-300"
+        )}>
+          {runout.isLowStock ? <AlertTriangle size={14} className="shrink-0" /> : <CalendarDays size={14} className="shrink-0" />}
+          <span>
+            {t('auto.zapas_wystarczy_na', { days: runout.daysRemaining, date: runout.formattedDate, defaultValue: `Zapas na ok. ${runout.daysRemaining} dni (do ${runout.formattedDate})` })}
+            {runout.isLowStock && ` — ${t('auto.niski_zapas_zamow', { defaultValue: 'Niski zapas! Zamów e-receptę' })}`}
+          </span>
+        </div>
+      );
+    })()}
+  </div>
 
  <div className="space-y-1">
  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -749,7 +1097,7 @@ const saveInventoryItem = async () => {
  />
  <input
  type="date"
- value={newMedication.expiryDate}
+ value={newMedication.expiryDate || ""}
  onChange={(e) =>
  setNewMedication({
  ...newMedication,

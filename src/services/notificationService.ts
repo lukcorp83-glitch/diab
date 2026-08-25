@@ -20,14 +20,15 @@ export const notificationService = {
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v13' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v14' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v15' }); } catch(e) {}
+        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v16' }); } catch(e) {}
         
         await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v16',
+          id: 'glucose_alerts_v17',
           name: 'Krytyczne Alerty Glikemii',
           description: 'Głośne powiadomienia o niskim i wysokim cukrze',
           importance: 5,
           visibility: 1,
-          sound: 'default',
+          sound: 'status_clear.mp3',
           vibration: true
         });
 
@@ -403,51 +404,124 @@ export const notificationService = {
     }
   },
 
+  _webReminderInterval: null as any,
+  _lastTriggeredReminders: {} as Record<string, number>,
+
   async scheduleMedicationReminders(medications: any[]) {
-    if (!Capacitor.isNativePlatform()) return;
-    try {
-      const perms = await LocalNotifications.checkPermissions();
-      if (perms.display !== 'granted') return;
+    const activeMeds = (medications || []).filter((m: any) => m && m.active && Array.isArray(m.reminders) && m.reminders.length > 0);
 
-      const idsToCancel = Array.from({ length: 100 }, (_, i) => ({ id: 2000 + i }));
-      await LocalNotifications.cancel({ notifications: idsToCancel }).catch(() => {});
+    // 1. Android Native (Capacitor LocalNotifications)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const perms = await LocalNotifications.checkPermissions();
+        if (perms.display !== 'granted') {
+          const req = await LocalNotifications.requestPermissions();
+          if (req.display !== 'granted') return;
+        }
 
-      const notificationsToSchedule: any[] = [];
-      let notifId = 2000;
+        const idsToCancel = Array.from({ length: 150 }, (_, i) => ({ id: 2000 + i }));
+        await LocalNotifications.cancel({ notifications: idsToCancel }).catch(() => {});
 
-      const activeMeds = (medications || []).filter((m: any) => m.active && m.reminders?.length > 0);
+        const notificationsToSchedule: any[] = [];
+        let notifId = 2000;
 
-      for (const med of activeMeds) {
-        for (const rem of med.reminders) {
-          if (!rem.time) continue;
-          const [hours, minutes] = rem.time.split(':').map(Number);
-          const now = new Date();
-          const scheduledTime = new Date();
-          scheduledTime.setHours(hours, minutes, 0, 0);
+        for (const med of activeMeds) {
+          for (const rem of med.reminders) {
+            const timeStr = typeof rem === 'string' ? rem : (rem.time || rem.hour || '');
+            if (!timeStr || !timeStr.includes(':')) continue;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            if (isNaN(hours) || isNaN(minutes)) continue;
 
-          if (scheduledTime.getTime() <= now.getTime()) {
-            scheduledTime.setDate(scheduledTime.getDate() + 1);
+            const now = new Date();
+            const scheduledTime = new Date();
+            scheduledTime.setHours(hours, minutes, 0, 0);
+
+            if (scheduledTime.getTime() <= now.getTime()) {
+              scheduledTime.setDate(scheduledTime.getDate() + 1);
+            }
+
+            const doseStr = med.dosage ? `Dawka: ${med.dosage}` : '1 dawka';
+            const stockStr = typeof med.stockQuantity === 'number' ? ` • Zapas: ${med.stockQuantity} szt.` : '';
+
+            notificationsToSchedule.push({
+              id: notifId++,
+              title: `💊 Czas na lek: ${med.name}`,
+              body: `${doseStr}${stockStr}`,
+              schedule: { at: scheduledTime, repeats: true, every: 'day' },
+              channelId: 'glikocontrol_reminders_v1',
+              attachments: null,
+              actionTypeId: '',
+              extra: { medicationId: med.id, medicationName: med.name }
+            });
           }
+        }
 
-          notificationsToSchedule.push({
-            id: notifId++,
-            title: `⏰ Czas na lek: ${med.name}`,
-            body: `Dawka: ${rem.dose || med.dose || '1 szt.'}`,
-            schedule: { at: scheduledTime, repeats: true, every: 'day' },
-            channelId: 'glikocontrol_reminders_v1',
-            attachments: null,
-            actionTypeId: '',
-            extra: { medicationId: med.id }
-          });
+        if (notificationsToSchedule.length > 0) {
+          await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+          console.log(`[NotificationService] Scheduled ${notificationsToSchedule.length} native medication reminders.`);
+        }
+      } catch (e) {
+        console.error('Failed to schedule native medication reminders', e);
+      }
+    }
+
+    // 2. Web / PWA (Browser Web Notifications API & Foreground Timer)
+    if (this._webReminderInterval) {
+      clearInterval(this._webReminderInterval);
+    }
+    this._webReminderInterval = setInterval(() => {
+      this._checkWebReminders(activeMeds);
+    }, 30000);
+  },
+
+  _checkWebReminders(activeMeds: any[]) {
+    const now = new Date();
+    const currentHHMM = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    const todayDateStr = now.toISOString().split('T')[0];
+
+    for (const med of activeMeds) {
+      for (const rem of med.reminders) {
+        const timeStr = typeof rem === 'string' ? rem : (rem.time || rem.hour || '');
+        if (timeStr === currentHHMM) {
+          const triggerKey = `${med.id}_${todayDateStr}_${timeStr}`;
+          const lastTriggered = this._lastTriggeredReminders[triggerKey] || 0;
+          if (Date.now() - lastTriggered > 60000) {
+            this._lastTriggeredReminders[triggerKey] = Date.now();
+            this.sendMedicationAlert(med);
+          }
         }
       }
+    }
+  },
 
-      if (notificationsToSchedule.length > 0) {
-        await LocalNotifications.schedule({ notifications: notificationsToSchedule });
-        console.log(`Scheduled ${notificationsToSchedule.length} medication reminders.`);
+  sendMedicationAlert(med: any) {
+    const title = `💊 Czas na lek: ${med.name}`;
+    const body = `${med.dosage ? `Dawka: ${med.dosage}` : '1 dawka'}${typeof med.stockQuantity === 'number' ? ` • Zapas: ${med.stockQuantity} szt.` : ''}`;
+
+    toast(body ? `${title}\n${body}` : title, {
+      icon: '💊',
+      duration: 15000,
+      position: 'top-center',
+      style: { border: '2px solid #0d9488', padding: '16px', color: '#0f172a', fontWeight: 'bold' }
+    });
+
+    if (window.Notification && window.Notification.permission === 'granted') {
+      try {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(title, {
+              body,
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+              vibrate: [200, 100, 200],
+              tag: `med_${med.id}_${Date.now()}`
+            });
+          });
+        } else {
+          new Notification(title, { body, icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/') });
+        }
+      } catch(e) {
+        console.warn('Web notification error:', e);
       }
-    } catch (e) {
-      console.error('Failed to schedule medication reminders', e);
     }
   },
 
@@ -509,7 +583,7 @@ export const notificationService = {
               title,
               body,
               id: isHigh ? 888 : 889,
-              channelId: 'glucose_alerts_v15',
+              channelId: 'glucose_alerts_v17',
               sound: 'status_clear.mp3',
               attachments: null,
               actionTypeId: 'GLUCOSE_ALARM_ACTIONS',

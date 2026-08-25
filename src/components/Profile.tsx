@@ -357,6 +357,7 @@ export default function Profile({
  const [cleaningResult, setCleaningResult] = useState<string | null>(null);
  const [auditLoading, setAuditLoading] = useState(false);
  const [auditResult, setAuditResult] = useState<string | null>(null);
+ const [tdiInputValue, setTdiInputValue] = useState<string>("");
  const [activeCategory, setActiveCategory] = useState<string | null>(null);
  const topMenuRef = useRef<HTMLDivElement>(null);
  useEffect(() => {
@@ -1924,207 +1925,313 @@ export default function Profile({
  className="space-y-4 pb-20"
  >
         <TreatmentModeSelector user={user} settings={settings} setSettings={setSettings} />
-        {/* Main Therapy Parameters */}
- <div
- className={cn(
- "rounded-[2.5rem] p-6 border shadow-xl space-y-6",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800",
- )}
- >
- <div className="flex items-center gap-4 mb-1">
- <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-2xl">
- <Activity size={20} />
- </div>
- <div className="text-left">
- <h3 className="text-base font-black dark:text-white leading-tight">
- 
- {t('auto.cele_i_przeliczniki', { defaultValue: 'Cele i Przeliczniki' })}
- </h3>
- <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
- 
- {t('auto.kluczowe_parametry_terapii', { defaultValue: 'Kluczowe parametry terapii' })}
- </p>
- </div>
- </div>
- <div className="grid grid-cols-2 gap-6">
- <div className="space-y-4">
- <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">
- 
- {t('auto.czułość_dieta', { defaultValue: i18n.t('auto.czulosc_dieta', { defaultValue: "Czułość & Dieta" }) })}
- </h4>
- <div className="space-y-3">
- <SettingInput
- disabled={therapyLocked}
- label={t('auto.wrażliwość_isf', { defaultValue: i18n.t('auto.wrazliwosc_isf', { defaultValue: "Wrażliwość (ISF)" }) })}
- value={settings.isf}
- onChange={(v) => setSettings({ ...settings, isf: v })}
- min={10}
- max={300}
- />
- <SettingInput
- disabled={therapyLocked}
- label={t('auto.ratio_ww', { defaultValue: 'Ratio WW' })}
- value={settings.wwRatio}
- onChange={(v) => setSettings({ ...settings, wwRatio: v })}
- min={1}
- max={100}
- />
- <SettingInput
- disabled={therapyLocked}
- label={t('auto.ratio_wbt', { defaultValue: 'Ratio WBT' })}
- value={settings.wbtRatio}
- onChange={(v) => setSettings({ ...settings, wbtRatio: v })}
- min={1}
- max={100}
- />
- </div>
- </div>
- <div className="space-y-4">
- <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">
- 
- {t('auto.zakresy_docelowe', { defaultValue: 'Zakresy Docelowe' })}
- </h4>
- <div className="space-y-3">
- <SettingInput
- disabled={therapyLocked}
- label={t('auto.cel_dolny_min', { defaultValue: 'Cel Dolny (Min)' })}
- value={settings.targetMin}
- onChange={(v) => setSettings({ ...settings, targetMin: v })}
- min={50}
- max={200}
- />
- <SettingInput
- disabled={therapyLocked}
- label={t('auto.cel_górny_max', { defaultValue: i18n.t('auto.cel_gorny_max', { defaultValue: "Cel Górny (Max)" }) })}
- value={settings.targetMax}
- onChange={(v) => setSettings({ ...settings, targetMax: v })}
- min={100}
- max={300}
- />
- <div
- className={cn(
- "p-4 rounded-3xl border flex flex-col items-center justify-center text-center",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50",
- therapyLocked && "opacity-50 pointer-events-none",
- )}
- >
- <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
- 
- {t('auto.czas_insuliny_dia', { defaultValue: 'Czas Insuliny (DIA)' })}
- </span>
- <div className="flex items-center gap-3">
- <button
- onClick={() =>
- setSettings({
- ...settings,
- dia: Math.max(2, (settings.dia || 4) - 0.5),
- })
- }
- disabled={therapyLocked}
- className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 hover:text-accent-500 transition-colors disabled:opacity-50"
- >
- -
- </button>
- <span className="text-xl font-black dark:text-white">
- {settings.dia || 4}h
- </span>
- <button
- onClick={() =>
- setSettings({
- ...settings,
- dia: Math.min(8, (settings.dia || 4) + 0.5),
- })
- }
- disabled={therapyLocked}
- className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 hover:text-accent-500 transition-colors disabled:opacity-50"
- >
- +
- </button>
- </div>
- </div>
- </div>
- </div>
- </div>
- {therapyLocked && (
- <div className="bg-rose-500/10 text-rose-500 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-3 text-xs font-bold ring-1 ring-rose-500/20">
- <LucideLock size={20} /> {t('auto.urządzenie_główne_zablokowało_możli', { defaultValue: i18n.t('auto.urzadzenie_glowne_zabloko', { defaultValue: "Urządzenie główne zablokowało możliwość edycji tych ustawień." }) })}
- </div>
- )}
- <button
- onClick={() => {
- Haptics.medium();
- saveSettings();
- }}
- disabled={settingsLoading || therapyLocked}
- className="w-full bg-accent-600 hover:bg-accent-500 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-accent-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
- >
- {settingsLoading ? (
- <Loader2 className="animate-spin" size={18} />
- ) : (
- <CheckCircle2 size={18} />
- )}
- 
- {t('auto.zapisz_parametry_terapii', { defaultValue: 'Zapisz parametry terapii' })}
- </button>
- </div>
- <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
- {/* TDI Calculator */}
- <div
- className={cn(
- "rounded-[2.5rem] p-6 border shadow-xl space-y-4",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800",
- )}
- >
- <div className="flex items-center gap-2.5 mb-1">
- <div className="p-2 bg-amber-500/10 text-amber-500 rounded-2xl">
- <Zap size={18} />
- </div>
- <h3 className="text-[11px] font-black dark:text-white uppercase tracking-tight">
- 
- {t('auto.kalkulator_tdi', { defaultValue: 'Kalkulator TDI' })}
- </h3>
- </div>
- <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-bold">
- 
- {t('auto.dobowa_dawka_insuliny_tdi', { defaultValue: 'Dobowa dawka insuliny (TDI).' })}
- </p>
- <div className="relative mt-4">
- <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase">
- 
- {t('auto.jednostek', { defaultValue: 'jednostek' })}
- </div>
- <input
- type="number"
- placeholder={t('auto.np_45', { defaultValue: 'np. 45' })}
- className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50 p-4 pr-20 rounded-[1.5rem] font-black text-sm outline-none dark:text-white focus:ring-2 focus:ring-amber-500/20 shadow-inner hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-800"
- onChange={(e) => {
- const tdi = parseFloat(e.target.value);
- if (tdi > 0) {
- const suggestedIsf = Math.round(1800 / tdi);
- const suggestedWw = Number((500 / tdi).toFixed(1));
- // Update settings with suggested values and provide feedback
- setSettings((prev) => ({
- ...prev,
- isf: suggestedIsf,
- wwRatio: suggestedWw,
- }));
- Haptics.light();
- }
- }}
- />
- </div>
- <p className="text-[8px] text-slate-400 font-bold text-center">
- 
- {t('auto.zmiana_tdi_automatycznie_aktualizuj', { defaultValue: 'Zmiana TDI automatycznie aktualizuje ISF i Ratio WW.' })}
- </p>
- </div>
- </div>
+
+        {/* Main Therapy Parameters - Nowoczesny Design 2026 */}
+        <div
+          className={cn(
+            "rounded-[2.5rem] p-6 border shadow-xl space-y-6",
+            settings.glassmorphismEnabled
+              ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+              : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800",
+          )}
+        >
+          {/* Nagłówek sekcji */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
+                <Activity size={22} />
+              </div>
+              <div className="text-left">
+                <h3 className="text-base font-black dark:text-white leading-tight flex items-center gap-2">
+                  {t('auto.cele_i_przeliczniki', { defaultValue: 'Cele & Przeliczniki' })}
+                  <span className="text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full">
+                    GlikoSense
+                  </span>
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400">
+                  {t('auto.cele_i_przeliczniki_opis', { defaultValue: 'Podstawa kalkulatora bolusa, korekt i przeliczania wymienników' })}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Kolumna 1: Czułość i Wymienniki Diety */}
+            <div className="p-4 rounded-3xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/60 space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <h4 className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Zap size={12} className="text-amber-500" />
+                  {t('auto.czułość_dieta', { defaultValue: 'Czułość & Wymienniki' })}
+                </h4>
+              </div>
+
+              <div className="space-y-2.5">
+                {/* ISF */}
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm">
+                  <div className="text-left">
+                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider block">
+                      {t('auto.wrażliwość_isf', { defaultValue: 'Wrażliwość (ISF)' })}
+                    </span>
+                    <span className="text-[8.5px] font-bold text-slate-400">
+                      {t('auto.wrazliwosc_isf_podpis', { defaultValue: '1 j. insuliny obniża o' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
+                      type="number"
+                      disabled={therapyLocked}
+                      min={10}
+                      max={300}
+                      value={settings.isf || ""}
+                      onChange={(e) => setSettings({ ...settings, isf: parseFloat(e.target.value) || 0 })}
+                      className="w-16 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-xl text-center font-black text-sm text-slate-900 dark:text-white outline-none focus:ring-2 ring-emerald-500/20"
+                    />
+                    <span className="text-[9px] font-bold text-slate-400">mg/dL</span>
+                  </div>
+                </div>
+
+                {/* Ratio WW */}
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm">
+                  <div className="text-left">
+                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider block">
+                      {t('auto.ratio_ww', { defaultValue: 'Ratio WW' })}
+                    </span>
+                    <span className="text-[8.5px] font-bold text-slate-400">
+                      {t('auto.ratio_ww_podpis', { defaultValue: '1 WW (10g węgli) wymaga' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
+                      type="number"
+                      step="0.1"
+                      disabled={therapyLocked}
+                      min={0.1}
+                      max={50}
+                      value={settings.wwRatio || ""}
+                      onChange={(e) => setSettings({ ...settings, wwRatio: parseFloat(e.target.value) || 0 })}
+                      className="w-16 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-xl text-center font-black text-sm text-slate-900 dark:text-white outline-none focus:ring-2 ring-emerald-500/20"
+                    />
+                    <span className="text-[9px] font-bold text-slate-400">j. / WW</span>
+                  </div>
+                </div>
+
+                {/* Ratio WBT */}
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm">
+                  <div className="text-left">
+                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider block">
+                      {t('auto.ratio_wbt', { defaultValue: 'Ratio WBT' })}
+                    </span>
+                    <span className="text-[8.5px] font-bold text-slate-400">
+                      {t('auto.ratio_wbt_podpis', { defaultValue: '1 WBT (100 kcal) wymaga' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
+                      type="number"
+                      step="0.1"
+                      disabled={therapyLocked}
+                      min={0.1}
+                      max={50}
+                      value={settings.wbtRatio || ""}
+                      onChange={(e) => setSettings({ ...settings, wbtRatio: parseFloat(e.target.value) || 0 })}
+                      className="w-16 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-xl text-center font-black text-sm text-slate-900 dark:text-white outline-none focus:ring-2 ring-emerald-500/20"
+                    />
+                    <span className="text-[9px] font-bold text-slate-400">j. / WBT</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Kolumna 2: Zakresy Docelowe (TIR) i Czas Insuliny (DIA) */}
+            <div className="p-4 rounded-3xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/60 space-y-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between px-1">
+                <h4 className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Activity size={12} className="text-emerald-500" />
+                  {t('auto.zakresy_docelowe', { defaultValue: 'Zakresy Docelowe & DIA' })}
+                </h4>
+              </div>
+
+              {/* Docelowy Zakres Cukru (TIR Target) */}
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-2 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                    {t('auto.zakres_docelowy_tir', { defaultValue: 'Zakres Cukru w Normie (TIR)' })}
+                  </span>
+                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                    {settings.targetMin || 70} - {settings.targetMax || 140} mg/dL
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 text-center">
+                    <span className="text-[8px] font-bold text-slate-400 block mb-1 uppercase">Min</span>
+                    <input
+                      type="number"
+                      disabled={therapyLocked}
+                      min={50}
+                      max={200}
+                      value={settings.targetMin || 70}
+                      onChange={(e) => setSettings({ ...settings, targetMin: parseFloat(e.target.value) || 70 })}
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-xl text-center font-black text-sm text-slate-900 dark:text-white outline-none focus:ring-2 ring-emerald-500/20"
+                    />
+                  </div>
+                  <div className="text-slate-300 dark:text-slate-600 font-bold pt-4">➔</div>
+                  <div className="flex-1 text-center">
+                    <span className="text-[8px] font-bold text-slate-400 block mb-1 uppercase">Max</span>
+                    <input
+                      type="number"
+                      disabled={therapyLocked}
+                      min={100}
+                      max={300}
+                      value={settings.targetMax || 140}
+                      onChange={(e) => setSettings({ ...settings, targetMax: parseFloat(e.target.value) || 140 })}
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-xl text-center font-black text-sm text-slate-900 dark:text-white outline-none focus:ring-2 ring-emerald-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Czas Działania Insuliny (DIA) */}
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm">
+                <div className="text-left">
+                  <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider block">
+                    {t('auto.czas_insuliny_dia', { defaultValue: 'Czas Insuliny (DIA)' })}
+                  </span>
+                  <span className="text-[8.5px] font-bold text-slate-400">
+                    Długość krzywej IOB
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, dia: Math.max(2, (settings.dia || 4) - 0.5) })}
+                    disabled={therapyLocked}
+                    className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-xs hover:bg-slate-200 transition-colors flex items-center justify-center disabled:opacity-50"
+                  >
+                    -
+                  </button>
+                  <span className="text-sm font-black dark:text-white px-1 tabular-nums">
+                    {settings.dia || 4}h
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, dia: Math.min(8, (settings.dia || 4) + 0.5) })}
+                    disabled={therapyLocked}
+                    className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-xs hover:bg-slate-200 transition-colors flex items-center justify-center disabled:opacity-50"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {therapyLocked && (
+            <div className="bg-rose-500/10 text-rose-500 dark:text-rose-400 p-4 rounded-2xl flex items-center gap-3 text-xs font-bold ring-1 ring-rose-500/20">
+              <LucideLock size={20} /> {t('auto.urządzenie_główne_zablokowało_możli', { defaultValue: "Urządzenie główne zablokowało możliwość edycji tych ustawień." })}
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              Haptics.medium();
+              saveSettings();
+            }}
+            disabled={settingsLoading || therapyLocked}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {settingsLoading ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <CheckCircle2 size={16} />
+            )}
+            {t('auto.zapisz_parametry_terapii', { defaultValue: 'Zapisz parametry terapii' })}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Safe TDI Calculator */}
+          <div
+            className={cn(
+              "rounded-[2.5rem] p-6 border shadow-xl space-y-4",
+              settings.glassmorphismEnabled
+                ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800",
+            )}
+          >
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="p-2 bg-amber-500/10 text-amber-500 rounded-2xl">
+                <Zap size={18} />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">
+                  {t('auto.kalkulator_tdi', { defaultValue: 'Kalkulator TDI' })}
+                </h3>
+                <p className="text-[9px] text-slate-400 font-bold">
+                  {t('auto.sugerowane_wartosci_tdi', { defaultValue: 'Sugerowane wartości (reguła 1800/500)' })}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase">
+                {t('auto.jednostek', { defaultValue: 'jednostek / dobę' })}
+              </div>
+              <input
+                type="number"
+                value={tdiInputValue}
+                onChange={(e) => setTdiInputValue(e.target.value)}
+                placeholder={t('auto.np_45', { defaultValue: 'Wpisz dobową dawkę np. 45' })}
+                className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50 p-3.5 pr-28 rounded-2xl font-black text-sm outline-none dark:text-white focus:ring-2 focus:ring-amber-500/20 shadow-inner text-slate-800"
+              />
+            </div>
+
+            {parseFloat(tdiInputValue) > 0 && (
+              <div className="p-3 bg-amber-500/10 dark:bg-amber-500/15 rounded-2xl border border-amber-500/20 space-y-2.5 animate-in fade-in">
+                <div className="grid grid-cols-2 gap-2 text-center">
+                  <div className="p-2 bg-white/70 dark:bg-slate-900/60 rounded-xl">
+                    <span className="text-[8px] font-black text-slate-400 uppercase block">
+                      {t('auto.sugerowane_isf', { defaultValue: 'Sugerowane ISF' })}
+                    </span>
+                    <span className="text-sm font-black text-amber-600 dark:text-amber-400">
+                      {Math.round(1800 / parseFloat(tdiInputValue))} mg/dL
+                    </span>
+                  </div>
+                  <div className="p-2 bg-white/70 dark:bg-slate-900/60 rounded-xl">
+                    <span className="text-[8px] font-black text-slate-400 uppercase block">
+                      {t('auto.sugerowane_ww', { defaultValue: 'Sugerowane WW' })}
+                    </span>
+                    <span className="text-sm font-black text-amber-600 dark:text-amber-400">
+                      {Number((500 / parseFloat(tdiInputValue)).toFixed(1))} j./WW
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tdi = parseFloat(tdiInputValue);
+                    if (tdi > 0) {
+                      const suggestedIsf = Math.round(1800 / tdi);
+                      const suggestedWw = Number((500 / tdi).toFixed(1));
+                      setSettings((prev) => ({
+                        ...prev,
+                        isf: suggestedIsf,
+                        wwRatio: suggestedWw,
+                      }));
+                      toast.success(t('auto.zastosowano_parametry_tdi', { defaultValue: "Zastosowano parametry z kalkulatora TDI!" }));
+                      Haptics.success();
+                    }
+                  }}
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles size={12} />
+                  {t('auto.zastosuj_sugerowane', { defaultValue: 'Zastosuj do parametrów' })}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
  <div
  id="hourly-profiles"
  className={cn(
@@ -2134,67 +2241,6 @@ export default function Profile({
  : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800",
  )}
  >
- <div className="flex flex-col gap-4 mb-4">
- <button
- onClick={performTherapyAudit}
- disabled={auditLoading}
- className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-[2rem] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-between group"
- >
- <div className="flex items-center gap-4">
- <div className="p-3 bg-white/20 rounded-2xl">
- {auditLoading ? (
- <Loader2 className="animate-spin" size={24} />
- ) : (
- <Brain size={24} />
- )}
- </div>
- <div className="text-left">
- <h3 className="text-base font-black uppercase tracking-tight">
- 
- {t('auto.ekspercki_audyt_terapii', { defaultValue: 'Ekspercki Audyt Terapii' })}
- </h3>
- <p className="text-[10px] font-bold text-white/80">
- 
- {t('auto.analiza_trendów_i_optymalizacja_par', { defaultValue: i18n.t('auto.analiza_trendow_i_optymal', { defaultValue: "Analiza trendów i optymalizacja parametrów (w tym sugerowane profile godzinowe)" }) })}
- </p>
- </div>
- </div>
- <ChevronRight
- size={20}
- className="group-hover:translate-x-1 transition-transform"
- />
- </button>
- {auditResult && (
- <motion.div
- initial={{ opacity: 0, height: 0 }}
- animate={{ opacity: 1, height: "auto" }}
- className={cn(
- "p-6 rounded-[2rem] border shadow-inner relative",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700",
- )}
- >
- <button
- onClick={() => setAuditResult(null)}
- className="absolute top-4 right-4 text-slate-400 hover:text-rose-500"
- >
- <X size={16} />
- </button>
- <div className="flex items-center gap-2 mb-4">
- <Sparkles className="text-amber-500" size={16} />
- <h4 className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">
- 
- {t('auto.raport_glikosense_ai', { defaultValue: 'Raport GlikoSense AI' })}
- </h4>
- </div>
- <div
- className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed space-y-3 prose-strong:font-black prose-strong:text-slate-900 dark:prose-strong:text-white"
- dangerouslySetInnerHTML={{ __html: auditResult }}
- />
- </motion.div>
- )}
- </div>
                   {/* Removed GlikoSense Engine selector - moved to MLAnalysisWidget */}
  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
  
@@ -2353,10 +2399,32 @@ export default function Profile({
  )}
  {activeCategory === "notifications" && <ProfileNotifications settings={settings} setSettings={setSettings} />}
  {activeCategory === "devices" && (
-        <div className="space-y-4">
-        <ProfileInventory user={user} settings={settings} setSettings={setSettings} />
+         <div className="space-y-6">
+         {/* Sekcja 1: Apteczka i Magazyn Zapasów */}
+         <ProfileInventory user={user} settings={settings} setSettings={setSettings} />
 
- <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+         {/* Sekcja 2: Wymiana Osprzętu */}
+         <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800/80">
+           <div className="flex items-center justify-between mb-4">
+             <div className="flex items-center gap-3">
+               <div className="p-2.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                 <RefreshCw size={20} />
+               </div>
+               <div className="text-left">
+                 <h3 className="text-base font-black dark:text-white leading-tight flex items-center gap-2">
+                   {t('auto.wymiana_osprzetu_naglowek', { defaultValue: 'Wymiana Osprzętu' })}
+                   <span className="text-[9.5px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-0.5 rounded-full">
+                     CGM & Pompa
+                   </span>
+                 </h3>
+                 <p className="text-[10px] font-bold text-slate-400">
+                   {t('auto.wymiana_osprzetu_opis', { defaultValue: 'Harmonogram i rejestracja wymian sensora, wkłucia oraz zbiorniczka' })}
+                 </p>
+               </div>
+             </div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
  <div
  className={cn(
  "group relative rounded-[2.5rem] p-6 border shadow-xl overflow-hidden",
@@ -2520,7 +2588,7 @@ export default function Profile({
  }}
  className="bg-indigo-600 hover:bg-indigo-500 text-white p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 group/btn"
  >
- <Sparkles size={12} className="group-hover:animate-pulse" />
+ <Signal size={13} className="group-hover:scale-110 group-hover:rotate-12 transition-all" />
  
  {t('auto.wymiana_teraz', { defaultValue: 'Wymiana teraz' })}
  </button>
@@ -2731,9 +2799,9 @@ export default function Profile({
  disabled={isProcessingReplacement}
  className="bg-teal-600 hover:bg-teal-500 text-white p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-teal-600/20 flex items-center justify-center gap-1.5 group/btn"
  >
- <Sparkles
- size={12}
- className="group-hover:animate-spin transition-all"
+ <Droplets
+ size={13}
+ className="group-hover:scale-110 group-hover:-rotate-12 transition-all"
  />
  
  {t('auto.wymiana_teraz', { defaultValue: 'Wymiana teraz' })}
@@ -2989,9 +3057,9 @@ export default function Profile({
  }}
  className="bg-indigo-600 hover:bg-indigo-500 text-white p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 group/btn"
  >
- <Sparkles
- size={12}
- className="group-hover:animate-spin transition-all"
+ <Box
+ size={13}
+ className="group-hover:scale-110 group-hover:rotate-12 transition-all"
  />
  {t('auto.wymiana_teraz', { defaultValue: 'Wymiana teraz' })}
  </button>
@@ -3030,6 +3098,7 @@ export default function Profile({
  </div>
  </>
  )}
+ </div>
  </div>
  <button
  onClick={saveSettings}

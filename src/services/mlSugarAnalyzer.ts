@@ -242,7 +242,12 @@ export const MLAnalyzer = {
           
           if (payload.riskOfHypo) {
             const hasEnoughData = !(payload.insights || []).some((i: string) => i.includes('Zbyt mało'));
-            if (hasEnoughData) {
+            const latestBg = payload.predictionCurve?.[0]?.value || 0;
+            const trough = payload.predictedTrough?.value || 100;
+            const pred1h = payload.predictedNextHour || 100;
+            const isGenuineHypoRisk = (latestBg <= 130 || (payload.metrics?.iob || 0) > 2.5) && (trough < 80 || pred1h < 80);
+
+            if (hasEnoughData && isGenuineHypoRisk) {
               window.dispatchEvent(new CustomEvent('glikosense_hypo_alert', { detail: payload }));
             }
           }
