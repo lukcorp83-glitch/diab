@@ -6,7 +6,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { Haptics } from "../lib/haptics";
 import { healthService } from "../services/healthService";
 import { toast } from "react-hot-toast";
-import { getEffectiveUid, cn, isNativeApp } from "../lib/utils";
+import { getEffectiveUid, cn, isNativeApp, extractInfusionSite } from "../lib/utils";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { usePetStatus, useNightscoutSettings } from '../hooks/queries/useProfileData';
 import { useShortcuts } from "../hooks/queries/useShortcuts";
@@ -334,9 +334,15 @@ export default function Profile({
  const [newInventoryItem, setNewInventoryItem] =
  useState<InventoryItem | null>(null);
  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
- // @ts-ignore
- const sensorSite = settings.sensorSite || "Tył lewego ramienia";
- const insertionSite = settings.infusionSetSite || "Prawy brzuch";
+  // @ts-ignore
+  const sensorSite = settings.sensorSite || "Tył lewego ramienia";
+  const lastInfusionLog = useMemo(() => {
+    return (logs || [])
+      .filter(l => l.type === 'site_change' && !l.notes?.toLowerCase().includes('zbiorniczk'))
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
+  }, [logs]);
+  const latestSiteFromLogs = lastInfusionLog ? extractInfusionSite(lastInfusionLog) : null;
+  const insertionSite = settings.infusionSetSite || latestSiteFromLogs || "Prawy brzuch";
  const icons = [
  "🍎",
  "🍌",

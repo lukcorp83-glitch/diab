@@ -75,7 +75,7 @@ export const AppContent = (props: any) => {
 
   const content = (
     <LocalErrorBoundary>
-      <div className="flex-1 w-full relative z-0 h-full overflow-hidden">
+      <div className="flex-1 w-full relative z-0">
         {/* 1. Grupa 1: Wykres i Pulpit */}
         {["dashboard", "chart"].includes(activeTab) && (
           <>

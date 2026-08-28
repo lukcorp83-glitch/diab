@@ -110,6 +110,12 @@ export function AppLayout({
     return () => unsubscribe();
   }, [user]);
 
+  React.useEffect(() => {
+    if (mainRef && mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
+
   const handleQuickAdd = async (s: any) => {
     if (s.carbs > 0) {
       if (!user) return;

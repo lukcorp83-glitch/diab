@@ -10,7 +10,7 @@ import {
   ANATOMICAL_ZONES
 } from '../services/siteRotationService';
 import SiteRotationModal from './SiteRotationModal';
-import { cn } from '../lib/utils';
+import { cn, extractInfusionSite } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 import { useLogsStore } from '../stores/useLogsStore';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -55,17 +55,19 @@ export default function SiteRotationWidget({
 
   const lastSiteChange = useMemo(() => {
     const sorted = [...(logs || [])].sort((a, b) => b.timestamp - a.timestamp);
-    return sorted.find(l => l.type === 'site_change');
+    return sorted.find(l => l.type === 'site_change' && !l.notes?.toLowerCase().includes('zbiorniczk'));
   }, [logs]);
 
   const siteChangeTimestamp = Math.max(settings.infusionSetChangeDate || 0, lastSiteChange?.timestamp || 0) || undefined;
-  
-  const rawNote = lastSiteChange?.notes || '';
-  const parsedNoteLocation = rawNote.startsWith('Wymiana wkłucia -') 
-    ? rawNote.replace('Wymiana wkłucia -', '').trim() 
-    : (rawNote.startsWith('Wymiana wkłucia:') ? rawNote.replace('Wymiana wkłucia:', '').replace('(Smart Equipment)', '').trim() : '');
 
-  const locationText = localSiteOverride || settings.infusionSetSite || (settings as any).infusionSite || localStorage.getItem('infusionSetSite') || localStorage.getItem('infusionSite') || (lastSiteChange as any)?.site || (parsedNoteLocation && !parsedNoteLocation.includes('zbiorniczk') ? parsedNoteLocation : '') || 'Prawy brzuch';
+  const locationText = useMemo(() => {
+    if (localSiteOverride) return localSiteOverride;
+    if (lastSiteChange) {
+      const extracted = extractInfusionSite(lastSiteChange);
+      if (extracted) return extracted;
+    }
+    return settings.infusionSetSite || (settings as any).infusionSite || localStorage.getItem('infusionSetSite') || 'Prawy brzuch';
+  }, [lastSiteChange, localSiteOverride, settings.infusionSetSite, (settings as any).infusionSite]);
   const currentZoneId = useMemo(() => normalizeSiteToZoneId(locationText), [locationText]);
   const currentZone = useMemo(() => getZoneById(currentZoneId), [currentZoneId]);
 
