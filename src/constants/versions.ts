@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.27';
+export const CURRENT_VERSION = '6.0.28';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.28",
+    date: "2026-08-28",
+    title: "GlikoSense 4.0, Automatyczne Wykrywanie Osprzętu, Nowa Budowa Aplikacji i Odświeżony Wykres",
+    changes: [
+      "GlikoSense 4.0 – nowa sieć neuronowa z bezszwowym kotwiczeniem krzywej predykcji cukru do aktualnego pomiaru",
+      "Automatyczne wykrywanie wymiany osprzętu (Smart Equipment) oraz pełna możliwość edycji i cofania wymian",
+      "Odświeżenie aplikacji i nowoczesny interfejs użytkownika z nowym systemem widżetów",
+      "Całkowicie nowa, zoptymalizowana budowa aplikacji i modułowa architektura",
+      "Odświeżony wykres glikemii z chmurą pewności i płynną linią trendu"
+    ]
+  },
   {
     version: "6.0.27",
     date: "2026-08-28",
@@ -268,6 +280,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.28",
+    date: "2026-08-28",
+    title: "GlikoSense 4.0, Automatyczne Wykrywanie Osprzętu, Nowa Budowa Aplikacji i Odświeżony Wykres",
+    changes: [
+      "GlikoSense 4.0 – nowa sieć neuronowa z bezszwowym kotwiczeniem krzywej predykcji cukru do aktualnego pomiaru",
+      "Automatyczne wykrywanie wymiany osprzętu (Smart Equipment) oraz pełna możliwość edycji i cofania wymian",
+      "Odświeżenie aplikacji i nowoczesny interfejs użytkownika z nowym systemem widżetów",
+      "Całkowicie nowa, zoptymalizowana budowa aplikacji i modułowa architektura",
+      "Odświeżony wykres glikemii z chmurą pewności i płynną linią trendu"
+    ]
+  },
   {
     version: "6.0.27",
     date: "2026-08-28",
