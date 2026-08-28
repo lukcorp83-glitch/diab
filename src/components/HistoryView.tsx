@@ -1,6 +1,6 @@
 import i18n from '../i18n';
 import { useLogsStore } from "../stores/useLogsStore";
-import { getEffectiveUid } from "../lib/utils";
+import { getEffectiveUid, extractInfusionSite } from "../lib/utils";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { LogEntry } from "../types";
@@ -71,25 +71,37 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
        await deleteDoc(doc(db, "users", uid, "logs", logToDelete.id)).catch(err => console.warn("Failed to delete remotely", err));
      }
 
-     if (logToDelete.type === "site_change") {
-       const remaining = (logs || []).filter(l => l.id !== logToDelete.id && l.type === "site_change" && !l.notes?.toLowerCase().includes("zbiorniczk"));
-       const prev = remaining[0];
-       if (uid) {
-         await updateDoc(doc(db, "users", uid, "settings", "profile"), {
-           infusionSetChangeDate: prev ? prev.timestamp : null,
-           infusionSetSite: prev ? (prev as any).site || "Lewy brzuch" : "Lewy brzuch",
-           infusionSite: prev ? (prev as any).site || "Lewy brzuch" : "Lewy brzuch"
-         }).catch(() => {});
-       }
-     } else if (logToDelete.type === "sensor_change") {
-       const remaining = (logs || []).filter(l => l.id !== logToDelete.id && l.type === "sensor_change");
-       const prev = remaining[0];
-       if (uid) {
-         await updateDoc(doc(db, "users", uid, "settings", "profile"), {
-           sensorChangeDate: prev ? prev.timestamp : null
-         }).catch(() => {});
-       }
-     }
+      if (logToDelete.type === "site_change") {
+        const remaining = (logs || [])
+          .filter(l => l.id !== logToDelete.id && l.type === "site_change" && !l.notes?.toLowerCase().includes("zbiorniczk"))
+          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        const prev = remaining[0];
+        const newSite = prev ? extractInfusionSite(prev) : "Lewy brzuch";
+        if (uid) {
+          const updates = {
+            infusionSetChangeDate: prev ? prev.timestamp : null,
+            infusionSetSite: newSite,
+            infusionSite: newSite
+          };
+          await updateDoc(doc(db, "users", uid, "settings", "profile"), updates).catch(() => {});
+          localStorage.setItem('infusionSetSite', newSite);
+          localStorage.setItem('infusionSite', newSite);
+          window.dispatchEvent(new CustomEvent('siteChangeRecorded', { detail: { infusionSetSite: newSite } }));
+          window.dispatchEvent(new CustomEvent('userSettingsUpdate', { detail: updates }));
+        }
+      } else if (logToDelete.type === "sensor_change") {
+        const remaining = (logs || [])
+          .filter(l => l.id !== logToDelete.id && l.type === "sensor_change")
+          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        const prev = remaining[0];
+        if (uid) {
+          const updates = {
+            sensorChangeDate: prev ? prev.timestamp : null
+          };
+          await updateDoc(doc(db, "users", uid, "settings", "profile"), updates).catch(() => {});
+          window.dispatchEvent(new CustomEvent('userSettingsUpdate', { detail: updates }));
+        }
+      }
 
      toast.success(t('auto.usunieto', { defaultValue: "Usunięto!" }));
      setDeletingLog(null);

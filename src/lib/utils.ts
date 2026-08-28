@@ -184,3 +184,29 @@ export const getTimestampMs = (ts: any): number => {
   if (typeof ts === 'object' && ts.seconds) return ts.seconds * 1000;
   return new Date(ts).getTime();
 };
+
+/**
+ * Niezawodnie wyciąga nazwę miejsca wkłucia z logu (np. z pola site lub notes)
+ */
+export function extractInfusionSite(log?: any): string {
+  if (!log) return "Lewy brzuch";
+  if (log.site && typeof log.site === "string" && log.site.trim() && !log.site.toLowerCase().includes("zbiorniczk")) {
+    return log.site.trim();
+  }
+  const rawNote = (log.notes || "").trim();
+  if (rawNote) {
+    if (rawNote.includes(" - ")) {
+      const part = rawNote.split(" - ")[1]?.replace(/\(Smart Equipment\)/gi, "").trim();
+      if (part && !part.toLowerCase().includes("zbiorniczk")) return part;
+    }
+    if (rawNote.includes(":")) {
+      const part = rawNote.split(":")[1]?.replace(/\(Smart Equipment\)/gi, "").trim();
+      if (part && !part.toLowerCase().includes("zbiorniczk")) return part;
+    }
+    const match = rawNote.match(/\(([^)]+)\)/);
+    if (match && match[1] && !match[1].toLowerCase().includes("smart equipment") && !match[1].toLowerCase().includes("zbiorniczk")) {
+      return match[1].trim();
+    }
+  }
+  return "Lewy brzuch";
+}

@@ -198,9 +198,12 @@ export default function Profile({
  
  updates.inventory = updatedInv;
  setSettings((prev) => ({ ...prev, ...updates }));
+ localStorage.setItem('infusionSetSite', insertionSite);
+ localStorage.setItem('infusionSite', insertionSite);
+ window.dispatchEvent(new CustomEvent('siteChangeRecorded', { detail: { infusionSetSite: insertionSite } }));
  if (user) {
  await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
- const siteLog = { type: "site_change", value: 1, timestamp: now, createdAt: new Date().toISOString(), notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }), source: "system" };
+ const siteLog = { type: "site_change", value: 1, timestamp: now, createdAt: new Date().toISOString(), notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }), site: insertionSite, source: "system" };
  const docRef = await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), siteLog);
  const addedSiteLog = { ...siteLog, id: docRef.id };
  await dbService.saveLog(addedSiteLog);

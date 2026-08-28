@@ -4,7 +4,7 @@ import { X, Save, Trash2, Syringe, Activity, Loader2, Droplets, RefreshCw, Calen
 import { LogEntry } from "../types";
 import { db } from "../lib/firebase";
 import { doc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
-import { getEffectiveUid } from "../lib/utils";
+import { getEffectiveUid, extractInfusionSite } from "../lib/utils";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -43,7 +43,7 @@ export default function DoseEditModal({ log, user: propUser, onClose }: DoseEdit
   const [value, setValue] = useState(log.value ? String(log.value) : "");
   const [bolus, setBolus] = useState(log.bolus ? String(log.bolus) : (log.type === "bolus" || (log.type as any) === "insulin" ? String(log.value || "") : ""));
   const [carbs, setCarbs] = useState(log.type === "carbs" ? String(log.value || "") : (log.linkedMeal?.carbs ? String(log.linkedMeal.carbs) : ""));
-  const [site, setSite] = useState((log as any).site || (log.notes?.includes(" - ") ? log.notes.split(" - ")[1] : "Lewy brzuch"));
+  const [site, setSite] = useState(extractInfusionSite(log));
   const [timestamp, setTimestamp] = useState(() => {
     const ts = log.timestamp || (log as any).createdAt;
     return ts ? new Date(ts - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
@@ -144,27 +144,35 @@ export default function DoseEditModal({ log, user: propUser, onClose }: DoseEdit
             .filter(l => l.id !== log.id && l.type === "site_change" && !l.notes?.toLowerCase().includes("zbiorniczk"))
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
           const prevSiteLog = remainingSiteLogs[0];
+          const newSite = prevSiteLog ? extractInfusionSite(prevSiteLog) : "Lewy brzuch";
+          const updates = {
+            infusionSetChangeDate: prevSiteLog ? prevSiteLog.timestamp : null,
+            infusionSetSite: newSite,
+            infusionSite: newSite
+          };
           await setDoc(
             doc(db, "users", uid, "settings", "profile"),
-            {
-              infusionSetChangeDate: prevSiteLog ? prevSiteLog.timestamp : null,
-              infusionSetSite: prevSiteLog ? (prevSiteLog as any).site || "Lewy brzuch" : "Lewy brzuch",
-              infusionSite: prevSiteLog ? (prevSiteLog as any).site || "Lewy brzuch" : "Lewy brzuch"
-            },
+            updates,
             { merge: true }
           ).catch(() => {});
+          localStorage.setItem('infusionSetSite', newSite);
+          localStorage.setItem('infusionSite', newSite);
+          window.dispatchEvent(new CustomEvent('siteChangeRecorded', { detail: { infusionSetSite: newSite } }));
+          window.dispatchEvent(new CustomEvent('userSettingsUpdate', { detail: updates }));
         } else if (log.type === "sensor_change") {
           const remainingSensorLogs = (logs || [])
             .filter(l => l.id !== log.id && l.type === "sensor_change")
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
           const prevSensorLog = remainingSensorLogs[0];
+          const updates = {
+            sensorChangeDate: prevSensorLog ? prevSensorLog.timestamp : null
+          };
           await setDoc(
             doc(db, "users", uid, "settings", "profile"),
-            {
-              sensorChangeDate: prevSensorLog ? prevSensorLog.timestamp : null
-            },
+            updates,
             { merge: true }
           ).catch(() => {});
+          window.dispatchEvent(new CustomEvent('userSettingsUpdate', { detail: updates }));
         }
       }
 
