@@ -28,13 +28,18 @@ export const getAudioCtx = (): AudioContext | null => {
 // Helper: Get robust absolute URL to sound files
 export const getAbsoluteAudioUrl = (filename: string = 'status_clear.mp3'): string => {
   if (typeof window === 'undefined') return filename;
+  const cleanFilename = filename.startsWith('/') ? filename.slice(1) : filename;
   try {
-    const base = import.meta.env.BASE_URL || '/';
-    // Ensure base ends with /
-    const normalizedBase = base.endsWith('/') ? base : `${base}/`;
-    return new URL(filename, new URL(normalizedBase, window.location.origin)).href;
+    const base = import.meta.env.BASE_URL || './';
+    if (base && base !== './' && base !== '/') {
+      const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+      return new URL(cleanFilename, new URL(normalizedBase, window.location.origin)).href;
+    }
+    const href = window.location.href.split('#')[0].split('?')[0];
+    const dir = href.endsWith('/') ? href : href.substring(0, href.lastIndexOf('/') + 1);
+    return new URL(cleanFilename, dir).href;
   } catch (e) {
-    return `/${filename}`.replace(/\/+/g, '/');
+    return `./${cleanFilename}`;
   }
 };
 
@@ -42,36 +47,30 @@ export const getAbsoluteAudioUrl = (filename: string = 'status_clear.mp3'): stri
 export const preloadNativeAudio = async (): Promise<boolean> => {
   if (!Capacitor.isNativePlatform()) return false;
   
-  // Try public/ first (Capacitor Android standard assets location)
-  try {
-    await NativeAudio.preload({
-      assetId: 'status_clear',
-      assetPath: 'public/status_clear.mp3',
-      volume: 1.0,
-      audioChannelNum: 1,
-      isUrl: false
-    });
-    nativeAudioPreloaded = true;
-    console.log('[Audio] NativeAudio preloaded public/status_clear.mp3 successfully');
-    return true;
-  } catch (e1) {
-    // Fallback try root assets status_clear.mp3
+  const candidatePaths = [
+    'status_clear.mp3',
+    'public/status_clear.mp3',
+    'status_clear',
+    'assets/status_clear.mp3'
+  ];
+
+  for (const path of candidatePaths) {
     try {
       await NativeAudio.preload({
         assetId: 'status_clear',
-        assetPath: 'status_clear.mp3',
+        assetPath: path,
         volume: 1.0,
         audioChannelNum: 1,
         isUrl: false
       });
       nativeAudioPreloaded = true;
-      console.log('[Audio] NativeAudio preloaded status_clear.mp3 successfully');
+      console.log(`[Audio] NativeAudio preloaded ${path} successfully`);
       return true;
-    } catch (e2) {
-      console.warn('[Audio] NativeAudio preload failed for all paths:', e1, e2);
-      return false;
+    } catch (e) {
+      // continue trying next candidate
     }
   }
+  return false;
 };
 
 // Autounlock AudioContext and HTML5 Audio on first user gesture
@@ -214,18 +213,25 @@ export const playMp3Alert = async () => {
 
   // Tier 2: HTML5 Audio Element (Works in WebViews, PWA, Browser)
   if (!playedSuccessfully) {
-    try {
-      const audioUrl = getAbsoluteAudioUrl('status_clear.mp3');
-      const audio = new Audio(audioUrl);
-      audio.volume = 1.0;
-      activeAudioElement = audio;
-      audio.onended = () => { activeAudioElement = null; };
-      await audio.play();
-      playedSuccessfully = true;
-      console.log('[Audio] Tier 2: HTML5 Audio played status_clear.mp3 successfully from', audioUrl);
-      return;
-    } catch (err) {
-      console.warn('[Audio] Tier 2: HTML5 Audio play failed, fallback to Tier 3 (Web Audio API)', err);
+    const urlsToTry = [
+      getAbsoluteAudioUrl('status_clear.mp3'),
+      './status_clear.mp3',
+      '/status_clear.mp3'
+    ];
+
+    for (const url of urlsToTry) {
+      try {
+        const audio = new Audio(url);
+        audio.volume = 1.0;
+        activeAudioElement = audio;
+        audio.onended = () => { activeAudioElement = null; };
+        await audio.play();
+        playedSuccessfully = true;
+        console.log('[Audio] Tier 2: HTML5 Audio played successfully from', url);
+        return;
+      } catch (err) {
+        console.warn(`[Audio] Tier 2: Failed to play from ${url}:`, err);
+      }
     }
   }
 
