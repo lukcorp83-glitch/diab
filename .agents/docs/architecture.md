@@ -3,10 +3,13 @@
 Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Zamiast szukać po plikach, szukaj informacji tutaj.
 
 ## Główne pliki i komponenty
-- `src/App.tsx` (ogromny plik ~3400 linii) - Główny punkt wejścia, główny layout, zarządzanie routingiem i duża część logiki UI.
-- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.27'), adresy URL oraz bazy produktów.
-- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.27.
-- `src/hooks/useAppSubscriptions.ts` & `src/services/databaseService.ts` - Zwiększono bufor synchronizacji logów z Firebase do 12 000 wpisów (pełne 35 dni gęstych odczytów CGM oraz wszystkie posiłki i bolusy) dla zapewnienia pełnej ciągłości danych w pamięci lokalnej SQLite oraz rzetelnych miesięcznych statystyk.
+- `src/App.tsx` - Główny punkt wejścia, główny layout, zarządzanie routingiem i duża część logiki UI.
+- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.29'), adresy URL oraz bazy produktów.
+- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.29.
+- `src/services/preBolusService.ts` & `src/components/BolusCalculator.tsx` - Automatyczny start stopera przedposiłkowego dla każdego bolusa (pompa / kalkulator) oraz synchronizacja `DynamicActionCapsule` i powiadomień natywnych na ekranie blokady.
+- `src/components/GlikoTraining.tsx` & `src/components/Profile.tsx` - Naprawiono uruchamianie i kończenie treningu sportowego (GlikoTrening) z poprawnym przekazywaniem `user` i `setSettings`, zapisem do bazy i aktualizacją widżetu na pulpicie.
+- `src/hooks/queries/useProfileData.ts` & `src/hooks/useAppSubscriptions.ts` - Pełna dwukierunkowa synchronizacja wybranego sposobu leczenia (`treatmentMode`) z kontem w Firestore i `localStorage`.
+- `public/CNAME` & `version.json` - Wdrożono oficjalną domenę `glikocontrol.pl` z pełnym wsparciem Cloudflare SSL/HSTS oraz metatagami SEO w `index.html`.
 
 ## Główne Widżety Pulpitu i Nowy Design System
 - `src/components/dashboard/widgets/SavedMealsWidget.tsx` - Nowy horyzontalny widżet „Zapisane Posiłki & Przepisy” na Pulpicie: przewijany stos kart ze szklistym tłem (*glassmorphism*), badge'ami diet, szczegółowymi makroskładnikami (W, B, T, kcal), 1-Click wrzucaniem całego dania na Talerz oraz pełnym modalem podglądu przepisu kulinarnego wprost z Pulpitu.
