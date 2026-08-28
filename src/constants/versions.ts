@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.28';
+export const CURRENT_VERSION = '6.0.29';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.29",
+    date: "2026-08-28",
+    title: "Własna Domena glikocontrol.pl, Pancerne Uruchamianie Treningu, Stoper Przedposiłkowy i Nowe SEO",
+    changes: [
+      "Wdrożono i zabezpieczono oficjalną domenę glikocontrol.pl z bezpiecznym certyfikatem SSL i nagłówkiem HSTS",
+      "Naprawiono uruchamianie treningu sportowego (GlikoTrening) – natychmiastowy start, historia i status na pulpicie",
+      "Automatyczny start stopera przedposiłkowego dla każdego bolusa z pompy i kalkulatora",
+      "Pełna synchronizacja wybranego sposobu leczenia (Dieta/Insulina/Pompa) z kontem w chmurze i pamięcią urządzenia",
+      "Wzbogacone metatagi SEO i OpenGraph dla wyszukiwarki Google oraz podglądu linków na Facebooku"
+    ]
+  },
   {
     version: "6.0.28",
     date: "2026-08-28",
@@ -280,6 +292,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.29",
+    date: "2026-08-28",
+    title: "Własna Domena glikocontrol.pl, Pancerne Uruchamianie Treningu, Stoper Przedposiłkowy i Nowe SEO",
+    changes: [
+      "Wdrożono i zabezpieczono oficjalną domenę glikocontrol.pl z bezpiecznym certyfikatem SSL i nagłówkiem HSTS",
+      "Naprawiono uruchamianie treningu sportowego (GlikoTrening) – natychmiastowy start, historia i status na pulpicie",
+      "Automatyczny start stopera przedposiłkowego dla każdego bolusa z pompy i kalkulatora",
+      "Pełna synchronizacja wybranego sposobu leczenia (Dieta/Insulina/Pompa) z kontem w chmurze i pamięcią urządzenia",
+      "Wzbogacone metatagi SEO i OpenGraph dla wyszukiwarki Google oraz podglądu linków na Facebooku"
+    ]
+  },
   {
     version: "6.0.28",
     date: "2026-08-28",

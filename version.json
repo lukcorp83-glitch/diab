@@ -1,10 +1,10 @@
 {
-    "version": "6.0.28",
+    "version": "6.0.29",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.28_OTA.apk",
-    "buildNumber": 143,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.29_OTA.apk",
+    "buildNumber": 144,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.28! 1) GlikoSense 4.0 – nowa sieć neuronowa z bezszwowym kotwiczeniem predykcji cukru do aktualnego pomiaru. 2) Automatyczne wykrywanie wymiany osprzętu (Smart Equipment) oraz opcja edycji i cofania wymian. 3) Odświeżenie aplikacji i nowy design system. 4) Całkowicie nowa budowa aplikacji i zoptymalizowana architektura. 5) Odświeżony wykres glikemii z chmurą pewności.",
-    "whatsNewEn": "Version 6.0.28! 1) GlikoSense 4.0 – enhanced neural network with seamless prediction curve anchoring. 2) Automatic equipment change detection (Smart Equipment) with editing and rollback options. 3) App refresh and modern design system. 4) Completely redesigned app architecture. 5) Refreshed glucose chart with confidence cloud.",
-    "otaRevision": 302
+    "whatsNew": "Wersja 6.0.29! 1) Własna oficjalna domena glikocontrol.pl z szyfrowaniem SSL i nagłówkiem HSTS. 2) Naprawiono uruchamianie treningu sportowego (GlikoTrening) – natychmiastowy start i status na pulpicie. 3) Automatyczny start stopera przedposiłkowego dla każdego bolusa. 4) Pełna synchronizacja wybranego sposobu leczenia (Dieta/Insulina/Pompa) z kontem w chmurze. 5) Wzbogacone metatagi SEO i podgląd linków na Facebooku.",
+    "whatsNewEn": "Version 6.0.29! 1) Official custom domain glikocontrol.pl with SSL & HSTS encryption. 2) Fixed sports training start & live dashboard status. 3) Automatic pre-bolus countdown timer for all boluses. 4) Full cloud synchronization of treatment mode (Diet/Insulin/Pump). 5) Enriched SEO and social media OpenGraph previews.",
+    "otaRevision": 303
 }
