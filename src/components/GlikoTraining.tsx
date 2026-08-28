@@ -339,71 +339,117 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  return { text: i18n.t('auto.glikemia_stabilna_pamietaj_o_m', { defaultValue: i18n.t('auto.glikemia_stabilna_pamieta', { defaultValue: "Glikemia stabilna. Pamiętaj o monitorowaniu w trakcie wysiłku." }) }), type: 'info' };
  };
 
- const handleStartTraining = async () => {
- if (!user) return;
- Haptics.success();
- const settingsRef = doc(db, 'users', getEffectiveUid(user), 'settings', 'profile');
- 
- const trainingData = {
- sportId: selectedSportLog,
- startTime: Date.now(),
- duration: parseInt(duration),
- intensity,
- startSugar: currentSugar
- };
+  const handleStartTraining = async () => {
+    Haptics.success();
+    
+    const trainingData = {
+      sportId: selectedSportLog,
+      startTime: Date.now(),
+      duration: parseInt(duration) || 30,
+      intensity,
+      startSugar: currentSugar
+    };
 
- // 1. Dodaj do historii treningów jako rekord "w trakcie"
- const historyRef = collection(db, 'users', getEffectiveUid(user), 'trainings');
- const docRef = await addDoc(historyRef, {
- ...trainingData,
- timestamp: serverTimestamp(),
- isCompleted: false
- });
+    // 1. Natychmiastowa aktualizacja stanu lokalnego (Optimistic UI)
+    if (setSettings) {
+      setSettings((prev: any) => ({
+        ...(prev || {}),
+        activeTraining: trainingData
+      }));
+    }
+    try {
+      localStorage.setItem('gliko_active_training', JSON.stringify(trainingData));
+    } catch (e) {}
 
- // 2. Zapisz jako aktywny trening (do widoku na pulpicie)
- await setDoc(settingsRef, {
- ...settings,
- activeTraining: {
- ...trainingData,
- trainingId: docRef.id
- }
- });
+    const sportName = SPORTS.find(s => s.id === selectedSportLog)?.name || 'Trening';
 
- // 3. Dodaj wpis do głównej historii (logs) aby był widoczny na osi czasu
- const logsRef = collection(db, 'users', getEffectiveUid(user), 'logs');
- const sportName = SPORTS.find(s => s.id === selectedSportLog)?.name || 'Trening';
- await addDoc(logsRef, {
- type: 'activity',
- value: parseInt(duration),
- timestamp: Date.now(),
- notes: i18n.t('auto.start_treningu_var0_inten', { defaultValue: "Start treningu: {{var0}} (Intensywność: {{var1}}). Cukier: {{var2}} mg/dL", var0: sportName, var1: intensity === 'low' ? 'Lekka' : intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka', var2: currentSugar || '---' }),
- sportId: selectedSportLog,
- intensity: intensity
- });
+    // 2. Dodaj wpis do głównej historii lokalnej (logs)
+    window.dispatchEvent(new CustomEvent('localLogAdd', {
+      detail: {
+        id: 'training_' + Date.now(),
+        type: 'activity',
+        value: parseInt(duration) || 30,
+        timestamp: Date.now(),
+        notes: i18n.t('auto.start_treningu_var0_inten', { defaultValue: "Start treningu: {{var0}} (Intensywność: {{var1}}). Cukier: {{var2}} mg/dL", var0: sportName, var1: intensity === 'low' ? 'Lekka' : intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka', var2: currentSugar || '---' }),
+        sportId: selectedSportLog,
+        intensity: intensity
+      }
+    }));
 
- if (onClose) onClose();
- };
+    toast.success("Rozpoczęto trening! 🏃‍♂️");
 
- const handleEndTraining = async () => {
- if (!user || !activeTraining) return;
- Haptics.success();
- 
- // Zaktualizuj rekord w historii
- if (activeTraining.trainingId) {
- const trainingRef = doc(db, 'users', getEffectiveUid(user), 'trainings', activeTraining.trainingId);
- await setDoc(trainingRef, {
- endTime: Date.now(),
- endSugar: currentSugar,
- isCompleted: true
- }, { merge: true });
- }
+    // 3. Synchronizacja z chmurą jeśli użytkownik jest zalogowany
+    if (user) {
+      try {
+        const uid = getEffectiveUid(user);
+        const historyRef = collection(db, 'users', uid, 'trainings');
+        const docRef = await addDoc(historyRef, {
+          ...trainingData,
+          timestamp: serverTimestamp(),
+          isCompleted: false
+        });
 
- const settingsRef = doc(db, 'users', getEffectiveUid(user), 'settings', 'profile');
- await setDoc(settingsRef, {
- ...settings,
- activeTraining: null
- });
- };
+        const settingsRef = doc(db, 'users', uid, 'settings', 'profile');
+        await setDoc(settingsRef, {
+          activeTraining: {
+            ...trainingData,
+            trainingId: docRef.id
+          }
+        }, { merge: true });
+
+        const logsRef = collection(db, 'users', uid, 'logs');
+        await addDoc(logsRef, {
+          type: 'activity',
+          value: parseInt(duration) || 30,
+          timestamp: Date.now(),
+          notes: i18n.t('auto.start_treningu_var0_inten', { defaultValue: "Start treningu: {{var0}} (Intensywność: {{var1}}). Cukier: {{var2}} mg/dL", var0: sportName, var1: intensity === 'low' ? 'Lekka' : intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka', var2: currentSugar || '---' }),
+          sportId: selectedSportLog,
+          intensity: intensity
+        });
+      } catch (err) {
+        console.warn("Błąd zapisu treningu w chmurze:", err);
+      }
+    }
+
+    if (onClose) onClose();
+  };
+
+  const handleEndTraining = async () => {
+    Haptics.success();
+    
+    if (setSettings) {
+      setSettings((prev: any) => ({
+        ...(prev || {}),
+        activeTraining: null
+      }));
+    }
+    try {
+      localStorage.removeItem('gliko_active_training');
+    } catch (e) {}
+
+    toast.success("Trening zakończony i zapisany! 🏆");
+
+    if (user && activeTraining) {
+      try {
+        const uid = getEffectiveUid(user);
+        if (activeTraining.trainingId) {
+          const trainingRef = doc(db, 'users', uid, 'trainings', activeTraining.trainingId);
+          await setDoc(trainingRef, {
+            endTime: Date.now(),
+            endSugar: currentSugar,
+            isCompleted: true
+          }, { merge: true });
+        }
+
+        const settingsRef = doc(db, 'users', uid, 'settings', 'profile');
+        await setDoc(settingsRef, {
+          activeTraining: null
+        }, { merge: true });
+      } catch (err) {
+        console.warn("Błąd zakończenia treningu w chmurze:", err);
+      }
+    }
+  };
 
  const handleDeleteTraining = async (trainingId: string) => {
  if (!user) return;

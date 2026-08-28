@@ -1540,8 +1540,9 @@ export default function Profile({
  className="pb-20 space-y-4"
  >
  <DevicePairing 
- 
+ user={user}
  settings={settings}
+ setSettings={setSettings}
  wsDevices={wsDevices}
  kickDevice={kickDevice}
  onImport={(s) => {
@@ -3411,11 +3412,12 @@ export default function Profile({
  )}
  {activeCategory === "training" && (
  <GlikoTraining
- isOpen={true}
- onClose={() => setActiveCategory(null)}
- isGlassmorphic={settings.glassmorphismEnabled}
- 
- settings={settings}
+            isOpen={true}
+            onClose={() => setActiveCategory(null)}
+            isGlassmorphic={settings.glassmorphismEnabled}
+            user={user}
+            settings={settings}
+            setSettings={setSettings}
  currentSugar={logs.find(l => l.type === 'glucose')?.value || null}
  />
  )}
