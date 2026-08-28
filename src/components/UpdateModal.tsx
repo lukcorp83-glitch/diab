@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, X, Star, CloudDownload, Loader2 } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
@@ -28,8 +28,8 @@ export default function UpdateModal() {
  } else {
  try {
  const url = isBeta 
- ? 'https://lukcorp83-glitch.github.io/diab/beta.json?t=' + Date.now()
- : 'https://lukcorp83-glitch.github.io/diab/version.json?t=' + Date.now();
+ ? 'https://glikocontrol.pl/beta.json?t=' + Date.now()
+ : 'https://glikocontrol.pl/version.json?t=' + Date.now();
  
  const res = await fetch(url);
  if (!res.ok) throw new Error("HTTP error");
@@ -48,10 +48,10 @@ export default function UpdateModal() {
  if (data) {
  if (isBeta) {
  data.apkUrl = `https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_${data.version}-beta_OTA.apk`;
- data.url = `https://lukcorp83-glitch.github.io/diab/update-beta.zip`;
+ data.url = `https://glikocontrol.pl/update-beta.zip`;
  } else {
  data.apkUrl = `https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_${data.version}_OTA.apk`;
- data.url = `https://lukcorp83-glitch.github.io/diab/update.zip`;
+ data.url = `https://glikocontrol.pl/update.zip`;
  }
  }
 
