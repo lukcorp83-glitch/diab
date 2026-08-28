@@ -150,7 +150,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "pen_tracker", name: i18n.t('auto.widzet_peny', { defaultValue: "Zasoby Insuliny (Peny)" }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "default" },
   { id: "quick_bolus", name: i18n.t('auto.zapis_bolusa_kalkulator_przycisk', { defaultValue: 'Zapis bolusa / kalkulator (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
   { id: "tips", name: i18n.t('auto.porady_i_ciekawostki_didyouknow', { defaultValue: 'Porady i ciekawostki (DidYouKnow)' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
-  { id: "glikosense_suggestions", name: i18n.t('auto.sugestie_i_analizy_glikosense', { defaultValue: 'Sugestie i analizy GlikoSense' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
+  { id: "glikosense_suggestions", name: i18n.t('auto.sugestie_i_analizy_glikosense', { defaultValue: 'Sugestie i analizy GlikoSense' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
   { id: "shortcuts", name: i18n.t('auto.szybkie_skroty', { defaultValue: "Szybkie skróty" }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "saved_meals", name: i18n.t('auto.zapisane_posilki_widzet', { defaultValue: "Zapisane posiłki i przepisy" }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
   { id: "quick_measurement", name: i18n.t('auto.szybki_pomiar_glikemii_przycisk', { defaultValue: 'Szybki pomiar glikemii (Przycisk)' }), visible: true, size: "1x1", canResize: true, canChangeShape: true },
@@ -1106,6 +1106,18 @@ export default function Dashboard({
         const isSg1x1 = size === "1x1";
         const isSg1x2 = size === "1x2";
 
+        if (!hasPatterns) {
+          if (isEditingLayout) {
+            return (
+              <div className="glass-card !p-4 flex items-center justify-center gap-3 border border-dashed border-emerald-500/30 text-slate-400 w-full h-full min-h-[100px]">
+                <GlikoSenseIcon size={16} isAnalyzing={false} />
+                <span className="text-[10px] font-bold">Wnioski GlikoSense (aktywne przy wykryciu wzorców)</span>
+              </div>
+            );
+          }
+          return null;
+        }
+
         if (isSg1x1) {
           return (
             <div 
@@ -1121,14 +1133,13 @@ export default function Dashboard({
               </div>
               <div className="my-1">
                 <p className="font-black text-xl dark:text-white font-display text-left tracking-tight leading-none text-emerald-600 dark:text-emerald-400">
-                  {patternInsights.length + 1}
+                  {patternInsights.length}
                 </p>
                 <span className="text-[7px] opacity-60 uppercase font-black text-slate-400 block text-left mt-0.5 leading-none">{t('auto.wskazówki_ai', { defaultValue: i18n.t('auto.wskazowki_ai', { defaultValue: "Wskazówki AI" }) })}</span>
               </div>
               <p className="text-[7px] font-black text-emerald-500 uppercase tracking-tighter truncate font-display text-left">
-                
-                                      {t('auto.analiza_ai', { defaultValue: 'Analiza AI ➡️' })}
-                                    </p>
+                {t('auto.analiza_ai', { defaultValue: 'Analiza AI ➡️' })}
+              </p>
             </div>
           );
         }
@@ -1147,14 +1158,10 @@ export default function Dashboard({
               
               <div className="mt-2 border-b border-slate-100 dark:border-white/5 pb-2">
                 <span className="text-[7px] uppercase font-black text-slate-400 block mb-1 opacity-60">{t('auto.wzorce_glikosense', { defaultValue: 'Wzorce GlikoSense' })}</span>
-                {hasPatterns ? (
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
-                    <span className="shrink-0">{patternInsights[0].icon}</span>
-                    <span className="truncate">{patternInsights[0].text}</span>
-                  </div>
-                ) : (
-                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-600 italic">{t('auto.cukry_są_stabilne', { defaultValue: i18n.t('auto.cukry_sa_stabilne', { defaultValue: "Cukry są stabilne!" }) })}</div>
-                )}
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                  <span className="shrink-0">{patternInsights[0].icon}</span>
+                  <span className="truncate">{patternInsights[0].text}</span>
+                </div>
               </div>
 
               <div className="my-2 flex-1 overflow-hidden flex flex-col justify-center">
@@ -1165,9 +1172,8 @@ export default function Dashboard({
                 onClick={() => { if (!isEditingLayout) { Haptics.light(); setTab("ai"); } }}
                 className="w-full py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-center"
               >
-                
-                                      {t('auto.wszystkie_analizy', { defaultValue: 'Wszystkie analizy ➡️' })}
-                                    </button>
+                {t('auto.wszystkie_analizy', { defaultValue: 'Wszystkie analizy ➡️' })}
+              </button>
             </div>
           );
         }
@@ -1177,33 +1183,29 @@ export default function Dashboard({
             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none"></div>
             
             <div className="flex-1 flex flex-col justify-between gap-3 overflow-y-auto scrollbar-none text-left">
-              {hasPatterns ? (
-                <div className="flex items-start gap-3 w-full">
-                  <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl shrink-0">
-                    <GlikoSenseIcon size={14} isAnalyzing={true} />
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none mb-1 font-display">
-                      
-                                                          {t('auto.zalecenia_glikosense', { defaultValue: 'Zalecenia GlikoSense' })}
-                                                        </p>
-                    <div className="space-y-1">
-                      {patternInsights.slice(0, 2).map((insight: any, idx: number) => (
-                        <div key={`insight-${idx}`} className="flex items-center gap-1.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
-                          <span className="shrink-0">{insight.icon}</span>
-                          <span className="truncate">{insight.text}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <button onClick={() => { if (!isEditingLayout) { Haptics.light(); setTab("ai"); } }} className="p-1 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg text-[9px] font-black uppercase text-emerald-600 transition-all active:scale-90 shrink-0">
-                    
-                                                    {t('auto.analiza_ai', { defaultValue: 'Analiza AI' })}
-                                                  </button>
+              <div className="flex items-start gap-3 w-full">
+                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl shrink-0">
+                  <GlikoSenseIcon size={14} isAnalyzing={true} />
                 </div>
-              ) : null}
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none mb-1 font-display">
+                    {t('auto.zalecenia_glikosense', { defaultValue: 'Zalecenia GlikoSense' })}
+                  </p>
+                  <div className="space-y-1">
+                    {patternInsights.slice(0, 2).map((insight: any, idx: number) => (
+                      <div key={`insight-${idx}`} className="flex items-center gap-1.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        <span className="shrink-0">{insight.icon}</span>
+                        <span className="truncate">{insight.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={() => { if (!isEditingLayout) { Haptics.light(); setTab("ai"); } }} className="p-1 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg text-[9px] font-black uppercase text-emerald-600 transition-all active:scale-90 shrink-0">
+                  {t('auto.analiza_ai', { defaultValue: 'Analiza AI' })}
+                </button>
+              </div>
 
-              <div className={cn("w-full text-left", hasPatterns ? "border-t border-slate-100 dark:border-white/5 pt-2" : "")}>
+              <div className="w-full text-left border-t border-slate-100 dark:border-white/5 pt-2">
                 <GlikoSenseTips logs={logs} pumpStatus={pumpStatus} />
               </div>
             </div>
@@ -1679,7 +1681,9 @@ export default function Dashboard({
                  );
 
              const isCurrentlyMovingTarget = movingWidgetId !== null && movingWidgetId !== w.id;
-             
+             const renderedContent = renderWidget(w.id, widgetSize);
+             if (!renderedContent) return null;
+
              return (
                  <motion.div
                    layout
@@ -1694,10 +1698,9 @@ export default function Dashboard({
                    movingWidgetId === w.id ? "ring-4 ring-amber-500/60 border-amber-500 shadow-2xl scale-[1.01]" : ""
                  )}
                >
-                  {/* Usunięto nakładkę trybu edycji i przyciski do sterowania rozmiarem z samych kafelków */}
                  
                  <div className="flex-1 w-full flex flex-col justify-center transition-all duration-500 h-full">
-                   {renderWidget(w.id, widgetSize)}
+                   {renderedContent}
                  </div>
                </motion.div>
              );
