@@ -62,7 +62,10 @@ import {
  Apple,
  Dumbbell,
  Box,
-  Cylinder,
+ Cylinder,
+ FlaskConical,
+ Syringe,
+ Layers,
  Minus,
  Edit3,
  Download,
@@ -443,6 +446,12 @@ const saveInventoryItem = async () => {
                         ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
                         : item.category === 'infusion_sets'
                         ? "bg-teal-500/10 text-teal-600 dark:text-teal-400"
+                        : item.category === 'insulin'
+                        ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                        : item.category === 'pens'
+                        ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                        : item.category === 'strips'
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                         : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400",
                     )}
                   >
@@ -452,6 +461,12 @@ const saveInventoryItem = async () => {
                       <Signal size={20} />
                     ) : item.category === 'infusion_sets' ? (
                       <Droplets size={20} />
+                    ) : item.category === 'insulin' ? (
+                      <FlaskConical size={20} />
+                    ) : item.category === 'pens' ? (
+                      <Syringe size={20} />
+                    ) : item.category === 'strips' ? (
+                      <Layers size={20} />
                     ) : (
                       <Box size={20} />
                     )}

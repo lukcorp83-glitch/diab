@@ -1,4 +1,4 @@
-import { Cylinder } from 'lucide-react';
+import { Cylinder, FlaskConical, Layers } from 'lucide-react';
 import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAppStore } from '../stores/useAppStore';
@@ -1456,7 +1456,7 @@ export default function Dashboard({
 
       {/* Pasek Pigułek - Linia 2 (Magazyn) */}
       <div className="px-2 flex gap-2 overflow-x-auto scrollbar-none pb-1 mt-1">
-         {settings?.inventory && settings.inventory.filter((item: any) => ['cannulas', 'infusion_sets', 'sensors', 'reservoirs'].includes(item.category)).map((item: any) => {
+         {settings?.inventory && settings.inventory.filter((item: any) => ['cannulas', 'infusion_sets', 'sensors', 'reservoirs', 'insulin', 'pens', 'strips'].includes(item.category)).map((item: any) => {
              let colorClass = "text-slate-600 dark:text-slate-300";
              let fillClass = "bg-slate-100/80 dark:bg-slate-800/80";
              let bgClass = "bg-slate-100/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10";
@@ -1477,9 +1477,12 @@ export default function Dashboard({
                  }}
                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-widest shadow-sm transition-colors cursor-pointer active:scale-95 ${bgClass} ${colorClass}`}
                >
-                 {(item.category === 'cannulas' || item.category === 'infusion_sets') && <Droplets size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-sky-500"} />}
+                 {(item.category === 'cannulas' || item.category === 'infusion_sets') && <Droplets size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-teal-500"} />}
                  {item.category === 'sensors' && <Signal size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-violet-500"} />}
                  {item.category === 'reservoirs' && <Cylinder size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-purple-500"} />}
+                 {item.category === 'insulin' && <FlaskConical size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-sky-500"} />}
+                 {item.category === 'pens' && <Syringe size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-indigo-500"} />}
+                 {item.category === 'strips' && <Layers size={12} className={item.quantity <= threshold ? "text-rose-500" : "text-amber-500"} />}
                  {item.quantity} {item.unit || 'szt.'}
                </div>
              );

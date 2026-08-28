@@ -34,6 +34,7 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class NightscoutFetcher {
 
@@ -318,6 +319,137 @@ public class NightscoutFetcher {
         }
     }
 
+    public static void checkAndTriggerPumpBolusTimer(Context context, String nsUrl, String secret, int currentSgv, String trendArrow) {
+        if (nsUrl == null || nsUrl.isEmpty()) return;
+        try {
+            String fetchUrl = nsUrl;
+            if (fetchUrl.endsWith("/")) fetchUrl = fetchUrl.substring(0, fetchUrl.length() - 1);
+            fetchUrl += "/api/v1/treatments.json?count=5";
+            if (secret != null && !secret.isEmpty() && secret.contains("-")) {
+                fetchUrl += "&token=" + secret;
+            }
+
+            URL url = new URL(fetchUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)");
+            if (secret != null && !secret.isEmpty() && !secret.contains("-")) {
+                conn.setRequestProperty("api-secret", secret);
+            }
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+
+            int status = conn.getResponseCode();
+            if (status == 200) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String inputLine;
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                JSONArray treatments = new JSONArray(response.toString());
+                if (treatments.length() > 0) {
+                    long now = System.currentTimeMillis();
+                    SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+                    String lastNotifiedId = prefs.getString("last_notified_pump_bolus_id", "");
+
+                    for (int i = 0; i < treatments.length(); i++) {
+                        JSONObject t = treatments.getJSONObject(i);
+                        String eventType = t.optString("eventType", "").toLowerCase();
+                        double insulin = t.optDouble("insulin", 0);
+                        double carbs = t.optDouble("carbs", 0);
+                        long timestamp = t.optLong("created_at_ms", 0);
+                        if (timestamp == 0) {
+                            String createdStr = t.optString("created_at", "");
+                            if (!createdStr.isEmpty()) {
+                                try {
+                                    SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
+                                    iso.setTimeZone(TimeZone.getTimeZone("UTC"));
+                                    Date d = iso.parse(createdStr);
+                                    if (d != null) timestamp = d.getTime();
+                                } catch(Exception ignored){}
+                            }
+                        }
+                        if (timestamp == 0) timestamp = t.optLong("timestamp", 0);
+
+                        long ageMs = now - timestamp;
+                        // Jeśli bolus nastąpił w ciągu ostatnich 25 minut i dawka >= 0.4j lub z węglowodanami:
+                        if (ageMs >= 0 && ageMs < 25 * 60 * 1000L && (insulin >= 0.4 || carbs > 0 || eventType.contains("bolus"))) {
+                            String bolusId = t.optString("_id", String.valueOf(timestamp));
+                            if (!bolusId.equals(lastNotifiedId)) {
+                                prefs.edit().putString("last_notified_pump_bolus_id", bolusId).apply();
+
+                                // Obliczamy czas oczekiwania
+                                int waitMinutes = 15;
+                                if (currentSgv > 180) waitMinutes = 20;
+                                else if (currentSgv < 90 && currentSgv > 0) waitMinutes = 10;
+
+                                if ("↑".equals(trendArrow) || "⇈".equals(trendArrow) || "↗".equals(trendArrow)) waitMinutes += 3;
+                                else if ("↓".equals(trendArrow) || "⇊".equals(trendArrow) || "↘".equals(trendArrow)) waitMinutes -= 3;
+
+                                waitMinutes = Math.max(5, Math.min(35, waitMinutes));
+                                long targetTime = timestamp + (waitMinutes * 60 * 1000L);
+                                long remainingMs = targetTime - now;
+
+                                if (remainingMs > 0) {
+                                    // Uruchamiamy natywny stoper na pasku Androida
+                                    NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                                    if (notificationManager != null) {
+                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                            NotificationChannel channel = new NotificationChannel(
+                                                    "gliko_meal_timer_v1",
+                                                    "Odliczanie do posiłku (Timer)",
+                                                    NotificationManager.IMPORTANCE_HIGH
+                                            );
+                                            channel.setDescription("Wyświetla biegnący stoper odliczający czas do posiłku na pasku stanu");
+                                            channel.setShowBadge(true);
+                                            channel.enableVibration(true);
+                                            channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                                            notificationManager.createNotificationChannel(channel);
+                                        }
+
+                                        Intent appIntent = new Intent(context, MainActivity.class);
+                                        appIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                        PendingIntent pendingIntent = PendingIntent.getActivity(
+                                                context,
+                                                777,
+                                                appIntent,
+                                                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+                                        );
+
+                                        String unitsStr = insulin > 0 ? String.format(Locale.US, " (%.1fj)", insulin) : "";
+                                        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "gliko_meal_timer_v1")
+                                                .setSmallIcon(R.drawable.ic_stat_name)
+                                                .setContentTitle("Czas do posiłku 🍽️")
+                                                .setContentText("Wykryto bolus z pompy" + unitsStr + ". Odliczanie w toku...")
+                                                .setUsesChronometer(true)
+                                                .setChronometerCountDown(true)
+                                                .setWhen(targetTime)
+                                                .setShowWhen(true)
+                                                .setOngoing(true)
+                                                .setAutoCancel(false)
+                                                .setOnlyAlertOnce(true)
+                                                .setContentIntent(pendingIntent)
+                                                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                                                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                                                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+                                        notificationManager.notify(777, builder.build());
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.w("GlikoControlWidget", "Błąd sprawdzania bolusów w tle: " + e.getMessage());
+        }
+    }
+
     public static void fetchAndUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         new Thread(() -> {
             SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
@@ -420,6 +552,9 @@ public class NightscoutFetcher {
                                 
                                 // Sprawdzanie i generowanie alarmów w tle (niskiego/wysokiego cukru)
                                 checkAndTriggerAlert(context, sgv, targetMin, targetMax, latest.optString("_id", ""), timestamp);
+                                
+                                // Sprawdzanie bolusów z pompy i start stopera przedposiłkowego w tle
+                                checkAndTriggerPumpBolusTimer(context, nsUrl, secret, sgv, arrow);
                                 
                                 // Zapisywanie najnowszych danych do SharedPreferences
                                 SharedPreferences.Editor editor = prefs.edit();

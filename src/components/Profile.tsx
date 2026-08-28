@@ -3098,9 +3098,9 @@ export default function Profile({
  i18n.t('auto.zapisano_wymiane_zbiorniczka', { defaultValue: "Zapisano wymianę zbiorniczka!" })
  );
  }}
- className="bg-indigo-600 hover:bg-indigo-500 text-white p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 group/btn"
+ className="bg-purple-600 hover:bg-purple-500 text-white p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-purple-600/20 flex items-center justify-center gap-1.5 group/btn"
  >
- <Box
+ <Cylinder
  size={13}
  className="group-hover:scale-110 group-hover:rotate-12 transition-all"
  />

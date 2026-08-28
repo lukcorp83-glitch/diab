@@ -303,29 +303,10 @@ export const notificationService = {
       const ongoingTitle = `⏱️ Czas do posiłku: ${remainingMin} min${unitsStr}`;
       const ongoingBody = `Odliczanie przedposiłkowe w toku... Insulina zaczyna działać.`;
 
-      if (Capacitor.isNativePlatform()) {
+      if (!Capacitor.isNativePlatform() && window.Notification && window.Notification.permission === 'granted') {
         try {
-          await this.initChannels();
-          const perms = await LocalNotifications.checkPermissions();
-          if (perms.display !== 'granted') {
-            await LocalNotifications.requestPermissions();
-          }
-          await LocalNotifications.schedule({
-            notifications: [
-              {
-                id: 777,
-                title: ongoingTitle,
-                body: ongoingBody,
-                schedule: { at: new Date() },
-                channelId: 'glikocontrol_reminders_v1',
-                ongoing: true,
-                autoCancel: false
-              }
-            ]
-          });
-        } catch (e) {
-          console.warn('[NotificationService] Failed ongoing timer update:', e);
-        }
+          new window.Notification(ongoingTitle, { body: ongoingBody });
+        } catch (e) {}
       }
     };
 
