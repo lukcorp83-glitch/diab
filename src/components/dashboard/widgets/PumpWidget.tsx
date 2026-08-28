@@ -40,7 +40,7 @@ export default function PumpWidget(props: any) {
  }
  return null;
  }
- return (
- <PumpStatusCard data={pumpStatus} compact={size.endsWith("1")} />
- );
+  return (
+    <PumpStatusCard data={pumpStatus} compact={size.endsWith("1")} inventory={settings?.inventory} />
+  );
 }

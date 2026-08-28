@@ -8,7 +8,7 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
     1. `package.json` (klucz "version")
     2. `package-lock.json` (uruchom komendę `npm install --package-lock-only`)
     3. `version.json` (klucz "version", aktualizacja okien nowości `whatsNew`, opcjonalnie `apkUrl`)
-    4. `src/constants.ts` (zmienna `APP_VERSION`)
+    4. `src/constants.ts` (zmienne `APP_VERSION` oraz `CURRENT_VERSION`)
     5. `src/constants/versions.ts` (zmienna `CURRENT_VERSION` oraz dodanie wpisu do tablic `PWA_VERSIONS` i `APK_VERSIONS`)
 
 - **Aktualizacja tekstów w oknie nowości (Pop-up)**:
@@ -33,4 +33,9 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
 
 - **Optymalizacja Kontekstu (Oszczędzanie Tokenów)**:
   - Zawsze opieraj się na pliku `.agents/docs/architecture.md`, w którym znajduje się mapa starego i nowego kodu. Zamiast w ciemno skanować cały projekt czy wielkie pliki (jak `App.tsx`), najpierw zajrzyj do mapy architektury. Gdy tylko odkryjesz lub zmodyfikujesz coś ważnego (niezależnie czy to nowy, czy stary kod), **od razu aktualizuj plik `architecture.md`**, aby nie zapomnieć jak działa aplikacja między rozmowami.
+
+- **Bezpieczne Edytowanie Plików (Kodowanie i Składnia)**:
+  - Aktualizując `version.json` lub inne pliki konfiguracyjne, NIGDY nie używaj komendy PowerShell `echo "..." > plik` ani `Out-File` w terminalu, ponieważ na Windowsie domyślnie generuje to pliki z kodowaniem UTF-16 LE (z BOM). To krytycznie psuje parser kompilatora Vite. Zamiast tego używaj dedykowanego narzędzia agenta `write_to_file`.
+  - Podczas dodawania nowych wpisów do `src/constants/versions.ts` za pomocą `multi_replace_file_content` (szczególnie do wielkich tablic `PWA_VERSIONS` i `APK_VERSIONS`), dokładnie sprawdzaj granice klamr i nawiasów przed nadpisaniem zawartości, aby przypadkiem nie wkleić zduplikowanego bloku starych wersji czy nie zepsuć domknięcia JSONa.
+  - **KRYTYCZNE**: Dodając nowy wpis do `PWA_VERSIONS` i `APK_VERSIONS`, ZAWSZE dodawaj tablicę `changes: string[]` z listą wprowadzonych poprawek. Brak tej tablicy wywoła błąd `.map is undefined` i zawiesi ekran powitalny (ChangelogPopup) tuż po instalacji nowej aktualizacji!
 

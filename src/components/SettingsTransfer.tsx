@@ -33,7 +33,7 @@ export default function SettingsTransfer({
  setLoading(true);
  try {
  const code = generateCode();
- const codeRef = doc(db, 'artifacts', 'diacontrolapp', 'syncCodes', code);
+ const codeRef = doc(db, 'syncCodes', code);
  await setDoc(codeRef, {
  settings,
  createdAt: Date.now()
@@ -51,7 +51,7 @@ export default function SettingsTransfer({
  if (!inputCode || inputCode.length < 6) return;
  setLoading(true);
  try {
- const codeRef = doc(db, 'artifacts', 'diacontrolapp', 'syncCodes', inputCode.toUpperCase());
+ const codeRef = doc(db, 'syncCodes', inputCode.toUpperCase());
  const snapshot = await getDoc(codeRef);
  if (snapshot.exists()) {
  const data = snapshot.data();

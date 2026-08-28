@@ -151,6 +151,7 @@ export const MealPlateModals = (props: any) => {
  <div className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-800 mb-2 relative shadow-inner">
  <MealScanner
  ref={scannerRef}
+ onCancel={handleCloseScanner}
  onResult={async (decodedText) => {
  // 1. Sprawdź lokalną bazę customProducts
  const localMatch = customProducts.find(p => p.barcode === decodedText);
@@ -548,23 +549,29 @@ export const MealPlateModals = (props: any) => {
  </p>
 
  <div className="space-y-4 mb-6">
- {mergeCandidates.map((c) => (
+ {mergeCandidates.map((c) => {
+ const carbsVal = c.type === 'bolus' 
+ ? (c.linkedMeal?.carbs || c.carbs || 0)
+ : (c.carbs || (c.type === 'meal' ? c.value : 0) || 0);
+ const insulinVal = c.type === 'bolus' ? (c.value || 0) : 0;
+ return (
  <button
- key={c.id || Math.random().toString()}
- onClick={() => handleMergeMeal(c.id)}
+ key={c.id || c.nsId || Math.random().toString()}
+ onClick={() => handleMergeMeal(c.id || c.nsId)}
  className="w-full bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4 text-left hover:scale-[0.98] transition-transform"
  >
  <div className="flex-1 min-w-0">
  <div className="font-bold text-sm dark:text-white truncate">
- {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {c.description || (c.type === 'bolus' ? 'Bolus' : i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) }))}
+ {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {c.description || (c.type === 'bolus' ? 'Bolus' : i18n.t('auto.posilek', { defaultValue: "Posiłek" }))}
  </div>
  <div className="text-[10px] font-bold text-slate-400 mt-1">
- {Number(c.value || c.linkedMeal?.carbs || 0).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W |' })} {c.value ? `${c.value}J` : ''}
+ {Number(carbsVal).toFixed(1)}g W {insulinVal > 0 ? `| ${Number(insulinVal).toFixed(1)}j.` : ''}
  </div>
  </div>
  <Check size={20} className="text-emerald-500" />
  </button>
- ))}
+ );
+ })}
  </div>
 
  <div className="mt-6 flex flex-col gap-3">

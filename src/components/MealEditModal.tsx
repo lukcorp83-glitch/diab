@@ -26,17 +26,20 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useCustomProducts, useCommunityProducts } from "../hooks/queries/useFoodDatabase";
+import { LIB_BASE } from "../data/foodDatabase";
 import { useSavedMeals } from "../hooks/queries/useSavedMeals";
 import { getEffectiveUid, cn } from "../lib/utils";
 import { toast } from "react-hot-toast";
+import { dbService } from "../services/databaseService";
 
 import { geminiService } from "../services/gemini";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { useBackButton } from "../hooks/useBackButton";
 
 interface MealEditModalProps {
  log: LogEntry;
- 
+ user?: any;
  onClose: () => void;
 }
 
@@ -46,6 +49,7 @@ export default function MealEditModal({
  onClose,
 }: MealEditModalProps) {
  const { t } = useTranslation();
+ useBackButton(true, onClose);
  const isBolus = log.type === "bolus";
  const formatVal = (v: any) =>
  typeof v === "number"
@@ -93,14 +97,7 @@ export default function MealEditModal({
  const { data: savedMeals = [] } = useSavedMeals(user);
  const [expandedMeal, setExpandedMeal] = useState<{ meal: any; items: any[] } | null>(null);
 
-  const [libBase, setLibBase] = useState<any[]>([]);
-  useEffect(() => {
-    let isMounted = true;
-    import("../data/foodDatabase").then(module => {
-      if (isMounted) setLibBase(module.LIB_BASE);
-    });
-    return () => { isMounted = false };
-  }, []);
+  const libBase = LIB_BASE;
 
   const allLocal = [...customProducts, ...communityProducts, ...libBase];
  const searchResults = allLocal
@@ -202,90 +199,89 @@ export default function MealEditModal({
  toast.success(`Dodano zestaw: ${meal.name}`);
  };
 
- const handleSave = async () => {
- if (!user || loading) return;
- if (!log.id) {
- toast.error(i18n.t('auto.nie_mozna_edytowac_wpisu_brak', { defaultValue: i18n.t('auto.nie_mozna_edytowac_wpisu', { defaultValue: "Nie można edytować wpisu (brak ID elementu)." }) }));
- return;
- }
- setLoading(true);
- try {
- const logRef = doc(
- db,
- "artifacts",
- "diacontrolapp",
- "users",
- getEffectiveUid(user),
- "logs",
- log.id,
- );
+  const handleSave = async () => {
+    if (loading) return;
+    const targetId = log.id || log.nsId;
+    if (!targetId) {
+      toast.error(i18n.t('auto.nie_mozna_edytowac_wpisu_brak', { defaultValue: i18n.t('auto.nie_mozna_edytowac_wpisu', { defaultValue: "Nie można edytować wpisu (brak ID elementu)." }) }));
+      return;
+    }
+    setLoading(true);
+    try {
 
- const updates: any = {
- notes: notes,
- description: notes,
- userModified: true,
- items: items,
- };
+    const finalTitle = (mealName || notes || "").trim();
 
- if (isBolus) {
- updates.value = Math.round((parseFloat(insulin) || 0) * 10) / 10;
- if (removeMeal) {
- updates.linkedMeal = null;
- } else if (parseFloat(carbs) > 0) {
- updates.linkedMeal = {
- carbs: Math.round((parseFloat(carbs) || 0) * 10) / 10,
- polyols: Math.round((parseFloat(polyols) || 0) * 10) / 10 || null,
- protein: Math.round((parseFloat(protein) || 0) * 10) / 10 || null,
- fat: Math.round((parseFloat(fat) || 0) * 10) / 10 || null,
- name: mealName || null,
- items: items,
- };
- } else {
- updates.linkedMeal = null;
- }
- } else if (log.type === "meal") {
- updates.carbs = Math.round((parseFloat(carbs) || 0) * 10) / 10;
- updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
- updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
- updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
- if (mealName) {
- updates.description = mealName;
- updates.name = mealName;
- }
- } else {
- if (removeMeal) {
- updates.value = 0;
- updates.carbs = 0;
- updates.polyols = null;
- updates.protein = null;
- updates.fat = null;
- updates.notes = (updates.notes || "") + i18n.t('auto.posilek_usuniety', { defaultValue: i18n.t('auto.posilek_usuniety', { defaultValue: "(Posiłek usunięty)" }) });
- } else {
- const netCarbs = Math.max(
- 0,
- (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0),
- );
- updates.value = Math.round(netCarbs * 10) / 10;
- updates.carbs = Math.round((parseFloat(carbs) || 0) * 10) / 10;
- updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
- updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
- updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
- if (mealName) updates.description = mealName;
- }
- }
+    const updates: any = {
+      notes: finalTitle,
+      note: finalTitle,
+      description: finalTitle,
+      name: finalTitle,
+      userModified: true,
+      items: items,
+    };
 
- // Update locally immediately
- window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: log.id, updates } }));
- 
- toast.success(
- isBolus ? "Zaktualizowano bolus (lokalnie)!" : i18n.t('auto.zaktualizowano_posilek_lokalni', { defaultValue: i18n.t('auto.zaktualizowano_posilek_lo', { defaultValue: "Zaktualizowano posiłek (lokalnie)!" }) }),
- );
- onClose();
+    if (isBolus) {
+      updates.value = Math.round((parseFloat(insulin) || 0) * 10) / 10;
+      if (removeMeal) {
+        updates.linkedMeal = null;
+      } else if (parseFloat(carbs) > 0) {
+        updates.linkedMeal = {
+          carbs: Math.round((parseFloat(carbs) || 0) * 10) / 10,
+          polyols: Math.round((parseFloat(polyols) || 0) * 10) / 10 || null,
+          protein: Math.round((parseFloat(protein) || 0) * 10) / 10 || null,
+          fat: Math.round((parseFloat(fat) || 0) * 10) / 10 || null,
+          name: finalTitle || null,
+          items: items,
+        };
+      } else {
+        updates.linkedMeal = null;
+      }
+    } else if (log.type === "meal") {
+      updates.carbs = Math.round((parseFloat(carbs) || 0) * 10) / 10;
+      updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
+      updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
+      updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
+    } else {
+      if (removeMeal) {
+        updates.value = 0;
+        updates.carbs = 0;
+        updates.polyols = null;
+        updates.protein = null;
+        updates.fat = null;
+        updates.notes = (updates.notes || "") + i18n.t('auto.posilek_usuniety', { defaultValue: i18n.t('auto.posilek_usuniety', { defaultValue: "(Posiłek usunięty)" }) });
+      } else {
+        const netCarbs = Math.max(
+          0,
+          (parseFloat(carbs) || 0) - (parseFloat(polyols) || 0),
+        );
+        updates.value = Math.round(netCarbs * 10) / 10;
+        updates.carbs = Math.round((parseFloat(carbs) || 0) * 10) / 10;
+        updates.polyols = Math.round((parseFloat(polyols) || 0) * 10) / 10 || null;
+        updates.protein = Math.round((parseFloat(protein) || 0) * 10) / 10 || null;
+        updates.fat = Math.round((parseFloat(fat) || 0) * 10) / 10 || null;
+      }
+    }
 
- // Fire-and-forget remote update (if they hit Quota, it just fails silently or logs warning)
- setDoc(logRef, { ...log, ...updates }, { merge: true }).catch((err) => {
- console.warn("Could not sync to Firebase (offline or quota exceeded):", err);
- });
+    const fullUpdatedLog = { ...log, ...updates };
+
+    // Save to SQLite local database immediately
+    await dbService.saveLog(fullUpdatedLog).catch(e => console.warn("Failed saving log update to SQLite:", e));
+
+    // Update local UI state
+    window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: targetId, updates } }));
+    
+    toast.success(
+      isBolus ? "Zaktualizowano bolus!" : i18n.t('auto.zaktualizowano_posilek_lokalni', { defaultValue: i18n.t('auto.zaktualizowano_posilek_lo', { defaultValue: "Zaktualizowano posiłek!" }) }),
+    );
+    onClose();
+
+    // Sync to Firestore if user is logged in
+    if (user) {
+      const logRef = doc(db, "users", getEffectiveUid(user), "logs", targetId);
+      setDoc(logRef, fullUpdatedLog, { merge: true }).catch((err) => {
+        console.warn("Could not sync to Firebase (offline or quota exceeded):", err);
+      });
+    }
  } catch (err) {
  console.error("Update failed:", err);
  toast.error(i18n.t('auto.blad_aktualizacji', { defaultValue: i18n.t('auto.blad_aktualizacji', { defaultValue: "Błąd aktualizacji" }) }));
@@ -501,24 +497,34 @@ export default function MealEditModal({
  {items && items.length > 0 && (
  <div className="mt-3 flex gap-2 flex-wrap pb-2 border-slate-100 dark:border-slate-800 border-b">
  {items.map((it, idx) => (
- <span key={idx} className="bg-slate-100 dark:bg-slate-800 text-xs px-3 py-1 rounded-full font-bold dark:text-white flex items-center gap-2">
- {it.name}
- <button 
- onClick={() => {
- const newItems = [...items];
- const removed = newItems.splice(idx, 1)[0];
- setItems(newItems);
- setCarbs((Math.max(0, parseFloat(carbs || "0") - (removed.carbs || 0))).toFixed(1));
- setProtein((Math.max(0, parseFloat(protein || "0") - (removed.protein || 0))).toFixed(1));
- setFat((Math.max(0, parseFloat(fat || "0") - (removed.fat || 0))).toFixed(1));
- setPolyols((Math.max(0, parseFloat(polyols || "0") - (removed.polyols || 0))).toFixed(1));
- }}
- className="text-slate-400 hover:text-rose-500 transition-colors"
- >
- <X size={12} />
- </button>
- </span>
- ))}
+  <span key={idx} className="bg-slate-100 dark:bg-slate-800 text-xs px-2.5 py-1 rounded-full font-bold dark:text-white flex items-center gap-1.5 border border-slate-200 dark:border-slate-700">
+    <input
+      type="text"
+      value={it.name || ''}
+      onChange={(e) => {
+        const newItems = [...items];
+        newItems[idx] = { ...newItems[idx], name: e.target.value };
+        setItems(newItems);
+      }}
+      className="bg-transparent outline-none font-bold text-xs max-w-[130px] text-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500/50 rounded px-1"
+    />
+    <button 
+      type="button"
+      onClick={() => {
+        const newItems = [...items];
+        const removed = newItems.splice(idx, 1)[0];
+        setItems(newItems);
+        setCarbs((Math.max(0, parseFloat(carbs || "0") - (removed.carbs || 0))).toFixed(1));
+        setProtein((Math.max(0, parseFloat(protein || "0") - (removed.protein || 0))).toFixed(1));
+        setFat((Math.max(0, parseFloat(fat || "0") - (removed.fat || 0))).toFixed(1));
+        setPolyols((Math.max(0, parseFloat(polyols || "0") - (removed.polyols || 0))).toFixed(1));
+      }}
+      className="text-slate-400 hover:text-rose-500 transition-colors"
+    >
+      <X size={12} />
+    </button>
+  </span>
+  ))}
  </div>
  )}
  </div>

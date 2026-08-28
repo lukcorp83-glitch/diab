@@ -1,3 +1,21 @@
+export function recordModelSuccess(model: string) {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('glikocontrol_last_ai_model', model);
+      window.dispatchEvent(new CustomEvent('glikocontrol_ai_model_used', { detail: { model } }));
+    }
+  } catch (e) {}
+}
+
+export const GEMINI_FALLBACK_MODELS = [
+  "gemini-3.6-flash",
+  "gemini-2.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro"
+];
+
 import { GoogleGenAI } from "@google/genai";
 import { clampSafeBolus } from "../lib/physiologicalSafety";
 import i18n from "../i18n";
@@ -106,19 +124,7 @@ export const geminiService = {
     
     prompt = prompt + langInstruction;
 
-    // Zaktualizowane modele zgodnie z nowymi wytycznymi
-    let modelsToTry = imageData
-      ? ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash"]
-      : [
-          "gemini-flash-latest",
-          "gemini-2.5-flash",
-          "gemini-pro-latest",
-        ];
-
-    // Proxy obsługuje tylko flash, nie doliczmy kosztów PRO do konta globalnego
-    if (isProxyUrl) {
-      modelsToTry = ["gemini-flash-latest", "gemini-2.0-flash"];
-    }
+    const modelsToTry = GEMINI_FALLBACK_MODELS;
 
     let contents;
     if (imageData) {
@@ -168,6 +174,7 @@ export const geminiService = {
           const data = await response.json();
 
           if (response.ok) {
+            recordModelSuccess(model);
             console.log(`Sukces z modelem (Proxy): ${model}`);
             if (
               data.candidates &&
@@ -211,25 +218,56 @@ export const geminiService = {
       120000,
     );
 
-    for (const model of modelsToTry) {
-      try {
-        console.log(i18n.t('auto.proba_uzycia_modelu_var0', { defaultValue: "Próba użycia modelu: {{var0}}...", var0: model }));
+    if (isProxyUrl && creds.key === "proxy") {
+        const CLOUDFLARE_WORKER_URL = creds.baseUrl;
+        const payload = { contents };
+        for (const model of modelsToTry) {
+          try {
+            console.log(i18n.t('auto.proba_uzycia_modelu_proxy', { defaultValue: "Próba użycia modelu (Proxy): {{var0}}...", var0: model }));
+            const response = await fetch(CLOUDFLARE_WORKER_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ model: model, payload: payload }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+              recordModelSuccess(model);
+            console.log(`Sukces z modelem (Proxy): ${model}`);
+              if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
+                return data.candidates[0].content.parts.map(p => p.text).join("") || "";
+              } else if (data.text) {
+                return data.text;
+              }
+              return typeof data === "string" ? data : JSON.stringify(data);
+            }
+            throw new Error(data.error?.message || "Proxy Error");
+          } catch (error) {
+            console.warn("Proxy model failed", error);
+          }
+        }
+        throw new Error("Wszystkie modele AI(Proxy) są obecnie zajęte.");
+      }
 
-        // Race the actual call against a Rejecting Promise wrapped in timeout
-        const result = await Promise.race([
-          client.models.generateContent({
-            model: model,
-            contents: contents,
-          }),
-          new Promise<never>((_, reject) => {
-            const id = setTimeout(() => {
-              clearTimeout(id);
-              reject(new Error("Timeout_AI"));
-            }, 125000);
-          }),
-        ]);
+      for (const model of modelsToTry) {
+        try {
+          console.log(i18n.t('auto.proba_uzycia_modelu_var0', { defaultValue: "Próba użycia modelu: {{var0}}...", var0: model }));
+
+          // Race the actual call against a Rejecting Promise wrapped in timeout
+          const result = await Promise.race([
+            client.models.generateContent({
+              model: model,
+              contents: contents,
+            }),
+            new Promise<never>((_, reject) => {
+              const id = setTimeout(() => {
+                clearTimeout(id);
+                reject(new Error("Timeout_AI"));
+              }, 125000);
+            }),
+          ]);
 
         clearTimeout(timeoutId);
+        recordModelSuccess(model);
         console.log(`Sukces z modelem: ${model}`);
         return result.text || "";
       } catch (error: any) {
@@ -416,9 +454,66 @@ export const geminiService = {
 
   async analyzeMeal(imageData: string, settings?: any) {
     const dietInfo = settings?.activeDiet
-      ? i18n.t('auto.uwaga_uzytkownik_przestrz', { defaultValue: "UWAGA: Użytkownik przestrzega diety: {{var0}}. Zwróć szczególną uwagę jak ten posiłek wpisuje się w jej zasady.", var0: settings.activeDiet })
+      ? i18n.t("auto.uwaga_uzytkownik_przestrz", { defaultValue: "UWAGA: Użytkownik przestrzega diety: {{var0}}. Zwróć szczególną uwagę jak ten posiłek wpisuje się w jej zasady.", var0: settings.activeDiet })
       : "";
-    const prompt = i18n.t('auto.przeanalizuj_to_zdjecie_p', { defaultValue: "Przeanalizuj to zdjęcie posiłku. Wykryj składniki i oszacuj CAŁKOWITĄ orientacyjną wagę posiłku (w gramach). Następnie oszacuj CAŁKOWITĄ ilość węglowodanów (g), białek (g) i tłuszczy (g) W CAŁYM WIDOCZNYM POSIŁKU (nie na 100g, lecz w całej szacowanej porcji). Podaj również indeks glikemiczny (IG - POWINIEN BYĆ KONKRETNĄ LICZBĄ). Dodaj szczegółową analizę dla diabetyka (\"analysis\") - co zawiera posiłek i jak może wpłynąć na glikemię. {{var0}}\n    Zwróć odpowiedź absolutnie w formacie JSON (tylko czysty JSON, bez markdown):\n    {\n      \"mealName\": \"nazwa posiłku\",\n      \"weight\": 0,\n      \"carbs\": 0,\n      \"protein\": 0,\n      \"fat\": 0,\n      \"ig\": 0,\n      \"analysis\": \"Krótka analiza posiłku...\"\n    }", var0: dietInfo });
+    const currentLang = i18n.language || "pl";
+    const langInstruction = currentLang === "en" ? "Respond in ENGLISH." : "Odpowiadaj po POLSKU.";
+
+    const prompt = `Przeanalizuj to zdjęcie posiłku.
+${langInstruction}
+1. Podaj DOKŁADNĄ, ROZPOZNAWALNĄ NAZWĘ GŁÓWNĄ CAŁEGO POSIŁKU (pole "mealName", np. "Pizza Pepperoni", "Kanapka z szynką i serem", "Spaghetti Bolognese", "Jajecznica na maśle z pieczywem", "Kotlet schabowy z ziemniakami i surówką").
+2. Rozbij ten posiłek na WSZYSTKIE WIDOCZNE POJEDYNCZE SKŁADNIKI (tablica "ingredients", np. ser mozzarella, ciasto do pizzy, sos pomidorowy, szynka, oliwki) i oszacuj orientacyjną wagę każdego składnika (w gramach) oraz wartości odżywcze NA 100g każdego składnika (węglowodany, białko, tłuszcz, IG).
+3. Oszacuj CAŁKOWITĄ sumaryczną wagę całego dania oraz CAŁKOWITĄ ilość węglowodanów, białek, tłuszczy i wypadkowe IG.
+4. Podaj wniosek diabetologiczny o wpływie na glikemię ("glycemicImpact") - np. czy cukier wzrośnie szybko, wolno, czy dwufazowo.
+5. Podaj konkretną wskazówkę bilansowania ("balanceAdvice") - co warto dodać lub zmienić, aby lepiej zbilansować posiłek pod kątem cukrzycy.
+${dietInfo}
+
+Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania markdown):
+{
+  "mealName": "Pizza Pepperoni",
+  "weight": 400,
+  "carbs": 50,
+  "protein": 20,
+  "fat": 15,
+  "ig": 55,
+  "analysis": "Pyszna pizza na cienkim cieście...",
+  "glycemicImpact": "Spodziewany przedłużony wzrost glikemii ze względu na zawartość białka i tłuszczu...",
+  "balanceAdvice": "Warto dodać świeżą rukolę lub sałatkę ze świeżych warzyw...",
+  "ingredients": [
+    {
+      "name": "Ciasto do pizzy",
+      "weight": 180,
+      "carbsPer100g": 48,
+      "proteinPer100g": 7,
+      "fatPer100g": 2.5,
+      "ig": 70
+    },
+    {
+      "name": "Ser mozzarella",
+      "weight": 100,
+      "carbsPer100g": 2,
+      "proteinPer100g": 22,
+      "fatPer100g": 22,
+      "ig": 0
+    },
+    {
+      "name": "Szynka",
+      "weight": 60,
+      "carbsPer100g": 1,
+      "proteinPer100g": 18,
+      "fatPer100g": 8,
+      "ig": 0
+    },
+    {
+      "name": "Sos pomidorowy",
+      "weight": 60,
+      "carbsPer100g": 6,
+      "proteinPer100g": 1.5,
+      "fatPer100g": 0.2,
+      "ig": 35
+    }
+  ]
+}`;
 
     try {
       const text = await this.generateContent(prompt, imageData);
@@ -433,6 +528,78 @@ export const geminiService = {
       return JSON.parse(cleanJson);
     } catch (error) {
       console.error("Gemini Vision Error in analyzeMeal:", error);
+      throw error;
+    }
+  },
+
+  async analyzeRestaurantMenu(imageData: string, settings?: any) {
+    const activeDietName = settings?.activeDiet || "";
+    const dietInfo = activeDietName
+      ? `UŻYTKOWNIK PRZESTRZEGA DIETY: ${activeDietName}. Dla każdego dania oceń czy pasuje do tej diety ("dietMatch": true/false), podaj uzasadnienie ("dietNote") oraz praktyczną wskazówkę jak zmodyfikować zamówienie u kelnera ("dietOrderTip"), np. "poproś o sos w osobnym naczyniu", "zamień frytki na pieczone warzywa", "zamów burgera w liściach sałaty bez bułki".`
+      : `Użytkownik nie wybrał specjalnej diety wykluczeniowej.`;
+
+    const currentLang = i18n.language || "pl";
+    const langInstruction = currentLang === "en" ? "Respond entirely in ENGLISH." : "Odpowiadaj WYŁĄCZNIE w języku POLSKIM.";
+
+    const prompt = `Jesteś ekspertem diabetologii, dietetyki i doradcą pacjenta z cukrzycą w restauracji.
+Przeanalizuj to zdjęcie karty dań / menu restauracyjnego.
+${langInstruction}
+${dietInfo}
+
+Zadanie:
+1. Odczytaj wszystkie widoczne na zdjęciu dania i pozycje z menu.
+2. Dla każdego dania oszacuj realistyczne makroskładniki dla standardowej porcji restauracyjnej:
+   - carbs: węglowodany w gramach (WW)
+   - protein: białko w gramach
+   - fat: tłuszcz w gramach
+   - kcal: szacowane kalorie
+   - ig: indeks glikemiczny (1-100)
+   - wbt: wymienniki białkowo-tłuszczowe (wyliczone jako (białko*4 + tłuszcz*9)/100)
+3. Określ profil wchłaniania ("absorptionProfile"):
+   - "fast": szybki skok glikemii w 40-60 minut (np. makarony z sosem pomidorowym, naleśniki, biały ryż, desery).
+   - "delayed": opóźniony wyrzut cukru po 2.5-4h z powodu dużej ilości tłuszczu i białka (efekt pizzy, burgera, żeberek, sera).
+   - "stable": stabilne, powolne wchłanianie (dania z dużą ilością warzyw, błonnika, ryb/drobiu z oliwą).
+4. Podaj konkretną wskazówkę podania insuliny ("bolusAdvice"), np. "Podaj bolus standardowy 10-15 min przed posiłkiem", "Zalecany bolus dwufazowy / przedłużony (np. 50% od razu, 50% na 3-4 godziny)", "Znikoma ilość węglowodanów - ostrożnie z dawką".
+5. Określ ocenę bezpieczeństwa ("safetyRating"): "safe" (bezpieczne), "medium" (umiarkowane), "challenging" (wymagające uwagi / bolusa łączonego).
+
+Zwróć odpowiedź WYŁĄCZNIE jako poprawny format JSON (bez markdownu):
+{
+  "restaurantType": "np. Kuchnia Włoska / Burgery / Azjatycka / Tradycyjna",
+  "menuItems": [
+    {
+      "name": "Pełna nazwa dania",
+      "category": "np. Dania główne / Przystawki / Zupy",
+      "description": "Krótki opis składników dania",
+      "estimatedWeight": 350,
+      "carbs": 48,
+      "protein": 24,
+      "fat": 16,
+      "kcal": 430,
+      "ig": 55,
+      "wbt": 2.4,
+      "absorptionProfile": "fast",
+      "absorptionText": "Krótki opis dynamiki wchłaniania",
+      "bolusAdvice": "Konkretna wskazówka bolusowa",
+      "safetyRating": "safe",
+      "dietMatch": true,
+      "dietNote": "Komentarz pod kątem diety użytkownika",
+      "dietOrderTip": "Jak zamówić u kelnera, aby było najzdrowiej"
+    }
+  ]
+}`;
+
+    try {
+      const text = await this.generateContent(prompt, imageData);
+      console.log("Raw AI vision response for restaurant menu:", text);
+      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      let cleanJson = jsonMatch ? jsonMatch[0] : text;
+      cleanJson = cleanJson
+        .replace(/^```json/, "")
+        .replace(/```$/, "")
+        .trim();
+      return JSON.parse(cleanJson);
+    } catch (error) {
+      console.error("Gemini Vision Error in analyzeRestaurantMenu:", error);
       throw error;
     }
   },
@@ -515,16 +682,68 @@ export const geminiService = {
     }
   },
 
+  resetClient() {
+    genAITuple = null;
+  },
+
+  async testConnection(customKey?: string) {
+    try {
+      this.resetClient();
+      let apiKeyToTest = customKey?.trim();
+      let baseUrlToTest: string | undefined = undefined;
+
+      if (!apiKeyToTest) {
+        const creds = await getApiKey();
+        apiKeyToTest = creds.key;
+        baseUrlToTest = creds.baseUrl;
+      }
+
+      if (!apiKeyToTest || apiKeyToTest === "proxy") {
+        return { success: true, message: "Używasz serwera proxy Gliko" };
+      }
+
+      const client = new GoogleGenAI({
+        apiKey: apiKeyToTest,
+        ...(baseUrlToTest ? { baseUrl: baseUrlToTest } : {}),
+      });
+
+      let response = null;
+      for (const model of GEMINI_FALLBACK_MODELS) {
+        try {
+          response = await client.models.generateContent({
+            model: model,
+            contents: "Ping",
+          });
+          if (response && response.text) break;
+        } catch (e) {
+          console.warn(`Test connection for model ${model} failed, trying next...`, e);
+        }
+      }
+
+      if (response && response.text) {
+        return { success: true };
+      }
+      return { success: false, error: "Brak odpowiedzi z API Gemini" };
+    } catch (err: any) {
+      console.error("Gemini connection test error:", err);
+      const errMsg = err?.message || "Błąd połączenia z API Gemini";
+      return { success: false, error: errMsg };
+    }
+  },
+
   async getAiStatus() {
     const creds = await getApiKey();
     const hasKey = creds.key !== "proxy";
     const isProxy =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
+    const lastModel = (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-3.6-flash';
+    const formattedModel = lastModel.replace('gemini-', 'Gemini ').replace('-flash', ' Flash').replace('-pro', ' Pro');
     if (hasKey)
       return {
         type: "custom",
-        label: i18n.t('auto.wlasny_klucz_local', { defaultValue: i18n.t('auto.wlasny_klucz_local', { defaultValue: "Własny Klucz (Local)" }) }),
+        label: `${i18n.t('auto.wlasny_klucz_local', { defaultValue: "Własny Klucz (Local)" })} • ${formattedModel}`,
+        model: lastModel,
         color: "text-indigo-500",
       };
     if (isProxy)
@@ -544,7 +763,8 @@ export const geminiService = {
     message: string,
     history: { role: "user" | "model"; parts: { text: string }[] }[],
     petData: any,
-    treatmentMode?: string
+    treatmentMode?: string,
+    childMode?: boolean
   ) {
     const petName = petData?.name || "Gliko";
     const petType = petData?.type || "standard";
@@ -558,11 +778,36 @@ export const geminiService = {
       ? "BARDZO WAŻNE: Pacjent leczy cukrzycę wyłącznie dietą (lub tabletkami), BEZ INSULINY. Kategorycznie zabrania się sugerowania podawania bolusów, zmiany bazy czy wstrzyknięć. Odpowiadaj jako asystent dietetyczno-motywacyjny (skup się na ruchu, indeksie glikemicznym i wodzie)."
       : "";
 
-    const disclaimer = " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
+    const disclaimer = "\n\nBARDZO WAŻNE ZASADY BEZPIECZEŃSTWA (KRYTYCZNE):\n" +
+  "1. Jesteś wyłącznie asystentem AI i narzędziem pomocniczym, a NIE lekarzem.\n" +
+  "2. Sztuczna inteligencja MOŻE popełniać błędy i nie ponosi odpowiedzialności medycznej.\n" +
+  "3. Przy wszelkich poradach dotyczących dawek insuliny, posiłków czy leków, ZAWSZE przypominaj użytkownikowi o konieczności konsultacji z lekarzem diabetologiem.\n" +
+  "4. " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny i terapii decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
     
-    let systemInstruction = i18n.t('auto.jestes_var0_wesolym_i_mad', { defaultValue: "Jesteś {{var0}} - wesołym i mądrym stworkiem (typ: {{var1}}), który opiekuje się dziećmi z cukrzycą. \n    Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). \n    Pamiętaj, że rozmawiasz z dzieckiem (lub rodzicem). Twoje odpowiedzi powinny być wesołe i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). \n    Jeśli pytanie dotyczy bezpośrednio medycyny, zachęcaj do rozmowy z lekarzem. Twoja wiedza o aplikacji to GlikoControl:\n    - Baza wiedzy i jedzenia, weryfikacja produktów.\n    - Ustawienia: ISF (wrażliwość na insulinę), WW (przydzielenie węgli), WBT, Docelowy poziom glikemii, wibracje (haptyka).\n    - Talerz: posiłki i bolusy. Jeśli użytkownik chce coś dodać do wpisów, robisz to!\n    \n    BARDZO WAŻNE - DODAWANIE DO TALERZA ORAZ AKCJE APLIKACJI: \n    Masz pełną integrację z moją aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.\n    \n    1. Aby dodać posiłek do Talerza:\n    <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    \n    2. Aby zmienić ustawienia (np. dzienna dawka insuliny/isf, wyłączenie haptyki):\n    Używaj tych kluczy: \"isf\", \"targetMin\", \"targetMax\", \"wwRatio\", \"hapticsEnabled\".\n    <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n    \n    3. Aby bezpośrednio zapisać do historii cukier, bolus lub wymianę (\"zapisz cukier\", \"wymieniłem wkłucie\"):\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Zalecono przez Gliko\"}}</app_action>\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 0, \"notes\": \"Wymiana wkłucia\"}}</app_action>\n    W logData.type może być \"bolus\", \"glucose\", \"site_change\", \"sensor_change\".\n    \n    4. Aby nawigować użykownika do odpowiedniej sekcji (\"Gdzie są ustawienia?\", \"Pokaż mój profil\", \"Idźmy do talerza\"):\n    <app_action>{\"action\": \"navigate\", \"value\": \"profile\"}</app_action> (dostepne: dashboard, profile, database, meal, history)\n    \n    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!\n    \n    {{var2}}\n    {{var3}}", var0: petName, var1: petType, var2: langNote, var3: dietRestriction });
+    const isChild = childMode ?? false;
+
+    const childSafetyClause = isChild 
+    ? "\n\nSPECJALNA REGUŁA DLA TRYBU DZIECIĘCEGO (BARDZO WAŻNE):\nZawsze przypominaj dziecku, aby wszelkie decyzje o insulinie, jedzeniu, korektach i samopoczuciu natychmiast konsultowało z rodzicami lub opiekunem ('Zapytaj rodziców lub opiekuna!').\n"
+    : "";
+
+    let systemInstruction = isChild
+      ? i18n.t('auto.jestes_var0_wesolym_i_mad', { defaultValue: "Jesteś {{var0}} - wesołym i mądrym stworkiem (typ: {{var1}}), który opiekuje się dziećmi z cukrzycą. \n    Twoim zadaniem jest pomaganie im w zrozumieniu choroby, wspieranie ich i odpowiadanie na pytania w sposób przystępny dla dzieci (prosty język, dużo empatii, wesoły ton). \n    Pamiętaj, że rozmawiasz z dzieckiem (lub rodzicem). Twoje odpowiedzi powinny być wesołe i pełne otuchy (używaj emotikonów ✨, 🐾, 🍎). \n    BARDZO WAŻNE: Rozmawiasz z dzieckiem! Dziecko nie może samo decydować o dawkach insuliny ani lekach. Przy KAŻDYM pytaniu o insulinę, jedzenie, pomiary cukru, bolus czy złe samopoczucie ZAWSZE wyraźnie przypominaj: 'Zapytaj rodziców lub opiekuna!' / 'Koniecznie powiedz o tym rodzicom lub opiekunowi!'. Jeśli pytanie dotyczy leczenia, zachęcaj do rozmowy z rodzicami i lekarzem. Twoja wiedza o aplikacji to GlikoControl:\n    - Baza wiedzy i jedzenia, weryfikacja produktów.\n    - Ustawienia: ISF (wrażliwość na insulinę), WW (przydzielenie węgli), WBT, Docelowy poziom glikemii, wibracje (haptyka).\n    - Talerz: posiłki i bolusy. Jeśli użytkownik chce coś dodać do wpisów, robisz to!\n    \n    BARDZO WAŻNE - DODAWANIE DO TALERZA ORAZ AKCJE APLIKACJI: \n    Masz pełną integrację z moją aplikacją. Możesz zmieniać jej stan za pomocą ukrytych tagów na samym końcu wypowiedzi.\n    \n    1. Aby dodać posiłek do Talerza:\n    <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    \n    2. Aby zmienić ustawienia (np. dzienna dawka insuliny/isf, wyłączenie haptyki):\n    Używaj tych kluczy: \"isf\", \"targetMin\", \"targetMax\", \"wwRatio\", \"hapticsEnabled\".\n    <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n    \n    3. Aby bezpośrednio zapisać do historii cukier, bolus lub wymianę (\"zapisz cukier\", \"wymieniłem wkłucie\"):\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Zalecono przez Gliko\"}}</app_action>\n    <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 0, \"notes\": \"Wymiana wkłucia\"}}</app_action>\n    W logData.type może być \"bolus\", \"glucose\", \"site_change\", \"sensor_change\".\n    \n    4. Aby nawigować użykownika do odpowiedniej sekcji (\"Gdzie są ustawienia?\", \"Pokaż mój profil\", \"Idźmy do talerza\"):\n    <app_action>{\"action\": \"navigate\", \"value\": \"profile\"}</app_action> (dostepne: dashboard, profile, database, meal, history)\n    \n    Napisz użytkownikowi w wiadomości co właśnie zrobiłeś, tag ukryj na samym końcu!\n    \n    {{var2}}\n    {{var3}}", var0: petName, var1: petType, var2: langNote, var3: dietRestriction })
+      : `Jesteś ${petName} - inteligentnym i empatycznym asystentem w aplikacji GlikoControl do zarządzania cukrzycą. Pomagasz użytkownikom w przeliczaniu posiłków, analizie glikemii i parametrów terapii w sposób profesjonalny, zwięzły i pomocny. Kategorycznie NIE nazywaj siebie "stworkiem" ani nie stosuj języka dziecięcego.
+    Twoja wiedza o aplikacji to GlikoControl:
+    - Baza wiedzy i jedzenia, weryfikacja produktów.
+    - Ustawienia: ISF, WW/WBT, cele glikemii.
+    - Talerz: posiłki i bolusy.
     
-    systemInstruction += disclaimer;
+    AKCJE W APLIKACJI (ukryte tagi na końcu wiadomości):
+    1. Posiłek do Talerza: <plate_action>{"action": "add", "item": {"name": "Nazwa", "carbs": 15, "protein": 1, "fat": 0, "kcal": 60}}</plate_action>
+    2. Zmiana ustawień: <app_action>{"action": "set_setting", "key": "isf", "value": 30}</app_action>
+    3. Dodanie wpisu (cukier/bolus/wymiana): <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "AI"}}</app_action>
+    4. Nawigacja: <app_action>{"action": "navigate", "value": "meal"}</app_action>
+    
+    ${langNote}
+    ${dietRestriction}`;
+    
+    systemInstruction += childSafetyClause + disclaimer;
 
     const creds = await getApiKey();
     const isProxyUrl =
@@ -574,58 +819,61 @@ export const geminiService = {
     ];
 
     if (isProxyUrl && creds.key === "proxy") {
-      try {
-        const response = await fetch(creds.baseUrl!, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "gemini-flash-latest",
-            payload: {
-              contents: fullHistory,
-              systemInstruction: {
-                role: "system",
-                parts: [{ text: systemInstruction }],
+      for (const model of GEMINI_FALLBACK_MODELS) {
+        try {
+          const response = await fetch(creds.baseUrl!, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: model,
+              payload: {
+                contents: fullHistory,
+                systemInstruction: {
+                  role: "system",
+                  parts: [{ text: systemInstruction }],
+                },
               },
-            },
-          }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          if (data.candidates && data.candidates[0]?.content)
-            return data.candidates[0].content.parts
-              .map((p: any) => p.text)
-              .join("");
-          if (data.text) return data.text;
-          return typeof data === "string" ? data : JSON.stringify(data);
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            recordModelSuccess(model);
+            console.log(`SmartPet sukces z modelem (Proxy): ${model}`);
+            if (data.candidates && data.candidates[0]?.content)
+              return data.candidates[0].content.parts
+                .map((p: any) => p.text)
+                .join("");
+            if (data.text) return data.text;
+            return typeof data === "string" ? data : JSON.stringify(data);
+          }
+        } catch (e) {
+          console.warn(`SmartPet proxy model ${model} failed, trying next...`, e);
         }
-        throw new Error(data.error?.message || "Proxy error");
-      } catch (e) {
-        console.error("Chat proxy error", e);
-        return i18n.t('gemini.proxy_limit_error_chat', { defaultValue: i18n.t('auto.serwer_padnal_lub_jego_da', { defaultValue: "Serwer padnął lub jego darmowy limit się wyczerpał! ✨ Przejdź do Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny (darmowy) Klucz Gemini API! ✨" }) });
       }
+      return i18n.t('gemini.proxy_limit_error_chat', { defaultValue: i18n.t('auto.serwer_padnal_lub_jego_da', { defaultValue: "Serwer padnął lub jego darmowy limit się wyczerpał! ✨ Przejdź do Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny (darmowy) Klucz Gemini API! ✨" }) });
     }
 
     const client = await getClient();
-    const model = "gemini-flash-latest";
-
-    try {
-      const response = await client.models.generateContent({
-        model: model,
-        contents: fullHistory,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.8,
-        },
-      });
-      return (
-        response.text ||
-        i18n.t('gemini.belly_confused', { defaultValue: i18n.t('auto.ojej_cos_mi_sie_pomieszal', { defaultValue: "Ojej, coś mi się pomieszało w brzuszku! Spróbuj jeszcze raz! 🐾" }) })
-      );
-    } catch (error) {
-      console.error("Gliko Chat Error:", error);
-      // Fallback if SDK fails or rate limited
-      return i18n.t('gemini.fell_asleep', { defaultValue: i18n.t('auto.przepraszam_chyba_na_chwi', { defaultValue: "Przepraszam, chyba na chwilę zasnąłem... Możesz powtórzyć? ✨" }) });
+    for (const model of GEMINI_FALLBACK_MODELS) {
+      try {
+        const response = await client.models.generateContent({
+          model: model,
+          contents: fullHistory,
+          config: {
+            systemInstruction: systemInstruction,
+            temperature: 0.8,
+          },
+        });
+        if (response && response.text) {
+          recordModelSuccess(model);
+          console.log(`SmartPet sukces z modelem (Direct): ${model}`);
+          return response.text;
+        }
+      } catch (error) {
+        console.warn(`SmartPet direct model ${model} failed, trying next...`, error);
+      }
     }
+    return i18n.t('gemini.belly_confused', { defaultValue: i18n.t('auto.ojej_cos_mi_sie_pomieszal', { defaultValue: "Ojej, coś mi się pomieszało w brzuszku! Spróbuj jeszcze raz! 🐾" }) });
   },
 
   generateMealPlan: async (
@@ -636,22 +884,56 @@ export const geminiService = {
   ) => {
     let allergyContext = "";
     if (allergies) {
-      allergyContext = i18n.t('auto.bezwzglednie_wyklucz_z_di', { defaultValue: "\nBEZWZGLĘDNIE WYKLUCZ Z DIETY ORAZ UWZGLĘDNIJ ALERGIE/PREFERENCJE UZTKOWNIKA: {{var0}}. To sprawa życia i śmierci, żaden ze składników posiłków nie może na to pozwalać.", var0: allergies });
+      allergyContext = `\nBEZWZGLĘDNIE WYKLUCZ ALERGIE / PREFERENCJE: ${allergies}.`;
     }
 
-    const prompt = i18n.t('auto.jestes_dietetykiem_klinic', { defaultValue: "Jesteś dietetykiem klinicznym. Przygotuj {{var0}}-dniowy wprowadzający jadłospis dla diety: {{var1}}.\nCałodzienny jadłospis musi idealnie sumować się do {{var2}} kcal dziennie. \nUwzględnij odpowiedni rozkład makroskładników dla tej diety na układ posiłków (np. 3 lub 4 posiłki).\nBARDZO WAŻNE: Każdy posiłek MUSI bezwzględnie przestrzegać zasad diety: {{var3}}.{{var4}}\nSkładniki posiłków zostaną poddane ostrej weryfikacji pod kątem rygoru tej diety. Nie patrz tylko na kalorie! Jeśli generujesz Keto, węglowodany muszą być drastycznie bliskie zera. Jeśli DASH, drastycznie mało sodu (użyj typowych składników).\nKażdy posiłek musi zawierać instrukcję gotowania krok po kroku dodaną jako \"recipe\".\nOdpowiedz TYLKO I WYŁĄCZNIE poprawnym JSON-em (bez formatowania markdown ```json) z taką strukturą:\n{\n  \"summary\": \"Krótkie podsumowanie założeń...\",\n  \"days\": [\n    {\n      \"dayNumber\": 1,\n      \"totalKcal\": 2000,\n      \"meals\": [\n        {\n          \"type\": \"Śniadanie\",\n          \"name\": \"Jajecznica z awokado\",\n          \"kcal\": 500,\n          \"carbs\": 10,\n          \"protein\": 25,\n          \"fat\": 40,\n          \"description\": \"3 jajka, pół awokado, masło, pomidorki\",\n          \"recipe\": \"Krok 1: Wbij jajka. Krok 2: Usmaż na maśle. Krok 3: Dodaj awokado i pomidorki.\"\n        }\n      ]\n    }\n  ]\n}", var0: days, var1: dietName, var2: tdee, var3: dietName, var4: allergyContext });
+    const currentLang = i18n.language || "pl";
+    const langInstruction = currentLang === "en" ? "Respond in ENGLISH." : "Odpowiadaj po POLSKU.";
+
+    const prompt = `Jesteś certyfikowanym dietetykiem klinicznym. Przygotuj jadłospis na ${days} dni dla diety: ${dietName}.
+Całodzienne zapotrzebowanie wynosi: ${tdee} kcal dziennie.
+${langInstruction}
+${allergyContext}
+Przygotuj 3 posiłki dziennie (Śniadanie, Obiad, Kolacja) idealnie wpisujące się w zasady diety ${dietName}.
+Zwróć odpowiedź TYLKO I WYŁĄCZNIE jako czysty JSON:
+{
+  "summary": "Krótkie podsumowanie założeń jadłospisu...",
+  "days": [
+    {
+      "dayNumber": 1,
+      "totalKcal": ${tdee},
+      "meals": [
+        {
+          "type": "Śniadanie",
+          "name": "Nazwa dania",
+          "kcal": 500,
+          "carbs": 25,
+          "protein": 30,
+          "fat": 20,
+          "description": "Opis składników...",
+          "recipe": "Krok po kroku przygotowanie..."
+        }
+      ]
+    }
+  ]
+}`;
 
     try {
       const text = await geminiService.generateContent(prompt);
-      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      let cleanJson = jsonMatch ? jsonMatch[0] : text;
-      cleanJson = cleanJson
-        .replace(/^```json/, "")
-        .replace(/```$/, "")
-        .trim();
-      return JSON.parse(cleanJson);
+      if (!text) return null;
+      let cleaned = text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, '$1').trim();
+      try {
+        return JSON.parse(cleaned);
+      } catch (e) {
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
+          return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+        }
+      }
+      return null;
     } catch (error) {
-      console.error("Meal Plan Error:", error);
+      console.error("Meal Plan Generation Error:", error);
       return null;
     }
   },
@@ -664,22 +946,45 @@ export const geminiService = {
   ) => {
     let allergyContext = "";
     if (allergies) {
-      allergyContext = i18n.t('auto.bezwzglednie_wyklucz_z_di', { defaultValue: "\nBEZWZGLĘDNIE WYKLUCZ Z DIETY ORAZ UWZGLĘDNIJ ALERGIE/PREFERENCJE UZTKOWNIKA: {{var0}}.", var0: allergies });
+      allergyContext = `\nBEZWZGLĘDNIE WYKLUCZ ALERGIE: ${allergies}.`;
     }
 
-    const prompt = i18n.t('auto.jestes_dietetykiem_wygene', { defaultValue: "Jesteś dietetykiem. Wygeneruj rygorystyczny posiłek dla diety: {{var0}}.\nPosiłek to: {{var1}}. Talerz musi opiewać na około {{var2}} kcal.{{var3}}\n\nWymagany ścisły rygor diety {{var4}}. Nie ignoruj wytycznych proporcji makroskładników danej diety.\nOdpowiedz TYLKO JSON-em (żadnego dodatkowego tekstu).\n{\n  \"type\": \"{{var5}}\",\n  \"name\": \"Tytuł nowego dania\",\n  \"kcal\": {{var6}},\n  \"carbs\": 10,\n  \"protein\": 25,\n  \"fat\": 40,\n  \"description\": \"Krótki opis składników\",\n  \"recipe\": \"Krok po kroku instrukcja przyrządzania posiłku.\"\n}", var0: dietName, var1: type, var2: tdeeTargetForMeal, var3: allergyContext, var4: dietName, var5: type, var6: tdeeTargetForMeal });
+    const currentLang = i18n.language || "pl";
+    const langInstruction = currentLang === "en" ? "Respond in ENGLISH." : "Odpowiadaj po POLSKU.";
+
+    const prompt = `Jesteś dietetykiem. Wygeneruj pojedynczy posiłek dla diety: ${dietName}.
+Typ posiłku: ${type}.
+Kaloryczność docelowa: około ${tdeeTargetForMeal} kcal.
+${langInstruction}
+${allergyContext}
+Odpowiedz TYLKO czystym JSON-em:
+{
+  "type": "${type}",
+  "name": "Nazwa dania",
+  "kcal": ${tdeeTargetForMeal},
+  "carbs": 30,
+  "protein": 25,
+  "fat": 15,
+  "description": "Lista składników...",
+  "recipe": "Instrukcja przygotowania krok po kroku..."
+}`;
 
     try {
       const text = await geminiService.generateContent(prompt);
-      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      let cleanJson = jsonMatch ? jsonMatch[0] : text;
-      cleanJson = cleanJson
-        .replace(/^```json/, "")
-        .replace(/```$/, "")
-        .trim();
-      return JSON.parse(cleanJson);
+      if (!text) return null;
+      let cleaned = text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, '$1').trim();
+      try {
+        return JSON.parse(cleaned);
+      } catch (e) {
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
+          return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+        }
+      }
+      return null;
     } catch (error) {
-      console.error("Meal Replace Error:", error);
+      console.error("Meal Replace Generation Error:", error);
       return null;
     }
   },
@@ -750,14 +1055,22 @@ export const geminiService = {
         if (rules.pkParams) {
           medicalRulesStr = i18n.t('auto.osobnicze_tempo_wchlanian', { defaultValue: "\nOsobnicze tempo wchłaniania pacjenta: metabolizm \"{{var0}}\" (czas wchłaniania standardowych węglowodanów: {{var1}}h). Wykorzystaj to w swoich poradach dotyczących wchłaniania powołując się na system GlikoSense!", var0: rules.pkParams.label, var1: rules.pkParams.normalCarbDuration });
         }
+        
+        const nutriSaved = localStorage.getItem('glikosense_nutri_profile');
+        if (nutriSaved) {
+          const parsedNutri = JSON.parse(nutriSaved);
+          const golden = (parsedNutri.goldenMeals || []).map((m: any) => m.name).slice(0, 5).join(", ");
+          const tricky = (parsedNutri.trickyMeals || []).map((m: any) => m.name).slice(0, 5).join(", ");
+          medicalRulesStr += `\nWNIOSKI Z MODUŁU GLIKOSENSE ODŻYWIANIE:\n- Średnia tolerancja posiłków: ${parsedNutri.overallTolerance || 100}%\n- Posiłki Złote (świetna tolerancja): ${golden || 'brak danych'}\n- Posiłki Kapryśne (duża zmienność/skoki): ${tricky || 'brak danych'}\nWykorzystuj te wiedzę przy odpowiadaniu na pytania o jedzenie i potrawy!`;
+        }
       } catch(e) {}
     }
 
     const disclaimer = " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
     
     let systemInstruction = isChild
-      ? i18n.t('auto.jestes_smart_asystentem_g', { defaultValue: "Jesteś Smart Asystentem Gliko w aplikacji GlikoControl. \n    Twoim zadaniem jest pomaganie dzieciom i ich rodzicom w codziennym zarządzaniu cukrzycą w sposób przyjazny, cierpliwy i zachęcający. Posiadasz pełną integrację aplikacyjną (wiedz o ustawieniach, dziennikach itd.).\n    {{var0}}\n    MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA (z ostatnich 24 godzin):\n    - Ostatnie logi: {{var1}}\n    - Ustawienia (ISF, WW): {{var2}}{{var3}}\n    \n    ZASADY ODPOWIADANIA:\n    1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. Nie generuj długich raportów (tym zajmuje się system GlikoSense). Odpowiadaj maksymalnie zwięźle.\n    2. AKCJE Z APLIKACJĄ I ZARZĄDZANIE DANYMI: Możesz wykonywać akcje! Na samym końcu wiadomości możesz wpisać poniższe tagi:\n       ZAPISANIE BOLUSA LUB CUKRU (np. \"zapisz cukier 120\" albo \"zapisz bolus 3j\"): <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"glucose\", \"value\": 120, \"notes\": \"Cukier z AI\"}}</app_action>\n       ZAPISANIE WYMIANY (wkłucie/sensor, np. \"wymieniłem wkłucie\"): <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 1, \"notes\": \"wymiana wkłucia\"}}</app_action> (type jako site_change/sensor_change)\n       ZMIANA USTAWIEŃ (np. wyłącz wibracje, zmień isf): <app_action>{\"action\": \"set_setting\", \"key\": \"isf\", \"value\": 30}</app_action>\n       NAWIGACJA (np. \"gdzie jest dzienniczek\", \"pokaż mi jedzenie\"): <app_action>{\"action\": \"navigate\", \"value\": \"history\"}</app_action> (dashboard, profile, database, meal, history)\n    3. INTERAKCJA Z TALERZEM: Jeśli użytkownik chce dodać jedzenie np. (\"dodaj jabłko\"): <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    4. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown. Pamiętaj by poinformować użytkownika, że akcja została pomyślnie wykonana.\n    5. Wspieraj dziecko: chwal za dobre wyniki, pocieszaj przy gorszych.\n    6. Język: Polski.", var0: currentDataStr, var1: JSON.stringify(lastLogs), var2: JSON.stringify(settings), var3: medicalRulesStr })
-      : i18n.t('auto.jestes_eksperckim_systeme', { defaultValue: "Jesteś Eksperckim Systemem Analizy Medycznej AI (GlikoControl z pełną integracją).\n    {{var0}}\n    DANE UŻYTKOWNIKA (24h):\n    - Logi: {{var1}}\n    - Parametry: {{var2}}{{var3}}\n \n    ZASADY:\n    1. AKCJE I DOSTĘP: Użytkownik może poprosić o zapisanie pomiaru, bolusa, bądź zmianę ustawień aplikacji lub ułatwienie nawigacji w samej aplikacji. Robi to za sprawą niewidzialnych tagów w Twoich wiadomościach:\n       - BOLUS/CUKIER: <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Korekta\"}}</app_action>\n       - USTAWIENIA (targetMin, isf, wwRatio, hapticsEnabled itp.): <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n       - NAWIGACJA (np. \"skoczmy do talerza\" value=meal/history/dashboard): <app_action>{\"action\": \"navigate\", \"value\": \"meal\"}</app_action>\n       - ZJEDZONY POSIŁEK: <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Nazwa\", \"carbs\": 20, \"protein\": 5, \"fat\": 2, \"kcal\": 150}}</plate_action>\n    2. BĄDŹ BARDZO ZWIĘZŁY: Odpowiadaj krótko i na temat. Absolutnie NIE generuj długich raportów, analiz medycznych ani podsumowań - tym zajmuje się wbudowany system GlikoSense. Odpowiadaj krótko, chyba że użytkownik prosi o rozwinięcie.\n    3. HTML formatting (<b>, <ul>). Zapisz tagi na DOKŁADNYM KOŃCU response'a! Poinformuj w treści, że dokonałeś operacji na rzecz użytkownika.", var0: currentDataStr, var1: JSON.stringify(lastLogs), var2: JSON.stringify(settings), var3: medicalRulesStr });
+      ? i18n.t('auto.jestes_smart_asystentem_g', { defaultValue: "Jesteś Smart Asystentem Gliko w aplikacji GlikoControl. \n    Twoim zadaniem jest pomaganie dzieciom i ich rodzicom w codziennym zarządzaniu cukrzycą w sposób przyjazny, cierpliwy i zachęcający. Posiadasz pełną integrację aplikacyjną (wiedz o ustawieniach, dziennikach itd.).\n    {{var0}}\n    MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA (z ostatnich 24 godzin):\n    - Ostatnie logi: {{var1}}\n    - Ustawienia (ISF, WW): {{var2}}{{var3}}\n    \n    ZASADY ODPOWIADANIA:\n    1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. Nie generuj długich raportów (tym zajmuje się system GlikoSense). Odpowiadaj maksymalnie zwięźle.\n    2. AKCJE Z APLIKACJĄ I ZARZĄDZANIE DANYMI: Możesz wykonywać akcje! Na samym końcu wiadomości możesz wpisać poniższe tagi:\n       ZAPISANIE BOLUSA LUB CUKRU (np. \"zapisz cukier 120\" albo \"zapisz bolus 3j\"): <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"glucose\", \"value\": 120, \"notes\": \"Cukier z AI\"}}</app_action>\n       ZAPISANIE WYMIANY (wkłucie/sensor, np. \"wymieniłem wkłucie\"): <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 1, \"notes\": \"wymiana wkłucia\"}}</app_action> (type jako site_change/sensor_change)\n       ZMIANA USTAWIEŃ (np. wyłącz wibracje, zmień isf): <app_action>{\"action\": \"set_setting\", \"key\": \"isf\", \"value\": 30}</app_action>\n       NAWIGACJA (np. \"gdzie jest dzienniczek\", \"pokaż mi jedzenie\"): <app_action>{\"action\": \"navigate\", \"value\": \"history\"}</app_action> (dashboard, profile, database, meal, history)\n    3. INTERAKCJA Z TALERZEM: Jeśli użytkownik chce dodać jedzenie np. (\"dodaj jabłko\"): <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    4. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown. Pamiętaj by poinformować użytkownika, że akcja została pomyślnie wykonana.\n    5. BEZWZGLĘDNE BEZPIECZEŃSTWO DZIECKA: Przy wszelkich pytaniach o dawki insuliny, posiłki, bolusy, korekty czy samopoczucie ZAWSZE nakazuj dziecku: 'Zapytaj rodziców lub opiekuna!' lub 'Powiedz o tym rodzicom lub opiekunowi!'. Dziecko nie może podejmować decyzji medycznych bez dorosłych.\n    6. Wspieraj dziecko: chwal za dobre wyniki, pocieszaj przy gorszych.\n    7. Język: Polski.", var0: currentDataStr, var1: JSON.stringify(lastLogs), var2: JSON.stringify(settings), var3: medicalRulesStr })
+      : i18n.t('auto.jestes_eksperckim_systeme', { defaultValue: "Jesteś Inteligentnym Asystentem AI GlikoControl (narzędziem wspomagającym kontrolę cukrzycy, pamiętającym że nie jesteś lekarzem).\n    {{var0}}\n    DANE UŻYTKOWNIKA (24h):\n    - Logi: {{var1}}\n    - Parametry: {{var2}}{{var3}}\n \n    ZASADY:\n    1. AKCJE I DOSTĘP: Użytkownik może poprosić o zapisanie pomiaru, bolusa, bądź zmianę ustawień aplikacji lub ułatwienie nawigacji w samej aplikacji. Robi to za sprawą niewidzialnych tagów w Twoich wiadomościach:\n       - BOLUS/CUKIER: <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Korekta\"}}</app_action>\n       - USTAWIENIA (targetMin, isf, wwRatio, hapticsEnabled itp.): <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n       - NAWIGACJA (np. \"skoczmy do talerza\" value=meal/history/dashboard): <app_action>{\"action\": \"navigate\", \"value\": \"meal\"}</app_action>\n       - ZJEDZONY POSIŁEK: <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Nazwa\", \"carbs\": 20, \"protein\": 5, \"fat\": 2, \"kcal\": 150}}</plate_action>\n    2. BĄDŹ BARDZO ZWIĘZŁY: Odpowiadaj krótko i na temat. Absolutnie NIE generuj długich raportów, analiz medycznych ani podsumowań - tym zajmuje się wbudowany system GlikoSense. Odpowiadaj krótko, chyba że użytkownik prosi o rozwinięcie.\n    3. HTML formatting (<b>, <ul>). Zapisz tagi na DOKŁADNYM KOŃCU response'a! Poinformuj w treści, że dokonałeś operacji na rzecz użytkownika.", var0: currentDataStr, var1: JSON.stringify(lastLogs), var2: JSON.stringify(settings), var3: medicalRulesStr });
       
     systemInstruction += disclaimer;
 
@@ -795,43 +1108,42 @@ export const geminiService = {
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
     if (isProxyUrl && creds.key === "proxy") {
-      try {
-        const response = await fetch(creds.baseUrl!, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "gemini-flash-latest",
-            payload: {
-              contents: fullContents,
-              systemInstruction: {
-                role: "system",
-                parts: [{ text: systemInstruction }],
+      for (const model of GEMINI_FALLBACK_MODELS) {
+        try {
+          const response = await fetch(creds.baseUrl!, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: model,
+              payload: {
+                contents: fullContents,
+                systemInstruction: {
+                  role: "system",
+                  parts: [{ text: systemInstruction }],
+                },
               },
-            },
-          }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          if (data.candidates && data.candidates[0]?.content)
-            return data.candidates[0].content.parts
-              .map((p: any) => p.text)
-              .join("");
-          if (data.text) return data.text;
-          return typeof data === "string" ? data : JSON.stringify(data);
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            recordModelSuccess(model);
+            console.log(`Assistant sukces z modelem (Proxy): ${model}`);
+            if (data.candidates && data.candidates[0]?.content)
+              return data.candidates[0].content.parts
+                .map((p: any) => p.text)
+                .join("");
+            if (data.text) return data.text;
+            return typeof data === "string" ? data : JSON.stringify(data);
+          }
+        } catch (e) {
+          console.warn(`Assistant proxy model ${model} failed, trying next...`, e);
         }
-        throw new Error(data.error?.message || "Proxy error");
-      } catch (e) {
-        console.error("Assistant proxy error", e);
-        return i18n.t('gemini.proxy_limit_error_assistant', { defaultValue: i18n.t('auto.serwer_padnal_lub_jego_li', { defaultValue: "Serwer padnął lub jego limit się wyczerpał. Przejdź do: Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny Klucz Gemini API." }) });
       }
+      return i18n.t('gemini.proxy_limit_error_assistant', { defaultValue: i18n.t('auto.serwer_padnal_lub_jego_li', { defaultValue: "Serwer padnął lub jego limit się wyczerpał. Przejdź do: Mój Profil -> Ustawienia Cukrzycowe -> Opcje Zaawansowane i wprowadź swój własny Klucz Gemini API." }) });
     }
 
     const client = await getClient();
-    const modelsToTry = [
-      "gemini-flash-latest",
-      "gemini-2.5-flash",
-      "gemini-pro-latest",
-    ];
+    const modelsToTry = GEMINI_FALLBACK_MODELS;
     let lastError = null;
 
     for (const model of modelsToTry) {
@@ -844,7 +1156,12 @@ export const geminiService = {
             temperature: 0.4,
           },
         });
-        return response.text || i18n.t('gemini.response_generation_failed', { defaultValue: i18n.t('auto.nie_udalo_mi_sie_wygenero', { defaultValue: "Nie udało mi się wygenerować odpowiedzi." }) });
+        if (response && response.text) {
+          recordModelSuccess(model);
+          console.log(`Assistant sukces z modelem (Direct): ${model}`);
+          return response.text;
+        }
+        return i18n.t('gemini.response_generation_failed', { defaultValue: i18n.t('auto.nie_udalo_mi_sie_wygenero', { defaultValue: "Nie udało mi się wygenerować odpowiedzi." }) });
       } catch (error) {
         console.warn(i18n.t('auto.assistant_blad_dla_modelu', { defaultValue: "Assistant - błąd dla modelu {{var0}}:", var0: model }), error);
         lastError = error;
@@ -879,39 +1196,59 @@ Format JSON:
       const isProxyUrl = creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
       
       if (isProxyUrl && creds.key === "proxy") {
-        const response = await fetch(creds.baseUrl!, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "gemini-2.5-flash",
-            payload: {
-              contents: [{ role: "user", parts: [{ text: prompt }] }],
+        for (const model of GEMINI_FALLBACK_MODELS) {
+          try {
+            const response = await fetch(creds.baseUrl!, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: model,
+                payload: {
+                  contents: [{ role: "user", parts: [{ text: prompt }] }],
+                }
+              }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+              if (data.candidates && data.candidates[0]?.content) {
+                text = data.candidates[0].content.parts.map((p: any) => p.text).join("");
+              } else if (data.text) {
+                text = data.text;
+              } else {
+                text = typeof data === "string" ? data : JSON.stringify(data);
+              }
+              if (text) {
+                recordModelSuccess(model);
+                console.log(`searchFood sukces z modelem (Proxy): ${model}`);
+                break;
+              }
             }
-          }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          if (data.candidates && data.candidates[0]?.content) {
-            text = data.candidates[0].content.parts.map((p: any) => p.text).join("");
-          } else if (data.text) {
-            text = data.text;
-          } else {
-            text = typeof data === "string" ? data : JSON.stringify(data);
+          } catch (e) {
+            console.warn(`searchFood proxy model ${model} failed, trying next...`, e);
           }
-        } else {
-          throw new Error("Proxy error");
         }
       } else {
         const client = await getClient();
-        const response = await client.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: prompt,
-          config: {
-            temperature: 0.2,
-            responseMimeType: "application/json",
-          },
-        });
-        text = response.text || "";
+        for (const model of GEMINI_FALLBACK_MODELS) {
+          try {
+            const response = await client.models.generateContent({
+              model: model,
+              contents: prompt,
+              config: {
+                temperature: 0.2,
+                responseMimeType: "application/json",
+              },
+            });
+            if (response && response.text) {
+              recordModelSuccess(model);
+              console.log(`searchFood sukces z modelem (Direct): ${model}`);
+              text = response.text;
+              break;
+            }
+          } catch (e) {
+            console.warn(`searchFood direct model ${model} failed, trying next...`, e);
+          }
+        }
       }
 
       console.log("Gemini searchFood raw response:", text);

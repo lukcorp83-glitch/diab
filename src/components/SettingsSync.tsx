@@ -4,6 +4,7 @@ import { getEffectiveUid, cn } from "../lib/utils";
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import QRCode from "react-qr-code";
+import ModernQRCard from "./ModernQRCard";
 import { Html5Qrcode } from "html5-qrcode";
 import {
  Share2,
@@ -72,8 +73,6 @@ export default function SettingsSync({
  try {
  const reqsRef = collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  user.uid,
  "linkRequests",
@@ -96,8 +95,6 @@ export default function SettingsSync({
  if (showExport && user) {
  const docRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  );
@@ -173,8 +170,6 @@ export default function SettingsSync({
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  parsed.uid,
  "linkRequests",
@@ -347,16 +342,7 @@ export default function SettingsSync({
  
  {t('auto.zeskanuj_ten_kod_na_drugim_telefoni', { defaultValue: i18n.t('auto.zeskanuj_ten_kod_na_drugi', { defaultValue: "Zeskanuj ten kod na drugim telefonie używając opcji \"Zeskanuj QR\"." }) })}
  </p>
- <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 mb-6 w-full flex justify-center items-center aspect-square">
- <QRCode
- value={qrPayload}
- style={{ width: "100%", height: "100%" }}
- />
- </div>
- <p className="text-[10px] text-rose-500 font-bold mb-4 animate-pulse">
- 
- {t('auto.kod_wygaśnie_za_5_minut', { defaultValue: i18n.t('auto.kod_wygasnie_za_5_minut', { defaultValue: "Kod wygaśnie za 5 minut" }) })}
- </p>
+ <ModernQRCard value={qrPayload} />
  <button
  onClick={handleCopy}
  className="w-full flex items-center justify-center gap-2 py-4 bg-accent-600 text-white rounded-[2rem] font-black text-[12px] uppercase active:scale-95 transition-all shadow-xl"

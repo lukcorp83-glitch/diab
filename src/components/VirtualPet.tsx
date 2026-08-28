@@ -22,7 +22,15 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 export default function VirtualPet({ glucose, setTab, embedded = false, pumpStatus}: { user: any, glucose: number | null, setTab?: (t: string) => void, embedded?: boolean, pumpStatus?: any }) {
-  const user = useAuthStore(state => state.user);
+    const user = useAuthStore(state => state.user);
+  
+  const safeUpdateDoc = async (docRef: any, data: any) => {
+    try {
+      await setDoc(docRef, data, { merge: true });
+    } catch (e) {
+      console.error("safeUpdateDoc failed", e);
+    }
+  };
 
  const { t } = useTranslation();
  const { logs } = useLogsStore();
@@ -49,6 +57,27 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  inventory?: { id: string, count: number }[],
  baseReaction?: string,
  } | null>(null);
+
+ const { data: fetchedPetData } = usePetStatus(user);
+ useEffect(() => {
+   if (fetchedPetData) {
+     setPetData(fetchedPetData as any);
+   } else {
+     setPetData({
+       type: 'gliko',
+       name: 'Gliko',
+       level: 1,
+       xp: 0,
+       happiness: 50,
+       hunger: 50,
+       lastFed: Date.now(),
+       coins: 0,
+       skin: 'default',
+       currentAccessory: 'none',
+       currentBackground: 'room'
+     });
+   }
+ }, [fetchedPetData]);
 
  const [isOpen, setIsOpen] = useState(false);
  const [showShop, setShowShop] = useState(false);
@@ -135,7 +164,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  newXp -= xpReq;
  }
 
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  xp: newXp,
  level: newLevel,
  coins: (petData.coins || 0) + quest.rewardCoins,
@@ -159,7 +188,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  newXp -= xpReq;
  }
 
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  xp: newXp,
  level: newLevel,
  coins: (petData.coins || 0) + rewardCoins,
@@ -204,10 +233,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
 
  if (prevGlucoseZone.current !== null && prevGlucoseZone.current !== currentZone) {
  if (currentZone === 'low') {
- playLowGlucoseSound();
  notificationService.triggerGlucoseAlarm(false, glucose);
  } else if (currentZone === 'high') {
- playHighGlucoseSound();
  notificationService.triggerGlucoseAlarm(true, glucose);
  } else if (currentZone === 'normal') {
  playNormalGlucoseSound();
@@ -232,7 +259,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  const newHunger = Math.max(0, (petData.hunger || 100) - decayAmount * 5);
  const newHappiness = Math.max(0, (petData.happiness || 100) - decayAmount * 5);
  
- updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  hunger: newHunger,
  happiness: newHappiness,
  // Update lastDecay adding exactly the hours we accounted for to preserve remainders
@@ -254,7 +281,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  if (!user || !petData) return;
  const today = new Date().toISOString().split('T')[0];
  if (petData.lastQuestReset !== today) {
- updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  completedQuests: [],
  lastQuestReset: today
  });
@@ -281,7 +308,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  );
  
  if (rewardsToUnlock.length > 0) {
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  unlockedBackgrounds: [...unlocked, ...rewardsToUnlock.map(r => r.id)]
  });
  toast.success(`Gratulacje! Odblokowano nowe tło: ${rewardsToUnlock[0].name} za świetny TIR (${Math.round(tir)}%)!`, { duration: 5000 });
@@ -298,7 +325,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  if (logs.length > prevLogsRef.current) {
  const rewardUser = async () => {
  try {
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'pet', 'status');
  const snap = await getDoc(docRef);
  if (snap.exists()) {
  const data = snap.data();
@@ -314,7 +341,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  newXp = newXp - xpReq;
  }
  
- await updateDoc(docRef, {
+ await safeUpdateDoc(docRef, {
  xp: newXp,
  level: newLevel,
  happiness: Math.min(100, currentHappiness + 15),
@@ -379,7 +406,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  nextXp = newXp - xpRequired;
  }
 
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  happiness: Math.min(100, petData.happiness + 20),
  xp: nextXp,
  level: newLevel,
@@ -413,7 +440,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  nextXp = newXp - xpRequired;
  }
 
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  coins: (petData.coins || 0) - foodCost,
  happiness: Math.min(100, petData.happiness + 40),
  hunger: Math.min(100, (petData.hunger || 0) + 50),
@@ -425,7 +452,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
 
  const updatePetName = async () => {
  if (!tempName.trim()) return;
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  name: tempName.trim()
  });
  setIsEditingName(false);
@@ -667,7 +694,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  Haptics.impact();
  playBuySound();
  const unlocked = petData.unlockedSkins || ['default'];
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  coins: (petData.coins || 0) - skin.price,
  unlockedSkins: [...unlocked, skin.id],
  skin: skin.id
@@ -677,7 +704,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  const handleEquipSkin = async (skinId: string) => {
  if (!user) return;
  Haptics.light();
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  skin: skinId
  });
  };
@@ -692,7 +719,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  Haptics.impact();
  playBuySound();
  const unlocked = petData.unlockedAccessories || ['none'];
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  coins: (petData.coins || 0) - acc.price,
  unlockedAccessories: [...unlocked, acc.id],
  currentAccessory: acc.id
@@ -702,7 +729,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  const handleEquipAccessory = async (accId: string) => {
  if (!user) return;
  Haptics.light();
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  currentAccessory: accId
  });
  };
@@ -717,7 +744,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  
  playBuySound();
  const unlocked = petData.unlockedBackgrounds || ['room'];
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  coins: (petData.coins || 0) - bg.price,
  unlockedBackgrounds: [...unlocked, bg.id],
  currentBackground: bg.id
@@ -726,7 +753,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
 
  const handleEquipBackground = async (bgId: string) => {
  if (!user) return;
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  currentBackground: bgId
  });
  };
@@ -742,7 +769,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  ? inventory.map(i => i.id === item.id ? { ...i, count: i.count + 1 } : i)
  : [...inventory, { id: item.id, count: 1 }];
 
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  coins: (petData.coins || 0) - item.price,
  inventory: newInventory
  });
@@ -778,7 +805,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
 
  const newInventory = inventory.map(i => i.id === item.id ? { ...i, count: i.count - 1 } : i).filter(i => i.count > 0);
 
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  inventory: newInventory,
  happiness: Math.min(100, (petData.happiness || 0) + (item.effect.happiness || 0)),
  hunger: Math.min(100, (petData.hunger || 0) + (item.effect.hunger || 0)),
@@ -840,7 +867,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  setGameResult({ coins: earnedCoins, text: msg });
  
  try {
- await updateDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'pet', 'status'), {
+ await safeUpdateDoc(doc(db, 'users', getEffectiveUid(user), 'pet', 'status'), {
  coins: (petData.coins || 0) + earnedCoins,
  happiness: Math.min(100, petData.happiness + 5)
  });
@@ -1304,7 +1331,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  ) : (
  <h4 
  className="font-black text-sm dark:text-white flex items-center gap-1 cursor-pointer hover:text-accent-500 transition-colors" 
- onClick={() => { setTempName(petData.name); setIsEditingName(true); }}
+ onClick={() => { setTempName(petData.name || ''); setIsEditingName(true); }}
  >
  {petData.name} <span className="text-[10px] opacity-30 group-hover:opacity-100">✎</span> <span className="text-xs font-bold text-accent-500 bg-accent-50 dark:bg-accent-500/10 px-1.5 py-0.5 rounded-md">{t('auto.lvl', { defaultValue: 'Lvl' })} {petData.level}</span>
  </h4>
@@ -1556,4 +1583,6 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  </div>
  );
 }
+
+
 

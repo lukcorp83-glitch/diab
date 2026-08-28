@@ -155,7 +155,8 @@ function calculateActiveAtTime(targetTime: number, pastLogs: any[], rules: any) 
 const physiologicalNormalize = (inputs: number[]): number[] => {
   const [
     bg = 120, trend = 0, acc = 0, cob = 0, fastCobActive = 0, slowCobActive = 0, iob = 0,
-    timeSin = 0, timeCos = 0, pob = 0, fob = 0, isWeekend = 0, sinceMeal = 1440, sinceBolus = 1440, iobCobRatio = 0
+    timeSin = 0, timeCos = 0, pob = 0, fob = 0, isWeekend = 0, sinceMeal = 1440, sinceBolus = 1440, iobCobRatio = 0,
+    roc15 = 0, roc30 = 0, sd30 = 0, bolusOffset = 0, temp = 20
   ] = inputs;
 
   const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
@@ -175,7 +176,12 @@ const physiologicalNormalize = (inputs: number[]): number[] => {
     clamp(isWeekend, 0, 1),
     clamp(sinceMeal, 0, 1440) / 1440,
     clamp(sinceBolus, 0, 1440) / 1440,
-    clamp(iobCobRatio, 0, 10) / 10
+    clamp(iobCobRatio, 0, 10) / 10,
+    (clamp(roc15, -40, 40) + 40) / 80,
+    (clamp(roc30, -80, 80) + 80) / 160,
+    clamp(sd30, 0, 50) / 50,
+    (clamp(bolusOffset, -120, 120) + 120) / 240,
+    (clamp(temp, -10, 40) + 10) / 50
   ];
 };
 
@@ -202,8 +208,13 @@ const generateSyntheticPhysiologyLSTM = (steps: number = 6) => {
         const pob = Math.random() * 30;
         const fob = Math.random() * 30;
         const ratio = (iob + 0.1) / (cob + 0.1);
+        const roc15 = trend * 3;
+        const roc30 = trend * 6;
+        const sd30 = Math.random() * 10;
+        const bolusOffset = sinceBolus - sinceMeal;
+        const temp = 20;
 
-        const inputs = [bg, trend, acc, cob, fastCob, slowCob, iob, 0, 0, pob, fob, 0, sinceMeal, sinceBolus, ratio];
+        const inputs = [bg, trend, acc, cob, fastCob, slowCob, iob, 0, 0, pob, fob, 0, sinceMeal, sinceBolus, ratio, roc15, roc30, sd30, bolusOffset, temp];
         sequence.push(physiologicalNormalize(inputs));
     }
 
@@ -237,25 +248,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     try {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile) {
-         try { await tf.setBackend('cpu'); } catch(e) {}
-      } else {
-        setWasmPaths('/wasm/');
-        if (typeof OffscreenCanvas !== 'undefined') {
-          await tf.setBackend('webgl');
-        } else {
-          throw new Error('No webgl');
-        }
-      }
+      await tf.setBackend('cpu');
+      await tf.ready();
     } catch (e) {
-      try { 
-        await tf.setBackend('wasm'); 
-      } catch (e2) {
-        try { await tf.setBackend('cpu'); } catch (e3) {}
-      }
+      console.warn("TF Worker backend set warning:", e);
     }
-    await tf.ready();
     const activeBackend = tf.getBackend() || 'cpu';
     self.postMessage({ type: 'storage_update', key: 'glikosense_active_backend', value: activeBackend });
 
@@ -284,7 +281,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     // HEURISTIC INSIGHTS
     const insights: string[] = [];
     const discoveredRules = { ...rules };
-    const mealPatterns: { [key: string]: { spikes: number, count: number, totalCorrections?: number, totalReturnTime?: number } } = {};
+    const mealPatterns: { [key: string]: { spikes: number, count: number, totalCorrections?: number, totalReturnTime?: number, totalMaxBg?: number } } = {};
     const timeBlocks = {
       morning: { label: 'Poranek', starts: 6, ends: 11, sensitivity: 0, count: 0, drops: [] as number[] },
       afternoon: { label: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: "Popołudnie" }) }) }), starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
@@ -335,18 +332,50 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         }
     }
 
-    allMeals.slice(0, 100).forEach(m => {
+    const isSpecificMealName = (name: string): boolean => {
+      if (!name || typeof name !== 'string') return false;
+      const clean = name.trim().toLowerCase();
+      if (clean.length < 3) return false;
+
+      const genericPhrases = [
+        "kalkulator bolusa", "bolus kalkulator", "kalkulator", "calculator",
+        "posiłek", "posilek", "meal", "obiad", "śniadanie", "sniadanie",
+        "kolacja", "przekąska", "przekaska", "breakfast", "lunch", "dinner",
+        "snack", "korekta", "bolus", "jedzenie", "food", "brak opisu", "posiłek ai", "posilek ai"
+      ];
+      if (genericPhrases.includes(clean)) return false;
+
+      const genericWords = [
+        "kalkulator", "calculator", "korekta", "bolus", "dane z kalkulatora"
+      ];
+      
+      const words = clean.split(/[\s,.:;_\-\(\)]+/).filter(Boolean);
+      const nonGenericWords = words.filter(w => !genericWords.includes(w) && !/^\d+([\.,]\d+)?\s*(ww|wbt|g|j|j\.)?$/i.test(w));
+      
+      if (nonGenericWords.length === 0) return false;
+      return true;
+    };
+
+    allMeals.forEach(m => {
       const mealTime = m.timestamp || new Date(m.createdAt).getTime();
-      const mealName = m.note || m.name || m.description || i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) }) });
-      if (!mealName || mealName.length < 3 || mealName === i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: i18n.t('auto.posilek', { defaultValue: "Posiłek" }) }) })) return;
+      let mealName = m.note || m.name || m.description || m.linkedMeal?.name;
+      if (!mealName && Array.isArray(m.linkedMeal?.items) && m.linkedMeal.items.length > 0) {
+        mealName = m.linkedMeal.items.map((i: any) => i.name).filter(Boolean).join(", ");
+      }
+      if (!mealName && Array.isArray(m.products) && m.products.length > 0) {
+        mealName = m.products.map((p: any) => p.name).filter(Boolean).join(", ");
+      }
+
+      if (!mealName || !isSpecificMealName(mealName)) return;
       const postMealBg = allGlucose.filter(g => {
         const gt = g.timestamp || new Date(g.createdAt).getTime();
         return gt > mealTime + 45*60*1000 && gt < mealTime + 180*60*1000;
       });
       if (postMealBg.length > 0) {
         const maxBg = Math.max(...postMealBg.map(g => g.value || g.bg));
-        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0, totalCorrections: 0, totalReturnTime: 0 };
+        if (!mealPatterns[mealName]) mealPatterns[mealName] = { spikes: 0, count: 0, totalCorrections: 0, totalReturnTime: 0, totalMaxBg: 0 };
         mealPatterns[mealName].count++;
+        mealPatterns[mealName].totalMaxBg = (mealPatterns[mealName].totalMaxBg || 0) + maxBg;
         if (maxBg > 180) mealPatterns[mealName].spikes++;
         
         if (activeTopology === 'v4_tcn') {
@@ -400,72 +429,109 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(insightMsg);
     }
 
-    if (mode === 'full') {
-      const daysStats: { [day: string]: { sum: number, count: number } } = { "Niedziela": { sum: 0, count: 0 }, "Poniedziałek": { sum: 0, count: 0 }, "Wtorek": { sum: 0, count: 0 }, "Środa": { sum: 0, count: 0 }, "Czwartek": { sum: 0, count: 0 }, "Piątek": { sum: 0, count: 0 }, "Sobota": { sum: 0, count: 0 } };
-      const dayNames = ["Niedziela", i18n.t('auto.poniedzialek', { defaultValue: i18n.t('auto.poniedzialek', { defaultValue: i18n.t('auto.poniedzialek', { defaultValue: "Poniedziałek" }) }) }), "Wtorek", i18n.t('auto.sroda', { defaultValue: i18n.t('auto.sroda', { defaultValue: i18n.t('auto.sroda', { defaultValue: "Środa" }) }) }), "Czwartek", i18n.t('auto.piatek', { defaultValue: i18n.t('auto.piatek', { defaultValue: i18n.t('auto.piatek', { defaultValue: "Piątek" }) }) }), "Sobota"];
-      allGlucose.forEach(g => {
-        const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
-        const dayName = dayNames[d.getDay()];
-        daysStats[dayName].sum += (g.value || g.bg);
-        daysStats[dayName].count++;
+    // --- AKTYWNE ODKRYWANIE WZORCÓW I REGUŁ METABOLICZNYCH ---
+    // 1. Zjawisko Brzasku (Dawn Phenomenon)
+    const morningDawnRises: number[] = [];
+    const uniqueDays = new Set(allGlucose.map(g => new Date(g.timestamp || new Date(g.createdAt).getTime()).toDateString()));
+    uniqueDays.forEach(dayStr => {
+      const dayStart = new Date(dayStr).getTime();
+      const morningLogs = allGlucose.filter(g => {
+        const t = g.timestamp || new Date(g.createdAt).getTime();
+        const hour = new Date(t).getHours();
+        return hour >= 5 && hour < 9;
       });
-      const activeDays = Object.entries(daysStats).filter(([_, s]) => s.count > 10);
-      if (activeDays.length >= 3) {
-         activeDays.sort((a,b) => (b[1].sum / b[1].count) - (a[1].sum / a[1].count));
-         const worstDay = activeDays[0];
-         const bestDay = activeDays[activeDays.length - 1];
-         if ((worstDay[1].sum / worstDay[1].count) - (bestDay[1].sum / bestDay[1].count) > 25) {
-             insights.push(`📅 Analiza 14-dniowa ujawnia: Twój cukier jest stale niższy w te dni tygodnia: ${bestDay[0]} (prawdopodobnie większa wrażliwość, może regularny trening?). Z kolei ${worstDay[0]} często bywa trudny i wymaga więcej insuliny lub ostrożności.`);
-         }
+      if (morningLogs.length >= 2) {
+        const first = morningLogs[0].value || morningLogs[0].bg;
+        const last = morningLogs[morningLogs.length - 1].value || morningLogs[morningLogs.length - 1].bg;
+        if (last - first >= 12) {
+          const hasEarlyMeal = allMeals.some(m => {
+            const mt = m.timestamp || new Date(m.createdAt).getTime();
+            return mt >= dayStart + 4 * 3600000 && mt <= dayStart + 9 * 3600000;
+          });
+          if (!hasEarlyMeal) morningDawnRises.push(last - first);
+        }
       }
+    });
+    if (morningDawnRises.length >= 1) {
+      discoveredRules.dawnPhenomenonEnabled = true;
+    }
 
-       let weekendSum = 0, weekendCount = 0, weekdaySum = 0, weekdayCount = 0;
-       let weekdayMorningValues: number[] = [];
-       allGlucose.forEach(g => {
-         const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
-         const val = g.value || g.bg;
-         if (d.getDay() === 0 || d.getDay() === 6) {
-           weekendSum += val;
-           weekendCount++;
-         } else {
-           weekdaySum += val;
-           weekdayCount++;
-           if (d.getHours() >= 6 && d.getHours() < 11) {
-             weekdayMorningValues.push(val);
-           }
-         }
-       });
-       if (weekendCount > 20 && weekdayCount > 50) {
-         const weekendAvg = weekendSum / weekendCount;
-         const weekdayAvg = weekdaySum / weekdayCount;
-         if (Math.abs(weekendAvg - weekdayAvg) > 18) {
-           discoveredRules.weekendInertiaEnabled = true;
-           if (weekendAvg > weekdayAvg) {
-             insights.push(`🏖️ Bezwładność Weekendowa: Twoja średnia glikemia w weekendy (${Math.round(weekendAvg)} mg/dL) jest wyższa niż w dni robocze (${Math.round(weekdayAvg)} mg/dL). Wskazuje to na opóźnione wchłanianie poranne lub inny rytm snu.`);
-           } else {
-             insights.push(`🏖️ Bezwładność Weekendowa: W weekendy wykazujesz o 15-25% większą wrażliwość na insulinę (${Math.round(weekendAvg)} mg/dL vs ${Math.round(weekdayAvg)} mg/dL w tygodniu).`);
-           }
-         }
-       }
+    // 2. Efekt Somogyi (Odbicie po hipoglikemii)
+    for (let i = 0; i < allGlucose.length - 1; i++) {
+      const g = allGlucose[i];
+      const val = g.value || g.bg;
+      if (val < 70) {
+        const t = g.timestamp || new Date(g.createdAt).getTime();
+        const postHypo = allGlucose.filter(post => {
+          const pt = post.timestamp || new Date(post.createdAt).getTime();
+          return pt > t && pt <= t + 2.5 * 3600000;
+        });
+        if (postHypo.some(p => (p.value || p.bg) >= 170)) {
+          discoveredRules.somogyiEnabled = true;
+          break;
+        }
+      }
+    }
 
-       const hasExercise = logs.some(l => {
-         const desc = (l.description || l.note || l.name || "").toLowerCase();
-         return l.activity || ["trening", "spacer", "sport", "bieg", "rower", "siłownia", "basen"].some(kw => desc.includes(kw));
-       });
-       if (hasExercise) {
-         discoveredRules.delayedExerciseEnabled = true;
-         insights.push(`🏃 Opóźniony Spadek Powysiłkowy: Wykryto odnotowaną aktywność fizyczną. Pamiętaj, że zwiększona wrażliwość po treningu utrzymuje się przez 6 do 12 godzin – zwróć uwagę na bazę nocną.`);
-       }
+    // 3. Efekt Pizzy / FPU (Tłuszcze & Białka)
+    const hasFatProteinMeal = allMeals.some(m => {
+      const desc = (m.description || m.note || m.name || m.linkedMeal?.name || "").toLowerCase();
+      const f = m.fat || m.linkedMeal?.fat || 0;
+      const p = m.protein || m.linkedMeal?.protein || 0;
+      return f > 10 || p > 15 || ["pizza", "kebab", "burger", "ser", "frytki", "orzechy", "mięso", "mieso", "makaron"].some(kw => desc.includes(kw));
+    });
+    if (hasFatProteinMeal) {
+      discoveredRules.pizzaEffectMultiplier = 1.2;
+    }
 
-       if (weekdayMorningValues.length > 25) {
-         const mean = weekdayMorningValues.reduce((a,b) => a+b, 0) / weekdayMorningValues.length;
-         const variance = weekdayMorningValues.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / weekdayMorningValues.length;
-         const stdDev = Math.sqrt(variance);
-         if (stdDev / mean > 0.32) {
-           discoveredRules.stressSensitivityEnabled = true;
-           insights.push(`⚡ Wrażliwość Cykliczna (Stres/Rytm): Wykryto znaczne wahania porannej glikemii w dni robocze (zmienność ${Math.round((stdDev/mean)*100)}%). Może to wynikać ze zmiennego poziomu porannego kortyzolu i stresu.`);
-         }
-       }
+    // 4. Opóźniony Spadek Powysiłkowy
+    const hasExercise = logs.some(l => {
+      const desc = (l.description || l.note || l.name || "").toLowerCase();
+      return l.activity || ["trening", "spacer", "sport", "bieg", "rower", "siłownia", "basen", "marsz"].some(kw => desc.includes(kw));
+    });
+    if (hasExercise) {
+      discoveredRules.delayedExerciseEnabled = true;
+      insights.push(`🏃 Opóźniony Spadek Powysiłkowy: Wykryto odnotowaną aktywność fizyczną. Pamiętaj, że zwiększona wrażliwość po treningu utrzymuje się przez 6 do 12 godzin – zwróć uwagę na bazę nocną.`);
+    }
+
+    // 5. Bezwładność Weekendowa i Zmienność Dniowa
+    let weekendSum = 0, weekendCount = 0, weekdaySum = 0, weekdayCount = 0;
+    let weekdayMorningValues: number[] = [];
+    allGlucose.forEach(g => {
+      const d = new Date(g.timestamp || new Date(g.createdAt).getTime());
+      const val = g.value || g.bg;
+      if (d.getDay() === 0 || d.getDay() === 6) {
+        weekendSum += val;
+        weekendCount++;
+      } else {
+        weekdaySum += val;
+        weekdayCount++;
+        if (d.getHours() >= 6 && d.getHours() < 11) {
+          weekdayMorningValues.push(val);
+        }
+      }
+    });
+    if (weekendCount >= 5 && weekdayCount >= 10) {
+      const weekendAvg = weekendSum / weekendCount;
+      const weekdayAvg = weekdaySum / weekdayCount;
+      if (Math.abs(weekendAvg - weekdayAvg) > 10) {
+        discoveredRules.weekendInertiaEnabled = true;
+        if (weekendAvg > weekdayAvg) {
+          insights.push(`🏖️ Bezwładność Weekendowa: Twoja średnia glikemia w weekendy (${Math.round(weekendAvg)} mg/dL) jest wyższa niż w dni robocze (${Math.round(weekdayAvg)} mg/dL). Wskazuje to na opóźnione wchłanianie poranne lub inny rytm snu.`);
+        } else {
+          insights.push(`🏖️ Bezwładność Weekendowa: W weekendy wykazujesz o 15-25% większą wrażliwość na insulinę (${Math.round(weekendAvg)} mg/dL vs ${Math.round(weekdayAvg)} mg/dL w tygodniu).`);
+        }
+      }
+    }
+
+    if (weekdayMorningValues.length >= 10) {
+      const mean = weekdayMorningValues.reduce((a,b) => a+b, 0) / weekdayMorningValues.length;
+      const variance = weekdayMorningValues.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / weekdayMorningValues.length;
+      const stdDev = Math.sqrt(variance);
+      if (stdDev / mean > 0.28) {
+        discoveredRules.stressSensitivityEnabled = true;
+        insights.push(`⚡ Wrażliwość Cykliczna (Stres/Rytm): Wykryto znaczne wahania porannej glikemii w dni robocze (zmienność ${Math.round((stdDev/mean)*100)}%). Może to wynikać ze zmiennego poziomu porannego kortyzolu i stresu.`);
+      }
     }
 
     if (glucoseLogsOrig.length < 5) {
@@ -594,6 +660,19 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     let treatmentIdx = 0;
     const sequenceLength = activeTopology === 'v4_tcn' ? 36 : 6;
 
+    const temps = new Float32Array(resampledGlucose.length);
+    let lastTemp = 20;
+    let origIdxTemp = 0;
+    for (let ri = 0; ri < resampledGlucose.length; ri++) {
+        while (origIdxTemp < glucoseLogsOrig.length && (glucoseLogsOrig[origIdxTemp].timestamp || new Date(glucoseLogsOrig[origIdxTemp].createdAt).getTime()) <= resampledGlucose[ri].timestamp) {
+            if (glucoseLogsOrig[origIdxTemp].weather?.temp !== undefined) {
+                lastTemp = glucoseLogsOrig[origIdxTemp].weather!.temp;
+            }
+            origIdxTemp++;
+        }
+        temps[ri] = lastTemp;
+    }
+
     for(let i=sequenceLength-1; i < resampledGlucose.length - 36; i++) {
       const sequence = [];
       for(let step = sequenceLength - 1; step >= 0; step--) {
@@ -626,9 +705,30 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
           const isWeekend = (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0;
           const iobCobRatio = (iob + 0.1) / (cob + 0.1);
 
+          let roc15 = 0;
+          let roc30 = 0;
+          let sd30 = 0;
+          const hist30 = [];
+          for (let histStep = 0; histStep < 6; histStep++) {
+              const histIdx = i - step - histStep;
+              if (histIdx >= 0) {
+                  const histVal = resampledGlucose[histIdx].value;
+                  hist30.push(histVal);
+                  if (histStep === 3) roc15 = current.value - histVal;
+                  if (histStep === 5) roc30 = current.value - histVal;
+              }
+          }
+          if (hist30.length > 0) {
+              const mean = hist30.reduce((a, b) => a + b, 0) / hist30.length;
+              sd30 = Math.sqrt(hist30.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / hist30.length);
+          }
+          const bolusOffset = timeSinceBolus - timeSinceMeal;
+          const temp = temps[i - step];
+
           sequence.push(physiologicalNormalize([
             current.value, trendNum, accelerationNum, cob, fastCobActive, slowCobActive, iob, 
-            timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio
+            timeSin, timeCos, pob, fob, isWeekend, timeSinceMeal, timeSinceBolus, iobCobRatio,
+            roc15, roc30, sd30, bolusOffset, temp
           ]));
       }
 
@@ -643,7 +743,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     let model: tf.LayersModel;
-    const dbModelPath = activeTopology === 'v4_tcn' ? 'indexeddb://glikosense-tcn-v4-pad-fix' : 'indexeddb://glikosense-lstm-v5';
+    const dbModelPath = activeTopology === 'v4_tcn' ? 'indexeddb://glikosense-tcn-v4-pro-1' : 'indexeddb://glikosense-lstm-v5-pro';
     try {
         if (_cachedModel && _cachedModelType === activeTopology) {
             model = _cachedModel;
@@ -657,29 +757,34 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
             _cachedModelType = activeTopology;
             isModelLoaded = true;
         }
-        model.compile({ optimizer: tf.train.adam(activeTopology === 'v4_tcn' ? 0.001 : 0.001), loss: 'meanSquaredError' });
+        model.compile({ optimizer: tf.train.adam(activeTopology === 'v4_tcn' ? 0.001 : 0.001), loss: tf.losses.huberLoss });
     } catch(e) {
         model = tf.sequential();
         if (activeTopology === 'v4_tcn') {
-            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu', inputShape: [36, 15] }));
+            (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu', inputShape: [36, 20] }));
+            (model as tf.Sequential).add(tf.layers.dropout({ rate: 0.15 }));
+            
             (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu' }));
+            (model as tf.Sequential).add(tf.layers.dropout({ rate: 0.15 }));
+            
             (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu' }));
+            
             (model as tf.Sequential).add(tf.layers.flatten());
             (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
             (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
-            model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+            model.compile({ optimizer: tf.train.adam(0.001), loss: tf.losses.huberLoss });
         } else {
-            (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 15], returnSequences: false }));
+            (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 20], returnSequences: false }));
             (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
             (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
-            model.compile({ optimizer: tf.train.adam(0.005), loss: 'meanSquaredError' });
+            model.compile({ optimizer: tf.train.adam(0.005), loss: tf.losses.huberLoss });
         }
         _cachedModel = model;
         _cachedModelType = activeTopology;
 
         try {
             const syntheticData = generateSyntheticPhysiologyLSTM(activeTopology === 'v4_tcn' ? 36 : 6);
-            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, activeTopology === 'v4_tcn' ? 36 : 6, 15]);
+            const synInputsTensor = tf.tensor3d(syntheticData.map(d => d.inputs), [syntheticData.length, activeTopology === 'v4_tcn' ? 36 : 6, 20]);
             const synOutputsTensor = tf.tensor2d(syntheticData.map(d => d.output));
             await model.fit(synInputsTensor, synOutputsTensor, { epochs: mode === 'quick' ? 1 : 2, shuffle: true, verbose: 0 });
             synInputsTensor.dispose();
@@ -687,11 +792,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         } catch (synErr) {}
     }
 
-    const trainingDataset = dataset.slice(-50); // Maksymalnie 50 paczek by uniknąć zapchania CPU
+    const trainingDataset = dataset.slice(-200); // Zwiększono z 50 paczek
     let shouldTrain = force || !isModelLoaded || (mode === 'full' && (Date.now() - lastTrainTime > 2 * 60 * 60 * 1000));
 
     if (shouldTrain && trainingDataset.length > 0) {
-        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, activeTopology === 'v4_tcn' ? 36 : 6, 15]);
+        const inputsTensor = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, activeTopology === 'v4_tcn' ? 36 : 6, 20]);
         const outputTensor = tf.tensor2d(trainingDataset.map(d => d.output));
         try {
             await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
@@ -710,7 +815,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     tf.tidy(() => {
       if (trainingDataset.length === 0) return;
       const evalSeqLen = activeTopology === 'v4_tcn' ? 36 : 6;
-      const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, evalSeqLen, 15]);
+      const evalInputs = tf.tensor3d(trainingDataset.map(d => d.inputs), [trainingDataset.length, evalSeqLen, 20]);
       let predsArray: Float32Array | Int32Array | Uint8Array;
       try {
           const preds = model.predict(evalInputs, { batchSize: 32 }) as tf.Tensor;
@@ -726,7 +831,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     const predictValue = (mdl: tf.LayersModel, sequence: number[][]) => {
         return tf.tidy(() => {
-            const pred = mdl.predict(tf.tensor3d([sequence], [1, sequence.length, 15])) as tf.Tensor;
+            const pred = mdl.predict(tf.tensor3d([sequence], [1, sequence.length, 20])) as tf.Tensor;
             return (pred.arraySync() as number[][])[0];
         });
     };
@@ -761,7 +866,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     }
 
     let weatherBgModifier = 0;
-    if (weatherTemp !== null && currentIob > 0) {
+    if (activeTopology !== 'v4_tcn' && weatherTemp !== null && currentIob > 0) {
        if (weatherTemp > 25) weatherBgModifier = -((weatherTemp - 25) * 0.1 * currentIob); 
        else if (weatherTemp < 5) weatherBgModifier = ((5 - weatherTemp) * 0.05 * currentIob);
     }
@@ -775,19 +880,59 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         const { iob, cob, fastCobActive, slowCobActive, pob, fob } = calculateActiveAtTime(cur.timestamp, treatmentLogs, rules);
         const date = new Date(cur.timestamp);
         const hourDecimal = date.getHours() + (date.getMinutes() / 60);
+        
+        let roc15 = 0;
+        let roc30 = 0;
+        let sd30 = 0;
+        const hist30 = [];
+        for (let histStep = 0; histStep < 6; histStep++) {
+            const histIdx = idx - histStep;
+            if (histIdx >= 0) {
+                const histVal = resampledGlucose[histIdx].value;
+                hist30.push(histVal);
+                if (histStep === 3) roc15 = cur.value - histVal;
+                if (histStep === 5) roc30 = cur.value - histVal;
+            }
+        }
+        if (hist30.length > 0) {
+            const mean = hist30.reduce((a, b) => a + b, 0) / hist30.length;
+            sd30 = Math.sqrt(hist30.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / hist30.length);
+        }
+
+        let timeSinceMeal = 1440;
+        let timeSinceBolus = 1440;
+        for (let j = treatmentLogs.length - 1; j >= 0; j--) {
+             const t = treatmentLogs[j].timestamp || new Date(treatmentLogs[j].createdAt).getTime();
+             const minutes = (cur.timestamp - t) / 60000;
+             if (treatmentLogs[j].type === 'meal' && minutes < timeSinceMeal && timeSinceMeal === 1440 && minutes >= 0) timeSinceMeal = minutes;
+             if ((treatmentLogs[j].type === 'bolus' || treatmentLogs[j].type === 'insulin') && minutes < timeSinceBolus && timeSinceBolus === 1440 && minutes >= 0) timeSinceBolus = minutes;
+             if (minutes > 480) break;
+        }
+        const bolusOffset = timeSinceBolus - timeSinceMeal;
+        const temp = weatherTemp !== null ? weatherTemp : 20;
+
         sequenceForPrediction.push(physiologicalNormalize([
             cur.value, cur.trend, 0, cob, fastCobActive, slowCobActive, iob,
             Math.sin((hourDecimal / 24) * Math.PI * 2), Math.cos((hourDecimal / 24) * Math.PI * 2),
-            pob, fob, (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0, 120, 120, (iob + 0.1)/(cob + 0.1)
+            pob, fob, (date.getDay() === 0 || date.getDay() === 6) ? 1 : 0, timeSinceMeal, timeSinceBolus, (iob + 0.1)/(cob + 0.1),
+            roc15, roc30, sd30, bolusOffset, temp
         ]));
       } else {
-        sequenceForPrediction.push(physiologicalNormalize([latestBg, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
+        sequenceForPrediction.push(physiologicalNormalize([latestBg, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20]));
       }
     }
 
     const nextPredNormal = predictValue(model, sequenceForPrediction);
     const stepsArr = [3,6,9,12,18,24,30,36];
-    const maxDeltaPerStep = 12; // Max realistic change: 12 mg/dL per 5 min
+    
+    let cv = 20;
+    if (resampledGlucose.length > 0) {
+        const vals = resampledGlucose.slice(-288).map(g => g.value);
+        const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const sd = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length);
+        cv = (sd / mean) * 100;
+    }
+    const maxDeltaPerStep = activeTopology === 'v4_tcn' ? Math.max(8, Math.min(18, 8 + (cv - 15) * 0.4)) : 12;
 
     let ensembleRawPreds: number[][] = [];
     if (activeTopology === 'v4_tcn') {
@@ -814,6 +959,12 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
          const trendPrediction = latestBg + (lastTrendNum * currentStep);
          const weight = currentStep / 6; // step 3 -> 50% model, step 6 -> 100% model
          actualVal = (actualVal * weight) + (trendPrediction * (1 - weight));
+
+         // Physical momentum protection: when sugar is actively rising (lastTrendNum > 0), prevent instantaneous drop from current point
+         if (lastTrendNum > 0) {
+            const inertialFloor = latestBg + (lastTrendNum * currentStep * 0.35) - (currentIob * 3);
+            actualVal = Math.max(actualVal, Math.min(latestBg + 5, inertialFloor));
+         }
       }
 
       // Clamp physiologically impossible jumps
@@ -823,14 +974,18 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
       actualVal = Math.max(40, Math.min(450, actualVal));
       
-      if (activeTopology === 'v4_tcn') {
+      // Compute confidence bounds (Chmura Pewności) for ALL models
+      let stdDev = 0;
+      if (activeTopology === 'v4_tcn' && ensembleRawPreds.length > 0) {
           const variance = ensembleRawPreds.reduce((sum, p) => sum + Math.pow(p[idx]*400 - actualVal, 2), 0) / 5;
-          let stdDev = Math.sqrt(variance);
-          if (isNaN(stdDev) || !isFinite(stdDev)) stdDev = currentStep * 1.5;
-          stdDev = Math.max(stdDev, currentStep * 0.6); // uncertainty grows with time
-          confUpper.push(Math.min(450, actualVal + stdDev * 1.5));
-          confLower.push(Math.max(40, actualVal - stdDev * 1.5));
+          stdDev = Math.sqrt(variance);
       }
+      if (isNaN(stdDev) || !isFinite(stdDev) || stdDev === 0) {
+          stdDev = Math.max(10, currentStep * 1.2);
+      }
+      stdDev = Math.max(stdDev, currentStep * 0.8);
+      confUpper.push(Math.min(450, actualVal + stdDev * 1.4));
+      confLower.push(Math.max(40, actualVal - stdDev * 1.4));
 
       previousVal = actualVal;
       previousStep = currentStep;
@@ -838,11 +993,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       return actualVal;
     });
 
-    const predictionCurve: any[] = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg }];
-    if (activeTopology === 'v4_tcn') {
-        predictionCurve[0].confidenceMin = latestBg;
-        predictionCurve[0].confidenceMax = latestBg;
-    }
+    const predictionCurve: any[] = [{ timestamp: latestTimeMs, offsetMs: 0, value: latestBg, confidenceMin: latestBg, confidenceMax: latestBg }];
 
     const keypoints = [
       { step: 0, val: latestBg, min: latestBg, max: latestBg }, 
@@ -857,16 +1008,42 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     ];
 
     const getInterpolatedValue = (s: number, key: 'val' | 'min' | 'max' = 'val') => {
-      for (let idx = 0; idx < keypoints.length - 1; idx++) {
-        if (s >= keypoints[idx].step && s <= keypoints[idx + 1].step) {
-          const frac = (s - keypoints[idx].step) / (keypoints[idx+1].step - keypoints[idx].step);
-          return (keypoints[idx] as any)[key] + frac * ((keypoints[idx+1] as any)[key] - (keypoints[idx] as any)[key]);
-        }
+      if (s >= keypoints[keypoints.length - 1].step) {
+          const lastVal = (keypoints[keypoints.length - 1] as any)[key] || keypoints[keypoints.length - 1].val;
+          const extraSteps = s - 36;
+          const reversionRate = Math.min(1, extraSteps / 36);
+          return lastVal + reversionRate * (110 - lastVal) * 0.45;
       }
-      const lastVal = (keypoints[keypoints.length - 1] as any)[key] || keypoints[keypoints.length - 1].val;
-      const extraSteps = s - 36;
-      const reversionRate = Math.min(1, extraSteps / 36);
-      return lastVal + reversionRate * (110 - lastVal) * 0.45;
+      
+      let idx = 0;
+      while (idx < keypoints.length - 2 && s > keypoints[idx + 1].step) idx++;
+      
+      const p1 = keypoints[idx];
+      const p2 = keypoints[idx + 1];
+      const p0 = idx > 0 ? keypoints[idx - 1] : p1;
+      const p3 = idx + 2 < keypoints.length ? keypoints[idx + 2] : p2;
+      
+      const t = (s - p1.step) / (p2.step - p1.step);
+      const t2 = t * t;
+      const t3 = t2 * t;
+      
+      const v0 = (p0 as any)[key];
+      const v1 = (p1 as any)[key];
+      const v2 = (p2 as any)[key];
+      const v3 = (p3 as any)[key];
+      
+      if (activeTopology !== 'v4_tcn') {
+          // Linear for v3_lstm
+          return v1 + t * (v2 - v1);
+      }
+      
+      // Catmull-Rom cubic spline for v4_tcn
+      return 0.5 * (
+        (2 * v1) +
+        (-v0 + v2) * t +
+        (2 * v0 - 5 * v1 + 4 * v2 - v3) * t2 +
+        (-v0 + 3 * v1 - 3 * v2 + v3) * t3
+      );
     };
 
     const currentHour = new Date().getHours();
@@ -883,15 +1060,17 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         nextBg += weatherBgModifier * (step / 12); 
         nextBg = Math.max(40, Math.min(600, nextBg));
         
-        let pObj: any = { timestamp: latestTimeMs + (step * 5 * 60 * 1000), offsetMs: step * 5 * 60 * 1000, value: nextBg };
-        if (activeTopology === 'v4_tcn') {
-            let nextMin = getInterpolatedValue(step, 'min');
-            let nextMax = getInterpolatedValue(step, 'max');
-            nextMin += weatherBgModifier * (step / 12);
-            nextMax += weatherBgModifier * (step / 12);
-            pObj.confidenceMin = Math.max(40, Math.min(600, nextMin));
-            pObj.confidenceMax = Math.max(40, Math.min(600, nextMax));
-        }
+        let nextMin = getInterpolatedValue(step, 'min');
+        let nextMax = getInterpolatedValue(step, 'max');
+        nextMin += weatherBgModifier * (step / 12);
+        nextMax += weatherBgModifier * (step / 12);
+        let pObj: any = { 
+          timestamp: latestTimeMs + (step * 5 * 60 * 1000), 
+          offsetMs: step * 5 * 60 * 1000, 
+          value: nextBg,
+          confidenceMin: Math.max(40, Math.min(600, nextMin)),
+          confidenceMax: Math.max(40, Math.min(600, nextMax))
+        };
         predictionCurve.push(pObj);
     }
 
@@ -912,12 +1091,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         }
     }
 
-    const predictedNextHour = predictionCurve[12]?.value || latestBg;
-    const predictedNext2Hours = predictionCurve[24]?.value || latestBg;
+    const predictedNextHour = predictionCurve[Math.min(12, predictionCurve.length - 1)]?.value || latestBg;
+    const predictedNext2Hours = predictionCurve[Math.min(24, predictionCurve.length - 1)]?.value || latestBg;
     const predictedNext6Hours = predictionCurve[Math.min(72, predictionCurve.length - 1)]?.value || latestBg;
-    // We only trigger heuristic hypo alert if the ML prediction DOES NOT firmly predict a safe rise above 95
-    const riskOfHypo = latestBg > 75 && (predictedNextHour < 80 || predictedNext2Hours < 80 || (latestBg < 100 && lastTrendNum < -3 && predictedNextHour < 95));
-
     
     // HEURISTIC: Calculate GMI & Avg Bias
     let sumGlucose = 0;
@@ -952,7 +1128,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const accuracyPhrases = [
         i18n.t('auto.oparlem_sie_o_moje_doswia', { defaultValue: "🧠 Oparłem się o moje doświadczenie z Twoich ostatnich dni. Mój margines błędu to około {{0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl))),
         i18n.t('auto.wciaz_zbieram_dane_moje_o', { defaultValue: "🧠 Wciąż zbieram dane. Moje odchylenie na tę chwilę to ok. {{0}} mg/dL. Im więcej danych, tym mniejszy błąd.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl))),
-        i18n.t('auto.przeanalizowalem_twoje_wy', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika LSTM. Błąd w przewidywaniach to {{0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl)))
+        (activeTopology === 'v4_tcn' || engineMode === 'v4_tcn')
+          ? i18n.t('auto.przeanalizowalem_twoje_wy_tcn', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika TCN Pro (GlikoSense 4.0). Błąd w przewidywaniach to {{0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl)))
+          : i18n.t('auto.przeanalizowalem_twoje_wy', { defaultValue: "🧠 Przeanalizowałem Twoje wykresy używając silnika LSTM (GlikoSense 3.0). Błąd w przewidywaniach to {{0}} mg/dL.", var0: Math.round(avgErrorInMgDl) }).replace('{{0}}', String(Math.round(avgErrorInMgDl)))
     ];
     insights.push(accuracyPhrases[Math.floor(Math.random() * accuracyPhrases.length)]);
 
@@ -1062,6 +1240,29 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(i18n.t('auto.trend_leci_masz_solidny_ladune', { defaultValue: i18n.t('auto.trend_leci_masz_solidny_l', { defaultValue: i18n.t('auto.trend_leci_masz_solidny_l', { defaultValue: "🎯 Trend leci! Masz solidny ładunek aktywnej insuliny w ciele i ani trochę zabezpieczonych węglowodanów w żołądku. Koniecznie zjedz ok. 15g soku lub glukozy!" }) }) }));
     }
 
+    // Calculate Peak & Trough in predictionCurve
+    let peakObj = { value: Math.round(latestBg), timestamp: latestTimeMs };
+    let troughObj = { value: Math.round(latestBg), timestamp: latestTimeMs };
+    if (predictionCurve && predictionCurve.length > 0) {
+      let maxVal = -1;
+      let minVal = 999;
+      predictionCurve.forEach(p => {
+        if (p.value > maxVal) { maxVal = p.value; peakObj = { value: Math.round(p.value), timestamp: p.timestamp }; }
+        if (p.value < minVal) { minVal = p.value; troughObj = { value: Math.round(p.value), timestamp: p.timestamp }; }
+      });
+    }
+
+    // Guardrail medyczny Ochrony Hipo:
+    // 1. Jeśli cukier jest wysoki (>130 mg/dL) i IOB nie pokrywa drastycznego spadku do normy, to NIE MA hipo
+    // 2. Alert jest włączany tylko gdy min. punkt trajektorii lub prognoza 1h/2h faktycznie zagraża spadkiem < 75 mg/dL
+    const isCurrentSugarHigh = latestBg > 130 && (latestBg - (currentIob * 35)) > 80 && lastTrendNum > -3;
+    const riskOfHypo = !isCurrentSugarHigh && latestBg >= 70 && (
+      troughObj.value < 75 ||
+      predictedNextHour < 75 ||
+      predictedNext2Hours < 75 ||
+      (latestBg <= 95 && lastTrendNum < -2.5 && predictedNextHour < 85)
+    );
+
     if (riskOfHypo) {
         const hypoPhrases = [i18n.t('auto.przeczucie_mi_mowi_ze_zbliza_s', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: "⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały." }) }) }), i18n.t('auto.bardzo_czerwone_swiatlo_u_mnie', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku." }) }) }), i18n.t('auto.spadek_i_maly_zakres_konieczni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!" }) }) })];
         insights.push(hypoPhrases[Math.floor(Math.random() * hypoPhrases.length)]);
@@ -1073,7 +1274,90 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
 
+    // Stacking detection
+    let stackingAlert: { isStacking: boolean; timeAgoMin?: number } | null = null;
+    if (recentBolusesIn4h.length >= 2 && currentIob > 1.0) {
+      const sortedB = [...recentBolusesIn4h].sort((a,b) => (b.timestamp || new Date(b.createdAt).getTime()) - (a.timestamp || new Date(a.createdAt).getTime()));
+      const lastB = sortedB[0];
+      const prevB = sortedB[1];
+      const diffMin = Math.round(((lastB.timestamp || new Date(lastB.createdAt).getTime()) - (prevB.timestamp || new Date(prevB.createdAt).getTime())) / 60000);
+      if (diffMin < 120) {
+         stackingAlert = { isStacking: true, timeAgoMin: diffMin };
+      }
+    }
+
     const accuracyValue = Math.max(5, Math.round(100 * Math.exp(-avgErrorInMgDl / 80)));
+
+    const nutriMeals = Object.entries(mealPatterns).map(([name, stats]: [string, any]) => {
+      const spikes = stats.spikes || 0;
+      const count = stats.count || 1;
+      const avgMaxBg = stats.totalMaxBg ? stats.totalMaxBg / count : (spikes > 0 ? 185 : 140);
+      const avgCorrections = stats.totalCorrections ? (stats.totalCorrections / count) : 0;
+      const avgReturnTime = stats.totalReturnTime ? Math.round(stats.totalReturnTime / count) : 0;
+
+      let baseScore = 100;
+      if (avgMaxBg > 140 && avgMaxBg <= 180) {
+        baseScore = 100 - ((avgMaxBg - 140) * 0.5);
+      } else if (avgMaxBg > 180 && avgMaxBg <= 250) {
+        baseScore = 80 - ((avgMaxBg - 180) * 0.57);
+      } else if (avgMaxBg > 250) {
+        baseScore = Math.max(10, 40 - ((avgMaxBg - 250) * 0.3));
+      }
+
+      const correctionPenalty = avgCorrections * 8;
+      const toleranceScore = Math.max(5, Math.min(100, Math.round(baseScore - correctionPenalty)));
+      
+      let category: 'golden' | 'tricky' | 'neutral' = 'neutral';
+      if (toleranceScore >= 75) category = 'golden';
+      else category = 'tricky';
+
+      let consistencyIndex = 85;
+      if (count === 1) {
+        if (spikes === 0 && avgMaxBg <= 150) {
+          consistencyIndex = 92;
+        } else if (spikes === 0) {
+          consistencyIndex = 80;
+        } else {
+          consistencyIndex = 65;
+        }
+      } else {
+        const successRatio = (count - spikes) / count;
+        if (spikes === 0) {
+          consistencyIndex = Math.min(98, 90 + Math.min(8, count * 2));
+        } else if (spikes === count) {
+          consistencyIndex = 85;
+        } else {
+          const variance = Math.abs(successRatio - 0.5);
+          consistencyIndex = Math.round(50 + (variance * 70));
+        }
+      }
+
+      return {
+        name,
+        count,
+        spikes,
+        avgMaxBg: Math.round(avgMaxBg),
+        toleranceScore,
+        consistencyIndex,
+        category,
+        avgCorrections: Math.round(avgCorrections * 10) / 10,
+        avgReturnTime: avgReturnTime > 0 ? avgReturnTime : 90
+      };
+    });
+
+    const goldenMeals = nutriMeals.filter(m => m.category === 'golden').sort((a, b) => b.toleranceScore - a.toleranceScore);
+    const trickyMeals = nutriMeals.filter(m => m.category === 'tricky').sort((a, b) => a.toleranceScore - b.toleranceScore);
+    const overallTolerance = nutriMeals.length > 0
+      ? Math.round(nutriMeals.reduce((sum, m) => sum + m.toleranceScore, 0) / nutriMeals.length)
+      : 100;
+
+    const nutriProfile = {
+      overallTolerance,
+      goldenMeals,
+      trickyMeals,
+      allMeals: nutriMeals,
+      updatedAt: Date.now()
+    };
 
     self.postMessage({ 
       type: 'result', 
@@ -1081,6 +1365,9 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         predictedNextHour: Math.round(predictedNextHour),
         predictedNext2Hours: Math.round(predictedNext2Hours),
         predictedNext6Hours: Math.round(predictedNext6Hours),
+        predictedPeak: peakObj,
+        predictedTrough: troughObj,
+        stackingAlert,
         riskOfHypo,
         insights,
         accuracy: accuracyValue,
@@ -1090,6 +1377,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         metrics: { iob: currentIob, cob: currentCob, carbSensitivity: Math.round(carbSensitivity), insulinSensitivity: Math.round(insulinSensitivity), gmiPercentage: gmiPercentage > 0 ? parseFloat(gmiPercentage.toFixed(2)) : undefined, avgBias: Math.round(avgBias) },
         learnedPkParams: rules.pkParams,
         discoveredRules,
+        nutriProfile,
         engineMode,
         engineStatus,
         modelParams: model ? model.countParams() : 0,

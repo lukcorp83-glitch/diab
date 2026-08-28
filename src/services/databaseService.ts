@@ -50,11 +50,25 @@ export class DatabaseService {
           if (result && result.value) {
             dbSecret = result.value;
           } else {
-            dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-            await SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret });
+            const fallback = localStorage.getItem("db_encryption_key_fallback");
+            if (fallback) {
+              dbSecret = fallback;
+              SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret }).catch(()=>{});
+            } else {
+              dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+              await SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret });
+              localStorage.setItem("db_encryption_key_fallback", dbSecret);
+            }
           }
         } catch(e) {
-          dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+          console.warn("SecureStorage failed, falling back to localStorage", e);
+          const fallback = localStorage.getItem("db_encryption_key_fallback");
+          if (fallback) {
+            dbSecret = fallback;
+          } else {
+            dbSecret = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+            localStorage.setItem("db_encryption_key_fallback", dbSecret);
+          }
           await SecureStoragePlugin.set({ key: "db_encryption_key", value: dbSecret }).catch(() => {});
         }
 
@@ -101,6 +115,7 @@ export class DatabaseService {
           console.warn("DB Open failed – attempting recovery by wiping old database.", openError);
           try {
             await CapacitorSQLite.deleteDatabase({ database: dbName });
+            localStorage.removeItem("lastSafeTimestamp"); // Force full cloud sync
           } catch (delError) {
             console.error("Failed to delete database", delError);
           }
@@ -142,7 +157,18 @@ export class DatabaseService {
   async saveLog(log: any) {
     if (!this.db) return;
     const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
-    const payloadStr = JSON.stringify(log);
+    
+    // Bezpieczna serializacja, usuwająca potencjalnie problematyczne obiekty (np. FieldValue.serverTimestamp())
+    const safeLog = { ...log };
+    for (const key in safeLog) {
+      if (typeof safeLog[key] === 'object' && safeLog[key] !== null) {
+        if (safeLog[key]._methodName === 'serverTimestamp' || typeof safeLog[key].isEqual === 'function') {
+          safeLog[key] = Date.now();
+        }
+      }
+    }
+    
+    const payloadStr = JSON.stringify(safeLog);
     const query = `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES (?, ?, ?, ?, 0)`;
     
     try {
@@ -153,7 +179,7 @@ export class DatabaseService {
         await this.db.open();
         await this.db.run(query, [id, log.timestamp, log.type, payloadStr]);
       } else {
-        throw e;
+        console.warn("Failed to save log to SQLite, skipping throw to prevent UI block", e);
       }
     }
     
@@ -162,8 +188,11 @@ export class DatabaseService {
     }
   }
 
-  async saveMultipleLogs(logs: any[]) {
-    if (!this.db || logs.length === 0) return;
+  async saveMultipleLogs(logs: any[], onProgress?: (progress: number) => void) {
+    if (!this.db || logs.length === 0) {
+      onProgress?.(100);
+      return;
+    }
     
     // Zapobiegamy równoległemu zapisowi (mutex), co mogłoby wywołać błąd "database is locked" w SQLite na Androidzie
     while (this.savePromise) {
@@ -174,15 +203,24 @@ export class DatabaseService {
     this.savePromise = new Promise(resolve => { resolveSave = resolve; });
 
     try {
-      const BATCH_SIZE = 500;
-      for (let i = 0; i < logs.length; i += BATCH_SIZE) {
+      const BATCH_SIZE = 100;
+      const total = logs.length;
+      for (let i = 0; i < total; i += BATCH_SIZE) {
         const chunk = logs.slice(i, i + BATCH_SIZE);
         const statements = chunk.map(log => {
           const id = log.id || log.nsId || `${log.type}_${log.timestamp}`;
-          const payloadStr = JSON.stringify(log);
+          const safeLog = { ...log };
+          for (const key in safeLog) {
+            if (typeof safeLog[key] === 'object' && safeLog[key] !== null) {
+              if (safeLog[key]._methodName === 'serverTimestamp' || typeof safeLog[key].isEqual === 'function') {
+                safeLog[key] = Date.now();
+              }
+            }
+          }
+          const payloadStr = JSON.stringify(safeLog);
           return {
             statement: `INSERT OR REPLACE INTO application_logs (id, timestamp, type, payload, is_synced) VALUES (?, ?, ?, ?, 0)`,
-            values: [id, log.timestamp, log.type, payloadStr]
+            values: [id, log.timestamp || Date.now(), log.type || 'unknown', payloadStr]
           };
         });
         
@@ -194,9 +232,12 @@ export class DatabaseService {
              await this.db.open();
              await this.db.executeSet(statements);
           } else {
-             throw innerE;
+             console.warn("Failed batch save to SQLite, skipping throw", innerE);
           }
         }
+        onProgress?.(Math.min(100, Math.round(((i + chunk.length) / total) * 100)));
+        // Yield to prevent UI thread starvation and SQLite plugin overload
+        await new Promise(r => setTimeout(r, 15));
       }
       
       if (this.isWeb) {

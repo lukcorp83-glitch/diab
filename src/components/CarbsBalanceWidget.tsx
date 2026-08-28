@@ -1,3 +1,4 @@
+﻿import { useAppStore } from '../stores/useAppStore';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
@@ -94,7 +95,7 @@ export default function CarbsBalanceWidget({ settings, size, onAction, setTab }:
  onClick={() => {
  Haptics.light();
  setTab("profile");
- onAction?.("food");
+ useAppStore.getState().setInitialAction('food');
  }}
  className={cn(
  "glass-card w-full h-full p-4 flex flex-col relative overflow-hidden transition-all active:scale-[0.98]",
@@ -145,4 +146,5 @@ export default function CarbsBalanceWidget({ settings, size, onAction, setTab }:
  </div>
  );
 }
+
 

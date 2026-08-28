@@ -64,9 +64,11 @@ export function getGlikoSenseInsights(logs: LogEntry[], treatmentMode?: 'diet_on
   // Dawn Phenomenon detection
   const morningHighs = logs.filter(l => {
     const d = new Date(l.timestamp || l.createdAt);
-    return l.type === 'glucose' && l.value > 150 && (d.getHours() >= 4 && d.getHours() <= 8);
+    const ts = d.getTime();
+    return l.type === 'glucose' && l.value > 150 && (d.getHours() >= 4 && d.getHours() <= 8) && ts >= Date.now() - 7 * 24 * 60 * 60 * 1000;
   });
-  if (morningHighs.length >= 3) {
+  // Pokazuj tylko jeśli jest rano (przed 12:00), żeby nie straszyć użytkownika w środku dnia
+  if (morningHighs.length >= 3 && new Date().getHours() < 12) {
     insights.push(i18n.t('auto.wykryto_tendencje_do_wysokich', { defaultValue: "Wykryto tendencję do wysokich cukrów nad ranem (możliwe zjawisko brzasku)." }));
   }
 
@@ -111,6 +113,57 @@ export function getGlikoSenseInsights(logs: LogEntry[], treatmentMode?: 'diet_on
       insights.push(i18n.t('auto.wysoki_skok_glikemii_po_posilku', { val: maxBg, val2: dateStr, defaultValue: "Wysoki skok glikemii ({{val}} mg/dL) po posiłku z dnia {{val2}}." }));
     }
   });
+
+  // 1. Late Dinners -> Morning Highs
+  const lateMeals = meals.filter(m => new Date(m.timestamp || m.createdAt).getHours() >= 20);
+  if (lateMeals.length > 0) {
+    const hasMorningSpike = lateMeals.some(m => {
+      const mealDate = new Date(m.timestamp || m.createdAt);
+      const nextMorningStart = new Date(mealDate);
+      nextMorningStart.setDate(nextMorningStart.getDate() + 1);
+      nextMorningStart.setHours(6, 0, 0, 0);
+      const nextMorningEnd = new Date(nextMorningStart);
+      nextMorningEnd.setHours(10, 0, 0, 0);
+      
+      const morningLogs = logs.filter(l => l.type === 'glucose' && 
+        new Date(l.timestamp || l.createdAt).getTime() >= nextMorningStart.getTime() && 
+        new Date(l.timestamp || l.createdAt).getTime() <= nextMorningEnd.getTime()
+      );
+      
+      return morningLogs.some(l => l.value > 160);
+    });
+    
+    if (hasMorningSpike) {
+      insights.push(i18n.t('auto.glikosense_poznokolacje', { defaultValue: "GlikoSense zauważył: Twoje kolacje jedzone po godzinie 20:00 często skutkują podwyższonym cukrem wczesnym rankiem. Rozważ wcześniejsze posiłki." }));
+    }
+  }
+
+  // 2. High Fat Meals -> Delayed Spike
+  const fattyMeals = logs.filter(l => l.type === 'meal' && l.fat && l.fat > 15);
+  if (fattyMeals.length > 0) {
+    insights.push(i18n.t('auto.glikosense_tluszcze', { defaultValue: "GlikoSense przeanalizował: Posiłki o dużej zawartości tłuszczu wywołują u Ciebie opóźniony skok glikemii (po 3-4h). Rozważ użycie dłuższego bolusa przedłużonego." }));
+  }
+
+  // 3. Prolonged Highs -> Insulin Resistance
+  const sortedGlucose = logs.filter(l => l.type === 'glucose').sort((a,b) => new Date(a.timestamp || a.createdAt).getTime() - new Date(b.timestamp || b.createdAt).getTime());
+  let highStreakHours = 0;
+  let currentHighStart: number | null = null;
+  
+  for (const l of sortedGlucose) {
+    if (l.value > 200) {
+      if (!currentHighStart) currentHighStart = new Date(l.timestamp || l.createdAt).getTime();
+      else {
+         const diffHours = (new Date(l.timestamp || l.createdAt).getTime() - currentHighStart) / (1000 * 60 * 60);
+         if (diffHours >= 2) highStreakHours = Math.max(highStreakHours, diffHours);
+      }
+    } else {
+      currentHighStart = null;
+    }
+  }
+  
+  if (highStreakHours >= 2) {
+    insights.push(i18n.t('auto.glikosense_insulinoopornosc', { defaultValue: "GlikoSense sugeruje: Gdy Twój cukier utrzymuje się powyżej 200 mg/dL przez ponad 2 godziny, stajesz się silnie insulinooporny. Standardowy bolus korekcyjny działa wtedy słabiej." }));
+  }
 
   return Array.from(new Set(insights)); // Ensure unique insights
 }

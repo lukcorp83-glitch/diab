@@ -43,102 +43,102 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
  const targetMin = settings?.targetMin || 70;
  const targetMax = settings?.targetMax || 180;
 
- logs.forEach(log => {
- const ts = log.timestamp || log.createdAt || 0;
- const date = new Date(ts);
- if (isNaN(date.getTime())) return;
- 
- const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
- const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
- 
- if (!data[monthKey]) {
- data[monthKey] = {
- monthKey,
- monthName: new Intl.DateTimeFormat('pl-PL', { year: 'numeric', month: 'long' }).format(date),
- totalCarbs: 0,
- totalInsulin: 0,
- siteChanges: 0,
- sensorChanges: 0,
- hypos: 0,
- hypers: 0,
- days: {}
- };
- }
- 
- if (!data[monthKey].days[dayKey]) {
- data[monthKey].days[dayKey] = { dateStr: dayKey, carbs: 0, insulin: 0, hypos: 0, hypers: 0, siteChange: false, sensorChange: false };
- }
+    logs.forEach(log => {
+      const ts = log.timestamp || log.createdAt || 0;
+      const date = new Date(ts);
+      if (isNaN(date.getTime())) return;
+      
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      
+      if (!data[monthKey]) {
+        data[monthKey] = {
+          monthKey,
+          monthName: new Intl.DateTimeFormat('pl-PL', { year: 'numeric', month: 'long' }).format(date),
+          totalCarbs: 0,
+          totalInsulin: 0,
+          siteChanges: 0,
+          sensorChanges: 0,
+          hypos: 0,
+          hypers: 0,
+          days: {}
+        };
+      }
+      
+      if (!data[monthKey].days[dayKey]) {
+        data[monthKey].days[dayKey] = { dateStr: dayKey, carbs: 0, insulin: 0, hypos: 0, hypers: 0, siteChange: false, sensorChange: false };
+      }
 
- // Glucose events will be processed separately for accurate episode calculation
+      // 1. Carbs processing (meal, carbs, linkedMeal)
+      const carbVal = Number((log as any).carbs || (log.type === 'meal' || (log.type as any) === 'carbs' ? log.value : 0) || (log as any).linkedMeal?.carbs || 0);
+      if (carbVal > 0) {
+        data[monthKey].totalCarbs += carbVal;
+        data[monthKey].days[dayKey].carbs += carbVal;
+      }
+      
+      // 2. Insulin processing (bolus, insulin)
+      const insulinVal = Number((log as any).insulin || (log.type === 'bolus' || (log.type as any) === 'insulin' ? log.value : 0) || (log as any).amount || 0);
+      if (insulinVal > 0) {
+        data[monthKey].totalInsulin += insulinVal;
+        data[monthKey].days[dayKey].insulin += insulinVal;
+      }
+      
+      // 3. Equipment changes
+      if (log.type === 'site_change' || (log.type as any) === 'site') {
+        if (!data[monthKey].days[dayKey].siteChange) {
+          data[monthKey].siteChanges += 1;
+        }
+        data[monthKey].days[dayKey].siteChange = true;
+      }
+      if (log.type === 'sensor_change' || (log.type as any) === 'sensor') {
+        if (!data[monthKey].days[dayKey].sensorChange) {
+          data[monthKey].sensorChanges += 1;
+        }
+        data[monthKey].days[dayKey].sensorChange = true;
+      }
+    });
 
- if (log.type === 'meal') {
- data[monthKey].totalCarbs += Number(log.value) || 0;
- data[monthKey].days[dayKey].carbs += Number(log.value) || 0;
- }
- 
- if (log.type === 'bolus') {
- data[monthKey].totalInsulin += Number(log.value) || 0;
- data[monthKey].days[dayKey].insulin += Number(log.value) || 0;
- 
- if (log.linkedMeal?.carbs) {
- data[monthKey].totalCarbs += Number(log.linkedMeal.carbs);
- data[monthKey].days[dayKey].carbs += Number(log.linkedMeal.carbs);
- }
- }
- 
- if (log.type === 'site_change') {
- if (!data[monthKey].days[dayKey].siteChange) {
- data[monthKey].siteChanges += 1;
- }
- data[monthKey].days[dayKey].siteChange = true;
- }
- if (log.type === 'sensor_change') {
- if (!data[monthKey].days[dayKey].sensorChange) {
- data[monthKey].sensorChanges += 1;
- }
- data[monthKey].days[dayKey].sensorChange = true;
- }
- });
+    // 2. Process glucose logs (glucose, sgv, cgm) in chronological order to detect episodes (incidents)
+    const glucoseLogs = logs
+      .filter(l => l.type === 'glucose' || (l.type as any) === 'sgv' || (l.type as any) === 'cgm' || (Number((l as any).sgv || 0) > 0))
+      .sort((a, b) => (a.timestamp || (a.createdAt ? new Date(a.createdAt).getTime() : 0)) - (b.timestamp || (b.createdAt ? new Date(b.createdAt).getTime() : 0)));
+    
+    let currentState: 'normal' | 'hypo' | 'hyper' = 'normal';
+    let lastTimestamp = 0;
 
- // 2. Process glucose logs in chronological order to detect episodes (incidents)
- const glucoseLogs = logs.filter(l => l.type === 'glucose').sort((a, b) => (a.timestamp || a.createdAt || 0) - (b.timestamp || b.createdAt || 0));
- 
- let currentState: 'normal' | 'hypo' | 'hyper' = 'normal';
- let lastTimestamp = 0;
+    glucoseLogs.forEach(log => {
+      const ts = log.timestamp || (log.createdAt ? new Date(log.createdAt).getTime() : 0);
+      const date = new Date(ts);
+      if (isNaN(date.getTime())) return;
+      
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      
+      if (!data[monthKey]) return;
 
- glucoseLogs.forEach(log => {
- const ts = log.timestamp || log.createdAt || 0;
- const date = new Date(ts);
- if (isNaN(date.getTime())) return;
- 
- const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
- const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
- 
- if (!data[monthKey]) return; // Should already be initialized
+      // Reset state if there's a gap larger than 2 hours
+      if (lastTimestamp > 0 && (ts - lastTimestamp) > 2 * 60 * 60 * 1000) {
+        currentState = 'normal';
+      }
+      lastTimestamp = ts;
 
- // Reset state if there's a gap larger than 2 hours
- if (lastTimestamp > 0 && (ts - lastTimestamp) > 2 * 60 * 60 * 1000) {
- currentState = 'normal';
- }
- lastTimestamp = ts;
+      const val = Number(log.value || (log as any).sgv || 0);
+      if (val > 0) {
+        let newState: 'normal' | 'hypo' | 'hyper' = 'normal';
+        if (val < targetMin) newState = 'hypo';
+        else if (val > targetMax) newState = 'hyper';
 
- const val = Number(log.value) || 0;
- if (val > 0) {
- let newState: 'normal' | 'hypo' | 'hyper' = 'normal';
- if (val < targetMin) newState = 'hypo';
- else if (val > targetMax) newState = 'hyper';
+        if (newState === 'hypo' && currentState !== 'hypo') {
+          data[monthKey].hypos += 1;
+          if (data[monthKey].days[dayKey]) data[monthKey].days[dayKey].hypos += 1;
+        } else if (newState === 'hyper' && currentState !== 'hyper') {
+          data[monthKey].hypers += 1;
+          if (data[monthKey].days[dayKey]) data[monthKey].days[dayKey].hypers += 1;
+        }
 
- if (newState === 'hypo' && currentState !== 'hypo') {
- data[monthKey].hypos += 1;
- if (data[monthKey].days[dayKey]) data[monthKey].days[dayKey].hypos += 1;
- } else if (newState === 'hyper' && currentState !== 'hyper') {
- data[monthKey].hypers += 1;
- if (data[monthKey].days[dayKey]) data[monthKey].days[dayKey].hypers += 1;
- }
-
- currentState = newState;
- }
- });
+        currentState = newState;
+      }
+    });
 
  return Object.values(data).sort((a, b) => b.monthKey.localeCompare(a.monthKey));
  }, [logs]);

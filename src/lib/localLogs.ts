@@ -22,21 +22,36 @@ export function openLocalLogsDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveLocalLogs(logs: LogEntry[]): Promise<void> {
+export async function saveLocalLogs(logs: LogEntry[], onProgress?: (progress: number) => void): Promise<void> {
   const db = await openLocalLogsDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
+  const BATCH_SIZE = 1500;
+  const total = logs.length;
+  if (total === 0) {
+    onProgress?.(100);
+    return;
+  }
+  
+  for (let i = 0; i < total; i += BATCH_SIZE) {
+    const chunk = logs.slice(i, i + BATCH_SIZE);
     
-    logs.forEach(l => {
-      if (l.id) {
-        store.put(l);
-      }
-    });
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      
+      chunk.forEach(l => {
+        if (l.id) {
+          store.put(l);
+        }
+      });
 
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    
+    onProgress?.(Math.min(100, Math.round(((i + chunk.length) / total) * 100)));
+    // Oddajemy kontrolę głównemu wątkowi (UI) by zapobiec tzw. 'białemu ekranowi' (hang/freeze)
+    await new Promise(r => setTimeout(r, 10));
+  }
 }
 
 export async function loadLocalLogs(): Promise<LogEntry[]> {

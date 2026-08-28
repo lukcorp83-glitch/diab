@@ -1,3 +1,4 @@
+import { Haptics } from '../lib/haptics';
 import { useAuthStore } from '../stores/useAuthStore';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
@@ -49,7 +50,20 @@ export default function GlikoAssistant({
 
  const { t } = useTranslation();
  const isChild = settings?.childMode ?? false;
- const assistantName = isChild ? (petData?.name || "Asystent Gliko") : "Neural Expressive AI";
+  const [activeAiModel, setActiveAiModel] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-3.6-flash');
+
+  useEffect(() => {
+    const handleModelUsed = (e: any) => {
+      if (e.detail?.model) {
+        setActiveAiModel(e.detail.model);
+      }
+    };
+    window.addEventListener('glikocontrol_ai_model_used', handleModelUsed);
+    return () => window.removeEventListener('glikocontrol_ai_model_used', handleModelUsed);
+  }, []);
+ const assistantName = isChild 
+    ? (petData?.name || t('auto.asystent_gliko', { defaultValue: "Asystent Gliko" })) 
+    : t('auto.asystent_medyczny_ai', { defaultValue: "Asystent Medyczny AI" });
 
  useEffect(() => {
  if (messages.length === 0) {
@@ -76,6 +90,7 @@ export default function GlikoAssistant({
 
  const [input, setInput] = useState('');
  const [isListening, setIsListening] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
  const [voiceEnabled, setVoiceEnabled] = useState(() => {
  const saved = localStorage.getItem('gliko_assistant_voice');
  return saved !== null ? JSON.parse(saved) : false;
@@ -101,11 +116,11 @@ export default function GlikoAssistant({
  }, [messages]);
 
  useEffect(() => {
- const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
- if (SpeechRecognition) {
- recognitionRef.current = new SpeechRecognition();
- recognitionRef.current.continuous = false;
- recognitionRef.current.lang = 'pl-PL';
+  const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (SpeechRecognitionAPI) {
+  recognitionRef.current = new SpeechRecognitionAPI();
+  recognitionRef.current.continuous = false;
+  recognitionRef.current.lang = 'pl-PL';
  
  recognitionRef.current.onresult = (event: any) => {
  const transcript = event.results[0][0].transcript;
@@ -171,7 +186,6 @@ export default function GlikoAssistant({
  };
 
  const speak = (text: string) => {
- const logs = useLogsStore((state) => state.logs);
  if (!voiceEnabled || !window.speechSynthesis) return;
  const cleanText = text.replace(/<[^>]*>/g, '').replace(/\*/g, '');
  window.speechSynthesis.cancel();
@@ -191,16 +205,24 @@ export default function GlikoAssistant({
  setInput('');
  };
 
- const clearChat = () => {
- if (window.confirm(i18n.t('auto.wyczyscic_historie_rozmowy_z_a', { defaultValue: i18n.t('auto.wyczyscic_historie_rozmow', { defaultValue: "Wyczyścić historię rozmowy z asystentem?" }) }))) {
- setMessages([{
- id: 'initial-' + Date.now(),
- role: 'model',
- text: i18n.t('auto.witam_jestem_twoim_asystentem', { defaultValue: 'Witam, jestem Twoim asystentem.' }),
- timestamp: Date.now()
- }]);
- }
- };
+  const handleConfirmClear = () => {
+    setShowClearConfirm(false);
+    Haptics.medium();
+    setMessages([{
+      id: 'initial-' + Date.now(),
+      role: 'model',
+      text: isChild 
+        ? i18n.t('auto.czesc_znowu_o_czym_chcesz_tera', { defaultValue: "Cześć znowu! ✨ W czym mogę Ci dzisiaj pomóc?" })
+        : i18n.t('auto.witam_jestem_twoim_asystentem', { defaultValue: 'Witaj, w czym mogę Ci dzisiaj pomóc?' }),
+      timestamp: Date.now()
+    }]);
+    toast.success(t('auto.rozmowa_wyczyszczona', { defaultValue: "Rozmowa została wyczyszczona" }));
+  };
+
+  const clearChat = () => {
+    Haptics.light();
+    setShowClearConfirm(true);
+  };
 
  const adultSuggestions = settings?.treatmentMode === 'diet_only' ? [
  i18n.t('auto.ocena_zbilansowania_diety', { defaultValue: 'Ocena zbilansowania diety' }),
@@ -309,39 +331,49 @@ export default function GlikoAssistant({
  {/* Remove the dark forced backgrounds */}
 
  {/* Header */}
- <div className={cn(
- "p-2 lg:p-4 flex items-center justify-between relative z-10",
- "bg-transparent" 
- )}>
- <div className="flex items-center gap-4">
- {renderAvatar('md')}
- </div>
- <div className="flex items-center gap-2">
- <button 
- onClick={() => setVoiceEnabled(!voiceEnabled)}
- className={cn(
- "p-3 rounded-full transition-all",
- voiceEnabled 
- ? "bg-accent-500 text-white" 
- : "bg-slate-400/10 dark:bg-slate-800/50 text-slate-500 hover:bg-slate-400/20"
- )}
- title={voiceEnabled ? i18n.t('auto.wycisz_glos', { defaultValue: i18n.t('auto.wycisz_glos', { defaultValue: "Wycisz głos" }) }) : i18n.t('auto.wlacz_glos', { defaultValue: i18n.t('auto.wlacz_glos', { defaultValue: "Włącz głos" }) })}
- >
- {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
- </button>
- <button 
- onClick={clearChat}
- className={cn(
- "p-3 rounded-full transition-all bg-slate-400/10 dark:bg-slate-800/50 hover:bg-rose-500/10 text-slate-500 hover:text-rose-500"
- )}
- title={t('auto.wyczyść_historię', { defaultValue: i18n.t('auto.wyczysc_historie', { defaultValue: "Wyczyść historię" }) })}
- >
- <Trash2 size={18} />
- </button>
- </div>
- </div>
+        <div className="p-3 lg:p-4 flex items-center justify-between relative z-10 border border-slate-200/60 dark:border-white/5 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md rounded-2xl mb-2 shadow-sm">
+          <div className="flex items-center gap-3">
+            {renderAvatar('md') || (
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
+                <Sparkles size={20} className="animate-pulse" />
+              </div>
+            )}
+            <div>
+              <h3 className="font-black text-sm tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
+                {assistantName}
+              </h3>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 px-2.5 py-0.5 rounded-full border border-indigo-500/20 shadow-sm">
+                  ⚡ {activeAiModel.replace('gemini-', 'Gemini ').replace('-flash', ' Flash').replace('-pro', ' Pro')}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              className={cn(
+                "p-2.5 rounded-xl transition-all",
+                voiceEnabled 
+                  ? "bg-accent-500 text-white shadow-md shadow-accent-500/20" 
+                  : "bg-slate-400/10 dark:bg-slate-800/50 text-slate-500 hover:bg-slate-400/20"
+              )}
+              title={voiceEnabled ? i18n.t('auto.wycisz_glos', { defaultValue: "Wycisz głos" }) : i18n.t('auto.wlacz_glos', { defaultValue: "Włącz głos" })}
+            >
+              {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+            <button 
+              onClick={clearChat}
+              className="p-2.5 rounded-xl transition-all bg-slate-400/10 dark:bg-slate-800/50 hover:bg-rose-500/10 text-slate-500 hover:text-rose-500"
+              title={t('auto.wyczyść_historię', { defaultValue: "Wyczyść historię" })}
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        </div>
 
- {/* Messages */}
+        {/* Messages */}
  <div 
  ref={scrollRef}
  className={cn(
@@ -349,18 +381,21 @@ export default function GlikoAssistant({
  )}
  >
  <AnimatePresence initial={false}>
- {messages.map((message) => (
+ {messages.map((message) => {
+ const msgText = message.text || (message as any).content || "";
+ const isUser = message.role === 'user';
+ return (
  <motion.div
  key={`msg-${message.id}-${message.timestamp}`}
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  className={cn(
  "flex gap-4",
- message.role === 'user' ? "flex-row-reverse" : "flex-row"
+ isUser ? "flex-row-reverse" : "flex-row"
  )}
  >
  <div className="shrink-0 pt-1">
- {message.role === 'user' ? (
+ {isUser ? (
  <div className={cn(
  "w-10 h-10 rounded-full flex items-center justify-center",
  "bg-slate-100 dark:bg-slate-800 text-slate-500"
@@ -374,37 +409,48 @@ export default function GlikoAssistant({
  
  <div className={cn(
  "max-w-[85%] py-2",
- message.role === 'user' 
+ isUser 
  ? "px-5 py-3 bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 rounded-3xl"
  : "text-slate-800 dark:text-slate-100"
  )}>
  <div 
  className={cn(
  "text-base md:text-lg leading-relaxed prose prose-base max-w-none dark:prose-invert",
- message.role === 'user' ? "[&_p]:text-slate-900 dark:[&_p]:text-slate-100" : "dark:prose-invert",
+ isUser ? "[&_p]:text-slate-900 dark:[&_p]:text-slate-100" : "dark:prose-invert",
  !isChild && "font-sans"
  )}
- dangerouslySetInnerHTML={{ __html: message.text }}
+ dangerouslySetInnerHTML={{ __html: msgText }}
  />
  
- {message.appAction && message.appAction.action && (
+ {message.appAction && (
  <button
  onClick={() => {
+ const target = message.appAction.target || message.appAction.value || message.appAction.tab || (message.appAction.action !== 'navigate' ? message.appAction.action : 'meal');
+ if (message.appAction.action === 'navigate' || target) {
+ window.dispatchEvent(new CustomEvent('ai_app_action', { detail: { action: 'navigate', target } }));
+ window.dispatchEvent(new CustomEvent('changeTab', { detail: target }));
+ } else {
  window.dispatchEvent(new CustomEvent('ai_app_action', { detail: message.appAction }));
+ }
  }}
  className={cn(
  "mt-3 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
  "bg-indigo-500 hover:bg-indigo-600 text-white shadow-md active:scale-95"
  )}
  >
- {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })} {
- message.appAction.action === 'meal' ? t('nav.plate', { defaultValue: 'Talerz' }) :
- message.appAction.action === 'dashboard' ? t('nav.dashboard', { defaultValue: 'Pulpit' }) :
- message.appAction.action === 'chart' ? t('nav.chart', { defaultValue: 'Wykres' }) :
- message.appAction.action === 'database' ? t('nav.database', { defaultValue: 'Baza Produktów' }) :
- message.appAction.action === 'ai' ? t('nav.glikosense', { defaultValue: 'GlikoSense' }) :
- message.appAction.action
- }
+ {t('auto.przejdz_do', { defaultValue: 'Przejdź do:' })}{' '}
+ {(() => {
+ const raw = String(message.appAction.target || message.appAction.value || message.appAction.tab || (message.appAction.action !== 'navigate' ? message.appAction.action : 'meal')).toLowerCase();
+ if (raw === 'meal' || raw === 'plate' || raw === 'talerz') return t('nav.plate', { defaultValue: 'Talerz' });
+ if (raw === 'dashboard' || raw === 'pulpit') return t('nav.dashboard', { defaultValue: 'Pulpit' });
+ if (raw === 'chart' || raw === 'wykres') return t('nav.chart', { defaultValue: 'Wykres' });
+ if (raw === 'database' || raw === 'baza') return t('nav.database', { defaultValue: 'Baza Produktów' });
+ if (raw === 'ai' || raw === 'glikosense') return t('nav.glikosense', { defaultValue: 'GlikoSense' });
+ if (raw === 'profile' || raw === 'profil') return t('nav.profile', { defaultValue: 'Profil' });
+ if (raw === 'history' || raw === 'historia') return t('nav.history', { defaultValue: 'Historia' });
+ if (raw === 'navigate') return t('nav.plate', { defaultValue: 'Talerz' });
+ return raw;
+ })()}
  <ArrowRight size={14} />
  </button>
  )}
@@ -424,7 +470,8 @@ export default function GlikoAssistant({
  </div>
  </div>
  </motion.div>
- ))}
+ );
+ })}
  </AnimatePresence>
  
  {isTyping && (
@@ -504,8 +551,51 @@ export default function GlikoAssistant({
  <Send size={20} />
  </button>
  </div>
+ <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 mt-2 font-medium">
+ ⚠️ {t('ai_medical_disclaimer_short', { defaultValue: 'AI może popełniać błędy. Decyzje o dawkach i terapii zawsze konsultuj z lekarzem.' })}
+ </p>
  </div>
- </div>
+ 
+      {/* Custom In-App Modal do czyszczenia czatu */}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center text-center overflow-hidden"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 text-rose-500 flex items-center justify-center mb-4 shadow-sm">
+                <Trash2 size={26} />
+              </div>
+              <h3 className="font-black text-base text-slate-900 dark:text-white mb-1.5">
+                {t('auto.wyczyscic_historie_rozmowy', { defaultValue: "Wyczyścić historię rozmowy?" })}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-6 max-w-[260px] leading-relaxed">
+                {t('auto.wszystkie_wiadomosci_zostana_usuniete', { defaultValue: "Wszystkie dotychczasowe wiadomości z asystentem zostaną bezpowrotnie usunięte." })}
+              </p>
+
+              <div className="flex gap-2.5 w-full">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-black text-xs uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95 cursor-pointer"
+                >
+                  {t('auto.anuluj', { defaultValue: "Anuluj" })}
+                </button>
+                <button
+                  onClick={handleConfirmClear}
+                  className="flex-1 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-rose-500/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  {t('auto.wyczysc', { defaultValue: "Wyczyść" })}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
  );
 }
 

@@ -176,3 +176,11 @@ export function pluralize(count: number, singular: string, plural1: string, plur
   }
   return plural2;
 }
+export const getTimestampMs = (ts: any): number => {
+  if (!ts) return 0;
+  if (typeof ts === 'number') return ts;
+  if (typeof ts === 'string') return new Date(ts).getTime();
+  if (typeof ts === 'object' && ts.toMillis) return ts.toMillis();
+  if (typeof ts === 'object' && ts.seconds) return ts.seconds * 1000;
+  return new Date(ts).getTime();
+};

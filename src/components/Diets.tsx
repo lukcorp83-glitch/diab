@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import DietManager from './DietManager';
 import HydrationWidget from './HydrationWidget';
 import DietScoreWidget from './DietScoreWidget';
+import { DietSpecificWidgets } from './nutrition/DietSpecificWidgets';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -112,7 +113,7 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
  activeDiet: isActivating ? dietId : null,
  dietStartDate: isActivating ? Date.now() : null
  };
- await setDoc(doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'settings', 'profile'), updates, { merge: true });
+ await setDoc(doc(db, 'users', getEffectiveUid(user), 'settings', 'profile'), updates, { merge: true });
  
  if (isActivating) {
  toast.success(`Aktywowano dietę: ${DIET_TYPES.find(d => d.id === dietId)?.name}`);
@@ -237,9 +238,11 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
  
  <HydrationWidget tdee={settings.tdee} />
  
+ <DietSpecificWidgets activeDietId={activeDietData.id} settings={settings} logs={logs} />
+
  <DietScoreWidget activeDiet={settings.activeDiet} settings={settings} />
 
- <DietManager settings={settings} activeDietData={activeDietData} />
+ <DietManager user={user} settings={settings} activeDietData={activeDietData} />
  
  <div className="pt-2">
  <button

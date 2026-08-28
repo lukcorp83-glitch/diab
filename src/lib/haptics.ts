@@ -1,11 +1,21 @@
 import { Haptics as CapHaptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
-const AndroidHaptic = registerPlugin<any>('AndroidHaptic');
+const AndroidHaptic: any = Capacitor.Plugins?.AndroidHaptic || registerPlugin<any>('AndroidHaptic');
 
 const isEnabled = () => {
   if (typeof window === 'undefined') return false;
   return localStorage.getItem('gliko_haptics_enabled') !== 'false';
+};
+
+const safeVibrate = (pattern: number | number[]) => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (e) {
+      // Suppress Chrome user-gesture intervention exception cleanly
+    }
+  }
 };
 
 const triggerAndroidHaptic = async (type: 'tick' | 'click' | 'heavy') => {
@@ -34,8 +44,8 @@ export const Haptics = {
         } catch (ignored) {}
       }
       await CapHaptics.impact({ style: ImpactStyle.Light });
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate(8);
+    } else {
+      safeVibrate(8);
     }
   },
   medium: async () => {
@@ -48,8 +58,22 @@ export const Haptics = {
         } catch (ignored) {}
       }
       await CapHaptics.impact({ style: ImpactStyle.Medium });
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate(15);
+    } else {
+      safeVibrate(15);
+    }
+  },
+  heavy: async () => {
+    if (!isEnabled()) return;
+    if (Capacitor.isNativePlatform()) {
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await triggerAndroidHaptic('heavy');
+          return;
+        } catch (ignored) {}
+      }
+      await CapHaptics.impact({ style: ImpactStyle.Heavy });
+    } else {
+      safeVibrate(40);
     }
   },
   selection: async () => {
@@ -64,8 +88,8 @@ export const Haptics = {
       await CapHaptics.selectionStart();
       await CapHaptics.selectionChanged();
       await CapHaptics.selectionEnd();
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate(5);
+    } else {
+      safeVibrate(5);
     }
   },
   selectionStart: async () => {
@@ -87,8 +111,8 @@ export const Haptics = {
         } catch (ignored) {}
       }
       await CapHaptics.selectionChanged();
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate(5);
+    } else {
+      safeVibrate(5);
     }
   },
   selectionEnd: async () => {
@@ -100,28 +124,36 @@ export const Haptics = {
       await CapHaptics.selectionEnd();
     }
   },
+  notification: async (type: NotificationType = NotificationType.Success) => {
+    if (!isEnabled()) return;
+    if (Capacitor.isNativePlatform()) {
+      await CapHaptics.notification({ type });
+    } else {
+      safeVibrate([20, 40, 20]);
+    }
+  },
   success: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {
       await CapHaptics.notification({ type: NotificationType.Success });
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate([15, 30, 15]);
+    } else {
+      safeVibrate([15, 30, 15]);
     }
   },
   warning: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {
       await CapHaptics.notification({ type: NotificationType.Warning });
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate([30, 50, 30]);
+    } else {
+      safeVibrate([30, 50, 30]);
     }
   },
   error: async () => {
     if (!isEnabled()) return;
     if (Capacitor.isNativePlatform()) {
       await CapHaptics.notification({ type: NotificationType.Error });
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate([80, 40, 80, 40, 150]);
+    } else {
+      safeVibrate([80, 40, 80, 40, 150]);
     }
   },
   impact: async () => {
@@ -134,8 +166,8 @@ export const Haptics = {
         } catch (ignored) {}
       }
       await CapHaptics.impact({ style: ImpactStyle.Heavy });
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate(40);
+    } else {
+      safeVibrate(40);
     }
   },
   tick: async () => {
@@ -148,8 +180,8 @@ export const Haptics = {
         } catch (ignored) {}
       }
       await CapHaptics.selectionChanged();
-    } else if ('vibrate' in navigator) {
-      navigator.vibrate(4);
+    } else {
+      safeVibrate(4);
     }
   }
 };

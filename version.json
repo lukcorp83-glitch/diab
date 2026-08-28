@@ -1,10 +1,10 @@
 {
-  "version": "5.9.91",
-  "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
-  "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_5.9.91_OTA.apk",
-  "buildNumber": 117,
-  "forceUpdate": false,
-  "whatsNew": "🔧 Wersja 5.9.91: Nowość - Centrum żywieniowe oraz zaktualizowany silnik GlikoSense 4.0",
-  "whatsNewEn": "🔧 Version 5.9.91: New - Nutrition Center and updated GlikoSense 4.0 engine",
-  "otaRevision": 276
+    "version": "6.0.27",
+    "url": "https://lukcorp83-glitch.github.io/diab/update.zip",
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.27_OTA.apk",
+    "buildNumber": 142,
+    "forceUpdate": false,
+    "whatsNew": "Wersja 6.0.27! 1) Pełna synchronizacja miejsc wkłuć i normalizacja polskich znaków w widżecie rotacji na pulpicie. 2) Natychmiastowy stoper przedposiłkowy na belce Androida odliczający sekunda po sekundzie. 3) Precyzyjna edycja dat osprzętu w Profilu bez cofania i bez dublowania historii. 4) Eliminacja podwójnych alarmów i zdublowanego dźwięku na Androidzie. 5) Oficjalne wzory medyczne ISF/WW/korekty w procedurze awarii pompy oraz obsługa systemowego przycisku Wstecz dla okien modalnych.",
+    "whatsNewEn": "Version 6.0.27! 1) Full infusion site synchronization and Polish character normalization in dashboard rotation widget. 2) Instant live pre-bolus countdown on Android status bar. 3) Precise equipment date editing in Profile without history duplication. 4) Eliminated duplicate glucose alarm notifications on Android. 5) Medical ISF/Carb/correction formulas in pump failure procedure and Android Back button handling for modals.",
+    "otaRevision": 301
 }

@@ -17,6 +17,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetUpdaterPlugin.class);
         registerPlugin(AndroidHapticPlugin.class);
         registerPlugin(NotificationBridgePlugin.class);
+        registerPlugin(MaterialYouPlugin.class);
         super.onCreate(savedInstanceState);
         
         // Wymuszenie zapytania o uprawnienia przy uruchomieniu aplikacji

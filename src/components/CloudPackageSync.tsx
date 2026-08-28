@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/useAuthStore';
+import { useLogsStore } from '../stores/useLogsStore';
 import React, { useState, useEffect } from 'react';
 import { CloudUpload, CloudDownload, Loader2, Cloud, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -24,54 +25,84 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
  }
  }
  
- // Pobierz WSZYSTKIE logi glikemii z nowej natywnej bazy SQLite (do 45000), nie z przestarzałego IndexedDB
- const sqliteLogs = await dbService.getLogs(45000);
- 
- // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
- const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
- console.warn("Could not export ML model during cloud sync", e);
- return null;
- });
+    // Pobierz pełną historię: łączymy wpisy z bazy SQLite telefonu oraz pamięci RAM
+    const activeLogs = useLogsStore.getState().logs || [];
+    const dbLogs = await dbService.getLogs(60000).catch(() => []);
+    const allMap = new Map();
+    dbLogs.forEach((l: any) => { if (l && l.id) allMap.set(l.id, l); });
+    activeLogs.forEach((l: any) => { if (l && l.id) allMap.set(l.id, l); });
+    let logsToSave = Array.from(allMap.values()).sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+    
+    // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
+    const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
+      console.warn("Could not export ML model during cloud sync", e);
+      return null;
+    });
 
- const exportData = {
- timestamp: Date.now(),
- localStorage: lsData,
- logs: sqliteLogs,
- mlModel: mlModelBackup,
- settings: settings
- };
+    // Inteligentny kompresor z bezpiecznym buforem Firebase (max 900 KB, twardy limit Firestore to 1048576 B)
+    const MAX_SAFE_BYTES = 900 * 1024;
+    let compressedPayload = '';
+    let maxLogsLimit = Math.min(logsToSave.length, 30000);
 
- const jsonStr = JSON.stringify(exportData);
- const compressedPayload = LZString.compressToUTF16(jsonStr);
+    while (maxLogsLimit >= 2000) {
+      const candidateLogs = logsToSave.slice(0, maxLogsLimit);
+      const exportData = {
+        timestamp: Date.now(),
+        localStorage: lsData,
+        logs: candidateLogs,
+        mlModel: mlModelBackup,
+        settings: settings
+      };
 
- await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest"),
- { payload: compressedPayload, timestamp: Date.now(), isCompressed: true }
- );
- localStorage.setItem('last_cloud_package_sync', Date.now().toString());
- return true;
- } catch (e) {
- console.error("Cloud package upload failed:", e);
- return false;
- }
+      const jsonStr = JSON.stringify(exportData);
+      compressedPayload = LZString.compressToUTF16(jsonStr);
+      const estimatedBytes = compressedPayload.length * 2;
+
+      console.log(`[CloudPackageSync] Packing ${candidateLogs.length} logs: size is ${Math.round(estimatedBytes / 1024)} KB / 1024 KB max`);
+
+      if (estimatedBytes < MAX_SAFE_BYTES) {
+        break;
+      }
+      // Jeśli paczka zbliża się do limitu Firebase, delikatnie redukujemy najstarsze logi
+      maxLogsLimit = Math.floor(maxLogsLimit * 0.75);
+    }
+
+    await setDoc(
+      doc(db, "users", getEffectiveUid(user), "syncPackage", "latest"),
+      { payload: compressedPayload, timestamp: Date.now(), isCompressed: true }
+    );
+    localStorage.setItem('last_cloud_package_sync', Date.now().toString());
+    console.log(`[CloudPackageSync] Successfully saved package to Firestore (well under 1MB limit).`);
+    return true;
+  } catch (e) {
+    console.error("Cloud package upload failed:", e);
+    return false;
+  }
 };
 
-export const downloadCloudPackage = async (user: any) => {
+export const downloadCloudPackage = async (user: any, onProgress?: (progress: number) => void) => {
  if (!user) return false;
  try {
- const snap = await getDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "syncPackage", "latest")
- );
- if (!snap.exists()) return false;
+ onProgress?.(5);
+ const snap = await getDoc(doc(db, "users", getEffectiveUid(user), "syncPackage", "latest"));
+ if (!snap || !snap.exists()) return false;
  
+ onProgress?.(30);
  const data = snap.data();
  if (!data.payload) return false;
  
  let parsed: any;
  try {
  if (data.isCompressed) {
- const decompressed = LZString.decompressFromUTF16(data.payload);
- if (!decompressed) throw new Error("Decompression returned null");
+ let decompressed = LZString.decompressFromUTF16(data.payload);
+ if (!decompressed) decompressed = LZString.decompressFromBase64(data.payload);
+ if (!decompressed) decompressed = LZString.decompress(data.payload);
+ if (!decompressed) decompressed = LZString.decompressFromEncodedURIComponent(data.payload);
+ 
+ if (!decompressed) {
+   console.error("All decompression methods failed for the payload");
+   throw new Error("Decompression returned null");
+ }
  parsed = JSON.parse(decompressed);
  } else {
  // Fallback for older uncompressed packages
@@ -81,6 +112,8 @@ export const downloadCloudPackage = async (user: any) => {
  console.error("Failed to parse package payload", e);
  return false;
  }
+ 
+ onProgress?.(60);
  
  // Przywróć ustawienia localStorage
  if (parsed.localStorage) {
@@ -96,16 +129,30 @@ export const downloadCloudPackage = async (user: any) => {
  }
  
  // Przywróć pełne logi do bazy natywnej SQLite i do IndexedDB (fallback)
- if (parsed.logs && Array.isArray(parsed.logs)) {
+ if (parsed.logs && Array.isArray(parsed.logs) && parsed.logs.length > 0) {
  console.log(`Restoring ${parsed.logs.length} logs from Cloud Package...`);
- await saveLocalLogs(parsed.logs).catch(console.error);
- await dbService.saveMultipleLogs(parsed.logs).catch(console.error);
+ let sqliteP = 0, idbP = 0;
+ // Skalujemy zapis bazy z przedziału 0-100 na przedział 60-100 na pasku
+ // idbP (0-100) + sqliteP (0-100) = max 200. Podzielone przez 5 daje max 40. 60 + 40 = 100.
+ const updateP = () => onProgress?.(60 + Math.round((sqliteP + idbP) / 5));
+ 
+ await Promise.all([
+   saveLocalLogs(parsed.logs, (p) => { idbP = p; updateP(); }).catch(console.error),
+   dbService.saveMultipleLogs(parsed.logs, (p) => { sqliteP = p; updateP(); }).catch(console.error)
+ ]);
+
+  // Natychmiastowa aktualizacja pamięci RAM i aplikacji po pobraniu paczki chmurowej
+  useLogsStore.getState().setLogs(parsed.logs);
+  window.dispatchEvent(new CustomEvent('localLogAddBatch', { detail: parsed.logs }));
+  localStorage.setItem("lastSafeTimestamp", Date.now().toString());
+ } else {
+   onProgress?.(100);
  }
  
  // Przywróć ustawienia profilu w Firebase
  if (parsed.settings) {
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  parsed.settings,
  { merge: true }
  );
@@ -120,13 +167,14 @@ export const downloadCloudPackage = async (user: any) => {
 
 export default function CloudPackageSync({ 
  settings,
- 
+ user: propUser,
  onImport}: { 
- settings: UserSettings,
- user: any,
+ settings: UserSettings;
+ user?: any;
  onImport?: (s: any) => void;
 }) {
-  const user = useAuthStore(state => state.user);
+  const authUser = useAuthStore(state => state.user);
+  const user = propUser || authUser;
 
  const { t } = useTranslation();
  const [loading, setLoading] = useState(false);
@@ -210,4 +258,5 @@ export default function CloudPackageSync({
  </div>
  );
 }
+
 

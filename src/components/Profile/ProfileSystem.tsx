@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Settings2, Activity, Globe, Signal, Apple, Baby, Utensils, CloudRain, Moon, Sun, RefreshCw, Lock as LucideLock, Sparkles, Network, ChevronRight, Info, Cloud, ShieldCheck, LogOut, Play, History, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Palette, Layers, Monitor, RotateCcw, Smartphone, Zap, FileJson, Share2, Search, Database } from 'lucide-react';
+import { Settings2, Activity, Globe, Signal, Apple, Baby, Utensils, CloudRain, Moon, Sun, RefreshCw, Lock as LucideLock, Sparkles, Network, ChevronRight, Info, Cloud, ShieldCheck, LogOut, Play, History, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Palette, Layers, Monitor, RotateCcw, Smartphone, Zap, FileJson, Share2, Search, Database, FlaskConical } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { updateDoc, doc, setDoc, addDoc, collection, serverTimestamp, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -11,7 +11,6 @@ import toast from 'react-hot-toast';
 import { Switch } from '@headlessui/react';
 import i18n from '../../i18n';
 import { dbService } from '../../services/databaseService';
-import { clearCache } from '../../lib/cacheStore';
 
 
 import { motion } from 'framer-motion';
@@ -60,8 +59,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  // 1. Skan w produktach społecznościowych - najpierw budujemy bazę wzorcową
  const commRef = collection(
  db,
- "artifacts",
- "diacontrolapp",
  "communityProducts",
  );
  const commSnap = await getDocs(commRef);
@@ -89,8 +86,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  // 2. Skan we własnych produktach - usuwamy te, które już są w społeczności lub się powtarzają
  const userRef = collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  uid,
  "customProducts",
@@ -123,8 +118,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  for (const dup of duplicatesToDelete) {
  const targetRef = doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  uid,
  "customProducts",
@@ -176,8 +169,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  item.coll === "custom"
  ? doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  uid,
  "customProducts",
@@ -185,8 +176,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  )
  : doc(
  db,
- "artifacts",
- "diacontrolapp",
  "communityProducts",
  item.id,
  );
@@ -285,12 +274,18 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  const isFollower = !settings.followerMode;
  const updated = { ...settings, followerMode: isFollower };
  setSettings(updated);
- 
- await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user!), "settings", "profile"),
- { followerMode: isFollower },
- { merge: true }
- );
+ const uid = getEffectiveUid(user!);
+ if (uid) {
+   try {
+     await setDoc(
+       doc(db, "users", uid, "settings", "profile"),
+       { followerMode: isFollower },
+       { merge: true }
+     );
+   } catch (e) {
+     console.warn("Could not sync followerMode to Firestore", e);
+   }
+ }
  
  if (isFollower) {
  toast.success(i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: "Włączono Tryb Śledzący" }) }));
@@ -375,82 +370,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </button>
  </div>
  </div>
- {/* Treatment Mode Selector */}
- <div className={cn(
- "p-5 rounded-[2.5rem] border transition-all hover:shadow-md space-y-4",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
- )}>
- <div className="flex items-center gap-4">
- <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner">
- <Activity size={22} />
- </div>
- <div className="text-left">
- <p className="text-sm font-black dark:text-white leading-tight">
- {t('auto.treatment_mode_title', { defaultValue: 'Typ leczenia' })}
- </p>
- <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
- {t('auto.treatment_mode_desc', { defaultValue: 'Dostosuj interfejs do swoich potrzeb' })}
- </p>
- </div>
- </div>
- 
- <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
- {[
- { id: 'diet_only', icon: <Apple size={16} />, label: t('auto.treatment_mode_diet', { defaultValue: 'Dieta i tabletki' }), desc: t('auto.treatment_mode_diet_desc', { defaultValue: 'Ukrywa funkcje insulinowe' }) },
- { id: 'insulin', icon: <Zap size={16} />, label: t('auto.treatment_mode_insulin', { defaultValue: 'Insulina' }), desc: t('auto.treatment_mode_insulin_desc', { defaultValue: 'Peny lub strzykawki' }) },
- { id: 'pump', icon: <Signal size={16} />, label: t('auto.treatment_mode_pump', { defaultValue: 'Pompa' }), desc: t('auto.treatment_mode_pump_desc', { defaultValue: 'Zamknięta pętla / AID' }) }
- ].map(mode => (
- <button
- key={mode.id}
- onClick={async () => {
- const newVal = mode.id as 'diet_only' | 'insulin' | 'pump';
- setSettings((prev) => ({ ...prev, treatmentMode: newVal }));
- 
- // Natychmiastowa aktualizacja cache'u (Optimistic Update)
- localStorage.setItem("treatmentMode", newVal);
- if (user) {
-   queryClient.setQueryData(['userSettings', getEffectiveUid(user)], (old: any) => ({
-     ...(old || {}),
-     treatmentMode: newVal
-   }));
- }
-
- if (user) {
-   try {
-     await setDoc(
-       doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
-       { treatmentMode: newVal },
-       { merge: true }
-     );
-     queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-     toast.success(t('auto.zapisano_tryb', { defaultValue: 'Zapisano: ' }) + mode.label);
-   } catch (e: any) {
-     console.error("Failed to save treatmentMode", e);
-     toast.error("Błąd zapisu: " + e.message);
-     // Revert optimistic update
-     queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-   }
- } else {
- toast.success(mode.label + ' ' + t('auto.wymaga_odswiezenia_w_trybie_goscia', { defaultValue: '(Tryb Gościa: odśwież stronę, by zobaczyć efekt)' }));
- }
- }}
- className={cn(
- "p-3 rounded-2xl border transition-all text-left flex flex-col gap-1 items-start justify-center",
- (settings.treatmentMode === mode.id || (!settings.treatmentMode && mode.id === 'insulin'))
- ? "bg-indigo-500 border-indigo-500 text-white shadow-lg"
- : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-300"
- )}
- >
- <div className="flex items-center gap-2">
- {mode.icon}
- <span className="text-xs font-bold">{mode.label}</span>
- </div>
- <span className="text-[9px] opacity-80">{mode.desc}</span>
- </button>
- ))}
- </div>
  </div>
 
  {/* Toggles */}
@@ -472,24 +391,22 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </div>
  </div>
  <button
- onClick={async () => {
- const newVal = !settings.childMode;
- setSettings((prev) => ({ ...prev, childMode: newVal }));
- if (user)
- await setDoc(
- doc(
- db,
- "artifacts",
- "diacontrolapp",
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { childMode: newVal },
- { merge: true },
- );
- }}
+   onClick={async () => {
+   const newVal = !settings.childMode;
+   setSettings((prev) => ({ ...prev, childMode: newVal }));
+     if (user) {
+       try {
+         await setDoc(
+           doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+           { childMode: newVal },
+           { merge: true }
+         );
+       } catch (e) {
+         console.error("Błąd zapisu childMode do settings/profile", e);
+       }
+       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+     }
+   }}
  className={cn(
  "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
  settings.childMode && "bg-amber-500 pl-5",
@@ -534,8 +451,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -588,8 +503,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -693,8 +606,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -741,8 +652,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -751,6 +660,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  { accentColor: color },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }}
  className={cn(
  "w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center transition-all relative",
@@ -804,8 +714,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -814,6 +722,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  { theme: newTheme },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }}
  className={cn(
  "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all border",
@@ -851,8 +760,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -861,6 +768,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  { bgOption: val },
  { merge: true },
  );
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }}
  className={cn(
  "py-4 rounded-2xl border transition-all text-left px-5",
@@ -901,19 +809,31 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  onClick={async () => {
  const glass = style.id === 'glass';
  const material = style.id === 'material3';
+ const dynamic = style.id === 'material3';
  
- setSettings((prev) => ({
+ setSettings((prev: any) => ({
  ...prev,
  glassmorphismEnabled: glass,
  material3Enabled: material,
+ dynamicColorsEnabled: dynamic,
  }));
+ localStorage.setItem("glassmorphismEnabled", String(glass));
+ localStorage.setItem("material3Enabled", String(material));
+ localStorage.setItem("dynamicColorsEnabled", String(dynamic));
  
  if (user) {
+ const uid = getEffectiveUid(user);
+ const updates = { glassmorphismEnabled: glass, material3Enabled: material, dynamicColorsEnabled: dynamic };
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
- { glassmorphismEnabled: glass, material3Enabled: material },
+ doc(db, "users", uid, "settings", "profile"),
+ updates,
  { merge: true }
  );
+ queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+ ...(old || {}),
+ ...updates,
+ }));
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }
  }}
  className={cn(
@@ -949,13 +869,21 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  <button
  onClick={async () => {
  const newVal = !settings.dynamicColorsEnabled;
- setSettings((prev) => ({ ...prev, dynamicColorsEnabled: newVal }));
+ setSettings((prev: any) => ({ ...prev, dynamicColorsEnabled: newVal }));
+ localStorage.setItem("dynamicColorsEnabled", String(newVal));
+
  if (user) {
+ const uid = getEffectiveUid(user);
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", uid, "settings", "profile"),
  { dynamicColorsEnabled: newVal },
  { merge: true }
  );
+ queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+ ...(old || {}),
+ dynamicColorsEnabled: newVal,
+ }));
+ queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }
  }}
  className={cn(
@@ -985,8 +913,9 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  onClick={async () => {
  const mode = !settings.ecoMode;
  setSettings(prev => ({ ...prev, ecoMode: mode }));
+ localStorage.setItem("ecoMode", String(mode));
  if (user) {
- await setDoc(doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true });
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true }); queryClient.invalidateQueries({ queryKey: ["userSettings"] });;
  }
  }}
  className={cn(
@@ -1001,6 +930,93 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  )}
  />
  </button>
+ </div>
+ </div>
+
+ {/* Program Testów Beta OTA */}
+ <div
+ className={cn(
+ "p-6 rounded-[2.5rem] border space-y-4 mt-4 transition-all relative overflow-hidden",
+ settings.betaProgram
+ ? "bg-gradient-to-br from-pink-500/10 via-rose-500/5 to-amber-500/10 border-pink-500/40 dark:border-pink-500/30 shadow-lg shadow-pink-500/5"
+ : settings.glassmorphismEnabled
+ ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+ : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
+ )}
+ >
+ <div className="flex items-start justify-between gap-4">
+ <div className="flex items-start gap-3.5">
+ <div className={cn(
+ "p-3 rounded-2xl shrink-0 mt-0.5 transition-colors",
+ settings.betaProgram ? "bg-pink-500 text-white shadow-md shadow-pink-500/30" : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300"
+ )}>
+ <FlaskConical size={22} />
+ </div>
+ <div className="flex flex-col gap-1 text-left">
+ <div className="flex items-center gap-2 flex-wrap">
+ <h3 className="text-sm font-black dark:text-white leading-tight">
+ {t('auto.program_testow_beta', { defaultValue: 'Program Testów Beta' })}
+ </h3>
+ <span className={cn(
+ "px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full border",
+ settings.betaProgram 
+ ? "bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-500/30 animate-pulse"
+ : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600"
+ )}>
+ {settings.betaProgram ? t('auto.kanal_beta_aktywny', { defaultValue: 'Kanał Beta Aktywny' }) : t('auto.wersja_stabilna', { defaultValue: 'Kanał Stabilny' })}
+ </span>
+ </div>
+ <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed mt-0.5">
+ {t('auto.opis_programu_beta', { defaultValue: 'Otrzymuj najnowsze eksperymentalne funkcje i poprawki OTA szybciej niż inni bezpośrednio z gałęzi testowej.' })}
+ </p>
+ </div>
+ </div>
+
+ <button
+ onClick={async () => {
+ const isBeta = !settings.betaProgram;
+ setSettings(prev => ({ ...prev, betaProgram: isBeta }));
+ localStorage.setItem("betaProgramEnabled", String(isBeta));
+ if (user) {
+ await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { betaProgram: isBeta }, { merge: true });
+ queryClient.invalidateQueries({ queryKey: ["userSettings"] });
+ }
+ if (isBeta) {
+ toast.success("Włączono kanał Beta! Zrestartuj aplikację, aby pobrać wersję testową.");
+ } else {
+ toast.success("Przywrócono kanał Stabilny.");
+ }
+ }}
+ className={cn(
+ "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 mt-1",
+ settings.betaProgram ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-700"
+ )}
+ >
+ <div
+ className={cn(
+ "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+ settings.betaProgram ? "translate-x-6" : "translate-x-0"
+ )}
+ />
+ </button>
+ </div>
+
+ {/* Ostrzeżenie o niestabilności */}
+ <div className={cn(
+ "p-3.5 rounded-2xl border flex items-start gap-2.5 text-[11px] leading-relaxed transition-all",
+ settings.betaProgram
+ ? "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-300"
+ : "bg-slate-100/70 dark:bg-slate-800/40 border-slate-200/50 dark:border-slate-700/50 text-slate-500 dark:text-slate-400"
+ )}>
+ <AlertTriangle size={16} className={cn("shrink-0 mt-0.5", settings.betaProgram ? "text-amber-500" : "text-slate-400")} />
+ <div>
+ <strong className="font-black uppercase tracking-wider block text-[10px] mb-0.5">
+ {t('auto.ostrzezenie_o_niestabilnosci', { defaultValue: 'Uwaga dotycząca stabilności' })}
+ </strong>
+ <span>
+ {t('auto.ostrzezenie_tekst_beta', { defaultValue: 'Wersje testowe (Beta) są stale rozwijane i mogą zawierać błędy, błędy wizualne lub powodować niestabilne działanie aplikacji. Włączasz na własną odpowiedzialność.' })}
+ </span>
+ </div>
  </div>
  </div>
 
@@ -1023,15 +1039,13 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </button>
 
  <CloudPackageSync
- 
+ user={user}
  settings={settings}
  onImport={(s) => {
  setSettings((prev) => ({ ...prev, ...s }));
  setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -1045,14 +1059,13 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  />
 
  <SettingsTransfer
+ user={user}
  settings={settings}
  onImport={(s) => {
  setSettings((prev) => ({ ...prev, ...s }));
  setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -1349,67 +1362,71 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </button>
  </div>
 
- {/* Version History */}
- <div
- className={cn(
- "rounded-[2.5rem] p-8 border shadow-sm opacity-60 hover:opacity-100 transition-opacity",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800",
- )}
- >
- <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
- <History size={14} /> {t('auto.dziennik_aktualizacji', { defaultValue: 'Dziennik Aktualizacji' })}
- </h4>
- <div className="space-y-6">
- {PWA_VERSIONS.slice(0, 3).map((v, i) => (
- <div
- key={v.version}
- className={cn(
- "relative pl-6 border-l-2",
- i === 0
- ? "border-accent-500"
- : "border-slate-200 dark:border-slate-800",
- )}
- >
- <div
- className={cn(
- "absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 bg-white dark:bg-slate-900",
- i === 0
- ? "border-accent-500"
- : "border-slate-200 dark:border-slate-800",
- )}
- />
- <div className="flex items-center justify-between mb-1">
- <span className="text-xs font-black dark:text-white">
- v{v.version}
- </span>
- <span className="text-[9px] font-bold text-slate-400">
- {v.date}
- </span>
- </div>
- <p className="text-[10px] font-bold text-accent-500 mb-2 truncate">
- {t(v.title, { defaultValue: v.title })}
- </p>
- <ul className="space-y-1">
- {v.changes.slice(0, 2).map((change: any, idx) => {
- const text = typeof change === 'string' ? change : change.descriptionKey;
- return (
- <li
- key={`v-change-${v.version}-${idx}`}
- className="text-[9px] text-slate-500 dark:text-slate-400 flex items-start gap-2"
- >
- <span className="mt-1 w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
- {t(text, { defaultValue: text })}
- </li>
- )})}
- </ul>
- </div>
- ))}
- </div>
- </div>
- </div>
- </motion.div>
- </>
- );
+       {/* Version History */}
+      <div
+        className={cn(
+          "rounded-[2.5rem] p-8 border shadow-sm opacity-60 hover:opacity-100 transition-opacity",
+          settings.glassmorphismEnabled
+            ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+            : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800"
+        )}
+      >
+        <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
+          <History size={14} /> {t('auto.dziennik_aktualizacji', { defaultValue: 'Dziennik Aktualizacji' })}
+        </h4>
+        <div className="space-y-6">
+          {PWA_VERSIONS.slice(0, 3).map((v, i) => (
+            <div
+              key={v.version}
+              className={cn(
+                "relative pl-6 border-l-2",
+                i === 0
+                  ? "border-accent-500"
+                  : "border-slate-200 dark:border-slate-800"
+              )}
+            >
+              <div
+                className={cn(
+                  "absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 bg-white dark:bg-slate-900",
+                  i === 0
+                    ? "border-accent-500"
+                    : "border-slate-200 dark:border-slate-800"
+                )}
+              />
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-black dark:text-white">
+                  v{v.version}
+                </span>
+                <span className="text-[9px] font-bold text-slate-400">
+                  {v.date}
+                </span>
+              </div>
+              <p className="text-[10px] font-bold text-accent-500 mb-2 truncate">
+                {t(v.title, { defaultValue: v.title })}
+              </p>
+              <ul className="space-y-1">
+                {v.changes.slice(0, 2).map((change, idx) => {
+                  const text = typeof change === 'string' ? change : change.descriptionKey;
+                  return (
+                    <li
+                      key={`v-change-${v.version}-${idx}`}
+                      className="text-[9px] text-slate-500 dark:text-slate-400 flex items-start gap-2"
+                    >
+                      <span className="mt-1 w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
+                      {t(text, { defaultValue: text })}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
+  </motion.div>
+  </>
+  );
 }
+
+
+

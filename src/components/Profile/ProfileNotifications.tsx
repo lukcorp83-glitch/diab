@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot } from 'lucide-react';
+import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -11,6 +11,17 @@ import i18n from '../../i18n';
 import { Capacitor } from '@capacitor/core';
 import { notificationService } from '../../services/notificationService';
 // import { enableNotifications, registerServiceWorker } from '../../lib/firebase';
+
+const DEFAULT_NOTIFICATION_PREFS = {
+  hypo: true,
+  hyper: true,
+  reminders: true,
+  predictions: true,
+  pumpBolusPreMeal: true,
+  mealDetected: true,
+  nightSnackReminder: false,
+  hypoProtection: true
+};
 
 export default function ProfileNotifications({ user, settings, setSettings, isIOS, pushSupported }: any) {
  const { t } = useTranslation();
@@ -80,8 +91,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -101,8 +110,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -122,8 +129,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -146,88 +151,102 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  </button>
  </div>
 
- {isNativeApp() && (
  <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700 mt-3 mb-3">
- <div className="flex items-center gap-2.5">
- <Bell className="text-accent-500" size={18} />
- <div>
- <p className="text-xs font-black dark:text-white leading-tight">
- 
- {t('auto.informacje_na_pasku_powiadomień', { defaultValue: i18n.t('auto.informacje_na_pasku_powia', { defaultValue: "Informacje na pasku powiadomień" }) })}
- </p>
- <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
- 
- {t('auto.powiadomienia_na_systemowym_pasku_a', { defaultValue: 'Powiadomienia na systemowym pasku (APK)' })}
- </p>
- </div>
- </div>
- <button
- onClick={async () => {
- if (window.self !== window.top && !Capacitor.isNativePlatform()) {
- alert(i18n.t('auto.wazne_przegladarki_blokuja_pow', { defaultValue: i18n.t('auto.wazne_przegladarki_blokuj', { defaultValue: "📢 WAŻNE: Przeglądarki blokują powiadomienia wewnątrz podglądu (iframe).\n\nAby włączyć ten widżet, otwórz aplikację w nowej karcie (przycisk w prawym górnym rogu tego okna)." }) }));
- return;
- }
+    <div className="flex items-center gap-2.5">
+      <Activity className="text-accent-500" size={18} />
+      <div>
+        <p className="text-xs font-black dark:text-white leading-tight">
+          {t('auto.informacje_o_cukrach_na_pasku', { defaultValue: 'Informacje o cukrach na pasku powiadomień' })}
+        </p>
+        <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+          {t('auto.powiadomienia_na_systemowym_pasku_opis', { defaultValue: 'Bieżący poziom cukru i alerty na pasku stanu w telefonie' })}
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={async () => {
+        if (window.self !== window.top && !Capacitor.isNativePlatform()) {
+          alert(i18n.t('auto.wazne_przegladarki_blokuja_pow', { defaultValue: i18n.t('auto.wazne_przegladarki_blokuj', { defaultValue: "📢 WAŻNE: Przeglądarki blokują powiadomienia wewnątrz podglądu (iframe).\n\nAby włączyć ten widżet, otwórz aplikację w nowej karcie (przycisk w prawym górnym rogu tego okna)." }) }));
+          return;
+        }
 
- const currentState = settings.apkSystemNotificationsEnabled ?? true;
- const targetState = !currentState;
+        const currentState = settings.apkSystemNotificationsEnabled ?? true;
+        const targetState = !currentState;
 
- if (targetState) {
- if (Capacitor.isNativePlatform()) {
- const { PushNotifications } = await import('@capacitor/push-notifications');
- const result = await PushNotifications.requestPermissions();
- if (result.receive !== 'granted') {
- alert(i18n.t('auto.zezwol_na_powiadomienia_w_syst', { defaultValue: i18n.t('auto.zezwol_na_powiadomienia_w', { defaultValue: "Zezwól na powiadomienia w systemie, aby używać tego widżetu." }) }));
- return;
- }
- } else if (window.Notification) {
- const perm = await window.Notification.requestPermission();
- if (perm !== 'granted') {
- alert(i18n.t('auto.zezwol_na_powiadomienia_w_prze', { defaultValue: i18n.t('auto.zezwol_na_powiadomienia_w', { defaultValue: "Zezwól na powiadomienia w przeglądarce, aby używać tego widżetu." }) }));
- return;
- }
- } else {
- alert(i18n.t('auto.twoja_przegladarka_nie_obslugu', { defaultValue: i18n.t('auto.twoja_przegladarka_nie_ob', { defaultValue: "Twoja przeglądarka nie obsługuje powiadomień." }) }));
- return;
- }
- }
+        if (targetState) {
+          if (Capacitor.isNativePlatform()) {
+            const { PushNotifications } = await import('@capacitor/push-notifications');
+            const result = await PushNotifications.requestPermissions();
+            if (result.receive !== 'granted') {
+              alert(i18n.t('auto.zezwol_na_powiadomienia_w_syst', { defaultValue: i18n.t('auto.zezwol_na_powiadomienia_w', { defaultValue: "Zezwól na powiadomienia w systemie, aby używać tego widżetu." }) }));
+              return;
+            }
+          } else if (window.Notification) {
+            const perm = await window.Notification.requestPermission();
+            if (perm !== 'granted') {
+              alert(i18n.t('auto.zezwol_na_powiadomienia_w_prze', { defaultValue: i18n.t('auto.zezwol_na_powiadomienia_w', { defaultValue: "Zezwól na powiadomienia w przeglądarce, aby używać tego widżetu." }) }));
+              return;
+            }
+          }
+        }
 
- setSettings({
- ...settings,
- apkSystemNotificationsEnabled: targetState,
- });
- localStorage.setItem(
- "apkSystemNotificationsEnabled",
- targetState ? "true" : "false",
- );
- if (user) {
- await setDoc(
- doc(
- db,
- "artifacts",
- "diacontrolapp",
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- {
- apkSystemNotificationsEnabled: targetState,
- },
- { merge: true },
- );
- }
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- (settings.apkSystemNotificationsEnabled ?? true) &&
- "bg-accent-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
- </div>
- )}
+        setSettings({
+          ...settings,
+          apkSystemNotificationsEnabled: targetState,
+        });
+        localStorage.setItem(
+          "apkSystemNotificationsEnabled",
+          targetState ? "true" : "false",
+        );
+        if (user) {
+          await setDoc(
+            doc(
+              db,
+              "users",
+              getEffectiveUid(user),
+              "settings",
+              "profile",
+            ),
+            {
+              apkSystemNotificationsEnabled: targetState,
+            },
+            { merge: true },
+          );
+        }
+        toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
+      }}
+      className={cn(
+        "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
+        (settings.apkSystemNotificationsEnabled ?? true) &&
+        "bg-accent-500 pl-5",
+      )}
+    >
+      <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+    </button>
+  </div>
 
+  <div className="p-3.5 bg-indigo-50/50 dark:bg-slate-800/60 rounded-2xl border border-indigo-100 dark:border-slate-700 flex items-center justify-between gap-3 my-3">
+    <div className="flex items-center gap-2.5">
+      <Volume2 className="text-indigo-500" size={18} />
+      <div>
+        <p className="text-xs font-black dark:text-white leading-tight">
+          Test Dźwięku MP3
+        </p>
+        <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+          Odtwórz dźwięk status_clear.mp3
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={() => {
+        import('../../lib/audioUtils').then(m => m.playLowGlucoseSound());
+        toast.success('Odtwarzam testowy dźwięk MP3!', { icon: '🔊' });
+      }}
+      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all active:scale-95 shrink-0"
+    >
+      Graj MP3
+    </button>
+  </div>
 
  <div
  className={cn(
@@ -263,12 +282,24 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  label: i18n.t('auto.przewidywania_ai', { defaultValue: 'Przewidywania AI' }),
  icon: <Zap size={14} className="text-emerald-500" />,
  },
+ {
+ id: "pumpBolusPreMeal",
+ label: t('notif.pref_pump_bolus_title', { defaultValue: 'Bolus z pompy i stoper' }),
+ icon: <Clock size={14} className="text-purple-500" />,
+ },
+ {
+ id: "mealDetected",
+ label: t('notif.pref_meal_detected_title', { defaultValue: 'Posiłki (dla opiekuna)' }),
+ icon: <Utensils size={14} className="text-amber-500" />,
+ },
  ].map((pref) => {
  const prefs = settings.notificationPrefs || {
  hypo: true,
  hyper: true,
  reminders: true,
  predictions: true,
+ pumpBolusPreMeal: true,
+ mealDetected: true,
  };
  const isActive = prefs[pref.id as keyof typeof prefs];
  return (
@@ -285,8 +316,6 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  await setDoc(
  doc(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "settings",
@@ -355,7 +384,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  });
  if (user) {
  await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
  { notificationPrefs: newPrefs },
  { merge: true }
  );

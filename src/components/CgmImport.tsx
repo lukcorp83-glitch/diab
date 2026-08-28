@@ -44,7 +44,7 @@ export default function CgmImport({ onComplete}: { user: any, onComplete?: () =>
  // Ensure unique ID
  const ms = log.timestamp;
  const firestoreId = `cgm_import_${log.type}_${ms}`;
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'logs', firestoreId);
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'logs', firestoreId);
  batch.set(docRef, {
  ...log,
  source: 'csv',

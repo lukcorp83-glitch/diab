@@ -35,6 +35,7 @@ export interface LogEntry {
   notes?: string;
   source?: string;
   nsId?: string;
+  eatenAt?: number; // Rzeczywisty moment zjedzenia posiłku (może być np. 15 min po bolusie)
   userModified?: boolean;
   direction?: string;
   delta?: number;
@@ -90,6 +91,9 @@ export interface Medication {
   active: boolean;
   expiryDate?: string; // "YYYY-MM-DD"
   aiData?: DrugKnowledge; // Zapamiętana wiedza AI o danym przypisanym leku
+  stockQuantity?: number; // Pozostała ilość tabletek/sztuk w apteczce
+  stockThreshold?: number; // Próg ostrzegania o kończącym się leku
+  pillsPerDose?: number; // Liczba tabletek przyjmowana na jedno przypomnienie (domyślnie 1)
 }
 
 export interface InventoryItem {
@@ -104,6 +108,7 @@ export interface InventoryItem {
   barcode?: string;
   penCapacity?: number; // Pojemność pojedynczego pena (dla category === 'pens')
   currentPenUnits?: number; // Jednostki w aktualnie rozpoczętym penie
+  capacity?: number; // Pojemność zbiorniczka (dla category === 'reservoirs', w U lub ml)
 }
 
 export interface UserSettings {
@@ -121,8 +126,10 @@ export interface UserSettings {
   linkedUid?: string;      // Zapamiętuje na twardo w chmurze klucz sparowanego Głównego konta
   isLinkedAdmin?: boolean; // Zapamiętuje na twardo w chmurze uprawnienia administratora
   dia?: number; // Duration of Insulin Action in hours
+  insulinType?: string; // e.g. 'novorapid', 'fiasp', 'humalog', 'lyumjev', 'apidra'
   hourlyProfiles?: HourlyProfile[];
   customDrugDictionary?: Record<string, DrugKnowledge>; // Globalny słownik wiedzy wygenerowany przez AI
+  smartEquipmentDetection?: boolean; // Inteligentne wykrywanie zmiany osprzetu
   medications?: Medication[];
   inventory?: InventoryItem[];
   cgmCalibration?: number; // Calibration offset in mg/dL
@@ -131,9 +138,13 @@ export interface UserSettings {
   infusionSetChangeDate?: number;
   reservoirChangeDate?: number;
   infusionSetSite?: string;
+  infusionSite?: string;
+  sensorSite?: string;
+  allowedInfusionSites?: string[];
   sensorDurationDays?: number;
   infusionSetDurationDays?: number;
   reservoirDurationDays?: number;
+  reservoirCapacityUnits?: number; // Pojemność zbiorniczka w pompie w jednostkach (np. 180U / 300U)
   notificationsEnabled?: boolean;
   apkSystemNotificationsEnabled?: boolean;
   notificationPrefs?: {
@@ -143,6 +154,8 @@ export interface UserSettings {
     predictions: boolean;
     sensorCheck?: boolean;
     hypoProtection?: boolean;
+    pumpBolusPreMeal?: boolean;
+    mealDetected?: boolean;
   };
   childMode?: boolean;
   groupTherapyLock?: boolean;
@@ -186,3 +199,4 @@ export interface AssistantMessage {
   timestamp: number;
   appAction?: any;
 }
+

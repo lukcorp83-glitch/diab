@@ -3,6 +3,8 @@ import { useMealPlateLogic } from '../hooks/useMealPlateLogic';
 import { ProductSearch } from "./MealPlate/ProductSearch";
 import { MealComposer } from "./MealPlate/MealComposer";
 import { MealPlateModals } from "./MealPlate/MealPlateModals";
+import CameraModeModal from "./MealPlate/CameraModeModal";
+import RestaurantMenuModal, { MenuItemAnalysis, RestaurantMenuResult } from "./MealPlate/RestaurantMenuModal";
 
 
 import i18n from '../i18n';
@@ -12,6 +14,7 @@ import { Capacitor } from '@capacitor/core';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 
@@ -71,6 +74,8 @@ import {
 } from "firebase/firestore";
 import { useSavedMeals } from "../hooks/queries/useSavedMeals";
 import { useCustomProducts, useCommunityProducts } from "../hooks/queries/useFoodDatabase";
+import { LIB_BASE } from "../data/foodDatabase";
+import { dbService } from "../services/databaseService";
 import { CATEGORIES } from "../constants";
 import { geminiService } from "../services/gemini";
 import { Html5Qrcode } from "html5-qrcode";
@@ -89,7 +94,6 @@ import { useLogsStore } from "../stores/useLogsStore";
 import { useMealPlateStore } from "../stores/useMealPlateStore";
 
 const getDietBadge = (product: Product, activeDiet: string | null) => {
- const logs = useLogsStore((state) => state.logs);
  if (!activeDiet) return null;
  const pName = getProductName(product, i18n.language).toLowerCase();
 
@@ -176,6 +180,7 @@ export default function MealPlate({
  onClearInitialAction?: () => void;
 }) {
   const user = useAuthStore(state => state.user);
+  const queryClient = useQueryClient();
 
  const logs = useLogsStore(state => state.logs);
  const plate = sharedPlate;
@@ -188,6 +193,29 @@ export default function MealPlate({
  const [isScannerOpen, setIsScannerOpen] = useState(false);
  const [unrecognizedBarcode, setUnrecognizedBarcode] = useState<string | null>(null);
  const [isAnalyzingLabel, setIsAnalyzingLabel] = useState(false);
+  const [showCameraModeModal, setShowCameraModeModal] = useState(false);
+  const [restaurantMenuResult, setRestaurantMenuResult] = useState<RestaurantMenuResult | null>(null);
+  const [showRestaurantMenuModal, setShowRestaurantMenuModal] = useState(false);
+
+  useEffect(() => {
+    const checkPendingLoad = () => {
+      const pending = localStorage.getItem("glikocontrol_pending_plate_load");
+      if (pending) {
+        try {
+          const items = JSON.parse(pending);
+          if (Array.isArray(items) && items.length > 0) {
+            setPlate(items);
+            localStorage.removeItem("glikocontrol_pending_plate_load");
+          }
+        } catch (e) {
+          console.error("Error loading pending plate:", e);
+        }
+      }
+    };
+    checkPendingLoad();
+    window.addEventListener("glikocontrol_load_plate", checkPendingLoad);
+    return () => window.removeEventListener("glikocontrol_load_plate", checkPendingLoad);
+  }, [setPlate]);
  const labelFileInputRef = useRef<HTMLInputElement>(null);
  const scannerRef = useRef<any>(null);
 
@@ -213,29 +241,44 @@ export default function MealPlate({
  const [searchError, setSearchError] = useState<string | null>(null);
  const { data: qCustomProducts = [] } = useCustomProducts(user);
  const { data: qCommunityProducts = [] } = useCommunityProducts(user);
+ const { data: savedMeals = [], isLoading: isLoadingSavedMeals } = useSavedMeals(user);
 
-  const [libBase, setLibBase] = useState<any[]>([]);
-  useEffect(() => {
-    let isMounted = true;
-    import("../data/foodDatabase").then(module => {
-      if (isMounted) setLibBase(module.LIB_BASE);
-    });
-    return () => { isMounted = false };
-  }, []);
+  const libBase = LIB_BASE;
 
   const allLocal = useMemo(() => {
-    const allLocalRaw = [...qCustomProducts, ...qCommunityProducts, ...libBase];
- // Remove duplicates based on lowercased name
- const uniqueMap = new Map();
- for (const prod of allLocalRaw) {
- if (!prod) continue;
- const key = getProductName(prod, i18n.language).toLowerCase().trim();
- if (!uniqueMap.has(key)) {
- uniqueMap.set(key, prod);
- }
- }
- return Array.from(uniqueMap.values());
- }, [qCustomProducts, qCommunityProducts, i18n.language]);
+    const mappedMeals = (savedMeals || []).map((sm: any) => {
+      const totalCarbs = sm.totalCarbs || sm.items?.reduce((s: number, i: any) => s + (i.carbs || 0), 0) || 0;
+      const totalProtein = sm.totalProtein || sm.items?.reduce((s: number, i: any) => s + (i.protein || 0), 0) || 0;
+      const totalFat = sm.totalFat || sm.items?.reduce((s: number, i: any) => s + (i.fat || 0), 0) || 0;
+      const totalKcal = sm.totalCalories || sm.items?.reduce((s: number, i: any) => s + (i.calories || i.kcal || 0), 0) || 0;
+      return {
+        id: sm.id,
+        name: sm.name,
+        namePl: sm.name,
+        carbs: Number(totalCarbs.toFixed(1)),
+        protein: Number(totalProtein.toFixed(1)),
+        fat: Number(totalFat.toFixed(1)),
+        calories: Number(totalKcal.toFixed(0)),
+        gi: 45,
+        category: "Gotowe Posiłki",
+        isSavedMeal: true,
+        isCustom: true,
+        recipe: sm.recipe || '',
+        description: sm.description || '',
+        dietName: sm.dietName || '',
+        items: sm.items || [],
+        timestamp: sm.timestamp || Date.now()
+      } as any;
+    });
+
+    const allLocalRaw = [
+      ...mappedMeals,
+      ...qCustomProducts.map((p: any) => ({ ...p, isCustom: true })), 
+      ...qCommunityProducts.map((p: any) => ({ ...p, isCommunity: true })), 
+      ...libBase
+    ];
+    return allLocalRaw;
+  }, [savedMeals, qCustomProducts, qCommunityProducts, libBase]);
 
 
  const openShortcutConfirmModal = (product: Product) => {
@@ -262,8 +305,6 @@ export default function MealPlate({
  await addDoc(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "shortcuts",
@@ -289,14 +330,12 @@ export default function MealPlate({
  if (!user) return;
  try {
  await addDoc(
- collection(
- db,
- "artifacts",
- "diacontrolapp",
- "users",
- getEffectiveUid(user),
- "customProducts",
- ),
+      collection(
+        db,
+        "users",
+        getEffectiveUid(user),
+        "customProducts",
+      ),
  {
  name: getProductName(product, i18n.language),
  carbs: product.carbs,
@@ -306,7 +345,8 @@ export default function MealPlate({
  category: "Z Sieci",
  },
  );
- toast(`Zapisano ${getProductName(product, i18n.language)} do bazy produktów.`);
+ queryClient.invalidateQueries({ queryKey: ["customProducts"] });
+ toast(i18n.t('auto.zapisano_do_wlasnych_posilkow', { defaultValue: i18n.t('auto.zapisano_do_wlasnych_posi', { defaultValue: "Zapisano do własnych posiłków." }) }));
  } catch (e) {
  console.error(e);
  toast.error(i18n.t('auto.blad_zapisu', { defaultValue: i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu." }) }));
@@ -317,7 +357,7 @@ export default function MealPlate({
  if (!user) return;
  try {
  await addDoc(
- collection(db, "artifacts", "diacontrolapp", "communityProducts"),
+      collection(db, "communityProducts"),
  {
  name: getProductName(product, i18n.language),
  carbs: product.carbs,
@@ -329,6 +369,7 @@ export default function MealPlate({
  createdAt: serverTimestamp(),
  },
  );
+ queryClient.invalidateQueries({ queryKey: ["communityProducts"] });
  toast.success(
  `Udostępniono "${getProductName(product, i18n.language)}" społeczności GlikoControl!`,
  );
@@ -354,8 +395,7 @@ export default function MealPlate({
  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
  const [isMealSaved, setIsMealSaved] = useState(false);
  const saveMealToLibrary = () => { setIsSaveModalOpen(true); };
- const [expandedMeal, setExpandedMeal] = useState<{ meal: any; items: any[] } | null>(null);
- const { data: savedMeals = [], isLoading: isLoadingSavedMeals } = useSavedMeals(user);
+  const [expandedMeal, setExpandedMeal] = useState<{ meal: any; items: any[] } | null>(null);
 
  const now = new Date();
  const tzOffset = now.getTimezoneOffset() * 60000;
@@ -411,36 +451,66 @@ export default function MealPlate({
  } finally {
  setIsAnalyzing(false);
  }
- };
+  };
 
- const saveMealSet = async () => {
- if (!user || !mealName || plate.length === 0) return;
- Haptics.medium();
- try {
- await addDoc(
- collection(
- db,
- "artifacts",
- "diacontrolapp",
- "users",
- getEffectiveUid(user),
- "savedMeals",
- ),
- {
- name: mealName,
- items: plate,
- cookingMethod: cookingMethod,
- timestamp: Date.now(),
- },
- );
- setIsSaveModalOpen(false);
- setMealName("");
- Haptics.success();
- toast.success("Zestaw zapisany!");
- } catch (e) {
- console.error(e);
- }
- };
+  const saveMealSet = async () => {
+    if (!user || !mealName || plate.length === 0) return;
+    Haptics.medium();
+    try {
+      const totalCarbs = plate.reduce((sum: number, item: any) => sum + (item.carbs || 0), 0);
+      const totalProtein = plate.reduce((sum: number, item: any) => sum + (item.protein || 0), 0);
+      const totalFat = plate.reduce((sum: number, item: any) => sum + (item.fat || 0), 0);
+      const totalCarbsForGI = plate.reduce((sum: number, item: any) => sum + (item.carbs || 0), 0);
+      const weightedGI = totalCarbsForGI > 0 
+        ? plate.reduce((sum: number, item: any) => sum + ((item.gi || 50) * (item.carbs || 0)), 0) / totalCarbsForGI
+        : 50;
+
+      // Zapis jako szablon (na wypadek, gdyby stary kod gdzieś go używał)
+      await addDoc(
+        collection(
+          db,
+          "users",
+          getEffectiveUid(user),
+          "savedMeals",
+        ),
+        {
+          name: mealName,
+          items: plate,
+          cookingMethod: cookingMethod,
+          timestamp: Date.now(),
+        },
+      );
+
+      // Zapis jako pojedynczy, gotowy produkt do wyszukiwania we Własnych
+      await addDoc(
+        collection(
+          db,
+          "users",
+          getEffectiveUid(user),
+          "customProducts",
+        ),
+        {
+          name: mealName,
+          carbs: Number(totalCarbs.toFixed(1)),
+          protein: Number(totalProtein.toFixed(1)),
+          fat: Number(totalFat.toFixed(1)),
+          gi: Number(weightedGI.toFixed(0)),
+          category: "Zestawy",
+          isCustom: true
+        }
+      );
+      
+      queryClient.invalidateQueries({ queryKey: ["customProducts"] });
+      
+      setIsSaveModalOpen(false);
+      setMealName("");
+      Haptics.success();
+      toast.success(i18n.t('auto.zestaw_zapisany', { defaultValue: "Zestaw zapisany!" }));
+    } catch (e) {
+      console.error(e);
+      toast.error(i18n.t('auto.blad_zapisu', { defaultValue: "Błąd zapisu." }));
+    }
+  };
 
  const addSavedMeal = (meal: any) => {
  Haptics.light();
@@ -871,7 +941,7 @@ export default function MealPlate({
  const effectiveLogId = logToMerge.id || logToMerge.nsId;
  if (!effectiveLogId) throw new Error("Brak prawidłowego ID wpisu.");
 
- const logRef = doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs", effectiveLogId);
+ const logRef = doc(db, "users", getEffectiveUid(user), "logs", effectiveLogId);
  await setDoc(logRef, { ...logToMerge, id: effectiveLogId, ...updates, userModified: true }, { merge: true });
  
  window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: effectiveLogId, updates: { ...logToMerge, id: effectiveLogId, ...updates, userModified: true } } }));
@@ -903,14 +973,13 @@ export default function MealPlate({
  const docRef = await addDoc(
  collection(
  db,
- "artifacts",
- "diacontrolapp",
  "users",
  getEffectiveUid(user),
  "logs",
  ),
  payload,
  );
+ await dbService.saveLog({ ...payload, id: docRef.id });
  window.dispatchEvent(new CustomEvent("localLogAdd", { detail: { ...payload, id: docRef.id } }));
  setPlate([]);
  Haptics.success();
@@ -918,71 +987,174 @@ export default function MealPlate({
  };
 
 
- const startCameraAnalysis = async () => {
- try {
- const image = await CapCamera.getPhoto({
- quality: 80,
- allowEditing: false,
- resultType: CameraResultType.DataUrl,
- source: CameraSource.Camera
- });
+  const startCameraAnalysis = () => {
+    Haptics.light();
+    setShowCameraModeModal(true);
+  };
 
- if (image.dataUrl) {
- setIsAnalyzing(true);
- setSearchError("");
- try {
- const result = await geminiService.analyzeMeal(
- image.dataUrl,
- settings,
- );
- const estimatedWeight =
- result.weight && result.weight > 0 ? result.weight : 100;
+  const startPlateCameraAnalysis = async () => {
+    setIsAnalyzing(true);
+    setSearchError("");
+    try {
+      const image = await CapCamera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera
+      });
 
- const p = {
- id: `ai_${Date.now()}`,
- name: result.mealName || i18n.t('auto.posilek_ai', { defaultValue: i18n.t('auto.posilek_ai', { defaultValue: "Posiłek AI" }) }),
- carbs: Number(
- (((result.carbs || 0) / estimatedWeight) * 100).toFixed(1),
- ),
- protein: Number(
- (((result.protein || 0) / estimatedWeight) * 100).toFixed(1),
- ),
- fat: Number(
- (((result.fat || 0) / estimatedWeight) * 100).toFixed(1),
- ),
- gi: result.ig || result.gi || 50,
- category: "AI Wizja",
- };
- const weight = estimatedWeight;
- setPlate((prev) => [
- ...prev,
- {
- ...p,
- weight,
- carbs: p.carbs,
- protein: p.protein,
- fat: p.fat,
- },
- ]);
- setTimeout(() => {
- const container = document.getElementById("meal-plate-container")?.parentElement;
- if (container) {
- container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
- }
- }, 50);
- } catch (err) {
- console.error("Camera vision analysis:", err);
- setSearchError(
- i18n.t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: i18n.t('auto.blad_analizy_zdjecia_spro', { defaultValue: "Błąd analizy zdjęcia. Spróbuj ponownie lub zrób inne zdjęcie." }) }),
- );
- } finally {
- setIsAnalyzing(false);
- }
- }
- } catch (e) {
- console.error("Camera cancelled or failed", e);
- }
- };
+      if (image.dataUrl) {
+        try {
+          const result = await geminiService.analyzeMeal(
+            image.dataUrl,
+            settings,
+          );
+
+          let htmlAnalysis = "";
+          if (result.analysis) {
+            htmlAnalysis += `<div>${result.analysis}</div>`;
+          }
+          if (result.glycemicImpact) {
+            htmlAnalysis += `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);"><b>⚡ ${i18n.t('auto.przewidywany_wplyw_na_cukier', { defaultValue: 'Wpływ na glikemię' })}:</b> ${result.glycemicImpact}</div>`;
+          }
+          if (result.balanceAdvice) {
+            htmlAnalysis += `<div style="margin-top: 6px;"><b>💡 ${i18n.t('auto.wskazowka_bilansowania', { defaultValue: 'Wskazówka bilansowania' })}:</b> ${result.balanceAdvice}</div>`;
+          }
+          setAnalysis(htmlAnalysis);
+
+          // Automatycznie ustawiamy nazwę posiłku rozpoznaną przez AI
+          if (result.mealName) {
+            setMealName(result.mealName);
+          }
+
+          if (result.ingredients && Array.isArray(result.ingredients) && result.ingredients.length > 0) {
+            const itemsToAdd = result.ingredients.map((ing: any, idx: number) => {
+              const ingWeight = ing.weight && ing.weight > 0 ? ing.weight : 100;
+              const carbs100 = ing.carbsPer100g !== undefined ? ing.carbsPer100g : (ing.carbs ? ((ing.carbs / ingWeight) * 100) : 0);
+              const prot100 = ing.proteinPer100g !== undefined ? ing.proteinPer100g : (ing.protein ? ((ing.protein / ingWeight) * 100) : 0);
+              const fat100 = ing.fatPer100g !== undefined ? ing.fatPer100g : (ing.fat ? ((ing.fat / ingWeight) * 100) : 0);
+              return {
+                id: `ai_ing_${Date.now()}_${idx}`,
+                name: ing.name || `Składnik ${idx + 1}`,
+                carbs: Number(carbs100.toFixed(1)),
+                protein: Number(prot100.toFixed(1)),
+                fat: Number(fat100.toFixed(1)),
+                gi: ing.ig || result.ig || 50,
+                weight: ingWeight,
+                category: "AI Wizja",
+              };
+            });
+
+            setPlate((prev) => [...prev, ...itemsToAdd]);
+            toast.success(
+              result.mealName 
+                ? `Rozpoznano: ${result.mealName} (${itemsToAdd.length} składników dodano na talerz)`
+                : `Wykryto ${itemsToAdd.length} składników posiłku!`,
+              { duration: 4000 }
+            );
+          } else {
+            const estimatedWeight = result.weight && result.weight > 0 ? result.weight : 100;
+            const p = {
+              id: `ai_${Date.now()}`,
+              name: result.mealName || i18n.t('auto.posilek_ai', { defaultValue: "Posiłek AI" }),
+              carbs: Number((((result.carbs || 0) / estimatedWeight) * 100).toFixed(1)),
+              protein: Number((((result.protein || 0) / estimatedWeight) * 100).toFixed(1)),
+              fat: Number((((result.fat || 0) / estimatedWeight) * 100).toFixed(1)),
+              gi: result.ig || result.gi || 50,
+              category: "AI Wizja",
+            };
+            setPlate((prev) => [...prev, { ...p, weight: estimatedWeight }]);
+          }
+        } catch (err) {
+          console.error("Camera vision analysis:", err);
+          setSearchError(i18n.t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: "Błąd analizy zdjęcia posiłku." }));
+        } finally {
+          setIsAnalyzing(false);
+        }
+      }
+    } catch (e) {
+      setIsAnalyzing(false);
+      console.error("Camera cancelled or failed", e);
+    }
+  };
+
+  const startRestaurantMenuCameraAnalysis = async () => {
+    setIsAnalyzing(true);
+    setSearchError("");
+    const toastId = toast.loading(i18n.t('menu_advisor.analyzing_menu', { defaultValue: 'AI analizuje kartę dań i profil diety...' }));
+    try {
+      const image = await CapCamera.getPhoto({
+        quality: 85,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera
+      });
+
+      if (image.dataUrl) {
+        try {
+          const result = await geminiService.analyzeRestaurantMenu(image.dataUrl, settings);
+          toast.dismiss(toastId);
+
+          if (result && Array.isArray(result.menuItems) && result.menuItems.length > 0) {
+            setRestaurantMenuResult(result);
+            setShowRestaurantMenuModal(true);
+            toast.success(i18n.t('menu_advisor.detected_success', { 
+              count: result.menuItems.length,
+              defaultValue: `Rozpoznano ${result.menuItems.length} dań z karty menu!`
+            }));
+          } else {
+            toast.error(i18n.t('menu_advisor.no_dishes_found', { defaultValue: 'Nie udało się rozpoznać dań z tego zdjęcia menu. Spróbuj zrobić wyraźniejsze ujęcie.' }));
+          }
+        } catch (err) {
+          toast.dismiss(toastId);
+          console.error("Menu vision analysis error:", err);
+          toast.error(i18n.t('menu_advisor.err_analysis', { defaultValue: 'Błąd analizy karty menu. Spróbuj ponownie.' }));
+        } finally {
+          setIsAnalyzing(false);
+        }
+      } else {
+        toast.dismiss(toastId);
+        setIsAnalyzing(false);
+      }
+    } catch (e) {
+      toast.dismiss(toastId);
+      setIsAnalyzing(false);
+      console.error("Menu camera cancelled or failed", e);
+    }
+  };
+
+  const handleSelectCameraMode = (selectedMode: 'plate' | 'menu' | 'label') => {
+    setShowCameraModeModal(false);
+    if (selectedMode === 'plate') {
+      startPlateCameraAnalysis();
+    } else if (selectedMode === 'menu') {
+      startRestaurantMenuCameraAnalysis();
+    } else if (selectedMode === 'label') {
+      labelFileInputRef.current?.click();
+    }
+  };
+
+  const handleSelectRestaurantDish = (dish: MenuItemAnalysis) => {
+    const weight = dish.estimatedWeight || 350;
+    const carbsPer100 = Number((((dish.carbs || 0) / weight) * 100).toFixed(1));
+    const protPer100 = Number((((dish.protein || 0) / weight) * 100).toFixed(1));
+    const fatPer100 = Number((((dish.fat || 0) / weight) * 100).toFixed(1));
+    
+    const newItem: PlateItem = {
+      id: `menu_${Date.now()}`,
+      name: dish.name,
+      carbs: carbsPer100,
+      protein: protPer100,
+      fat: fatPer100,
+      gi: dish.ig || 50,
+      weight: weight,
+      category: dish.category || 'Menu restauracji',
+    };
+
+    setPlate(prev => [...prev, newItem]);
+    setShowRestaurantMenuModal(false);
+    toast.success(`Dodano: ${dish.name} (+${dish.carbs}g W)`);
+  };
 
  const startScanner = () => {
  setIsScannerOpen(true);
@@ -1001,73 +1173,19 @@ export default function MealPlate({
  {t('auto.talerz', { defaultValue: "Centrum Żywieniowe" })}
  </h1>
  <button
- onClick={() => setIsScannerOpen(true)}
+ onClick={startCameraAnalysis}
  className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-500 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shrink-0"
  >
  <Camera size={24} />
  </button>
  </div>
-
- {/* Tab Toggle */}
- <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl mx-2 mb-6">
- <button
- onClick={() => setPlateView("composer")}
- className={cn(
- "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
- plateView === "composer" 
- ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
- : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
- )}
- >
- {t('auto.kompozytor', { defaultValue: "Kompozytor" })}
- </button>
- <button
- onClick={() => setPlateView("diets")}
- className={cn(
- "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
- plateView === "diets" 
- ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
- : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
- )}
- >
- {t('auto.diety', { defaultValue: "Diety" })}
- </button>
- <button
- onClick={() => setPlateView("history")}
- className={cn(
- "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
- plateView === "history" 
- ? "bg-white dark:bg-slate-700 text-accent-600 shadow-sm" 
- : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
- )}
- >
- {t('auto.historia', { defaultValue: "Historia" })}
- </button>
- </div>
  </>
  )}
 
- {(mode === "plate" || mode === "both") && plateView === "history" ? (
- <MealHistoryView 
- user={user}
- hasItems={plate.length > 0}
- onMergeToLog={(log) => {
- if (plate.length > 0) {
- handleMergeMeal(log.id!);
- setPlateView("plate");
- } else {
- toast.error(i18n.t('auto.najpierw_skomponuj_talerz', { defaultValue: `Najpierw skomponuj talerz!` }));
- }
- }}
- />
- ) : (mode === "plate" || mode === "both") && plateView === "diets" ? (
-  <React.Suspense fallback={<div className="flex justify-center p-4"><Loader2 className="animate-spin text-blue-500" /></div>}>
-  <Diets user={user} setTab={setTab} settings={settings} logs={logs} />
-  </React.Suspense>
- ) : (
- <>
+ {(mode === "plate" || mode === "both") && (
  <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-2 flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 mx-2"></div>
- {/* Weight Modal etc. */}
+ )}
+
  <MealPlateModals
  labelFileInputRef={labelFileInputRef} setIsAnalyzingLabel={setIsAnalyzingLabel}
  unrecognizedBarcode={unrecognizedBarcode} setUnrecognizedBarcode={setUnrecognizedBarcode}
@@ -1086,6 +1204,21 @@ export default function MealPlate({
  mergeCandidates={mergeCandidates} handleMergeMeal={handleMergeMeal}
  handleLogMeal={handleLogMeal} setMergeCandidates={setMergeCandidates}
  getProductName={getProductName} setIsScannerOpen={setIsScannerOpen}
+ />
+
+ <CameraModeModal
+   isOpen={showCameraModeModal}
+   onClose={() => setShowCameraModeModal(false)}
+   onSelectMode={handleSelectCameraMode}
+   activeDiet={settings?.activeDiet || null}
+ />
+
+ <RestaurantMenuModal
+   isOpen={showRestaurantMenuModal}
+   onClose={() => setShowRestaurantMenuModal(false)}
+   result={restaurantMenuResult}
+   onSelectDish={handleSelectRestaurantDish}
+   activeDiet={settings?.activeDiet || null}
  />
 
  { (mode === "search" || mode === "both") && (
@@ -1177,274 +1310,282 @@ export default function MealPlate({
  </motion.div>
  )}
 
- {(mode === "plate" || mode === "both") && activeMeal && (
- <div className="mt-6 mb-6 space-y-4">
- <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
- <div className="flex justify-between items-center mb-6">
- <div className="flex items-center gap-3">
- <div className="relative w-12 h-12 flex items-center justify-center">
- <svg
- className="absolute inset-0 w-full h-full transform -rotate-90"
- viewBox="0 0 48 48"
- >
- <circle
- cx="24"
- cy="24"
- r="22"
- stroke="currentColor"
- strokeWidth="3"
- fill="transparent"
- className="text-slate-200 dark:text-slate-800"
- />
- <circle
- cx="24"
- cy="24"
- r="22"
- stroke="currentColor"
- strokeWidth="3"
- fill="transparent"
- strokeDasharray="138.2"
- strokeDashoffset={
- 138.2 *
- (() => {
- if (!activeMeal) return 0;
- const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
- if (!mSrc) return 0;
- const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
- const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
- const durationH = getMealAbsorptionTime(mWW, mWBT);
- if (durationH <= 0) return 1;
- const ageH = (currentTime - (activeMeal.timestamp || 0)) / (1000 * 60 * 60);
- return Math.max(0, Math.min(1, ageH / durationH));
- })()
- }
- className="text-emerald-500 transition-all duration-1000"
- />
- </svg>
- <div className="bg-emerald-500/10 w-full h-full rounded-full absolute" />
- <Zap className="text-emerald-500 z-10" size={20} />
- </div>
- <div>
- <h3 className="font-bold text-slate-800 dark:text-white text-sm">
- {activeMeal.type === "bolus" && activeMeal.linkedMeal
- ? activeMeal.linkedMeal.name || t('meal.pump_meal_fallback', { defaultValue: i18n.t('auto.posilek_z_pompy', { defaultValue: "Posiłek z pompy" }) })
- : activeMeal.name ||
- activeMeal.notes ||
- t('meal.active_meal_fallback', { defaultValue: i18n.t('auto.aktywny_posilek', { defaultValue: "Aktywny posiłek" }) })}
- </h3>
- <p className="text-xs text-slate-500 dark:text-slate-400">
- {t('meal.given_at', { defaultValue: 'Podano:' })}{" "}
- {new Date(activeMeal.timestamp).toLocaleTimeString([], {
- hour: "2-digit",
- minute: "2-digit",
- })}
- </p>
- </div>
- </div>
- </div>
+  {/* Plate Stats & Composed Products */}
+  {(mode === "plate" || mode === "both") && (
+    <MealComposer
+      mode={mode}
+      plate={plate}
+      setPlate={setPlate}
+      removeFromPlate={removeFromPlate}
+      updateWeight={updateWeight}
+      totalWW={totalWW}
+      totalWBT={totalWBT}
+      totalCarbs={totalCarbs}
+      totalProtein={totalProtein}
+      totalFat={totalFat}
+      cookingMethod={cookingMethod}
+      setCookingMethod={setCookingMethod}
+      settings={settings}
+      activeBolus={activeBolus}
+      entryTime={entryTime}
+      setEntryTime={setEntryTime}
+      handleMergeMeal={handleMergeMeal}
+      handleLogMeal={handleLogMeal}
+      totalKcal={totalCarbs * 4 + totalProtein * 4 + totalFat * 9}
+      saveMealToLibrary={saveMealToLibrary}
+      setIsMealSaved={setIsMealSaved}
+      totalGL={totalGL}
+      prepareToLogMeal={prepareToLogMeal}
+      analyzeMeal={analyzeMeal}
+      isAnalyzing={isAnalyzing}
+      analysis={analysis}
+      setTab={setTab}
+    />
+  )}
 
- <div className="grid grid-cols-2 gap-3">
- <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
- <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
- {t('meal.estimated_macros', { defaultValue: 'Szacowane Makro' })}
- </div>
- <div className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
- <span className="text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-lg">
- {activeChartData[0]?.WW?.toFixed(1) || "?"} {t('auto.ww', { defaultValue: 'WW' })}
- </span>
- <span className="text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-lg">
- {activeChartData[0]?.WBT?.toFixed(1) || "?"} {t('auto.wbt', { defaultValue: 'WBT' })}
- </span>
- </div>
- </div>
- <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
- <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
- {t('meal.absorption_end', { defaultValue: i18n.t('auto.koniec_wchlaniania', { defaultValue: "Koniec wchłaniania" }) })}
- </div>
- <div className="text-xl font-black text-slate-800 dark:text-white">
- {new Date(
- (activeMeal.timestamp || 0) +
- getMealAbsorptionTime(
- activeChartData[0]?.WW || 0,
- activeChartData[0]?.WBT || 0,
- ) *
- 60 *
- 60 *
- 1000,
- ).toLocaleTimeString([], {
- hour: "2-digit",
- minute: "2-digit",
- })}
- </div>
- </div>
- </div>
- </div>
-
- <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
- <div className="mb-4">
- <h3 className="font-bold text-slate-800 dark:text-white text-sm">
- {t('meal.absorption_chart', { defaultValue: i18n.t('auto.wykres_wchlaniania', { defaultValue: "Wykres wchłaniania" }) })}
- </h3>
- <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[250px]">
- {t('meal.absorption_chart_desc', { defaultValue: i18n.t('auto.przebieg_uwalniania_sie_g', { defaultValue: "Przebieg uwalniania się glukozy oraz insuliny w czasie" }) })}
- </p>
- </div>
-
- <div className="h-44 w-full mb-3 select-none">
- <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
- <AreaChart
- data={activeChartData}
- margin={{ top: 10, right: 35, left: 0, bottom: 0 }}
- >
- <defs>
- <linearGradient
- id="colorPosilekAct"
- x1="0"
- y1="0"
- x2="0"
- y2="1"
- >
- <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4} />
- <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
- </linearGradient>
- <linearGradient
- id="colorInsulinaAct"
- x1="0"
- y1="0"
- x2="0"
- y2="1"
- >
- <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
- <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
- </linearGradient>
- </defs>
- <XAxis
- dataKey="time"
- stroke="#94a3b8"
- fontSize={10}
- tickLine={false}
- axisLine={false}
- />
- <YAxis yAxisId="left" hide />
- <YAxis
- yAxisId="right"
- orientation="right"
- stroke="#94a3b8"
- fontSize={10}
- tickLine={false}
- axisLine={false}
- domain={["dataMin - 20", "dataMax + 20"]}
- />
- <Tooltip
- contentStyle={{
- backgroundColor: "rgba(15, 23, 42, 0.9)",
- border: "1px solid #1e293b",
- borderRadius: "16px",
- fontSize: "12px",
- color: "#f8fafc",
- fontWeight: "bold",
- boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
- backdropFilter: "blur(8px)",
- }}
- itemStyle={{ color: "#f8fafc" }}
- formatter={(value: any, name: any) => [`${value}`, name]}
- labelStyle={{ color: "#94a3b8", marginBottom: "4px" }}
- />
- <Area
- yAxisId="left"
- type="monotone"
- dataKey="Posiłek" name={i18n.t('auto.posilek', { defaultValue: 'Posiłek' })}
- stroke="#f43f5e"
- strokeWidth={3}
- fillOpacity={1}
- fill="url(#colorPosilekAct)"
- />
- <Area
- yAxisId="left"
- type="monotone"
- dataKey="Insulina"
- stroke="#3b82f6"
- strokeWidth={3}
- fillOpacity={1}
- fill="url(#colorInsulinaAct)"
- />
- <Area
- yAxisId="left"
- type="monotone"
- dataKey="Netto"
- stroke="#10b981"
- strokeWidth={3}
- fillOpacity={0}
- />
- <Area
- yAxisId="right"
- type="monotone"
- dataKey="Cukier"
- stroke="#fbbf24"
- strokeWidth={3}
- fillOpacity={0}
- strokeDasharray="4 4"
- connectNulls={true}
- />
- </AreaChart>
- </ResponsiveContainer>
- </div>
-
- <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-4">
- <span className="text-rose-500 font-bold">{t('meal.chart_legend_red_zone', { defaultValue: 'Czerwona strefa' })}</span>{" "}
- {t('meal.chart_legend_red_zone_desc', { defaultValue: i18n.t('auto.to_wchlanianie_posilku', { defaultValue: "to wchłanianie posiłku." }) })}{" "}
- <span className="text-blue-500 font-bold">{t('meal.chart_legend_blue_zone', { defaultValue: 'Niebieska' })}</span>{" "}
- {t('meal.chart_legend_blue_zone_desc', { defaultValue: i18n.t('auto.to_dzialanie_insuliny', { defaultValue: "to działanie insuliny." }) })}
- <span className="text-emerald-500 dark:text-emerald-400 font-bold">
- {" "}
- {t('meal.chart_legend_green_line', { defaultValue: 'Zielona linia' })}{" "}
- </span>
- {t('meal.chart_legend_green_line_desc', { defaultValue: 'to profil netto.' })}
- <span className="text-amber-500 dark:text-amber-400 font-bold">
- {" "}
- {t('meal.chart_legend_yellow_line', { defaultValue: i18n.t('auto.zolta_linia_przerywana', { defaultValue: "Żółta linia (przerywana)" }) })}{" "}
- </span>
- {t('meal.chart_legend_yellow_line_desc', { defaultValue: i18n.t('auto.to_rzeczywista_glikemia_p', { defaultValue: "to rzeczywista glikemia (prawa oś)." }) })}{" "}
- {activeBolus
- ? `${t('meal.bolus_included', { defaultValue: 'Obliczono z ujęciem bolusa:' })} ${Number(activeBolus.value).toFixed(1)}U.`
- : t('meal.no_bolus_registered', { defaultValue: 'Brak zarejestrowanego bolusa.' })}
- </p>
- </div>
- </div>
- )}
-
- {/* Plate Stats */}
-<MealComposer
- mode={mode}
- plate={plate}
- setPlate={setPlate}
- removeFromPlate={removeFromPlate}
- updateWeight={updateWeight}
- totalWW={totalWW}
- totalWBT={totalWBT}
- totalCarbs={totalCarbs}
- totalProtein={totalProtein}
- totalFat={totalFat}
- cookingMethod={cookingMethod}
- setCookingMethod={setCookingMethod}
- settings={settings}
- activeBolus={activeBolus}
- entryTime={entryTime}
- setEntryTime={setEntryTime}
- handleMergeMeal={handleMergeMeal}
- handleLogMeal={handleLogMeal}
- totalKcal={totalCarbs * 4 + totalProtein * 4 + totalFat * 9}
- saveMealToLibrary={saveMealToLibrary}
- setIsMealSaved={setIsMealSaved}
- totalGL={totalGL}
- prepareToLogMeal={prepareToLogMeal}
- analyzeMeal={analyzeMeal}
- isAnalyzing={isAnalyzing}
- analysis={analysis}
- setTab={setTab}
- />
- </>
- )}
- </motion.div>
- );
+  {(mode === "plate" || mode === "both") && activeMeal && (
+  <div className="mt-6 mb-6 space-y-4">
+  <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
+  <div className="flex justify-between items-center mb-6">
+  <div className="flex items-center gap-3">
+  <div className="relative w-12 h-12 flex items-center justify-center">
+  <svg
+  className="absolute inset-0 w-full h-full transform -rotate-90"
+  viewBox="0 0 48 48"
+  >
+  <circle
+  cx="24"
+  cy="24"
+  r="22"
+  stroke="currentColor"
+  strokeWidth="3"
+  fill="transparent"
+  className="text-slate-200 dark:text-slate-800"
+  />
+  <circle
+  cx="24"
+  cy="24"
+  r="22"
+  stroke="currentColor"
+  strokeWidth="3"
+  fill="transparent"
+  strokeDasharray="138.2"
+  strokeDashoffset={
+  138.2 *
+  (() => {
+  if (!activeMeal) return 0;
+  const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
+  if (!mSrc) return 0;
+  const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
+  const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+  const durationH = getMealAbsorptionTime(mWW, mWBT);
+  if (durationH <= 0) return 1;
+  const ageH = (currentTime - (activeMeal.timestamp || 0)) / (1000 * 60 * 60);
+  return Math.max(0, Math.min(1, ageH / durationH));
+  })()
+  }
+  className={cn(
+   "transition-all duration-1000",
+   activeMeal.type === "meal" ? "text-amber-500" : "text-emerald-500"
+   )}
+   />
+   </svg>
+   <div className={cn(
+   "w-full h-full rounded-full absolute",
+   activeMeal.type === "meal" ? "bg-amber-500/10" : "bg-emerald-500/10"
+   )} />
+   {activeMeal.type === "meal" ? (
+   <Utensils className="text-amber-500 z-10" size={20} />
+   ) : (
+   <Zap className="text-emerald-500 z-10" size={20} />
+   )}
+  </div>
+  <div>
+  <h3 className="font-bold text-slate-800 dark:text-white text-sm">
+  {activeMeal.type === "bolus" && activeMeal.linkedMeal
+  ? activeMeal.linkedMeal.name || t('meal.pump_meal_fallback', { defaultValue: i18n.t('auto.posilek_z_pompy', { defaultValue: "Posiłek z pompy" }) })
+  : activeMeal.name ||
+  activeMeal.notes ||
+  t('meal.active_meal_fallback', { defaultValue: i18n.t('auto.aktywny_posilek', { defaultValue: "Aktywny posiłek" }) })}
+  </h3>
+  <p className="text-xs text-slate-500 dark:text-slate-400">
+  {t('meal.given_at', { defaultValue: 'Podano:' })}{" "}
+  {new Date(activeMeal.timestamp).toLocaleTimeString([], {
+  hour: "2-digit",
+  minute: "2-digit",
+  })}
+  </p>
+  </div>
+  </div>
+  </div>
+ 
+  <div className="grid grid-cols-2 gap-3">
+  <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
+  {t('meal.estimated_macros', { defaultValue: 'Szacowane Makro' })}
+  </div>
+  <div className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
+  <span className="text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-lg">
+  {activeChartData[0]?.WW?.toFixed(1) || "?"} {t('auto.ww', { defaultValue: 'WW' })}
+  </span>
+  <span className="text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-lg">
+  {activeChartData[0]?.WBT?.toFixed(1) || "?"} {t('auto.wbt', { defaultValue: 'WBT' })}
+  </span>
+  </div>
+  </div>
+  <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">
+  {t('meal.absorption_end', { defaultValue: i18n.t('auto.koniec_wchlaniania', { defaultValue: "Koniec wchłaniania" }) })}
+  </div>
+  <div className="text-sm font-black text-slate-800 dark:text-white">
+  {(() => {
+  if (!activeMeal) return "--:--";
+  const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
+  if (!mSrc) return "--:--";
+  const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
+  const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+  const durationH = getMealAbsorptionTime(mWW, mWBT);
+  return new Date(
+  activeMeal.timestamp + durationH * 60 * 60 * 1000,
+  ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  })()}
+  </div>
+  </div>
+  </div>
+ 
+  {/* Absorption Chart */}
+  <div className="mt-6 pt-4 border-t border-slate-200/50 dark:border-slate-800">
+  <div className="flex justify-between items-center mb-4">
+  <div>
+  <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+  <Zap size={14} className="text-accent-500" />
+  {t('meal.active_profile_title', { defaultValue: i18n.t('auto.profil_aktywnego_posilku_i_', { defaultValue: "Profil Aktywnego Posiłku i Bolusa" }) })}
+  </h4>
+  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+  {t('meal.active_profile_desc', { defaultValue: i18n.t('auto.krzywa_wchlaniania_glukozy', { defaultValue: "Krzywa wchłaniania glukozy z posiłku vs krzywa insuliny" }) })}
+  </p>
+  </div>
+  </div>
+ 
+  <div className="h-44 w-full">
+  <ResponsiveContainer width="100%" height="100%">
+  <AreaChart
+  data={activeChartData}
+  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+  >
+  <defs>
+  <linearGradient id="colorPosilekAct" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4} />
+  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0} />
+  </linearGradient>
+  <linearGradient id="colorInsulinaAct" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+  </linearGradient>
+  </defs>
+  <XAxis
+  dataKey="time"
+  stroke="#94a3b8"
+  fontSize={9}
+  tickLine={false}
+  axisLine={false}
+  />
+  <YAxis
+  yAxisId="left"
+  stroke="#94a3b8"
+  fontSize={9}
+  tickLine={false}
+  axisLine={false}
+  domain={[0, "auto"]}
+  />
+  <YAxis
+  yAxisId="right"
+  orientation="right"
+  stroke="#fbbf24"
+  fontSize={9}
+  tickLine={false}
+  axisLine={false}
+  domain={['dataMin - 10', 'dataMax + 10']}
+  hide={false}
+  />
+  <Tooltip
+  contentStyle={{
+  backgroundColor: "rgba(15, 23, 42, 0.9)",
+  borderColor: "rgba(255, 255, 255, 0.1)",
+  borderRadius: "16px",
+  fontSize: "12px",
+  color: "#f8fafc",
+  fontWeight: "bold",
+  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
+  backdropFilter: "blur(8px)",
+  }}
+  itemStyle={{ color: "#f8fafc" }}
+  formatter={(value: any, name: any) => [`${value}`, name]}
+  labelStyle={{ color: "#94a3b8", marginBottom: "4px" }}
+  />
+  <Area
+  yAxisId="left"
+  type="monotone"
+  dataKey="Posiłek" name={i18n.t('auto.posilek', { defaultValue: 'Posiłek' })}
+  stroke="#f43f5e"
+  strokeWidth={3}
+  fillOpacity={1}
+  fill="url(#colorPosilekAct)"
+  />
+  <Area
+  yAxisId="left"
+  type="monotone"
+  dataKey="Insulina"
+  stroke="#3b82f6"
+  strokeWidth={3}
+  fillOpacity={1}
+  fill="url(#colorInsulinaAct)"
+  />
+  <Area
+  yAxisId="left"
+  type="monotone"
+  dataKey="Netto"
+  stroke="#10b981"
+  strokeWidth={3}
+  fillOpacity={0}
+  />
+  <Area
+  yAxisId="right"
+  type="monotone"
+  dataKey="Cukier"
+  stroke="#fbbf24"
+  strokeWidth={3}
+  fillOpacity={0}
+  strokeDasharray="4 4"
+  connectNulls={true}
+  />
+  </AreaChart>
+  </ResponsiveContainer>
+  </div>
+ 
+  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-4">
+  <span className="text-rose-500 font-bold">{t('meal.chart_legend_red_zone', { defaultValue: 'Czerwona strefa' })}</span>{" "}
+  {t('meal.chart_legend_red_zone_desc', { defaultValue: i18n.t('auto.to_wchlanianie_posilku', { defaultValue: "to wchłanianie posiłku." }) })}{" "}
+  <span className="text-blue-500 font-bold">{t('meal.chart_legend_blue_zone', { defaultValue: 'Niebieska' })}</span>{" "}
+  {t('meal.chart_legend_blue_zone_desc', { defaultValue: i18n.t('auto.to_dzialanie_insuliny', { defaultValue: "to działanie insuliny." }) })}
+  <span className="text-emerald-500 dark:text-emerald-400 font-bold">
+  {" "}
+  {t('meal.chart_legend_green_line', { defaultValue: 'Zielona linia' })}{" "}
+  </span>
+  {t('meal.chart_legend_green_line_desc', { defaultValue: 'to profil netto.' })}
+  <span className="text-amber-500 dark:text-amber-400 font-bold">
+  {" "}
+  {t('meal.chart_legend_yellow_line', { defaultValue: i18n.t('auto.zolta_linia_przerywana', { defaultValue: "Żółta linia (przerywana)" }) })}{" "}
+  </span>
+  {t('meal.chart_legend_yellow_line_desc', { defaultValue: i18n.t('auto.to_rzeczywista_glikemia_p', { defaultValue: "to rzeczywista glikemia (prawa oś)." }) })}{" "}
+  {activeBolus
+  ? `${t('meal.bolus_included', { defaultValue: 'Obliczono z ujęciem bolusa:' })} ${Number(activeBolus.value).toFixed(1)}U.`
+  : t('meal.no_bolus_registered', { defaultValue: 'Brak zarejestrowanego bolusa.' })}
+  </p>
+  </div>
+  </div>
+  </div>
+  )}
+  </motion.div>
+  );
 }

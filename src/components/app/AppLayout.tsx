@@ -29,9 +29,10 @@ import {
   Globe,
   Database
 } from "lucide-react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, addDoc, collection, serverTimestamp, query, onSnapshot } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { getEffectiveUid } from "../../lib/utils";
+import { dbService } from "../../services/databaseService";
 
 import { NotificationListenerSync } from "../NotificationListenerSync";
 import RemoteAlertsListener from "../RemoteAlertsListener";
@@ -47,6 +48,7 @@ import NotificationCenter from "../NotificationCenter";
 const NotebookManager = React.lazy(() => import("../NotebookManager"));
 import GlikoSenseIcon from "../GlikoSenseIcon";
 import { NavButton } from "./NavButton";
+import { DynamicActionCapsule } from "./DynamicActionCapsule";
 import { useMealPlateStore } from "../../stores/useMealPlateStore";
 
 export function AppLayout({
@@ -90,285 +92,277 @@ export function AppLayout({
   const { t } = useTranslation();
   const sharedPlate = useMealPlateStore((state) => state.plate);
 
- return (
- <MotionConfig reducedMotion={userSettings?.ecoMode ? "always" : "user"}>
- <div
- className={cn(
- "min-h-[100dvh] flex flex-col transition-colors duration-500 overflow-x-hidden relative z-10",
- isShortcutMode 
- ? "bg-transparent dark:bg-transparent"
- : (userSettings?.glassmorphismEnabled
- ? "bg-transparent dark:bg-transparent"
- : theme === "dark"
- ? "dark bg-[#020617]"
- : "bg-slate-50"),
- )}
- >
- <NotificationListenerSync />
- <RemoteAlertsListener />
- {!isShortcutMode && (
- <MeshBackground
- lastGlucose={lastGlucoseValue}
- isGlassmorphic={userSettings?.glassmorphismEnabled || false}
- />
- )}
- {!isShortcutMode && isOffline && (
- <motion.div
- initial={{ y: -50 }}
- animate={{ y: 0 }}
- className="bg-slate-900/80 dark:bg-slate-950/80 text-white text-[9px] font-black uppercase text-center py-2.5 z-[100] flex items-center justify-center gap-2 sticky top-0 backdrop-blur-xl border-b border-white/5"
- >
- <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
- <span className="tracking-widest">
- 
- {t('auto.tryb_offline_funkcje_mogą_być_ogran', { defaultValue: i18n.t('auto.tryb_offline_funkcje_moga', { defaultValue: "Tryb Offline - Funkcje mogą być ograniczone" }) })}
- </span>
- </motion.div>
- )}
- {authError && user && (
- <motion.div
- initial={{ y: -50 }}
- animate={{ y: 0 }}
- className="bg-rose-500/90 text-white text-[9px] font-black uppercase text-center py-2.5 z-[100] flex items-center justify-center gap-2 sticky top-0 backdrop-blur-xl border-b border-white/10"
- >
- <Activity size={12} />
- <span className="tracking-widest">{authError}</span>
- </motion.div>
- )}
- {/* Header */}
- {!isShortcutMode && (
- <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
- <div className="flex justify-between items-center max-w-md md:max-w-5xl lg:max-w-7xl mx-auto">
- <div className="flex items-center gap-4">
- <button
- onClick={() => {
- Haptics.medium();
- setIsSidebarOpen(true);
- }}
- className="p-2.5 -ml-2 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent dark:border-slate-800 shadow-sm active:scale-90"
- >
- <Menu size={20} strokeWidth={2.5} />
- </button>
- <div
- className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform"
- onClick={() => {
- Haptics.selection();
- setShowStatusPopup(true);
- }}
- >
- <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
- <div>
- <p
- onClick={(e) => {
- e.stopPropagation();
- Haptics.medium();
- setShowChangelog(true);
- }}
- title={t('auto.kliknij_aby_zobaczyć_co_nowego', { defaultValue: i18n.t('auto.kliknij_aby_zobaczyc_co_n', { defaultValue: "Kliknij, aby zobaczyć co nowego" }) })}
- className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
- >
- <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
- v{APP_VERSION}
- </p>
- </div>
- </div>
- </div>
- <div className="flex items-center gap-2">
- <React.Suspense fallback={<div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />}>
-              <NotebookManager />
-            </React.Suspense>
- <NotificationCenter userSettings={userSettings} theme={theme} />
- <button
- onClick={() => {
- Haptics.light();
- toggleTheme();
- }}
- className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-accent-400 border border-transparent dark:border-slate-700 transition-all active:scale-90"
- >
- {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
- </button>
- {user && !user.isAnonymous && user.photoURL ? (
- <img
- src={user.photoURL}
- alt="Profile"
- className="w-7 h-7 rounded-full border border-accent-500/50 shadow-sm"
- />
- ) : (
- <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)] ml-2" />
- )}
- </div>
- </div>
- </header>
- )}
+  const [shortcuts, setShortcuts] = React.useState<any[]>([]);
 
- <Sidebar
- isOpen={isSidebarOpen}
- onClose={() => setIsSidebarOpen(false)}
- activeTab={activeTab}
- changeTab={changeTab}
- onAction={(action) => {
- if (action === "tutorial") {
- setShowTutorial(true);
- } else {
- setInitialAction(action);
- }
- }}
- theme={theme}
- isChildMode={userSettings?.childMode}
- settings={userSettings}
- />
+  React.useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(
+        db,
+        "users",
+        getEffectiveUid(user),
+        "shortcuts",
+      ),
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setShortcuts(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, [user]);
 
- {/* Main Content with Swipe Navigation */}
- <main
- ref={mainRef}
- className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto touch-pan-y overflow-x-hidden"
- >
- <AnimatePresence mode="wait" custom={direction} initial={false}>
- <motion.div
- key={activeTab}
- custom={direction}
- variants={tabVariants}
- initial="enter"
- animate="center"
- exit="exit"
- transition={{ duration: 0.15, ease: "easeOut" }}
- drag="x"
- dragDirectionLock
- dragConstraints={{ left: 0, right: 0 }}
- dragElastic={0.1}
- onDragEnd={handleSwipe}
- className={cn(
- "w-full min-h-full p-4 pb-32 flex flex-col",
- )}
- >
- {children}
- </motion.div>
- </AnimatePresence>
- </main>
- {/* Navigation */}
- {!isShortcutMode && (
- <nav className={cn(
- "fixed bottom-0 left-0 right-0 glass backdrop-blur-3xl border-t border-white/40 dark:border-white/5 z-50 pb-safe rounded-t-[2.5rem] shadow-2xl transition-all duration-300",
- isKeyboardOpen ? "opacity-0 pointer-events-none translate-y-24" : "opacity-100 translate-y-0"
- )}>
- <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
- <NavButton
- active={activeTab === "chart"}
- onClick={() => changeTab("chart")}
- icon={<Activity />}
- label={t("nav.chart")}
- ecoMode={userSettings?.ecoMode}
- />
- <NavButton
- active={activeTab === "dashboard"}
- onClick={() => changeTab("dashboard")}
- icon={<LayoutDashboard />}
- label={t("nav.dashboard")}
- ecoMode={userSettings?.ecoMode}
- />
- {!userSettings?.followerMode && (
- <NavButton
- active={activeTab === "database"}
- onClick={() => changeTab("database")}
- icon={<Database />}
- label={t("nav.database")}
- ecoMode={userSettings?.ecoMode}
- />
- )}
+  const handleQuickAdd = async (s: any) => {
+    if (s.carbs > 0) {
+      if (!user) return;
+      Haptics.medium();
+      try {
+        const payload = {
+          type: "meal", createdAt: serverTimestamp(), source: "manual", value: s.carbs,
+          timestamp: Date.now(),
+          notes: i18n.t('auto.szybki_wybor_var0', { defaultValue: "Szybki wybór: {{var0}}", var0: s.name }),
+          items: [{ name: s.name, carbs: s.carbs }],
+        };
+        const docRef = await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), payload);
+        await dbService.saveLog({ ...payload, id: docRef.id });
+        toast.success(i18n.t('auto.dodano_var0', { defaultValue: "Dodano: {{var0}}", var0: s.name }), { icon: '🍽️', id: 'quick-add' });
+      } catch (error) {
+        toast.error(i18n.t('auto.błąd_podczas_zapisywan', { defaultValue: "Błąd podczas zapisywania" }));
+      }
+    }
+  };
 
- {!userSettings?.followerMode && (
- <div className="relative -top-6">
- <motion.button
- onClick={() => changeTab("meal")}
- whileTap={{ scale: 0.85 }}
- animate={{ y: activeTab === "meal" ? -5 : 0 }}
- transition={{ type: "spring", stiffness: 400, damping: 15 }}
- className={cn(
- "w-16 h-16 rounded-full flex items-center justify-center transition-shadow shadow-xl border-4 border-slate-50 dark:border-slate-950 relative",
- activeTab === "meal"
- ? "bg-accent-600 text-white shadow-accent-500/40"
- : "bg-slate-800 text-slate-400 hover:bg-slate-700",
- )}
- >
- {mealProgress !== null && (
- <svg
- className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none"
- viewBox="0 0 56 56"
- >
- <circle
- cx="28"
- cy="28"
- r="26"
- stroke="currentColor"
- strokeWidth="4"
- fill="transparent"
- strokeDasharray="163.36"
- strokeDashoffset={163.36 * mealProgress}
- className="text-emerald-500 transition-all duration-1000 dark:text-emerald-400 opacity-80"
- />
- </svg>
- )}
- <motion.div
- animate={{
- rotate: activeTab === "meal" ? [0, -20, 20, -10, 10, 0] : 0,
- }}
- transition={{ duration: 0.5 }}
- className="z-10"
- >
- <Utensils />
- </motion.div>
- {sharedPlate.length > 0 && (
- <motion.div
- initial={{ scale: 0 }}
- animate={{ scale: 1 }}
- className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-slate-950 shadow-sm z-20"
- >
- {sharedPlate.length}
- </motion.div>
- )}
- </motion.button>
- <motion.div
- animate={{
- opacity: activeTab === "meal" ? 1 : 0.6,
- y: activeTab === "meal" ? -2 : 0,
- }}
- className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-black uppercase tracking-widest text-slate-400"
- >
- {t("nav.plate")}
- </motion.div>
- </div>
- )}
+  return (
+    <MotionConfig reducedMotion={userSettings?.ecoMode ? "always" : "user"}>
+      <div
+        className={cn(
+          "h-full h-[100dvh] max-h-[100dvh] flex flex-col transition-colors duration-500 overflow-hidden relative z-10",
+          isShortcutMode 
+            ? "bg-transparent dark:bg-transparent"
+            : (userSettings?.glassmorphismEnabled
+                ? "bg-transparent dark:bg-transparent"
+                : theme === "dark"
+                    ? "dark bg-[#020617]"
+                    : "bg-slate-50"),
+        )}
+      >
+        <NotificationListenerSync user={user} />
+        <RemoteAlertsListener />
+        {!isShortcutMode && (
+          <MeshBackground
+            lastGlucose={lastGlucoseValue}
+            isGlassmorphic={userSettings?.glassmorphismEnabled || false}
+          />
+        )}
+        {!isShortcutMode && isOffline && (
+          <motion.div
+            initial={{ y: -50 }}
+            animate={{ y: 0 }}
+            className="bg-slate-900/80 dark:bg-slate-950/80 text-white text-[9px] font-black uppercase text-center py-2.5 z-[100] flex items-center justify-center gap-2 sticky top-0 backdrop-blur-xl border-b border-white/5"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span className="tracking-widest">
+              {t('auto.tryb_offline_funkcje_mogą_być_ogran', { defaultValue: i18n.t('auto.tryb_offline_funkcje_moga', { defaultValue: "Tryb Offline - Funkcje mogą być ograniczone" }) })}
+            </span>
+          </motion.div>
+        )}
+        {authError && user && (
+          <motion.div
+            initial={{ y: -50 }}
+            animate={{ y: 0 }}
+            className="bg-rose-500/90 text-white text-[9px] font-black uppercase text-center py-2.5 z-[100] flex items-center justify-center gap-2 sticky top-0 backdrop-blur-xl border-b border-white/10"
+          >
+            <Activity size={12} />
+            <span className="tracking-widest">{authError}</span>
+          </motion.div>
+        )}
+        {/* Header */}
+        {!isShortcutMode && (
+          <header className="bg-white/40 dark:bg-[#020617]/40 backdrop-blur-2xl p-4 sticky top-0 z-40 border-b border-black/5 dark:border-white/5 pt-12 transition-all">
+            <div className="flex justify-between items-center max-w-md md:max-w-5xl lg:max-w-7xl mx-auto">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    Haptics.medium();
+                    setIsSidebarOpen(true);
+                  }}
+                  className="p-2.5 -ml-2 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent dark:border-slate-800 shadow-sm active:scale-90"
+                >
+                  <Menu size={20} strokeWidth={2.5} />
+                </button>
+                <div
+                  className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform"
+                  onClick={() => {
+                    Haptics.selection();
+                    setShowStatusPopup(true);
+                  }}
+                >
+                  <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
+                  <div>
+                    <p
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        Haptics.medium();
+                        setShowChangelog(true);
+                      }}
+                      title={t('auto.kliknij_aby_zobaczyć_co_nowego', { defaultValue: i18n.t('auto.kliknij_aby_zobaczyc_co_n', { defaultValue: "Kliknij, aby zobaczyć co nowego" }) })}
+                      className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
+                      v{APP_VERSION}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <React.Suspense fallback={<div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />}>
+                  <NotebookManager />
+                </React.Suspense>
+                <NotificationCenter userSettings={userSettings} theme={theme} setUserSettings={setUserSettings} />
+                <button
+                  onClick={() => {
+                    Haptics.light();
+                    toggleTheme();
+                  }}
+                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-accent-400 border border-transparent dark:border-slate-700 transition-all active:scale-90"
+                >
+                  {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+                </button>
+                {user && !user.isAnonymous && user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt="Profile"
+                    className="w-7 h-7 rounded-full border border-accent-500/50 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)] ml-2" />
+                )}
+              </div>
+            </div>
+          </header>
+        )}
 
- {!userSettings?.followerMode && (
- <NavButton
- active={activeTab === "assistant"}
- onClick={() => changeTab("assistant")}
- icon={<MessageSquare />}
- label={t("nav.chat")}
- ecoMode={userSettings?.ecoMode}
- />
- )}
- {!userSettings?.followerMode && (
- <NavButton
- active={activeTab === "ai"}
- onClick={() => changeTab("ai")}
- icon={<GlikoSenseIcon size={20} isAnalyzing={activeTab === "ai"} />}
- label={t("nav.glikosense")}
- ecoMode={userSettings?.ecoMode}
- />
- )}
- <NavButton
- active={activeTab === "profile"}
- onClick={() => changeTab("profile")}
- icon={<Menu />}
- label={t("nav.more")}
- ecoMode={userSettings?.ecoMode}
- />
- </div>
- </nav>
- )}
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          activeTab={activeTab}
+          changeTab={changeTab}
+          onAction={(action) => {
+            if (action === "tutorial") {
+              setShowTutorial(true);
+            } else {
+              setInitialAction(action);
+            }
+          }}
+          theme={theme}
+          isChildMode={userSettings?.childMode}
+          settings={userSettings}
+        />
 
- {/* Modals & Popups */}
+        {/* Main Content with Swipe Navigation */}
+        <main
+          ref={mainRef}
+          className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto overscroll-y-contain overscroll-x-none touch-pan-y overflow-x-hidden no-scrollbar"
+        >
+          <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+            <motion.div
+              key={activeTab}
+              custom={direction}
+              variants={tabVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              drag="x"
+              dragDirectionLock
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.1}
+              onDragEnd={handleSwipe}
+              className={cn(
+                "w-full min-h-full p-4 pb-32 flex flex-col",
+              )}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+        {/* Navigation */}
+        {!isShortcutMode && (
+          <nav className={cn(
+            "fixed bottom-4 left-4 right-4 glass backdrop-blur-3xl border border-black/5 dark:border-white/10 z-50 rounded-[2rem] shadow-2xl transition-all duration-300",
+            isKeyboardOpen ? "opacity-0 pointer-events-none translate-y-24" : "opacity-100 translate-y-0"
+          )}>
+            <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
+              <NavButton
+                active={activeTab === "chart"}
+                onClick={() => changeTab("chart")}
+                icon={<Activity />}
+                label={t("nav.chart")}
+                ecoMode={userSettings?.ecoMode}
+              />
+              <NavButton
+                active={activeTab === "dashboard"}
+                onClick={() => changeTab("dashboard")}
+                icon={<LayoutDashboard />}
+                label={t("nav.dashboard")}
+                ecoMode={userSettings?.ecoMode}
+              />
+              {!userSettings?.followerMode && (
+                <NavButton
+                  active={activeTab === "database"}
+                  onClick={() => changeTab("database")}
+                  icon={<Database />}
+                  label={t("sidebar.sections.database", { defaultValue: "Baza" })}
+                  ecoMode={userSettings?.ecoMode}
+                />
+              )}
+              
+              {!userSettings?.followerMode && (
+                  <DynamicActionCapsule 
+                    lastGlucose={lastGlucoseValue ? Math.round(lastGlucoseValue) : null}
+                    mealProgress={mealProgress}
+                    shortcuts={shortcuts}
+                    plateCount={sharedPlate.length}
+                    userSettings={userSettings}
+                    getEffectiveIOB={getEffectiveIOB}
+                    changeTab={changeTab}
+                    user={user}
+                    onClickMain={() => {
+                      Haptics.light();
+                      changeTab("meal");
+                    }}
+                    onQuickAdd={handleQuickAdd}
+                  />
+                )}
+
+              {!userSettings?.followerMode && (
+                <NavButton
+                  active={activeTab === "ai"}
+                  onClick={() => changeTab("ai")}
+                  icon={<GlikoSenseIcon size={24} isAnalyzing={activeTab === 'ai'} />}
+                  label={"GlikoSense"}
+                  ecoMode={userSettings?.ecoMode}
+                />
+              )}
+              {!userSettings?.followerMode && (
+                <NavButton
+                  active={activeTab === "assistant"}
+                  onClick={() => changeTab("assistant")}
+                  icon={<MessageSquare />}
+                  label={t("nav.chat")}
+                  ecoMode={userSettings?.ecoMode}
+                />
+              )}
+              <NavButton
+                active={activeTab === "profile"}
+                onClick={() => changeTab("profile")}
+                icon={<Menu />}
+                label={t("nav.more")}
+                ecoMode={userSettings?.ecoMode}
+              />
+            </div>
+          </nav>
+        )}
+
+        {/* Modals & Popups */}
         <React.Suspense fallback={null}>
           <UpdateModal />
           <Toaster
@@ -432,8 +426,6 @@ export function AppLayout({
                       await setDoc(
                         doc(
                           db,
-                          "artifacts",
-                          "diacontrolapp",
                           "users",
                           getEffectiveUid(user),
                           "settings",

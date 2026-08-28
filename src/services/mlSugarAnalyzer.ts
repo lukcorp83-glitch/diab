@@ -1,4 +1,5 @@
-import * as tf from '@tensorflow/tfjs';
+import { PredictionAccuracyTracker } from '../lib/predictionAccuracyTracker';
+﻿import * as tf from '@tensorflow/tfjs';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import i18n from "../i18n";
@@ -7,7 +8,7 @@ export const GlikoSenseLearner = {
   async sendTelemetry(learnedRule: string, contextString: string) {
     if (localStorage.getItem('glikosense_telemetry') === 'true') {
       try {
-        await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'glikosense_training'), {
+        await addDoc(collection(db, 'glikosense_training'), {
           ruleLearned: learnedRule,
           context: contextString,
           timestamp: serverTimestamp(),
@@ -150,10 +151,43 @@ export const MLAnalyzer = {
     }
   },
 
+    async runHindsightVerification(logs: any[]) {
+      try {
+        if (!logs || logs.length < 200) return;
+        const now = Date.now();
+        const cutoffTime = now - 60 * 60 * 1000;
+        const pastLogs = logs.filter(l => {
+          const t = l.timestamp || new Date(l.createdAt).getTime();
+          return t < cutoffTime;
+        });
+        if (pastLogs.length < 200) return;
+        
+        // Ciche wywołanie w trybie 'quick' na danych sprzed 1h
+        const result = await this.analyzeData(pastLogs, true, 'quick');
+        if (result && result.predictedNextHour) {
+          const historyStr = localStorage.getItem('glikosense_prediction_history_v1') || '[]';
+          const history = JSON.parse(historyStr);
+          history.push({
+            id: `hindsight_${now}`,
+            predictedAt: cutoffTime,
+            targetTime: now,
+            predictedBg: Math.round(result.predictedNextHour),
+          });
+          if (history.length > 50) history.shift();
+          localStorage.setItem('glikosense_prediction_history_v1', JSON.stringify(history));
+          
+          PredictionAccuracyTracker.evaluateHistoryWithLogs(logs);
+        }
+      } catch (e) {
+        // Cicha porażka
+      }
+    },
+
   analyzeData(logs: any[], force: boolean = false, mode: 'quick' | 'full' = 'full'): Promise<any> {
+    const currentEngine = typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') || 'v3_lstm' : 'v3_lstm';
     const logsFingerprint = logs && logs.length > 0 
-      ? `v4-lstm-${mode}-${i18n.language}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
-      : `empty-${i18n.language}`;
+      ? `gliko-${currentEngine}-${mode}-${i18n.language}-${logs.length}-${logs[0].timestamp || logs[0].createdAt}` 
+      : `empty-${currentEngine}-${i18n.language}`;
 
     if (!force) {
       if (_cachedResult && _lastLogsFingerprint === logsFingerprint) {
@@ -187,7 +221,7 @@ export const MLAnalyzer = {
       const timeoutId = setTimeout(() => {
         worker.terminate();
         reject(new Error("GlikoSense Worker timeout"));
-      }, mode === 'quick' ? 120000 : 240000);
+      }, mode === 'quick' ? 15000 : 45000);
 
       worker.onmessage = (e) => {
         clearTimeout(timeoutId);
@@ -200,11 +234,29 @@ export const MLAnalyzer = {
              localStorage.setItem('glikosense_medical_rules', JSON.stringify(rules));
           }
           
+          if (payload.predictedNextHour) {
+            try {
+              PredictionAccuracyTracker.recordPrediction(payload.predictedNextHour, Date.now() + 60 * 60 * 1000);
+            } catch(e) {}
+          }
+          
           if (payload.riskOfHypo) {
             const hasEnoughData = !(payload.insights || []).some((i: string) => i.includes('Zbyt mało'));
-            if (hasEnoughData) {
+            const latestBg = payload.predictionCurve?.[0]?.value || 0;
+            const trough = payload.predictedTrough?.value || 100;
+            const pred1h = payload.predictedNextHour || 100;
+            const isGenuineHypoRisk = (latestBg <= 130 || (payload.metrics?.iob || 0) > 2.5) && (trough < 80 || pred1h < 80);
+
+            if (hasEnoughData && isGenuineHypoRisk) {
               window.dispatchEvent(new CustomEvent('glikosense_hypo_alert', { detail: payload }));
             }
+          }
+          
+          if (payload.nutriProfile) {
+            try {
+              localStorage.setItem('glikosense_nutri_profile', JSON.stringify(payload.nutriProfile));
+              window.dispatchEvent(new CustomEvent('glikosense_nutri_update', { detail: payload.nutriProfile }));
+            } catch(e) {}
           }
           
           // Persistent Brain: save valid insights, restore if missing data
@@ -223,6 +275,14 @@ export const MLAnalyzer = {
              }
           }
           
+          if (payload && payload.discoveredRules && typeof window !== 'undefined') {
+            try {
+              const existingRules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+              const merged = { ...existingRules, ...payload.discoveredRules };
+              localStorage.setItem('glikosense_medical_rules', JSON.stringify(merged));
+            } catch (e) {}
+          }
+
           resolve(payload);
         } else if (type === 'storage_update') {
           localStorage.setItem(key, value);
@@ -243,11 +303,13 @@ export const MLAnalyzer = {
       const rules = GlikoSenseLearner.getRules();
       const lastTrainTimeStr = localStorage.getItem('glikosense_last_train_time');
       const datasetSizeStr = localStorage.getItem('glikosense_dataset_size');
+        const engineModeStr = localStorage.getItem('glikosense_engine_mode');
 
       worker.postMessage({
         logs,
         force,
         language: i18n.language || 'pl',
+          engineMode: engineModeStr || 'v3_lstm',
         mode,
         rules,
         lastTrainTime: lastTrainTimeStr ? parseInt(lastTrainTimeStr, 10) : 0,
@@ -266,6 +328,14 @@ export const MLAnalyzer = {
         }
       }
       return res;
+    }).catch((err) => {
+      console.warn("GlikoSense Worker analysis failed, using fallback:", err?.message || err);
+      if (_cachedResult) return _cachedResult;
+      const persistentCache = localStorage.getItem('glikosense_last_result_v5_lstm');
+      if (persistentCache) {
+        try { return JSON.parse(persistentCache); } catch(e) {}
+      }
+      return { predictedNextHour: 0, predictedNext2Hours: 0, riskOfHypo: false, insights: [], accuracy: 0, datasetSize: logs.length };
     }).finally(() => {
       if (mode === 'full') _currentFullAnalysisPromise = null;
       else _currentQuickAnalysisPromise = null;
@@ -306,4 +376,5 @@ if (typeof window !== 'undefined') {
     } catch (e) { return false; }
   };
 }
+
 

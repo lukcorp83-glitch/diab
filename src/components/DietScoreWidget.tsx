@@ -29,7 +29,7 @@ export default function DietScoreWidget({ activeDiet, settings}: { user: User, a
  endOfYesterday.setDate(endOfYesterday.getDate() - 1);
  endOfYesterday.setHours(23, 59, 59, 999);
 
- const logsRef = collection(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "logs");
+ const logsRef = collection(db, "users", getEffectiveUid(user), "logs");
  const q = query(
  logsRef,
  where("timestamp", ">=", startOfYesterday.getTime()),

@@ -29,6 +29,7 @@ interface AppState {
 
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  setTab?: (tab: string) => void;
 
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark") => void;
@@ -95,6 +96,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   activeTab: "dashboard",
   setActiveTab: (tab) => set({ activeTab: tab }),
+  setTab: (tab: string) => set({ activeTab: tab }),
 
   theme: "light",
   setTheme: (theme) => set({ theme }),

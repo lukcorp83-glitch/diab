@@ -10,3 +10,6 @@ coverage/
 *.apk
 *.zip
 android.keystore
+
+# Local user notes and audits
+diab up/

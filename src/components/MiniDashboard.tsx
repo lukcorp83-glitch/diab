@@ -5,6 +5,7 @@ import { calculateIOB, calculateCOB, getEffectiveUid, getEffectiveIOB } from '..
 import { Droplet, Utensils, Zap, Plus } from 'lucide-react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+import { dbService } from '../services/databaseService';
 import { toast } from 'react-hot-toast';
 import { LogEntry, UserSettings } from '../types';
 import { useTranslation } from "react-i18next";
@@ -29,11 +30,11 @@ export default function MiniDashboard({ userSettings }: MiniDashboardProps) {
  
  try {
  const uid = getEffectiveUid(auth.currentUser);
- 
- let entry: any = {
- userId: uid,
- timestamp: serverTimestamp(),
- };
+    let entry: any = {
+      userId: uid,
+      timestamp: Date.now(),
+      createdAt: serverTimestamp(),
+    };
 
  if (type === 'bolus') {
  const amount = window.prompt(i18n.t('auto.podaj_dawke_insuliny_u', { defaultValue: i18n.t('auto.podaj_dawke_insuliny_u', { defaultValue: "Podaj dawkę insuliny (U):" }) }));
@@ -61,8 +62,10 @@ export default function MiniDashboard({ userSettings }: MiniDashboardProps) {
  };
  }
 
- await addDoc(collection(db, 'artifacts', 'diacontrolapp', 'users', uid, 'logs'), entry);
- toast.success("Zapisano!");
+    const docRef = await addDoc(collection(db, 'users', uid, 'logs'), entry);
+    await dbService.saveLog({ ...entry, id: docRef.id });
+    window.dispatchEvent(new CustomEvent('localLogAdd', { detail: { ...entry, id: docRef.id } }));
+    toast.success("Zapisano!");
  
  // Attempt to close the window
  setTimeout(() => {

@@ -4,6 +4,7 @@ import { useLogsStore } from "../stores/useLogsStore";
 import { Download, Upload, Loader2, FileJson } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { loadLocalLogs, saveLocalLogs } from '../lib/localLogs';
+import { dbService } from '../services/databaseService';
 
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -13,11 +14,14 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 export default function LocalSync({ 
- settings}: { 
- settings: UserSettings,
- user: any
+ settings,
+ user: propUser
+}: { 
+ settings: UserSettings;
+ user?: any;
 }) {
-  const user = useAuthStore(state => state.user);
+  const authUser = useAuthStore(state => state.user);
+  const user = propUser || authUser;
 
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
@@ -79,16 +83,29 @@ export default function LocalSync({
  }
 
  if (parsed.logs && Array.isArray(parsed.logs)) {
- await saveLocalLogs(parsed.logs);
- }
+  await saveLocalLogs(parsed.logs);
+  try {
+    await dbService.init();
+    await dbService.saveMultipleLogs(parsed.logs);
+  } catch (dbErr) {
+    console.error("Failed to save imported logs to SQLite dbService:", dbErr);
+  }
+  useLogsStore.getState().setLogs(parsed.logs);
+  window.dispatchEvent(new CustomEvent('localLogAddBatch', { detail: parsed.logs }));
+  localStorage.setItem("lastSafeTimestamp", Date.now().toString());
+  }
 
- if (parsed.settings && user) {
- await setDoc(
- doc(db, "artifacts", "diacontrolapp", "users", getEffectiveUid(user), "settings", "profile"),
- parsed.settings,
- { merge: true }
- );
- }
+  if (parsed.settings && user) {
+    try {
+      await setDoc(
+        doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+        parsed.settings,
+        { merge: true }
+      );
+    } catch (e) {
+      console.error("Zapis ustawień z kopii do nowej ścieżki nie powiódł się", e);
+    }
+  }
 
  toast.success(i18n.t('auto.pomyslnie_zaimportowano_odswie', { defaultValue: i18n.t('auto.pomyslnie_zaimportowano_o', { defaultValue: "Pomyślnie zaimportowano. Odświeżam..." }) }));
  setTimeout(() => {
@@ -140,4 +157,5 @@ export default function LocalSync({
  </div>
  );
 }
+
 

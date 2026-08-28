@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { PredictionAccuracyTracker, AccuracyStats } from '../lib/predictionAccuracyTracker';
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot } from 'lucide-react';
+import { Brain, Activity, AlertTriangle, TrendingUp, TrendingDown, Target, Loader2, RefreshCw, Zap, Sparkles, CalendarDays, Syringe, Cloud, CloudUpload, CloudDownload, Info, ShieldAlert, CheckSquare, Square, Trash2, Bot, Settings, Wind, ChevronDown, ChevronUp, Dna, Fingerprint } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
+import { detectIsfChanges, AutoTunerResult } from '../services/isfAutoTuner';
 import { cn, getEffectiveUid } from '../lib/utils';
+import { Haptics } from '../lib/haptics';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { db, auth } from '../lib/firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -32,6 +35,11 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const glassmorphismEnabled = settings?.glassmorphismEnabled || false;
+  const [engineMode, setEngineMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') || 'v3_lstm' : 'v3_lstm');
+  const [autoTuningEnabled, setAutoTuningEnabled] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_autotuning') === 'true' : false);
+  const [autoTunerResult, setAutoTunerResult] = useState<AutoTunerResult | null>(null);
+  const glikoName = engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0';
+  const [showEngineSettings, setShowEngineSettings] = useState(false);
  const [isAnalyzing, setIsAnalyzing] = useState(false);
  const [error, setError] = useState<string | null>(null);
  const [mlResult, setMlResult] = useState<{
@@ -41,7 +49,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  insights: string[],
  accuracy: number,
  datasetSize?: number,
- predictionCurve?: { timestamp: number, offsetMs: number, value: number }[],
+ predictionCurve?: { timestamp: number, offsetMs: number, value: number, confidenceMin?: number, confidenceMax?: number }[],
+  predictedPeak?: { value: number, timestamp: number },
+  predictedTrough?: { value: number, timestamp: number },
+  stackingAlert?: { isStacking: boolean, timeAgoMin?: number } | null,
  metrics?: { iob: number, cob: number, carbSensitivity: number, insulinSensitivity: number, gmiPercentage: number, avgBias: number },
  analyzedPeriod?: string
  } | null>(() => {
@@ -58,13 +69,101 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  });
 
  // Backup-related state variables
+ const realAccuracyStats: AccuracyStats = useMemo(() => {
+    return PredictionAccuracyTracker.evaluateHistoryWithLogs(logs);
+ }, [logs, mlResult]);
+
  const [backupInfo, setBackupInfo] = useState<{ timestamp: number; datasetSize?: number } | null>(null);
  const [loadingBackup, setLoadingBackup] = useState(false);
  const [hasBackupConsent, setHasBackupConsent] = useState(() => {
  return localStorage.getItem('glikosense_backup_consent') === 'true';
  });
- const [showBackupPanel, setShowBackupPanel] = useState(false);
- const [isBackupActionRunning, setIsBackupActionRunning] = useState(false);
+  const [showBackupPanel, setShowBackupPanel] = useState(false);
+  const [isBackupActionRunning, setIsBackupActionRunning] = useState(false);
+  const [isInsightsExpanded, setIsInsightsExpanded] = useState(false);
+  const [isPatternsExpanded, setIsPatternsExpanded] = useState(false);
+
+  const activePatterns = useMemo(() => {
+    let localRules: any = {};
+    try {
+      localRules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+    } catch {}
+    const rules = { ...localRules, ...(mlResult?.discoveredRules || {}) };
+    const patterns: { id: string; title: string; desc: string; icon: string; tag: string }[] = [];
+
+    if (rules.dawnPhenomenonEnabled) {
+      patterns.push({
+        id: 'dawn',
+        title: t('auto.wzorzec_brzask_tytul', { defaultValue: 'Zjawisko Brzasku' }),
+        desc: t('auto.wzorzec_brzask_opis', { defaultValue: 'Wykryto poranny wyrzut hormonów budzących i podwyższoną glikemię rano bez posiłku.' }),
+        icon: '🌅',
+        tag: 'Hormonalny'
+      });
+    }
+
+    if (rules.somogyiEnabled) {
+      patterns.push({
+        id: 'somogyi',
+        title: t('auto.wzorzec_somogyi_tytul', { defaultValue: 'Efekt Somogyi (Odbicie)' }),
+        desc: t('auto.wzorzec_somogyi_opis', { defaultValue: 'Wykryto obronny wyrzut zapasów glukozy po głębokim nocnym lub popołudniowym spadku.' }),
+        icon: '🔄',
+        tag: 'Obronny'
+      });
+    }
+
+    if (rules.pizzaEffectMultiplier && rules.pizzaEffectMultiplier > 1.0) {
+      patterns.push({
+        id: 'pizza',
+        title: t('auto.wzorzec_pizza_tytul', { defaultValue: 'Efekt Pizzy (FPU / Tłuszcze-Białka)' }),
+        desc: t('auto.wzorzec_pizza_opis', { defaultValue: 'Wykryto opóźniony szczyt glikemii po 3-5 godzinach od spożycia potraw tłustych i bogatobiałkowych.' }),
+        icon: '🍕',
+        tag: 'Trawienny'
+      });
+    }
+
+    if (rules.weekendInertiaEnabled) {
+      patterns.push({
+        id: 'weekend',
+        title: t('auto.wzorzec_weekend_tytul', { defaultValue: 'Bezwładność Weekendowa' }),
+        desc: t('auto.wzorzec_weekend_opis', { defaultValue: 'Wykryto istotną zmianę średniej glikemii i wrażliwości na insulinę w dni wolne od pracy.' }),
+        icon: '🏖️',
+        tag: 'Rytm dobowy'
+      });
+    }
+
+    if (rules.delayedExerciseEnabled) {
+      patterns.push({
+        id: 'exercise',
+        title: t('auto.wzorzec_sport_tytul', { defaultValue: 'Opóźniony Spadek Powysiłkowy' }),
+        desc: t('auto.wzorzec_sport_opis', { defaultValue: 'Wykryto wydłużone działanie insuliny (do 12h po treningu). Zwiększona wrażliwość w nocy.' }),
+        icon: '🏃',
+        tag: 'Wysiłkowy'
+      });
+    }
+
+    if (rules.stressSensitivityEnabled) {
+      patterns.push({
+        id: 'stress',
+        title: t('auto.wzorzec_stres_tytul', { defaultValue: 'Wrażliwość na Stres / Kortyzol' }),
+        desc: t('auto.wzorzec_stres_opis', { defaultValue: 'Wykryto regularne wahania porannej glikemii w dni robocze związane z rytmem pracy.' }),
+        icon: '⚡',
+        tag: 'Stres'
+      });
+    }
+
+    if (rules.insulinResistanceMultiplier && (rules.insulinResistanceMultiplier > 1.05 || rules.insulinResistanceMultiplier < 0.95)) {
+      const isResistant = rules.insulinResistanceMultiplier > 1.05;
+      patterns.push({
+        id: 'resistance',
+        title: isResistant ? t('auto.wzorzec_opornosc_tytul', { defaultValue: 'Lekka Oporność na Insulinę' }) : t('auto.wzorzec_wrazliwosc_tytul', { defaultValue: 'Zwiększona Wrażliwość na Dawkę' }),
+        desc: t('auto.wzorzec_mnoznik_opis', { mult: Math.round(rules.insulinResistanceMultiplier * 100), defaultValue: `Wyuczony mnożnik wrażliwości: ${Math.round(rules.insulinResistanceMultiplier * 100)}% normy.` }),
+        icon: isResistant ? '💪' : '📉',
+        tag: 'Metaboliczny'
+      });
+    }
+
+    return patterns;
+  }, [mlResult, t]);
 
  function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
  const errInfo = {
@@ -91,7 +190,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const fetchBackupStatus = async () => {
  setLoadingBackup(true);
  try {
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  const docSnap = await getDoc(docRef);
  if (docSnap.exists()) {
  const data = docSnap.data();
@@ -116,23 +215,23 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  setHasBackupConsent(checked);
  localStorage.setItem('glikosense_backup_consent', checked ? 'true' : 'false');
  if (checked) {
- toast.success(i18n.t('auto.zgoda_udzielona_mozesz_teraz_z', { defaultValue: i18n.t('auto.zgoda_udzielona_mozesz_te', { defaultValue: "Zgoda udzielona. Możesz teraz zarządzać kopią zapasową." }) }));
+ toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.zgoda_udzielona_mozesz_te', { glikoName, defaultValue: "Zgoda udzielona. Możesz teraz zarządzać kopią zapasową." }) }));
  }
  };
 
  const handleBackupToCloud = async () => {
  if (!user || user.isAnonymous) {
- toast.error(i18n.t('auto.zaloguj_sie_na_pelne_konto_e_m', { defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_kont', { defaultValue: "Zaloguj się na pełne konto (E-mail lub Google), aby korzystać z kopii zapasowej." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.unknown_key', { glikoName, defaultValue: "Zaloguj się na pełne konto (E-mail lub Google), aby korzystać z kopii zapasowej." }) }));
  return;
  }
  if (!hasBackupConsent) {
- toast.error(i18n.t('auto.musisz_najpierw_zaakceptowac_i', { defaultValue: i18n.t('auto.musisz_najpierw_zaakcepto', { defaultValue: "Musisz najpierw zaakceptować informację o zgodzie." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.musisz_najpierw_zaakcepto', { glikoName, defaultValue: "Musisz najpierw zaakceptować informację o zgodzie." }) }));
  return;
  }
 
  setIsBackupActionRunning(true);
- const toastId = toast.loading("Archiwizowanie modelu GlikoSense 3.0 w chmurze...");
- const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+ const toastId = toast.loading(`Archiwizowanie modelu {glikoName} w chmurze...`);;
+ const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
  const modelData = await MLAnalyzer.exportCurrentModel();
  if (!modelData) {
@@ -142,7 +241,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  return;
  }
 
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  await setDoc(docRef, {
  ...modelData,
  datasetSize: mlResult?.datasetSize || 0
@@ -153,9 +252,9 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  datasetSize: mlResult?.datasetSize || 0
  });
 
- toast.success(i18n.t('auto.kopia_zapasowa_modelu_glikosen', { defaultValue: i18n.t('auto.kopia_zapasowa_modelu_gli', { defaultValue: "Kopia zapasowa modelu GlikoSense 3.0 została zapisana pomyślnie!" }) }), { id: toastId });
+ toast.success(i18n.t('auto.kopia_zapasowa_modelu_glikosen', { glikoName, defaultValue: i18n.t('auto.kopia_zapasowa_modelu_gli', { glikoName, defaultValue: `Kopia zapasowa modelu ${glikoName} została zapisana pomyślnie!` }) }), { id: toastId });
  } catch (err) {
- toast.error(i18n.t('auto.blad_podczas_eksportowania_lub', { defaultValue: i18n.t('auto.blad_podczas_eksportowani', { defaultValue: "Błąd podczas eksportowania lub zapisu kopii zapasowej." }) }), { id: toastId });
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_podczas_eksportowani', { glikoName, defaultValue: "Błąd podczas eksportowania lub zapisu kopii zapasowej." }) }), { id: toastId });
  handleFirestoreError(err, OperationType.WRITE, docPath);
  } finally {
  setIsBackupActionRunning(false);
@@ -164,24 +263,24 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
 
  const handleRestoreFromCloud = async () => {
  if (!user || user.isAnonymous) {
- toast.error(i18n.t('auto.zaloguj_sie_na_pelne_konto_e_m', { defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_kont', { defaultValue: "Zaloguj się na pełne konto (E-mail lub Google), aby pobrać kopię zapasową." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_konto_e_m', { glikoName, defaultValue: "Zaloguj się na pełne konto (E-mail lub Google), aby pobrać kopię zapasową." }) }));
  return;
  }
  if (!hasBackupConsent) {
- toast.error(i18n.t('auto.udziel_najpierw_zgody_na_zarza', { defaultValue: i18n.t('auto.udziel_najpierw_zgody_na', { defaultValue: "Udziel najpierw zgody na zarządzanie kopią zapasową." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.udziel_najpierw_zgody_na', { glikoName, defaultValue: "Udziel najpierw zgody na zarządzanie kopią zapasową." }) }));
  return;
  }
 
  const confirmRestore = window.confirm(
- i18n.t('auto.uwaga_przywrocenie_modelu_z_ch', { defaultValue: i18n.t('auto.uwaga_przywrocenie_modelu', { defaultValue: "UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej GlikoSense 3.0 zainstalowane w przeglądarce. Czy chcesz kontynuować?" }) })
+ i18n.t('auto.uwaga_przywrocenie_modelu_z_ch', { glikoName, defaultValue: i18n.t('auto.uwaga_przywrocenie_modelu', { glikoName, defaultValue: `UWAGA: Przywrócenie modelu z chmury CAŁKOWICIE nadpisze obecne lokalne parametry sieci neuronowej ${glikoName} zainstalowane w przeglądarce. Czy chcesz kontynuować?` }) })
  );
  if (!confirmRestore) return;
 
  setIsBackupActionRunning(true);
- const toastId = toast.loading("Pobieranie i importowanie modelu z chmury...");
- const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+ const toastId = toast.loading(`Archiwizowanie modelu {glikoName} w chmurze...`);;
+ const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  const docSnap = await getDoc(docRef);
 
  if (!docSnap.exists()) {
@@ -199,13 +298,13 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  });
 
  if (success) {
- toast.success(i18n.t('auto.model_glikosense_3_0_zostal_po', { defaultValue: i18n.t('auto.model_glikosense_3_0_zost', { defaultValue: "Model GlikoSense 3.0 został pomyślnie przywrócony z chmury!" }) }), { id: toastId });
+ toast.success(i18n.t('auto.model_glikosense_3_0_zostal_po', { glikoName, defaultValue: i18n.t('auto.model_glikosense_3_0_zost', { glikoName, defaultValue: `Model ${glikoName} został pomyślnie przywrócony z chmury!` }) }), { id: toastId });
  runML(true);
  } else {
- toast.error(i18n.t('auto.wystapil_nieznany_problem_z_pl', { defaultValue: i18n.t('auto.wystapil_nieznany_problem', { defaultValue: "Wystąpił nieznany problem z plikiem modelu." }) }), { id: toastId });
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.wystapil_nieznany_problem', { glikoName, defaultValue: "Wystąpił nieznany problem z plikiem modelu." }) }), { id: toastId });
  }
  } catch (err) {
- toast.error(i18n.t('auto.blad_podczas_przywracania_kopi', { defaultValue: i18n.t('auto.blad_podczas_przywracania', { defaultValue: "Błąd podczas przywracania kopii zapasowej." }) }), { id: toastId });
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_podczas_przywracania', { glikoName, defaultValue: "Błąd podczas przywracania kopii zapasowej." }) }), { id: toastId });
  handleFirestoreError(err, OperationType.GET, docPath);
  } finally {
  setIsBackupActionRunning(false);
@@ -214,19 +313,19 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
 
  const handleDeleteBackup = async () => {
  if (!user || user.isAnonymous) return;
- const confirmDelete = window.confirm(i18n.t('auto.czy_na_pewno_chcesz_usunac_kop', { defaultValue: i18n.t('auto.czy_na_pewno_chcesz_usuna', { defaultValue: "Czy na pewno chcesz usunąć kopię zapasową modelu z chmury? Ta operacja jest nieodwracalna." }) }));
+ const confirmDelete = window.confirm(i18n.t('', { glikoName, defaultValue: i18n.t('auto.czy_na_pewno_chcesz_usunac_kop', { glikoName, defaultValue: "Czy na pewno chcesz usunąć kopię zapasową modelu z chmury? Ta operacja jest nieodwracalna." }) }));
  if (!confirmDelete) return;
 
  setIsBackupActionRunning(true);
- const toastId = toast.loading("Usuwanie kopii zapasowej...");
- const docPath = `/artifacts/diacontrolapp/users/${getEffectiveUid(user)}/neural_model/backup`;
+ const toastId = toast.loading(`Archiwizowanie modelu {glikoName} w chmurze...`);;
+ const docPath = `/users/${getEffectiveUid(user)}/neural_model/backup`;
  try {
- const docRef = doc(db, 'artifacts', 'diacontrolapp', 'users', getEffectiveUid(user), 'neural_model', 'backup');
+ const docRef = doc(db, 'users', getEffectiveUid(user), 'neural_model', 'backup');
  await deleteDoc(docRef);
  setBackupInfo(null);
- toast.success(i18n.t('auto.kopia_zapasowa_w_chmurze_zosta', { defaultValue: i18n.t('auto.kopia_zapasowa_w_chmurze', { defaultValue: "Kopia zapasowa w chmurze została usunięta." }) }), { id: toastId });
+ toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.kopia_zapasowa_w_chmurze', { glikoName, defaultValue: "Kopia zapasowa w chmurze została usunięta." }) }), { id: toastId });
  } catch (err) {
- toast.error(i18n.t('auto.blad_podczas_usuwania_kopii_za', { defaultValue: i18n.t('auto.blad_podczas_usuwania_kop', { defaultValue: "Błąd podczas usuwania kopii zapasowej." }) }), { id: toastId });
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_podczas_usuwania_kop', { glikoName, defaultValue: "Błąd podczas usuwania kopii zapasowej." }) }), { id: toastId });
  handleFirestoreError(err, OperationType.DELETE, docPath);
  } finally {
  setIsBackupActionRunning(false);
@@ -237,7 +336,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  try {
  const modelData = await MLAnalyzer.exportCurrentModel();
  if (!modelData) {
- toast.error(i18n.t('auto.brak_wytrenowanego_modelu_do_p', { defaultValue: i18n.t('auto.brak_wytrenowanego_modelu', { defaultValue: "Brak wytrenowanego modelu do pobrania. Wykonaj najpierw analizę!" }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.brak_wytrenowanego_modelu', { glikoName, defaultValue: "Brak wytrenowanego modelu do pobrania. Wykonaj najpierw analizę!" }) }));
  return;
  }
  
@@ -247,15 +346,77 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  const downloadAnchor = document.createElement('a');
  downloadAnchor.setAttribute("href", jsonString);
  downloadAnchor.setAttribute("download", `glikosense_model_backup_${Date.now()}.json`);
- document.body.appendChild(downloadAnchor);
  downloadAnchor.click();
  downloadAnchor.remove();
- toast.success(i18n.t('auto.pomyslnie_pobrano_model_do_pli', { defaultValue: i18n.t('auto.pomyslnie_pobrano_model_d', { defaultValue: "Pomyślnie pobrano model do pliku JSON!" }) }));
+ toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.pomyslnie_pobrano_model_d', { glikoName, defaultValue: "Pomyślnie pobrano model do pliku JSON!" }) }));
  } catch (err) {
- toast.error(i18n.t('auto.blad_eksportu_do_pliku', { defaultValue: i18n.t('auto.blad_eksportu_do_pliku', { defaultValue: "Błąd eksportu do pliku." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_eksportu_do_pliku', { glikoName, defaultValue: "Błąd eksportu do pliku." }) }));
  console.error(err);
  }
  };
+
+  const handleAcceptAutoTune = async () => {
+    const authUser = auth.currentUser;
+    const effectiveUser = user || authUser;
+    if (!autoTunerResult?.proposedISF || !effectiveUser || !autoTunerResult.timeBlock) {
+      console.warn('[AutoTune] Missing prerequisites to apply autotune', { autoTunerResult, effectiveUser });
+      return;
+    }
+    try {
+      Haptics.impact();
+      const uid = getEffectiveUid(effectiveUser, settings);
+      
+      let newProfiles = [...(settings?.hourlyProfiles || [])];
+      
+      if (newProfiles.length === 0) {
+        const baseIsf = settings?.isf || 50;
+        const baseWw = settings?.wwRatio || 10;
+        newProfiles = [
+          { time: '00:00', isf: baseIsf, wwRatio: baseWw },
+          { time: '06:00', isf: baseIsf, wwRatio: baseWw },
+          { time: '12:00', isf: baseIsf, wwRatio: baseWw },
+          { time: '18:00', isf: baseIsf, wwRatio: baseWw }
+        ];
+      }
+      
+      const blockIndex = newProfiles.findIndex(p => p.time === autoTunerResult.timeBlock!.start);
+      if (blockIndex !== -1) {
+        newProfiles[blockIndex] = { ...newProfiles[blockIndex], isf: autoTunerResult.proposedISF };
+      } else {
+        newProfiles.push({ 
+          time: autoTunerResult.timeBlock!.start, 
+          isf: autoTunerResult.proposedISF, 
+          wwRatio: settings?.wwRatio || 10 
+        });
+      }
+
+      newProfiles.sort((a, b) => a.time.localeCompare(b.time));
+
+      const updates: any = {
+        hourlyProfiles: newProfiles
+      };
+
+      // Zaktualizuj także bazowy ISF jeśli dotyczy głównego przedziału lub braku profili
+      if (autoTunerResult.timeBlock.start === '00:00' || autoTunerResult.timeBlock.start === '12:00' || newProfiles.length <= 1) {
+        updates.isf = autoTunerResult.proposedISF;
+      }
+
+      await setDoc(doc(db, "users", uid, "settings", "profile"), updates, { merge: true });
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updates }));
+      localStorage.setItem('lastIsfAutoTuneTime', Date.now().toString());
+      Haptics.success();
+      toast.success(t('auto.glikosense_autotune_success', { defaultValue: 'Profil ISF został pomyślnie zaktualizowany!' }));
+      setAutoTunerResult(null);
+    } catch (e: any) {
+      console.error('[AutoTune] Failed to accept auto-tune:', e);
+      toast.error(`Błąd zapisu ustawień: ${e?.message || ''}`);
+    }
+  };
+
+  const handleDismissAutoTune = () => {
+    localStorage.setItem('lastIsfAutoTuneTime', Date.now().toString());
+    setAutoTunerResult(null);
+  };
 
  const handleImportFromFile = (e: React.ChangeEvent<HTMLInputElement>) => {
  const fileReader = new FileReader();
@@ -270,23 +431,23 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  
  const parsed = JSON.parse(textStr);
  if (!parsed.modelTopology || !parsed.weightSpecs || !parsed.weightDataB64) {
- throw new Error(i18n.t('auto.nieprawidlowy_format_pliku_mod', { defaultValue: i18n.t('auto.nieprawidlowy_format_plik', { defaultValue: "Nieprawidłowy format pliku modelu GlikoSense." }) }));
+ throw new Error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.nieprawidlowy_format_plik', { glikoName, defaultValue: "Nieprawidłowy format pliku modelu GlikoSense." }) }));
  }
  
  const confirmRestore = window.confirm(
- i18n.t('auto.uwaga_wgranie_modelu_z_pliku_n', { defaultValue: i18n.t('auto.uwaga_wgranie_modelu_z_pl', { defaultValue: "Uwaga: Wgranie modelu z pliku nadpisze aktualny model w przeglądarce. Czy chcesz kontynuować?" }) })
+ i18n.t('', { glikoName, defaultValue: i18n.t('auto.uwaga_wgranie_modelu_z_pl', { glikoName, defaultValue: "Uwaga: Wgranie modelu z pliku nadpisze aktualny model w przeglądarce. Czy chcesz kontynuować?" }) })
  );
  if (!confirmRestore) return;
  
  const success = await MLAnalyzer.importModelFromBackup(parsed);
  if (success) {
- toast.success(i18n.t('auto.pomyslnie_wgrano_model_z_pliku', { defaultValue: i18n.t('auto.pomyslnie_wgrano_model_z', { defaultValue: "Pomyślnie wgrano model z pliku JSON!" }) }));
+ toast.success(i18n.t('', { glikoName, defaultValue: i18n.t('auto.pomyslnie_wgrano_model_z', { glikoName, defaultValue: "Pomyślnie wgrano model z pliku JSON!" }) }));
  runML(true);
  } else {
- toast.error(i18n.t('auto.blad_podczas_importu_modelu', { defaultValue: i18n.t('auto.blad_podczas_importu_mode', { defaultValue: "Błąd podczas importu modelu." }) }));
+ toast.error(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_podczas_importu_mode', { glikoName, defaultValue: "Błąd podczas importu modelu." }) }));
  }
  } catch (err) {
- toast.error(err instanceof Error ? err.message : i18n.t('auto.blad_odczytu_pliku_upewnij_sie', { defaultValue: i18n.t('auto.blad_odczytu_pliku_upewni', { defaultValue: "Błąd odczytu pliku. Upewnij się, że plik jest poprawnym JSONem modelu." }) }));
+ toast.error(err instanceof Error ? err.message : i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_odczytu_pliku_upewni', { glikoName, defaultValue: "Błąd odczytu pliku. Upewnij się, że plik jest poprawnym JSONem modelu." }) }));
  console.error(err);
  } finally {
  e.target.value = '';
@@ -334,6 +495,16 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }, 40000); // 40 seconds max
  
  try {
+ // Uruchamiamy weryfikację wsteczną w tle (szybki test skuteczności na danych sprzed godziny)
+ MLAnalyzer.runHindsightVerification(logs);
+
+ if (autoTuningEnabled && settings?.isf) {
+    const isfRes = detectIsfChanges(logs, settings.isf, settings.hourlyProfiles);
+    setAutoTunerResult(isfRes);
+  } else {
+    setAutoTunerResult(null);
+  }
+
  // Start quick analysis immediately
  const quickPromise = MLAnalyzer.analyzeData(logs, force, 'quick');
  
@@ -351,7 +522,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  .catch(e => {
  console.error("GlikoSense Full Analysis Error:", e);
  // Nie ustawiamy błędu globalnego jeśli mamy już wynik quick
- if (!qResult) setError(i18n.t('auto.blad_pelnej_analizy', { defaultValue: i18n.t('auto.blad_pelnej_analizy', { defaultValue: "Błąd pełnej analizy." }) }));
+ if (!qResult) setError(i18n.t('', { glikoName, defaultValue: i18n.t('auto.blad_pelnej_analizy', { glikoName, defaultValue: "Błąd pełnej analizy." }) }));
  })
  .finally(() => {
  clearTimeout(safetyTimeout);
@@ -359,7 +530,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  
  } catch (e) {
  console.error("GlikoSense Quick Analysis Error:", e);
- setError(i18n.t('auto.nie_udalo_sie_przeanalizowac_d', { defaultValue: i18n.t('auto.nie_udalo_sie_przeanalizo', { defaultValue: "Nie udało się przeanalizować danych. Spróbuj później." }) }));
+ setError(i18n.t('', { glikoName, defaultValue: i18n.t('auto.nie_udalo_sie_przeanalizo', { glikoName, defaultValue: "Nie udało się przeanalizować danych. Spróbuj później." }) }));
  clearTimeout(safetyTimeout);
  setIsAnalyzing(false);
  }
@@ -480,10 +651,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }
 
  const mealBlocks = {
- breakfast: { name: i18n.t('auto.sniadanie', { defaultValue: 'Śniadanie' }), icon: '🌅', hours: [6, 11], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
- lunch: { name: i18n.t('auto.obiad', { defaultValue: 'Obiad' }), icon: '☀️', hours: [11, 16], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
- dinner: { name: i18n.t('auto.kolacja', { defaultValue: 'Kolacja' }), icon: '🌙', hours: [16, 22], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
- night: { name: i18n.t('auto.noc', { defaultValue: 'Noc' }), icon: '🌌', hours: [22, 6], carbs: 0, bolus: 0, count: 0, totalDelta: 0 }
+ breakfast: { name: i18n.t('auto.sniadanie', { glikoName, defaultValue: 'Śniadanie' }), icon: '🌅', hours: [6, 11], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+ lunch: { name: i18n.t('auto.obiad', { glikoName, defaultValue: 'Obiad' }), icon: '☀️', hours: [11, 16], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+ dinner: { name: i18n.t('auto.kolacja', { glikoName, defaultValue: 'Kolacja' }), icon: '🌙', hours: [16, 22], carbs: 0, bolus: 0, count: 0, totalDelta: 0 },
+ night: { name: i18n.t('auto.noc', { glikoName, defaultValue: 'Noc' }), icon: '🌌', hours: [22, 6], carbs: 0, bolus: 0, count: 0, totalDelta: 0 }
  };
 
  const recentMeals = logs.filter(l => l.type === 'meal' && l.timestamp >= cutoff14);
@@ -552,6 +723,49 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }, [logs, settings]);
 
  return (
+ <div className="flex flex-col h-full bg-slate-50/50 dark:bg-slate-900 overflow-y-auto overflow-x-hidden p-4 pb-24 gap-4">
+    
+    <AnimatePresence>
+      {autoTuningEnabled && autoTunerResult?.suggestionAvailable && autoTunerResult.proposedISF && settings?.isf && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="relative bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 p-5 rounded-3xl shadow-sm"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center shrink-0">
+              <Bot size={22} className="text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div className="flex flex-col gap-1.5 flex-1">
+              <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  {t('auto.glikosense_autotune_title_hourly', { defaultValue: `Wrażliwość ${autoTunerResult.timeBlock.start} - ${autoTunerResult.timeBlock.end}`, start: autoTunerResult.timeBlock.start, end: autoTunerResult.timeBlock.end })}
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  {t('auto.glikosense_autotune_desc_hourly', { defaultValue: `Twoje bolusy w godzinach ${autoTunerResult.timeBlock.start} - ${autoTunerResult.timeBlock.end} działają słabiej. Zaktualizować ISF dla tego przedziału?`, start: autoTunerResult.timeBlock.start, end: autoTunerResult.timeBlock.end })}
+                </p>
+                
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={handleAcceptAutoTune}
+                    className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors"
+                  >
+                    {t('auto.glikosense_autotune_action_hourly', { defaultValue: `Zmień na ${autoTunerResult.proposedISF} mg/dL`, newISF: autoTunerResult.proposedISF })}
+                  </button>
+                  <button
+                    onClick={handleDismissAutoTune}
+                    className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    {t('auto.glikosense_autotune_reject', { defaultValue: 'Zignoruj' })}
+                  </button>
+                </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
  <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 md:p-8 rounded-[2.5rem] shadow-2xl border border-accent-100 dark:border-accent-900/40 relative overflow-hidden group">
  {/* Background decoration */}
  <div className="absolute -top-32 -right-32 w-[30rem] h-[30rem] bg-accent-500/10 blur-[80px] rounded-full pointer-events-none group-hover:bg-accent-500/20 transition-all duration-1000" />
@@ -563,7 +777,15 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <GlikoSenseIcon size={24} isAnalyzing={isAnalyzing} />
  </div>
  <div className="flex flex-col">
+ <div className="flex items-center gap-2">
  <h3 className="text-xl font-black tracking-tighter text-slate-800 dark:text-white">{t('auto.glikosense', { defaultValue: 'GlikoSense' })}<span className="text-indigo-500 text-2xl leading-none">.</span></h3>
+ <button 
+ onClick={() => setShowEngineSettings(!showEngineSettings)} 
+ className="p-1 text-slate-400 hover:text-indigo-500 transition-colors"
+ >
+ <Settings size={16} />
+ </button>
+ </div>
  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-1.5 mt-0.5">
  {isAnalyzing ? (
  <>
@@ -582,11 +804,114 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  onClick={() => runML(true)} 
  disabled={isAnalyzing}
  className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-accent-500 dark:text-slate-400 rounded-xl transition-all hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-50"
- title={t('auto.odśwież_analizę', { defaultValue: i18n.t('auto.odswiez_analize', { defaultValue: "Odśwież analizę" }) })}
+ title={t('', { glikoName, defaultValue: i18n.t('auto.odswiez_analize', { glikoName, defaultValue: "Odśwież analizę" }) })}
  >
  <RefreshCw size={18} className={isAnalyzing ? 'animate-spin' : ''} />
  </button>
  </div>
+
+ <AnimatePresence>
+        {showEngineSettings && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mb-6 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    🧠 {t('auto.architektura_sieci_glikosense', { defaultValue: 'Wersja Silnika GlikoSense' })}
+                  </span>
+                </div>
+                
+                <div className="flex bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl w-full border border-slate-200/50 dark:border-slate-700/50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem('glikosense_engine_mode', 'v3_lstm');
+                      setEngineMode('v3_lstm');
+                      toast.success(t('auto.przelaczono_na_silnik_lstm', { defaultValue: "Przełączono na GlikoSense 3.0 LSTM Klasyczny" }));
+                      if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                      setTimeout(() => runML(true), 50);
+                    }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300",
+                      engineMode === 'v3_lstm'
+                        ? "bg-white dark:bg-slate-700 shadow-sm text-slate-800 dark:text-white"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                    )}
+                  >
+                    v3.0 Klasyczny (LSTM)
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
+                      setEngineMode('v4_tcn');
+                      toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
+                      if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
+                      setTimeout(() => runML(true), 50);
+                    }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300 gap-1.5",
+                      (typeof window !== 'undefined' && (
+                        typeof OffscreenCanvas === 'undefined' || 
+                        typeof window.WebGLRenderingContext === 'undefined' || 
+                        localStorage.getItem('glikosense_active_backend') === 'cpu' || 
+                        (navigator.deviceMemory && navigator.deviceMemory < 3)
+                      )) ? "opacity-50 cursor-not-allowed" : "",
+                      engineMode === 'v4_tcn'
+                        ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400"
+                        : "text-slate-500 dark:text-slate-400 hover:text-indigo-500"
+                    )}
+                  >
+                    🚀 v4.0 Pro (TCN)
+                  </button>
+                </div>
+                
+                <p className="text-[9px] text-slate-400 dark:text-slate-500 text-center px-4 font-medium leading-relaxed">
+                  {engineMode === 'v4_tcn' 
+                    ? t('auto.opis_silnika_tcn', { defaultValue: 'Sploty dylatowane (TCN) z kwantyzacją wag INT8 i bezpiecznikiem skrajnych próbek. Wysoka precyzja.' })
+                    : t('auto.opis_silnika_lstm', { defaultValue: 'Pamięć sekwencyjna (LSTM). Sprawdzony, klasyczny wariant asystenta o mniejszym zapotrzebowaniu na moc.' })}
+                </p>
+
+                <div className="mt-2 border-t border-slate-200/50 dark:border-slate-700/50 pt-4 flex flex-col gap-3">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Auto-Tuning ISF (AI Sugestie)
+                      </span>
+                      <span className="text-[8px] text-slate-500 dark:text-slate-400 mt-1 max-w-[200px]">
+                        Pozwól GlikoSense wykrywać i sugerować zmiany we wrażliwości na insulinę
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newState = !autoTuningEnabled;
+                        setAutoTuningEnabled(newState);
+                        localStorage.setItem('glikosense_autotuning', newState.toString());
+                        toast.success(newState ? 'Auto-Tuning włączony (Tryb sugestii)' : 'Auto-Tuning wyłączony');
+                      }}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        autoTuningEnabled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-700'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          autoTuningEnabled ? 'translate-x-5' : 'translate-x-0'
+                        )}
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
  {/* GlikoSense Neural Backup Control Trigger & Panel */}
  <div className="relative z-20 mb-6 bg-slate-50 dark:bg-slate-800/20 p-4 border border-slate-200/40 dark:border-slate-800/40 rounded-[2rem] hover:border-indigo-500/20 transition-all">
@@ -594,7 +919,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="flex items-center gap-2.5">
  <Cloud size={18} className="text-indigo-500" />
  <div className="flex flex-col">
- <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{t('auto.sieć_neuronowa_glikosense_3_0', { defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { defaultValue: "Sieć neuronowa GlikoSense 3.0" }) })}</span>
+ <span className="text-sm font-black text-slate-700 dark:text-slate-100 leading-none">{t('auto.sieć_neuronowa_glikosense_3_0', { glikoName, defaultValue: i18n.t('auto.siec_neuronowa_glikosense', { glikoName, defaultValue: `Sieć neuronowa ${glikoName}` }) })}</span>
  <span className="text-[10px] font-bold text-slate-400 opacity-80 mt-1">{t('auto.kopia_zapasowa_modelu_w_zabezpieczo', { defaultValue: 'Kopia zapasowa modelu w zabezpieczonej chmurze' })}</span>
  </div>
  </div>
@@ -602,7 +927,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  onClick={() => setShowBackupPanel(!showBackupPanel)}
  className="px-3 py-1.5 text-xs font-bold text-indigo-500 hover:text-indigo-600 bg-indigo-500/5 hover:bg-indigo-500/10 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/15 rounded-xl transition-all"
  >
- {showBackupPanel ? i18n.t('auto.zwin', { defaultValue: i18n.t('auto.zwin', { defaultValue: "Zwiń" }) }) : i18n.t('auto.zarzadzaj', { defaultValue: i18n.t('auto.zarzadzaj', { defaultValue: "Zarządzaj" }) })}
+ {showBackupPanel ? i18n.t('', { glikoName, defaultValue: i18n.t('auto.zwin', { glikoName, defaultValue: "Zwiń" }) }) : i18n.t('', { glikoName, defaultValue: i18n.t('auto.zarzadzaj', { glikoName, defaultValue: "Zarządzaj" }) })}
  </button>
  </div>
 
@@ -616,13 +941,13 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 text-amber-700 dark:text-amber-400">
  <ShieldAlert size={20} className="shrink-0 mt-0.5" />
  <div className="space-y-1">
- <span className="text-xs font-black uppercase tracking-wider block">{t('auto.ważna_informacja_o_modelu', { defaultValue: i18n.t('auto.wazna_informacja_o_modelu', { defaultValue: "Ważna Informacja o Modelu" }) })}</span>
+ <span className="text-xs font-black uppercase tracking-wider block">{t('', { glikoName, defaultValue: i18n.t('auto.wazna_informacja_o_modelu', { glikoName, defaultValue: "Ważna Informacja o Modelu" }) })}</span>
  <p className="text-xs font-medium leading-relaxed">
  
- {t('auto.twoja_sieć_neuronowa_uczy_się_lokal', { defaultValue: i18n.t('auto.twoja_siec_neuronowa_uczy', { defaultValue: "Twoja sieć neuronowa uczy się lokalnie na Twoim urządzeniu. Czyszczenie pamięci podręcznej przeglądarki lub zmiana urządzenia spowoduje" }) })}{" "}
- <strong className="font-extrabold text-amber-600 dark:text-amber-300">{t('auto.bezzwrotną_utratę_wyuczonego_modelu', { defaultValue: i18n.t('auto.bezzwrotna_utrate_wyuczon', { defaultValue: "bezzwrotną utratę wyuczonego modelu GlikoSense 3.0" }) })}</strong>{" "}
+ {t('', { glikoName, defaultValue: i18n.t('auto.twoja_siec_neuronowa_uczy', { glikoName, defaultValue: "Twoja sieć neuronowa uczy się lokalnie na Twoim urządzeniu. Czyszczenie pamięci podręcznej przeglądarki lub zmiana urządzenia spowoduje" }) })}{" "}
+ <strong className="font-extrabold text-amber-600 dark:text-amber-300">{t('auto.bezzwrotną_utratę_wyuczonego_modelu', { glikoName, defaultValue: i18n.t('auto.bezzwrotna_utrate_wyuczon', { glikoName, defaultValue: `bezzwrotną utratę wyuczonego modelu ${glikoName}` }) })}</strong>{" "}
  
- {t('auto.i_przywrócenie_wartości_podstawowyc', { defaultValue: i18n.t('auto.i_przywrocenie_wartosci_p', { defaultValue: "i przywrócenie wartości podstawowych. Kopia w chmurze chroni przed utratą Twojej spersonalizowanej inteligencji." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.i_przywrocenie_wartosci_p', { glikoName, defaultValue: "i przywrócenie wartości podstawowych. Kopia w chmurze chroni przed utratą Twojej spersonalizowanej inteligencji." }) })}
  </p>
  </div>
  </div>
@@ -642,11 +967,11 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="space-y-0.5">
  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
  
- {t('auto.rozumiem_ryzyko_i_wyrażam_świadomą_', { defaultValue: i18n.t('auto.rozumiem_ryzyko_i_wyrazam', { defaultValue: "Rozumiem ryzyko i wyrażam świadomą zgodę" }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.rozumiem_ryzyko_i_wyrazam', { glikoName, defaultValue: "Rozumiem ryzyko i wyrażam świadomą zgodę" }) })}
  </span>
  <p className="text-[10px] text-slate-400">
  
- {t('auto.wyrażam_zgodę_na_bezpieczny_szyfrow', { defaultValue: i18n.t('auto.wyrazam_zgode_na_bezpiecz', { defaultValue: "Wyrażam zgodę na bezpieczny, szyfrowany zapis wag i topologii mojej lokalnej sieci neuronowej w moim profilu bazy danych Firebase." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.wyrazam_zgode_na_bezpiecz', { glikoName, defaultValue: "Wyrażam zgodę na bezpieczny, szyfrowany zapis wag i topologii mojej lokalnej sieci neuronowej w moim profilu bazy danych Firebase." }) })}
  </p>
  </div>
  </div>
@@ -655,12 +980,12 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  {!user ? (
  <div className="bg-indigo-500/5 border border-indigo-500/15 p-3 rounded-2xl text-center text-xs text-indigo-500 font-bold">
  
- {t('auto.zaloguj_się_na_pełne_konto_e_mailem', { defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_kont', { defaultValue: "⚠️ Zaloguj się na pełne konto (e-mailem lub Google), aby uzyskać dostęp do kopii zapasowej w bezpiecznej chmurze." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.zaloguj_sie_na_pelne_kont', { glikoName, defaultValue: "⚠️ Zaloguj się na pełne konto (e-mailem lub Google), aby uzyskać dostęp do kopii zapasowej w bezpiecznej chmurze." }) })}
  </div>
  ) : user.isAnonymous ? (
  <div className="bg-amber-500/5 border border-amber-500/15 p-3 rounded-2xl text-center text-xs text-amber-600 dark:text-amber-400 font-bold">
  
- {t('auto.kopia_zapasowa_modelu_jest_niedostę', { defaultValue: i18n.t('auto.kopia_zapasowa_modelu_jes', { defaultValue: "⚠️ Kopia zapasowa modelu jest niedostępna w trybie gościa. Zapobiegaj utracie modelu logując się na pełne konto (E-mail lub Google)." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.kopia_zapasowa_modelu_jes', { glikoName, defaultValue: "⚠️ Kopia zapasowa modelu jest niedostępna w trybie gościa. Zapobiegaj utracie modelu logując się na pełne konto (E-mail lub Google)." }) })}
  </div>
  ) : (
  <div className="space-y-3">
@@ -699,7 +1024,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  disabled={isBackupActionRunning || !hasBackupConsent || !backupInfo}
  className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-black text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/30 disabled:text-emerald-500/50 rounded-xl transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
  >
- <CloudDownload size={14} /> {t('auto.przywróć_z_chmury', { defaultValue: i18n.t('auto.przywroc_z_chmury', { defaultValue: "PRZYWRÓĆ Z CHMURY" }) })}
+ <CloudDownload size={14} /> {t('', { glikoName, defaultValue: i18n.t('auto.przywroc_z_chmury', { glikoName, defaultValue: "PRZYWRÓĆ Z CHMURY" }) })}
  </button>
 
  {backupInfo && (
@@ -707,7 +1032,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  onClick={handleDeleteBackup}
  disabled={isBackupActionRunning}
  className="p-2.5 text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 rounded-xl transition-all shrink-0 cursor-pointer disabled:opacity-50"
- title={t('auto.usuń_kopię_zapasową_z_chmury', { defaultValue: i18n.t('auto.usun_kopie_zapasowa_z_chm', { defaultValue: "Usuń kopię zapasową z chmury" }) })}
+ title={t('', { glikoName, defaultValue: i18n.t('auto.usun_kopie_zapasowa_z_chm', { glikoName, defaultValue: "Usuń kopię zapasową z chmury" }) })}
  >
  <Trash2 size={14} />
  </button>
@@ -719,10 +1044,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  {/* Opcja offline dla gości, urządzeń lokalnych oraz eksportu dla APK */}
  <div className="pt-3.5 border-t border-slate-200/40 dark:border-slate-800/40 space-y-3">
  <div className="flex flex-col">
- <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.kopia_lokalna_plik_idealne_dla_plik', { defaultValue: i18n.t('auto.kopia_lokalna_plik_idealn', { defaultValue: "Kopia Lokalna / Plik (Idealne dla pliku APK & Gości)" }) })}</span>
+ <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('', { glikoName, defaultValue: i18n.t('auto.kopia_lokalna_plik_idealn', { glikoName, defaultValue: "Kopia Lokalna / Plik (Idealne dla pliku APK & Gości)" }) })}</span>
  <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
  
- {t('auto.całkowicie_bezpłatne_pobieranie_spe', { defaultValue: i18n.t('auto.calkowicie_bezplatne_pobi', { defaultValue: "Całkowicie bezpłatne pobieranie spersonalizowanych wag sieci neuronowej bezpośrednio na pamięć urządzenia lub ich wczytywanie z pliku JSON." }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.calkowicie_bezplatne_pobi', { glikoName, defaultValue: "Całkowicie bezpłatne pobieranie spersonalizowanych wag sieci neuronowej bezpośrednio na pamięć urządzenia lub ich wczytywanie z pliku JSON." }) })}
  </p>
  </div>
  <div className="flex flex-wrap gap-2">
@@ -758,7 +1083,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  exit={{ opacity: 0 }}
  className="h-48 flex items-center justify-center relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 glass-target"
  >
- <span className="text-xs font-bold uppercase tracking-widest text-slate-400">{t('auto.zbyt_mało_danych_do_analizy_min_5_w', { defaultValue: i18n.t('auto.zbyt_malo_danych_do_anali', { defaultValue: "Zbyt mało danych do analizy (min. 5 wpisów)" }) })}</span>
+ <span className="text-xs font-bold uppercase tracking-widest text-slate-400">{t('', { glikoName, defaultValue: i18n.t('auto.zbyt_malo_danych_do_anali', { glikoName, defaultValue: "Zbyt mało danych do analizy (min. 5 wpisów)" }) })}</span>
  </motion.div>
  ) : error && !mlResult ? (
  <motion.div 
@@ -775,7 +1100,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  className="mt-4 text-[10px] font-bold text-accent-500 uppercase tracking-widest hover:underline"
  >
  
- {t('auto.spróbuj_ponownie', { defaultValue: i18n.t('auto.sprobuj_ponownie', { defaultValue: "Spróbuj ponownie" }) })}
+ {t('', { glikoName, defaultValue: i18n.t('auto.sprobuj_ponownie', { glikoName, defaultValue: "Spróbuj ponownie" }) })}
  </button>
  </motion.div>
  ) : isAnalyzing && !mlResult ? (
@@ -793,41 +1118,54 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
  <div className="w-5/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
  <div className="w-4/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
+  </div>
+  </div>
+  </motion.div>
+  ) : mlResult ? (
+  <motion.div 
+  key="result"
+  initial={{ opacity: 0, y: 15 }} 
+  animate={{ opacity: 1, y: 0 }}
+  exit={{ opacity: 0, scale: 0.95 }}
+  transition={{ duration: 0.4, ease: "easeOut" }}
+  className="space-y-4 relative z-10 w-full overflow-hidden"
+  >
+ {/* Top Cards Grid: 1 column if day, 2 columns if night */}
+ <div className={`grid ${(localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() < 6)) ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-3 md:gap-4 w-full`}>
+ {/* 2h Direction Prediction Box */}
+ <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 dark:from-slate-950 dark:via-indigo-950 dark:to-violet-950 p-5 md:p-6 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-indigo-500/20 flex flex-col w-full">
+ <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 transform-gpu">
+ <Activity size={180} />
  </div>
- </div>
- </motion.div>
- ) : mlResult ? (
- <motion.div 
- key="result"
- initial={{ opacity: 0, y: 15 }} 
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, scale: 0.95 }}
- transition={{ duration: 0.4, ease: "easeOut" }}
- className="space-y-5 relative z-10"
- >
- <div className="grid grid-cols-2 gap-3 md:gap-5">
- {/* Prediction Box */}
- <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 dark:from-slate-950 dark:via-indigo-950 dark:to-violet-950 p-5 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group border border-indigo-500/20 flex flex-col">
- <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-6 transform-gpu">
- <TrendingUp size={160} />
- </div>
- {/* Inner glow */}
- <div className="absolute inset-0 bg-gradient-to-t from-indigo-500/20 to-transparent pointer-events-none" />
  
- <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4 relative z-10">
- <div className="bg-indigo-500/30 p-1.5 md:p-2 rounded-xl backdrop-blur-md">
- <Target size={16} className="text-indigo-200" />
+ <div className="flex justify-between items-start relative z-10">
+ <div className="flex flex-col">
+ <span className="text-[10px] font-black text-indigo-300/80 uppercase tracking-widest">{t('auto.kierunek_za_2h', { defaultValue: 'Kierunek za 2h' })}</span>
+ <div className="flex items-center gap-1.5 mt-0.5">
+ <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+ <span className="text-[8px] font-bold text-indigo-200/50 uppercase tracking-wider">{t('auto.na_podstawie_ai', { defaultValue: 'Na podstawie AI' })}</span>
  </div>
- <span className="text-[10px] md:text-[11px] font-black text-indigo-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.kierunek_2h', { defaultValue: 'Kierunek (2h)' })}</span>
  </div>
- <div className="flex items-baseline gap-1 md:gap-2 relative z-10 mt-auto">
- <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{mlResult.predictedNext2Hours}</span>
- <span className="text-[10px] md:text-sm font-bold text-indigo-300 tracking-wider md:tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
+ <div className="p-2 bg-white/5 rounded-xl backdrop-blur-sm border border-white/10 shrink-0">
+ <Wind size={16} className="text-indigo-300" />
+ </div>
+ </div>
+ 
+ <div className="flex items-baseline gap-2 relative z-10 my-auto pt-4">
+ <span className="text-5xl sm:text-6xl font-black tracking-tight leading-none">{mlResult.predictedNext2Hours}</span>
+ <div className="flex flex-col">
+   <span className="text-xs font-bold text-indigo-300 tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
+   {realAccuracyStats && realAccuracyStats.totalEvaluated > 0 && (
+     <span className="text-[9px] font-bold text-indigo-400/80 mt-1 uppercase tracking-widest">
+       BŁĄD: ±{realAccuracyStats.avgErrorMgDl} mg/dL
+     </span>
+   )}
+ </div>
  </div>
  
  {/* Mini sparkline visualization */}
- <div className="h-10 md:h-16 w-full mt-3 md:mt-4 pr-2 md:pr-4 opacity-100 mix-blend-screen shrink-0">
- <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+ <div className="h-12 w-full mt-3 pr-2 opacity-100 shrink-0">
+ <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 300, height: 48 }}>
  <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
  <defs>
  <linearGradient id="colorSparkline" x1="0" y1="0" x2="0" y2="1">
@@ -849,13 +1187,12 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </div>
  </div>
 
- {/* 6h Prediction Box for v4 TCN */}
- {localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() <= 6) ? (
- <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 dark:from-slate-950 dark:via-cyan-950 dark:to-indigo-950 p-5 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group border border-cyan-500/20 flex flex-col mt-4">
- {/* SVG Chart Background */}
+ {/* 6h Prediction Box for v4 TCN (Night Protect) */}
+ {(localStorage.getItem('glikosense_engine_mode') === 'v4_tcn' && (new Date().getHours() >= 21 || new Date().getHours() < 6)) ? (
+ <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 dark:from-slate-950 dark:via-cyan-950 dark:to-indigo-950 p-5 md:p-6 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-cyan-500/20 flex flex-col w-full">
  <div className="absolute inset-0 z-0 opacity-40">
  {mlResult.predictionCurve && (
- <ResponsiveContainer width="100%" height="100%">
+ <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 300, height: 120 }}>
  <AreaChart data={mlResult.predictionCurve} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
  <defs>
  <linearGradient id="nightProtect" x1="0" y1="0" x2="0" y2="1">
@@ -868,380 +1205,378 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </ResponsiveContainer>
  )}
  </div>
-
- <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-6 transform-gpu z-0">
- <TrendingUp size={160} />
- </div>
- <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent pointer-events-none z-0" />
  
- <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4 relative z-10">
- <div className="bg-cyan-500/30 p-1.5 md:p-2 rounded-xl backdrop-blur-md">
+ <div className="flex items-center gap-2 mb-3 relative z-10">
+ <div className="bg-cyan-500/30 p-2 rounded-xl backdrop-blur-md">
  <ShieldAlert size={16} className="text-cyan-200" />
  </div>
- <span className="text-[10px] md:text-[11px] font-black text-cyan-100 uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-90">{t('auto.najniższy_spadek', { defaultValue: 'Nocne Minimum' })}</span>
+ <span className="text-xs font-black text-cyan-100 uppercase tracking-wider opacity-90">{t('auto.najniższy_spadek', { defaultValue: 'Nocne Minimum' })}</span>
  </div>
- <div className="flex items-baseline gap-1 md:gap-2 relative z-10 mt-auto">
- <span className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-sm leading-none">{Math.round(Math.min(...(mlResult.predictionCurve?.map((p: any) => p.value) || [999])))}</span>
- <span className="text-[10px] md:text-sm font-bold text-cyan-300 tracking-wider md:tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
+ <div className="flex items-baseline gap-2 relative z-10 my-auto">
+ <span className="text-5xl sm:text-6xl font-black tracking-tight leading-none">{Math.round(Math.min(...(mlResult.predictionCurve?.map((p: any) => p.value) || [999])))}</span>
+ <span className="text-xs font-bold text-cyan-300 tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  </div>
- <div className="mt-3 md:mt-4 text-[9px] font-bold text-cyan-300/80 uppercase tracking-wider relative z-10">
+ <div className="mt-3 text-[10px] font-bold text-cyan-300/80 uppercase tracking-wider relative z-10">
  🛸 TCN Pro • Horyzont Nocny
  </div>
  </div>
  ) : null}
-
- {/* Confidence & Alerts Box */}
- <div className="flex flex-col gap-3 md:gap-5">
- <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 md:p-8 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-700/60 shadow-lg flex-1 flex flex-col justify-center relative overflow-hidden group">
- <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
- <div className="flex items-center gap-2 mb-2 md:mb-3 relative z-10">
- <div className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 md:p-2 rounded-xl">
- <GlikoSenseIcon size={16} isAnalyzing={true} />
- </div>
- <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.1em] md:tracking-[0.2em] leading-tight">{t('auto.pewność_modelu', { defaultValue: i18n.t('auto.pewnosc_modelu', { defaultValue: "Pewność Modelu" }) })}</span>
- </div>
- <div className="flex items-end gap-2 relative z-10 mt-auto">
- <span className="text-4xl md:text-5xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">{mlResult.accuracy}%</span>
- </div>
- <div className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-700/50 h-2 md:h-2.5 rounded-full mt-3 md:mt-4 overflow-hidden relative z-10">
- <motion.div 
- initial={{ width: 0 }}
- animate={{ width: `${mlResult.accuracy}%` }}
- transition={{ duration: 1.5, delay: 0.2, ease: "easeOut" }}
- className="bg-gradient-to-r from-emerald-400 to-emerald-500 h-full rounded-full" 
- />
- </div>
- {mlResult.datasetSize && (
- <div className="mt-3 flex items-center justify-between relative z-10">
- <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.model_wyuczony', { defaultValue: 'Model Wyuczony:' })}</span>
- <span className="text-[10px] font-black text-indigo-500">{mlResult.datasetSize} {t('auto.pkt_danych', { defaultValue: 'pkt danych' })}</span>
- </div>
- )}
- {mlResult.engineStatus && (
- <div className="mt-2.5 pt-2.5 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between relative z-10">
- <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('auto.silnik_ai', { defaultValue: 'Silnik AI:' })}</span>
- <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
- mlResult.engineStatus === 'hybrid_guardrail' 
- ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' 
- : mlResult.engineStatus === 'tcn_int8'
- ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300'
- : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
- }`}>
- {mlResult.engineStatus === 'hybrid_guardrail' 
- ? '🛡️ HYBRID GUARDRAIL' 
- : mlResult.engineStatus === 'tcn_int8' 
- ? '🚀 TCN INT8' 
- : '🧠 LSTM CLASSIC'}
- </span>
- </div>
- )}
- </div>
- 
- {mlResult.riskOfHypo && (
- <motion.div 
- initial={{ opacity: 0, scale: 0.9 }}
- animate={{ opacity: 1, scale: 1 }}
- className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/40 dark:to-amber-900/20 border-2 border-amber-200 dark:border-amber-800/50 p-3 md:p-4 rounded-[2rem] flex items-center justify-center gap-2 md:gap-3 text-amber-600 dark:text-amber-400 shadow-sm"
- >
- <div className="bg-white/50 dark:bg-black/20 p-1.5 md:p-2 rounded-full">
- <AlertTriangle size={16} className="animate-pulse" />
- </div>
- <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.1em] md:tracking-[0.2em]">{t('auto.ryzyko_hipo', { defaultValue: 'Ryzyko Hipo' })}</span>
- </motion.div>
- )}
- </div>
  </div>
 
- {mlResult.metrics && (
- <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-indigo-500 transition-colors">{t('auto.profil_działania_insuliny', { defaultValue: i18n.t('auto.profil_dzialania_insuliny', { defaultValue: "Profil Działania Insuliny" }) })}</span>
- <div className="flex flex-col">
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.iob.toFixed(1)} <span className="text-xs font-bold text-slate-400 tracking-normal">j</span></span>
- {mlResult.metrics.iob > 0 && (
- <span className="text-[7px] font-bold text-pink-500/80 uppercase mt-0.5 tracking-tighter">{t('auto.start_20m_szczyt_75m', { defaultValue: 'Start: ~20m • Szczyt: ~75m' })}</span>
- )}
- </div>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">{t('auto.aktywne_węglow', { defaultValue: i18n.t('auto.aktywne_weglow', { defaultValue: "Aktywne Węglow." }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.cob.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">g</span></span>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-amber-500 transition-colors">{t('auto.oporność_bias', { defaultValue: i18n.t('auto.opornosc_bias', { defaultValue: "Oporność (Bias)" }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
- {mlResult.metrics.avgBias > 0 ? '+' : ''}{mlResult.metrics.avgBias.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
- </span>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-emerald-500 transition-colors">{t('auto.gmi_wskaźnik', { defaultValue: i18n.t('auto.gmi_wskaznik', { defaultValue: "GMI (Wskaźnik)" }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{mlResult.metrics.gmiPercentage > 0 ? mlResult.metrics.gmiPercentage.toFixed(1) : '--'} <span className="text-xs font-bold text-slate-400 tracking-normal">%</span></span>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-orange-500 transition-colors">{t('auto.czułość_węg', { defaultValue: i18n.t('auto.czulosc_weg', { defaultValue: "Czułość (Węg.)" }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
- {mlResult.metrics.carbSensitivity > 0 ? '+' : ''}{mlResult.metrics.carbSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">{t('auto.50g', { defaultValue: '/ 50g' })}</span>
- </span>
- </div>
- <div className="bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow group glass-target">
- <span className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-cyan-500 transition-colors">{t('auto.wrażliwość_ins', { defaultValue: i18n.t('auto.wrazliwosc_ins', { defaultValue: "Wrażliwość (Ins.)" }) })}</span>
- <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">
- {mlResult.metrics.insulinSensitivity > 0 ? '+' : ''}{mlResult.metrics.insulinSensitivity.toFixed(0)} <span className="text-xs font-bold text-slate-400 tracking-normal whitespace-nowrap">{t('auto.1j', { defaultValue: '/ 1j' })}</span>
- </span>
- </div>
- </div>
- )}
-
- <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
- <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
- <Sparkles size={14} className="text-amber-500" /> {t('auto.wnioski_systemu', { defaultValue: 'Wnioski Systemu' })}
- </h4>
- <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-2 px-2 scrollbar-hide">
- {mlResult.insights.map((insight, idx) => {
- const isWarning = insight.includes('⚠️') || insight.includes('🎯');
- const isCritical = insight.includes('🚨') || insight.includes('❗');
- const isSuccess = insight.includes('✅') || insight.includes('🌟') || insight.includes('✨') || insight.includes('👌');
- 
- // Determine style based on priority and glassmorphism setting
- let cardStyle = '';
- let glowColor = '';
- let lineGlow = '';
- if (isCritical) {
- cardStyle = glassmorphismEnabled
- ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200/50 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 backdrop-blur-md'
- : 'bg-rose-50 dark:bg-rose-950/80 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300';
- glowColor = 'bg-rose-500';
- lineGlow = 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]';
- } else if (isWarning) {
- cardStyle = glassmorphismEnabled
- ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200/50 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 backdrop-blur-md'
- : 'bg-amber-50 dark:bg-amber-950/80 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300';
- glowColor = 'bg-amber-500';
- lineGlow = 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]';
- } else if (isSuccess) {
- cardStyle = glassmorphismEnabled
- ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200/50 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300 backdrop-blur-md'
- : 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300';
- glowColor = 'bg-emerald-500';
- lineGlow = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
- } else {
- cardStyle = glassmorphismEnabled
- ? 'bg-white/80 dark:bg-slate-800/80 border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 backdrop-blur-md'
- : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300';
- glowColor = 'bg-indigo-500';
- lineGlow = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]';
- }
-
- return (
- <motion.div 
- initial={{ opacity: 0, x: 20 }}
- animate={{ opacity: 1, x: 0 }}
- transition={{ delay: 0.2 + (idx * 0.1), type: 'spring' }}
- key={`insight-text-${idx}`} 
- className={`min-w-[280px] max-w-[320px] snap-center p-5 rounded-[2rem] flex flex-col justify-between gap-4 text-sm font-medium leading-relaxed shadow-sm border relative overflow-hidden ${cardStyle} ${glassmorphismEnabled ? 'glass-target' : ''}`}
- >
- <div className="flex-1 relative z-10 pt-1">
- {insight}
- </div>
- 
- {/* Pagination dots */}
- <div className="flex gap-1.5 mt-3 mb-1 justify-start items-center">
- {mlResult.insights.map((_, dotIdx) => (
- <div 
- key={`dot-${idx}-${dotIdx}`} 
- className={`h-1.5 rounded-full transition-all duration-300 ${dotIdx === idx ? 'w-4 bg-indigo-500 dark:bg-indigo-400' : 'w-1.5 bg-slate-200 dark:bg-slate-700'}`} 
- />
- ))}
- </div>
- 
- {setTab && (
- <button 
- onClick={() => {
- sessionStorage.setItem('bot_initial_query', `Proszę, przeanalizuj ze mną ten wniosek i doradź mi: ${insight}`);
- setTab('assistant');
- }}
- className={`self-start mt-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95 ${glassmorphismEnabled ? 'bg-slate-900/5 hover:bg-slate-900/10 dark:bg-white/5 dark:hover:bg-white/10 backdrop-blur-sm' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'} z-10`}
- >
- <Bot size={14} className="opacity-70" />
- {t('auto.zapytaj_ai', { defaultValue: 'Zapytaj AI' })}
- </button>
- )}
- 
- {/* Subtle background glow depending on theme */}
- {glassmorphismEnabled && (
- <div className={`absolute -bottom-10 -right-10 w-32 h-32 blur-[40px] opacity-20 rounded-full ${glowColor}`} pointerEvents="none" />
- )}
- </motion.div>
- );
- })}
- </div>
- </div>
- 
- <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/40 p-6 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-700/50 space-y-4">
- <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
- <CalendarDays size={14} className="text-indigo-500" /> {t('auto.ostatnie_3_dni', { defaultValue: 'Ostatnie 3 Dni' })}
- </h4>
- <div className="grid grid-cols-3 gap-3">
- {dailyStats.map((stat, idx) => (
- <div key={`insight-${idx}`} className="bg-white dark:bg-slate-800/80 p-4 rounded-3xl border border-slate-100 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center gap-1.5 transition-all hover:border-indigo-500/30 glass-target">
- <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</span>
- <div className="flex flex-col items-center">
- <span className={cn(
- "text-lg font-black leading-none",
- stat.avg ? (stat.avg > 180 || stat.avg < 70 ? 'text-amber-500' : 'text-emerald-500') : 'text-slate-300'
- )}>
- {stat.avg || '--'}
- </span>
- <span className="text-[8px] font-bold text-slate-400 uppercase">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
- </div>
- <div className="flex flex-col items-center w-full pt-1 border-t border-slate-50 dark:border-slate-700/30">
- <div className="flex items-center gap-1">
- <Target size={10} className="text-emerald-500" />
- <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">{stat.tir != null ? `${stat.tir}%` : '--'}</span>
- </div>
- <div className="flex items-center gap-1 text-slate-400">
- <Syringe size={10} className="text-indigo-400" />
- <span className="text-[9px] font-bold">{stat.bolus > 0 ? stat.bolus.toFixed(1) : '0'} j</span>
- </div>
- </div>
- </div>
- ))}
- </div>
- </div>
- </motion.div>
- ) : (
- <motion.div 
- key="loading"
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- className="h-48 flex flex-col p-6 space-y-4 relative z-10 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 glass-target animate-pulse"
- >
- <div className="w-1/3 h-6 bg-slate-200 dark:bg-slate-700 rounded-lg" />
- <div className="flex gap-4">
- <div className="w-20 h-20 bg-slate-200 dark:bg-slate-700 rounded-[1.5rem]" />
- <div className="flex-1 space-y-2 py-2">
- <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
- <div className="w-5/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
- <div className="w-4/6 h-4 bg-slate-200 dark:bg-slate-700 rounded-md" />
- </div>
- </div>
- </motion.div>
- )}
- </AnimatePresence>
-
- {/* --- Nowa sekcja: Analiza GlikoSense --- */}
+ {/* Real-World Prediction Verification Box - FULL WIDTH */}
  {mlResult && (
- <motion.div
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- className="mt-8 pt-8 border-t border-slate-200/50 dark:border-slate-800/50 relative z-20"
- >
- <div className="flex items-center gap-3 mb-6">
- <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md shadow-blue-500/20">
- <Activity size={20} className="text-white" />
+ <div className="bg-gradient-to-br from-indigo-900/80 via-slate-900/90 to-purple-900/80 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-indigo-500/30 text-white shadow-xl w-full relative overflow-hidden">
+ <div className="flex items-center justify-between mb-3 pb-2 border-b border-indigo-500/20">
+ <div className="flex items-center gap-2.5">
+ <div className="bg-indigo-500/25 p-2 rounded-xl border border-indigo-500/30 shrink-0">
+ <Target size={16} className="text-indigo-300 animate-pulse" />
  </div>
- <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
- {t('auto.zaawansowana_analiza_glikosense', { defaultValue: 'Zaawansowana Analiza GlikoSense' })}
- </h3>
- </div>
-
- <div className={`grid grid-cols-1 ${glikosenseAnalysis.totalBasal > 0 ? 'md:grid-cols-2' : ''} gap-6`}>
- {/* 1. CV i SD */}
- <div className={`p-6 rounded-[2rem] flex flex-col items-center justify-center relative overflow-hidden group transition-all duration-500 hover:shadow-xl ${
- glikosenseAnalysis.cv > 36 
- ? 'bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-800/30 hover:shadow-rose-500/10' 
- : 'bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 hover:shadow-emerald-500/10'
- }`}>
- <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 opacity-50"></div>
- 
- <div className="relative z-10 flex flex-col items-center text-center">
- <h4 className={`text-xs font-black uppercase tracking-widest mb-1 ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/80' : 'text-emerald-500/80'}`}>
- {t('auto.wspolczynnik_zmiennosci', { defaultValue: 'Współczynnik Zmienności (CV)' })}
+ <div>
+ <h4 className="text-xs font-black uppercase tracking-wider text-indigo-100">
+ {t('auto.glikosense_real_accuracy', { defaultValue: 'Trafność Prognoz GlikoSense' })}
  </h4>
- 
- <div className="flex items-baseline gap-1 my-2">
- <span className={`text-6xl font-black tracking-tighter ${glikosenseAnalysis.cv > 36 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
- {glikosenseAnalysis.cv.toFixed(1)}
- </span>
- <span className={`text-xl font-bold ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/60' : 'text-emerald-500/60'}`}>%</span>
- </div>
- 
- <div className={`text-[10px] font-bold px-4 py-1.5 rounded-full mt-2 ${
- glikosenseAnalysis.cv > 36 
- ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300' 
- : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
- }`}>
- {glikosenseAnalysis.cv > 36 
- ? t('auto.wysokie_ryzyko_rollercoastera_c', { defaultValue: 'WYSOKIE RYZYKO ROLLERCOASTERA (Cel: <36%)' })
- : t('auto.stabilna_glikemia_cel_osiagnie', { defaultValue: 'STABILNA GLIKEMIA (Cel osiągnięty)' })
- }
- </div>
- 
- <p className={`mt-4 text-xs font-medium ${glikosenseAnalysis.cv > 36 ? 'text-rose-800/70 dark:text-rose-200/60' : 'text-emerald-800/70 dark:text-emerald-200/60'}`}>
- {t('auto.odchylenie_standardowe_sd', { defaultValue: 'Odchylenie standardowe (SD):' })} <strong className="font-black">{glikosenseAnalysis.sd.toFixed(1)} mg/dL</strong>
+ <p className="text-[10px] text-indigo-300/80 font-medium">
+ {t('auto.glikosense_evaluated_forecasts', { defaultValue: 'Zweryfikowano prognoz' })}: {realAccuracyStats.totalEvaluated}
  </p>
  </div>
  </div>
 
- {/* 2. Proporcja Baza vs Bolus (Tylko jeśli totalBasal > 0) */}
- {glikosenseAnalysis.totalBasal > 0 && (
- <div className="bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/50 p-6 rounded-[2rem] relative overflow-hidden">
- <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 text-center">
- {t('auto.proporcja_baza_vs_bolus', { defaultValue: 'Proporcja Baza vs Bolus (TDD)' })}
- </h4>
- {/* Tutaj byłby wykres */}
+ {realAccuracyStats.totalEvaluated > 0 && (
+ <div className="text-right shrink-0">
+ <span className="text-2xl font-black text-emerald-400 tracking-tight">{realAccuracyStats.realAccuracyPercentage}%</span>
  </div>
  )}
  </div>
 
- {/* 3. Analiza Posiłków */}
- <div className="mt-6">
- <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 ml-2">
- {t('auto.reakcja_na_posilki_w_porach_dn', { defaultValue: 'Reakcja na posiłki w porach dnia (Ostatnie 14 dni)' })}
- </h4>
- <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
- {glikosenseAnalysis.mealStats.map((meal, idx) => (
- <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 p-4 rounded-3xl flex flex-col transition-all hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-500/5">
- <div className="flex items-center gap-2 mb-3">
- <span className="text-xl">{meal.icon}</span>
- <span className="text-xs font-black text-slate-700 dark:text-slate-200">{meal.name}</span>
+ {realAccuracyStats.totalEvaluated > 0 ? (
+ <div className="grid grid-cols-2 gap-3 mt-2">
+ <div className="bg-slate-950/50 rounded-2xl p-2.5 border border-indigo-500/15 flex items-center justify-between">
+ <span className="text-[10px] text-slate-400 font-bold uppercase">{t('auto.glikosense_avg_error', { defaultValue: 'Śr. błąd' })}</span>
+ <span className="text-sm font-black text-amber-300">±{realAccuracyStats.avgErrorMgDl} mg/dL</span>
  </div>
- 
- {meal.count > 0 ? (
- <div className="space-y-3 mt-auto">
- <div>
- <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('auto.sredni_skok', { defaultValue: 'Średni skok' })}</span>
- <div className="flex items-baseline gap-1">
- <span className={`text-xl font-black ${meal.avgDelta > 50 ? 'text-rose-500' : 'text-emerald-500'}`}>
- {meal.avgDelta > 0 ? '+' : ''}{meal.avgDelta}
- </span>
- <span className="text-[10px] font-bold text-slate-500">mg/dL</span>
- </div>
- </div>
- 
- <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-700/50">
- <div className="flex flex-col">
- <span className="text-[9px] font-bold text-slate-400 uppercase">{t('auto.weglowodany', { defaultValue: 'Węglowodany' })}</span>
- <span className="text-xs font-black text-slate-700 dark:text-slate-300">{meal.avgCarbs} g</span>
- </div>
- <div className="flex flex-col text-right">
- <span className="text-[9px] font-bold text-slate-400 uppercase">{t('auto.bolus', { defaultValue: 'Bolus' })}</span>
- <span className="text-xs font-black text-slate-700 dark:text-slate-300">{meal.avgBolus} U</span>
- </div>
+ <div className="bg-slate-950/50 rounded-2xl p-2.5 border border-indigo-500/15 flex items-center justify-between">
+ <span className="text-[10px] text-slate-400 font-bold uppercase">{t('auto.glikosense_hit_rate', { defaultValue: 'Trafienia' })}</span>
+ <span className="text-sm font-black text-emerald-400">🎯 {realAccuracyStats.exactHitRatePercentage}%</span>
  </div>
  </div>
  ) : (
- <div className="flex-1 flex items-center justify-center mt-auto min-h-[60px]">
- <span className="text-xs font-bold text-slate-400/70">{t('auto.brak_wpisow', { defaultValue: 'Brak wpisów' })}</span>
+ <p className="text-[10px] text-indigo-200/70 italic mt-1">
+ {t('auto.glikosense_no_evaluated_yet', { defaultValue: 'Zbieram dane do weryfikacji (weryfikacja po 1-2 godzinach od pierwszej analizy)...' })}
+ </p>
+ )}
  </div>
  )}
+
+ {/* Unified Extrema Range Card (Peak & Trough) - FULL WIDTH */}
+ {mlResult.predictedPeak && mlResult.predictedTrough && (
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md space-y-3 w-full">
+ <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800">
+ <div className="flex items-center gap-2">
+ <div className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+ <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+ {t('auto.glikosense_extrema_range', { defaultValue: 'Ekstrema Prognozy (2h)' })}
+ </span>
+ </div>
+ <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
+ ⚡ GlikoSense 4.0
+ </span>
+ </div>
+
+ <div className="space-y-2.5">
+ {/* Peak Row */}
+ <div className="bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/20 rounded-2xl p-3 flex items-center justify-between">
+ <div className="flex items-center gap-2.5">
+ <div className="p-2 bg-rose-500/20 rounded-xl text-rose-500 shrink-0">
+ <TrendingUp size={18} />
+ </div>
+ <div>
+ <div className="text-xs font-black uppercase text-rose-500 tracking-tight">
+ {t('auto.glikosense_predicted_peak', { defaultValue: 'Przewidywany Szczyt' })}
+ </div>
+ <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+ {t('auto.glikosense_at', { defaultValue: 'Godz.' })} <span className="text-rose-600 dark:text-rose-300 font-extrabold">{new Date(mlResult.predictedPeak.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+ </div>
+ </div>
+ </div>
+ <div className="text-right shrink-0">
+ <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{mlResult.predictedPeak.value}</span>
+ <span className="text-[10px] font-bold text-slate-400 block">mg/dL</span>
+ </div>
+ </div>
+
+ {/* Trough Row */}
+ <div className="bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-between">
+ <div className="flex items-center gap-2.5">
+ <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-500 shrink-0">
+ <TrendingDown size={18} />
+ </div>
+ <div>
+ <div className="text-xs font-black uppercase text-emerald-500 tracking-tight">
+ {t('auto.glikosense_predicted_trough', { defaultValue: 'Przewidywany Dołek' })}
+ </div>
+ <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+ {t('auto.glikosense_at', { defaultValue: 'Godz.' })} <span className="text-emerald-600 dark:text-emerald-300 font-extrabold">{new Date(mlResult.predictedTrough.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+ </div>
+ </div>
+ </div>
+ <div className="text-right shrink-0">
+ <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{mlResult.predictedTrough.value}</span>
+ <span className="text-[10px] font-bold text-slate-400 block">mg/dL</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* Ostatnie 3 Dni */}
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md space-y-3 w-full mb-4">
+ <div className="flex items-center gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800">
+ <CalendarDays size={16} className="text-indigo-500" />
+ <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+ {t('auto.ostatnie_3_dni', { defaultValue: 'Ostatnie 3 dni' })}
+ </span>
+ </div>
+ <div className="grid grid-cols-3 gap-2">
+ {dailyStats.map((stat, idx) => (
+ <div key={idx} className="bg-white dark:bg-slate-950/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+ <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{stat.label}</span>
+ <div className="flex flex-col items-center gap-0.5">
+ {stat.tir !== null ? (
+ <>
+ <span className="text-xl font-black text-slate-700 dark:text-slate-200">{stat.tir}%</span>
+ <span className="text-[8px] font-bold text-emerald-500 uppercase">TIR</span>
+ </>
+ ) : (
+ <span className="text-xs font-bold text-slate-300">-</span>
+ )}
+ </div>
+ <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 w-full grid grid-cols-2 gap-1">
+ <div className="flex flex-col items-center justify-center">
+ {stat.avg !== null ? (
+ <span className="text-xs font-black text-amber-500">{stat.avg}</span>
+ ) : (
+ <span className="text-xs font-bold text-slate-300">-</span>
+ )}
+ <span className="text-[7px] font-bold text-slate-400 uppercase">Śr.</span>
+ </div>
+ <div className="flex flex-col items-center justify-center border-l border-slate-100 dark:border-slate-800">
+ <span className="text-xs font-black text-indigo-500">{stat.bolus > 0 ? stat.bolus.toFixed(1) : '0'}</span>
+ <span className="text-[7px] font-bold text-slate-400 uppercase">Jedn.</span>
+ </div>
+ </div>
  </div>
  ))}
  </div>
  </div>
+
+ {/* Insulin Stacking Warning */}
+ {mlResult.stackingAlert && mlResult.stackingAlert.isStacking && (
+ <motion.div 
+ initial={{ opacity: 0, y: 5 }}
+ animate={{ opacity: 1, y: 0 }}
+ className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-3 flex items-center gap-2.5 text-amber-600 dark:text-amber-300 w-full"
+ >
+ <AlertTriangle size={16} className="shrink-0 animate-bounce text-amber-500" />
+ <span className="text-[10px] font-bold leading-snug">
+ {t('auto.glikosense_stacking_warning', { min: mlResult.stackingAlert.timeAgoMin || 60, defaultValue: `Ostrzeżenie TCN: Nakładanie dawek insuliny (bolus sprzed ${mlResult.stackingAlert.timeAgoMin || 60} min). Zachowaj ostrożność!` })}
+ </span>
  </motion.div>
  )}
+
+ {/* Zaawansowana Analiza GlikoSense */}
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full mt-4">
+ <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-800">
+ <Activity size={16} className="text-indigo-500" />
+ <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+ {t('auto.zaawansowana_analiza_glikosense', { defaultValue: 'Zaawansowana Analiza GlikoSense' })}
+ </span>
+ </div>
+ 
+ <div className={`grid grid-cols-1 ${glikosenseAnalysis.totalBasal > 0 ? 'md:grid-cols-2' : ''} gap-4`}>
+ {/* Zmienność glikemii (CV i SD) */}
+ <div className="bg-white dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+ <h4 className={`text-[10px] font-black uppercase tracking-widest mb-1 ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/80' : 'text-emerald-500/80'}`}>
+ Zmienność Glikemii (CV)
+ </h4>
+ <span className={`text-4xl font-black tracking-tighter ${glikosenseAnalysis.cv > 36 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+ {glikosenseAnalysis.cv.toFixed(1)}
+ <span className={`text-sm font-bold ${glikosenseAnalysis.cv > 36 ? 'text-rose-500/60' : 'text-emerald-500/60'}`}>%</span>
+ </span>
+ <p className={`mt-2 text-[10px] font-bold ${glikosenseAnalysis.cv > 36 ? 'text-rose-800/70 dark:text-rose-200/60' : 'text-emerald-800/70 dark:text-emerald-200/60'}`}>
+ {t('auto.odchylenie_standardowe_sd', { defaultValue: 'Odchylenie standardowe (SD):' })} <strong className="font-black">{glikosenseAnalysis.sd.toFixed(1)} mg/dL</strong>
+ </p>
+ <p className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[9px] text-slate-500 dark:text-slate-400 leading-tight w-full">
+ <strong className="text-slate-600 dark:text-slate-300">Cel: &lt; 36%.</strong> Zmienność glikemii (CV) określa stabilność cukrów. Zależy m.in. od precyzji szacowania posiłków (WBT), wyprzedzenia bolusa (timing) oraz stresu. Im mniejsza, tym lepsza jakość wyrównania.
+ </p>
+ </div>
+ 
+ {/* Sekcja Bolus i Baza (tylko jeśli baza > 0, wg wymagań) */}
+ {glikosenseAnalysis.totalBasal > 0 && (
+ <div className="bg-white dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+ <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 text-indigo-500/80">
+ Stosunek Bolus / Baza
+ </h4>
+ <div className="flex items-center gap-2 mt-1">
+ <div className="text-center">
+ <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">{glikosenseAnalysis.totalBolus.toFixed(1)}</span>
+ <span className="text-[9px] font-bold text-slate-400 block uppercase">Bolus</span>
+ </div>
+ <div className="text-slate-300 font-black">:</div>
+ <div className="text-center">
+ <span className="text-lg font-black text-cyan-600 dark:text-cyan-400">{glikosenseAnalysis.totalBasal.toFixed(1)}</span>
+ <span className="text-[9px] font-bold text-slate-400 block uppercase">Baza</span>
+ </div>
+ </div>
+ </div>
+ )}
+ 
+ {/* Podsumowanie posiłków */}
+ <div className={`col-span-1 ${glikosenseAnalysis.totalBasal > 0 ? 'md:col-span-2' : ''} grid grid-cols-2 gap-2 mt-2`}>
+ {glikosenseAnalysis.mealStats.map((meal, idx) => {
+ const delta = meal.avgDelta;
+ const colorClass = delta <= 40 ? 'text-emerald-500' : delta <= 70 ? 'text-amber-500' : 'text-rose-500';
+ const bgClass = delta <= 40 ? 'bg-emerald-500/10' : delta <= 70 ? 'bg-amber-500/10' : 'bg-rose-500/10';
+ 
+ return (
+ <div key={idx} className="bg-white dark:bg-slate-950/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+ <div className="flex items-center gap-1.5">
+ <div className={`p-1.5 rounded-lg ${bgClass}`}>
+ <span className="text-sm">{meal.icon}</span>
+ </div>
+ <span className="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase">{meal.name}</span>
+ </div>
+ <div className="text-right flex flex-col">
+ <span className="text-[10px] font-black text-slate-700 dark:text-slate-300">{meal.avgCarbs}g W</span>
+ <span className={`text-[9px] font-bold ${colorClass}`}>Δ {meal.avgDelta} mg/dL</span>
+ </div>
  </div>
  );
-}
+ })}
+ </div>
+ </div>
+ </div>
+
+            {/* Sekcja Odkryte Wzorce i Reguły Metaboliczne */}
+            <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full transition-all">
+              <button
+                type="button"
+                onClick={() => setIsPatternsExpanded(prev => !prev)}
+                className="w-full flex items-center justify-between text-left group focus:outline-none"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-amber-500/10 dark:bg-amber-500/20 text-amber-500 rounded-xl">
+                    <Dna size={16} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                      {t('auto.odkryte_wzorce_glikosense', { defaultValue: 'Odkryte Wzorce i Reguły' })}
+                    </span>
+                    <span className={cn(
+                      "px-2 py-0.5 text-[9px] font-black uppercase rounded-full border",
+                      activePatterns.length > 0
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                        : "bg-slate-200 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700"
+                    )}>
+                      {activePatterns.length > 0 ? activePatterns.length : t('auto.monitorowanie', { defaultValue: 'Aktywne uczenie' })}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-xl group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50 transition-colors">
+                  <span>{isPatternsExpanded ? (t('auto.zwin', { defaultValue: 'Zwiń' })) : (t('auto.pokaz_wzorce', { defaultValue: 'Pokaż wzorce' }))}</span>
+                  {isPatternsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {isPatternsExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
+                      {activePatterns.length > 0 ? (
+                        activePatterns.map((pat) => (
+                          <div key={pat.id} className="flex items-start gap-3 bg-white dark:bg-slate-950/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <span className="text-xl shrink-0 mt-0.5">{pat.icon}</span>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <h4 className="text-xs font-black dark:text-white leading-tight">{pat.title}</h4>
+                                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                  {pat.tag}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug font-medium">{pat.desc}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3.5 bg-white dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                            {t('auto.brak_odkrytych_wzorcow_info', { defaultValue: 'Silnik GlikoSense stale analizuje Twoje reakcje na posiłki, aktywność i pory dnia. Nowo wykryte reguły (np. Zjawisko Brzasku, Efekt Pizzy, Bezwładność Weekendowa) pojawią się tutaj automatycznie.' })}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+ {mlResult.insights && mlResult.insights.length > 0 && (
+ <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full transition-all">
+ <button
+ type="button"
+ onClick={() => setIsInsightsExpanded(prev => !prev)}
+ className="w-full flex items-center justify-between text-left group focus:outline-none"
+ >
+ <div className="flex items-center gap-2.5">
+ <div className="p-1.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 rounded-xl">
+ <Sparkles size={16} />
+ </div>
+ <div className="flex items-center gap-2">
+ <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+ {t('auto.wnioski_glikosense', { defaultValue: 'Wnioski GlikoSense' })}
+ </span>
+ <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-500/20">
+ {mlResult.insights.length}
+ </span>
+ </div>
+ </div>
+ <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-xl group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
+ <span>{isInsightsExpanded ? (t('auto.zwin', { defaultValue: 'Zwiń' })) : (t('auto.pokaz_wnioski', { defaultValue: 'Pokaż wnioski' }))}</span>
+ {isInsightsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+ </div>
+ </button>
+
+ <AnimatePresence>
+ {isInsightsExpanded && (
+ <motion.div
+ initial={{ opacity: 0, height: 0 }}
+ animate={{ opacity: 1, height: 'auto' }}
+ exit={{ opacity: 0, height: 0 }}
+ transition={{ duration: 0.25, ease: 'easeInOut' }}
+ className="overflow-hidden"
+ >
+ <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
+ {mlResult.insights.map((insight, idx) => (
+ <div key={idx} className="flex items-start gap-2.5 bg-white dark:bg-slate-950/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+ <div className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+ <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-snug">{insight}</p>
+ </div>
+ ))}
+ </div>
+ </motion.div>
+ )}
+ </AnimatePresence>
+ </div>
+ )}
+  </motion.div>
+  ) : null}
+  </AnimatePresence>
+  </div>
+  </div>
+ );
+};

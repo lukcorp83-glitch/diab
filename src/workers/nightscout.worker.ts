@@ -22,62 +22,103 @@ interface NightscoutTreatment {
   date?: number;
 }
 
+let workingProxyIndex = -1; // -1 means direct, 0-3 means proxies
+
 async function fetchWithFallbacks(directUrl: string, headers: Record<string, string>): Promise<any> {
+  console.log(`[Worker] Rozpoczynam fetchWithFallbacks dla URL: ${directUrl}, używany proxy: ${workingProxyIndex}`);
   let lastError = null;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout per fetch
-  try {
-    const directResponse = await fetch(directUrl, { headers, signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (directResponse.ok) return await directResponse.json();
-    lastError = `Direct fetch failed with status ${directResponse.status}`;
-  } catch (e: any) {
-    clearTimeout(timeoutId);
-    if (e.name === 'AbortError') {
-      lastError = "Request timed out (5s limit)";
-    } else {
-      lastError = e.message || "Network error on direct fetch";
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for large history // 10 second timeout per fetch
+  
+  if (workingProxyIndex === -1) {
+    console.log(`[Worker] Próbuję połączenia bezpośredniego...`);
+    try {
+      const directResponse = await fetch(directUrl, { headers, signal: controller.signal });
+      clearTimeout(timeoutId);
+      console.log(`[Worker] Bezpośrednie połączenie zakończone ze statusem: ${directResponse.status}`);
+      if (directResponse.ok) return await directResponse.json();
+      lastError = `Direct fetch failed with status ${directResponse.status}`;
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      if (e.name === 'AbortError') {
+        console.warn(`[Worker] Bezpośrednie połączenie: TIMEOUT (60s)`);
+        lastError = "Request timed out (60s limit)";
+      } else {
+        console.warn(`[Worker] Bezpośrednie połączenie: BŁĄD SIECI - ${e.message}`);
+        lastError = e.message || "Network error on direct fetch";
+      }
     }
   }
 
   // Try proxies if direct fails
   const proxies = [
+    `/api/ns-proxy?url=${encodeURIComponent(directUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(directUrl)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+    `https://proxy.cors.sh/${directUrl}`
   ];
 
-  for (const proxyUrl of proxies) {
+  const startIndex = workingProxyIndex !== -1 ? workingProxyIndex : 0;
+
+  for (let i = startIndex; i < proxies.length; i++) {
+    const proxyUrl = proxies[i];
+    console.log(`[Worker] Próbuję połączenia przez proxy [${i}]: ${proxyUrl}`);
     const proxyController = new AbortController();
-    const proxyTimeoutId = setTimeout(() => proxyController.abort(), 5000);
+    const proxyTimeoutId = setTimeout(() => proxyController.abort(), 10000);
     try {
       const proxyResponse = await fetch(proxyUrl, { headers, signal: proxyController.signal });
       clearTimeout(proxyTimeoutId);
-      if (proxyResponse.ok) return await proxyResponse.json();
+      console.log(`[Worker] Proxy [${i}] zakończone ze statusem: ${proxyResponse.status}`);
+      if (proxyResponse.ok) {
+        workingProxyIndex = i; // Save working proxy for future requests
+        return await proxyResponse.json();
+      }
       lastError = `Proxy fetch failed with status ${proxyResponse.status}`;
     } catch (e: any) {
       clearTimeout(proxyTimeoutId);
       if (e.name === 'AbortError') {
-        lastError = "Proxy request timed out (5s limit)";
+        console.warn(`[Worker] Proxy [${i}] TIMEOUT (60s)`);
+        lastError = "Proxy request timed out (10s limit)";
       } else {
+        console.warn(`[Worker] Proxy [${i}] BŁĄD SIECI - ${e.message}`);
         lastError = e.message || "Network error on proxy";
       }
     }
   }
 
-  throw new Error(`Wszystkie próby połączenia (bezpośrednie i proxy) zawiodły. Ostatni błąd: ${lastError}`);
+  console.error(`[Worker] Wszystkie próby fetch (direct i proxy) zawiodły.`);
+  throw new Error(lastError || "All fetch attempts failed");
 }
 
 function processEntries(data: any[]): any[] {
   if (!Array.isArray(data)) return [];
-  return data.filter((e: any) => e.sgv).map((e: any, index: number) => ({
-    id: `ns-entry-${e.date}-${index}`,
-    type: 'glucose',
-    value: Number(e.sgv),
-    timestamp: typeof e.date === 'string' ? parseInt(e.date, 10) : (e.date || new Date(e.dateString).getTime()),
-    source: 'nightscout',
-    direction: e.direction,
-    delta: e.delta,
-  }));
+  return data.filter((e: any) => e.sgv).map((e: any) => {
+    let ts = Date.now();
+    if (e.date) {
+      if (typeof e.date === 'number') {
+        ts = e.date;
+      } else if (typeof e.date === 'string') {
+        const parsed = parseInt(e.date, 10);
+        if (!isNaN(parsed) && parsed > 1000000000) {
+          ts = parsed;
+        } else {
+          ts = new Date(e.date).getTime() || Date.now();
+        }
+      }
+    } else if (e.dateString) {
+      ts = new Date(e.dateString).getTime() || Date.now();
+    }
+    
+    return {
+      id: e._id || `ns-entry-${ts}-${e.sgv}`,
+      type: 'glucose',
+      value: Number(e.sgv),
+      timestamp: ts,
+      source: 'nightscout',
+      direction: e.direction,
+      delta: e.delta,
+    };
+  });
 }
 
 function processTreatments(data: any[]): any[] {
@@ -90,8 +131,8 @@ function processTreatments(data: any[]): any[] {
     const timestamp = ts;
     const insulin = Number(t.insulin || t.amount || 0);
     const carbs = Number(t.carbs || 0);
-    const rawNotes = t.notes || t.eventType || "";
-    const cleanNotes = rawNotes === "<none>" ? "" : rawNotes;
+    const mealName = t.food || t.description || (t.notes && t.notes !== '<none>' ? t.notes : '') || '';
+    const cleanNotes = mealName || (t.eventType && t.eventType !== '<none>' ? t.eventType : '');
     const nsSource = t.enteredBy ? `nightscout (${t.enteredBy})` : 'nightscout';
     
     if (insulin > 0) {
@@ -102,10 +143,16 @@ function processTreatments(data: any[]): any[] {
         value: insulin,
         timestamp,
         notes: cleanNotes,
+        description: mealName || undefined,
         source: nsSource
       };
       if (carbs > 0) {
-        payload.linkedMeal = { carbs, protein: 0, fat: 0 };
+        payload.linkedMeal = {
+          carbs,
+          protein: Number(t.protein || 0),
+          fat: Number(t.fat || 0),
+          name: mealName || undefined
+        };
       }
       logs.push(payload);
     } else if (carbs > 0) {
@@ -114,8 +161,13 @@ function processTreatments(data: any[]): any[] {
         nsId: t._id,
         type: 'meal',
         value: carbs,
+        carbs,
+        protein: Number(t.protein || 0),
+        fat: Number(t.fat || 0),
         timestamp,
         notes: cleanNotes,
+        description: mealName || undefined,
+        name: mealName || undefined,
         source: nsSource
       });
     }
@@ -149,7 +201,22 @@ function processTreatments(data: any[]): any[] {
 
 function processDeviceStatus(data: any[]): any {
   if (!Array.isArray(data) || data.length === 0) return null;
-  const latest = data[0];
+  
+  // Znajdź najświeższe dane z pompy (z ostatniej godziny). Jeśli nie ma, użyj po prostu pierwszego z brzegu wpisu.
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const now = Date.now();
+  
+  let latest = data[0]; 
+  for (const item of data) {
+    if (item.pump) {
+      const itemTime = new Date(item.created_at).getTime();
+      if (now - itemTime < ONE_HOUR_MS) {
+        latest = item;
+        break;
+      }
+    }
+  }
+
   const pumpInfo = latest.pump;
   const uploaderInfo = latest.uploader;
   const batteryPercent = pumpInfo?.battery?.percent ?? 
@@ -157,11 +224,20 @@ function processDeviceStatus(data: any[]): any {
                         latest.battery ?? 
                         pumpInfo?.battery?.voltage ?? 0;
   if (!pumpInfo && !uploaderInfo) return null;
+
+  let resVal = pumpInfo?.reservoir ?? latest?.reservoir ?? pumpInfo?.status?.reservoir ?? latest?.openaps?.enacted?.reservoir ?? latest?.openaps?.suggested?.reservoir;
+  if (resVal && typeof resVal === 'object') {
+    resVal = resVal.amount ?? resVal.units ?? resVal.value ?? resVal.reservoir;
+  }
+  if (typeof resVal === 'string') {
+    resVal = parseFloat(resVal);
+  }
+  const parsedRes = (typeof resVal === 'number' && !isNaN(resVal)) ? resVal : undefined;
   
   return {
     battery: batteryPercent,
-    reservoir: pumpInfo?.reservoir ?? 0,
-    activeInsulin: pumpInfo?.iob?.iob ?? 0,
+    reservoir: parsedRes,
+    activeInsulin: pumpInfo?.iob?.iob ?? latest?.openaps?.enacted?.iob ?? undefined,
     model: pumpInfo?.model ?? pumpInfo?.name ?? null,
     basal: {
        rate: pumpInfo?.status?.currentbasal ?? 0,
@@ -181,22 +257,28 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
   const baseUrl = url.replace(/\/$/, '');
   const cacheBust = `_t=${Date.now()}`;
   
+  const entriesCount = count;
+  const treatmentsCount = count > 500 ? 20000 : 1000;
+  
   const entriesUrl = secret && secret.includes('-') 
-    ? `${baseUrl}/api/v1/entries.json?count=${count}&${cacheBust}&token=${secret}` 
-    : `${baseUrl}/api/v1/entries.json?count=${count}&${cacheBust}`;
+    ? `${baseUrl}/api/v1/entries.json?count=${entriesCount}&${cacheBust}&token=${secret}` 
+    : `${baseUrl}/api/v1/entries.json?count=${entriesCount}&${cacheBust}`;
     
   const treatmentsUrl = secret && secret.includes('-') 
-    ? `${baseUrl}/api/v1/treatments.json?count=${count}&${cacheBust}&token=${secret}` 
-    : `${baseUrl}/api/v1/treatments.json?count=${count}&${cacheBust}`;
+    ? `${baseUrl}/api/v1/treatments.json?count=${treatmentsCount}&${cacheBust}&token=${secret}` 
+    : `${baseUrl}/api/v1/treatments.json?count=${treatmentsCount}&${cacheBust}`;
 
   const deviceUrl = secret && secret.includes('-') 
-    ? `${baseUrl}/api/v1/devicestatus.json?count=1&${cacheBust}&token=${secret}` 
-    : `${baseUrl}/api/v1/devicestatus.json?count=1&${cacheBust}`;
+    ? `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}&token=${secret}` 
+    : `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}`;
 
+  console.log(`[Worker] Pobieranie wpisów (entries)...`);
   const entriesRaw = await fetchWithFallbacks(entriesUrl, headers);
+  console.log(`[Worker] Pobieranie zabiegów (treatments)...`);
   const treatmentsRaw = await fetchWithFallbacks(treatmentsUrl, headers).catch(() => []);
+  console.log(`[Worker] Pobieranie statusu urządzenia (devicestatus)...`);
   const deviceRaw = await fetchWithFallbacks(deviceUrl, headers).catch(() => null);
-  console.log("Nightscout RAW devicestatus fetch:", deviceRaw);
+  console.log("[Worker] Zakończono pobieranie z Nightscout.");
 
   const processedDeviceStatus = processDeviceStatus(deviceRaw);
   console.log("Nightscout PROCESSED devicestatus:", processedDeviceStatus);
@@ -217,15 +299,25 @@ self.onmessage = async (e: MessageEvent) => {
     const { url, secret, intervalMs = 5 * 60 * 1000, count = 3000 } = payload;
     
     const runSync = async (fetchCount: number) => {
+      console.log(`[Worker] Wywołanie runSync z ilością: ${fetchCount}`);
       try {
         const { entries, treatments, deviceStatus } = await fetchNightscoutData(url, secret, fetchCount);
+        console.log(`[Worker] runSync(${fetchCount}) SUCCESS. Wysyłam zdarzenie SYNC_SUCCESS.`);
         self.postMessage({ type: 'SYNC_SUCCESS', payload: { entries, treatments, deviceStatus } });
       } catch (err: any) {
+        console.error(`[Worker] runSync(${fetchCount}) ERROR:`, err);
         self.postMessage({ type: 'SYNC_ERROR', payload: err.message });
       }
     };
 
-    runSync(count); // Initial fetch can be large
+    console.log(`[Worker] Inicjalizuję pobieranie progresywne...`);
+    // Progressive loading: first fetch a small batch (very fast), then the massive history batch in background
+    runSync(150).then(() => {
+        if (count > 150) {
+            console.log(`[Worker] Pierwszy etap (150) gotowy, uruchamiam pełne pobranie (${count}).`);
+            runSync(count);
+        }
+    });
 
     if (syncInterval) clearInterval(syncInterval);
     syncInterval = setInterval(() => runSync(150), intervalMs); // Subsequent fetches are small
@@ -235,3 +327,5 @@ self.onmessage = async (e: MessageEvent) => {
     if (syncInterval) clearInterval(syncInterval);
   }
 };
+
+

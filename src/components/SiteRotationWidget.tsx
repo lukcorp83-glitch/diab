@@ -1,160 +1,257 @@
-import i18n from '../i18n';
-import { useLogsStore } from "../stores/useLogsStore";
-import React, { useMemo, useState, useEffect } from 'react';
-import { RefreshCw, MapPin } from 'lucide-react';
-import { LogEntry, UserSettings } from '../types';
+import React, { useMemo, useState } from 'react';
+import { RefreshCw, Sparkles, ArrowRight } from 'lucide-react';
+import { UserSettings } from '../types';
+import { 
+  normalizeSiteToZoneId, 
+  getZoneById, 
+  calculateTissueRecovery, 
+  getNextRecommendedSite, 
+  DEFAULT_ALLOWED_SITES,
+  ANATOMICAL_ZONES
+} from '../services/siteRotationService';
+import SiteRotationModal from './SiteRotationModal';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
-import { useTranslation } from "react-i18next";
+import { useLogsStore } from '../stores/useLogsStore';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
+import { motion } from 'motion/react';
 
 interface SiteRotationWidgetProps {
- settings: UserSettings;
- size: string;
- onAction?: (action: string) => void;
- setTab: (t: string) => void;
+  settings: UserSettings;
+  setSettings?: (s: UserSettings) => void;
+  size?: string;
+  onAction?: (action: string) => void;
+  setTab?: (t: string) => void;
 }
 
-export default function SiteRotationWidget({ settings, size, onAction, setTab }: SiteRotationWidgetProps) {
- const logs = useLogsStore((state) => state.logs);
- const { t } = useTranslation();
- const isCompact = size === '1x1' || size === '1x2';
- const [isZoomed, setIsZoomed] = useState(false);
+export default function SiteRotationWidget({ 
+  settings, 
+  setSettings = () => {},
+  size = '1x1'
+}: SiteRotationWidgetProps) {
+  const logs = useLogsStore((state) => state.logs);
+  const user = useAuthStore((state) => state.user);
+  const { t } = useTranslation();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [localSiteOverride, setLocalSiteOverride] = useState<string | null>(null);
 
- useEffect(() => {
- const timer = setTimeout(() => setIsZoomed(true), 400); // Wait a bit then zoom
- return () => clearTimeout(timer);
- }, []);
+  React.useEffect(() => {
+    const handleSiteChange = (e: any) => {
+      if (e.detail?.site) {
+        setLocalSiteOverride(e.detail.site);
+      } else if (e.detail?.infusionSetSite) {
+        setLocalSiteOverride(e.detail.infusionSetSite);
+      }
+    };
+    window.addEventListener('siteChangeRecorded', handleSiteChange);
+    window.addEventListener('userSettingsUpdate', handleSiteChange);
+    return () => {
+      window.removeEventListener('siteChangeRecorded', handleSiteChange);
+      window.removeEventListener('userSettingsUpdate', handleSiteChange);
+    };
+  }, []);
 
- const lastSiteChange = useMemo(() => {
- const sorted = [...logs].sort((a, b) => b.timestamp - a.timestamp);
- return sorted.find(l => l.type === 'site_change');
- }, [logs]);
+  const lastSiteChange = useMemo(() => {
+    const sorted = [...(logs || [])].sort((a, b) => b.timestamp - a.timestamp);
+    return sorted.find(l => l.type === 'site_change');
+  }, [logs]);
 
- const siteChangeTimestamp = settings.infusionSetChangeDate || lastSiteChange?.timestamp;
- 
- const rawNote = lastSiteChange?.notes || '';
- const parsedNoteLocation = rawNote.startsWith(i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia -" }) })) ? rawNote.replace(i18n.t('auto.wymiana_wklucia', { defaultValue: i18n.t('auto.wymiana_wklucia', { defaultValue: "Wymiana wkłucia -" }) }), '') : rawNote;
+  const siteChangeTimestamp = Math.max(settings.infusionSetChangeDate || 0, lastSiteChange?.timestamp || 0) || undefined;
+  
+  const rawNote = lastSiteChange?.notes || '';
+  const parsedNoteLocation = rawNote.startsWith('Wymiana wkłucia -') 
+    ? rawNote.replace('Wymiana wkłucia -', '').trim() 
+    : (rawNote.startsWith('Wymiana wkłucia:') ? rawNote.replace('Wymiana wkłucia:', '').replace('(Smart Equipment)', '').trim() : '');
 
- const locationText = settings.infusionSetSite || parsedNoteLocation || 'Brak danych';
- 
- const elapsedDays = siteChangeTimestamp ? Math.floor((Date.now() - siteChangeTimestamp) / (1000 * 60 * 60 * 24)) : 0;
- const maxDays = settings?.infusionSetDurationDays || 3;
- 
- const isOverdue = elapsedDays >= maxDays;
+  const locationText = localSiteOverride || settings.infusionSetSite || (settings as any).infusionSite || localStorage.getItem('infusionSetSite') || localStorage.getItem('infusionSite') || (lastSiteChange as any)?.site || (parsedNoteLocation && !parsedNoteLocation.includes('zbiorniczk') ? parsedNoteLocation : '') || 'Prawy brzuch';
+  const currentZoneId = useMemo(() => normalizeSiteToZoneId(locationText), [locationText]);
+  const currentZone = useMemo(() => getZoneById(currentZoneId), [currentZoneId]);
 
- // Map location text to SVG percentages
- const getDotPosition = (loc: string) => {
- const locLower = loc.toLowerCase();
- 
- let top = '45%';
- let left = '50%';
- const isLeft = locLower.includes('lew');
- const isRight = locLower.includes('praw');
+  const allowedSiteIds = useMemo(() => {
+    return settings.allowedInfusionSites && settings.allowedInfusionSites.length > 0
+      ? settings.allowedInfusionSites
+      : DEFAULT_ALLOWED_SITES;
+  }, [settings.allowedInfusionSites]);
 
- if (locLower.includes('brzuch')) {
- top = '45%';
- if (isLeft) left = '38%';
- else if (isRight) left = '62%';
- } else if (locLower.includes('udo') || locLower.includes('uda')) {
- top = '72%';
- if (isLeft) left = '32%';
- else if (isRight) left = '68%';
- else left = '32%'; // default
- } else if (locLower.includes(i18n.t('auto.ramie', { defaultValue: i18n.t('auto.ramie', { defaultValue: "ramię" }) })) || locLower.includes('ramie')) {
- top = '38%';
- if (isLeft) left = '20%';
- else if (isRight) left = '80%';
- else left = '20%'; // default
- } else if (locLower.includes(i18n.t('auto.posladek', { defaultValue: i18n.t('auto.posladek', { defaultValue: "pośladek" }) })) || locLower.includes('posladek')) {
- top = '52%';
- if (isLeft) left = '35%';
- else if (isRight) left = '65%';
- else left = '35%'; // default
- } else if (locLower.includes('plecy')) {
- top = '30%';
- if (isLeft) left = '38%';
- else if (isRight) left = '62%';
- } else if (isLeft) {
- left = '30%';
- } else if (isRight) {
- left = '70%';
- }
- 
- return { top, left };
- };
- 
- const dotPos = getDotPosition(locationText);
+  const recoveryMap = useMemo(() => {
+    return calculateTissueRecovery(logs, currentZoneId, siteChangeTimestamp);
+  }, [logs, currentZoneId, siteChangeTimestamp]);
 
- // Derive transform origin from dot position to zoom in on it
- const originX = dotPos.left;
- const originY = dotPos.top;
+  const nextRecommendation = useMemo(() => {
+    return getNextRecommendedSite(currentZoneId, allowedSiteIds, settings.sensorSite, recoveryMap, logs);
+  }, [currentZoneId, allowedSiteIds, settings.sensorSite, recoveryMap, logs]);
 
- return (
- <div 
- onClick={() => {
- Haptics.light();
- setTab("profile");
- onAction?.("devices");
- }}
- className={cn(
- "glass-card w-full h-full p-4 flex flex-col relative overflow-hidden transition-all active:scale-[0.98]",
- isCompact ? "justify-center items-center text-center p-2" : "justify-between"
- )}
- >
- <div className="flex items-center gap-2 mb-2 w-full z-10 relative">
- <div className={cn(
- "w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm",
- isOverdue ? "bg-red-100 dark:bg-red-900/40 text-red-500" : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-500"
- )}>
- <RefreshCw size={16} />
- </div>
- {!isCompact && (
- <span className="font-bold text-[10px] text-slate-500 uppercase tracking-widest leading-none drop-shadow-sm">
- 
- {t('auto.rotacja', { defaultValue: 'Rotacja' })}<br/>{t('auto.wkluc', { defaultValue: "Wkłuć" })}
- </span>
- )}
- </div>
+  const elapsedDays = siteChangeTimestamp ? Math.floor((Date.now() - siteChangeTimestamp) / (1000 * 60 * 60 * 24)) : 0;
+  const maxDays = settings?.infusionSetDurationDays || 3;
+  const currentDay = Math.min(maxDays + 1, elapsedDays + 1);
+  const isOverdue = elapsedDays >= maxDays;
+  const nextZone = nextRecommendation.zone;
 
- <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden opacity-30 dark:opacity-40">
- <div 
- className="relative h-[90%] max-h-[180px] aspect-[1/2] mt-4 transition-all duration-[1500ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] drop-shadow-xl"
- style={{ transformOrigin: `${originX} ${originY}`, transform: isZoomed ? 'scale(2.2)' : 'scale(1)' }}
- >
- {/* A smoother human body silhouette */}
- <svg fill="currentColor" viewBox="0 0 100 200" className="w-full h-full text-slate-500 dark:text-slate-400">
- <path d="M50 30 C58 30 65 24 65 15 C65 6 58 0 50 0 C42 0 35 6 35 15 C35 24 42 30 50 30 Z" />
- <path d="M68 35 C75 35 80 40 85 55 C90 70 95 95 90 95 C85 95 80 70 75 60 C75 60 70 50 68 50 C68 50 68 100 68 100 C68 120 75 180 75 190 C75 200 60 200 60 190 C60 150 55 110 50 110 C45 110 40 150 40 190 C40 200 25 200 25 190 C25 180 32 120 32 100 C32 100 32 50 32 50 C30 50 25 60 25 60 C20 70 15 95 10 95 C5 95 10 70 15 55 C20 40 25 35 32 35 C40 35 60 35 68 35 Z" opacity="0.9"/>
- </svg>
- 
- {/* The injection site dot */}
- <div 
- className="absolute w-3 h-3 bg-red-500 rounded-full shadow-[0_0_12px_rgba(239,68,68,1)] border-[1.5px] border-white dark:border-black transform -translate-x-1/2 -translate-y-1/2 z-20"
- style={{ top: dotPos.top, left: dotPos.left }}
- >
- <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75" />
- </div>
- </div>
- </div>
+  // Obliczenie punktów na pierścieniu rotacji dla aktywnych stref
+  const allowedZonesList = useMemo(() => {
+    return ANATOMICAL_ZONES.filter(z => allowedSiteIds.includes(z.id));
+  }, [allowedSiteIds]);
 
- <div className={cn("flex flex-col flex-1 z-10 relative pointer-events-none", isCompact ? "justify-end pb-1" : "justify-end gap-0.5 w-full")}>
- {!isCompact && (
- <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 drop-shadow-sm">
- 
- {t('auto.miejsce_wkłucia', { defaultValue: i18n.t('auto.miejsce_wklucia', { defaultValue: "Miejsce wkłucia:" }) })}
- </span>
- )}
- <div className={cn("flex items-center", isCompact ? "justify-center mt-auto" : "gap-2")}>
- <span className={cn(
- "font-black tracking-tight leading-none drop-shadow-md flex-1",
- isCompact ? "text-center text-sm" : "text-base text-left line-clamp-2 leading-[1.15]",
- isOverdue ? "text-red-600 dark:text-red-400" : "text-emerald-700 dark:text-emerald-400"
- )}>
- {isCompact ? locationText.split(' ')[0] : locationText}
- </span>
- </div>
- </div>
- </div>
- );
+  const currentZoneIndex = Math.max(0, allowedZonesList.findIndex(z => z.id === currentZoneId));
+  const totalZones = allowedZonesList.length || 6;
+
+  return (
+    <>
+      <div 
+        onClick={() => {
+          Haptics.light();
+          setIsModalOpen(true);
+        }}
+        className={cn(
+          "glass-card w-full h-full p-3.5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:shadow-xl cursor-pointer active:scale-[0.98] group rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl"
+        )}
+      >
+        {/* Poświata w tle */}
+        <div className={cn(
+          "absolute -top-10 -right-10 w-28 h-28 blur-3xl rounded-full pointer-events-none transition-colors duration-500",
+          isOverdue ? "bg-rose-500/20" : "bg-emerald-500/15"
+        )} />
+
+        {/* Header */}
+        <div className="flex items-center justify-between w-full shrink-0 z-10">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className={cn(
+              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 shadow-xs transition-transform group-hover:rotate-90 duration-500",
+              isOverdue 
+                ? "bg-rose-500/15 text-rose-500 border border-rose-500/30" 
+                : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+            )}>
+              <RefreshCw size={11} strokeWidth={2.5} />
+            </div>
+            <span className="font-black text-[9.5px] text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+              {t('auto.rotacja_wkluc', { defaultValue: 'Rotacja Wkłuć' })}
+            </span>
+          </div>
+
+          {/* Doba lub status */}
+          <span className={cn(
+            "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tight flex items-center gap-1 shrink-0 border shadow-xs",
+            isOverdue
+              ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+          )}>
+            <span className={cn("w-1.5 h-1.5 rounded-full", isOverdue ? "bg-rose-500 animate-pulse" : "bg-emerald-500")} />
+            {isOverdue ? t('auto.wymien', { defaultValue: 'Wymień' }) : `Doba ${currentDay}/${maxDays}`}
+          </span>
+        </div>
+
+        {/* Smart Rotation Dial / Pierścień Cyklu Rotacji */}
+        <div className="relative w-full flex-1 flex items-center justify-center my-0.5 min-h-[90px] max-h-[115px] pointer-events-none">
+          <div className="relative w-[105px] h-[105px] flex items-center justify-center">
+            {/* Pierścień bazowy tarczy */}
+            <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+              <defs>
+                <filter id="site-ring-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="2.5" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+
+              {/* Tło toru obwodowego */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="5"
+                className="text-slate-100 dark:text-slate-800/90"
+              />
+
+              {/* Punkty/Segmenty stref na okręgu */}
+              {allowedZonesList.map((z, idx) => {
+                const angle = (idx / totalZones) * 2 * Math.PI;
+                const cx = 50 + 40 * Math.cos(angle);
+                const cy = 50 + 40 * Math.sin(angle);
+                const isCurr = z.id === currentZoneId;
+                const isNxt = z.id === nextZone.id;
+
+                let fill = '#94a3b8'; // slate-400
+                let radius = 2.5;
+
+                if (isCurr) {
+                  fill = isOverdue ? '#f43f5e' : '#10b981';
+                  radius = 4.5;
+                } else if (isNxt) {
+                  fill = '#6366f1';
+                  radius = 3.5;
+                }
+
+                return (
+                  <circle
+                    key={z.id}
+                    cx={cx}
+                    cy={cy}
+                    r={radius}
+                    fill={fill}
+                    filter={isCurr ? 'url(#site-ring-glow)' : undefined}
+                    className="transition-all duration-500"
+                  />
+                );
+              })}
+
+              {/* Łuk postępu cyklu rotacji */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="none"
+                stroke={isOverdue ? '#f43f5e' : '#10b981'}
+                strokeWidth="4.5"
+                strokeLinecap="round"
+                strokeDasharray="251.2"
+                strokeDashoffset={251.2 * (1 - (currentZoneIndex + 1) / totalZones)}
+                className="transition-all duration-1000 ease-out opacity-85"
+              />
+            </svg>
+
+            {/* Centrum Tarczy - Czytelna nazwa i status strefy */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
+              <span className={cn(
+                "font-black text-xs md:text-sm tracking-tight leading-tight max-w-[78px] truncate",
+                isOverdue ? "text-rose-600 dark:text-rose-400" : "text-slate-800 dark:text-white"
+              )}>
+                {currentZone.shortName || currentZone.name}
+              </span>
+              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 font-mono">
+                {currentZoneIndex + 1}/{totalZones} strefa
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Dolny Panel - Nowoczesna Pigułka Następnego Wkłucia (Capsule Pill) */}
+        <div className="w-full z-10 shrink-0">
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 dark:from-indigo-500/20 dark:via-purple-500/15 dark:to-indigo-500/20 border border-indigo-500/25 dark:border-indigo-500/35 shadow-sm shadow-indigo-500/5 transition-all group-hover:border-indigo-400/50">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[8px] font-black uppercase text-indigo-500/90 dark:text-indigo-400/90 tracking-wider shrink-0">
+                {t('auto.nastepne_skrot', { defaultValue: 'Następne' })}:
+              </span>
+              <span className="text-[9.5px] font-black text-indigo-700 dark:text-indigo-300 truncate">
+                {nextZone.name}
+              </span>
+            </div>
+            <ArrowRight size={10} className="text-indigo-500 shrink-0 group-hover:translate-x-0.5 transition-transform ml-1" />
+          </div>
+        </div>
+      </div>
+
+      {/* Interaktywny Modal Rotacji */}
+      <SiteRotationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        settings={settings}
+        setSettings={setSettings}
+        logs={logs}
+        user={user}
+      />
+    </>
+  );
 }
-

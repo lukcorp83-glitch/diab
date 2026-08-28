@@ -201,7 +201,7 @@ public class GlucoseNotificationListener extends NotificationListenerService {
             
             // Update Widgets directly via SharedPreferences
             try {
-                android.content.SharedPreferences prefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+                android.content.SharedPreferences prefs = getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
                 
                 String oldGlucoseStr = prefs.getString("widget_glucose", "");
                 int delta = 0;

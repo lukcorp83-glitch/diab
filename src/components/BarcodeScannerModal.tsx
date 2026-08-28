@@ -14,6 +14,13 @@ export default function BarcodeScannerModal({
 }) {
  const { t } = useTranslation();
  const [error, setError] = useState("");
+ const onScanRef = React.useRef(onScan);
+ const onCloseRef = React.useRef(onClose);
+
+ useEffect(() => {
+   onScanRef.current = onScan;
+   onCloseRef.current = onClose;
+ }, [onScan, onClose]);
 
  useEffect(() => {
  let isActive = true;
@@ -29,16 +36,14 @@ export default function BarcodeScannerModal({
  }
  }
 
- 
-
  // Uruchomienie pełnoekranowego skanera systemowego Google ML Kit (działa w natywnej warstwie nad WebView)
  const { barcodes } = await BarcodeScanner.scan();
  
  if (barcodes.length > 0 && isActive) {
- onScan(barcodes[0].rawValue);
+ onScanRef.current(barcodes[0].rawValue);
  } else {
  // Anulowano skanowanie (użytkownik kliknął Wstecz)
- if (isActive) onClose();
+ if (isActive) onCloseRef.current();
  }
  } catch (err: any) {
  console.error("ML Kit Barcode Error:", err);
@@ -53,7 +58,7 @@ export default function BarcodeScannerModal({
  return () => {
  isActive = false;
  };
- }, [onClose, onScan]);
+ }, []);
 
  if (error) {
  return createPortal(

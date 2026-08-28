@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { collection, query, onSnapshot, orderBy, limit, doc, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { getEffectiveUid } from '../lib/utils';
-import { useLogsStore } from '../stores/useLogsStore';
 import { LogEntry } from '../types';
 
 export const useAppSubscriptions = (user: any) => {
@@ -13,54 +12,84 @@ export const useAppSubscriptions = (user: any) => {
     if (!user) return;
     const uid = getEffectiveUid(user);
 
-    // 1. Logs
-    const safeTs = localStorage.getItem("lastSafeTimestamp") || (Date.now() - 30 * 24 * 60 * 60 * 1000).toString();
-    const logsCollection = collection(db, "artifacts", "diacontrolapp", "users", uid, "logs");
-    let logsQuery;
-    if (localStorage.getItem("ecoMode") === "true") {
-      logsQuery = query(logsCollection, where("timestamp", ">", safeTs), orderBy("timestamp", "desc"), limit(1500));
-    } else {
-      logsQuery = query(logsCollection, orderBy("timestamp", "desc"), limit(1500));
-    }
-    const unsubLogs = onSnapshot(logsQuery, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as LogEntry[];
-      queryClient.setQueryData(['fbLogs', uid], data);
-    });
+    const unsubs: (() => void)[] = [];
+
+    // Helper for single collection fetching
+    const createCollectionSub = (
+      pathSuffix: string, 
+      queryKey: string,
+      buildQuery: (coll: any) => any,
+      mapDoc: (doc: any) => any
+    ) => {
+      const q = buildQuery(collection(db, "users", uid, ...pathSuffix.split('/')));
+      const unsub = onSnapshot(q, (snapshot) => {
+        const mapped = snapshot.docs.map(mapDoc);
+        console.log(`[AppSub] ${queryKey}: received ${mapped.length} docs from users/${uid}/${pathSuffix}`);
+        queryClient.setQueryData([queryKey, uid], mapped);
+
+        if (queryKey === "fbLogs") {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === "removed") {
+              const data = change.doc.data();
+              const ts = data.timestamp || 0;
+              const ageDays = (Date.now() - ts) / (1000 * 60 * 60 * 24);
+              // Only trigger explicit deletion if it's newer than 34 days (so it didn't just age out of the 35-day query window)
+              if (ageDays < 34) {
+                console.log(`[AppSub] fbLogs item remote deletion detected: ${change.doc.id}`);
+                window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: change.doc.id } }));
+                import('../services/databaseService').then(({ dbService }) => dbService.deleteLog(change.doc.id));
+              }
+            }
+          });
+        }
+      }, (error) => {
+        console.error(`[AppSub] ${queryKey} onSnapshot error:`, error);
+      });
+      unsubs.push(unsub);
+    };
+
+    // Helper for single document fetching
+    const createDocSub = (pathSuffix: string, queryKey: string) => {
+      const unsub = onSnapshot(doc(db, "users", uid, ...pathSuffix.split('/')), (s) => {
+        if (s.exists()) queryClient.setQueryData([queryKey, uid], s.data());
+      });
+      unsubs.push(unsub);
+    };
+
+    // 1. Logs - pobieramy bezpieczny bufor 4000 logów
+    const thirtyFiveDaysAgo = Date.now() - 35 * 24 * 60 * 60 * 1000;
+    const isEco = localStorage.getItem("ecoMode") === "true";
+    createCollectionSub(
+      "logs",
+      "fbLogs",
+      (coll) => isEco 
+        ? query(coll, where("timestamp", ">=", Date.now() - 7 * 24 * 60 * 60 * 1000), orderBy("timestamp", "desc"), limit(2500)) 
+        : query(coll, where("timestamp", ">=", thirtyFiveDaysAgo), orderBy("timestamp", "desc"), limit(4000)),
+      (doc) => ({ ...doc.data(), id: doc.id })
+    );
 
     // 2. AI Reports
-    const aiReportsQuery = query(collection(db, "artifacts", "diacontrolapp", "users", uid, "aiReports"), orderBy("timestamp", "desc"), limit(3));
-    const unsubAi = onSnapshot(aiReportsQuery, (snapshot) => {
-      const texts = snapshot.docs.map(doc => doc.data().content?.replace(/<[^>]*>/g, " ").substring(0, 500) || "");
-      queryClient.setQueryData(['aiInsights', uid], texts);
-    });
+    createCollectionSub(
+      "aiReports",
+      "aiInsights",
+      (coll) => query(coll, orderBy("timestamp", "desc"), limit(3)),
+      (doc) => doc.data().content?.replace(/<[^>]*>/g, " ").substring(0, 500) || ""
+    );
 
     // 3. Pump Status
-    const unsubPump = onSnapshot(doc(db, "artifacts", "diacontrolapp", "users", uid, "status", "pump"), (docSnap) => {
-      queryClient.setQueryData(['pumpStatus', uid], docSnap.data() || null);
-    });
+    createDocSub("status/pump", "pumpStatus");
 
     // 4. Pet Status
-    const unsubPet = onSnapshot(doc(db, "artifacts", "diacontrolapp", "users", uid, "pet", "status"), (docSnap) => {
-      if (docSnap.exists()) queryClient.setQueryData(['petStatus', uid], docSnap.data());
-    });
+    createDocSub("pet/status", "petStatus");
 
     // 5. User Settings (Profile)
-    const unsubSettings = onSnapshot(doc(db, "artifacts", "diacontrolapp", "users", uid, "settings", "profile"), (docSnap) => {
-      if (docSnap.exists()) queryClient.setQueryData(['userSettings', uid], docSnap.data());
-    });
+    createDocSub("settings/profile", "userSettings");
 
     // 6. Nightscout Settings
-    const unsubNightscout = onSnapshot(doc(db, "artifacts", "diacontrolapp", "users", uid, "settings", "nightscout"), (docSnap) => {
-      if (docSnap.exists()) queryClient.setQueryData(['nightscoutSettings', uid], docSnap.data());
-    });
+    createDocSub("settings/nightscout", "nightscoutSettings");
 
     return () => {
-      unsubLogs();
-      unsubAi();
-      unsubPump();
-      unsubPet();
-      unsubSettings();
-      unsubNightscout();
+      unsubs.forEach(u => u());
     };
   }, [user, queryClient]);
 };

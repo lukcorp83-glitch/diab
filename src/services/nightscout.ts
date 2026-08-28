@@ -35,15 +35,16 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
 
   // Fallback proxies in order of preference
   const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+    `/api/ns-proxy?url=${encodeURIComponent(directUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(directUrl)}`,
-    // thingsproxy.freeboard.io can sometimes work, but is very strict on some headers.
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+    `https://proxy.cors.sh/${directUrl}`
   ];
 
   for (const proxyUrl of proxies) {
     try {
-      // For proxies, headers often don't pass through correctly, so relying on token query param
-      const proxyResponse = await fetch(proxyUrl);
+      // Pass headers specifically for local proxy, which can forward them
+      const proxyResponse = await fetch(proxyUrl, { headers });
       if (proxyResponse.ok) {
         const textData = await proxyResponse.text();
         return JSON.parse(textData);
@@ -82,7 +83,7 @@ function setCachedData<T>(key: string, data: T) {
 }
 
 export const nightscoutService = {
-  async fetchEntries(url: string, secret?: string, count = 1000, forceSync = false): Promise<LogEntry[]> {
+  async fetchEntries(url: string, secret?: string, count = 4000, forceSync = false): Promise<LogEntry[]> {
     const cacheKey = `ns-entries-${url}-${count}`;
     if (!forceSync) {
       const cached = getCachedData<LogEntry[]>(cacheKey);
@@ -129,7 +130,7 @@ export const nightscoutService = {
     }
   },
 
-  async fetchTreatments(url: string, secret?: string, count = 1000, forceSync = false): Promise<LogEntry[]> {
+  async fetchTreatments(url: string, secret?: string, count = 4000, forceSync = false): Promise<LogEntry[]> {
     const cacheKey = `ns-treatments-${url}-${count}`;
     if (!forceSync) {
       const cached = getCachedData<LogEntry[]>(cacheKey);
@@ -173,38 +174,48 @@ export const nightscoutService = {
         const insulin = Number(t.insulin || (t as any).amount || 0);
         const carbs = Number(t.carbs || 0);
 
-          const rawNotes = t.notes || t.eventType || "";
-          const cleanNotes = rawNotes === "<none>" ? "" : rawNotes;
+          const mealName = (t as any).food || (t as any).description || (t.notes && t.notes !== '<none>' ? t.notes : '') || '';
+          const cleanNotes = mealName || (t.eventType && t.eventType !== '<none>' ? t.eventType : '');
           const nsSource = t.enteredBy ? `nightscout (${t.enteredBy})` : 'nightscout';
           
           if (insulin > 0) {
             const payload: any = {
               id: `ns-insulin-${t._id || timestamp}`,
+              nsId: t._id,
               type: 'bolus',
               value: insulin,
               timestamp,
               notes: cleanNotes,
+              description: mealName || undefined,
               source: nsSource
             };
 
             if (carbs > 0) {
               payload.linkedMeal = {
                 carbs,
-                protein: 0,
-                fat: 0
+                protein: Number((t as any).protein || 0),
+                fat: Number((t as any).fat || 0),
+                name: mealName || undefined
               };
             }
 
             logs.push(payload);
           } else if (carbs > 0) {
-            logs.push({
+            const payload: any = {
               id: `ns-meal-${t._id || timestamp}`,
+              nsId: t._id,
               type: 'meal',
               value: carbs,
+              carbs,
+              protein: Number((t as any).protein || 0),
+              fat: Number((t as any).fat || 0),
               timestamp,
               notes: cleanNotes,
+              description: mealName || undefined,
+              name: mealName || undefined,
               source: nsSource
-            });
+            };
+            logs.push(payload);
           }
 
           const lowerEventType = (t.eventType || '').toLowerCase();
@@ -283,10 +294,19 @@ export const nightscoutService = {
       // If no pump info, but we have uploader info, still return something
       if (!pumpInfo && !uploaderInfo) return null;
       
+      let resVal = pumpInfo?.reservoir ?? latest?.reservoir ?? pumpInfo?.status?.reservoir ?? latest?.openaps?.enacted?.reservoir ?? latest?.openaps?.suggested?.reservoir;
+      if (resVal && typeof resVal === 'object') {
+        resVal = resVal.amount ?? resVal.units ?? resVal.value ?? resVal.reservoir;
+      }
+      if (typeof resVal === 'string') {
+        resVal = parseFloat(resVal);
+      }
+      const parsedRes = (typeof resVal === 'number' && !isNaN(resVal)) ? resVal : 0;
+
       const result = {
         battery: batteryPercent,
-        reservoir: pumpInfo?.reservoir ?? 0,
-        activeInsulin: pumpInfo?.iob?.iob ?? 0,
+        reservoir: parsedRes,
+        activeInsulin: pumpInfo?.iob?.iob ?? latest?.openaps?.enacted?.iob ?? 0,
         model: pumpInfo?.model ?? pumpInfo?.name ?? null,
         basal: {
            rate: pumpInfo?.status?.currentbasal ?? 0,
@@ -339,6 +359,46 @@ export const nightscoutService = {
       console.error("Nightscout deleteTreatment error:", error instanceof Error ? error.message : error);
       return false;
     }
+  },
+
+  async postTreatment(treatment: any, url: string, apiSecret: string): Promise<boolean> {
+    if (!url || !treatment) return false;
+
+    let cleanUrl = url.trim();
+    if (!cleanUrl.startsWith("http")) cleanUrl = "https://" + cleanUrl;
+    cleanUrl = cleanUrl.replace(/\/$/, "");
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (apiSecret) {
+        const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(apiSecret.trim()));
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        headers["api-secret"] = hash;
+      }
+
+      const apiUrl = `${cleanUrl}/api/v1/treatments`;
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(treatment),
+      });
+
+      if (response.ok) {
+        console.log("Successfully posted treatment to NS");
+        return true;
+      } else {
+        console.warn("NS postTreatment returned status:", response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error("Nightscout postTreatment error:", error instanceof Error ? error.message : error);
+      return false;
+    }
   }
 };
+
 
