@@ -222,13 +222,39 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  }
  }
 
- let loopPredictions: { timestamp: number, value: number, actionType?: 'bolus' | 'suspend', actionAmount?: number }[] = [];
- let mlPredictionData = mlPredictionDataState;
- 
- if (dataG.length > 0) {
- const lastG = dataG[dataG.length - 1];
- mlPredictionData = mlPredictionData.filter(p => p.timestamp >= lastG.timestamp - 300000); // 5 minute buffer
- }
+  let loopPredictions: { timestamp: number, value: number, actionType?: 'bolus' | 'suspend', actionAmount?: number }[] = [];
+  let mlPredictionData: { timestamp: number, value: number, confidenceMin?: number, confidenceMax?: number }[] = [];
+  
+  if (dataG.length > 0 && mlPredictionDataState.length > 0) {
+    const lastG = dataG[dataG.length - 1];
+    const latestPredictedTime = mlPredictionDataState[mlPredictionDataState.length - 1].timestamp;
+
+    // Upewnij się, że krzywa przewidywania wybiega w przyszłość względem ostatniego odczytu cukru
+    if (latestPredictedTime > lastG.timestamp) {
+      const futurePreds = mlPredictionDataState.filter(p => p.timestamp > lastG.timestamp);
+      
+      if (futurePreds.length > 0) {
+        // Oblicz przesunięcie (offset), aby linia startowała DOKŁADNIE z aktualnego punktu cukru bez skoku pionowego
+        const anchorPred = mlPredictionDataState.find(p => Math.abs(p.timestamp - lastG.timestamp) <= 300000) || mlPredictionDataState[0];
+        const offset = anchorPred ? (lastG.value - anchorPred.value) : 0;
+
+        mlPredictionData = [
+          {
+            timestamp: lastG.timestamp,
+            value: lastG.value,
+            confidenceMin: lastG.value,
+            confidenceMax: lastG.value
+          },
+          ...futurePreds.map(p => ({
+            timestamp: p.timestamp,
+            value: Math.max(30, Math.min(450, Math.round(p.value + offset))),
+            confidenceMin: p.confidenceMin !== undefined ? Math.max(30, Math.min(450, Math.round(p.confidenceMin + offset))) : undefined,
+            confidenceMax: p.confidenceMax !== undefined ? Math.max(30, Math.min(450, Math.round(p.confidenceMax + offset))) : undefined,
+          }))
+        ];
+      }
+    }
+  }
  
  if ((showLoopSimulation || showMLPrediction) && dataG.length >= 2) {
  const last = dataG[dataG.length - 1];
@@ -439,7 +465,7 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  if (!timeMap.has(endRounded)) timeMap.set(endRounded, { timestamp: endRounded });
 
  const sortedData = Array.from(timeMap.values()).sort((a, b) => a.timestamp - b.timestamp);
- const lastMlTimestamp = mlPredictionDataState.length > 0 ? mlPredictionDataState[mlPredictionDataState.length - 1].timestamp : 0;
+ const lastMlTimestamp = mlPredictionData.length > 0 ? mlPredictionData[mlPredictionData.length - 1].timestamp : 0;
  
  // Check if we actually have any data to show
  const hasData = logs.length > 0 || loopPredictions.length > 0 || mlPredictionData.length > 0;

@@ -35,6 +35,7 @@ import {
  Pill,
  Plus,
  Trash,
+ Trash2,
  X,
  User,
  ChevronLeft,
