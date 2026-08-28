@@ -234,9 +234,9 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  const matchesCategory =
  activeCategory === "Wszystko" || p.category === activeCategory;
  
- let matchesSource = true;
- const isOwn = p.author === user?.uid;
- const isCommunity = Boolean(p.isCommunity);
+  let matchesSource = true;
+  const isOwn = Boolean(p.isCustom) || p.author === user?.uid || p.author === getEffectiveUid(user);
+  const isCommunity = Boolean(p.isCommunity);
  const isSystem = !p.author && !isCommunity;
 
  if (activeSource === 'own') matchesSource = isOwn;

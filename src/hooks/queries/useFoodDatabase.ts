@@ -50,6 +50,9 @@ export const useCustomProducts = (user: any) => {
         ...doc.data(),
         isCustom: true,
       })) as Product[];
+      try {
+        localStorage.setItem(`glikocontrol_custom_products_${uid}`, JSON.stringify(products));
+      } catch (e) {}
       queryClient.setQueryData(['customProducts', uid], products);
       queryClient.setQueryData(['customProducts', ''], products);
     }, (error) => {
@@ -63,16 +66,36 @@ export const useCustomProducts = (user: any) => {
     queryKey: ['customProducts', uid],
     queryFn: async () => {
       if (!uid) return [];
+      try {
+        const cached = localStorage.getItem(`glikocontrol_custom_products_${uid}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+
       const q = query(collection(db, "users", uid, "customProducts"));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
+      const products = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         isCustom: true,
       })) as Product[];
+      try {
+        localStorage.setItem(`glikocontrol_custom_products_${uid}`, JSON.stringify(products));
+      } catch (e) {}
+      return products;
+    },
+    initialData: () => {
+      if (!uid) return [];
+      try {
+        const cached = localStorage.getItem(`glikocontrol_custom_products_${uid}`);
+        return cached ? JSON.parse(cached) : undefined;
+      } catch (e) {
+        return undefined;
+      }
     },
     enabled: !!uid,
-    staleTime: 1000 * 10,
-    placeholderData: (previousData) => previousData,
+    staleTime: Infinity,
   });
 };

@@ -50,7 +50,7 @@ export default function GlikoAssistant({
 
  const { t } = useTranslation();
  const isChild = settings?.childMode ?? false;
-  const [activeAiModel, setActiveAiModel] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-2.5-flash');
+  const [activeAiModel, setActiveAiModel] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-3.6-flash');
 
   useEffect(() => {
     const handleModelUsed = (e: any) => {

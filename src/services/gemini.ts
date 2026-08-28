@@ -8,14 +8,11 @@ export function recordModelSuccess(model: string) {
 }
 
 export const GEMINI_FALLBACK_MODELS = [
-  "gemini-3.7-flash",
   "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.0-flash",
   "gemini-2.5-flash",
+  "gemini-3.5-flash-lite",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
-  "gemini-2.0-flash-lite",
   "gemini-1.5-pro"
 ];
 
@@ -740,7 +737,7 @@ Zwróć odpowiedź WYŁĄCZNIE jako poprawny format JSON (bez markdownu):
     const isProxy =
       creds.baseUrl === "https://diacontrol-ai.pixelozapolska.workers.dev";
 
-    const lastModel = (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-2.5-flash';
+    const lastModel = (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-3.6-flash';
     const formattedModel = lastModel.replace('gemini-', 'Gemini ').replace('-flash', ' Flash').replace('-pro', ' Pro');
     if (hasKey)
       return {

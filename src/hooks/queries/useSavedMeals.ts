@@ -20,6 +20,9 @@ export const useSavedMeals = (user: any) => {
         id: doc.id,
         ...doc.data(),
       }));
+      try {
+        localStorage.setItem(`glikocontrol_saved_meals_${uid}`, JSON.stringify(meals));
+      } catch (e) {}
       queryClient.setQueryData(['savedMeals', uid], meals);
       queryClient.setQueryData(['savedMeals', ''], meals);
     }, (error) => {
@@ -33,17 +36,38 @@ export const useSavedMeals = (user: any) => {
     queryKey: ['savedMeals', uid],
     queryFn: async () => {
       if (!uid) return [];
+      try {
+        const cached = localStorage.getItem(`glikocontrol_saved_meals_${uid}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+
       const q = query(
         collection(db, "users", uid, "savedMeals"),
         orderBy("timestamp", "desc")
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
+      const meals = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
+      try {
+        localStorage.setItem(`glikocontrol_saved_meals_${uid}`, JSON.stringify(meals));
+      } catch (e) {}
+      return meals;
+    },
+    initialData: () => {
+      if (!uid) return [];
+      try {
+        const cached = localStorage.getItem(`glikocontrol_saved_meals_${uid}`);
+        return cached ? JSON.parse(cached) : undefined;
+      } catch (e) {
+        return undefined;
+      }
     },
     enabled: !!uid,
-    staleTime: 1000 * 10, // 10 seconds
+    staleTime: Infinity,
   });
 };

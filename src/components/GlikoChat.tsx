@@ -39,7 +39,7 @@ interface Message {
 export default function GlikoChat({ petData, settings }: { petData: any, settings?: any }) {
  const { t } = useTranslation();
  const isKidMode = settings?.childMode ?? true;
-  const [activeAiModel, setActiveAiModel] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-2.5-flash');
+  const [activeAiModel, setActiveAiModel] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-3.6-flash');
 
   useEffect(() => {
     const handleModelUsed = (e: any) => {
