@@ -51,7 +51,16 @@ export const useAppSubscriptions = (user: any) => {
     // Helper for single document fetching
     const createDocSub = (pathSuffix: string, queryKey: string) => {
       const unsub = onSnapshot(doc(db, "users", uid, ...pathSuffix.split('/')), (s) => {
-        if (s.exists()) queryClient.setQueryData([queryKey, uid], s.data());
+        if (s.exists()) {
+          const data = s.data();
+          if (queryKey === "userSettings" && data) {
+            if (data.treatmentMode) {
+              localStorage.setItem("treatmentMode", data.treatmentMode);
+            }
+            localStorage.setItem("hasSeenTutorial", "true");
+          }
+          queryClient.setQueryData([queryKey, uid], (old: any) => ({ ...(old || {}), ...data }));
+        }
       });
       unsubs.push(unsub);
     };

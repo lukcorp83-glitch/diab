@@ -62,8 +62,15 @@ export const useUserSettings = (user: any) => {
         const settingsRef = doc(db, "users", uid, "settings", "profile");
         const d = await getDoc(settingsRef);
         if (d.exists()) {
-           const merged = { ...DEFAULT_SETTINGS, ...localSettings, ...d.data() };
-           try { localStorage.setItem("glikocontrol_user_settings", JSON.stringify(merged)); } catch(e){}
+           const data = d.data();
+           const merged = { ...DEFAULT_SETTINGS, ...localSettings, ...data };
+           try { 
+             localStorage.setItem("glikocontrol_user_settings", JSON.stringify(merged));
+             if (data.treatmentMode) {
+               localStorage.setItem("treatmentMode", data.treatmentMode);
+             }
+             localStorage.setItem("hasSeenTutorial", "true");
+           } catch(e){}
            return merged;
         }
       } catch (e: any) {
