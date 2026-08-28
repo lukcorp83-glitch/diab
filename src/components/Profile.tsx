@@ -67,6 +67,7 @@ import {
  Apple,
  Dumbbell,
  Box,
+ Cylinder,
  Minus,
  Edit3,
  Download,
@@ -2832,8 +2833,8 @@ export default function Profile({
  {confirmReservoirModalOpen && (
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
  <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700 relative">
- <div className="w-16 h-16 bg-teal-100 dark:bg-teal-500/20 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
- <Droplets size={32} />
+ <div className="w-16 h-16 bg-purple-100 dark:bg-purple-500/20 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+ <Cylinder size={32} />
  </div>
  <h3 className="text-xl font-black text-center mb-2 dark:text-slate-100">
  {t('auto.wymiana_zbiorniczka_tytul', { defaultValue: 'Wymiana zbiorniczka' })}
@@ -2949,14 +2950,14 @@ export default function Profile({
  >
  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors"></div>
  <div className="flex items-center gap-3 mb-6 relative z-10">
- <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 flex items-center justify-center shadow-inner">
- <Droplets size={22} />
+ <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 flex items-center justify-center shadow-inner">
+ <Cylinder size={22} />
  </div>
  <div>
  <h4 className="text-base font-black dark:text-white uppercase tracking-tight">
  {t('auto.zbiorniczek_na_insuline', { defaultValue: 'Zbiorniczek na insulinę' })}
  </h4>
- <p className="text-[10px] font-bold text-indigo-600/60 dark:text-indigo-400/60 uppercase tracking-[0.2em] mt-1">
+ <p className="text-[10px] font-bold text-purple-600/60 dark:text-purple-400/60 uppercase tracking-[0.2em] mt-1">
  {t('auto.pojemnik_z_insulina', { defaultValue: 'Pojemnik z insuliną' })}
  </p>
  </div>

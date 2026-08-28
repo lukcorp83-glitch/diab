@@ -62,6 +62,7 @@ import {
  Apple,
  Dumbbell,
  Box,
+  Cylinder,
  Minus,
  Edit3,
  Download,
@@ -431,16 +432,30 @@ const saveInventoryItem = async () => {
  >
  <div className="flex items-start justify-between relative z-10">
  <div className="flex items-center gap-4">
- <div
- className={cn(
- "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
- item.quantity <= item.lowStockThreshold
- ? "bg-rose-500/20 text-rose-600"
- : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400",
- )}
- >
- <Box size={20} />
- </div>
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
+                      item.quantity <= item.lowStockThreshold
+                        ? "bg-rose-500/20 text-rose-600"
+                        : item.category === 'reservoirs'
+                        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                        : item.category === 'sensors'
+                        ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                        : item.category === 'infusion_sets'
+                        ? "bg-teal-500/10 text-teal-600 dark:text-teal-400"
+                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400",
+                    )}
+                  >
+                    {item.category === 'reservoirs' ? (
+                      <Cylinder size={20} />
+                    ) : item.category === 'sensors' ? (
+                      <Signal size={20} />
+                    ) : item.category === 'infusion_sets' ? (
+                      <Droplets size={20} />
+                    ) : (
+                      <Box size={20} />
+                    )}
+                  </div>
  <div>
  <h4 className="font-bold text-sm dark:text-white leading-tight">
  {item.name}
