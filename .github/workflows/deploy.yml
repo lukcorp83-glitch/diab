@@ -62,7 +62,7 @@ jobs:
             WHATS_NEW_EN="🧪 BETA Version ${VERSION} — experimental OTA."
           else
             JSON_NAME="version.json"
-            ZIP_URL="https://lukcorp83-glitch.github.io/diab/update.zip"
+            ZIP_URL="https://glikocontrol.pl/update.zip"
             APK_URL="https://github.com/${{ github.repository }}/releases/download/aktualizacja/GlikoControl_${VERSION}_OTA.apk"
             WHATS_NEW="✅ Wersja ${VERSION} — automatyczna aktualizacja przez GitHub."
             WHATS_NEW_EN="✅ Version ${VERSION} — auto-updated via GitHub Actions."

@@ -247,8 +247,9 @@ export function checkAndNotifyPumpBolus(
     return; // Zbyt stary bolus
   }
 
-  // Sprawdzamy czy ten bolus jest związany z posiłkiem / węglowodanami:
+  // Sprawdzamy czy ten bolus jest związany z posiłkiem / węglowodanami LUB ma dawkę >= 0.4j (bolus przedposiłkowy podany w pompie):
   const bolusCarbs = Number((latestBolus as any).carbs || (latestBolus as any).carb_input || (latestBolus as any).carbsBolus || 0);
+  const bolusUnitsVal = Number(latestBolus.value || (latestBolus as any).carbsBolus || 0);
   
   // Szukamy wpisu posiłku zarejestrowanego w pobliżu tego bolusa (w przedziale +/- 12 minut)
   const hasNearbyMeal = logs.some(l => 
@@ -257,9 +258,9 @@ export function checkAndNotifyPumpBolus(
     Number(l.value || (l as any).carbs || 0) > 0
   );
 
-  const isExplicitMealBolus = bolusCarbs > 0 || hasNearbyMeal;
+  const isExplicitMealBolus = bolusCarbs > 0 || hasNearbyMeal || bolusUnitsVal >= 0.4;
 
-  // Jeśli to jest czysta mikro-korekta (np. 0.05j, 0.1j bez węglowodanów) - ignorujemy!
+  // Jeśli to jest czysta mikro-korekta (np. 0.05j, 0.1j z pętli) - ignorujemy!
   if (!isExplicitMealBolus) {
     return;
   }

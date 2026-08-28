@@ -568,8 +568,8 @@ export default function BolusCalculator({ setTab,
 
  if (ops === 0) throw new Error(t('bolus.err_no_ops'));
 
-    // Automatycznie startujemy stoper przedposiłkowy dla bolusa posiłkowego
-    if (finalDose > 0 && carbsNum > 0) {
+    // Automatycznie startujemy stoper przedposiłkowy dla każdego bolusa
+    if (finalDose >= 0.4) {
       const { waitMinutes } = calculatePreBolusWaitTime(bgNum > 0 ? bgNum : null, trend, settings?.insulinType);
       if (waitMinutes > 0) {
         startPreBolusTimer(waitMinutes, finalDose, timestamp);
