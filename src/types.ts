@@ -138,6 +138,7 @@ export interface UserSettings {
   infusionSetChangeDate?: number;
   reservoirChangeDate?: number;
   infusionSetSite?: string;
+  infusionSite?: string;
   sensorSite?: string;
   allowedInfusionSites?: string[];
   sensorDurationDays?: number;
@@ -153,6 +154,8 @@ export interface UserSettings {
     predictions: boolean;
     sensorCheck?: boolean;
     hypoProtection?: boolean;
+    pumpBolusPreMeal?: boolean;
+    mealDetected?: boolean;
   };
   childMode?: boolean;
   groupTherapyLock?: boolean;

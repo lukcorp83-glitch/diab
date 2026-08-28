@@ -96,12 +96,17 @@ export default function SiteRotationModal({
     const newSettings: UserSettings = {
       ...settings,
       infusionSetSite: newSite,
+      infusionSite: newSite,
       infusionSetChangeDate: now,
       inventory: updatedInventory
     };
 
     setSettings(newSettings);
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
+    localStorage.setItem('glikocontrol_user_settings', JSON.stringify(newSettings));
+    localStorage.setItem('infusionSetSite', newSite);
+    localStorage.setItem('infusionSite', newSite);
+    localStorage.setItem('infusionSetChangeDate', String(now));
 
     // 2. Dodaj log site_change do Firestore i wyślij event lokalny
     const siteLog: any = {
@@ -110,17 +115,20 @@ export default function SiteRotationModal({
       timestamp: now,
       createdAt: new Date(now).toISOString(),
       notes: `Wymiana wkłucia - ${newSite}`,
+      site: newSite,
       source: 'system'
     };
 
     try {
       if (user) {
-        const uid = getEffectiveUid(user, settings);
+        const uid = getEffectiveUid(user);
         await setDoc(doc(db, 'users', uid, 'settings', 'profile'), newSettings, { merge: true });
         await addDoc(collection(db, 'users', uid, 'logs'), siteLog);
       }
+      window.dispatchEvent(new CustomEvent('localLogAdd', { detail: siteLog }));
       window.dispatchEvent(new CustomEvent('localLogAddBatch', { detail: [siteLog] }));
       window.dispatchEvent(new CustomEvent('siteChangeRecorded', { detail: { site: newSite, timestamp: now } }));
+      window.dispatchEvent(new CustomEvent('userSettingsUpdate', { detail: newSettings }));
 
       toast.success(t('auto.wklucie_zmienione_sukces', { 
         defaultValue: `Wkłucie zmienione: ${newSite}!`,
@@ -156,7 +164,7 @@ export default function SiteRotationModal({
 
     if (user) {
       try {
-        const uid = getEffectiveUid(user, settings);
+        const uid = getEffectiveUid(user);
         await setDoc(doc(db, 'users', uid, 'settings', 'profile'), { allowedInfusionSites: nextAllowed }, { merge: true });
       } catch (e) {}
     }

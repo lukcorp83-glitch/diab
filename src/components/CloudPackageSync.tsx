@@ -25,9 +25,13 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
  }
  }
  
-    // Pobierz logi glikemii ze stanu aplikacji, a awaryjnie z bazy SQLite
-    const activeLogs = useLogsStore.getState().logs;
-    let logsToSave = (activeLogs && activeLogs.length > 0) ? activeLogs : await dbService.getLogs(60000);
+    // Pobierz pełną historię: łączymy wpisy z bazy SQLite telefonu oraz pamięci RAM
+    const activeLogs = useLogsStore.getState().logs || [];
+    const dbLogs = await dbService.getLogs(60000).catch(() => []);
+    const allMap = new Map();
+    dbLogs.forEach((l: any) => { if (l && l.id) allMap.set(l.id, l); });
+    activeLogs.forEach((l: any) => { if (l && l.id) allMap.set(l.id, l); });
+    let logsToSave = Array.from(allMap.values()).sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
     
     // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
     const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
@@ -163,13 +167,14 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
 
 export default function CloudPackageSync({ 
  settings,
- 
+ user: propUser,
  onImport}: { 
- settings: UserSettings,
- user: any,
+ settings: UserSettings;
+ user?: any;
  onImport?: (s: any) => void;
 }) {
-  const user = useAuthStore(state => state.user);
+  const authUser = useAuthStore(state => state.user);
+  const user = propUser || authUser;
 
  const { t } = useTranslation();
  const [loading, setLoading] = useState(false);

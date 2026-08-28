@@ -116,16 +116,8 @@ export function startPreBolusTimer(
 
   localStorage.setItem('prebolus_timer_state', JSON.stringify(state));
 
-  // 1. Planujemy powiadomienie lokalne na telefonie
-  notificationService.scheduleLocalNotification(
-    i18n.t('bolus.reminder_title', { defaultValue: 'Czas na posiłek! 🍽️' }),
-    i18n.t('bolus.reminder_body', { 
-      minutes: totalWaitMinutes, 
-      defaultValue: `Minęło ${totalWaitMinutes} minut od bolusa. Insulina zaczęła działać – możesz zjeść posiłek!` 
-    }),
-    remainingMinutes,
-    777
-  );
+  // 1. Uruchamiamy natychmiastowe powiadomienie na belce stanu (widoczne od 1. sekundy na każdym telefonie)
+  notificationService.startOngoingTimerNotification(targetTime, totalWaitMinutes, bolusUnits);
 
   // 2. Uruchamiamy natywny chronometr Androida na belce i ekranie blokady (Live Chronometer)
   try {
@@ -173,6 +165,7 @@ export function getPreBolusTimerState(): PreBolusTimerState {
     // Jeśli od zakończenia minęło ponad 45 minut, wygaszamy stoper
     if (remainingSeconds < -45 * 60) {
       localStorage.removeItem('prebolus_timer_state');
+      notificationService.cancelOngoingTimerNotification();
       try {
         NotificationBridge.stopLiveTimer({ id: 777 }).catch(() => {});
       } catch (e) {}
@@ -215,6 +208,7 @@ export function getPreBolusTimerState(): PreBolusTimerState {
  */
 export function cancelPreBolusTimer(): void {
   localStorage.removeItem('prebolus_timer_state');
+  notificationService.cancelOngoingTimerNotification();
   try {
     NotificationBridge.stopLiveTimer({ id: 777 }).catch(() => {});
   } catch (e) {}

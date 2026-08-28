@@ -46,7 +46,7 @@ export class InfusionAnalysisService {
 
     // 1. Znalezienie momentu założenia bieżącego wkłucia
     const siteChangeLogs = logs
-      .filter(l => l.type === 'site_change' || l.type === 'site')
+      .filter(l => l.type === 'site_change' || (l.type as any) === 'site')
       .map(l => Number(l.timestamp))
       .sort((a, b) => a - b);
 
@@ -70,8 +70,8 @@ export class InfusionAnalysisService {
     const hasCarbs = (l: any): boolean => Boolean(l.carbs > 0 || l.linkedMeal?.carbs > 0 || l.type === 'meal');
 
     const currentSiteLogs = logs.filter(l => Number(l.timestamp) >= latestSiteChange && Number(l.timestamp) <= now);
-    const currentSiteBoluses = currentSiteLogs.filter(l => (l.type === 'bolus' || l.type === 'insulin') && getInsulinVal(l) > 0);
-    const currentSiteGlucoses = currentSiteLogs.filter(l => (l.type === 'glucose' || l.type === 'cgm' || l.type === 'sgv') && getGlucoseVal(l) > 0);
+    const currentSiteBoluses = currentSiteLogs.filter(l => (l.type === 'bolus' || (l.type as any) === 'insulin') && getInsulinVal(l) > 0);
+    const currentSiteGlucoses = currentSiteLogs.filter(l => (l.type === 'glucose' || (l.type as any) === 'cgm' || (l.type as any) === 'sgv') && getGlucoseVal(l) > 0);
 
     const allGlucosesVals = currentSiteGlucoses.map(getGlucoseVal);
     const avgSiteGlucose = allGlucosesVals.length > 0 
@@ -114,7 +114,7 @@ export class InfusionAnalysisService {
 
       const glucoseAtBolus = currentSiteGlucoses.find(g => Math.abs(Number(g.timestamp) - bTime) < 20 * 60 * 1000);
       const threeHoursLater = bTime + 3 * 60 * 60 * 1000;
-      const glucoseAfter = logs.find(g => (g.type === 'glucose' || g.type === 'cgm' || g.type === 'sgv') && Math.abs(Number(g.timestamp) - threeHoursLater) < 35 * 60 * 1000);
+      const glucoseAfter = logs.find(g => (g.type === 'glucose' || (g.type as any) === 'cgm' || (g.type as any) === 'sgv') && Math.abs(Number(g.timestamp) - threeHoursLater) < 35 * 60 * 1000);
       const mealsDuringWindow = logs.some(l => hasCarbs(l) && Number(l.timestamp) >= bTime && Number(l.timestamp) <= threeHoursLater);
 
       if (glucoseAtBolus && glucoseAfter && !mealsDuringWindow) {

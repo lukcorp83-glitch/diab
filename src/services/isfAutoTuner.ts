@@ -38,7 +38,7 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
   const hasCarbs = (l: any): boolean => Boolean(l.carbs > 0 || l.linkedMeal?.carbs > 0 || l.type === 'meal');
 
   const insulinLogs = recentLogs.filter(l => 
-    (l.type === 'insulin' || l.type === 'bolus') && 
+    ((l.type as any) === 'insulin' || l.type === 'bolus') && 
     getInsulinVal(l) > 0 &&
     !hasCarbs(l) // Tylko czyste bolusy korekcyjne bez posiłku
   );
@@ -95,12 +95,12 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
       if (bolusVal <= 0) return;
 
       const glucoseAtBolus = recentLogs.find(l => 
-        (l.type === 'glucose' || l.type === 'cgm' || l.type === 'sgv') && 
+        (l.type === 'glucose' || (l.type as any) === 'cgm' || (l.type as any) === 'sgv') && 
         Math.abs(Number(l.timestamp) - bolusTime) < 20 * 60 * 1000
       );
       const threeHoursLater = bolusTime + (3 * 60 * 60 * 1000);
       const glucoseAfter = recentLogs.find(l => 
-        (l.type === 'glucose' || l.type === 'cgm' || l.type === 'sgv') && 
+        (l.type === 'glucose' || (l.type as any) === 'cgm' || (l.type as any) === 'sgv') && 
         Math.abs(Number(l.timestamp) - threeHoursLater) < 35 * 60 * 1000
       );
       const mealsDuringWindow = recentLogs.some(l => 

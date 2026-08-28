@@ -2593,50 +2593,62 @@ export default function Profile({
  {t('auto.wymiana_teraz', { defaultValue: 'Wymiana teraz' })}
  </button>
  <button
- onClick={async () => {
- let days = settings.sensorDurationDays;
- if (!days || days < 1) days = 10;
- if (days > 30) days = 30;
- const updates = {
- sensorChangeDate: Date.now(),
- sensorDurationDays: days
- };
- setSettings((prev) => ({ ...prev, ...updates }));
- if (user) {
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- updates,
- { merge: true },
- );
- if (updates.sensorChangeDate) {
- const latestSensorLog = logs
- .filter((l) => l.type === "sensor_change")
- .sort((a, b) => b.timestamp - a.timestamp)[0];
- if (latestSensorLog && latestSensorLog.id) {
- await updateDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "logs",
- latestSensorLog.id
- ),
- { timestamp: updates.sensorChangeDate }
- );
- await dbService.saveLog({ ...latestSensorLog, timestamp: updates.sensorChangeDate });
- window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSensorLog.id, updates: { timestamp: updates.sensorChangeDate } } }));
- }
- }
- }
- toast.success(i18n.t('auto.zaktualizowano_date_dni_sensor', { defaultValue: i18n.t('auto.zaktualizowano_date_dni_s', { defaultValue: "Zaktualizowano datę/dni sensora!" }) }));
- }}
- className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all border border-slate-300/50 dark:border-slate-700/50 flex items-center justify-center gap-1.5"
+    onClick={async () => {
+      let days = settings.sensorDurationDays;
+      if (!days || days < 1) days = 10;
+      if (days > 30) days = 30;
+      const chosenDate = settings.sensorChangeDate || Date.now();
+      const updates = {
+        sensorChangeDate: chosenDate,
+        sensorDurationDays: days
+      };
+      setSettings((prev) => ({ ...prev, ...updates }));
+      if (user) {
+        await setDoc(
+          doc(
+            db,
+            "users",
+            getEffectiveUid(user),
+            "settings",
+            "profile",
+          ),
+          updates,
+          { merge: true },
+        );
+        const latestSensorLog = logs
+          .filter((l) => l.type === "sensor_change")
+          .sort((a, b) => b.timestamp - a.timestamp)[0];
+        if (latestSensorLog && latestSensorLog.id) {
+          await updateDoc(
+            doc(
+              db,
+              "users",
+              getEffectiveUid(user),
+              "logs",
+              latestSensorLog.id
+            ),
+            { timestamp: chosenDate }
+          );
+          await dbService.saveLog({ ...latestSensorLog, timestamp: chosenDate });
+          window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: latestSensorLog.id, updates: { timestamp: chosenDate } } }));
+        } else {
+          const newLogPayload = {
+            type: "sensor_change",
+            value: 1,
+            timestamp: chosenDate,
+            createdAt: new Date().toISOString(),
+            notes: i18n.t('auto.wymiana_sensora', { defaultValue: "Wymiana sensora" }),
+            source: "manual"
+          };
+          const docRef = await addDoc(collection(db, "users", getEffectiveUid(user), "logs"), newLogPayload);
+          const addedLog = { ...newLogPayload, id: docRef.id };
+          await dbService.saveLog(addedLog);
+          window.dispatchEvent(new CustomEvent('localLogAdd', { detail: addedLog }));
+        }
+      }
+      toast.success(i18n.t('auto.zaktualizowano_date_dni_sensor', { defaultValue: "Zaktualizowano datę/dni sensora!" }));
+    }}
+  className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all border border-slate-300/50 dark:border-slate-700/50 flex items-center justify-center gap-1.5"
  >
  <Save size={12} />
  
@@ -2829,65 +2841,84 @@ export default function Profile({
  </div>
  </div>
  )}
- <button
- onClick={async () => {
- let days = settings.infusionSetDurationDays;
- if (!days || days < 1) days = 3;
- if (days > 7) days = 7;
- const updates = {
- infusionSetChangeDate: Date.now(),
- infusionSetDurationDays: days,
- infusionSetSite: insertionSite
- };
- setSettings((prev) => ({ ...prev, ...updates }));
- if (user) {
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- updates,
- { merge: true },
- );
- if (updates.infusionSetChangeDate) {
- const sortedSiteLogs = logs
- .filter((l) => l.type === "site_change")
- .sort((a, b) => b.timestamp - a.timestamp);
- const latestSiteLog = sortedSiteLogs[0];
- if (latestSiteLog && latestSiteLog.id) {
- const logsToUpdate = sortedSiteLogs.filter(l => l.timestamp === latestSiteLog.timestamp);
- for (const logToUpdate of logsToUpdate) {
- await updateDoc(
- doc(db, "users", getEffectiveUid(user), "logs", logToUpdate.id),
- { timestamp: updates.infusionSetChangeDate }
- );
- await dbService.saveLog({ ...logToUpdate, timestamp: updates.infusionSetChangeDate });
- window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: logToUpdate.id, updates: { timestamp: updates.infusionSetChangeDate } } }));
- }
- } else {
- const siteLogPayload = {
- type: "site_change",
- value: 1,
- timestamp: updates.infusionSetChangeDate,
- createdAt: serverTimestamp(),
- notes: i18n.t('auto.wymiana_wklucia_var0', { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }),
- source: "system",
- };
- const docRef = await addDoc(
- collection(db, "users", getEffectiveUid(user), "logs"),
- siteLogPayload
- );
- const newLog = { ...siteLogPayload, id: docRef.id, createdAt: new Date().toISOString() };
- await dbService.saveLog(newLog);
- window.dispatchEvent(new CustomEvent('localLogAdd', { detail: newLog }));
- }
- }
- }
- toast.success(i18n.t('auto.zaktualizowano_date_dni_wkluci', { defaultValue: i18n.t('auto.zaktualizowano_date_dni_w', { defaultValue: "Zaktualizowano datę/dni wkłucia!" }) }));
- }}
+  <button
+    onClick={async () => {
+      let days = settings.infusionSetDurationDays;
+      if (!days || days < 1) days = 3;
+      if (days > 7) days = 7;
+      const chosenDate = settings.infusionSetChangeDate || Date.now();
+      const updates = {
+        infusionSetChangeDate: chosenDate,
+        infusionSetDurationDays: days,
+        infusionSetSite: insertionSite,
+        infusionSite: insertionSite
+      };
+      setSettings((prev) => ({ ...prev, ...updates }));
+      if (user) {
+        await setDoc(
+          doc(
+            db,
+            "users",
+            getEffectiveUid(user),
+            "settings",
+            "profile",
+          ),
+          updates,
+          { merge: true },
+        );
+        const sortedSiteLogs = logs
+          .filter((l) => l.type === "site_change" && !l.notes?.toLowerCase().includes("zbiorniczk"))
+          .sort((a, b) => b.timestamp - a.timestamp);
+        const latestSiteLog = sortedSiteLogs[0];
+        if (latestSiteLog && latestSiteLog.id) {
+          const logsToUpdate = sortedSiteLogs.filter(l => l.timestamp === latestSiteLog.timestamp);
+          for (const logToUpdate of logsToUpdate) {
+            await updateDoc(
+              doc(db, "users", getEffectiveUid(user), "logs", logToUpdate.id),
+              {
+                timestamp: chosenDate,
+                site: insertionSite,
+                notes: `Wymiana wkłucia - ${insertionSite}`
+              }
+            );
+            await dbService.saveLog({
+              ...logToUpdate,
+              timestamp: chosenDate,
+              site: insertionSite,
+              notes: `Wymiana wkłucia - ${insertionSite}`
+            });
+            window.dispatchEvent(new CustomEvent("localLogUpdate", {
+              detail: {
+                id: logToUpdate.id,
+                updates: {
+                  timestamp: chosenDate,
+                  site: insertionSite,
+                  notes: `Wymiana wkłucia - ${insertionSite}`
+                }
+              }
+            }));
+          }
+        } else {
+          const siteLogPayload = {
+            type: "site_change",
+            value: 1,
+            timestamp: chosenDate,
+            createdAt: new Date().toISOString(),
+            notes: i18n.t("auto.wymiana_wklucia_var0", { defaultValue: "Wymiana wkłucia - {{var0}}", var0: insertionSite }),
+            site: insertionSite,
+            source: "manual",
+          };
+          const docRef = await addDoc(
+            collection(db, "users", getEffectiveUid(user), "logs"),
+            siteLogPayload
+          );
+          const newLog = { ...siteLogPayload, id: docRef.id };
+          await dbService.saveLog(newLog);
+          window.dispatchEvent(new CustomEvent("localLogAdd", { detail: newLog }));
+        }
+      }
+      toast.success(i18n.t("auto.zaktualizowano_date_dni_wkluci", { defaultValue: "Zaktualizowano datę/miejsce wkłucia!" }));
+    }}
  className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all border border-slate-300/50 dark:border-slate-700/50 flex items-center justify-center gap-1.5"
  >
  <Save size={12} />
@@ -3070,23 +3101,34 @@ export default function Profile({
  if (days > 7) days = 7;
  const updates = {
  reservoirChangeDate: settings.reservoirChangeDate || Date.now(),
- reservoirDurationDays: days
- };
- setSettings((prev) => ({ ...prev, ...updates }));
- if (user) {
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- updates,
- { merge: true },
- );
- }
- toast.success(i18n.t('auto.zaktualizowano_date_dni_zbiorniczka', { defaultValue: "Zaktualizowano datę/dni zbiorniczka!" }));
+      reservoirDurationDays: days
+    };
+    setSettings((prev) => ({ ...prev, ...updates }));
+    if (user) {
+      await setDoc(
+        doc(
+          db,
+          "users",
+          getEffectiveUid(user),
+          "settings",
+          "profile",
+        ),
+        updates,
+        { merge: true },
+      );
+      const latestResLog = logs
+        .filter((l) => (l.type === "site_change" && l.notes?.toLowerCase().includes("zbiorniczk")) || l.type === "insulin_change")
+        .sort((a, b) => b.timestamp - a.timestamp)[0];
+      if (latestResLog && latestResLog.id) {
+        await updateDoc(
+          doc(db, "users", getEffectiveUid(user), "logs", latestResLog.id),
+          { timestamp: updates.reservoirChangeDate }
+        );
+        await dbService.saveLog({ ...latestResLog, timestamp: updates.reservoirChangeDate });
+        window.dispatchEvent(new CustomEvent("localLogUpdate", { detail: { id: latestResLog.id, updates: { timestamp: updates.reservoirChangeDate } } }));
+      }
+    }
+    toast.success(i18n.t("auto.zaktualizowano_date_dni_zbiorniczka", { defaultValue: "Zaktualizowano datę/dni zbiorniczka!" }));
  }}
  className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 p-3.5 rounded-2xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all border border-slate-300/50 dark:border-slate-700/50 flex items-center justify-center gap-1.5"
  >

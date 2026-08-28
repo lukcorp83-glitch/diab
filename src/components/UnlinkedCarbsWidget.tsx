@@ -170,7 +170,7 @@ Odpowiedz WYŁĄCZNIE czystym formatem JSON (bez \`\`\`json):
         carbs: carbs,
         fat: estimatedFat,
         protein: estimatedProtein,
-        ig: estimatedIg
+        gi: estimatedIg
       };
 
       toast.dismiss(toastId);

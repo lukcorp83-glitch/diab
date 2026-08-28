@@ -14,11 +14,14 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 export default function LocalSync({ 
- settings}: { 
- settings: UserSettings,
- user: any
+ settings,
+ user: propUser
+}: { 
+ settings: UserSettings;
+ user?: any;
 }) {
-  const user = useAuthStore(state => state.user);
+  const authUser = useAuthStore(state => state.user);
+  const user = propUser || authUser;
 
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();

@@ -14,12 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.26';
+export const CURRENT_VERSION = '6.0.27';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.27",
+    date: "2026-08-28",
+    title: "Stoper Live na Belce, Synchronizacja Miejsc Wkłuć, Edycja Osprzętu i Porządki Alertów",
+    changes: [
+      "Wdrożono natychmiastowy stoper przedposiłkowy (Live Chronometer) na pasku stanu Androida odliczający sekunda po sekundzie",
+      "Pełna synchronizacja miejsc wkłuć pomiędzy profilem, automatycznym wykrywaniem i widżetem rotacji na pulpicie (eliminacja błędu z 'L. Brzuch')",
+      "Naprawiono edycję dat założenia osprzętu (wkłucie, sensor, zbiorniczek) w Profilu – zapisuje wybraną datę bez cofania i bez dublowania historii",
+      "Wyeliminowano podwójne alarmy i zdublowany dźwięk alertów glikemii na systemowym pasku Androida",
+      "Wdrożono obsługę systemowego przycisku Wstecz (Android Back Gesture) dla wszystkich okien modalnych i raportów",
+      "Dodano oficjalne wzory medyczne ISF, WW i korekty w procedurze awaryjnej pompy oraz ulepszono Asystenta Podróży (Jet-Lag)"
+    ]
+  },
   {
     version: "6.0.26",
     date: "2026-08-25",
@@ -255,6 +268,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.27",
+    date: "2026-08-28",
+    title: "Stoper Live na Belce, Synchronizacja Miejsc Wkłuć, Edycja Osprzętu i Porządki Alertów",
+    changes: [
+      "Wdrożono natychmiastowy stoper przedposiłkowy (Live Chronometer) na pasku stanu Androida odliczający sekunda po sekundzie",
+      "Pełna synchronizacja miejsc wkłuć pomiędzy profilem, automatycznym wykrywaniem i widżetem rotacji na pulpicie (eliminacja błędu z 'L. Brzuch')",
+      "Naprawiono edycję dat założenia osprzętu (wkłucie, sensor, zbiorniczek) w Profilu – zapisuje wybraną datę bez cofania i bez dublowania historii",
+      "Wyeliminowano podwójne alarmy i zdublowany dźwięk alertów glikemii na systemowym pasku Androida",
+      "Wdrożono obsługę systemowego przycisku Wstecz (Android Back Gesture) dla wszystkich okien modalnych i raportów",
+      "Dodano oficjalne wzory medyczne ISF, WW i korekty w procedurze awaryjnej pompy oraz ulepszono Asystenta Podróży (Jet-Lag)"
+    ]
+  },
   {
     version: "6.0.26",
     date: "2026-08-25",

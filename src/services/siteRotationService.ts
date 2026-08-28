@@ -150,21 +150,35 @@ export const DEFAULT_ALLOWED_SITES = [
  */
 export function normalizeSiteToZoneId(siteNameOrNote?: string): string {
   if (!siteNameOrNote || typeof siteNameOrNote !== 'string') return 'right_abdomen';
-  const clean = siteNameOrNote.toLowerCase().trim();
 
-  const isLeft = clean.includes('lew') || clean.includes('left');
-  const isRight = clean.includes('praw') || clean.includes('right');
+  // 1. Bezpośrednie dopasowanie identyfikatora lub dokładnej nazwy
+  const directMatch = ANATOMICAL_ZONES.find(
+    z => z.id === siteNameOrNote || z.name.toLowerCase() === siteNameOrNote.toLowerCase()
+  );
+  if (directMatch) return directMatch.id;
 
-  if (clean.includes('poslad') || clean.includes('buttock') || clean.includes('pupa')) {
+  // 2. Normalizacja z usunięciem polskich znaków diakrytycznych
+  const clean = siteNameOrNote
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/Ł/g, 'l')
+    .trim();
+
+  const isLeft = clean.includes('lew') || clean.includes('left') || clean.startsWith('l.') || clean.startsWith('l ');
+  const isRight = clean.includes('praw') || clean.includes('right') || clean.startsWith('p.') || clean.startsWith('p ');
+
+  if (clean.includes('poslad') || clean.includes('buttock') || clean.includes('pupa') || clean.includes('posladek')) {
     return isLeft ? 'left_buttock' : 'right_buttock';
   }
-  if (clean.includes('boczek') || clean.includes('plecy') || clean.includes('flank') || clean.includes('lędźwi')) {
+  if (clean.includes('boczek') || clean.includes('plecy') || clean.includes('flank') || clean.includes('ledzwi')) {
     return isLeft ? 'left_flank' : 'right_flank';
   }
   if (clean.includes('udo') || clean.includes('uda') || clean.includes('thigh') || clean.includes('noga')) {
     return isLeft ? 'left_thigh' : 'right_thigh';
   }
-  if (clean.includes('ramie') || clean.includes('ramię') || clean.includes('arm') || clean.includes('bark')) {
+  if (clean.includes('ramie') || clean.includes('arm') || clean.includes('bark')) {
     return isLeft ? 'left_arm' : 'right_arm';
   }
   if (clean.includes('brzuch') || clean.includes('abdomen') || clean.includes('belly')) {

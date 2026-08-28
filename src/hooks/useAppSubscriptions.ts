@@ -56,7 +56,7 @@ export const useAppSubscriptions = (user: any) => {
       unsubs.push(unsub);
     };
 
-    // 1. Logs - pobieramy pełne 35 dni danych (ok. 10-12k logów przy pomiarze co 5 min + posiłki/bolusy)
+    // 1. Logs - pobieramy bezpieczny bufor 4000 logów
     const thirtyFiveDaysAgo = Date.now() - 35 * 24 * 60 * 60 * 1000;
     const isEco = localStorage.getItem("ecoMode") === "true";
     createCollectionSub(

@@ -4,8 +4,9 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 
 ## Główne pliki i komponenty
 - `src/App.tsx` (ogromny plik ~3400 linii) - Główny punkt wejścia, główny layout, zarządzanie routingiem i duża część logiki UI.
-- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.26'), adresy URL oraz bazy produktów.
-- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.26.
+- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.27'), adresy URL oraz bazy produktów.
+- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.27.
+- `src/hooks/useAppSubscriptions.ts` & `src/services/databaseService.ts` - Zwiększono bufor synchronizacji logów z Firebase do 12 000 wpisów (pełne 35 dni gęstych odczytów CGM oraz wszystkie posiłki i bolusy) dla zapewnienia pełnej ciągłości danych w pamięci lokalnej SQLite oraz rzetelnych miesięcznych statystyk.
 
 ## Główne Widżety Pulpitu i Nowy Design System
 - `src/components/dashboard/widgets/SavedMealsWidget.tsx` - Nowy horyzontalny widżet „Zapisane Posiłki & Przepisy” na Pulpicie: przewijany stos kart ze szklistym tłem (*glassmorphism*), badge'ami diet, szczegółowymi makroskładnikami (W, B, T, kcal), 1-Click wrzucaniem całego dania na Talerz oraz pełnym modalem podglądu przepisu kulinarnego wprost z Pulpitu.
@@ -13,7 +14,7 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/components/MealPlate/ProductSearch.tsx` & `src/components/FoodDatabase.tsx` - Nowy inteligentny algorytm wyszukiwania w bazie żywności: normalizacja znaków diakrytycznych (s/ś, c/ć, l/ł itp.), scoring prefiksowy (faworyzowanie słów zaczynających się od frazy) oraz pełna widoczność bazy od A do Ż.
 - `src/components/DailyTirWidget.tsx` - Wizualny widżet Dziennego TIR: radialny pierścień z neonowym blaskiem na segmencie normy (`emerald-glow`), torem zegarowym (`background track`), plakietką sukcesu `≥70%` oraz trójkolorowymi kapsułkami zakresów (`<70`, `70-180`, `>180`).
 - `src/components/SiteRotationWidget.tsx` - Nowy Smart Rotation Ring (Koncepcja 2): minimalistyczna tarcza zegarowa z łukiem cyklu rotacji, czytelną nazwą aktywnej strefy i nowoczesną pigułką następnego miejsca bez zbędnych grafik.
-- `src/hooks/useGlucoseAlerts.ts` & `src/services/notificationService.ts` & `src/lib/audioUtils.ts` - Zoptymalizowany, 4-stopniowy pancerny silnik powiadomień i odtwarzania MP3 (`status_clear.mp3`) dla niskiego i wysokiego cukru: Tier 1 (Capacitor NativeAudio z preloadem `public/status_clear.mp3`), Tier 2 (HTML5 Audio z automatycznym odblokowaniem gestem użytkownika), Tier 3 (Web Audio API Buffer Source) oraz Tier 4 (syntezator awaryjny). Kanał Android zsynchronizowany na `glucose_alerts_v17` z dźwiękiem `status_clear.mp3`. Dodano narzędzie testowe w Ustawieniach Powiadomień.
+- `src/hooks/useGlucoseAlerts.ts` & `src/services/notificationService.ts` & `src/lib/audioUtils.ts` - Zoptymalizowany, 4-stopniowy pancerny silnik powiadomień i odtwarzania MP3 (`status_clear.mp3`) dla niskiego i wysokiego cukru w aplikacji. Na natywnym Androidzie wyłączono zdublowany `LocalNotifications.schedule` (i przycisk snooze), pozostawiając pojedyncze, niezawodne powiadomienie z natywnego serwisu w tle (`NightscoutFetcher` / `GlikoForegroundService`), co całkowicie eliminuje podwójny dźwięk i zdublowane powiadomienia na belce systemowej. Web Notifications API pozostało dla wersji przeglądarkowej.
 
 ## GlikoSense oraz Integracja z Gemini API
 - `src/services/gemini.ts` - Główny serwis obsługujący komunikację z Google Gemini API (`GoogleGenAI`).
@@ -30,8 +31,9 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/components/InfusionPerformanceWidget.tsx` - Karta analityczna wydajności wkłucia wyświetlana w module Raportów AI (`AiReports.tsx`), prezentująca wiek bieżącego wkłucia, szacowaną sprawność wchłaniania, porównanie kolejnych dób i wnioski GlikoSense AI.
 - `src/components/Profile/ProfileInventory.tsx` - Moduł Apteczki i Zapasów z polskimi nazwami kategorii oraz własną pojemnością zbiorniczka.
 - `src/components/PumpStatusCard.tsx` - Kafel statusu pompy i zbiorniczka z dynamiczną animacją.
-- `src/components/SmartEquipmentModal.tsx` - Modal potwierdzenia Smart Equipment. Przy wykryciu zmiany pompy/zbiorniczka pyta, czy wymieniono sam zbiorniczek, czy również wkłucie.
-- `src/App.tsx` - Wyświetla `SmartEquipmentModal` i natychmiast odejmuje odpowiednie elementy (zbiorniczki `reservoirs`, wkłucia `infusion_sets` oraz sensory `sensors`) z apteczki `inventory` użytkownika.
+- `src/components/SmartEquipmentModal.tsx` - Modal potwierdzenia Smart Equipment. Przy wykryciu zmiany pompy/zbiorniczka pyta, czy wymieniono sam zbiorniczek, czy również wkłucie oraz pozwala wybrać nowe miejsce wkłucia. Zunifikowano zapis `infusionSetSite` oraz `infusionSite` ze spójną synchronizacją z `SiteRotationWidget`.
+- `src/App.tsx` - Wyświetla `SmartEquipmentModal` i natychmiast odejmuje odpowiednie elementy (zbiorniczki `reservoirs`, wkłucia `infusion_sets` oraz sensory `sensors`) z apteczki `inventory` użytkownika. Zabezpieczono automatyczną synchronizację dat, zapobiegając cofaniu ręcznych edycji przez starsze wpisy z logów.
+- `src/components/Profile.tsx` - Moduł edycji dat założenia wkłucia, sensora i zbiorniczka. Zapisuje wybraną przez użytkownika datę (`datetime-local`) zamiast nadpisywać ją sztywnym `Date.now()`, oraz aktualizuje istniejące najnowsze logi bez tworzenia duplikatów w historii.
 
 - `src/components/nutrition/GlikoSenseNutriView.tsx` & `src/components/FoodDatabase.tsx` - Poprawiono widoczność opcji sortowania w rozwijanym menu `<select>`. Dodano jawne style tła i koloru tekstu (`bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold`) dla każdego elementu `<option>`, dzięki czemu wszystkie nazwy trybów sortowania są czytelne i widoczne przez cały czas, a nie dopiero po najechaniu kursorem.
 - `src/components/nutrition/NutritionHub.tsx` - Kontener Centrum Żywienia z widokami Talerza, Diet, Historii i Odżywiania.

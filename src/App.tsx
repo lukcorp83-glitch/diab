@@ -308,11 +308,19 @@ export default function App() {
     const latestSensorLog = logs.find((l: any) => l.type === 'sensor_change');
 
     const updates: any = {};
-    if (latestSiteLog && latestSiteLog.timestamp && latestSiteLog.timestamp !== userSettings.infusionSetChangeDate) {
-      updates.infusionSetChangeDate = latestSiteLog.timestamp;
+    if (latestSiteLog && latestSiteLog.timestamp) {
+      if (!userSettings.infusionSetChangeDate || latestSiteLog.timestamp > userSettings.infusionSetChangeDate) {
+        updates.infusionSetChangeDate = latestSiteLog.timestamp;
+      }
+      if (latestSiteLog.site && latestSiteLog.site !== userSettings.infusionSetSite) {
+        updates.infusionSetSite = latestSiteLog.site;
+        updates.infusionSite = latestSiteLog.site;
+      }
     }
-    if (latestSensorLog && latestSensorLog.timestamp && latestSensorLog.timestamp !== userSettings.sensorChangeDate) {
-      updates.sensorChangeDate = latestSensorLog.timestamp;
+    if (latestSensorLog && latestSensorLog.timestamp) {
+      if (!userSettings.sensorChangeDate || latestSensorLog.timestamp > userSettings.sensorChangeDate) {
+        updates.sensorChangeDate = latestSensorLog.timestamp;
+      }
     }
 
     if (Object.keys(updates).length > 0) {
@@ -647,7 +655,9 @@ export default function App() {
         localStorage.setItem('infusionSetChangeDate', String(now));
 
         if (selectedSite) {
+          updates.infusionSetSite = selectedSite;
           updates.infusionSite = selectedSite;
+          localStorage.setItem('infusionSetSite', selectedSite);
           localStorage.setItem('infusionSite', selectedSite);
         }
 

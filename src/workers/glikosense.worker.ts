@@ -281,7 +281,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     // HEURISTIC INSIGHTS
     const insights: string[] = [];
     const discoveredRules = { ...rules };
-    const mealPatterns: { [key: string]: { spikes: number, count: number, totalCorrections?: number, totalReturnTime?: number } } = {};
+    const mealPatterns: { [key: string]: { spikes: number, count: number, totalCorrections?: number, totalReturnTime?: number, totalMaxBg?: number } } = {};
     const timeBlocks = {
       morning: { label: 'Poranek', starts: 6, ends: 11, sensitivity: 0, count: 0, drops: [] as number[] },
       afternoon: { label: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: i18n.t('auto.popoludnie', { defaultValue: "Popołudnie" }) }) }), starts: 11, ends: 17, sensitivity: 0, count: 0, drops: [] as number[] },
@@ -480,7 +480,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       const p = m.protein || m.linkedMeal?.protein || 0;
       return f > 10 || p > 15 || ["pizza", "kebab", "burger", "ser", "frytki", "orzechy", "mięso", "mieso", "makaron"].some(kw => desc.includes(kw));
     });
-    if (hasFatProteinMeal || currentFob > 5 || currentPob > 8) {
+    if (hasFatProteinMeal) {
       discoveredRules.pizzaEffectMultiplier = 1.2;
     }
 

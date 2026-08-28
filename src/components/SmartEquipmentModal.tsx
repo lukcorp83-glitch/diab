@@ -24,7 +24,7 @@ export function SmartEquipmentModal({ type, logs = [], userSettings, onClose, on
   const [showAllSites, setShowAllSites] = useState(false);
 
   // Obliczamy regenerację tkanek i rekomendowane miejsce
-  const currentSiteName = userSettings?.infusionSite || localStorage.getItem('infusionSite') || 'right_abdomen';
+  const currentSiteName = userSettings?.infusionSetSite || userSettings?.infusionSite || localStorage.getItem('infusionSetSite') || localStorage.getItem('infusionSite') || 'Prawy brzuch';
   const sensorSite = userSettings?.sensorSite || localStorage.getItem('sensorSite') || '';
   const allowedSites = userSettings?.allowedInfusionSites;
 

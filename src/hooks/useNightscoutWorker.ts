@@ -101,10 +101,10 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
 
     if (nsUrl) {
       worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 6000 } });
-      useAppStore.getState().setSyncStatus({ status: "syncing" });
+      useAppStore.getState().setSyncStatus({ status: "syncing", lastSync: useAppStore.getState().syncStatus.lastSync });
     }
 
-    const handleForceSync = (e: any) => {
+    const handleForceSync = (e?: any) => {
       console.log("==== HOOK: Zdarzenie force-nightscout-sync otrzymane! ====", e);
       const urlToUse = e?.detail?.url || nsUrl;
       const secretToUse = e?.detail?.secret !== undefined ? e.detail.secret : nsSecret;
@@ -115,7 +115,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       }
 
       console.log("Force sync manually triggered (Worker)", { urlToUse });
-      useAppStore.getState().setSyncStatus({ status: "syncing" });
+      useAppStore.getState().setSyncStatus({ status: "syncing", lastSync: useAppStore.getState().syncStatus.lastSync });
       worker.postMessage({ type: 'STOP_SYNC' });
       worker.postMessage({ type: 'START_SYNC', payload: { url: urlToUse, secret: secretToUse, intervalMs: 5 * 60 * 1000, count: 6000 } });
     };

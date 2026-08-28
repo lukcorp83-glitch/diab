@@ -70,27 +70,27 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
       }
 
       // 1. Carbs processing (meal, carbs, linkedMeal)
-      const carbVal = Number(log.carbs || (log.type === 'meal' || log.type === 'carbs' ? log.value : 0) || log.linkedMeal?.carbs || 0);
+      const carbVal = Number((log as any).carbs || (log.type === 'meal' || (log.type as any) === 'carbs' ? log.value : 0) || (log as any).linkedMeal?.carbs || 0);
       if (carbVal > 0) {
         data[monthKey].totalCarbs += carbVal;
         data[monthKey].days[dayKey].carbs += carbVal;
       }
       
       // 2. Insulin processing (bolus, insulin)
-      const insulinVal = Number(log.insulin || (log.type === 'bolus' || (log.type as any) === 'insulin' ? log.value : 0) || log.amount || 0);
+      const insulinVal = Number((log as any).insulin || (log.type === 'bolus' || (log.type as any) === 'insulin' ? log.value : 0) || (log as any).amount || 0);
       if (insulinVal > 0) {
         data[monthKey].totalInsulin += insulinVal;
         data[monthKey].days[dayKey].insulin += insulinVal;
       }
       
       // 3. Equipment changes
-      if (log.type === 'site_change' || log.type === 'site') {
+      if (log.type === 'site_change' || (log.type as any) === 'site') {
         if (!data[monthKey].days[dayKey].siteChange) {
           data[monthKey].siteChanges += 1;
         }
         data[monthKey].days[dayKey].siteChange = true;
       }
-      if (log.type === 'sensor_change' || log.type === 'sensor') {
+      if (log.type === 'sensor_change' || (log.type as any) === 'sensor') {
         if (!data[monthKey].days[dayKey].sensorChange) {
           data[monthKey].sensorChanges += 1;
         }
@@ -100,14 +100,14 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
 
     // 2. Process glucose logs (glucose, sgv, cgm) in chronological order to detect episodes (incidents)
     const glucoseLogs = logs
-      .filter(l => l.type === 'glucose' || l.type === 'sgv' || l.type === 'cgm' || (Number(l.sgv || 0) > 0))
-      .sort((a, b) => (a.timestamp || a.createdAt || 0) - (b.timestamp || b.createdAt || 0));
+      .filter(l => l.type === 'glucose' || (l.type as any) === 'sgv' || (l.type as any) === 'cgm' || (Number((l as any).sgv || 0) > 0))
+      .sort((a, b) => (a.timestamp || (a.createdAt ? new Date(a.createdAt).getTime() : 0)) - (b.timestamp || (b.createdAt ? new Date(b.createdAt).getTime() : 0)));
     
     let currentState: 'normal' | 'hypo' | 'hyper' = 'normal';
     let lastTimestamp = 0;
 
     glucoseLogs.forEach(log => {
-      const ts = log.timestamp || log.createdAt || 0;
+      const ts = log.timestamp || (log.createdAt ? new Date(log.createdAt).getTime() : 0);
       const date = new Date(ts);
       if (isNaN(date.getTime())) return;
       
@@ -122,7 +122,7 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
       }
       lastTimestamp = ts;
 
-      const val = Number(log.value || log.sgv || 0);
+      const val = Number(log.value || (log as any).sgv || 0);
       if (val > 0) {
         let newState: 'normal' | 'hypo' | 'hyper' = 'normal';
         if (val < targetMin) newState = 'hypo';

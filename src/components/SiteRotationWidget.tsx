@@ -35,6 +35,23 @@ export default function SiteRotationWidget({
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [localSiteOverride, setLocalSiteOverride] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const handleSiteChange = (e: any) => {
+      if (e.detail?.site) {
+        setLocalSiteOverride(e.detail.site);
+      } else if (e.detail?.infusionSetSite) {
+        setLocalSiteOverride(e.detail.infusionSetSite);
+      }
+    };
+    window.addEventListener('siteChangeRecorded', handleSiteChange);
+    window.addEventListener('userSettingsUpdate', handleSiteChange);
+    return () => {
+      window.removeEventListener('siteChangeRecorded', handleSiteChange);
+      window.removeEventListener('userSettingsUpdate', handleSiteChange);
+    };
+  }, []);
 
   const lastSiteChange = useMemo(() => {
     const sorted = [...(logs || [])].sort((a, b) => b.timestamp - a.timestamp);
@@ -44,9 +61,11 @@ export default function SiteRotationWidget({
   const siteChangeTimestamp = Math.max(settings.infusionSetChangeDate || 0, lastSiteChange?.timestamp || 0) || undefined;
   
   const rawNote = lastSiteChange?.notes || '';
-  const parsedNoteLocation = rawNote.startsWith('Wymiana wkłucia -') ? rawNote.replace('Wymiana wkłucia -', '').trim() : rawNote;
+  const parsedNoteLocation = rawNote.startsWith('Wymiana wkłucia -') 
+    ? rawNote.replace('Wymiana wkłucia -', '').trim() 
+    : (rawNote.startsWith('Wymiana wkłucia:') ? rawNote.replace('Wymiana wkłucia:', '').replace('(Smart Equipment)', '').trim() : '');
 
-  const locationText = settings.infusionSetSite || parsedNoteLocation || 'Prawy brzuch';
+  const locationText = localSiteOverride || settings.infusionSetSite || (settings as any).infusionSite || localStorage.getItem('infusionSetSite') || localStorage.getItem('infusionSite') || (lastSiteChange as any)?.site || (parsedNoteLocation && !parsedNoteLocation.includes('zbiorniczk') ? parsedNoteLocation : '') || 'Prawy brzuch';
   const currentZoneId = useMemo(() => normalizeSiteToZoneId(locationText), [locationText]);
   const currentZone = useMemo(() => getZoneById(currentZoneId), [currentZoneId]);
 

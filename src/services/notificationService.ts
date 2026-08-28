@@ -21,17 +21,8 @@ export const notificationService = {
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v14' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v15' }); } catch(e) {}
         try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v16' }); } catch(e) {}
+        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v17' }); } catch(e) {}
         
-        await LocalNotifications.createChannel({
-          id: 'glucose_alerts_v17',
-          name: 'Krytyczne Alerty Glikemii',
-          description: 'Głośne powiadomienia o niskim i wysokim cukrze',
-          importance: 5,
-          visibility: 1,
-          sound: 'status_clear.mp3',
-          vibration: true
-        });
-
         await LocalNotifications.createChannel({
           id: 'glikocontrol_reminders_v1',
           name: 'Przypomnienia GlikoControl',
@@ -40,39 +31,6 @@ export const notificationService = {
           visibility: 1,
           vibration: true
         });
-
-        // Register Action Button (Wycisz) directly on Android Notification Bar
-        await LocalNotifications.registerActionTypes({
-          types: [
-            {
-              id: 'GLUCOSE_ALARM_ACTIONS',
-              actions: [
-                {
-                  id: 'snooze_alarm',
-                  title: '🔕 Wycisz alarm'
-                }
-              ]
-            }
-          ]
-        }).catch(() => {});
-
-        // Listen to notification clicks or action button clicks on Android notification bar
-        if (!(window as any).__localNotifListenerRegistered) {
-          (window as any).__localNotifListenerRegistered = true;
-          LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-            console.log('[NotificationService] Action clicked on Android notification bar:', action);
-            const isHigh = action.notification.id === 888 || action.notification.extra?.isHigh;
-            const snoozeMs = isHigh ? 30 * 60 * 1000 : 15 * 60 * 1000;
-            const snoozeUntil = Date.now() + snoozeMs;
-
-            // Set snooze flag immediately when notification is clicked/snoozed from Android status bar
-            localStorage.setItem('glucose_alarm_snooze_until', snoozeUntil.toString());
-            localStorage.setItem('glucose_alarm_snooze_type', isHigh ? 'high' : 'low');
-
-            // Stop any active playing audio immediately
-            stopAllAudio();
-          });
-        }
       } catch (err) {
         console.warn('Failed to create notification channel:', err);
       }
@@ -288,6 +246,106 @@ export const notificationService = {
           } catch (e) { console.warn(e); }
         }, Math.max(1, delayMinutes) * 60 * 1000);
       }
+    }
+  },
+
+  _liveTimerInterval: null as any,
+
+  async startOngoingTimerNotification(targetTime: number, totalMinutes: number, bolusUnits?: number) {
+    if (this._liveTimerInterval) {
+      clearInterval(this._liveTimerInterval);
+      this._liveTimerInterval = null;
+    }
+
+    const updateNotification = async () => {
+      const now = Date.now();
+      const remainingSec = Math.round((targetTime - now) / 1000);
+      const remainingMin = Math.max(0, Math.ceil(remainingSec / 60));
+
+      if (remainingSec <= 0) {
+        if (this._liveTimerInterval) {
+          clearInterval(this._liveTimerInterval);
+          this._liveTimerInterval = null;
+        }
+
+        const finishTitle = i18n.t('bolus.reminder_title', { defaultValue: 'Czas na posiłek! 🍽️' });
+        const finishBody = i18n.t('bolus.reminder_body', {
+          minutes: totalMinutes,
+          defaultValue: `Minęło ${totalMinutes} minut od bolusa. Insulina zaczęła działać – możesz zjeść posiłek!`
+        });
+
+        if (Capacitor.isNativePlatform()) {
+          try {
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  id: 777,
+                  title: finishTitle,
+                  body: finishBody,
+                  schedule: { at: new Date() },
+                  channelId: 'glikocontrol_reminders_v1',
+                  sound: 'status_clear.mp3',
+                  ongoing: false,
+                  autoCancel: true
+                }
+              ]
+            });
+          } catch (e) {}
+        } else if (window.Notification && window.Notification.permission === 'granted') {
+          try {
+            new window.Notification(finishTitle, { body: finishBody });
+          } catch (e) {}
+        }
+        return;
+      }
+
+      const unitsStr = bolusUnits ? ` (${bolusUnits} j.)` : '';
+      const ongoingTitle = `⏱️ Czas do posiłku: ${remainingMin} min${unitsStr}`;
+      const ongoingBody = `Odliczanie przedposiłkowe w toku... Insulina zaczyna działać.`;
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await this.initChannels();
+          const perms = await LocalNotifications.checkPermissions();
+          if (perms.display !== 'granted') {
+            await LocalNotifications.requestPermissions();
+          }
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                id: 777,
+                title: ongoingTitle,
+                body: ongoingBody,
+                schedule: { at: new Date() },
+                channelId: 'glikocontrol_reminders_v1',
+                ongoing: true,
+                autoCancel: false
+              }
+            ]
+          });
+        } catch (e) {
+          console.warn('[NotificationService] Failed ongoing timer update:', e);
+        }
+      }
+    };
+
+    // 1. Wyświetl natychmiast
+    await updateNotification();
+
+    // 2. Aktualizuj co 30 sekund
+    this._liveTimerInterval = setInterval(updateNotification, 30000);
+  },
+
+  async cancelOngoingTimerNotification() {
+    if (this._liveTimerInterval) {
+      clearInterval(this._liveTimerInterval);
+      this._liveTimerInterval = null;
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await LocalNotifications.cancel({ notifications: [{ id: 777 }] });
+      } catch (e) {}
     }
   },
 
@@ -514,7 +572,7 @@ export const notificationService = {
               icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
               vibrate: [200, 100, 200],
               tag: `med_${med.id}_${Date.now()}`
-            });
+            } as any);
           });
         } else {
           new Notification(title, { body, icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/') });
@@ -570,30 +628,8 @@ export const notificationService = {
     const title = isHigh ? i18n.t('auto.wysoki_cukier', { defaultValue: 'Wysoki Cukier!' }) : i18n.t('auto.niski_cukier', { defaultValue: 'Niski Cukier!' });
     const body = `${i18n.t('auto.twoj_aktualny_poziom_cukru_to', { defaultValue: 'Twój aktualny poziom cukru to' })} ${value} mg/dL.`;
 
-    if (Capacitor.isNativePlatform()) {
-      await this.initChannels();
-      let perms = await LocalNotifications.checkPermissions();
-      if (perms.display !== 'granted') {
-        perms = await LocalNotifications.requestPermissions();
-      }
-      if (perms.display === 'granted') {
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              title,
-              body,
-              id: isHigh ? 888 : 889,
-              channelId: 'glucose_alerts_v17',
-              sound: 'status_clear.mp3',
-              attachments: null,
-              actionTypeId: 'GLUCOSE_ALARM_ACTIONS',
-              extra: { isHigh, value }
-            }
-          ]
-        });
-      }
-    } else {
-      // Wersja web/PWA
+    if (!Capacitor.isNativePlatform()) {
+      // Wersja web/PWA (Browser Web Notifications API)
       const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');
       if (apkPref !== 'false' && window.Notification && window.Notification.permission === 'granted') {
         try {

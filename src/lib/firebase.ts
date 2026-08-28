@@ -17,7 +17,7 @@ import { Capacitor } from '@capacitor/core';
 // Using initializeFirestore with modern persistence API
 export const db = initializeFirestore(app, {
     ignoreUndefinedProperties: true,
-    localCache: Capacitor.isNativePlatform() ? memoryLocalCache() : persistentLocalCache({tabManager: persistentSingleTabManager()}),
+    localCache: Capacitor.isNativePlatform() ? memoryLocalCache() : persistentLocalCache({tabManager: persistentSingleTabManager({})}),
     experimentalForceLongPolling: Capacitor.isNativePlatform() ? true : false
 });
 
