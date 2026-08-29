@@ -110,7 +110,9 @@ export default function SiteRotationModal({
     localStorage.setItem('last_smart_reservoir_prompt', String(now));
 
     // 2. Dodaj log site_change do Firestore i wyślij event lokalny
+    const localId = `site_${now}_${Math.random().toString(36).substring(2, 7)}`;
     const siteLog: any = {
+      id: localId,
       type: 'site_change',
       value: 1,
       timestamp: now,
@@ -124,8 +126,11 @@ export default function SiteRotationModal({
       if (user) {
         const uid = getEffectiveUid(user);
         await setDoc(doc(db, 'users', uid, 'settings', 'profile'), newSettings, { merge: true });
-        await addDoc(collection(db, 'users', uid, 'logs'), siteLog);
+        const docRef = await addDoc(collection(db, 'users', uid, 'logs'), siteLog);
+        siteLog.id = docRef.id;
       }
+      const { dbService } = await import('../services/databaseService');
+      await dbService.saveLog(siteLog);
       window.dispatchEvent(new CustomEvent('localLogAdd', { detail: siteLog }));
       window.dispatchEvent(new CustomEvent('localLogAddBatch', { detail: [siteLog] }));
       window.dispatchEvent(new CustomEvent('siteChangeRecorded', { detail: { site: newSite, timestamp: now } }));

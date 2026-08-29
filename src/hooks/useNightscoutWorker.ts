@@ -9,8 +9,9 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
 
   useEffect(() => {
     const handleNsLogDelete = (e: any) => {
-      const id = e.detail.id;
-      setNsLogs(prev => prev.filter(l => l.nsId !== id && l.id !== id));
+      const id = e.detail?.id;
+      const nsId = e.detail?.nsId;
+      setNsLogs(prev => prev.filter(l => l.id !== id && (!nsId || l.nsId !== nsId) && l.id !== nsId && (!l.nsId || l.nsId !== id)));
     };
     window.addEventListener('nsLogDelete', handleNsLogDelete);
 
@@ -71,9 +72,13 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
           }
         });
 
-        const newLogsToSync = uniqueNSLogs.filter(
-          (newLog) => (!newLog.id || !deletedNsIdsRef.current.has(newLog.id))
-        );
+        const newLogsToSync = uniqueNSLogs.filter((newLog) => {
+          if (!deletedNsIdsRef.current) return true;
+          if (newLog.id && deletedNsIdsRef.current.has(newLog.id)) return false;
+          if (newLog.nsId && deletedNsIdsRef.current.has(newLog.nsId)) return false;
+          if ((newLog as any)._id && deletedNsIdsRef.current.has((newLog as any)._id)) return false;
+          return true;
+        });
 
         if (newLogsToSync.length > 0) {
           console.log(`Worker synced ${newLogsToSync.length} new records to memory`);

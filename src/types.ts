@@ -109,6 +109,7 @@ export interface InventoryItem {
   penCapacity?: number; // Pojemność pojedynczego pena (dla category === 'pens')
   currentPenUnits?: number; // Jednostki w aktualnie rozpoczętym penie
   capacity?: number; // Pojemność zbiorniczka (dla category === 'reservoirs', w U lub ml)
+  reservoirCapacity?: number; // Pojemność zbiorniczka w jednostkach (np. 160, 180, 200, 300 U)
 }
 
 export interface UserSettings {
@@ -176,6 +177,7 @@ export interface UserSettings {
   activeDiet?: string | null;
   dietStartDate?: number;
   tdee?: number;
+  dailyStepGoal?: number; // Dzienny cel kroków (domyślnie np. 10000)
   allergies?: string;
   weatherWidgetEnabled?: boolean;
   weatherNeuralEnabled?: boolean;

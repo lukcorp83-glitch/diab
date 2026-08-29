@@ -420,6 +420,12 @@
   "auto": {
     "czy_wiesz_ze_pigulka_na_dole": "Did you know that the Smart Pill at the bottom of the screen turns into a reminder when there is less than 2 hours left before the sensor or infusion set expires?",
     "czy_wiesz_ze_szybka_korekta": "Did you know that when your glucose rises above the target, the Bolus tile on the dashboard will automatically suggest a quick correction dose?",
+    "czy_wiesz_ze_glikosense_predict": "Did you know that the GlikoSense neural network learns your insulin sensitivity and predicts glucose trends 60 minutes in advance?",
+    "czy_wiesz_ze_smart_rotacja": "Did you know that the smart infusion map analyzes your tissue recovery rate (0-100%) and suggests the freshest site for your new infusion set?",
+    "czy_wiesz_ze_kalkulator_wbt": "Did you know that high-fat, high-protein meals (FPU) require extended boluses? Our calculator automatically splits the bolus into two phases!",
+    "czy_wiesz_ze_jetlag_podroze": "Did you know that in GlikoSense you can find a JetLag Travel Assistant to help safely shift basal insulin schedules during flights?",
+    "czy_wiesz_ze_komendy_glosowe": "Did you know that you can dictate meals or glucose readings using your voice by clicking the microphone next to Gliko assistant?",
+    "czy_wiesz_ze_health_connect": "Did you know that the app syncs with Health Connect to track your steps and warn you about glucose drops after workouts?",
     "podaj_bolus": "Deliver Bolus",
     "program_testow_beta": "Beta Testing Program",
     "kanal_beta_aktywny": "Beta Channel Active",

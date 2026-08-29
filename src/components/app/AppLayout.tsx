@@ -268,7 +268,7 @@ export function AppLayout({
           ref={mainRef}
           className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto overscroll-y-contain overscroll-x-none touch-pan-y overflow-x-hidden no-scrollbar"
         >
-          <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+          <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div
               key={activeTab}
               custom={direction}
@@ -276,7 +276,7 @@ export function AppLayout({
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              transition={{ duration: 0.12, ease: "easeOut" }}
               drag="x"
               dragDirectionLock
               dragConstraints={{ left: 0, right: 0 }}

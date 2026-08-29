@@ -135,7 +135,7 @@ export default function DoseEditModal({ log, user: propUser, onClose }: DoseEdit
         await deleteDoc(doc(db, "users", uid, "logs", log.id)).catch(e => console.warn("Delete doc error:", e));
       }
       await dbService.deleteLog(log.id).catch(() => {});
-      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id } }));
+      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id, nsId: log.nsId } }));
 
       // Jeśli usunięto wkłucie lub sensor, cofnij datę w profilu do poprzedniego wpisu!
       if (uid) {

@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AndroidHapticPlugin.class);
         registerPlugin(NotificationBridgePlugin.class);
         registerPlugin(MaterialYouPlugin.class);
+        registerPlugin(StepCounterPlugin.class);
         super.onCreate(savedInstanceState);
         
         // Wymuszenie zapytania o uprawnienia przy uruchomieniu aplikacji
@@ -27,6 +28,11 @@ public class MainActivity extends BridgeActivity {
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             permissions.add(Manifest.permission.RECORD_AUDIO);
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 29) { // Android 10+ (Q)
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.ACTIVITY_RECOGNITION);
+            }
         }
         if (android.os.Build.VERSION.SDK_INT >= 33) { // Android 13 (Tiramisu)
             if (ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {

@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.30';
+export const CURRENT_VERSION = '6.0.31';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.31",
+    date: "2026-08-29",
+    title: "Natywny Krokomierz Androida, Zunifikowany Widżet Treningu, Konfiguracja Zbiorniczka w Apteczce i Płynne Zakładki",
+    changes: [
+      "Natywny sprzętowy krokomierz Androida – bezpośredni odczyt kroków z sensora telefonu oraz synchronizacja z Google Health",
+      "Zunifikowany widżet Aktywność & Trening – licznik kroków, edycja celu (🎯) i szybki start modułu GlikoTrening",
+      "Konfiguracja pojemności zbiorniczka w Apteczce (160U, 180U, 200U, 300U) i automatyczne przeliczanie pigułki na Pulpicie",
+      "Błyskawiczne i stabilne przełączanie zakładek bez czarnego ekranu (optymalizacja animacji wait)",
+      "Automatyczna synchronizacja glikemii z Google Health Connect w czasie rzeczywistym"
+    ]
+  },
   {
     version: "6.0.30",
     date: "2026-08-29",
@@ -304,6 +316,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.31",
+    date: "2026-08-29",
+    title: "Natywny Krokomierz Androida, Zunifikowany Widżet Treningu, Konfiguracja Zbiorniczka w Apteczce i Płynne Zakładki",
+    changes: [
+      "Natywny sprzętowy krokomierz Androida – bezpośredni odczyt kroków z sensora telefonu oraz synchronizacja z Google Health",
+      "Zunifikowany widżet Aktywność & Trening – licznik kroków, edycja celu (🎯) i szybki start modułu GlikoTrening",
+      "Konfiguracja pojemności zbiorniczka w Apteczce (160U, 180U, 200U, 300U) i automatyczne przeliczanie pigułki na Pulpicie",
+      "Błyskawiczne i stabilne przełączanie zakładek bez czarnego ekranu (optymalizacja animacji wait)",
+      "Automatyczna synchronizacja glikemii z Google Health Connect w czasie rzeczywistym"
+    ]
+  },
   {
     version: "6.0.30",
     date: "2026-08-29",

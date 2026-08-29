@@ -2509,9 +2509,9 @@ export default function Profile({
  <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 text-[10px] font-black text-slate-400">
  
  {t('auto.dni', { defaultValue: 'DNI' })}
- </div>
- </div>
- </div>
+                  </div>
+                </div>
+              </div>
  <div
  className={cn(
  "p-4 rounded-2xl border",
@@ -3115,7 +3115,8 @@ export default function Profile({
  if (days > 7) days = 7;
  const updates = {
  reservoirChangeDate: settings.reservoirChangeDate || Date.now(),
-      reservoirDurationDays: days
+      reservoirDurationDays: days,
+      reservoirCapacityUnits: settings.reservoirCapacityUnits || 300
     };
     setSettings((prev) => ({ ...prev, ...updates }));
     if (user) {
@@ -3746,7 +3747,7 @@ export default function Profile({
  </div>
  <button
  onClick={async () => {
- const isSyncGlucose = !settings.healthConnectSyncGlucose;
+ const isSyncGlucose = settings.healthConnectSyncGlucose !== false ? false : true;
  const updated = { ...settings, healthConnectSyncGlucose: isSyncGlucose };
  setSettings(updated);
  await setDoc(
@@ -3755,17 +3756,17 @@ export default function Profile({
  { merge: true }
  );
  }}
- className={cn(
- "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
- settings.healthConnectSyncGlucose ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
- settings.healthConnectSyncGlucose ? "translate-x-6" : "translate-x-0"
- )}
- />
+              className={cn(
+                "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
+                settings.healthConnectSyncGlucose !== false ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"
+              )}
+            >
+              <div
+                className={cn(
+                  "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                  settings.healthConnectSyncGlucose !== false ? "translate-x-6" : "translate-x-0"
+                )}
+              />
  </button>
  </div>
  </div>

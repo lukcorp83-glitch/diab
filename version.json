@@ -1,10 +1,10 @@
 {
-    "version": "6.0.30",
+    "version": "6.0.31",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.30_OTA.apk",
-    "buildNumber": 145,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.31_OTA.apk",
+    "buildNumber": 146,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.30! 1) Dynamiczny wskaźnik i pigułka aktualnego cukru na prawej krawędzi wykresu (styl Dexcom/TradingView). 2) Zsynchronizowany i automatyczny stoper przedposiłkowy na pasku Androida z pigułką czasu. 3) Pełna synchronizacja alertów i dźwięków MP3 z systemem Android oraz ustawieniami profilu. 4) Poprawione zatrzymywanie i usuwanie treningów z historii w GlikoTrening. 5) Zablokowano niepożądane zaznaczanie tekstu na dolnej belce nawigacji.",
-    "whatsNewEn": "Version 6.0.30! 1) Dynamic glucose indicator & pill on the chart right edge (Dexcom/TradingView style). 2) Synchronized automatic pre-bolus live chronometer on Android notification bar with time pill. 3) Full synchronization of alert sounds with Android system & profile preferences. 4) Fixed sports training stopping & deleting in GlikoTraining history. 5) Blocked text selection on bottom navigation bar.",
-    "otaRevision": 304
+    "whatsNew": "Wersja 6.0.31! 1) Natywny sprzętowy krokomierz Androida – bezpośredni odczyt kroków z sensora telefonu oraz synchronizacja z Google Health. 2) Zunifikowany widżet Aktywność & Trening – licznik kroków, edycja celu (🎯) i szybki start GlikoTrening. 3) Konfiguracja pojemności zbiorniczka w Apteczce (160U, 180U, 200U, 300U) i automatyczne przeliczanie pigułki na Pulpicie. 4) Błyskawiczne i stabilne przełączanie zakładek bez czarnego ekranu. 5) Automatyczna synchronizacja glikemii z Google Health Connect.",
+    "whatsNewEn": "Version 6.0.31! 1) Native Android hardware step counter – direct step tracking from device sensor & Google Health sync. 2) Unified Activity & Training widget – step counter, daily goal presets (🎯) & quick GlikoTraining start. 3) Reservoir capacity configuration in First Aid Kit (160U, 180U, 200U, 300U) & dynamic Dashboard pill calculation. 4) Instant and stable tab switching without blank screens. 5) Automatic real-time glucose synchronization with Google Health Connect.",
+    "otaRevision": 305
 }

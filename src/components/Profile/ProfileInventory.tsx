@@ -326,19 +326,23 @@ const saveInventoryItem = async () => {
  }
 
  const cleanInventory = JSON.parse(JSON.stringify(updatedInventory));
-   const newSettings = { ...settings, inventory: cleanInventory };
- setSettings(newSettings);
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { inventory: JSON.parse(JSON.stringify(updatedInventory)) },
- { merge: true },
- );
+    const resCapacity = newInventoryItem.category === 'reservoirs' && newInventoryItem.reservoirCapacity ? newInventoryItem.reservoirCapacity : settings?.reservoirCapacityUnits;
+    const newSettings = { ...settings, inventory: cleanInventory, ...(resCapacity ? { reservoirCapacityUnits: resCapacity } : {}) };
+    setSettings(newSettings);
+    await setDoc(
+      doc(
+        db,
+        "users",
+        getEffectiveUid(user),
+        "settings",
+        "profile",
+      ),
+      { 
+        inventory: cleanInventory,
+        ...(resCapacity ? { reservoirCapacityUnits: resCapacity } : {})
+      },
+      { merge: true },
+    );
  queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  setNewInventoryItem(null);
  } catch (e) {
@@ -826,7 +830,51 @@ const saveInventoryItem = async () => {
  </div>
  )}
 
- {newInventoryItem.category === "pens" && (
+ {newInventoryItem.category === "reservoirs" && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      {t('auto.pojemnosc_zbiorniczka_jednostki', { defaultValue: 'Pojemność zbiorniczka (Jednostki U)' })}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      {[160, 180, 200, 300].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            setNewInventoryItem({
+                              ...newInventoryItem,
+                              reservoirCapacity: preset,
+                            });
+                          }}
+                          className={cn(
+                            "px-2 py-0.5 rounded-lg text-[8px] font-black transition-all active:scale-95",
+                            (newInventoryItem.reservoirCapacity || 300) === preset
+                              ? "bg-purple-600 text-white shadow-sm"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                          )}
+                        >
+                          {preset}U
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    placeholder="np. 180 lub 300"
+                    value={newInventoryItem.reservoirCapacity || ""}
+                    onChange={(e) =>
+                      setNewInventoryItem({
+                        ...newInventoryItem,
+                        reservoirCapacity: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-purple-500/20 transition-all"
+                  />
+                </div>
+              )}
+
+              {newInventoryItem.category === "pens" && (
  <div className="space-y-1">
  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
  {t('auto.pojemnosc_pena_w_jednostkach', { defaultValue: 'Pojemność pojedynczego pena (w jednostkach)' })}

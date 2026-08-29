@@ -82,7 +82,19 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
   - **Web / PWA (Browser Web Notifications & Service Worker)**: aktywny monitoring w czasie rzeczywistym z wyzwalaniem systemowego `Notification API` oraz komunikatów Toast wewnątrz aplikacji.
 - `src/lib/modalStack.ts` & `src/hooks/useBackButton.ts` - Uniwersalny system stosu modali (LIFO) dla sprzętowego i gestowego przycisku Wstecz (Android / Capacitor / Web Escape). Zapewnia, że naciśnięcie Wstecz na telefonie zamyka otwarte okno modalne/popup/sheet zamiast wyłączać aplikację.
 - `android/.../NotificationBridgePlugin.java` & `src/services/preBolusService.ts` - **Natywny Stoper Przedposiłkowy na belce Androida (Live Chronometer Notification)**. Korzysta z `setUsesChronometer(true)` i `setChronometerCountDown(true)`, dzięki czemu Android sam odlicza sekunda po sekundzie na pasku stanu i ekranie blokady (AOD) przy 0% zużycia baterii, gdy aplikacja jest uśpiona.
-- `src/components/Profile/TreatmentModeSelector.tsx` - Wybór trybu leczenia (Dieta, Insulina MDI, Pompa). Dla trybu Pompa renderuje dedykowany kafel i modal **„Procedura Awaryjna: Przejście na Peny”** z automatycznym wyliczaniem dobowej bazy zastępczej z profili bazy, regułami zaokrągleń bolusa (0.5j/1j), przelicznikiem gramów/WW, szacowaniem z masy ciała (0.55 j./kg) oraz oficjalnymi wzorami ISPAD/PTD (Reguła 1800 / Reguła 500).
-- `src/components/TutorialView.tsx` - Interaktywny przewodnik, FAQ oraz Kompendium Wiedzy rozszerzone o 6 kluczowych kart: Awaria pompy, Technika iniekcji penem, Wskaźniki CGM (TIR/CV), Sick Day Rules, IOB Stacking oraz Lipohipertrofia.
-- `src/components/JetLagMode.tsx` - Asystent Podróży i Zmiany Stref Czasowych AI. Wylicza liniową oś czasu adaptacji dawek insuliny bazowej i posiłkowej przy lotach transatlantyckich (kierunek wschód/zachód). Dostępny w menu bocznym oraz w kafelkach Raportów AI (`AiReports.tsx`).
+## Integracja z Google Health / Health Connect & Natywny Krokomierz
+- `android/app/src/main/java/com/glikocontrol/app/StepCounterPlugin.java` - **Natywny sprzętowy sensor krokomierza Androida (`Sensor.TYPE_STEP_COUNTER` / `Sensor.TYPE_STEP_DETECTOR`)**.
+  - Działa w 100% natywnie, offline, bez konieczności instalowania zewnętrznych aplikacji Google Health Connect czy logowania do chmur.
+  - Automatycznie śledzi kroki od północy danego dnia (`initial_steps_today` vs `total_steps_today`), zabezpieczony przed restartami telefonu.
+  - Zwraca liczbę kroków przez `@PluginMethod getTodaySteps()` oraz obsługuje uprawnienie `Manifest.permission.ACTIVITY_RECOGNITION`.
+- `src/services/healthService.ts` - Serwis komunikacji z natywnym sensorem `StepCounter` oraz wtyczką Health Connect.
+  - `getStepsLast24h()` - W pierwszej kolejności odpytuje natywny sprzętowy czujnik telefonu (`StepCounterPlugin.getTodaySteps()`), a w razie potrzeby używa fallbacku Health Connect.
+  - `requestAuthorization()` - Żądanie uprawnień odczytu/zapisu (`ACTIVITY_RECOGNITION`, `steps`, `blood_glucose`).
+  - `writeBloodGlucose(value, timestamp)` - Zapis wartości cukru (z przeliczeniem na mmol/L) z obsługą formatu obiektowego i skalarnego.
+- `android/app/src/main/AndroidManifest.xml` - Skonfigurowane uprawnienia (`ACTIVITY_RECOGNITION`, `READ_STEPS`, `WRITE_STEPS`, `READ_BLOOD_GLUCOSE`, `WRITE_BLOOD_GLUCOSE`), filtry intencji `androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE` oraz alias aktywności `ViewPermissionUsageActivity` dla Androida 14+.
+- `src/App.tsx` - Automatyczna synchronizacja w czasie rzeczywistym: każdy nowy odczyt cukru jest automatycznie zapisywany do Google Health Connect.
+- `src/components/Profile/ProfileInventory.tsx` - Moduł Apteczki i magazynu sprzętu:
+  - Dodawanie i edycja pozycji magazynowych: sensory, peny, wkłucia oraz **zbiorniczki (`reservoirs`) z polem pojemności w jednostkach U** (`160U`, `180U`, `200U`, `300U`).
+  - Górna pigułka zbiorniczka na Pulpicie automatycznie odczytuje pojemność z aktywnego zbiorniczka w Apteczce do wyliczania % napełnienia.
+
 

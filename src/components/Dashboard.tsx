@@ -65,6 +65,7 @@ import QuickBolusWidget from './dashboard/widgets/QuickBolusWidget';
 import QuickMeasurementWidget from './dashboard/widgets/QuickMeasurementWidget';
 import ShortcutsWidget from './dashboard/widgets/ShortcutsWidget';
 import SavedMealsWidget from './dashboard/widgets/SavedMealsWidget';
+import TrainingWidget from './dashboard/widgets/TrainingWidget';
 import MainStatsWidget from './dashboard/widgets/MainStatsWidget';
 import HistoryMeasurementsWidget from './dashboard/widgets/HistoryMeasurementsWidget';
 import HistoryTreatmentsWidget from './dashboard/widgets/HistoryTreatmentsWidget';
@@ -158,7 +159,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "history_treatments", name: i18n.t('auto.historia_leczenia_i_posiłków', { defaultValue: i18n.t('auto.historia_leczenia_i_posil', { defaultValue: "Historia leczenia i posiłków" }) }), visible: true, size: "1x2", canResize: true, canChangeShape: false },
   { id: "pump", name: i18n.t('auto.status_pompy_insulinowej_xdrip', { defaultValue: 'Status pompy insulinowej / xDrip' }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "daily_tir", name: i18n.t('auto.dzienny_tir_wykres', { defaultValue: 'Dzienny TIR (Wykres)' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
-  { id: "training_widget", name: i18n.t('auto.trening_i_aktywność_fizyczna', { defaultValue: i18n.t('auto.trening_i_aktywnosc_fizyc', { defaultValue: "Trening i Aktywność fizyczna" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
+  { id: "training_widget", name: i18n.t('auto.trening_i_aktywność_fizyczna', { defaultValue: i18n.t('auto.trening_i_aktywnosc_fizyc', { defaultValue: "Trening & Kroki (Aktywność)" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: false },
   { id: "medications", name: i18n.t('auto.leki_przypomnienia', { defaultValue: 'Leki (Przypomnienia)' }), visible: false, size: "2x1", canResize: true, canChangeShape: false },
   { id: "carbs_balance", name: i18n.t('auto.dzienny_bilans_węglowodanów', { defaultValue: i18n.t('auto.dzienny_bilans_weglowodan', { defaultValue: "Dzienny bilans węglowodanów" }) }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
   { id: "hydration", name: i18n.t('auto.nawodnienie_woda', { defaultValue: 'Nawodnienie (Woda)' }), visible: false, size: "1x1", canResize: true, canChangeShape: false },
@@ -516,7 +517,7 @@ export default function Dashboard({
   const handleDeleteLog = async (log: LogEntry) => {
     if (settings?.followerMode) return;
     try {
-      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id } }));
+      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id, nsId: log.nsId } }));
       
       if (log.nsId && nsUrl && nsSecret) {
         nightscoutService.deleteTreatment(log.nsId, nsUrl, nsSecret).catch(err => console.warn("Failed NS delete", err));
@@ -1311,76 +1312,16 @@ export default function Dashboard({
         return <PenTrackerWidget settings={settings} />;
 
       case "training_widget":
-        const isTrCompact = size === "1x1";
-        const hasActiveTraining = !!activeTraining;
-        const isTrBig = size === "2x2";
         return (
-          <div 
-            onClick={() => {
-              if (!isEditingLayout) {
-                Haptics.light();
-                useAppStore.getState().setInitialAction("training");
-                setTab("profile");
-              }
-            }}
-            className={cn(
-              "glass-card cursor-pointer active:scale-95 transition-all w-full h-full relative overflow-hidden border border-emerald-500/10 dark:border-emerald-500/5 flex flex-col justify-between group",
-              isTrCompact ? "!p-3.5 min-h-[120px]" : "!p-5 min-h-[140px]"
-            )}
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-[40px] -mr-12 -mt-12 pointer-events-none group-hover:bg-emerald-500/10 transition-all"></div>
-            
-            <div className="flex justify-between items-start w-full">
-              <div className="p-1.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-emerald-500">
-                <Activity size={14} className={cn(hasActiveTraining && "animate-pulse")} />
-              </div>
-              <span className={cn(
-                "text-[8px] font-black uppercase tracking-widest py-1 px-2 rounded-full border",
-                hasActiveTraining 
-                  ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" 
-                  : "text-slate-500 bg-slate-500/5 border-slate-500/10"
-              )}>
-                {t('auto.trening', { defaultValue: 'Trening' })}
-              </span>
-            </div>
-
-            <div className="mt-2 w-full text-left">
-              {hasActiveTraining ? (
-                <div>
-                  <h4 className="font-black text-rose-500 text-[10px] uppercase tracking-wide leading-none animate-pulse mb-0.5">{t('auto.trwa_trening', { defaultValue: 'Trwa Trening!' })}</h4>
-                  <p className="font-bold text-slate-800 dark:text-white leading-tight font-display truncate text-sm">
-                    {SPORTS.find(s => s.id === activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" })}
-                  </p>
-                  {!isTrCompact && (
-                    <p className="text-[8px] text-slate-400 font-bold">{t('auto.czas_trwania', { defaultValue: 'Czas trwania:' })} {activeTraining.duration} {t('auto.min_kliknij_aby_zarządzać', { defaultValue: "min • Kliknij aby zarządzać" })}</p>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <h4 className="font-black text-slate-800 dark:text-white text-[11px] uppercase tracking-tighter leading-tight font-display">
-                    {isTrCompact ? "Ruch to zdrowie" : "Rozpocznij Trening"}
-                  </h4>
-                  <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold leading-tight mt-0.5">
-                    {isTrCompact ? i18n.t('auto.rejestruj_aktywnosc', { defaultValue: i18n.t('auto.rejestruj_aktywnosc', { defaultValue: "Rejestruj aktywność" }) }) : i18n.t('auto.dodaj_wysilek_i_kontroluj_spad', { defaultValue: i18n.t('auto.dodaj_wysilek_i_kontroluj', { defaultValue: "Dodaj wysiłek i kontroluj spadek zapotrzebowania na insulinę." }) })}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {!isTrCompact && !hasActiveTraining && (
-              <span className="text-[9px] text-emerald-500 font-black uppercase tracking-wider self-start mt-2">{t('auto.zacznij', { defaultValue: 'Zacznij 🏃‍♂️' })}</span>
-            )}
-            {isTrBig && !hasActiveTraining && (
-              <div className="mt-3 border-t border-slate-100 dark:border-white/5 pt-3">
-                <p className="text-[8px] uppercase tracking-wider text-slate-400 font-black mb-1.5">{t('auto.dostępne_dyscypliny', { defaultValue: i18n.t('auto.dostepne_dyscypliny', { defaultValue: "DOSTĘPNE DYSCYPLINY:" }) })}</p>
-                <div className="flex flex-wrap gap-1">
-                  {SPORTS.slice(0, 4).map(s => (
-                    <span key={s.id} className="text-[9px] font-bold bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md flex items-center gap-1"><s.icon size={11} /> {s.name}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <TrainingWidget
+            activeTraining={activeTraining}
+            isEditingLayout={isEditingLayout}
+            setTab={setTab}
+            size={size}
+            onAction={onAction}
+            settings={settings}
+            user={user}
+          />
         );
 
       case "quick_measurement": {
@@ -1430,7 +1371,6 @@ export default function Dashboard({
 
       case "pump":
           return <PumpWidget {...widgetProps} size={size} />;
-
 
       default:
         return null;
@@ -1491,7 +1431,9 @@ export default function Dashboard({
                    bgClass = "bg-amber-500/10 border-amber-500/20";
                  }
 
-                 const percent = Math.min(100, (res / 300) * 100);
+                 const resItem = (settings?.inventory || []).find((i: any) => i.category === 'reservoirs');
+                 const maxCapacity = resItem?.reservoirCapacity || resItem?.capacity || settings?.reservoirCapacityUnits || 300;
+                 const percent = Math.min(100, (res / maxCapacity) * 100);
                  return (
                    <div className={`relative overflow-hidden shrink-0 flex items-center px-3 py-1.5 rounded-[1rem] border text-[11px] font-black uppercase tracking-wider shadow-sm transition-colors ${bgClass} ${colorClass}`}>
                      <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${fillClass}`} style={{ width: `${percent}%` }} />

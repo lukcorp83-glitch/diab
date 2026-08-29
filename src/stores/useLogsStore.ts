@@ -18,7 +18,7 @@ export const useLogsStore = create<LogsState>((set) => ({
     logs: state.logs.map(log => log.id === id ? { ...log, ...updatedLog } : log)
   })),
   removeLog: (id) => set((state) => ({
-    logs: state.logs.filter(log => log.id !== id)
+    logs: state.logs.filter(log => log.id !== id && (!log.nsId || log.nsId !== id) && (log as any)._id !== id)
   })),
   clearLogs: () => set({ logs: [] })
 }));

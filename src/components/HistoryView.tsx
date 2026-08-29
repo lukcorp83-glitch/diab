@@ -55,7 +55,7 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
    if (settings?.followerMode) return;
    setIsDeleting(true);
    try {
-     window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: logToDelete.id } }));
+     window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: logToDelete.id, nsId: logToDelete.nsId } }));
      const { dbService } = await import('../services/databaseService');
      await dbService.deleteLog(logToDelete.id);
 

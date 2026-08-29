@@ -34,6 +34,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
+import { healthService } from "./services/healthService";
 import { Toaster, toast, ToastBar } from "react-hot-toast";
 
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
@@ -180,10 +181,14 @@ export default function App() {
         setSqliteLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
       };
       const handleLocalDelete = (e: any) => {
-        const id = e.detail.id;
-        setSqliteLogs(prev => prev.filter(l => l.id !== id && l.nsId !== id));
+        const id = e.detail?.id;
+        const nsId = e.detail?.nsId;
+        if (id) useLogsStore.getState().removeLog(id);
+        if (nsId) useLogsStore.getState().removeLog(nsId);
+        setSqliteLogs(prev => prev.filter(l => l.id !== id && (!nsId || l.nsId !== nsId) && l.id !== nsId && (!l.nsId || l.nsId !== id)));
         if (deletedNsIdsRef.current) {
-          deletedNsIdsRef.current.add(id);
+          if (id) deletedNsIdsRef.current.add(id);
+          if (nsId) deletedNsIdsRef.current.add(nsId);
           // Persist to localStorage to prevent Nightscout from reviving it across app restarts
           try {
             const arr = Array.from(deletedNsIdsRef.current);
@@ -193,8 +198,7 @@ export default function App() {
           } catch (err) {}
         }
         // Aby odświeżenie działało natychmiast, potrzebujemy usunąć też z nsLogs
-        // Aktualizację nsLogs musimy wywołać przez referencję lub globalny event
-        window.dispatchEvent(new CustomEvent('nsLogDelete', { detail: { id } }));
+        window.dispatchEvent(new CustomEvent('nsLogDelete', { detail: { id, nsId } }));
       };
 
       window.addEventListener('localLogAdd', handleLocalAdd);
@@ -288,6 +292,11 @@ export default function App() {
       
       // 3. Doklejamy wpisy z Nightscout API
       nsLogs.forEach((nsLog: any) => {
+        if (deletedNsIdsRef.current) {
+          if (nsLog.id && deletedNsIdsRef.current.has(nsLog.id)) return;
+          if (nsLog.nsId && deletedNsIdsRef.current.has(nsLog.nsId)) return;
+          if (nsLog._id && deletedNsIdsRef.current.has(nsLog._id)) return;
+        }
         if (allMap.has(nsLog.id)) return;
 
         // Sprawdzamy czy ten wpis (np. posiłek, bolus, wymiana) już istnieje w bazie lokalnej / Firebase
@@ -361,6 +370,34 @@ export default function App() {
     gl.sort((a: any, b: any) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
     return gl[0].value || null;
   }, [logs]);
+
+  // Automatyczny zapis odczytów cukru do Google Health / Health Connect
+  useEffect(() => {
+    if (!logs || logs.length === 0) return;
+    if (userSettings?.healthConnectSyncGlucose === false) return;
+
+    const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
+    if (gl.length === 0) return;
+    gl.sort((a: any, b: any) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
+
+    const latest = gl[0];
+    const val = Number(latest.value || latest.glucose);
+    const ts = Number(latest.timestamp || latest.createdAt || Date.now());
+
+    if (!val || val <= 0 || !ts) return;
+
+    const lastSyncedTs = Number(localStorage.getItem('last_health_connect_glucose_ts') || 0);
+
+    // Synchronizujemy odczyt, jeśli jest nowszy i z ostatnich 30 minut
+    if (ts > lastSyncedTs && (Date.now() - ts) < 30 * 60 * 1000) {
+      localStorage.setItem('last_health_connect_glucose_ts', String(ts));
+      healthService.writeBloodGlucose(val, ts).then((ok) => {
+        if (ok) {
+          console.log(`[HealthConnect] Pomyślnie zsynchronizowano glikemię ${val} mg/dL z Google Health`);
+        }
+      }).catch((err) => console.warn('[HealthConnect] Błąd synchronizacji cukru:', err));
+    }
+  }, [logs, userSettings?.healthConnectSyncGlucose]);
 
   // Synchronizacja danych z widgetami systemowymi
   useEffect(() => {

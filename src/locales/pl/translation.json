@@ -420,6 +420,12 @@
   "auto": {
     "czy_wiesz_ze_pigulka_na_dole": "Czy wiesz, że Pigułka na dole ekranu zamieni się w przypomnienie, gdy do końca ważności sensora lub wkłucia zostaną mniej niż 2 godziny?",
     "czy_wiesz_ze_szybka_korekta": "Czy wiesz, że gdy Twój cukier wzrośnie powyżej normy, kafel Bolusa na pulpicie automatycznie zaproponuje Ci szybkie podanie dawki korekcyjnej?",
+    "czy_wiesz_ze_glikosense_predict": "Czy wiesz, że sieć neuronowa GlikoSense uczy się Twojej wrażliwości na insulinę i przewiduje trendy cukru z 60-minutowym wyprzedzeniem?",
+    "czy_wiesz_ze_smart_rotacja": "Czy wiesz, że inteligentna mapa wkłuć bada czas odpoczynku Twoich tkanek (0-100%) i sugeruje najświeższe miejsce na nowe wkłucie?",
+    "czy_wiesz_ze_kalkulator_wbt": "Czy wiesz, że posiłki bogate w tłuszcze i białka (WBT) wymagają dawki przedłużonej? Nasz kalkulator automatycznie rozbija bolus na dwie fazy!",
+    "czy_wiesz_ze_jetlag_podroze": "Czy wiesz, że w module GlikoSense znajdziesz Asystenta Podróży (JetLag), który pomaga bezpiecznie przesunąć godziny dawek bazy podczas lotów?",
+    "czy_wiesz_ze_komendy_glosowe": "Czy wiesz, że możesz podyktować posiłek lub pomiar głosem, klikając mikrofon przy inteligentnym asystencie Gliko?",
+    "czy_wiesz_ze_health_connect": "Czy wiesz, że aplikacja łączy się z Health Connect, aby monitorować Twoje kroki i ostrzegać przed spadkiem cukru po intensywnym wysiłku?",
     "podaj_bolus": "Podaj bolus",
     "program_testow_beta": "Program Testów Beta",
     "kanal_beta_aktywny": "Kanał Beta Aktywny",
