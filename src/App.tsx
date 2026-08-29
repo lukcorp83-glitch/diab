@@ -796,8 +796,16 @@ export default function App() {
     
     // 1. Tryb ciemny / jasny (priorytet: AppStore, potem UserSettings, potem system)
     const activeTheme = theme || userSettings?.theme || (localStorage.getItem("theme") as "light" | "dark" | "system") || "system";
-    
-    const isDark = activeTheme === 'dark' || (activeTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    const isSystemDark = () => {
+      if (typeof window === "undefined") return false;
+      const mediaDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (mediaDark) return true;
+      const h = new Date().getHours();
+      return h >= 20 || h < 7;
+    };
+
+    const isDark = activeTheme === 'dark' || (activeTheme === 'system' && isSystemDark());
     
     if (isDark) {
       root.classList.add('dark');
@@ -821,7 +829,8 @@ export default function App() {
         if (isDynamic) {
           try {
             if (Capacitor.isNativePlatform()) {
-              const result = await MaterialYou.getColors();
+              const NotificationBridge: any = (Capacitor as any).Plugins?.NotificationBridge;
+              const result = await NotificationBridge?.getMaterialYouColors?.() || await MaterialYou?.getColors?.();
               if (result && result.supported) {
                 root.style.setProperty('--app-accent-50', result.color50);
                 root.style.setProperty('--app-accent-100', result.color100);
@@ -900,7 +909,7 @@ export default function App() {
     userSettings?.dynamicColorsEnabled,
   ]);
 
-  // Synchronizacja początkowa motywu ze Store
+  // Synchronizacja początkowa motywu ze Store oraz nasłuch zmian systemowych
   useEffect(() => {
     if (userSettings?.theme && userSettings.theme !== theme) {
       setTheme(userSettings.theme);
@@ -909,6 +918,24 @@ export default function App() {
       if (savedTheme) setTheme(savedTheme);
     }
   }, [userSettings?.theme]);
+
+  // Dynamiczne przełączanie na żywo w trybie Auto/System (np. zmiana w systemie telefonu / zachód słońca)
+  useEffect(() => {
+    const activeTheme = theme || userSettings?.theme || "system";
+    if (activeTheme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+        const root = document.documentElement;
+        if (e.matches) {
+          root.classList.add("dark");
+        } else {
+          root.classList.remove("dark");
+        }
+      };
+      mediaQuery.addEventListener("change", handleSystemThemeChange);
+      return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    }
+  }, [theme, userSettings?.theme]);
 
   const toggleTheme = async () => {
     const newTheme = theme === "light" ? "dark" : "light";

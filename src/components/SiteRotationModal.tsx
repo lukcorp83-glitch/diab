@@ -107,6 +107,7 @@ export default function SiteRotationModal({
     localStorage.setItem('infusionSetSite', newSite);
     localStorage.setItem('infusionSite', newSite);
     localStorage.setItem('infusionSetChangeDate', String(now));
+    localStorage.setItem('last_smart_reservoir_prompt', String(now));
 
     // 2. Dodaj log site_change do Firestore i wyślij event lokalny
     const siteLog: any = {

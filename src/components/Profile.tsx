@@ -2866,6 +2866,8 @@ export default function Profile({
         infusionSite: insertionSite
       };
       setSettings((prev) => ({ ...prev, ...updates }));
+      localStorage.setItem("infusionSetChangeDate", String(chosenDate));
+      localStorage.setItem("last_smart_reservoir_prompt", String(Date.now()));
       if (user) {
         await setDoc(
           doc(
@@ -4126,7 +4128,7 @@ export default function Profile({
  </div>
  </motion.div>
  )}
- {activeCategory === "system" && <ProfileSystem settings={settings} setSettings={setSettings} />}
+ {activeCategory === "system" && <ProfileSystem user={user} settings={settings} setSettings={setSettings} />}
  {showBarcodeScanner && (
  <BarcodeScannerModal
  onClose={() => setShowBarcodeScanner(false)}

@@ -359,11 +359,50 @@ public class NotificationBridgePlugin extends Plugin {
                         .setVibrate(new long[]{0, 500, 200, 500, 200, 500})
                         .setContentIntent(pendingIntentDefault);
 
-                manager.notify(2, builder.build());
-            }
-            call.resolve();
-        } catch (Exception e) {
-            call.reject(e.getMessage());
+            manager.notify(2, builder.build());
         }
+        call.resolve();
+    } catch (Exception e) {
+        call.reject(e.getMessage());
+    }
+}
+
+    @PluginMethod
+    public void getMaterialYouColors(PluginCall call) {
+        JSObject ret = new JSObject();
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                Context context = getContext();
+                int c50 = context.getColor(android.R.color.system_accent1_50);
+                int c100 = context.getColor(android.R.color.system_accent1_100);
+                int c200 = context.getColor(android.R.color.system_accent1_200);
+                int c300 = context.getColor(android.R.color.system_accent1_300);
+                int c400 = context.getColor(android.R.color.system_accent1_400);
+                int c500 = context.getColor(android.R.color.system_accent1_500);
+                int c600 = context.getColor(android.R.color.system_accent1_600);
+                int c700 = context.getColor(android.R.color.system_accent1_700);
+                int c800 = context.getColor(android.R.color.system_accent1_800);
+                int c900 = context.getColor(android.R.color.system_accent1_900);
+                int c950 = context.getColor(android.R.color.system_accent1_1000);
+
+                ret.put("supported", true);
+                ret.put("color50", String.format("#%06X", (0xFFFFFF & c50)));
+                ret.put("color100", String.format("#%06X", (0xFFFFFF & c100)));
+                ret.put("color200", String.format("#%06X", (0xFFFFFF & c200)));
+                ret.put("color300", String.format("#%06X", (0xFFFFFF & c300)));
+                ret.put("color400", String.format("#%06X", (0xFFFFFF & c400)));
+                ret.put("color500", String.format("#%06X", (0xFFFFFF & c500)));
+                ret.put("color600", String.format("#%06X", (0xFFFFFF & c600)));
+                ret.put("color700", String.format("#%06X", (0xFFFFFF & c700)));
+                ret.put("color800", String.format("#%06X", (0xFFFFFF & c800)));
+                ret.put("color900", String.format("#%06X", (0xFFFFFF & c900)));
+                ret.put("color950", String.format("#%06X", (0xFFFFFF & c950)));
+            } else {
+                ret.put("supported", false);
+            }
+        } catch (Exception e) {
+            ret.put("supported", false);
+        }
+        call.resolve(ret);
     }
 }

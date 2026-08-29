@@ -709,7 +709,10 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  key={t.id}
  onClick={async () => {
  const newTheme = t.id as "light" | "dark" | "system";
- setSettings((prev) => ({ ...prev, theme: newTheme }));
+ const updated = { ...settings, theme: newTheme };
+ setSettings(updated);
+ localStorage.setItem("theme", newTheme);
+ localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
  if (user)
  await setDoc(
  doc(
@@ -869,19 +872,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  <button
  onClick={async () => {
  const newVal = !settings.dynamicColorsEnabled;
- setSettings((prev: any) => ({ ...prev, dynamicColorsEnabled: newVal }));
+ const updated = {
+   ...settings,
+   dynamicColorsEnabled: newVal,
+   material3Enabled: newVal ? settings.material3Enabled : false
+ };
+ setSettings(updated);
  localStorage.setItem("dynamicColorsEnabled", String(newVal));
+ if (!newVal) localStorage.setItem("material3Enabled", "false");
+ localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
 
  if (user) {
  const uid = getEffectiveUid(user);
+ const updates: any = { dynamicColorsEnabled: newVal };
+ if (!newVal) updates.material3Enabled = false;
  await setDoc(
  doc(db, "users", uid, "settings", "profile"),
- { dynamicColorsEnabled: newVal },
+ updates,
  { merge: true }
  );
  queryClient.setQueryData(['userSettings', uid], (old: any) => ({
  ...(old || {}),
- dynamicColorsEnabled: newVal,
+ ...updates,
  }));
  queryClient.invalidateQueries({ queryKey: ['userSettings'] });
  }

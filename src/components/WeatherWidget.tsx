@@ -82,7 +82,7 @@ export default function WeatherWidget({ compact = false, pill = false }: { compa
  alertText = i18n.t('auto.dzis_prognozowany_jest_mr', { defaultValue: "Dziś prognozowany jest mróz (maks. {{var0}}°C). Kurczenie naczyń krwionośnych w zimnie może opóźnić wchłanianie insuliny, a nagłe wejście do ciepłego pokoju wywoła spadek. Chroń glukometr i insulinę!", var0: todayMax });
  alertIcon = <AlertTriangle size={14} className="text-sky-500 shrink-0" />;
  } else {
- alertText = i18n.t('auto.temperatura_umiarkowana_stabil', { defaultValue: i18n.t('auto.temperatura_umiarkowana_s', { defaultValue: "Temperatura umiarkowana, stabilne warunki zewnętrzne dla Twojej insuliny na resztę dnia." }) });
+ alertText = i18n.t('auto.temperatura_umiarkowana_stabil', { defaultValue: i18n.t('auto.temperatura_umiarkowana_s', { defaultValue: "Temperatura umiarkowana, stabilne warunki pogodowe dla Twojej insuliny na resztę dnia." }) });
  alertIcon = <Sun size={14} className="text-indigo-400 shrink-0" />;
  }
  } else if (isEvening) {

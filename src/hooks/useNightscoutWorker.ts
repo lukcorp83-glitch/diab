@@ -40,7 +40,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
                 localStorage.setItem('last_known_reservoir', newReservoir.toString());
               }
 
-              const { triggerReservoir, triggerSensor } = detectSmartEquipmentChanges(newReservoir, prevReservoir, payload.entries || []);
+              const { triggerReservoir, triggerSensor } = detectSmartEquipmentChanges(newReservoir, prevReservoir, payload.entries || [], userSettingsRef.current);
               
               if (triggerReservoir) {
                 window.dispatchEvent(new CustomEvent('smart-equipment-trigger', { detail: 'reservoir' }));
