@@ -7,6 +7,7 @@ import { messaging, auth, db } from '../lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import i18n from "../i18n";
 import { stopAllAudio } from '../lib/audioUtils';
+import { NotificationBridge } from '../lib/notificationBridge';
 
 const VAPID_KEY = 'BDpTWMeEWqqbg9i1S4P33GC51S2TgPs_cozqFLQrYJl0y6RXMXUym50gG-1d3xvGsSH7EjVGRyERPQ1i-K2h3D4';
 
@@ -607,9 +608,18 @@ export const notificationService = {
 
   async triggerGlucoseAlarm(isHigh: boolean, value: number) {
     const title = isHigh ? i18n.t('auto.wysoki_cukier', { defaultValue: 'Wysoki Cukier!' }) : i18n.t('auto.niski_cukier', { defaultValue: 'Niski Cukier!' });
-    const body = `${i18n.t('auto.twoj_aktualny_poziom_cukru_to', { defaultValue: 'Twój aktualny poziom cukru to' })} ${value} mg/dL.`;
-
-    if (!Capacitor.isNativePlatform()) {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await NotificationBridge.triggerNativeGlucoseAlert({
+          title,
+          body,
+          isHigh,
+          value
+        });
+      } catch (e) {
+        console.warn('[NotificationService] Failed to trigger native glucose alert:', e);
+      }
+    } else {
       // Wersja web/PWA (Browser Web Notifications API)
       const apkPref = localStorage.getItem('apkSystemNotificationsEnabled');
       if (apkPref !== 'false' && window.Notification && window.Notification.permission === 'granted') {

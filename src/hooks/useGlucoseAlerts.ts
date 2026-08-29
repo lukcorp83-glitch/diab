@@ -4,9 +4,20 @@ import { playLowGlucoseSound, playHighGlucoseSound } from '../lib/audioUtils';
 import { notificationService } from '../services/notificationService';
 import { Haptics } from '../lib/haptics';
 import { Capacitor } from '@capacitor/core';
+import { NotificationBridge } from '../lib/notificationBridge';
 
 export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings | null) {
   useEffect(() => {
+    // Sync alert preferences with native Android SharedPreferences
+    if (Capacitor.isNativePlatform()) {
+      NotificationBridge.syncAlertPreferences({
+        hypoEnabled: settings?.notificationsEnabled !== false && settings?.notificationPrefs?.hypo !== false,
+        hyperEnabled: settings?.notificationsEnabled !== false && settings?.notificationPrefs?.hyper !== false,
+        targetMin: settings?.targetMin || 70,
+        targetMax: settings?.targetMax || 180
+      }).catch(() => {});
+    }
+
     if (!logs || logs.length === 0) return;
 
     // Get all glucose logs sorted by timestamp descending
@@ -48,6 +59,14 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
 
     const isLow = val < targetMin;
     const isHigh = val > targetMax;
+
+    // Check specific hypo / hyper preferences
+    if (isLow && settings?.notificationPrefs && settings.notificationPrefs.hypo === false) {
+      return;
+    }
+    if (isHigh && settings?.notificationPrefs && settings.notificationPrefs.hyper === false) {
+      return;
+    }
 
     // If sugar returned to normal range, reset alert memory and clear snooze flag
     if (!isLow && !isHigh) {
@@ -125,9 +144,11 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
 
     if (isLow) {
       console.log(`[GlucoseAlerts] 🚨 ALARM NISKIEJ GLIKEMII: ${val} mg/dL!`);
-      // Trigger system notification
+      // Trigger system notification (Native Android channel or Web notification)
       notificationService.triggerGlucoseAlarm(false, Math.round(val));
-      playLowGlucoseSound();
+      if (!Capacitor.isNativePlatform()) {
+        playLowGlucoseSound();
+      }
       Haptics.heavy();
 
       // Emit event for persistent in-app UI Alarm Modal with STOP SOUND button
@@ -136,9 +157,11 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
       }));
     } else if (isHigh) {
       console.log(`[GlucoseAlerts] 📈 ALARM WYSOKIEJ GLIKEMII: ${val} mg/dL!`);
-      // Trigger system notification
+      // Trigger system notification (Native Android channel or Web notification)
       notificationService.triggerGlucoseAlarm(true, Math.round(val));
-      playHighGlucoseSound();
+      if (!Capacitor.isNativePlatform()) {
+        playHighGlucoseSound();
+      }
       Haptics.medium();
 
       // Emit event for persistent in-app UI Alarm Modal with STOP SOUND button

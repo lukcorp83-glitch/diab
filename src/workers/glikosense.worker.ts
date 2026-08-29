@@ -801,8 +801,28 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         try {
             await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? (isModelLoaded ? 1 : 2) : (isModelLoaded ? 3 : 8), shuffle: true, verbose: 0 });
         } catch (fitErr) {
-            self.postMessage({ type: 'error', error: `Błąd treningu na realnych danych: ${fitErr}` });
-            return;
+            try {
+                model = tf.sequential();
+                if (activeTopology === 'v4_tcn') {
+                    (model as tf.Sequential).add(tf.layers.conv1d({ filters: 16, kernelSize: 3, strides: 2, padding: 'valid', activation: 'relu', inputShape: [36, 20] }));
+                    (model as tf.Sequential).add(tf.layers.dropout({ rate: 0.15 }));
+                    (model as tf.Sequential).add(tf.layers.flatten());
+                    (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' }));
+                    (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
+                    model.compile({ optimizer: tf.train.adam(0.001), loss: tf.losses.huberLoss });
+                } else {
+                    (model as tf.Sequential).add(tf.layers.lstm({ units: 32, inputShape: [6, 20], returnSequences: false }));
+                    (model as tf.Sequential).add(tf.layers.dense({ units: 24, activation: 'relu' })); 
+                    (model as tf.Sequential).add(tf.layers.dense({ units: 8, activation: 'linear' }));
+                    model.compile({ optimizer: tf.train.adam(0.005), loss: tf.losses.huberLoss });
+                }
+                await model.fit(inputsTensor, outputTensor, { epochs: mode === 'quick' ? 1 : 3, shuffle: true, verbose: 0 });
+                _cachedModel = model;
+                _cachedModelType = activeTopology;
+            } catch (retryErr) {
+                self.postMessage({ type: 'error', error: `Błąd treningu na realnych danych: ${retryErr}` });
+                return;
+            }
         }
         inputsTensor.dispose(); outputTensor.dispose();
         

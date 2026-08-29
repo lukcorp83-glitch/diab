@@ -3,12 +3,14 @@
 Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Zamiast szukać po plikach, szukaj informacji tutaj.
 
 ## Główne pliki i komponenty
-- `src/App.tsx` - Główny punkt wejścia, główny layout, zarządzanie routingiem i duża część logiki UI.
-- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.29'), adresy URL oraz bazy produktów.
-- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.29.
-- `src/services/preBolusService.ts` & `src/components/BolusCalculator.tsx` - Automatyczny start stopera przedposiłkowego dla każdego bolusa (pompa / kalkulator) oraz synchronizacja `DynamicActionCapsule` i powiadomień natywnych na ekranie blokady.
-- `src/components/GlikoTraining.tsx` & `src/components/Profile.tsx` - Naprawiono uruchamianie i kończenie treningu sportowego (GlikoTrening) z poprawnym przekazywaniem `user` i `setSettings`, zapisem do bazy i aktualizacją widżetu na pulpicie.
-- `src/hooks/queries/useProfileData.ts` & `src/hooks/useAppSubscriptions.ts` - Pełna dwukierunkowa synchronizacja wybranego sposobu leczenia (`treatmentMode`) z kontem w Firestore i `localStorage`.
+- `src/App.tsx` - Główny punkt wejścia, główny layout, zarządzanie routingiem i trwałym zapisem logów do SQLite (`dbService.addLog`).
+- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.30'), adresy URL oraz bazy produktów.
+- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.30.
+- `src/components/GlucoseChart.tsx` - Wdrożono dynamiczną pigułkę aktualnego cukru na prawej krawędzi (styl Dexcom/TradingView) ze 100% zachowaniem pełnej szerokości wykresu.
+- `src/services/preBolusService.ts` & `android/app/src/main/java/com/glikocontrol/app/NightscoutFetcher.java` - Automatyczny stoper przedposiłkowy na pasku stanu Androida odliczający sekunda po sekundzie z generatorem pigułki graficznej (`createPillBadgeBitmap`) i wyeliminowanymi różnicami stref czasowych.
+- `src/components/GlikoTraining.tsx` & `src/components/Dashboard.tsx` - Poprawiono zatrzymywanie treningu z poziomu pulpitu, usuwanie treningów z historii w chmurze i pamięci podręcznej (`queryClient.setQueryData`) oraz wyeliminowano błąd przysłaniania funkcji `t()`.
+- `src/hooks/useGlucoseAlerts.ts` & `src/services/notificationService.ts` & `NotificationBridgePlugin.java` - Pełna synchronizacja preferencji powiadomień (hypo, hyper) oraz odtwarzania dźwięków MP3 z systemem Android i profilem użytkownika.
+- `src/components/app/NavButton.tsx` & `src/components/app/AppLayout.tsx` - Zablokowano niepożądane zaznaczanie tekstu na dolnej belce nawigacyjnej (`select-none`).
 - `public/CNAME` & `version.json` - Wdrożono oficjalną domenę `glikocontrol.pl` z pełnym wsparciem Cloudflare SSL/HSTS oraz metatagami SEO w `index.html`.
 
 ## Główne Widżety Pulpitu i Nowy Design System

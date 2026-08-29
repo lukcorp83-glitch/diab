@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.29';
+export const CURRENT_VERSION = '6.0.30';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.30",
+    date: "2026-08-29",
+    title: "Dynamiczny Cukier na Wykresie, Auto-Stoper na Pasku, Spójne Alerty MP3 i Poprawki Treningów",
+    changes: [
+      "Dynamiczny wskaźnik i pigułka aktualnego cukru na prawej krawędzi wykresu (styl Dexcom / TradingView)",
+      "Automatyczny stoper przedposiłkowy na pasku Androida z ikoną pigułki czasu na bieżąco",
+      "Pełna synchronizacja alertów i dźwięków MP3 z systemem Android oraz ustawieniami profilu",
+      "Poprawione zatrzymywanie oraz błyskawiczne usuwanie treningów z historii w GlikoTrening",
+      "Zablokowano niepożądane zaznaczanie i kopiowanie tekstu na dolnej belce nawigacji (select-none)"
+    ]
+  },
   {
     version: "6.0.29",
     date: "2026-08-28",
@@ -292,6 +304,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.30",
+    date: "2026-08-29",
+    title: "Dynamiczny Cukier na Wykresie, Auto-Stoper na Pasku, Spójne Alerty MP3 i Poprawki Treningów",
+    changes: [
+      "Dynamiczny wskaźnik i pigułka aktualnego cukru na prawej krawędzi wykresu (styl Dexcom / TradingView)",
+      "Automatyczny stoper przedposiłkowy na pasku Androida z ikoną pigułki czasu na bieżąco",
+      "Pełna synchronizacja alertów i dźwięków MP3 z systemem Android oraz ustawieniami profilu",
+      "Poprawione zatrzymywanie oraz błyskawiczne usuwanie treningów z historii w GlikoTrening",
+      "Zablokowano niepożądane zaznaczanie i kopiowanie tekstu na dolnej belce nawigacji (select-none)"
+    ]
+  },
   {
     version: "6.0.29",
     date: "2026-08-28",

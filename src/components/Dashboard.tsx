@@ -260,13 +260,66 @@ export default function Dashboard({
   const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(!!initialAction);
 
+  const [localActiveTraining, setLocalActiveTraining] = useState<any>(() => {
+    try {
+      const s = localStorage.getItem('gliko_active_training');
+      return s ? JSON.parse(s) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const handleStorage = () => {
+      try {
+        const s = localStorage.getItem('gliko_active_training');
+        setLocalActiveTraining(s ? JSON.parse(s) : null);
+      } catch (e) {
+        setLocalActiveTraining(null);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('trainingEnded', handleStorage);
+    window.addEventListener('localLogAdd', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('trainingEnded', handleStorage);
+      window.removeEventListener('localLogAdd', handleStorage);
+    };
+  }, []);
+
+  const activeTraining = settings?.activeTraining || localActiveTraining;
+
   const handleEndTraining = async () => {
-    if (!user) return;
     Haptics.light();
-    const settingsRef = doc(db, 'users', getEffectiveUid(user), 'settings', 'profile');
-    await setDoc(settingsRef, {
-      activeTraining: null
-    }, { merge: true });
+    setLocalActiveTraining(null);
+    try {
+      localStorage.removeItem('gliko_active_training');
+    } catch (e) {}
+
+    window.dispatchEvent(new CustomEvent('trainingEnded', { detail: { timestamp: Date.now() } }));
+
+    if (user) {
+      try {
+        const uid = getEffectiveUid(user);
+        const settingsRef = doc(db, 'users', uid, 'settings', 'profile');
+        await setDoc(settingsRef, {
+          activeTraining: null
+        }, { merge: true });
+
+        if (activeTraining?.trainingId) {
+          const trainingRef = doc(db, 'users', uid, 'trainings', activeTraining.trainingId);
+          await setDoc(trainingRef, {
+            endTime: Date.now(),
+            isCompleted: true
+          }, { merge: true });
+        }
+      } catch (err) {
+        console.warn("Błąd zakończenia treningu w chmurze:", err);
+      }
+    }
+
+    toast.success("Trening zakończony i zapisany! 🏆");
   };
 
   if (isShortcutMode) {
@@ -1259,7 +1312,7 @@ export default function Dashboard({
 
       case "training_widget":
         const isTrCompact = size === "1x1";
-        const hasActiveTraining = !!settings?.activeTraining;
+        const hasActiveTraining = !!activeTraining;
         const isTrBig = size === "2x2";
         return (
           <div 
@@ -1287,9 +1340,8 @@ export default function Dashboard({
                   ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" 
                   : "text-slate-500 bg-slate-500/5 border-slate-500/10"
               )}>
-                
-                                        {t('auto.trening', { defaultValue: 'Trening' })}
-                                      </span>
+                {t('auto.trening', { defaultValue: 'Trening' })}
+              </span>
             </div>
 
             <div className="mt-2 w-full text-left">
@@ -1297,10 +1349,10 @@ export default function Dashboard({
                 <div>
                   <h4 className="font-black text-rose-500 text-[10px] uppercase tracking-wide leading-none animate-pulse mb-0.5">{t('auto.trwa_trening', { defaultValue: 'Trwa Trening!' })}</h4>
                   <p className="font-bold text-slate-800 dark:text-white leading-tight font-display truncate text-sm">
-                    {SPORTS.find(s => s.id === settings.activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" }) })}
+                    {SPORTS.find(s => s.id === activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" })}
                   </p>
                   {!isTrCompact && (
-                    <p className="text-[8px] text-slate-400 font-bold">{t('auto.czas_trwania', { defaultValue: 'Czas trwania:' })} {settings.activeTraining.duration}  {t('auto.min_kliknij_aby_zarządzać', { defaultValue: i18n.t('auto.min_kliknij_aby_zarzadzac', { defaultValue: "min • Kliknij aby zarządzać" }) })}</p>
+                    <p className="text-[8px] text-slate-400 font-bold">{t('auto.czas_trwania', { defaultValue: 'Czas trwania:' })} {activeTraining.duration} {t('auto.min_kliknij_aby_zarządzać', { defaultValue: "min • Kliknij aby zarządzać" })}</p>
                   )}
                 </div>
               ) : (
@@ -1593,7 +1645,7 @@ export default function Dashboard({
         </motion.div>
       )}
 
-      {settings?.activeTraining && (
+      {activeTraining && (
         <motion.div
            initial={{ opacity: 0, scale: 0.9 }}
            animate={{ opacity: 1, scale: 1 }}
@@ -1608,7 +1660,7 @@ export default function Dashboard({
                <div>
                   <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight font-display mb-0.5">{t('auto.trwa_trening', { defaultValue: 'Trwa Trening' })}</h4>
                   <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                    {SPORTS.find(s => s.id === settings.activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" }) })} • {settings.activeTraining.duration}m
+                    {SPORTS.find(s => s.id === activeTraining?.sportId)?.name || i18n.t('auto.aktywnosc', { defaultValue: "Aktywność" })} • {activeTraining.duration}m
                   </p>
                </div>
             </div>
@@ -1616,9 +1668,8 @@ export default function Dashboard({
                onClick={() => { Haptics.light(); handleEndTraining(); }}
                className="px-4 py-2 bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-500/20 active:scale-95 transition-all hover:bg-rose-600"
             >
-               
-                                         {t('auto.zakończ', { defaultValue: i18n.t('auto.zakoncz', { defaultValue: "Zakończ" }) })}
-                                      </button>
+               {t('auto.zakończ', { defaultValue: i18n.t('auto.zakoncz', { defaultValue: "Zakończ" }) })}
+            </button>
           </div>
         </motion.div>
       )}

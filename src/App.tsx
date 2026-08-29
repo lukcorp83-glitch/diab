@@ -161,8 +161,20 @@ export default function App() {
 
     // Cichy nasłuch na natychmiastowe aktualizacje lokalne (Optimistic UI) - naprawia niewidzialne wkłucia/sensory
     useEffect(() => {
-      const handleLocalAdd = (e: any) => setSqliteLogs(prev => [e.detail, ...prev]);
-      const handleLocalAddBatch = (e: any) => setSqliteLogs(prev => [...e.detail, ...prev]);
+      const handleLocalAdd = (e: any) => {
+        if (!e.detail) return;
+        setSqliteLogs(prev => [e.detail, ...prev]);
+        try {
+          dbService.addLog(e.detail).catch(() => {});
+        } catch (err) {}
+      };
+      const handleLocalAddBatch = (e: any) => {
+        if (!e.detail || !Array.isArray(e.detail)) return;
+        setSqliteLogs(prev => [...e.detail, ...prev]);
+        try {
+          dbService.saveLogs(e.detail).catch(() => {});
+        } catch (err) {}
+      };
       const handleLocalUpdate = (e: any) => {
         const { id, updates } = e.detail;
         setSqliteLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));

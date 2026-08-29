@@ -220,7 +220,7 @@ export function DynamicActionCapsule({
         layout
         transition={springTransition}
         className={cn(
-          "absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center overflow-hidden z-50 transition-colors duration-300 pointer-events-auto",
+          "absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center overflow-hidden z-50 transition-colors duration-300 pointer-events-auto select-none",
           capsuleState === 'hypo' 
             ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30 -translate-y-16 rounded-[1.5rem]" 
             : capsuleState === 'prebolus'

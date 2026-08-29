@@ -14,6 +14,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.media.AudioAttributes;
 import android.net.Uri;
 import android.widget.RemoteViews;
@@ -319,6 +321,37 @@ public class NightscoutFetcher {
         }
     }
 
+    public static Bitmap createPillBadgeBitmap(Context context, String text, boolean isReady) {
+        try {
+            int width = 192;
+            int height = 80;
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+
+            Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            bgPaint.setColor(isReady ? Color.parseColor("#10B981") : Color.parseColor("#0284C7"));
+            bgPaint.setStyle(Paint.Style.FILL);
+
+            RectF rect = new RectF(4, 4, width - 4, height - 4);
+            float rx = height / 2.0f;
+            canvas.drawRoundRect(rect, rx, rx, bgPaint);
+
+            Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            textPaint.setColor(Color.WHITE);
+            textPaint.setTextSize(32);
+            textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+            textPaint.setTextAlign(Paint.Align.CENTER);
+
+            Paint.FontMetrics fm = textPaint.getFontMetrics();
+            float baseline = (height - fm.bottom + fm.top) / 2 - fm.top;
+            canvas.drawText(text, width / 2.0f, baseline, textPaint);
+
+            return bitmap;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static void checkAndTriggerPumpBolusTimer(Context context, String nsUrl, String secret, int currentSgv, String trendArrow) {
         if (nsUrl == null || nsUrl.isEmpty()) return;
         try {
@@ -360,36 +393,50 @@ public class NightscoutFetcher {
                         String eventType = t.optString("eventType", "").toLowerCase();
                         double insulin = t.optDouble("insulin", 0);
                         double carbs = t.optDouble("carbs", 0);
-                        long timestamp = t.optLong("created_at_ms", 0);
+                        
+                        long timestamp = t.optLong("mills", 0);
+                        if (timestamp == 0) timestamp = t.optLong("timestamp", 0);
+                        if (timestamp == 0) timestamp = t.optLong("created_at_ms", 0);
                         if (timestamp == 0) {
                             String createdStr = t.optString("created_at", "");
                             if (!createdStr.isEmpty()) {
                                 try {
-                                    SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
-                                    iso.setTimeZone(TimeZone.getTimeZone("UTC"));
-                                    Date d = iso.parse(createdStr);
-                                    if (d != null) timestamp = d.getTime();
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                        timestamp = java.time.OffsetDateTime.parse(createdStr).toInstant().toEpochMilli();
+                                    } else {
+                                        SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US);
+                                        Date d = iso.parse(createdStr);
+                                        if (d != null) timestamp = d.getTime();
+                                    }
                                 } catch(Exception ignored){}
                             }
                         }
-                        if (timestamp == 0) timestamp = t.optLong("timestamp", 0);
+
+                        if (timestamp <= 0) continue;
 
                         long ageMs = now - timestamp;
-                        // Jeśli bolus nastąpił w ciągu ostatnich 25 minut i dawka >= 0.4j lub z węglowodanami:
-                        if (ageMs >= 0 && ageMs < 25 * 60 * 1000L && (insulin >= 0.4 || carbs > 0 || eventType.contains("bolus"))) {
+                        // Jeśli bolus nastąpił w ciągu ostatnich 30 minut i dawka >= 0.3j lub z węglowodanami:
+                        if (ageMs >= 0 && ageMs < 30 * 60 * 1000L && (insulin >= 0.3 || carbs > 0 || eventType.contains("bolus"))) {
                             String bolusId = t.optString("_id", String.valueOf(timestamp));
                             if (!bolusId.equals(lastNotifiedId)) {
                                 prefs.edit().putString("last_notified_pump_bolus_id", bolusId).apply();
 
-                                // Obliczamy czas oczekiwania
-                                int waitMinutes = 15;
-                                if (currentSgv > 180) waitMinutes = 20;
-                                else if (currentSgv < 90 && currentSgv > 0) waitMinutes = 10;
+                                // Precyzyjny czas oczekiwania zgodny z frontendem preBolusService
+                                int waitMinutes = 10;
+                                if (currentSgv > 0) {
+                                    if (currentSgv < 80) waitMinutes = 0;
+                                    else if (currentSgv < 100) waitMinutes = 5;
+                                    else if (currentSgv <= 130) waitMinutes = 10;
+                                    else if (currentSgv <= 160) waitMinutes = 12;
+                                    else if (currentSgv <= 200) waitMinutes = 18;
+                                    else if (currentSgv <= 250) waitMinutes = 22;
+                                    else waitMinutes = 25;
+                                }
 
                                 if ("↑".equals(trendArrow) || "⇈".equals(trendArrow) || "↗".equals(trendArrow)) waitMinutes += 3;
                                 else if ("↓".equals(trendArrow) || "⇊".equals(trendArrow) || "↘".equals(trendArrow)) waitMinutes -= 3;
 
-                                waitMinutes = Math.max(5, Math.min(35, waitMinutes));
+                                waitMinutes = Math.max(0, Math.min(35, waitMinutes));
                                 long targetTime = timestamp + (waitMinutes * 60 * 1000L);
                                 long remainingMs = targetTime - now;
 
@@ -419,6 +466,10 @@ public class NightscoutFetcher {
                                                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
                                         );
 
+                                        int remainingMinutes = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
+                                        String pillText = remainingMinutes + " min";
+                                        Bitmap pillIcon = createPillBadgeBitmap(context, pillText, false);
+
                                         String unitsStr = insulin > 0 ? String.format(Locale.US, " (%.1fj)", insulin) : "";
                                         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "gliko_meal_timer_v1")
                                                 .setSmallIcon(R.drawable.ic_stat_name)
@@ -435,6 +486,10 @@ public class NightscoutFetcher {
                                                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                                                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                                                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+                                        if (pillIcon != null) {
+                                            builder.setLargeIcon(pillIcon);
+                                        }
 
                                         notificationManager.notify(777, builder.build());
                                     }

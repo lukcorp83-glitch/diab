@@ -245,6 +245,11 @@ public class NotificationBridgePlugin extends Plugin {
                 android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT
         );
 
+        long remainingMs = targetTime - System.currentTimeMillis();
+        int remainingMinutes = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
+        String pillText = remainingMinutes + " min";
+        android.graphics.Bitmap pillIcon = NightscoutFetcher.createPillBadgeBitmap(getContext(), pillText, remainingMs <= 0);
+
         androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "gliko_meal_timer_v1")
                 .setSmallIcon(R.drawable.ic_stat_name)
                 .setContentTitle(title)
@@ -261,6 +266,10 @@ public class NotificationBridgePlugin extends Plugin {
                 .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
 
+        if (pillIcon != null) {
+            builder.setLargeIcon(pillIcon);
+        }
+
         notificationManager.notify(notificationId, builder.build());
         call.resolve();
     }
@@ -273,5 +282,88 @@ public class NotificationBridgePlugin extends Plugin {
             notificationManager.cancel(notificationId);
         }
         call.resolve();
+    }
+
+    @PluginMethod
+    public void syncAlertPreferences(PluginCall call) {
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+
+            if (call.hasOption("hypoEnabled")) {
+                editor.putBoolean("widget_hypo_alerts_enabled", call.getBoolean("hypoEnabled", true));
+            }
+            if (call.hasOption("hyperEnabled")) {
+                editor.putBoolean("widget_hyper_alerts_enabled", call.getBoolean("hyperEnabled", true));
+            }
+            if (call.hasOption("targetMin")) {
+                editor.putString("widget_target_min", String.valueOf(call.getInt("targetMin", 70)));
+            }
+            if (call.hasOption("targetMax")) {
+                editor.putString("widget_target_max", String.valueOf(call.getInt("targetMax", 180)));
+            }
+            editor.apply();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void triggerNativeGlucoseAlert(PluginCall call) {
+        try {
+            String title = call.getString("title", "Alert Glikemii");
+            String body = call.getString("body", "Sprawdź poziom cukru");
+            boolean isHigh = call.getBoolean("isHigh", false);
+            int value = call.getInt("value", 0);
+
+            android.app.NotificationManager manager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    android.app.NotificationChannel alertChannel = new android.app.NotificationChannel(
+                            "glucose_alerts_v2",
+                            "Alerty Glikemii",
+                            android.app.NotificationManager.IMPORTANCE_HIGH
+                    );
+                    alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem");
+
+                    android.net.Uri alarmSound = android.net.Uri.parse("android.resource://" + getContext().getPackageName() + "/" + R.raw.critical_alarm);
+                    android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                            .build();
+                    alertChannel.setSound(alarmSound, audioAttributes);
+                    alertChannel.enableVibration(true);
+                    alertChannel.setVibrationPattern(new long[]{0, 500, 200, 500, 200, 500});
+                    manager.createNotificationChannel(alertChannel);
+                }
+
+                Intent intentDefault = new Intent(getContext(), MainActivity.class);
+                android.app.PendingIntent pendingIntentDefault = android.app.PendingIntent.getActivity(
+                        getContext(),
+                        200 + (int)(System.currentTimeMillis() % 10000),
+                        intentDefault,
+                        android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
+                );
+
+                androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "glucose_alerts_v2")
+                        .setSmallIcon(R.drawable.ic_stat_name)
+                        .setContentTitle(title)
+                        .setContentText(body)
+                        .setStyle(new androidx.core.app.NotificationCompat.BigTextStyle().bigText(body))
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                        .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                        .setAutoCancel(true)
+                        .setOnlyAlertOnce(false)
+                        .setSound(android.net.Uri.parse("android.resource://" + getContext().getPackageName() + "/" + R.raw.critical_alarm))
+                        .setVibrate(new long[]{0, 500, 200, 500, 200, 500})
+                        .setContentIntent(pendingIntentDefault);
+
+                manager.notify(2, builder.build());
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
     }
 }

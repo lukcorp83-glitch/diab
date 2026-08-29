@@ -1164,6 +1164,77 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  ctx.restore();
  }
  }
+
+  // 6. Wskaźnik i pigułka aktualnego cukru na prawej krawędzi (Styl TradingView / Dexcom)
+  const lastKnownGlucose = chartData.filter(d => d.glucose !== undefined && d.glucose > 0).slice(-1)[0];
+  if (lastKnownGlucose && lastKnownGlucose.glucose) {
+    const gVal = Math.round(lastKnownGlucose.glucose);
+    const gY = getY(gVal);
+    const gX = getX(lastKnownGlucose.timestamp);
+    const isHypo = gVal < (targetMin || 70);
+    const isHyper = gVal > (targetMax || 180);
+    const badgeColor = isHypo ? '#f43f5e' : isHyper ? '#f59e0b' : '#10b981';
+
+    // Przerywana linia pozioma od punktu do prawej krawędzi
+    ctx.save();
+    ctx.beginPath();
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = badgeColor;
+    ctx.lineWidth = 1.2;
+    ctx.moveTo(gX, gY);
+    ctx.lineTo(w - pR, gY);
+    ctx.stroke();
+    ctx.restore();
+
+    // Pulsujący punkt bieżącego odczytu
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(gX, gY, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = badgeColor;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+
+    // Pigułka z wartością na prawej krawędzi (oś Y)
+    const badgeW = 42;
+    const badgeH = 20;
+    const badgeX = w - badgeW - 3;
+    const clampedY = Math.max(pT + badgeH / 2, Math.min(h - pB - badgeH / 2, gY));
+    const badgeY = clampedY - badgeH / 2;
+
+    ctx.save();
+    ctx.shadowColor = badgeColor;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 10);
+    } else {
+      ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    }
+    ctx.fillStyle = badgeColor;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 10);
+    } else {
+      ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+    }
+    ctx.stroke();
+
+    ctx.font = 'bold 10px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${gVal}`, badgeX + badgeW / 2, clampedY);
+    ctx.restore();
+  }
  
  // Draw Crosshair Line
  if (crosshair) {

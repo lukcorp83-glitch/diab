@@ -8,11 +8,13 @@ import { cn, getEffectiveUid } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 import { db } from '../lib/firebase';
 import { doc, setDoc, collection, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, getDocs, where } from 'firebase/firestore';
+import { useQueryClient } from '@tanstack/react-query';
 import { useGlikoTraining } from '../hooks/queries/useGlikoTraining';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { Trash2, TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { toast } from "react-hot-toast";
 
 interface GlikoTrainingProps {
   isOpen?: boolean;
@@ -20,6 +22,7 @@ interface GlikoTrainingProps {
   isGlassmorphic?: boolean;
   user?: any;
   settings?: any;
+  setSettings?: any;
   currentSugar?: number | null;
 }
 
@@ -301,17 +304,27 @@ const TrainingChart = ({ user, startTime, endTime, startSugar, endSugar }: { use
  );
 };
 
-export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, settings, currentSugar }: GlikoTrainingProps) {
- const { t } = useTranslation();
- const [activeTab, setActiveTab] = useState<'log' | 'info' | 'history'>('log');
- const [selectedSportInfo, setSelectedSportInfo] = useState<string | null>(null);
- const { data: trainingHistory = [] } = useGlikoTraining(user);
+export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, settings, setSettings, currentSugar }: GlikoTrainingProps) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'log' | 'info' | 'history'>('log');
+  const [selectedSportInfo, setSelectedSportInfo] = useState<string | null>(null);
+  const { data: trainingHistory = [] } = useGlikoTraining(user);
 
  const [selectedSportLog, setSelectedSportLog] = useState<string>(SPORTS[0].id);
  const [duration, setDuration] = useState('30');
  const [intensity, setIntensity] = useState<'low' | 'medium' | 'high'>('medium');
 
- const activeTraining = settings?.activeTraining;
+ const [localActiveTraining, setLocalActiveTraining] = useState<any>(() => {
+   try {
+     const s = localStorage.getItem('gliko_active_training');
+     return s ? JSON.parse(s) : null;
+   } catch (e) {
+     return null;
+   }
+ });
+
+ const activeTraining = settings?.activeTraining || localActiveTraining;
 
  const getTrainingAdvice = () => {
  if (!currentSugar) return null;
@@ -351,6 +364,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
     };
 
     // 1. Natychmiastowa aktualizacja stanu lokalnego (Optimistic UI)
+    setLocalActiveTraining(trainingData);
     if (setSettings) {
       setSettings((prev: any) => ({
         ...(prev || {}),
@@ -410,13 +424,12 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
         console.warn("Błąd zapisu treningu w chmurze:", err);
       }
     }
-
-    if (onClose) onClose();
   };
 
   const handleEndTraining = async () => {
     Haptics.success();
     
+    setLocalActiveTraining(null);
     if (setSettings) {
       setSettings((prev: any) => ({
         ...(prev || {}),
@@ -451,16 +464,27 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
     }
   };
 
- const handleDeleteTraining = async (trainingId: string) => {
- if (!user) return;
- Haptics.warning();
- try {
- const trainingRef = doc(db, 'users', getEffectiveUid(user), 'trainings', trainingId);
- await deleteDoc(trainingRef);
- } catch (error) {
- console.error("Error deleting training:", error);
- }
- };
+  const handleDeleteTraining = async (trainingId: string) => {
+    if (!user) return;
+    Haptics.warning();
+    try {
+      const uid = getEffectiveUid(user);
+      
+      // Natychmiastowa aktualizacja interfejsu (Optimistic UI)
+      queryClient.setQueryData(['glikoTraining', uid], (old: any[]) => {
+        return (old || []).filter(item => item.id !== trainingId);
+      });
+
+      const trainingRef = doc(db, 'users', uid, 'trainings', trainingId);
+      await deleteDoc(trainingRef);
+      queryClient.invalidateQueries({ queryKey: ['glikoTraining'] });
+      toast.success(t('auto.usunieto_trening', { defaultValue: "Usunięto trening z historii!" }));
+    } catch (error) {
+      console.error("Error deleting training:", error);
+      queryClient.invalidateQueries({ queryKey: ['glikoTraining'] });
+      toast.error(t('auto.blad_usuwania', { defaultValue: "Nie udało się usunąć treningu" }));
+    }
+  };
 
  if (isOpen === false) return null;
 
@@ -669,13 +693,13 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  <p className="text-sm font-bold uppercase tracking-tight">{t('auto.brak_zapisanych_treningów', { defaultValue: i18n.t('auto.brak_zapisanych_treningow', { defaultValue: "Brak zapisanych treningów" }) })}</p>
  </div>
  ) : (
- trainingHistory.map((t) => {
- const sport = SPORTS.find(s => s.id === t.sportId);
+ trainingHistory.map((item) => {
+ const sport = SPORTS.find(s => s.id === item.sportId);
  const Icon = sport?.icon || Activity;
  return (
  <motion.div 
  layout
- key={t.id} 
+ key={item.id} 
  className="glass p-4 rounded-3xl border border-white/20 dark:border-white/5 relative overflow-hidden"
  >
  <div className="flex items-center gap-4">
@@ -687,28 +711,28 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  <h4 className="font-black text-sm text-slate-800 dark:text-white truncate uppercase tracking-tight">
  {sport?.name || 'Trening'}
  </h4>
- {!t.isCompleted && (
+ {!item.isCompleted && (
  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
  )}
  </div>
  <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500">
- <span className="flex items-center gap-1"><Clock size={10} /> {t.duration} {t('auto.min', { defaultValue: 'min' })}</span>
+ <span className="flex items-center gap-1"><Clock size={10} /> {item.duration} {t('auto.min', { defaultValue: 'min' })}</span>
  <span className="flex items-center gap-1 uppercase tracking-tighter">
- {t.intensity === 'low' ? 'Lekka' : t.intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: i18n.t('auto.srednia', { defaultValue: "Średnia" }) }) : 'Wysoka'}
+ {item.intensity === 'low' ? 'Lekka' : item.intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: i18n.t('auto.srednia', { defaultValue: "Średnia" }) }) : 'Wysoka'}
  </span>
  </div>
  </div>
  <div className="text-right flex flex-col items-end gap-1">
  <div className="flex items-center gap-2">
  <button 
- onClick={() => handleDeleteTraining(t.id)}
+ onClick={() => handleDeleteTraining(item.id)}
  className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
  >
  <Trash2 size={14} />
  </button>
  </div>
  <div className="text-[9px] font-bold text-slate-400 capitalize">
- {t.timestamp?.toDate ? new Date(t.timestamp.toDate()).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }) : '---'}
+ {item.timestamp?.toDate ? new Date(item.timestamp.toDate()).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }) : '---'}
  </div>
  </div>
  </div>
@@ -716,20 +740,19 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  <div className="grid grid-cols-2 gap-2 mt-4">
  <div className="bg-slate-50 dark:bg-white/5 p-2 rounded-2xl">
  <div className="text-[8px] font-black uppercase text-slate-400 mb-0.5">{t('auto.start', { defaultValue: 'Start' })}</div>
- <div className="text-xs font-black text-slate-700 dark:text-slate-200">{t.startSugar || '---'} <span className="text-[9px] opacity-60">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span></div>
+ <div className="text-xs font-black text-slate-700 dark:text-slate-200">{item.startSugar || '---'} <span className="text-[9px] opacity-60">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span></div>
  </div>
  <div className="bg-slate-50 dark:bg-white/5 p-2 rounded-2xl">
  <div className="text-[8px] font-black uppercase text-slate-400 mb-0.5">{t('auto.koniec', { defaultValue: 'Koniec' })}</div>
- <div className="text-xs font-black text-slate-700 dark:text-slate-200">{t.endSugar || '---'} <span className="text-[9px] opacity-60">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span></div>
+ <div className="text-xs font-black text-slate-700 dark:text-slate-200">{item.endSugar || '---'} <span className="text-[9px] opacity-60">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span></div>
  </div>
  </div>
 
  <TrainingChart 
- 
- startTime={t.startTime} 
- endTime={t.endTime} 
- startSugar={t.startSugar} 
- endSugar={t.endSugar} 
+ startTime={item.startTime}
+ endTime={item.endTime} 
+ startSugar={item.startSugar} 
+ endSugar={item.endSugar} 
  />
  </motion.div>
  );

@@ -1,10 +1,10 @@
 {
-    "version": "6.0.29",
+    "version": "6.0.30",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.29_OTA.apk",
-    "buildNumber": 144,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.30_OTA.apk",
+    "buildNumber": 145,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.29! 1) Własna oficjalna domena glikocontrol.pl z szyfrowaniem SSL i nagłówkiem HSTS. 2) Naprawiono uruchamianie treningu sportowego (GlikoTrening) – natychmiastowy start i status na pulpicie. 3) Automatyczny start stopera przedposiłkowego dla każdego bolusa. 4) Pełna synchronizacja wybranego sposobu leczenia (Dieta/Insulina/Pompa) z kontem w chmurze. 5) Wzbogacone metatagi SEO i podgląd linków na Facebooku.",
-    "whatsNewEn": "Version 6.0.29! 1) Official custom domain glikocontrol.pl with SSL & HSTS encryption. 2) Fixed sports training start & live dashboard status. 3) Automatic pre-bolus countdown timer for all boluses. 4) Full cloud synchronization of treatment mode (Diet/Insulin/Pump). 5) Enriched SEO and social media OpenGraph previews.",
-    "otaRevision": 303
+    "whatsNew": "Wersja 6.0.30! 1) Dynamiczny wskaźnik i pigułka aktualnego cukru na prawej krawędzi wykresu (styl Dexcom/TradingView). 2) Zsynchronizowany i automatyczny stoper przedposiłkowy na pasku Androida z pigułką czasu. 3) Pełna synchronizacja alertów i dźwięków MP3 z systemem Android oraz ustawieniami profilu. 4) Poprawione zatrzymywanie i usuwanie treningów z historii w GlikoTrening. 5) Zablokowano niepożądane zaznaczanie tekstu na dolnej belce nawigacji.",
+    "whatsNewEn": "Version 6.0.30! 1) Dynamic glucose indicator & pill on the chart right edge (Dexcom/TradingView style). 2) Synchronized automatic pre-bolus live chronometer on Android notification bar with time pill. 3) Full synchronization of alert sounds with Android system & profile preferences. 4) Fixed sports training stopping & deleting in GlikoTraining history. 5) Blocked text selection on bottom navigation bar.",
+    "otaRevision": 304
 }
