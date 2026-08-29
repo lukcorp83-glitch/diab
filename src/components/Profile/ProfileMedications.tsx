@@ -138,6 +138,7 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
       const newSettings = { ...settings, medications: cleanMeds };
       setSettings(newSettings);
       await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { medications: cleanMeds }, { merge: true });
+      notificationService.scheduleMedicationReminders(cleanMeds);
       queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
       toast.success(t('auto.lek_usuniety', { defaultValue: "Lek usunięty" }));
     } catch (e) {
@@ -345,6 +346,7 @@ const saveMedication = async () => {
  { medications: JSON.parse(JSON.stringify(updatedMeds)) },
  { merge: true },
  );
+ notificationService.scheduleMedicationReminders(cleanMeds);
  queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  setNewMedication(null);
  } catch (e) {
@@ -594,6 +596,8 @@ const saveInventoryItem = async () => {
  { medications: JSON.parse(JSON.stringify(updatedMeds)) },
  { merge: true },
  );
+ notificationService.scheduleMedicationReminders(updatedMeds);
+ queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
  }}
  className={cn(
  "text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-all",

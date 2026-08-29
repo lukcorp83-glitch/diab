@@ -27,8 +27,17 @@ export const notificationService = {
         await LocalNotifications.createChannel({
           id: 'glikocontrol_reminders_v1',
           name: 'Przypomnienia GlikoControl',
-          description: 'Powiadomienia o lekach, wymianach osprzętu i prognozach',
+          description: 'Powiadomienia o wymianach osprzętu i prognozach',
           importance: 4,
+          visibility: 1,
+          vibration: true
+        });
+
+        await LocalNotifications.createChannel({
+          id: 'glikocontrol_medications_v2',
+          name: '💊 Przypomnienia o Lekach',
+          description: 'Punktualne przypomnienia o zażyciu leków i insuliny (wysoki priorytet)',
+          importance: 5,
           visibility: 1,
           vibration: true
         });
@@ -459,7 +468,7 @@ export const notificationService = {
           if (req.display !== 'granted') return;
         }
 
-        const idsToCancel = Array.from({ length: 150 }, (_, i) => ({ id: 2000 + i }));
+        const idsToCancel = Array.from({ length: 200 }, (_, i) => ({ id: 2000 + i }));
         await LocalNotifications.cancel({ notifications: idsToCancel }).catch(() => {});
 
         const notificationsToSchedule: any[] = [];
@@ -487,8 +496,13 @@ export const notificationService = {
               id: notifId++,
               title: `💊 Czas na lek: ${med.name}`,
               body: `${doseStr}${stockStr}`,
-              schedule: { at: scheduledTime, repeats: true, every: 'day' },
-              channelId: 'glikocontrol_reminders_v1',
+              schedule: { 
+                at: scheduledTime, 
+                repeats: true, 
+                every: 'day',
+                allowWhileIdle: true // Budzi urządzenie z trybu Doze/uśpienia o wyznaczonej minucie
+              },
+              channelId: 'glikocontrol_medications_v2',
               attachments: null,
               actionTypeId: '',
               extra: { medicationId: med.id, medicationName: med.name }
