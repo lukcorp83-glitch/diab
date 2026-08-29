@@ -1,5 +1,6 @@
 import { useAuthStore } from '../stores/useAuthStore';
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { motion, AnimatePresence } from 'motion/react';
@@ -61,6 +62,7 @@ interface NotificationCenterProps {
 export default function NotificationCenter({ userSettings, theme, setUserSettings }: NotificationCenterProps) {
   const user = useAuthStore(state => state.user);
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'settings'>('list');
@@ -259,14 +261,26 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
     }
 
     localStorage.setItem('notificationPrefs', JSON.stringify(updatedPrefs));
+    if (userSettings) {
+      try {
+        const fullSaved = { ...userSettings, notificationPrefs: updatedPrefs };
+        localStorage.setItem('glikocontrol_user_settings', JSON.stringify(fullSaved));
+      } catch(e) {}
+    }
 
     if (user) {
       try {
+        const uid = getEffectiveUid(user);
         await setDoc(
-          doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+          doc(db, "users", uid, "settings", "profile"),
           { notificationPrefs: updatedPrefs },
           { merge: true }
         );
+        queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+          ...(old || {}),
+          notificationPrefs: updatedPrefs,
+        }));
+        queryClient.invalidateQueries({ queryKey: ['userSettings'] });
       } catch(e) {
         console.warn("Failed to sync notification preferences", e);
       }
@@ -285,14 +299,26 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
     }
 
     localStorage.setItem('apkSystemNotificationsEnabled', targetState ? 'true' : 'false');
+    if (userSettings) {
+      try {
+        const fullSaved = { ...userSettings, apkSystemNotificationsEnabled: targetState };
+        localStorage.setItem('glikocontrol_user_settings', JSON.stringify(fullSaved));
+      } catch(e) {}
+    }
 
     if (user) {
       try {
+        const uid = getEffectiveUid(user);
         await setDoc(
-          doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+          doc(db, "users", uid, "settings", "profile"),
           { apkSystemNotificationsEnabled: targetState },
           { merge: true }
         );
+        queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+          ...(old || {}),
+          apkSystemNotificationsEnabled: targetState,
+        }));
+        queryClient.invalidateQueries({ queryKey: ['userSettings'] });
       } catch(e) {
         console.warn("Failed to sync apkSystemNotificationsEnabled", e);
       }

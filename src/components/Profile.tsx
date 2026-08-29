@@ -2409,7 +2409,7 @@ export default function Profile({
  </div>
  </motion.div>
  )}
- {activeCategory === "notifications" && <ProfileNotifications settings={settings} setSettings={setSettings} />}
+ {activeCategory === "notifications" && <ProfileNotifications user={user} settings={settings} setSettings={setSettings} />}
  {activeCategory === "devices" && (
          <div className="space-y-6">
          {/* Sekcja 1: Apteczka i Magazyn Zapasów */}

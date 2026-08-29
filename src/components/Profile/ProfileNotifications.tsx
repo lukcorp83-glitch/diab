@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -24,9 +25,10 @@ const DEFAULT_NOTIFICATION_PREFS = {
 };
 
 export default function ProfileNotifications({ user, settings, setSettings, isIOS, pushSupported }: any) {
- const { t } = useTranslation();
- 
- const [learnedRules, setLearnedRules] = useState<any>(() => {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  
+  const [learnedRules, setLearnedRules] = useState<any>(() => {
  try {
  return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
  } catch {
@@ -293,62 +295,72 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  icon: <Utensils size={14} className="text-amber-500" />,
  },
  ].map((pref) => {
- const prefs = settings.notificationPrefs || {
- hypo: true,
- hyper: true,
- reminders: true,
- predictions: true,
- pumpBolusPreMeal: true,
- mealDetected: true,
- };
- const isActive = prefs[pref.id as keyof typeof prefs];
- return (
- <button
- key={pref.id}
- disabled={!settings.notificationsEnabled}
- onClick={async () => {
- const newPrefs = { ...prefs, [pref.id]: !isActive };
- setSettings({
- ...settings,
- notificationPrefs: newPrefs,
- });
- if (user) {
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- {
- notificationPrefs: newPrefs,
- },
- { merge: true },
- );
- }
- }}
- className={cn(
- "flex items-center gap-2 p-3 rounded-2xl border transition-all text-left",
- isActive && settings.notificationsEnabled
- ? "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm"
- : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60",
- )}
- >
- {pref.icon}
- <span
- className={cn(
- "text-[10px] font-black uppercase tracking-tight",
- isActive && settings.notificationsEnabled
- ? "text-slate-700 dark:text-white"
- : "text-slate-400",
- )}
- >
- {pref.label}
- </span>
- </button>
- );
- })}
+    const prefs = {
+      ...DEFAULT_NOTIFICATION_PREFS,
+      ...(settings.notificationPrefs || {})
+    };
+    const isActive = prefs[pref.id as keyof typeof prefs] ?? true;
+    return (
+      <button
+        key={pref.id}
+        onClick={async () => {
+          const newPrefs = { ...prefs, [pref.id]: !isActive };
+          const updated = {
+            ...settings,
+            notificationPrefs: newPrefs,
+          };
+          setSettings(updated);
+          localStorage.setItem("notificationPrefs", JSON.stringify(newPrefs));
+          localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+          if (user) {
+            const uid = getEffectiveUid(user);
+            await setDoc(
+              doc(
+                db,
+                "users",
+                uid,
+                "settings",
+                "profile",
+              ),
+              {
+                notificationPrefs: newPrefs,
+              },
+              { merge: true },
+            );
+            queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+              ...(old || {}),
+              notificationPrefs: newPrefs,
+            }));
+            queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+          }
+        }}
+        className={cn(
+          "flex items-center gap-2.5 p-3 rounded-2xl border transition-all text-left relative",
+          isActive
+            ? "bg-white dark:bg-slate-800 border-accent-500/40 text-slate-800 dark:text-white shadow-sm ring-1 ring-accent-500/20"
+            : "bg-slate-100/60 dark:bg-slate-900/40 border-transparent text-slate-400 opacity-60 hover:opacity-100",
+        )}
+      >
+        <div className={cn(
+          "p-1.5 rounded-xl shrink-0 transition-colors",
+          isActive ? "bg-accent-500/10" : "bg-slate-200/50 dark:bg-slate-800/50"
+        )}>
+          {pref.icon}
+        </div>
+        <span
+          className={cn(
+            "text-[10px] font-black uppercase tracking-tight",
+            isActive
+              ? "text-slate-800 dark:text-white"
+              : "text-slate-400",
+          )}
+        >
+          {pref.label}
+        </span>
+      </button>
+    );
+  })}
  </div>
 
  {settings.notificationsEnabled && (
@@ -369,54 +381,65 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  icon: <Shield size={14} className="text-rose-500" />,
  }
  ].map((pref) => {
- const prefs = settings.notificationPrefs || {
- hypo: true, hyper: true, reminders: true, predictions: true
- };
- const isActive = prefs[pref.id as keyof typeof prefs];
- return (
- <button
- key={pref.id}
- onClick={async () => {
- const newPrefs = { ...prefs, [pref.id]: !isActive };
- setSettings({
- ...settings,
- notificationPrefs: newPrefs,
- });
- if (user) {
- await setDoc(
- doc(db, "users", getEffectiveUid(user), "settings", "profile"),
- { notificationPrefs: newPrefs },
- { merge: true }
- );
- }
- }}
- className={cn(
- "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
- isActive
- ? "bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 shadow-sm"
- : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60"
- )}
- >
- <div className={cn(
- "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
- isActive ? "bg-white dark:bg-indigo-500/20 shadow-sm" : "bg-slate-200 dark:bg-slate-800"
- )}>
- {pref.icon}
- </div>
- <div>
- <span className={cn(
- "text-[10px] font-black uppercase tracking-tight block",
- isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-400"
- )}>
- {pref.label}
- </span>
- <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
- {isActive ? i18n.t('auto.glikosense_czuwa', { defaultValue: 'GlikoSense czuwa' }) : i18n.t('auto.regula_wylaczona', { defaultValue: i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) })}
- </span>
- </div>
- </button>
- );
- })}
+  const prefs = {
+    ...DEFAULT_NOTIFICATION_PREFS,
+    ...(settings.notificationPrefs || {})
+  };
+  const isActive = prefs[pref.id as keyof typeof prefs] ?? false;
+  return (
+  <button
+  key={pref.id}
+  onClick={async () => {
+  const newPrefs = { ...prefs, [pref.id]: !isActive };
+  const updated = {
+    ...settings,
+    notificationPrefs: newPrefs,
+  };
+  setSettings(updated);
+  localStorage.setItem("notificationPrefs", JSON.stringify(newPrefs));
+  localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+  if (user) {
+  const uid = getEffectiveUid(user);
+  await setDoc(
+  doc(db, "users", uid, "settings", "profile"),
+  { notificationPrefs: newPrefs },
+  { merge: true }
+  );
+  queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+    ...(old || {}),
+    notificationPrefs: newPrefs,
+  }));
+  queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+  }
+  }}
+  className={cn(
+  "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
+  isActive
+  ? "bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 shadow-sm"
+  : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60"
+  )}
+  >
+  <div className={cn(
+  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+  isActive ? "bg-white dark:bg-indigo-500/20 shadow-sm" : "bg-slate-200 dark:bg-slate-800"
+  )}>
+  {pref.icon}
+  </div>
+  <div>
+  <span className={cn(
+  "text-[10px] font-black uppercase tracking-tight block",
+  isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-400"
+  )}>
+  {pref.label}
+  </span>
+  <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
+  {isActive ? i18n.t('auto.glikosense_czuwa', { defaultValue: 'GlikoSense czuwa' }) : i18n.t('auto.regula_wylaczona', { defaultValue: i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) })}
+  </span>
+  </div>
+  </button>
+  );
+  })}
  </div>
  </div>
  )}
