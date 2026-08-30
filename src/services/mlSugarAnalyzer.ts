@@ -221,7 +221,7 @@ export const MLAnalyzer = {
       const timeoutId = setTimeout(() => {
         worker.terminate();
         reject(new Error("GlikoSense Worker timeout"));
-      }, mode === 'quick' ? 15000 : 45000);
+      }, mode === 'quick' ? 35000 : 90000);
 
       worker.onmessage = (e) => {
         clearTimeout(timeoutId);

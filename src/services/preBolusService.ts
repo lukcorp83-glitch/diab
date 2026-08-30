@@ -162,8 +162,8 @@ export function getPreBolusTimerState(): PreBolusTimerState {
     const remainingSeconds = Math.round((targetTime - now) / 1000);
     const elapsedSeconds = Math.round((now - startTime) / 1000);
 
-    // Jeśli od zakończenia minęło ponad 45 minut, wygaszamy stoper
-    if (remainingSeconds < -45 * 60) {
+    // Jeśli od zakończenia minęło ponad 15 minut, wygaszamy stoper
+    if (remainingSeconds < -15 * 60) {
       localStorage.removeItem('prebolus_timer_state');
       notificationService.cancelOngoingTimerNotification();
       try {
@@ -180,15 +180,17 @@ export function getPreBolusTimerState(): PreBolusTimerState {
       };
     }
 
+    const isReady = remainingSeconds <= 0;
+
     return {
       active: true,
-      remainingSeconds,
+      remainingSeconds: Math.max(0, remainingSeconds),
       totalMinutes: parsed.totalMinutes,
       targetTime,
       startTime,
       bolusUnits: parsed.bolusUnits,
       elapsedSeconds,
-      isReady: remainingSeconds <= 0
+      isReady
     };
   } catch (e) {
     return {

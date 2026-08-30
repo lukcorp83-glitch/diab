@@ -21,6 +21,7 @@ import android.net.Uri;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.graphics.drawable.IconCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -275,14 +276,21 @@ public class NightscoutFetcher {
             if (manager != null) {
                 // Upewniamy się, że głośny kanał powiadomień istnieje i ma skonfigurowany dźwięk w systemie Android
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    try {
+                        String[] oldChannels = {"glucose_alerts", "glucose_alerts_v2", "glucose_alerts_v10", "glucose_alerts_v11", "glucose_alerts_v12", "glucose_alerts_v13", "glucose_alerts_v14", "glucose_alerts_v15", "glucose_alerts_v16", "glucose_alerts_v17", "glucose_alerts_v20"};
+                        for (String ch : oldChannels) {
+                            manager.deleteNotificationChannel(ch);
+                        }
+                    } catch (Exception ignored) {}
+
                     NotificationChannel alertChannel = new NotificationChannel(
-                            "glucose_alerts_v2",
-                            "Alerty Glikemii",
+                            "gliko_glucose_alerts_v25",
+                            "🚨 Alerty Glikemii (Hipo / Hiper)",
                             NotificationManager.IMPORTANCE_HIGH
                     );
-                    alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem");
+                    alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem MP3");
                     
-                    Uri alarmSound = Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.critical_alarm);
+                    Uri alarmSound = Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.status_clear);
                     AudioAttributes audioAttributes = new AudioAttributes.Builder()
                             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .setUsage(AudioAttributes.USAGE_ALARM)
@@ -290,11 +298,14 @@ public class NightscoutFetcher {
                     alertChannel.setSound(alarmSound, audioAttributes);
                     alertChannel.enableVibration(true);
                     alertChannel.setVibrationPattern(new long[]{0, 500, 200, 500, 200, 500});
+                    alertChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                    alertChannel.setBypassDnd(true);
                     
                     manager.createNotificationChannel(alertChannel);
                 }
                 
                 Intent intentDefault = new Intent(context, MainActivity.class);
+                intentDefault.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 PendingIntent pendingIntentDefault = PendingIntent.getActivity(
                         context, 
                         200 + (int)(System.currentTimeMillis() % 10000), 
@@ -302,16 +313,19 @@ public class NightscoutFetcher {
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
                 );
                 
-                NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "glucose_alerts_v2")
+                Uri soundUri = Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.status_clear);
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "gliko_glucose_alerts_v25")
                         .setSmallIcon(R.drawable.ic_stat_name)
                         .setContentTitle(alertTitle)
                         .setContentText(alertBody)
                         .setStyle(new NotificationCompat.BigTextStyle().bigText(alertBody))
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setCategory(NotificationCompat.CATEGORY_ALARM)
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                         .setAutoCancel(true)
                         .setOnlyAlertOnce(false)
-                        .setSound(Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.critical_alarm))
+                        .setSound(soundUri)
                         .setVibrate(new long[]{0, 500, 200, 500, 200, 500})
                         .setContentIntent(pendingIntentDefault);
                 
@@ -469,10 +483,10 @@ public class NightscoutFetcher {
                                         int remainingMinutes = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
                                         String pillText = remainingMinutes + " min";
                                         Bitmap pillIcon = createPillBadgeBitmap(context, pillText, false);
+                                        Bitmap statusIcon = createStatusBarTimerBitmap(context, remainingMinutes, false);
 
                                         String unitsStr = insulin > 0 ? String.format(Locale.US, " (%.1fj)", insulin) : "";
                                         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "gliko_meal_timer_v1")
-                                                .setSmallIcon(R.drawable.ic_stat_name)
                                                 .setContentTitle("Czas do posiłku 🍽️")
                                                 .setContentText("Wykryto bolus z pompy" + unitsStr + ". Odliczanie w toku...")
                                                 .setUsesChronometer(true)
@@ -486,6 +500,12 @@ public class NightscoutFetcher {
                                                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                                                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                                                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+                                        if (statusIcon != null) {
+                                            builder.setSmallIcon(androidx.core.graphics.drawable.IconCompat.createWithBitmap(statusIcon));
+                                        } else {
+                                            builder.setSmallIcon(R.drawable.ic_stat_name);
+                                        }
 
                                         if (pillIcon != null) {
                                             builder.setLargeIcon(pillIcon);

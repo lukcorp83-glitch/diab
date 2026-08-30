@@ -91,10 +91,13 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
   - `getStepsLast24h()` - W pierwszej kolejności odpytuje natywny sprzętowy czujnik telefonu (`StepCounterPlugin.getTodaySteps()`), a w razie potrzeby używa fallbacku Health Connect.
   - `requestAuthorization()` - Żądanie uprawnień odczytu/zapisu (`ACTIVITY_RECOGNITION`, `steps`, `blood_glucose`).
   - `writeBloodGlucose(value, timestamp)` - Zapis wartości cukru (z przeliczeniem na mmol/L) z obsługą formatu obiektowego i skalarnego.
-- `android/app/src/main/AndroidManifest.xml` - Skonfigurowane uprawnienia (`ACTIVITY_RECOGNITION`, `READ_STEPS`, `WRITE_STEPS`, `READ_BLOOD_GLUCOSE`, `WRITE_BLOOD_GLUCOSE`), filtry intencji `androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE` oraz alias aktywności `ViewPermissionUsageActivity` dla Androida 14+.
-- `src/App.tsx` - Automatyczna synchronizacja w czasie rzeczywistym: każdy nowy odczyt cukru jest automatycznie zapisywany do Google Health Connect.
-- `src/components/Profile/ProfileInventory.tsx` - Moduł Apteczki i magazynu sprzętu:
-  - Dodawanie i edycja pozycji magazynowych: sensory, peny, wkłucia oraz **zbiorniczki (`reservoirs`) z polem pojemności w jednostkach U** (`160U`, `180U`, `200U`, `300U`).
-  - Górna pigułka zbiorniczka na Pulpicie automatycznie odczytuje pojemność z aktywnego zbiorniczka w Apteczce do wyliczania % napełnienia.
+- `src/services/preBolusService.ts` & `src/services/notificationService.ts` - Stoper przedposiłkowy (Pre-Bolus Timer):
+  - Wylicza czas oczekiwania na posiłek wg insuliny, cukru i trendu.
+  - **Dynamiczna ikona minut na górnej belce stanu Androida (Status Bar Small Icon)**: zamiast statycznej ikony aplikacji, na samej górze ekranu (obok zegara i baterii) wyświetla się bezpośrednio liczba pozostałych minut (np. `15`, `14`, `10`, `5`, `1`), która odlicza w dół co minutę dokładnie tak jak w aplikacjach dostawy jedzenia (Uber Eats, Wolt, Glovo), a po zakończeniu zmienia się na `OK`!
+  - Planuje natywne powiadomienie alarmowe z dźwiękiem `status_clear.mp3` na dokładną godzinę zakończenia odliczania (`targetTime`) w systemie Android.
+  - Zabezpieczenie przed ujemnym czasem: po upływie czasu zatrzymuje się na statusie `Gotowe / Możesz jeść!`, a natywny chronometr Androida jest automatycznie zamieniany na alert gotowości do posiłku.
+- `src/components/app/DynamicActionCapsule.tsx` - Główny pływający przycisk akcji (FAB / Dynamic Action Capsule):
+  - Klasyczna zewnętrzna odznaka (Badge) liczby składników na Talerzu: umieszczona na zewnętrznej prawej górnej krawędzi okrągłego przycisku (`-top-1.5 -right-1.5`), z białą obwódką i cieniem (dokładnie jak w aplikacjach mobilnych/iOS/Android), bez nachodzenia na samą ikonę sztućców.
+  - Płynne morfowanie w stany: Hypo Alert, Pre-Bolus Timer (z bezpośrednim przyciskiem „Zjadłem”), Unlinked Carbs oraz Meal Absorbing (wskaźnik trawienia %).
 
 

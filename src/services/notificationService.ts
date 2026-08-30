@@ -15,15 +15,21 @@ export const notificationService = {
   async initChannels() {
     if (Capacitor.isNativePlatform()) {
       try {
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v10' }); } catch(e) {}
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v11' }); } catch(e) {}
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v12' }); } catch(e) {}
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v13' }); } catch(e) {}
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v14' }); } catch(e) {}
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v15' }); } catch(e) {}
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v16' }); } catch(e) {}
-        try { await LocalNotifications.deleteChannel({ id: 'glucose_alerts_v17' }); } catch(e) {}
+        const oldChannels = ['glucose_alerts', 'glucose_alerts_v2', 'glucose_alerts_v10', 'glucose_alerts_v11', 'glucose_alerts_v12', 'glucose_alerts_v13', 'glucose_alerts_v14', 'glucose_alerts_v15', 'glucose_alerts_v16', 'glucose_alerts_v17', 'glucose_alerts_v20'];
+        for (const ch of oldChannels) {
+          try { await LocalNotifications.deleteChannel({ id: ch }); } catch(e) {}
+        }
         
+        await LocalNotifications.createChannel({
+          id: 'gliko_glucose_alerts_v25',
+          name: '🚨 Alerty Glikemii (Hipo / Hiper)',
+          description: 'Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem MP3',
+          importance: 5,
+          visibility: 1,
+          sound: 'status_clear.mp3',
+          vibration: true
+        });
+
         await LocalNotifications.createChannel({
           id: 'glikocontrol_reminders_v1',
           name: 'Przypomnienia GlikoControl',
@@ -188,8 +194,8 @@ export const notificationService = {
               body,
               id: 887,
               schedule: { at: new Date(Date.now() + 500) },
-              channelId: 'glucose_alerts_v16',
-              sound: 'default',
+              channelId: 'gliko_glucose_alerts_v25',
+              sound: 'status_clear.mp3',
               attachments: null,
               actionTypeId: '',
               extra: null
@@ -267,6 +273,34 @@ export const notificationService = {
       this._liveTimerInterval = null;
     }
 
+    const finishTitle = i18n.t('bolus.reminder_title', { defaultValue: 'Czas na posiłek! 🍽️' });
+    const finishBody = i18n.t('bolus.reminder_body', {
+      minutes: totalMinutes,
+      defaultValue: `Minęło ${totalMinutes} minut od bolusa. Insulina zaczęła działać – możesz zjeść posiłek!`
+    });
+
+    // 1. ZAWSZE planujemy natywne powiadomienie alarmowe w systemie Android DOKŁADNIE na moment zakończenia (targetTime)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 778,
+              title: finishTitle,
+              body: finishBody,
+              schedule: { at: new Date(targetTime) },
+              channelId: 'glikocontrol_reminders_v1',
+              sound: 'status_clear.mp3',
+              ongoing: false,
+              autoCancel: true
+            }
+          ]
+        });
+      } catch (e) {
+        console.warn('Failed to schedule finish pre-bolus notification:', e);
+      }
+    }
+
     const updateNotification = async () => {
       const now = Date.now();
       const remainingSec = Math.round((targetTime - now) / 1000);
@@ -278,30 +312,7 @@ export const notificationService = {
           this._liveTimerInterval = null;
         }
 
-        const finishTitle = i18n.t('bolus.reminder_title', { defaultValue: 'Czas na posiłek! 🍽️' });
-        const finishBody = i18n.t('bolus.reminder_body', {
-          minutes: totalMinutes,
-          defaultValue: `Minęło ${totalMinutes} minut od bolusa. Insulina zaczęła działać – możesz zjeść posiłek!`
-        });
-
-        if (Capacitor.isNativePlatform()) {
-          try {
-            await LocalNotifications.schedule({
-              notifications: [
-                {
-                  id: 777,
-                  title: finishTitle,
-                  body: finishBody,
-                  schedule: { at: new Date() },
-                  channelId: 'glikocontrol_reminders_v1',
-                  sound: 'status_clear.mp3',
-                  ongoing: false,
-                  autoCancel: true
-                }
-              ]
-            });
-          } catch (e) {}
-        } else if (window.Notification && window.Notification.permission === 'granted') {
+        if (!Capacitor.isNativePlatform() && window.Notification && window.Notification.permission === 'granted') {
           try {
             new window.Notification(finishTitle, { body: finishBody });
           } catch (e) {}
@@ -320,10 +331,10 @@ export const notificationService = {
       }
     };
 
-    // 1. Wyświetl natychmiast
+    // 2. Wyświetl powiadomienie
     await updateNotification();
 
-    // 2. Aktualizuj co 30 sekund
+    // 3. Aktualizuj co 30 sekund na Web
     this._liveTimerInterval = setInterval(updateNotification, 30000);
   },
 
@@ -335,7 +346,7 @@ export const notificationService = {
 
     if (Capacitor.isNativePlatform()) {
       try {
-        await LocalNotifications.cancel({ notifications: [{ id: 777 }] });
+        await LocalNotifications.cancel({ notifications: [{ id: 777 }, { id: 778 }] });
       } catch (e) {}
     }
   },

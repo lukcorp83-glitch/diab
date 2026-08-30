@@ -249,9 +249,9 @@ public class NotificationBridgePlugin extends Plugin {
         int remainingMinutes = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
         String pillText = remainingMinutes + " min";
         android.graphics.Bitmap pillIcon = NightscoutFetcher.createPillBadgeBitmap(getContext(), pillText, remainingMs <= 0);
+        android.graphics.Bitmap statusIcon = NightscoutFetcher.createStatusBarTimerBitmap(getContext(), remainingMinutes, remainingMs <= 0);
 
         androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "gliko_meal_timer_v1")
-                .setSmallIcon(R.drawable.ic_stat_name)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setUsesChronometer(true)
@@ -266,16 +266,127 @@ public class NotificationBridgePlugin extends Plugin {
                 .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
 
+        if (statusIcon != null) {
+            builder.setSmallIcon(androidx.core.graphics.drawable.IconCompat.createWithBitmap(statusIcon));
+        } else {
+            builder.setSmallIcon(R.drawable.ic_stat_name);
+        }
+
         if (pillIcon != null) {
             builder.setLargeIcon(pillIcon);
         }
 
         notificationManager.notify(notificationId, builder.build());
+
+        // Zaplanuj automatyczną aktualizację minut na górnej belce oraz powiadomienie gotowości do posiłku
+        scheduleTimerCompletion(notificationId, targetTime, pendingIntent);
+
         call.resolve();
+    }
+
+    private static android.os.Handler timerHandler = null;
+    private static Runnable timerCompletionRunnable = null;
+
+    private static synchronized android.os.Handler getTimerHandler() {
+        if (timerHandler == null) {
+            timerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+        }
+        return timerHandler;
+    }
+
+    private void scheduleTimerCompletion(final int notificationId, final long targetTime, final android.app.PendingIntent pendingIntent) {
+        if (timerCompletionRunnable != null) {
+            getTimerHandler().removeCallbacks(timerCompletionRunnable);
+            timerCompletionRunnable = null;
+        }
+
+        final Context context = getContext();
+        if (context == null) return;
+        final Context appContext = context.getApplicationContext();
+
+        timerCompletionRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    android.app.NotificationManager nm = (android.app.NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+                    if (nm == null) return;
+
+                    long remainingMs = targetTime - System.currentTimeMillis();
+                    if (remainingMs <= 0) {
+                        androidx.core.app.NotificationCompat.Builder readyBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
+                                .setContentTitle("Czas na posiłek! 🍽️")
+                                .setContentText("Odliczanie zakończone. Możesz już zjeść posiłek!")
+                                .setUsesChronometer(false)
+                                .setOngoing(false)
+                                .setAutoCancel(true)
+                                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                                .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
+                                .setContentIntent(pendingIntent);
+
+                        android.graphics.Bitmap doneStatusIcon = NightscoutFetcher.createStatusBarTimerBitmap(appContext, 0, true);
+                        if (doneStatusIcon != null) {
+                            readyBuilder.setSmallIcon(androidx.core.graphics.drawable.IconCompat.createWithBitmap(doneStatusIcon));
+                        } else {
+                            readyBuilder.setSmallIcon(R.drawable.ic_stat_name);
+                        }
+
+                        android.graphics.Bitmap doneIcon = NightscoutFetcher.createPillBadgeBitmap(appContext, "JEŚĆ!", true);
+                        if (doneIcon != null) {
+                            readyBuilder.setLargeIcon(doneIcon);
+                        }
+
+                        nm.notify(notificationId, readyBuilder.build());
+                    } else {
+                        int mins = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
+                        androidx.core.app.NotificationCompat.Builder updateBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
+                                .setContentTitle("Czas do posiłku 🍽️")
+                                .setContentText("Odliczanie przedposiłkowe w toku...")
+                                .setUsesChronometer(true)
+                                .setChronometerCountDown(true)
+                                .setWhen(targetTime)
+                                .setShowWhen(true)
+                                .setOngoing(true)
+                                .setAutoCancel(false)
+                                .setOnlyAlertOnce(true)
+                                .setContentIntent(pendingIntent)
+                                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                                .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
+
+                        android.graphics.Bitmap statusIcon = NightscoutFetcher.createStatusBarTimerBitmap(appContext, mins, false);
+                        if (statusIcon != null) {
+                            updateBuilder.setSmallIcon(androidx.core.graphics.drawable.IconCompat.createWithBitmap(statusIcon));
+                        } else {
+                            updateBuilder.setSmallIcon(R.drawable.ic_stat_name);
+                        }
+
+                        android.graphics.Bitmap pillIcon = NightscoutFetcher.createPillBadgeBitmap(appContext, mins + " min", false);
+                        if (pillIcon != null) {
+                            updateBuilder.setLargeIcon(pillIcon);
+                        }
+
+                        nm.notify(notificationId, updateBuilder.build());
+
+                        long nextTickMs = Math.min(30000, Math.max(5000, remainingMs % 60000));
+                        if (nextTickMs < 5000) nextTickMs = 30000;
+                        getTimerHandler().postDelayed(this, nextTickMs);
+                    }
+                } catch (Exception ignored) {}
+            }
+        };
+
+        long nextTickMs = Math.min(30000, Math.max(5000, (targetTime - System.currentTimeMillis()) % 60000));
+        if (nextTickMs < 5000) nextTickMs = 30000;
+        getTimerHandler().postDelayed(timerCompletionRunnable, nextTickMs);
     }
 
     @PluginMethod
     public void stopLiveTimer(PluginCall call) {
+        if (timerCompletionRunnable != null) {
+            getTimerHandler().removeCallbacks(timerCompletionRunnable);
+            timerCompletionRunnable = null;
+        }
         int notificationId = call.getInt("id", 777);
         android.app.NotificationManager notificationManager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         if (notificationManager != null) {
@@ -320,14 +431,21 @@ public class NotificationBridgePlugin extends Plugin {
             android.app.NotificationManager manager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    try {
+                        String[] oldChannels = {"glucose_alerts", "glucose_alerts_v2", "glucose_alerts_v10", "glucose_alerts_v11", "glucose_alerts_v12", "glucose_alerts_v13", "glucose_alerts_v14", "glucose_alerts_v15", "glucose_alerts_v16", "glucose_alerts_v17", "glucose_alerts_v20"};
+                        for (String ch : oldChannels) {
+                            manager.deleteNotificationChannel(ch);
+                        }
+                    } catch (Exception ignored) {}
+
                     android.app.NotificationChannel alertChannel = new android.app.NotificationChannel(
-                            "glucose_alerts_v2",
-                            "Alerty Glikemii",
+                            "gliko_glucose_alerts_v25",
+                            "🚨 Alerty Glikemii (Hipo / Hiper)",
                             android.app.NotificationManager.IMPORTANCE_HIGH
                     );
-                    alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem");
+                    alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem MP3");
 
-                    android.net.Uri alarmSound = android.net.Uri.parse("android.resource://" + getContext().getPackageName() + "/" + R.raw.critical_alarm);
+                    android.net.Uri alarmSound = android.net.Uri.parse("android.resource://" + getContext().getPackageName() + "/" + R.raw.status_clear);
                     android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
                             .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .setUsage(android.media.AudioAttributes.USAGE_ALARM)
@@ -335,10 +453,13 @@ public class NotificationBridgePlugin extends Plugin {
                     alertChannel.setSound(alarmSound, audioAttributes);
                     alertChannel.enableVibration(true);
                     alertChannel.setVibrationPattern(new long[]{0, 500, 200, 500, 200, 500});
+                    alertChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                    alertChannel.setBypassDnd(true);
                     manager.createNotificationChannel(alertChannel);
                 }
 
                 Intent intentDefault = new Intent(getContext(), MainActivity.class);
+                intentDefault.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 android.app.PendingIntent pendingIntentDefault = android.app.PendingIntent.getActivity(
                         getContext(),
                         200 + (int)(System.currentTimeMillis() % 10000),
@@ -346,26 +467,29 @@ public class NotificationBridgePlugin extends Plugin {
                         android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
                 );
 
-                androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "glucose_alerts_v2")
+                android.net.Uri soundUri = android.net.Uri.parse("android.resource://" + getContext().getPackageName() + "/" + R.raw.status_clear);
+
+                androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(getContext(), "gliko_glucose_alerts_v25")
                         .setSmallIcon(R.drawable.ic_stat_name)
                         .setContentTitle(title)
                         .setContentText(body)
                         .setStyle(new androidx.core.app.NotificationCompat.BigTextStyle().bigText(body))
                         .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
                         .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                        .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
                         .setAutoCancel(true)
                         .setOnlyAlertOnce(false)
-                        .setSound(android.net.Uri.parse("android.resource://" + getContext().getPackageName() + "/" + R.raw.critical_alarm))
+                        .setSound(soundUri)
                         .setVibrate(new long[]{0, 500, 200, 500, 200, 500})
                         .setContentIntent(pendingIntentDefault);
 
-            manager.notify(2, builder.build());
+                manager.notify(2, builder.build());
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage());
         }
-        call.resolve();
-    } catch (Exception e) {
-        call.reject(e.getMessage());
     }
-}
 
     @PluginMethod
     public void getMaterialYouColors(PluginCall call) {

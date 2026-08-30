@@ -177,8 +177,12 @@ export default function App() {
         } catch (err) {}
       };
       const handleLocalUpdate = (e: any) => {
-        const { id, updates } = e.detail;
-        setSqliteLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+        const detail = e.detail || {};
+        const id = detail.id;
+        const updates = detail.updates || detail;
+        if (!id) return;
+        useLogsStore.getState().updateLog(id, updates);
+        setSqliteLogs(prev => prev.map(l => (l.id === id || l.nsId === id || (l as any)._id === id) ? { ...l, ...updates } : l));
       };
       const handleLocalDelete = (e: any) => {
         const id = e.detail?.id;

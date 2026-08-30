@@ -146,9 +146,7 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
       console.log(`[GlucoseAlerts] 🚨 ALARM NISKIEJ GLIKEMII: ${val} mg/dL!`);
       // Trigger system notification (Native Android channel or Web notification)
       notificationService.triggerGlucoseAlarm(false, Math.round(val));
-      if (!Capacitor.isNativePlatform()) {
-        playLowGlucoseSound();
-      }
+      playLowGlucoseSound();
       Haptics.heavy();
 
       // Emit event for persistent in-app UI Alarm Modal with STOP SOUND button
@@ -159,9 +157,7 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
       console.log(`[GlucoseAlerts] 📈 ALARM WYSOKIEJ GLIKEMII: ${val} mg/dL!`);
       // Trigger system notification (Native Android channel or Web notification)
       notificationService.triggerGlucoseAlarm(true, Math.round(val));
-      if (!Capacitor.isNativePlatform()) {
-        playHighGlucoseSound();
-      }
+      playHighGlucoseSound();
       Haptics.medium();
 
       // Emit event for persistent in-app UI Alarm Modal with STOP SOUND button

@@ -1,12 +1,15 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Utensils, AlertTriangle, Plus, X, Signal, Droplet, Merge, Sparkles, Clock, Check } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Utensils, AlertTriangle, Plus, X, Signal, Droplet, Merge, Sparkles, Clock, Check, CheckCircle2 } from 'lucide-react';
+import { cn, getEffectiveUid } from '../../lib/utils';
 import { Haptics } from '../../lib/haptics';
 import { useTranslation } from 'react-i18next';
 import { useLogsStore } from '../../stores/useLogsStore';
 import UnlinkedCarbsWidget from '../UnlinkedCarbsWidget';
 import { getPreBolusTimerState, cancelPreBolusTimer, PreBolusTimerState } from '../../services/preBolusService';
+import { dbService } from '../../services/databaseService';
+import { db } from '../../lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 interface DynamicActionCapsuleProps {
   lastGlucose: number | null;
@@ -172,6 +175,33 @@ export function DynamicActionCapsule({
     toast(t('bolus.timer_cancelled', { defaultValue: 'Stoper przedposiłkowy został anulowany' }), { icon: '⏹️' });
   };
 
+  const handleMarkEatenFromCapsule = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    Haptics.success();
+
+    const now = Date.now();
+    const recentMeal = (logs || []).find((l: any) => 
+      (l.type === 'meal' || l.type === 'carbs' || (l.type === 'bolus' && l.linkedMeal)) && 
+      (now - (l.timestamp || l.createdAt || 0)) < 60 * 60 * 1000
+    );
+
+    if (recentMeal) {
+      const eid = recentMeal.id || recentMeal.nsId || (recentMeal as any)._id;
+      if (eid) {
+        useLogsStore.getState().updateLog(eid, { eatenAt: now });
+        dbService.saveLog({ ...recentMeal, eatenAt: now }).catch(() => {});
+        window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: eid, updates: { eatenAt: now } } }));
+        if (user && recentMeal.id) {
+          updateDoc(doc(db, "users", getEffectiveUid(user), "logs", recentMeal.id), { eatenAt: now }).catch(() => {});
+        }
+      }
+    }
+
+    cancelPreBolusTimer();
+    toast.success(t('history.marked_as_eaten_short', { defaultValue: '🍽️ Smacznego! Zapisano moment posiłku.' }), { icon: '🍽️', duration: 4000 });
+  };
+
   const isAbsorbing = mealProgress !== null && mealProgress !== undefined && mealProgress > 0;
   
   const quickCarbs = useMemo(() => {
@@ -220,7 +250,8 @@ export function DynamicActionCapsule({
         layout
         transition={springTransition}
         className={cn(
-          "absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center overflow-hidden z-50 transition-colors duration-300 pointer-events-auto select-none",
+          "absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center z-50 transition-colors duration-300 pointer-events-auto select-none",
+          capsuleState === 'default' || capsuleState === 'absorbing' ? 'overflow-visible' : 'overflow-hidden',
           capsuleState === 'hypo' 
             ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30 -translate-y-16 rounded-[1.5rem]" 
             : capsuleState === 'prebolus'
@@ -237,7 +268,7 @@ export function DynamicActionCapsule({
               )
         )}
         style={{
-          width: capsuleState === 'hypo' ? 320 : capsuleState === 'prebolus' ? 315 : capsuleState === 'unlinked' ? 285 : 56,
+          width: capsuleState === 'hypo' ? 320 : capsuleState === 'prebolus' ? 340 : capsuleState === 'unlinked' ? 285 : 56,
           height: capsuleState === 'hypo' ? 'auto' : (capsuleState === 'prebolus' || capsuleState === 'unlinked') ? 48 : 56,
           maxWidth: '90vw',
           transformOrigin: 'bottom center'
@@ -250,6 +281,17 @@ export function DynamicActionCapsule({
           }
         }}
       >
+        {/* Odznaka z liczbą składników na talerzu na zewnętrznym rogu przycisku */}
+        {plateCount > 0 && capsuleState === 'default' && (
+          <motion.span 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-black text-[10px] min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-md shadow-rose-500/40 z-30 pointer-events-none"
+          >
+            {plateCount}
+          </motion.span>
+        )}
+
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay" />
 
         {capsuleState === 'absorbing' && (
@@ -356,15 +398,24 @@ export function DynamicActionCapsule({
 
               <div className="flex items-center gap-1 shrink-0 ml-1">
                 <button
+                  onClick={handleMarkEatenFromCapsule}
+                  className="bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-2 rounded-full shadow-md transition-all flex items-center gap-0.5 cursor-pointer"
+                  title="Oznacz, że posiłek został zjedzony"
+                >
+                  <CheckCircle2 size={10} className="text-emerald-600" />
+                  <span>Zjadłem</span>
+                </button>
+                <button
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     Haptics.medium();
                     onClickMain();
                   }}
-                  className="bg-white text-orange-600 hover:bg-orange-50 active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-2 rounded-full shadow-md transition-all flex items-center gap-0.5 cursor-pointer"
+                  className="bg-white/20 hover:bg-white/30 text-white active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-1.5 rounded-full transition-all flex items-center gap-0.5 cursor-pointer"
+                  title="Przejdź do Talerza"
                 >
-                  <Utensils size={10} className="text-orange-500" />
+                  <Utensils size={10} />
                   <span>Talerz</span>
                 </button>
                 <button
@@ -467,17 +518,8 @@ export function DynamicActionCapsule({
                   </span>
                 </div>
               ) : (
-                <div className="relative flex items-center justify-center">
+                <div className="flex items-center justify-center">
                   <Utensils className="text-white relative z-10" size={24} />
-                  {plateCount > 0 && (
-                    <motion.span 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-md z-20"
-                    >
-                      {plateCount}
-                    </motion.span>
-                  )}
                 </div>
               )}
             </motion.div>

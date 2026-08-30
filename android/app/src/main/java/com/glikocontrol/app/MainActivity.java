@@ -43,25 +43,28 @@ public class MainActivity extends BridgeActivity {
             ActivityCompat.requestPermissions(this, permissions.toArray(new String[0]), 100);
         }
 
-        // Tworzenie głośnego kanału powiadomień dla alertów glikemii (typ ALARM z unikalnym dźwiękiem)
+        // Tworzenie głośnego kanału powiadomień dla alertów glikemii (typ ALARM z unikalnym dźwiękiem MP3)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             android.app.NotificationManager manager = (android.app.NotificationManager) getSystemService(android.content.Context.NOTIFICATION_SERVICE);
             if (manager != null) {
-                // Usuwanie starego kanału o niskim/domyślnym dźwięku
+                // Usuwanie starych kanałów o domyślnych/przestarzałych dźwiękach
                 try {
-                    manager.deleteNotificationChannel("glucose_alerts");
+                    String[] oldChannels = {"glucose_alerts", "glucose_alerts_v2", "glucose_alerts_v10", "glucose_alerts_v11", "glucose_alerts_v12", "glucose_alerts_v13", "glucose_alerts_v14", "glucose_alerts_v15", "glucose_alerts_v16", "glucose_alerts_v17", "glucose_alerts_v20"};
+                    for (String ch : oldChannels) {
+                        manager.deleteNotificationChannel(ch);
+                    }
                 } catch (Exception e) {
-                    android.util.Log.e("GlikoControl", "Błąd usuwania starego kanału powiadomień", e);
+                    android.util.Log.e("GlikoControl", "Błąd usuwania starych kanałów powiadomień", e);
                 }
 
                 android.app.NotificationChannel alertChannel = new android.app.NotificationChannel(
-                        "glucose_alerts_v2",
-                        "Alerty Glikemii",
+                        "gliko_glucose_alerts_v25",
+                        "🚨 Alerty Glikemii (Hipo / Hiper)",
                         android.app.NotificationManager.IMPORTANCE_HIGH
                 );
-                alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem");
+                alertChannel.setDescription("Głośne alarmy wysokiego i niskiego poziomu cukru z unikalnym dźwiękiem MP3");
 
-                android.net.Uri alarmSound = android.net.Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.critical_alarm);
+                android.net.Uri alarmSound = android.net.Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.status_clear);
                 android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
                         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .setUsage(android.media.AudioAttributes.USAGE_ALARM)
@@ -69,6 +72,8 @@ public class MainActivity extends BridgeActivity {
                 alertChannel.setSound(alarmSound, audioAttributes);
                 alertChannel.enableVibration(true);
                 alertChannel.setVibrationPattern(new long[]{0, 500, 200, 500, 200, 500});
+                alertChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                alertChannel.setBypassDnd(true);
 
                 manager.createNotificationChannel(alertChannel);
             }

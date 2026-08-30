@@ -14,6 +14,8 @@ import { getEffectiveUid } from "../lib/utils";
 import toast from "react-hot-toast";
 import { useNightscoutSettings } from "../hooks/queries/useProfileData";
 import { nightscoutService } from "../services/nightscout";
+import { cancelPreBolusTimer } from "../services/preBolusService";
+import { dbService } from "../services/databaseService";
 
 interface MealHistoryProps {
   user?: any;
@@ -50,22 +52,39 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
     Haptics.success();
     const eatenTime = Date.now();
     const eatenTimeStr = new Date(eatenTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const eid = logItem.id || logItem.nsId;
+    const eid = logItem.id || logItem.nsId || (logItem as any)._id;
+
+    // 1. Zatrzymujemy stoper przedposiłkowy natychmiast
+    cancelPreBolusTimer();
+
+    // 2. Natychmiastowa aktualizacja lokalnego stanu Zustand
+    if (eid) {
+      useLogsStore.getState().updateLog(eid, { eatenAt: eatenTime });
+    }
+
+    // 3. Zapis do lokalnej bazy SQLite
     try {
-      if (user && eid) {
-        await updateDoc(doc(db, "users", getEffectiveUid(user), "logs", eid), {
+      await dbService.saveLog({ ...logItem, eatenAt: eatenTime });
+    } catch (e) {}
+
+    // 4. Rozgłoszenie zdarzenia dla reszty aplikacji
+    window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: eid, updates: { eatenAt: eatenTime } } }));
+
+    // 5. Opcjonalna synchronizacja z Firestore
+    try {
+      if (user && logItem.id) {
+        await updateDoc(doc(db, "users", getEffectiveUid(user), "logs", logItem.id), {
           eatenAt: eatenTime
         });
       }
-      window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: eid, eatenAt: eatenTime } }));
-      toast.success(t('history.marked_as_eaten', { 
-        time: eatenTimeStr,
-        defaultValue: `🍽️ Zapisano czas posiłku: ${eatenTimeStr} (trawienie ruszyło od teraz)`
-      }));
     } catch (err) {
-      console.error("Failed to mark meal as eaten:", err);
-      toast.error(t('history.err_mark_eaten', { defaultValue: 'Błąd zapisu czasu posiłku' }));
+      console.warn("Firestore update skipped/offline for eatenAt:", err);
     }
+
+    toast.success(t('history.marked_as_eaten', { 
+      time: eatenTimeStr,
+      defaultValue: `🍽️ Zapisano czas posiłku: ${eatenTimeStr} (trawienie ruszyło od teraz)`
+    }));
   };
 
   const handleDelete = async (log: LogEntry) => {
