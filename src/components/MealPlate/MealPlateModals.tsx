@@ -28,7 +28,7 @@ export const MealPlateModals = (props: any) => {
  } = props;
 
  return createPortal(
- <AnimatePresence>
+ <>
  {/* AI Label Scanner Input */}
  <input
  type="file"
@@ -68,8 +68,10 @@ export const MealPlateModals = (props: any) => {
  }}
  />
 
+ <AnimatePresence>
  {unrecognizedBarcode && !isAnalyzingLabel && (
  <motion.div
+ key="modal-unrecognized-barcode"
  initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
  animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
  exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -115,16 +117,23 @@ export const MealPlateModals = (props: any) => {
  )}
 
  {isAnalyzingLabel && (
- <div className="fixed inset-0 pt-safe pb-safe z-[150] flex items-center justify-center p-4 bg-black/80">
+ <motion.div
+ key="modal-analyzing-label"
+ initial={{ opacity: 0 }}
+ animate={{ opacity: 1 }}
+ exit={{ opacity: 0 }}
+ className="fixed inset-0 pt-safe pb-safe z-[150] flex items-center justify-center p-4 bg-black/80"
+ >
  <div className="flex flex-col items-center">
  <Loader2 size={48} className="text-accent-500 animate-spin mb-4" />
  <p className="text-white font-black">{t('analyzing_label')}</p>
  </div>
- </div>
+ </motion.div>
  )}
 
  {isScannerOpen && (
  <motion.div
+ key="modal-scanner"
  initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
  animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
  exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -215,6 +224,7 @@ export const MealPlateModals = (props: any) => {
 
  {isWeightModalOpen && selectedProduct && (
  <motion.div
+ key="modal-weight"
  initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
  animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
  exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -315,6 +325,7 @@ export const MealPlateModals = (props: any) => {
 
  {isShortcutConfirmModalOpen && shortcutToConfirm && (
  <motion.div
+ key="modal-shortcut-confirm"
  initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
  animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
  exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -414,6 +425,7 @@ export const MealPlateModals = (props: any) => {
 
  {isSaveModalOpen && (
  <motion.div
+ key="modal-save-template"
  initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
  animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
  exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -459,6 +471,7 @@ export const MealPlateModals = (props: any) => {
 
  {expandedMeal && (
  <motion.div
+ key="modal-expanded-meal"
  initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
  animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
  exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -487,7 +500,7 @@ export const MealPlateModals = (props: any) => {
 
  <div className="space-y-4 mb-6">
  {expandedMeal.items.map((item, idx) => (
- <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4">
+ <div key={`expanded-item-${idx}`} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4">
  <div className="flex-1 min-w-0">
  <div className="font-bold text-sm dark:text-white truncate" title={getProductName(item, i18n.language)}>{getProductName(item, i18n.language)}</div>
  <div className="text-[10px] font-bold text-slate-400">{(item.carbs * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_w', { defaultValue: 'g W |' })} {(item.protein * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_b', { defaultValue: 'g B |' })} {(item.fat * expandedMeal.items[idx].weight / 100).toFixed(1)}{t('auto.g_t', { defaultValue: 'g T' })}</div>
@@ -528,6 +541,7 @@ export const MealPlateModals = (props: any) => {
  )}
  {mergeCandidates && (
  <motion.div
+ key="modal-merge-candidates"
  initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
  animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
  exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -549,14 +563,14 @@ export const MealPlateModals = (props: any) => {
  </p>
 
  <div className="space-y-4 mb-6">
- {mergeCandidates.map((c) => {
+ {mergeCandidates.map((c, cIdx) => {
  const carbsVal = c.type === 'bolus' 
  ? (c.linkedMeal?.carbs || c.carbs || 0)
  : (c.carbs || (c.type === 'meal' ? c.value : 0) || 0);
  const insulinVal = c.type === 'bolus' ? (c.value || 0) : 0;
  return (
  <button
- key={c.id || c.nsId || Math.random().toString()}
+ key={c.id || c.nsId || `candidate-${cIdx}`}
  onClick={() => handleMergeMeal(c.id || c.nsId)}
  className="w-full bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4 text-left hover:scale-[0.98] transition-transform"
  >
@@ -591,7 +605,8 @@ export const MealPlateModals = (props: any) => {
  </motion.div>
  </motion.div>
  )}
- </AnimatePresence>,
+ </AnimatePresence>
+ </>,
  document.body,
  );
 };

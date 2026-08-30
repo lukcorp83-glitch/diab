@@ -37,18 +37,19 @@ const getDietBadge = (product: Product, activeDiet: string | null) => {
 };
 
 export const ProductSearch = ({
- openWeightModal,
- openShortcutConfirmModal,
- publishToCommunity,
- saveToCustomDb,
- handleScrollHaptics,
- addToPlate,
- settings,
- allLocal,
- mode,
- startScanner,
- startCameraAnalysis,
- isAnalyzing
+  openWeightModal,
+  openShortcutConfirmModal,
+  publishToCommunity,
+  saveToCustomDb,
+  handleScrollHaptics,
+  addToPlate,
+  addSavedMeal,
+  settings,
+  allLocal,
+  mode,
+  startScanner,
+  startCameraAnalysis,
+  isAnalyzing
 }: any) => {
  const { t } = useTranslation();
  
@@ -367,15 +368,21 @@ export const ProductSearch = ({
  <AnimatePresence>
  {browseResults.map((p, i) => (
  <motion.div
- key={p.id + "-" + i}
+ key={(p.id || p.name || 'item') + "-" + i}
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95 }}
- transition={{ duration: 0.2, delay: i * 0.05 }}
+ transition={{ duration: 0.2, delay: Math.min(i * 0.03, 0.3) }}
  layout
  >
  <div
- onClick={() => openWeightModal(p)}
+ onClick={() => {
+    if (p.isSavedMeal) {
+      addSavedMeal ? addSavedMeal(p) : addToPlate(p);
+    } else {
+      openWeightModal(p);
+    }
+  }}
  className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800/80 rounded-2xl border-2 border-slate-100 dark:border-slate-700/50 hover:border-accent-500/30 transition-all cursor-pointer shadow-sm relative group"
  >
  <div className="flex-1 min-w-0 py-1">

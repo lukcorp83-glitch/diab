@@ -570,15 +570,13 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  {filtered.slice(0, 100).map((p, idx) => {
  const isCustom = p.author === user?.uid && !p.isCommunity;
  const isOwnCommunity = p.author === user?.uid && p.isCommunity;
+ const itemKey = p.id || p.name || `food-item-${idx}`;
 
  const content = (
- <motion.div
- key={p.id || p.name}
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
- transition={{ duration: 0.2 }}
- onClick={() => onAddToPlate?.(p)}
+ <div
+ onClick={() => {
+ onAddToPlate?.(p);
+ }}
  className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex justify-between items-center group mb-2 cursor-pointer hover:border-accent-500 transition-colors"
  >
  <div className="flex-1 min-w-0 pr-4">
@@ -636,7 +634,7 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  {t('auto.w', { defaultValue: 'W:' })} {Number(p.carbs || 0).toFixed(1).replace(/\.0$/, "")}g {p.polyols ? `(w tym ${p.polyols}g pol.) ` : ''}{t('auto.b', { defaultValue: '| B:' })} {Number(p.protein || 0).toFixed(1).replace(/\.0$/, "")}{t('auto.g_t', { defaultValue: 'g | T:' })} {Number(p.fat || 0).toFixed(1).replace(/\.0$/, "")}{t('auto.g_w_100g', { defaultValue: 'g (w 100g)' })}
  </p>
  </div>
- </motion.div>
+ </div>
  );
 
  const isDeletable =
@@ -646,20 +644,19 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  return (
  <motion.div
  layout
- key={`${p.id}-${p.name}`}
- exit={{ opacity: 0 }}
+ key={itemKey}
+ initial={{ opacity: 0, y: 10 }}
+ animate={{ opacity: 1, y: 0 }}
+ exit={{ opacity: 0, scale: 0.95 }}
+ transition={{ duration: 0.2 }}
  >
  <SwipeableItem
- key={p.id}
+ key={`swipe-${itemKey}`}
  id={p.id}
  onDelete={async () => {
  try {
  await deleteDoc(doc(db, "users", getEffectiveUid(user), "customProducts", p.id!));
  queryClient.invalidateQueries({ queryKey: ['customProducts'] });
- if (p.isCommunity) {
- // Note: Deleting from community would require querying community path with product ID.
- // Depending on how it's structured, might not have the same ID.
- }
  } catch (err) {
  console.error("Delete product failed:", err);
  }
@@ -674,8 +671,11 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  return (
  <motion.div
  layout
- key={`${p.id}-${p.name}`}
- exit={{ opacity: 0 }}
+ key={itemKey}
+ initial={{ opacity: 0, y: 10 }}
+ animate={{ opacity: 1, y: 0 }}
+ exit={{ opacity: 0, scale: 0.95 }}
+ transition={{ duration: 0.2 }}
  >
  {content}
  </motion.div>

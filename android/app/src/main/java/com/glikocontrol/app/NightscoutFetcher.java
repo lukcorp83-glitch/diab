@@ -366,6 +366,44 @@ public class NightscoutFetcher {
         }
     }
 
+    public static Bitmap createStatusBarTimerBitmap(Context context, int remainingMinutes, boolean isReady) {
+        try {
+            int size = 96;
+            Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+
+            Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            bgPaint.setColor(isReady ? Color.parseColor("#10B981") : Color.parseColor("#EA580C"));
+            bgPaint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(size / 2.0f, size / 2.0f, size / 2.0f - 2, bgPaint);
+
+            Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            textPaint.setColor(Color.WHITE);
+            textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+            textPaint.setTextAlign(Paint.Align.CENTER);
+
+            String displayText;
+            if (isReady) {
+                displayText = "OK";
+                textPaint.setTextSize(38);
+            } else if (remainingMinutes >= 100) {
+                displayText = "99+";
+                textPaint.setTextSize(30);
+            } else {
+                displayText = String.valueOf(Math.max(1, remainingMinutes));
+                textPaint.setTextSize(remainingMinutes >= 10 ? 44 : 52);
+            }
+
+            Paint.FontMetrics fm = textPaint.getFontMetrics();
+            float baseline = (size - fm.bottom - fm.top) / 2.0f;
+            canvas.drawText(displayText, size / 2.0f, baseline, textPaint);
+
+            return bitmap;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static void checkAndTriggerPumpBolusTimer(Context context, String nsUrl, String secret, int currentSgv, String trendArrow) {
         if (nsUrl == null || nsUrl.isEmpty()) return;
         try {

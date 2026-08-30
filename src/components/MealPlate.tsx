@@ -188,6 +188,7 @@ export default function MealPlate({
  const { t } = useTranslation();
  const setSearchTerm = useMealPlateStore(state => state.setSearchTerm);
  const setIsSearching = useMealPlateStore(state => state.setIsSearching);
+ const setOnlineResults = useMealPlateStore(state => state.setOnlineResults);
 
  const [plateView, setPlateView] = useState<"composer" | "diets" | "history">("composer");
  const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -202,9 +203,22 @@ export default function MealPlate({
       const pending = localStorage.getItem("glikocontrol_pending_plate_load");
       if (pending) {
         try {
-          const items = JSON.parse(pending);
-          if (Array.isArray(items) && items.length > 0) {
-            setPlate(items);
+          const rawItems = JSON.parse(pending);
+          if (Array.isArray(rawItems) && rawItems.length > 0) {
+            const normalizedItems: PlateItem[] = rawItems.map((item: any) => {
+              const base = item.product ? { ...item.product, weight: item.weight || 100 } : item;
+              return {
+                ...base,
+                name: base.name || base.namePl || base.nameEn || 'Produkt',
+                carbs: Number(base.carbs || 0),
+                protein: Number(base.protein || 0),
+                fat: Number(base.fat || 0),
+                gi: Number(base.gi || 50),
+                weight: Number(base.weight || 100),
+                plateItemId: base.plateItemId || (Math.random().toString(36).substring(2, 9) + Date.now().toString(36)),
+              };
+            });
+            setPlate((prev: PlateItem[]) => [...prev, ...normalizedItems]);
             localStorage.removeItem("glikocontrol_pending_plate_load");
           }
         } catch (e) {
@@ -512,42 +526,61 @@ export default function MealPlate({
     }
   };
 
- const addSavedMeal = (meal: any) => {
- Haptics.light();
- setPlate([...plate, ...meal.items]);
- if (meal.cookingMethod) {
- setCookingMethod(meal.cookingMethod);
- }
- toast.success(`Dodano zestaw: ${meal.name}`);
- };
+  const addSavedMeal = (meal: any) => {
+    Haptics.light();
+    const rawList = meal.items && meal.items.length > 0 ? meal.items : [meal];
+    const normalizedItems: PlateItem[] = rawList.map((item: any) => {
+      const base = item.product ? { ...item.product, weight: item.weight || 100 } : item;
+      return {
+        ...base,
+        name: base.name || base.namePl || base.nameEn || meal.name || 'Produkt',
+        carbs: Number(base.carbs || 0),
+        protein: Number(base.protein || 0),
+        fat: Number(base.fat || 0),
+        gi: Number(base.gi || 50),
+        weight: Number(base.weight || 100),
+        plateItemId: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+      };
+    });
+    setPlate((prev: PlateItem[]) => [...prev, ...normalizedItems]);
+    if (meal.cookingMethod) {
+      setCookingMethod(meal.cookingMethod);
+    }
+    toast.success(`Danie "${meal.name || 'Posiłek'}" wrzucone na Talerz!`, { icon: '🍽️' });
+  };
 
- const updateWeight = (idx: number, weight: number) => {
- const newPlate = [...plate];
- const item = newPlate[idx];
- newPlate[idx] = {
- ...item,
- weight,
- };
- setPlate(newPlate);
- };
+  const updateWeight = (idx: number, weight: number) => {
+    setPlate((prev: PlateItem[]) => {
+      const newPlate = [...prev];
+      if (newPlate[idx]) {
+        newPlate[idx] = {
+          ...newPlate[idx],
+          weight,
+        };
+      }
+      return newPlate;
+    });
+  };
 
- const addToPlate = (product: Product, weight: number = 100) => {
- setPlate([
- ...plate,
- {
- ...product,
- weight,
- plateItemId:
- Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
- },
- ]);
- // Don't clear search automatically so user can add more
- };
+  const addToPlate = (product: Product, weight: number = 100) => {
+    const newItem: PlateItem = {
+      ...product,
+      name: product.name || product.namePl || product.nameEn || 'Produkt',
+      carbs: Number(product.carbs || 0),
+      protein: Number(product.protein || 0),
+      fat: Number(product.fat || 0),
+      gi: Number(product.gi || 50),
+      weight: Number(weight || 100),
+      plateItemId: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+    };
+    setPlate((prev: PlateItem[]) => [...prev, newItem]);
+    toast.success(`Dodano: ${getProductName(product, i18n.language)} (${weight}g)`, { icon: '🍽️' });
+  };
 
- const removeFromPlate = (idx: number) => {
- Haptics.light();
- setPlate(plate.filter((_, i) => i !== idx));
- };
+  const removeFromPlate = (idx: number) => {
+    Haptics.light();
+    setPlate((prev: PlateItem[]) => prev.filter((_, i) => i !== idx));
+  };
 
  const {
    rawCarbs, rawPolyols, rawProtein, rawFat, totalWeight, rawCals,
@@ -1222,7 +1255,7 @@ export default function MealPlate({
  />
 
  { (mode === "search" || mode === "both") && (
- <ProductSearch openWeightModal={openWeightModal} openShortcutConfirmModal={openShortcutConfirmModal} startScanner={startScanner} startCameraAnalysis={startCameraAnalysis} isAnalyzing={isAnalyzing} searchError={searchError} setSearchError={setSearchError} allLocal={allLocal} activeDiet={settings?.activeDiet || null} mode={mode} publishToCommunity={publishToCommunity} saveToCustomDb={saveToCustomDb} handleScrollHaptics={handleScrollHaptics} addToPlate={addToPlate} settings={settings} isLoadingSavedMeals={isLoadingSavedMeals} savedMeals={savedMeals} plate={plate} setPlate={setPlate} cookingMethod={cookingMethod} db={db} getEffectiveUid={getEffectiveUid} />
+ <ProductSearch openWeightModal={openWeightModal} openShortcutConfirmModal={openShortcutConfirmModal} startScanner={startScanner} startCameraAnalysis={startCameraAnalysis} isAnalyzing={isAnalyzing} searchError={searchError} setSearchError={setSearchError} allLocal={allLocal} activeDiet={settings?.activeDiet || null} mode={mode} publishToCommunity={publishToCommunity} saveToCustomDb={saveToCustomDb} handleScrollHaptics={handleScrollHaptics} addToPlate={addToPlate} addSavedMeal={addSavedMeal} settings={settings} isLoadingSavedMeals={isLoadingSavedMeals} savedMeals={savedMeals} plate={plate} setPlate={setPlate} cookingMethod={cookingMethod} db={db} getEffectiveUid={getEffectiveUid} />
  )}
 
  {(mode === "plate" || mode === "both") && plate.length === 0 && (
