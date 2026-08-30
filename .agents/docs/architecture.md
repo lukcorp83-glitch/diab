@@ -87,9 +87,9 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
   - Działa w 100% natywnie, offline, bez konieczności instalowania zewnętrznych aplikacji Google Health Connect czy logowania do chmur.
   - Automatycznie śledzi kroki od północy danego dnia (`initial_steps_today` vs `total_steps_today`), zabezpieczony przed restartami telefonu.
   - Zwraca liczbę kroków przez `@PluginMethod getTodaySteps()` oraz obsługuje uprawnienie `Manifest.permission.ACTIVITY_RECOGNITION`.
-- `src/services/healthService.ts` - Serwis komunikacji z natywnym sensorem `StepCounter` oraz wtyczką Health Connect.
+- `src/services/healthService.ts` - Integracja z Google Health Connect i Krokomierzem:
   - `getStepsLast24h()` - W pierwszej kolejności odpytuje natywny sprzętowy czujnik telefonu (`StepCounterPlugin.getTodaySteps()`), a w razie potrzeby używa fallbacku Health Connect.
-  - `requestAuthorization()` - Żądanie uprawnień odczytu/zapisu (`ACTIVITY_RECOGNITION`, `steps`, `blood_glucose`).
+  - `requestAuthorization()` - Żądanie uprawnień odczytu/zapisu (`ACTIVITY_RECOGNITION`, `android.permission.health.READ_STEPS`, `android.permission.health.READ_BLOOD_GLUCOSE`, `android.permission.health.WRITE_BLOOD_GLUCOSE`, `android.permission.health.READ_TOTAL_CALORIES_BURNED`, `android.permission.health.READ_EXERCISE`) - **Wymaga deklaracji w AndroidManifest.xml**.
   - `writeBloodGlucose(value, timestamp)` - Zapis wartości cukru (z przeliczeniem na mmol/L) z obsługą formatu obiektowego i skalarnego.
 - `src/services/preBolusService.ts` & `src/services/notificationService.ts` - Stoper przedposiłkowy i powiadomienia (Pre-Bolus Timer):
   - Wylicza optymalny czas odstępu przed posiłkiem w oparciu o poziom cukru, trend CGM i typ insuliny.
