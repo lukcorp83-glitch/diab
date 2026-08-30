@@ -103,21 +103,25 @@ export function startPreBolusTimer(
   bolusUnits?: number,
   customStartTime?: number
 ): void {
+  const roundedWaitMinutes = Math.round(Number(totalWaitMinutes) || 0);
   const startTime = customStartTime || Date.now();
-  const targetTime = startTime + totalWaitMinutes * 60 * 1000;
+  const targetTime = startTime + roundedWaitMinutes * 60 * 1000;
   const remainingMinutes = Math.max(1, Math.ceil((targetTime - Date.now()) / 60000));
+  const cleanUnitsStr = bolusUnits !== undefined && bolusUnits !== null && !isNaN(Number(bolusUnits))
+    ? Number(bolusUnits).toFixed(1).replace(/\.0$/, '')
+    : '';
 
   const state = {
     startTime,
     targetTime,
-    totalMinutes: totalWaitMinutes,
-    bolusUnits
+    totalMinutes: roundedWaitMinutes,
+    bolusUnits: cleanUnitsStr ? Number(cleanUnitsStr) : undefined
   };
 
   localStorage.setItem('prebolus_timer_state', JSON.stringify(state));
 
   // 1. Uruchamiamy natychmiastowe powiadomienie na belce stanu (widoczne od 1. sekundy na każdym telefonie)
-  notificationService.startOngoingTimerNotification(targetTime, totalWaitMinutes, bolusUnits);
+  notificationService.startOngoingTimerNotification(targetTime, roundedWaitMinutes, bolusUnits);
 
   // 2. Uruchamiamy natywny chronometr Androida na belce i ekranie blokady (Live Chronometer)
   try {
@@ -125,8 +129,8 @@ export function startPreBolusTimer(
       targetTime,
       title: i18n.t('bolus.live_timer_title', { defaultValue: 'Czas do posiłku 🍽️' }),
       text: i18n.t('bolus.live_timer_desc', { 
-        units: bolusUnits ? `(${bolusUnits} j.) ` : '',
-        defaultValue: `Odliczanie przedposiłkowe ${bolusUnits ? `(${bolusUnits} j.) ` : ''}w toku...` 
+        units: cleanUnitsStr ? `(${cleanUnitsStr} j.) ` : '',
+        defaultValue: `Odliczanie przedposiłkowe ${cleanUnitsStr ? `(${cleanUnitsStr} j.) ` : ''}w toku...` 
       }),
       id: 777
     }).catch((e: any) => console.log('Live timer non-native or unsupported:', e));
@@ -279,15 +283,15 @@ export function checkAndNotifyPumpBolus(
 
   // Rzeczywisty czas, jaki upłynął od wykonania bolusa w pompie do przyjścia do aplikacji
   const elapsedMinutes = Math.floor(bolusAgeMs / 60000);
-  const units = Number(latestBolus.value || 0).toFixed(1);
+  const units = Number(latestBolus.value || 0).toFixed(1).replace(/\.0$/, '');
 
   // Wyliczamy optymalny czas odstępu
   const { waitMinutes, reason } = calculatePreBolusWaitTime(currentGlucose, currentTrend, userSettings?.insulinType);
-  const remainingMinutes = waitMinutes - elapsedMinutes;
+  const remainingMinutes = Math.max(0, Math.round(waitMinutes - elapsedMinutes));
 
   if (remainingMinutes > 0) {
     Haptics.notification();
-    startPreBolusTimer(waitMinutes, Number(latestBolus.value), latestBolus.timestamp);
+    startPreBolusTimer(Math.round(waitMinutes), Number(latestBolus.value), latestBolus.timestamp);
 
     const delayNote = elapsedMinutes > 0 
       ? ` (${i18n.t('auto.podano_w_pompie', { count: elapsedMinutes, defaultValue: `podano ${elapsedMinutes} min temu w pompie` })})` 

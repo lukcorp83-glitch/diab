@@ -91,9 +91,10 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
   - `getStepsLast24h()` - W pierwszej kolejności odpytuje natywny sprzętowy czujnik telefonu (`StepCounterPlugin.getTodaySteps()`), a w razie potrzeby używa fallbacku Health Connect.
   - `requestAuthorization()` - Żądanie uprawnień odczytu/zapisu (`ACTIVITY_RECOGNITION`, `steps`, `blood_glucose`).
   - `writeBloodGlucose(value, timestamp)` - Zapis wartości cukru (z przeliczeniem na mmol/L) z obsługą formatu obiektowego i skalarnego.
-- `src/services/preBolusService.ts` & `src/services/notificationService.ts` - Stoper przedposiłkowy (Pre-Bolus Timer):
-  - Wylicza czas oczekiwania na posiłek wg insuliny, cukru i trendu.
-  - **Dynamiczna ikona minut na górnej belce stanu Androida (Status Bar Small Icon)**: zamiast statycznej ikony aplikacji, na samej górze ekranu (obok zegara i baterii) wyświetla się bezpośrednio liczba pozostałych minut (np. `15`, `14`, `10`, `5`, `1`), która odlicza w dół co minutę dokładnie tak jak w aplikacjach dostawy jedzenia (Uber Eats, Wolt, Glovo), a po zakończeniu zmienia się na `OK`!
+- `src/services/preBolusService.ts` & `src/services/notificationService.ts` - Stoper przedposiłkowy i powiadomienia (Pre-Bolus Timer):
+  - Wylicza optymalny czas odstępu przed posiłkiem w oparciu o poziom cukru, trend CGM i typ insuliny.
+  - **Dynamiczna ikona minut na górnej belce stanu Androida (Status Bar Small Icon)**: zamiast statycznej ikony aplikacji, na samej górze ekranu (obok zegara i baterii) wyświetla się bezpośrednio liczba pozostałych minut (np. `15`, `14`, `10`, `5`, `1`), która odlicza w dół co minutę dokładnie tak jak w aplikacjach dostawy jedzenia (Uber Eats, Wolt, Glovo), a po zakończeniu zmienia się na `OK`! Renderowana jako przezroczysta maska alfa (brak jednolitego koła w tle), dzięki czemu Android wyświetla ostre i wyraziste cyfry zamiast białej kropki.
+  - Czyste formatowanie i zaokrąglenie liczb: wyeliminowano ułamki dziesiętne z powiadomień Web/PWA i toastów (np. `15 min (4j)` zamiast `14.833333333333334 min (4.000000001j)`).
   - Planuje natywne powiadomienie alarmowe z dźwiękiem `status_clear.mp3` na dokładną godzinę zakończenia odliczania (`targetTime`) w systemie Android.
   - Zabezpieczenie przed ujemnym czasem: po upływie czasu zatrzymuje się na statusie `Gotowe / Możesz jeść!`, a natywny chronometr Androida jest automatycznie zamieniany na alert gotowości do posiłku.
 - `src/components/MealPlate.tsx` & `src/components/MealPlate/ProductSearch.tsx` - Kompozytor Talerza i Wyszukiwarka:

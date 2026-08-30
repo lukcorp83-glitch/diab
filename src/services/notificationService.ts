@@ -273,10 +273,16 @@ export const notificationService = {
       this._liveTimerInterval = null;
     }
 
+    const roundedTotalMin = Math.round(Number(totalMinutes) || 0);
+    const roundedUnits = bolusUnits !== undefined && bolusUnits !== null && !isNaN(Number(bolusUnits))
+      ? Number(bolusUnits).toFixed(1).replace(/\.0$/, '')
+      : '';
+    const unitsStr = roundedUnits ? ` (${roundedUnits} j.)` : '';
+
     const finishTitle = i18n.t('bolus.reminder_title', { defaultValue: 'Czas na posiłek! 🍽️' });
     const finishBody = i18n.t('bolus.reminder_body', {
-      minutes: totalMinutes,
-      defaultValue: `Minęło ${totalMinutes} minut od bolusa. Insulina zaczęła działać – możesz zjeść posiłek!`
+      minutes: roundedTotalMin,
+      defaultValue: `Minęło ${roundedTotalMin} minut od bolusa. Insulina zaczęła działać – możesz zjeść posiłek!`
     });
 
     // 1. ZAWSZE planujemy natywne powiadomienie alarmowe w systemie Android DOKŁADNIE na moment zakończenia (targetTime)
@@ -303,8 +309,8 @@ export const notificationService = {
 
     const updateNotification = async () => {
       const now = Date.now();
-      const remainingSec = Math.round((targetTime - now) / 1000);
-      const remainingMin = Math.max(0, Math.ceil(remainingSec / 60));
+      const remainingSec = Math.max(0, Math.round((targetTime - now) / 1000));
+      const remainingMin = Math.max(1, Math.ceil(remainingSec / 60));
 
       if (remainingSec <= 0) {
         if (this._liveTimerInterval) {
@@ -320,7 +326,6 @@ export const notificationService = {
         return;
       }
 
-      const unitsStr = bolusUnits ? ` (${bolusUnits} j.)` : '';
       const ongoingTitle = `⏱️ Czas do posiłku: ${remainingMin} min${unitsStr}`;
       const ongoingBody = `Odliczanie przedposiłkowe w toku... Insulina zaczyna działać.`;
 

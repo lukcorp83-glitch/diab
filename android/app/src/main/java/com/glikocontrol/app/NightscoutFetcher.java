@@ -372,11 +372,9 @@ public class NightscoutFetcher {
             Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap);
 
-            Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            bgPaint.setColor(isReady ? Color.parseColor("#10B981") : Color.parseColor("#EA580C"));
-            bgPaint.setStyle(Paint.Style.FILL);
-            canvas.drawCircle(size / 2.0f, size / 2.0f, size / 2.0f - 2, bgPaint);
-
+            // Android Status Bar SmallIcon wymaga przezroczystego tła (tylko kanał ALPHA).
+            // Wypełnienie kolorem powoduje wyświetlenie jednolitej białej kropki.
+            // Rysujemy same wyraziste białe cyfry na przezroczystym tle.
             Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             textPaint.setColor(Color.WHITE);
             textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
@@ -385,13 +383,13 @@ public class NightscoutFetcher {
             String displayText;
             if (isReady) {
                 displayText = "OK";
-                textPaint.setTextSize(38);
+                textPaint.setTextSize(56);
             } else if (remainingMinutes >= 100) {
-                displayText = "99+";
-                textPaint.setTextSize(30);
+                displayText = "99";
+                textPaint.setTextSize(54);
             } else {
                 displayText = String.valueOf(Math.max(1, remainingMinutes));
-                textPaint.setTextSize(remainingMinutes >= 10 ? 44 : 52);
+                textPaint.setTextSize(remainingMinutes >= 10 ? 64 : 76);
             }
 
             Paint.FontMetrics fm = textPaint.getFontMetrics();
