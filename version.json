@@ -1,10 +1,10 @@
 {
-    "version": "6.0.31",
+    "version": "6.0.32",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.31_OTA.apk",
-    "buildNumber": 146,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.32_OTA.apk",
+    "buildNumber": 147,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.31! 1) Natywny sprzętowy krokomierz Androida – bezpośredni odczyt kroków z sensora telefonu oraz synchronizacja z Google Health. 2) Zunifikowany widżet Aktywność & Trening – licznik kroków, edycja celu (🎯) i szybki start GlikoTrening. 3) Konfiguracja pojemności zbiorniczka w Apteczce (160U, 180U, 200U, 300U) i automatyczne przeliczanie pigułki na Pulpicie. 4) Błyskawiczne i stabilne przełączanie zakładek bez czarnego ekranu. 5) Automatyczna synchronizacja glikemii z Google Health Connect.",
-    "whatsNewEn": "Version 6.0.31! 1) Native Android hardware step counter – direct step tracking from device sensor & Google Health sync. 2) Unified Activity & Training widget – step counter, daily goal presets (🎯) & quick GlikoTraining start. 3) Reservoir capacity configuration in First Aid Kit (160U, 180U, 200U, 300U) & dynamic Dashboard pill calculation. 4) Instant and stable tab switching without blank screens. 5) Automatic real-time glucose synchronization with Google Health Connect.",
-    "otaRevision": 305
+    "whatsNew": "Wersja 6.0.32! 1) Dynamiczna ikona minut na górnej belce stanu Androida (Status Bar) – odliczanie w dół (15->14->1->OK) w stylu aplikacji dostawy jedzenia. 2) Dedykowany kanał alertów Androida (gliko_glucose_alerts_v25) z gwarantowanym dźwiękiem status_clear.mp3. 3) Nowy stoper przedposiłkowy – płynne odliczanie, brak ujemnego czasu i szybki przycisk „Zjadłem”. 4) Zewnętrzna odznaka liczby składników na Talerzu w prawym górnym rogu. 5) Poprawka kompilacji manifestu Health Connect.",
+    "whatsNewEn": "Version 6.0.32! 1) Dynamic status bar countdown icon – live minute ticker (15->14->1->OK) on the top Android bar like food delivery apps. 2) Dedicated Android glucose alert channel (gliko_glucose_alerts_v25) with guaranteed status_clear.mp3 sound. 3) Enhanced meal pre-bolus timer – no negative time, readiness status & instant 'Ate now' button. 4) Exterior plate count badge on the top-right corner of the main action button. 5) Fixed Health Connect manifest build merger.",
+    "otaRevision": 306
 }

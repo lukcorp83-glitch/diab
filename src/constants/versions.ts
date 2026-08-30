@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.31';
+export const CURRENT_VERSION = '6.0.32';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.32",
+    date: "2026-08-30",
+    title: "Dynamiczna Ikona Minut na Pasku Androida, Alerty MP3 gliko_glucose_alerts_v25, Naprawa Stopera i Badge Talerza",
+    changes: [
+      "Dynamiczna ikona minut na górnej belce stanu Androida (Status Bar) – odliczanie w dół (15->14->1->OK) w stylu aplikacji dostawy jedzenia",
+      "Dedykowany kanał alertów Androida (gliko_glucose_alerts_v25) z gwarantowanym dźwiękiem status_clear.mp3",
+      "Nowy stoper przedposiłkowy – płynne odliczanie, brak ujemnego czasu i szybki przycisk „Zjadłem”",
+      "Zewnętrzna odznaka liczby składników na Talerzu w prawym górnym rogu przycisku akcji",
+      "Poprawka kompilacji manifestu Health Connect w procesie tworzenia APK"
+    ]
+  },
   {
     version: "6.0.31",
     date: "2026-08-29",
@@ -316,6 +328,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.32",
+    date: "2026-08-30",
+    title: "Dynamiczna Ikona Minut na Pasku Androida, Alerty MP3 gliko_glucose_alerts_v25, Naprawa Stopera i Badge Talerza",
+    changes: [
+      "Dynamiczna ikona minut na górnej belce stanu Androida (Status Bar) – odliczanie w dół (15->14->1->OK) w stylu aplikacji dostawy jedzenia",
+      "Dedykowany kanał alertów Androida (gliko_glucose_alerts_v25) z gwarantowanym dźwiękiem status_clear.mp3",
+      "Nowy stoper przedposiłkowy – płynne odliczanie, brak ujemnego czasu i szybki przycisk „Zjadłem”",
+      "Zewnętrzna odznaka liczby składników na Talerzu w prawym górnym rogu przycisku akcji",
+      "Poprawka kompilacji manifestu Health Connect w procesie tworzenia APK"
+    ]
+  },
   {
     version: "6.0.31",
     date: "2026-08-29",
