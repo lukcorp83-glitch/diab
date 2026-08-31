@@ -719,17 +719,22 @@ export default function App() {
       } else if (cleanAction === 'add_glucose') {
         useAppStore.getState().setActiveTab('dashboard');
         useAppStore.getState().setInitialAction('add_glucose');
-      } else if (cleanAction === 'add_bolus') {
+      } else if (cleanAction === 'add_bolus' || cleanAction === 'bolus') {
         useAppStore.getState().setActiveTab('bolus');
         useAppStore.getState().setInitialAction('add_bolus');
       } else if (cleanAction === 'open_scanner' || cleanAction === 'scan') {
         useAppStore.getState().setActiveTab('meal');
         useAppStore.getState().setInitialAction('open_scanner');
       } else if (cleanAction === 'training') {
-        useAppStore.getState().setActiveTab('profile');
+        useAppStore.getState().setActiveTab('dashboard');
         useAppStore.getState().setInitialAction('training');
-      } else if (cleanAction === 'add_meal') {
+      } else if (cleanAction === 'add_meal' || cleanAction === 'meal') {
         useAppStore.getState().setActiveTab('meal');
+      } else if (['devices', 'meds', 'food', 'stats', 'simulator', 'tutorial', 'api', 'pairing', 'android', 'notifications', 'system'].includes(cleanAction)) {
+        useAppStore.getState().setActiveTab('profile');
+        useAppStore.getState().setInitialAction(cleanAction);
+      } else if (['history', 'chart', 'ai', 'assistant', 'travel', 'diets', 'games', 'achievements', 'chat', 'database'].includes(cleanAction)) {
+        useAppStore.getState().setActiveTab(cleanAction);
       }
     };
 
