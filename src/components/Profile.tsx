@@ -73,6 +73,12 @@ import {
  Download,
  Save,
  ArrowLeft,
+ ArrowRight,
+ ArrowUp,
+ ArrowDown,
+ ListOrdered,
+ LayoutGrid,
+ RotateCcw,
  Share2,
  Network,
  Bot,
@@ -240,20 +246,21 @@ export default function Profile({
  useEffect(() => {
  fetchWidgetDebug();
  }, []);
- const { data: petDataQuery } = usePetStatus(user);
- const petData = petDataQuery || {
- coins: 0,
- skin: "default",
- unlockedSkins: ["default"],
- level: 1,
- xp: 0,
- name: "Gliko",
- lastLoginDate: "",
- unlockedAccessories: ["none"],
- currentAccessory: "none",
- unlockedBackgrounds: ["room"],
- currentBackground: "room",
- };
+  const { data: petDataQuery } = usePetStatus(user);
+  const petData = {
+    coins: 0,
+    skin: "default",
+    level: 1,
+    xp: 0,
+    name: "Gliko",
+    lastLoginDate: "",
+    currentAccessory: "none",
+    currentBackground: "room",
+    ...(petDataQuery || {}),
+    unlockedSkins: (petDataQuery as any)?.unlockedSkins || ["default"],
+    unlockedAccessories: (petDataQuery as any)?.unlockedAccessories || ["none"],
+    unlockedBackgrounds: (petDataQuery as any)?.unlockedBackgrounds || ["room"],
+  };
  const [settingsLoading, setSettingsLoading] = useState(false);
  const [nsSyncLoading, setNsSyncLoading] = useState(false);
  const [updateLoading, setUpdateLoading] = useState(false);
@@ -369,7 +376,7 @@ export default function Profile({
  const [auditLoading, setAuditLoading] = useState(false);
  const [auditResult, setAuditResult] = useState<string | null>(null);
  const [tdiInputValue, setTdiInputValue] = useState<string>("");
- const [activeCategory, setActiveCategory] = useState<string | null>(null);
+ const [activeCategory, setActiveCategory] = useState<string | null>(() => initialAction || null);
  const topMenuRef = useRef<HTMLDivElement>(null);
  useEffect(() => {
  const slider = topMenuRef.current;
@@ -410,6 +417,8 @@ export default function Profile({
  };
  }, [activeCategory]);
  const [isEditingTiles, setIsEditingTiles] = useState(false);
+ const [editViewMode, setEditViewMode] = useState<'grid' | 'list'>('grid');
+ const [selectedTileForMove, setSelectedTileForMove] = useState<string | null>(null);
  const [categoryOrder, setCategoryOrder] = useState<string[]>(() => {
  const saved = localStorage.getItem("glikosense_category_order");
  return saved
@@ -608,6 +617,44 @@ export default function Profile({
  const missing = filteredCategories.filter((c) => !categoryOrder.includes(c.id));
  return [...ordered, ...missing];
  }, [settings.childMode, petData.name, categoryOrder, settings.followerMode]);
+ 
+  const moveCategory = (fromIdx: number, toIdx: number) => {
+    if (toIdx < 0 || toIdx >= orderedCategories.length || fromIdx === toIdx) return;
+    Haptics.selection();
+    const currentList = orderedCategories.map((c) => c.id);
+    const itemToMove = currentList[fromIdx];
+    const updated = [...currentList];
+    updated.splice(fromIdx, 1);
+    updated.splice(toIdx, 0, itemToMove);
+    setCategoryOrder(updated);
+  };
+
+  const moveCategoryByOffset = (fromIdx: number, offset: number) => {
+    const targetIdx = Math.max(0, Math.min(orderedCategories.length - 1, fromIdx + offset));
+    if (targetIdx !== fromIdx) {
+      moveCategory(fromIdx, targetIdx);
+    }
+  };
+
+  const moveSelectedTileTo = (targetIdx: number) => {
+    if (!selectedTileForMove) return;
+    const currentIdx = orderedCategories.findIndex((c) => c.id === selectedTileForMove);
+    if (currentIdx !== -1 && currentIdx !== targetIdx) {
+      moveCategory(currentIdx, targetIdx);
+      toast.success(i18n.t("auto.przeniesiono_kafelek", { defaultValue: "Przeniesiono kafelek na wybrane miejsce! ✨" }));
+    }
+    setSelectedTileForMove(null);
+  };
+
+  const resetCategoryOrder = () => {
+    Haptics.medium();
+    const defaultIds = orderedCategories.map((c) => c.id);
+    setCategoryOrder(defaultIds);
+    setSelectedTileForMove(null);
+    localStorage.removeItem("glikosense_category_order");
+    toast.success(i18n.t("auto.przywrocono_domyslna_kolejnosc", { defaultValue: "Przywrócono domyślny układ kafelków" }));
+  };
+ 
  const performTherapyAudit = async () => {
  if (auditLoading) return;
  setAuditLoading(true);
@@ -634,24 +681,14 @@ export default function Profile({
  });
  }
  };
- useEffect(() => {
- if (initialAction) {
- if (initialAction === "meds") setActiveCategory("meds");
- if (initialAction === "simulator") setActiveCategory("simulator");
- if (initialAction === "tutorial") setActiveCategory("tutorial");
- if (initialAction === "stats") setActiveCategory("stats");
- if (initialAction === "food") setActiveCategory("food");
- if (initialAction === "api") setActiveCategory("api");
- if (initialAction === "devices") setActiveCategory("devices");
- if (initialAction === "shop") setActiveCategory("shop");
- if (initialAction === "training") setActiveCategory("training");
- if (initialAction === "pairing") setActiveCategory("pairing");
- // clear action
- setTimeout(() => {
- onClearInitialAction && onClearInitialAction();
- }, 100);
- }
- }, [initialAction]);
+  useEffect(() => {
+    if (initialAction) {
+      setActiveCategory(initialAction);
+      setTimeout(() => {
+        onClearInitialAction && onClearInitialAction();
+      }, 100);
+    }
+  }, [initialAction]);
  const [nukeLoading, setNukeLoading] = useState(false);
  const [showRodo, setShowRodo] = useState(false);
  const [apkVersion, setApkVersion] = useState<string>("1.5.4");
@@ -1238,107 +1275,364 @@ export default function Profile({
  }} 
  className="bg-cyan-500 hover:bg-cyan-600 text-white text-[10px] font-black uppercase px-4 py-3 rounded-xl transition-all shadow-md active:scale-95"
  >
- 
  {t('auto.wyłącz', { defaultValue: i18n.t('auto.wylacz', { defaultValue: "Wyłącz" }) })}
  </button>
  </div>
  )}
- <div className="flex items-center justify-between mb-4 px-2">
- <h2 className="text-xl font-black text-slate-800 dark:text-white">
- 
- {t('auto.więcej_opcji', { defaultValue: i18n.t('auto.wiecej_opcji', { defaultValue: "Więcej opcji" }) })}
- </h2>
- <button
- onClick={() => {
- Haptics.selection();
- setIsEditingTiles(!isEditingTiles);
- }}
- className="text-xs font-bold text-accent-500 bg-accent-500/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 active:scale-95 transition-transform"
- >
- {isEditingTiles ? (
- <>{t('auto.zakończ', { defaultValue: i18n.t('auto.zakoncz', { defaultValue: "Zakończ" }) })}</>
- ) : (
- <>
- <Edit2 size={12} /> {t('auto.edytuj', { defaultValue: 'Edytuj' })}
- </>
- )}
- </button>
- </div>
- <Reorder.Group
- axis="y"
- values={categoryOrder}
- onReorder={(newOrder) => {
- Haptics.selection();
- setCategoryOrder(newOrder);
- }}
- className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
- >
- {orderedCategories.map((cat) => (
- <Reorder.Item
- key={cat.id}
- value={cat.id}
- dragListener={isEditingTiles}
- className={cn(
- "w-full relative",
- isEditingTiles && "touch-none",
- )}
- >
- <div
- onClick={() => {
- if (isEditingTiles) return;
- Haptics.selection();
- setActiveCategory(cat.id);
- }}
- className={cn(
- "w-full h-32 rounded-[1.75rem] flex flex-col p-4 transition-all duration-300 relative overflow-hidden group",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50",
- !isEditingTiles &&
- (settings.glassmorphismEnabled
- ? "hover:bg-white/10 dark:hover:bg-white/5 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
- : "hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:-translate-y-1 cursor-pointer"),
- isEditingTiles &&
- "opacity-90 scale-[0.98] cursor-grab active:cursor-grabbing border-slate-300 dark:border-slate-600",
- )}
- >
- <div
- className={cn(
- "w-10 h-10 rounded-[1rem] flex items-center justify-center text-white mb-2 shadow-md shrink-0",
- !isEditingTiles &&
- "group-hover:scale-110 transition-transform",
- cat.color,
- )}
- >
- {cat.icon}
- </div>
- <div className="text-left mt-auto">
- <div className="flex items-center gap-1.5 line-clamp-1">
- <p className="text-[11px] sm:text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white truncate">
- {cat.label}
- </p>
- {cat.id === "android" && (
- <span className="bg-indigo-500 text-white px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0 shadow-sm leading-none">
- 
- {t('auto.beta', { defaultValue: 'BETA' })}
- </span>
- )}
- </div>
- <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-600 transition-colors mt-0.5 line-clamp-2 leading-tight">
- {cat.sub}
- </p>
- </div>
- {isEditingTiles && (
- <div className="absolute top-4 right-4 text-slate-400 p-1 bg-white dark:bg-slate-900 rounded-full shadow-sm">
- <GripVertical size={16} />
- </div>
- )}
- </div>
- </Reorder.Item>
- ))}
- </Reorder.Group>
- </div>
- ) : (
+ <div className="flex flex-col gap-3 mb-4 px-2">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-black text-slate-800 dark:text-white">
+          {t('auto.więcej_opcji', { defaultValue: i18n.t('auto.wiecej_opcji', { defaultValue: "Więcej opcji" }) })}
+        </h2>
+        {isEditingTiles && (
+          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 animate-pulse">
+            Tryb edycji
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        {isEditingTiles && (
+          <>
+            {/* Przełącznik widoku: Siatka / Lista do przeciągania */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => {
+                  Haptics.selection();
+                  setEditViewMode('grid');
+                }}
+                className={cn(
+                  "p-1.5 rounded-full transition-all cursor-pointer",
+                  editViewMode === 'grid'
+                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+                title="Widok kafelków (4 kierunki)"
+              >
+                <LayoutGrid size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  Haptics.selection();
+                  setEditViewMode('list');
+                }}
+                className={cn(
+                  "p-1.5 rounded-full transition-all cursor-pointer",
+                  editViewMode === 'list'
+                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+                title="Płynna lista do przeciągania góra-dół"
+              >
+                <ListOrdered size={13} />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={resetCategoryOrder}
+              className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-full flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+              title="Przywróć domyślny układ"
+            >
+              <RotateCcw size={12} />
+              <span className="hidden sm:inline">Domyślne</span>
+            </button>
+          </>
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            Haptics.selection();
+            setIsEditingTiles(!isEditingTiles);
+            setSelectedTileForMove(null);
+          }}
+          className={cn(
+            "text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 active:scale-95 transition-all shadow-sm cursor-pointer",
+            isEditingTiles 
+              ? "text-white bg-indigo-600 hover:bg-indigo-700" 
+              : "text-accent-500 bg-accent-500/10 hover:bg-accent-500/20"
+          )}
+        >
+          {isEditingTiles ? (
+            <><Check size={12} /> {t('auto.zakończ', { defaultValue: i18n.t('auto.zakoncz', { defaultValue: "Zakończ" }) })}</>
+          ) : (
+            <><Edit2 size={12} /> {t('auto.edytuj', { defaultValue: 'Edytuj' })}</>
+          )}
+        </button>
+      </div>
+    </div>
+
+    {isEditingTiles && selectedTileForMove && (
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-3 py-2 flex items-center justify-between text-xs text-amber-700 dark:text-amber-300 animate-fadeIn">
+        <span className="font-bold">
+          📍 Wybrano kafelek. Kliknij dowolny inny kafelek, aby go tam przenieść!
+        </span>
+        <button
+          type="button"
+          onClick={() => setSelectedTileForMove(null)}
+          className="text-amber-800 dark:text-amber-200 underline text-[11px] font-black cursor-pointer ml-2"
+        >
+          Anuluj
+        </button>
+      </div>
+    )}
+  </div>
+
+  {/* Widok edycji: 1. Lista do przeciągania góra-dół (1D - brak lagów) */}
+  {isEditingTiles && editViewMode === 'list' ? (
+    <Reorder.Group
+      axis="y"
+      values={categoryOrder}
+      onReorder={(newOrder) => {
+        Haptics.selection();
+        setCategoryOrder(newOrder);
+      }}
+      className="flex flex-col gap-2.5 mb-6"
+    >
+      {orderedCategories.map((cat, idx) => (
+        <Reorder.Item
+          key={cat.id}
+          value={cat.id}
+          className="w-full relative touch-none"
+        >
+          <div
+            className={cn(
+              "w-full rounded-2xl flex items-center justify-between p-3.5 transition-all shadow-sm select-none border",
+              settings.glassmorphismEnabled
+                ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 border-white/40 dark:border-white/10"
+                : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700",
+              "cursor-grab active:cursor-grabbing hover:border-indigo-500/50"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-black text-slate-400 font-mono w-5">
+                #{idx + 1}
+              </span>
+              <div
+                className={cn(
+                  "w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0",
+                  cat.color
+                )}
+              >
+                {cat.icon}
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                  {cat.label}
+                </p>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 line-clamp-1">
+                  {cat.sub}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => moveCategory(idx, idx - 1)}
+                disabled={idx === 0}
+                className={cn(
+                  "p-1.5 rounded-lg transition-all cursor-pointer",
+                  idx === 0
+                    ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                    : "text-slate-700 dark:text-slate-200 hover:bg-indigo-500 hover:text-white active:scale-90"
+                )}
+                title="W górę"
+              >
+                <ArrowUp size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => moveCategory(idx, idx + 1)}
+                disabled={idx === orderedCategories.length - 1}
+                className={cn(
+                  "p-1.5 rounded-lg transition-all cursor-pointer",
+                  idx === orderedCategories.length - 1
+                    ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                    : "text-slate-700 dark:text-slate-200 hover:bg-indigo-500 hover:text-white active:scale-90"
+                )}
+                title="W dół"
+              >
+                <ArrowDown size={14} />
+              </button>
+              <div className="p-1.5 text-slate-400 ml-1">
+                <GripVertical size={18} />
+              </div>
+            </div>
+          </div>
+        </Reorder.Item>
+      ))}
+    </Reorder.Group>
+  ) : (
+    /* Widok edycji: 2. Siatka z 4-kierunkowym przemieszczaniem (Góra, Dół, Lewo, Prawo) oraz Kliknij i Przenieś */
+    <motion.div
+      layout
+      className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+    >
+      {orderedCategories.map((cat, idx) => {
+        const isSelectedForMove = selectedTileForMove === cat.id;
+
+        return (
+          <motion.div
+            layout
+            key={cat.id}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="w-full relative"
+          >
+            <div
+              onClick={() => {
+                if (isEditingTiles) {
+                  if (selectedTileForMove) {
+                    if (selectedTileForMove === cat.id) {
+                      setSelectedTileForMove(null);
+                    } else {
+                      moveSelectedTileTo(idx);
+                    }
+                  } else {
+                    Haptics.selection();
+                    setSelectedTileForMove(cat.id);
+                  }
+                  return;
+                }
+                Haptics.selection();
+                setActiveCategory(cat.id);
+              }}
+              className={cn(
+                "w-full h-32 rounded-[1.75rem] flex flex-col p-4 transition-all duration-300 relative overflow-hidden group select-none cursor-pointer",
+                settings.glassmorphismEnabled
+                  ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                  : "bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50",
+                !isEditingTiles &&
+                  (settings.glassmorphismEnabled
+                    ? "hover:bg-white/10 dark:hover:bg-white/5 hover:shadow-xl hover:-translate-y-1"
+                    : "hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:-translate-y-1"),
+                isEditingTiles && !isSelectedForMove &&
+                  "border-2 border-dashed border-indigo-500/40 dark:border-indigo-400/40 bg-indigo-500/5 shadow-md",
+                isSelectedForMove &&
+                  "border-2 border-amber-500 dark:border-amber-400 bg-amber-500/15 shadow-xl scale-[1.02] ring-2 ring-amber-500/40 animate-pulse"
+              )}
+            >
+              <div className="flex items-center justify-between w-full mb-2">
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-[1rem] flex items-center justify-center text-white shadow-md shrink-0 transition-transform",
+                    !isEditingTiles && "group-hover:scale-110",
+                    cat.color
+                  )}
+                >
+                  {cat.icon}
+                </div>
+
+                {isEditingTiles ? (
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    className="flex items-center gap-0.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 z-10"
+                  >
+                    {/* W lewo (-1) */}
+                    <button
+                      type="button"
+                      onClick={() => moveCategoryByOffset(idx, -1)}
+                      disabled={idx === 0}
+                      className={cn(
+                        "p-1 rounded-md transition-all cursor-pointer",
+                        idx === 0
+                          ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-indigo-500 hover:text-white active:scale-90"
+                      )}
+                      title="W lewo"
+                    >
+                      <ArrowLeft size={12} />
+                    </button>
+
+                    {/* W górę (-2 na telefonie) */}
+                    <button
+                      type="button"
+                      onClick={() => moveCategoryByOffset(idx, -2)}
+                      disabled={idx < 2}
+                      className={cn(
+                        "p-1 rounded-md transition-all cursor-pointer",
+                        idx < 2
+                          ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-indigo-500 hover:text-white active:scale-90"
+                      )}
+                      title="W górę (wiersz wyżej)"
+                    >
+                      <ArrowUp size={12} />
+                    </button>
+
+                    <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 px-0.5 font-mono">
+                      {idx + 1}
+                    </span>
+
+                    {/* W dół (+2 na telefonie) */}
+                    <button
+                      type="button"
+                      onClick={() => moveCategoryByOffset(idx, +2)}
+                      disabled={idx >= orderedCategories.length - 2}
+                      className={cn(
+                        "p-1 rounded-md transition-all cursor-pointer",
+                        idx >= orderedCategories.length - 2
+                          ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-indigo-500 hover:text-white active:scale-90"
+                      )}
+                      title="W dół (wiersz niżej)"
+                    >
+                      <ArrowDown size={12} />
+                    </button>
+
+                    {/* W prawo (+1) */}
+                    <button
+                      type="button"
+                      onClick={() => moveCategoryByOffset(idx, +1)}
+                      disabled={idx === orderedCategories.length - 1}
+                      className={cn(
+                        "p-1 rounded-md transition-all cursor-pointer",
+                        idx === orderedCategories.length - 1
+                          ? "text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-indigo-500 hover:text-white active:scale-90"
+                      )}
+                      title="W prawo"
+                    >
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="text-left mt-auto">
+                <div className="flex items-center gap-1.5 line-clamp-1">
+                  <p className="text-[11px] sm:text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white truncate">
+                    {cat.label}
+                  </p>
+                  {cat.id === "android" && (
+                    <span className="bg-indigo-500 text-white px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0 shadow-sm leading-none">
+                      {t('auto.beta', { defaultValue: 'BETA' })}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-600 transition-colors mt-0.5 line-clamp-2 leading-tight">
+                  {cat.sub}
+                </p>
+              </div>
+
+              {/* Baner szybkiego przenoszenia na kliknięcie */}
+              {isEditingTiles && selectedTileForMove && !isSelectedForMove && (
+                <div className="absolute inset-0 bg-indigo-600/90 backdrop-blur-xs flex items-center justify-center text-white font-black text-xs uppercase tracking-wider rounded-[1.75rem] shadow-inner transition-all hover:bg-indigo-600 animate-fadeIn">
+                  📍 Wstaw tutaj
+                </div>
+              )}
+            </div>
+          </motion.div>
+        );
+      })}
+    </motion.div>
+  )}
+  </div>
+  ) : (
  <div 
  ref={topMenuRef}
  onWheel={(e) => {
@@ -1472,7 +1766,7 @@ export default function Profile({
  <div className="absolute -top-12 -right-12 w-48 h-48 bg-accent-500/10 dark:bg-accent-500/20 blur-[80px] rounded-full pointer-events-none"></div>
  <div className="relative z-10">
  <div className="w-16 h-16 bg-white dark:bg-slate-900 text-accent-600 dark:text-accent-400 rounded-[1.8rem] flex items-center justify-center mx-auto mb-3 shadow-xl border-4 border-white dark:border-slate-800">
- {user.email ? (
+ {user?.email ? (
  <span className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-br from-accent-500 to-indigo-600">
  {user.email.charAt(0)}
  </span>
@@ -1485,7 +1779,7 @@ export default function Profile({
  {t('auto.twój_profil', { defaultValue: i18n.t('auto.twoj_profil', { defaultValue: "Twój Profil" }) })}
  </h2>
  <p className="text-slate-400 text-[9px] font-bold mb-3 truncate max-w-[180px] mx-auto opacity-70">
- {user.email || i18n.t('auto.uzytkownik_anonimowy', { defaultValue: i18n.t('auto.uzytkownik_anonimowy', { defaultValue: "Użytkownik Anonimowy" }) })}
+ {user?.email || i18n.t('auto.uzytkownik_anonimowy', { defaultValue: i18n.t('auto.uzytkownik_anonimowy', { defaultValue: "Użytkownik Anonimowy" }) })}
  </p>
  <div className="flex gap-2 justify-center">
  <button
@@ -3422,7 +3716,7 @@ export default function Profile({
             user={user}
             settings={settings}
             setSettings={setSettings}
- currentSugar={logs.find(l => l.type === 'glucose')?.value || null}
+            currentSugar={logs?.find(l => l.type === 'glucose')?.value || null}
  />
  )}
  {activeCategory === "api" && (

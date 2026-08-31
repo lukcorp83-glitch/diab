@@ -20,6 +20,7 @@ interface TrainingWidgetProps {
   onAction?: (action: string) => void;
   settings?: UserSettings;
   user?: any;
+  onOpenTraining?: () => void;
 }
 
 export default function TrainingWidget({
@@ -29,6 +30,7 @@ export default function TrainingWidget({
   size,
   settings,
   user,
+  onOpenTraining,
 }: TrainingWidgetProps) {
   const { t } = useTranslation();
   const [steps, setSteps] = useState<number | null>(null);
@@ -140,8 +142,12 @@ export default function TrainingWidget({
       onClick={() => {
         if (!isEditingLayout && editMode === 'none') {
           Haptics.light();
-          useAppStore.getState().setInitialAction("training");
-          setTab("profile");
+          if (onOpenTraining) {
+            onOpenTraining();
+          } else {
+            useAppStore.getState().setInitialAction("training");
+            setTab("profile");
+          }
         }
       }}
       className={cn(
@@ -162,43 +168,26 @@ export default function TrainingWidget({
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           {hasActiveTraining ? (
             <span className="text-[8px] font-black uppercase tracking-widest py-0.5 px-2 rounded-full border text-rose-500 bg-rose-500/10 border-rose-500/20 animate-pulse">
               {t('auto.live_trening', { defaultValue: 'LIVE' })}
             </span>
           ) : (
-            <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-              {/* Przycisk zmiany celu */}
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 tabular-nums">
+                {progressPercent}%
+              </span>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   Haptics.light();
                   setCustomGoalInput(stepGoal.toString());
                   setEditMode(editMode === 'goal' ? 'none' : 'goal');
                 }}
-                className={cn(
-                  "p-1 rounded-lg transition-colors",
-                  editMode === 'goal' ? "bg-emerald-500 text-white" : "text-slate-400 hover:text-emerald-500"
-                )}
-                title="Ustal cel kroków"
-              >
-                <Target size={12} />
-              </button>
-
-              {/* Przycisk korekty kroków */}
-              <button
-                type="button"
-                onClick={() => {
-                  Haptics.light();
-                  setManualInput(steps ? steps.toString() : "0");
-                  setEditMode(editMode === 'steps' ? 'none' : 'steps');
-                }}
-                className={cn(
-                  "p-1 rounded-lg transition-colors",
-                  editMode === 'steps' ? "bg-emerald-500 text-white" : "text-slate-400 hover:text-emerald-500"
-                )}
-                title="Wpisz kroki ręcznie"
+                className="p-1 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                title="Dopasuj cel kroków"
               >
                 <Edit2 size={12} />
               </button>

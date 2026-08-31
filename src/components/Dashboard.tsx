@@ -79,7 +79,7 @@ import DidYouKnowWidget from "./DidYouKnowWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
 import { dbService } from "../services/databaseService";
-import { SPORTS } from "./GlikoTraining";
+import GlikoTraining, { SPORTS } from "./GlikoTraining";
 import {
   collection,
   query,
@@ -575,9 +575,14 @@ export default function Dashboard({
   };
 
   
+  const [isTrainingModalOpen, setIsTrainingModalOpen] = useState(false);
+  
   useEffect(() => {
     if (initialAction === "add_glucose" && !settings.followerMode) {
       setIsGlucoseModalOpen(true);
+      onClearInitialAction?.();
+    } else if (initialAction === "training") {
+      setIsTrainingModalOpen(true);
       onClearInitialAction?.();
     }
   }, [initialAction, settings.followerMode]);
@@ -1321,6 +1326,7 @@ export default function Dashboard({
             onAction={onAction}
             settings={settings}
             user={user}
+            onOpenTraining={() => setIsTrainingModalOpen(true)}
           />
         );
 
@@ -1887,8 +1893,7 @@ export default function Dashboard({
               <button
                 onClick={() => {
                   Haptics.light();
-                  useAppStore.getState().setInitialAction("training");
-                  setTab("profile");
+                  setIsTrainingModalOpen(true);
                 }}
                 className="shrink-0 glass-card !p-5 flex items-center gap-4 font-black text-xs uppercase tracking-tighter shadow-md active:scale-95 transition-all border border-emerald-500/10 dark:border-emerald-500/5 dark:text-white group min-w-[140px]"
               >
@@ -2023,6 +2028,22 @@ export default function Dashboard({
         onClose={() => setIsGlucoseModalOpen(false)}
         user={user}
       />
+
+      {isTrainingModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-t-[2.5rem] sm:rounded-[2.5rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl border border-white/20 dark:border-white/5">
+            <GlikoTraining
+              isOpen={true}
+              onClose={() => setIsTrainingModalOpen(false)}
+              user={user}
+              settings={settings}
+              setSettings={undefined}
+              isGlassmorphic={settings.glassmorphismEnabled}
+              currentSugar={lastG?.value || null}
+            />
+          </div>
+        </div>
+      )}
       
       {/* 9. Floating Status Center */}
       <div className="fixed bottom-24 right-4 z-[45]">

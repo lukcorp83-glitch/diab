@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.32';
+export const CURRENT_VERSION = '6.0.33';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.33",
+    date: "2026-08-31",
+    title: "Dodawanie Posiłków przez AI na Talerz, Wielokierunkowa Edycja Kafelków i Nowe Sterowanie",
+    changes: [
+      "Asystent AI dodaje posiłki na Talerz – po komendzie głosowej lub tekstowej składniki z makroskładnikami trafiają od razu na Talerz",
+      "Nowy, 4-kierunkowy tryb edycji kafelków w zakładce Więcej (góra, dół, lewo, prawo) bez lagów i nakładania się",
+      "Funkcja 'Kliknij i Wstaw tutaj' oraz alternatywny widok listy do płynnego przeciągania kafelków",
+      "Poprawki widoczności okna powitalnego i polityki prywatności przy pierwszym uruchomieniu"
+    ]
+  },
   {
     version: "6.0.32",
     date: "2026-08-30",
@@ -328,6 +339,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.33",
+    date: "2026-08-31",
+    title: "Dodawanie Posiłków przez AI na Talerz, Wielokierunkowa Edycja Kafelków i Nowe Sterowanie",
+    changes: [
+      "Asystent AI dodaje posiłki na Talerz – po komendzie głosowej lub tekstowej składniki z makroskładnikami trafiają od razu na Talerz",
+      "Nowy, 4-kierunkowy tryb edycji kafelków w zakładce Więcej (góra, dół, lewo, prawo) bez lagów i nakładania się",
+      "Funkcja 'Kliknij i Wstaw tutaj' oraz alternatywny widok listy do płynnego przeciągania kafelków",
+      "Poprawki widoczności okna powitalnego i polityki prywatności przy pierwszym uruchomieniu"
+    ]
+  },
   {
     version: "6.0.32",
     date: "2026-08-30",

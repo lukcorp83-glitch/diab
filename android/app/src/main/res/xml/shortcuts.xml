@@ -36,4 +36,16 @@
             android:targetClass="com.glikocontrol.app.MainActivity"
             android:data="glikocontrol://action=add_meal" />
     </shortcut>
+    <shortcut
+        android:shortcutId="ai_camera"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="Aparat AI"
+        android:shortcutLongLabel="Skaner Posiłków AI">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.glikocontrol.app"
+            android:targetClass="com.glikocontrol.app.MainActivity"
+            android:data="glikocontrol://action=open_camera_vision" />
+    </shortcut>
 </shortcuts>

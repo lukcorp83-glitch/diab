@@ -25,6 +25,7 @@ import { Capacitor } from '@capacitor/core';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Virtuoso } from 'react-virtuoso';
 import { SKINS, ACCESSORIES } from '../data/petDatabase';
+import { addAiItemToPlate } from '../stores/useMealPlateStore';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -328,7 +329,8 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  for (const match of plateActionMatches) {
  try {
  const actionData = JSON.parse(match[1]);
- if (actionData.action === 'add' && actionData.item) {
+ if (actionData.action === 'add' || actionData.item) {
+ addAiItemToPlate(actionData);
  window.dispatchEvent(new CustomEvent('ai_plate_action', { detail: actionData }));
  }
  } catch (e) {

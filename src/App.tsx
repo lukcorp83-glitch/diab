@@ -40,6 +40,7 @@ import { Toaster, toast, ToastBar } from "react-hot-toast";
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
+import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore";
 import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -165,6 +166,7 @@ export default function App() {
       const handleLocalAdd = (e: any) => {
         if (!e.detail) return;
         setSqliteLogs(prev => [e.detail, ...prev]);
+        useLogsStore.getState().addLog(e.detail);
         try {
           dbService.addLog(e.detail).catch(() => {});
         } catch (err) {}
@@ -172,6 +174,7 @@ export default function App() {
       const handleLocalAddBatch = (e: any) => {
         if (!e.detail || !Array.isArray(e.detail)) return;
         setSqliteLogs(prev => [...e.detail, ...prev]);
+        useLogsStore.getState().addLogs(e.detail);
         try {
           dbService.saveLogs(e.detail).catch(() => {});
         } catch (err) {}
@@ -454,7 +457,10 @@ export default function App() {
   const changeTab = setActiveTab;
   const kickDevice = () => {};
   const getEffectiveIOB = () => getEffectiveIOBUtils(logs, pumpStatus, userSettings?.dia || 4);
-  const handleAcceptPrivacy = () => setShowPrivacyPopup(false);
+  const handleAcceptPrivacy = () => {
+    localStorage.setItem("glikocontrol_privacy_accepted", "true");
+    setShowPrivacyPopup(false);
+  };
   const handleCloseChangelog = () => setShowChangelog(false);
   const setUserSettings = () => {};
   
@@ -479,10 +485,51 @@ export default function App() {
         );
 
         let cleanText = response || "";
+
+        // 1. Obsługa plate_action (dodawanie posiłków do Talerza przez AI)
+        const plateActionMatches = Array.from(cleanText.matchAll(/<plate_action>([\s\S]*?)<\/plate_action>/g));
+        for (const match of plateActionMatches) {
+          try {
+            const parsedPlateAction = JSON.parse(match[1]);
+            addAiItemToPlate(parsedPlateAction);
+          } catch (e) {
+            console.error("Error executing plate_action from AI:", e);
+          }
+        }
+
+        // 2. Obsługa app_action (nawigacja, logi)
         const appActionMatches = Array.from(cleanText.matchAll(/<app_action>([\s\S]*?)<\/app_action>/g));
         let parsedAppAction = null;
         for (const match of appActionMatches) {
-          try { parsedAppAction = JSON.parse(match[1]); } catch (e) {}
+          try {
+            parsedAppAction = JSON.parse(match[1]);
+            if (parsedAppAction) {
+              if (parsedAppAction.action === 'navigate' || parsedAppAction.target || parsedAppAction.tab) {
+                const target = parsedAppAction.target || parsedAppAction.value || parsedAppAction.tab || parsedAppAction.action;
+                const cleanTarget = String(target).toLowerCase();
+                if (cleanTarget === 'meal' || cleanTarget === 'plate' || cleanTarget === 'talerz') setActiveTab('meal');
+                else if (cleanTarget === 'dashboard' || cleanTarget === 'pulpit') setActiveTab('dashboard');
+                else if (cleanTarget === 'chart' || cleanTarget === 'wykres') setActiveTab('chart');
+                else if (cleanTarget === 'database' || cleanTarget === 'baza') setActiveTab('database');
+                else if (cleanTarget === 'ai' || cleanTarget === 'glikosense') setActiveTab('ai');
+                else if (cleanTarget === 'profile' || cleanTarget === 'profil') setActiveTab('profile');
+                else if (cleanTarget === 'history' || cleanTarget === 'historia') setActiveTab('history');
+              } else if (parsedAppAction.action === 'add_log' && parsedAppAction.logData) {
+                const newLog = {
+                  ...parsedAppAction.logData,
+                  id: Date.now().toString(),
+                  timestamp: Date.now(),
+                  createdAt: Date.now()
+                };
+                dbService.addLog(newLog).catch(() => {});
+                useLogsStore.getState().addLog(newLog);
+                Haptics.success();
+                toast.success(`Zapisano w dzienniczku: ${newLog.notes || newLog.type}`, { icon: '📝' });
+              }
+            }
+          } catch (e) {
+            console.error("Error executing app_action from AI:", e);
+          }
         }
 
         cleanText = cleanText.replace(/<plate_action>[\s\S]*?<\/plate_action>/g, '').replace(/<app_action>[\s\S]*?<\/app_action>/g, '').trim();
@@ -517,20 +564,36 @@ export default function App() {
   };
 
   useEffect(() => {
+    const handlePlateAction = (e: any) => {
+      if (e.detail) addAiItemToPlate(e.detail);
+    };
     const handleAppAction = (e: any) => {
       const detail = e.detail;
       if (!detail) return;
-      const target = detail.target || detail.value || detail.tab || (detail.action !== 'navigate' ? detail.action : 'dashboard');
-      if (target) {
-        const cleanTarget = String(target).toLowerCase();
-        if (cleanTarget === 'meal' || cleanTarget === 'plate' || cleanTarget === 'talerz') setActiveTab('meal');
-        else if (cleanTarget === 'dashboard' || cleanTarget === 'pulpit') setActiveTab('dashboard');
-        else if (cleanTarget === 'chart' || cleanTarget === 'wykres') setActiveTab('chart');
-        else if (cleanTarget === 'database' || cleanTarget === 'baza') setActiveTab('database');
-        else if (cleanTarget === 'ai' || cleanTarget === 'glikosense') setActiveTab('ai');
-        else if (cleanTarget === 'profile' || cleanTarget === 'profil') setActiveTab('profile');
-        else if (cleanTarget === 'history' || cleanTarget === 'historia') setActiveTab('history');
-        else setActiveTab(cleanTarget);
+      if (detail.action === 'navigate' || detail.target || detail.tab) {
+        const target = detail.target || detail.value || detail.tab || (detail.action !== 'navigate' ? detail.action : 'dashboard');
+        if (target) {
+          const cleanTarget = String(target).toLowerCase();
+          if (cleanTarget === 'meal' || cleanTarget === 'plate' || cleanTarget === 'talerz') setActiveTab('meal');
+          else if (cleanTarget === 'dashboard' || cleanTarget === 'pulpit') setActiveTab('dashboard');
+          else if (cleanTarget === 'chart' || cleanTarget === 'wykres') setActiveTab('chart');
+          else if (cleanTarget === 'database' || cleanTarget === 'baza') setActiveTab('database');
+          else if (cleanTarget === 'ai' || cleanTarget === 'glikosense') setActiveTab('ai');
+          else if (cleanTarget === 'profile' || cleanTarget === 'profil') setActiveTab('profile');
+          else if (cleanTarget === 'history' || cleanTarget === 'historia') setActiveTab('history');
+          else setActiveTab(cleanTarget);
+        }
+      } else if (detail.action === 'add_log' && detail.logData) {
+        const newLog = {
+          ...detail.logData,
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          createdAt: Date.now()
+        };
+        dbService.addLog(newLog).catch(() => {});
+        useLogsStore.getState().addLog(newLog);
+        Haptics.success();
+        toast.success(`Zapisano w dzienniczku: ${newLog.notes || newLog.type}`, { icon: '📝' });
       }
     };
     const handleChangeTab = (e: any) => {
@@ -546,9 +609,11 @@ export default function App() {
         else setActiveTab(cleanTarget);
       }
     };
+    window.addEventListener('ai_plate_action', handlePlateAction);
     window.addEventListener('ai_app_action', handleAppAction);
     window.addEventListener('changeTab', handleChangeTab);
     return () => {
+      window.removeEventListener('ai_plate_action', handlePlateAction);
       window.removeEventListener('ai_app_action', handleAppAction);
       window.removeEventListener('changeTab', handleChangeTab);
     };
@@ -639,10 +704,93 @@ export default function App() {
       }
     }).then(l => { listener = l; });
 
+    // Obsługa kliknięć w widgety Androida i skróty aplikacji (Deep Links & Native Shortcuts)
+    const handleActionRouting = (action: string) => {
+      if (!action) return;
+      const cleanAction = action.trim().toLowerCase();
+      
+      if (cleanAction === 'open_camera_vision' || cleanAction === 'ai_camera') {
+        useAppStore.getState().setActiveTab('meal');
+        useAppStore.getState().setInitialAction('open_camera_vision');
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('open_meal_camera'));
+        }, 150);
+      } else if (cleanAction === 'add_glucose') {
+        useAppStore.getState().setActiveTab('dashboard');
+        useAppStore.getState().setInitialAction('add_glucose');
+      } else if (cleanAction === 'add_bolus') {
+        useAppStore.getState().setActiveTab('bolus');
+        useAppStore.getState().setInitialAction('add_bolus');
+      } else if (cleanAction === 'open_scanner' || cleanAction === 'scan') {
+        useAppStore.getState().setActiveTab('meal');
+        useAppStore.getState().setInitialAction('open_scanner');
+      } else if (cleanAction === 'training') {
+        useAppStore.getState().setActiveTab('profile');
+        useAppStore.getState().setInitialAction('training');
+      } else if (cleanAction === 'add_meal') {
+        useAppStore.getState().setActiveTab('meal');
+      }
+    };
+
+    // 0. Sprawdź oczekującą akcję przez Plugin (Natywny bufor Androida)
+    if (Capacitor.isNativePlatform()) {
+      const WidgetUpdater = registerPlugin<any>('WidgetUpdater');
+      WidgetUpdater.getPendingAction?.().then((res: any) => {
+        if (res?.action) {
+          handleActionRouting(res.action);
+        }
+      }).catch(() => {});
+
+      WidgetUpdater.addListener?.('nativeShortcut', (data: any) => {
+        if (data?.action) {
+          handleActionRouting(data.action);
+        }
+      });
+    }
+
+    // 1. Sprawdź oczekującą akcję ze startu aplikacji (Cold Start)
+    if ((window as any).__pendingNativeAction) {
+      handleActionRouting((window as any).__pendingNativeAction);
+      delete (window as any).__pendingNativeAction;
+    }
+
+    // 2. Nasłuchuj na zdarzenie z WebView Androida
+    const handleNativeShortcutEvent = (e: any) => {
+      if (e.detail) {
+        handleActionRouting(e.detail);
+      }
+    };
+    window.addEventListener('native_shortcut_action', handleNativeShortcutEvent);
+
+    // 3. Nasłuchuj na Capacitor appUrlOpen (Deep links)
+    let urlListener: any;
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener('appUrlOpen', (data) => {
+        if (data && data.url) {
+          try {
+            const urlObj = new URL(data.url);
+            const action = urlObj.searchParams.get('action') || (data.url.includes('action=') ? data.url.split('action=')[1]?.split('&')[0] : null);
+            if (action) {
+              handleActionRouting(action);
+            }
+          } catch (e) {
+            if (data.url.includes('action=')) {
+              const action = data.url.split('action=')[1]?.split('&')[0];
+              if (action) handleActionRouting(action);
+            }
+          }
+        }
+      }).then(l => { urlListener = l; });
+    }
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('native_shortcut_action', handleNativeShortcutEvent);
       if (listener && listener.remove) {
         listener.remove();
+      }
+      if (urlListener && urlListener.remove) {
+        urlListener.remove();
       }
     };
   }, []);
@@ -812,6 +960,16 @@ export default function App() {
     const interval = setInterval(updateProgress, 60000); // Aktualizacja co minutę
     return () => clearInterval(interval);
   }, [logs, setMealProgress]);
+
+  // Automatyczny popup Polityki Prywatności (RODO) przy pierwszym uruchomieniu
+  useEffect(() => {
+    if (user) {
+      const privacyAccepted = localStorage.getItem("glikocontrol_privacy_accepted");
+      if (privacyAccepted !== "true") {
+        setShowPrivacyPopup(true);
+      }
+    }
+  }, [user, setShowPrivacyPopup]);
 
   // Automatyczny popup nowości (Changelog)
   useEffect(() => {

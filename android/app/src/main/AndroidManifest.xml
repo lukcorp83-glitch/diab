@@ -61,12 +61,11 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/glucose_widget_info" />
         </receiver>
-        <receiver android:name=".GlucoseControlWidget" android:exported="true">
+        <receiver android:name=".AiCameraWidget" android:exported="true" android:label="Aparat AI (Szybki skrót)">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.glikocontrol.app.ACTION_AUTO_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/glucose_control_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/ai_camera_widget_info" />
         </receiver>
 
         <receiver android:name=".GlucoseFlowerWidget" android:exported="true" android:label="Cukier (Kwiat 2x2)">

@@ -119,4 +119,30 @@ public class WidgetUpdaterPlugin extends Plugin {
         ret.put("supported", false);
         call.resolve(ret);
     }
+
+    public static String pendingShortcutAction = null;
+    private static WidgetUpdaterPlugin instance = null;
+
+    @Override
+    public void load() {
+        super.load();
+        instance = this;
+    }
+
+    public static void setPendingAction(String action) {
+        pendingShortcutAction = action;
+        if (instance != null) {
+            JSObject data = new JSObject();
+            data.put("action", action);
+            instance.notifyListeners("nativeShortcut", data);
+        }
+    }
+
+    @PluginMethod
+    public void getPendingAction(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("action", pendingShortcutAction);
+        pendingShortcutAction = null;
+        call.resolve(ret);
+    }
 }

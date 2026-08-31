@@ -833,56 +833,13 @@ public class NightscoutFetcher {
                 widgetManager.updateAppWidget(pillIds, views);
             }
 
-            // --- Aktualizacja dużego widżetu kontrolnego (4x3/3x2) ---
-            ComponentName controlWidgetName = new ComponentName(context, GlucoseControlWidget.class);
-            int[] controlWidgetIds = widgetManager.getAppWidgetIds(controlWidgetName);
-            if (controlWidgetIds != null && controlWidgetIds.length > 0) {
-                RemoteViews ctrlViews = new RemoteViews(context.getPackageName(), R.layout.glucose_control_widget);
-                ctrlViews.setTextViewText(R.id.widget_glucose_val, glucose);
-                ctrlViews.setTextColor(R.id.widget_glucose_val, color);
-                ctrlViews.setTextViewText(R.id.widget_glucose_arrow, arrow);
-                ctrlViews.setTextColor(R.id.widget_glucose_arrow, color);
-                ctrlViews.setTextViewText(R.id.widget_glucose_delta, deltaStr + " mg/dL");
-                ctrlViews.setTextViewText(R.id.widget_glucose_time, time);
-
-                if (chartBitmap != null) {
-                    ctrlViews.setImageViewBitmap(R.id.widget_chart, chartBitmap);
+            // --- Aktualizacja widżetu skrótu Aparat AI (1x1) ---
+            ComponentName cameraWidgetName = new ComponentName(context, AiCameraWidget.class);
+            int[] cameraWidgetIds = widgetManager.getAppWidgetIds(cameraWidgetName);
+            if (cameraWidgetIds != null && cameraWidgetIds.length > 0) {
+                for (int cId : cameraWidgetIds) {
+                    AiCameraWidget.updateAppWidget(context, widgetManager, cId);
                 }
-
-                // Kliknięcie na wartość glukozy otwiera główną aplikację
-                Intent intentMain = new Intent(context, MainActivity.class);
-                PendingIntent piMain = PendingIntent.getActivity(context, 10, intentMain, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                ctrlViews.setOnClickPendingIntent(R.id.widget_glucose_val, piMain);
-
-                // Button 1: Add Glucose
-                Intent intentGlucose = new Intent(context, MainActivity.class);
-                intentGlucose.setAction(Intent.ACTION_VIEW);
-                intentGlucose.setData(android.net.Uri.parse("glikocontrol://action=add_glucose"));
-                PendingIntent piGlucose = PendingIntent.getActivity(context, 11, intentGlucose, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                ctrlViews.setOnClickPendingIntent(R.id.widget_btn_glucose, piGlucose);
-
-                // Button 2: Add Bolus
-                Intent intentBolus = new Intent(context, MainActivity.class);
-                intentBolus.setAction(Intent.ACTION_VIEW);
-                intentBolus.setData(android.net.Uri.parse("glikocontrol://action=add_bolus"));
-                PendingIntent piBolus = PendingIntent.getActivity(context, 12, intentBolus, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                ctrlViews.setOnClickPendingIntent(R.id.widget_btn_bolus, piBolus);
-
-                // Button 3: Open Scanner
-                Intent intentScanner = new Intent(context, MainActivity.class);
-                intentScanner.setAction(Intent.ACTION_VIEW);
-                intentScanner.setData(android.net.Uri.parse("glikocontrol://action=open_scanner"));
-                PendingIntent piScanner = PendingIntent.getActivity(context, 13, intentScanner, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                ctrlViews.setOnClickPendingIntent(R.id.widget_btn_scanner, piScanner);
-
-                // Button 4: Plate Analysis (Analiza)
-                Intent intentCamera = new Intent(context, MainActivity.class);
-                intentCamera.setAction(Intent.ACTION_VIEW);
-                intentCamera.setData(android.net.Uri.parse("glikocontrol://action=open_camera_vision"));
-                PendingIntent piCamera = PendingIntent.getActivity(context, 14, intentCamera, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                ctrlViews.setOnClickPendingIntent(R.id.widget_btn_camera, piCamera);
-
-                widgetManager.updateAppWidget(controlWidgetIds, ctrlViews);
             }
 
             // --- Aktualizacja powiadomienia w pasku (Powiadomienie) ---

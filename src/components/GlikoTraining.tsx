@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Activity, Dumbbell, Bike, Waves, Mountain, Wind, Play, Clock, Info, Footprints, Music, Trophy, Target, History, Calendar,
-  Flame, CircleDot, Sun, Gamepad2, GraduationCap, Zap, Sparkles, PartyPopper
+  Flame, CircleDot, Sun, Gamepad2, GraduationCap, Zap, Sparkles, PartyPopper, ArrowLeft
 } from 'lucide-react';
 import { cn, getEffectiveUid } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
@@ -15,6 +15,8 @@ import { Trash2, TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { toast } from "react-hot-toast";
+import { dbService } from '../services/databaseService';
+import { useLogsStore } from '../stores/useLogsStore';
 
 interface GlikoTrainingProps {
   isOpen?: boolean;
@@ -232,34 +234,76 @@ export const SPORTS = [
 ];
 
 const TrainingChart = ({ user, startTime, endTime, startSugar, endSugar }: { user: any, startTime: number, endTime?: number, startSugar?: number, endSugar?: number }) => {
- const { t } = useTranslation();
- const [data, setData] = useState<any[]>([]);
- const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
+  const [data, setData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
- useEffect(() => {
- const fetchData = async () => {
- if (!user) return;
- const logsRef = collection(db, 'users', getEffectiveUid(user), 'logs');
- const q = query(
- logsRef, 
- where('type', '==', 'glucose'),
- where('timestamp', '>=', startTime - (15 * 60 * 1000)), // 15 mins before
- where('timestamp', '<=', (endTime || Date.now()) + (15 * 60 * 1000)), // 15 mins after
- orderBy('timestamp', 'asc')
- );
+  useEffect(() => {
+    let isMounted = true;
+    const fetchData = async () => {
+      try {
+        const tMin = startTime - (15 * 60 * 1000);
+        const tMax = (endTime || Date.now()) + (15 * 60 * 1000);
 
- const snapshot = await getDocs(q);
- const points = snapshot.docs.map(doc => ({
- time: new Date(doc.data().timestamp).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
- value: doc.data().value
- }));
- 
- setData(points);
- setIsLoading(false);
- };
+        // 1. Sprawdź najpierw pamięć podręczną Zustand / SQLite store (błyskawiczne i offline)
+        const storeLogs = useLogsStore.getState().logs || [];
+        const localMatches = storeLogs.filter((l: any) => 
+          l.type === 'glucose' && 
+          typeof l.value === 'number' && 
+          l.timestamp >= tMin && 
+          l.timestamp <= tMax
+        );
 
- fetchData();
- }, [user, startTime, endTime]);
+        if (localMatches.length >= 2) {
+          const sorted = [...localMatches].sort((a, b) => a.timestamp - b.timestamp);
+          const points = sorted.map((doc: any) => ({
+            time: new Date(doc.timestamp).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+            value: doc.value
+          }));
+          if (isMounted) {
+            setData(points);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        // 2. Fallback do Firestore bez konieczności tworzenia indeksu kompozytowego (filtrowanie w pamięci)
+        if (user) {
+          const logsRef = collection(db, 'users', getEffectiveUid(user), 'logs');
+          const q = query(
+            logsRef,
+            orderBy('timestamp', 'desc'),
+            limit(150)
+          );
+          const snapshot = await getDocs(q);
+          const matchingDocs = snapshot.docs
+            .map(d => d.data())
+            .filter((d: any) => d.type === 'glucose' && typeof d.value === 'number' && d.timestamp >= tMin && d.timestamp <= tMax)
+            .sort((a: any, b: any) => a.timestamp - b.timestamp);
+
+          const points = matchingDocs.map((doc: any) => ({
+            time: new Date(doc.timestamp).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+            value: doc.value
+          }));
+
+          if (isMounted) {
+            setData(points);
+          }
+        }
+      } catch (err) {
+        console.warn("Błąd ładowania punktów glikemii dla treningu:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+    return () => {
+      isMounted = false;
+    };
+  }, [user, startTime, endTime]);
 
  if (isLoading) return <div className="h-20 flex items-center justify-center opacity-30"><Activity className="animate-pulse" size={16} /></div>;
  if (data.length < 2) return null;
@@ -355,9 +399,10 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
   const handleStartTraining = async () => {
     Haptics.success();
     
+    const now = Date.now();
     const trainingData = {
       sportId: selectedSportLog,
-      startTime: Date.now(),
+      startTime: now,
       duration: parseInt(duration) || 30,
       intensity,
       startSugar: currentSugar
@@ -377,18 +422,28 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
 
     const sportName = SPORTS.find(s => s.id === selectedSportLog)?.name || 'Trening';
 
-    // 2. Dodaj wpis do głównej historii lokalnej (logs)
-    window.dispatchEvent(new CustomEvent('localLogAdd', {
-      detail: {
-        id: 'training_' + Date.now(),
-        type: 'activity',
-        value: parseInt(duration) || 30,
-        timestamp: Date.now(),
-        notes: i18n.t('auto.start_treningu_var0_inten', { defaultValue: "Start treningu: {{var0}} (Intensywność: {{var1}}). Cukier: {{var2}} mg/dL", var0: sportName, var1: intensity === 'low' ? 'Lekka' : intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka', var2: currentSugar || '---' }),
-        sportId: selectedSportLog,
-        intensity: intensity
-      }
-    }));
+    const startLog = {
+      id: 'training_' + now,
+      type: 'activity',
+      value: parseInt(duration) || 30,
+      timestamp: now,
+      createdAt: new Date(now).toISOString(),
+      notes: i18n.t('auto.start_treningu_var0_inten', { 
+        defaultValue: "Start treningu: {{var0}} (Intensywność: {{var1}}). Cukier: {{var2}} mg/dL", 
+        var0: sportName, 
+        var1: intensity === 'low' ? 'Lekka' : intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka', 
+        var2: currentSugar || '---' 
+      }),
+      sportId: selectedSportLog,
+      intensity: intensity,
+      source: 'glikotrening'
+    };
+
+    // 2. Dodaj wpis do głównej bazy lokalnej (SQLite) i wyślij event
+    try {
+      await dbService.saveLog(startLog);
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('localLogAdd', { detail: startLog }));
 
     toast.success("Rozpoczęto trening! 🏃‍♂️");
 
@@ -413,13 +468,12 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
 
         const logsRef = collection(db, 'users', uid, 'logs');
         await addDoc(logsRef, {
-          type: 'activity',
-          value: parseInt(duration) || 30,
-          timestamp: Date.now(),
-          notes: i18n.t('auto.start_treningu_var0_inten', { defaultValue: "Start treningu: {{var0}} (Intensywność: {{var1}}). Cukier: {{var2}} mg/dL", var0: sportName, var1: intensity === 'low' ? 'Lekka' : intensity === 'medium' ? i18n.t('auto.srednia', { defaultValue: "Średnia" }) : 'Wysoka', var2: currentSugar || '---' }),
-          sportId: selectedSportLog,
-          intensity: intensity
+          ...startLog,
+          createdAt: serverTimestamp()
         });
+
+        queryClient.invalidateQueries({ queryKey: ['glikoTraining'] });
+        queryClient.invalidateQueries({ queryKey: ['fbLogs'] });
       } catch (err) {
         console.warn("Błąd zapisu treningu w chmurze:", err);
       }
@@ -428,7 +482,37 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
 
   const handleEndTraining = async () => {
     Haptics.success();
+    const now = Date.now();
+    const currentActive = activeTraining || localActiveTraining;
     
+    const actualDuration = currentActive?.startTime 
+      ? Math.max(1, Math.round((now - currentActive.startTime) / 60000))
+      : (currentActive?.duration || 30);
+    
+    const sportName = SPORTS.find(s => s.id === currentActive?.sportId)?.name || 'Trening';
+    const startSugarVal = currentActive?.startSugar ? `${currentActive.startSugar}` : '---';
+    const endSugarVal = currentSugar ? `${currentSugar}` : '---';
+
+    const endLog = {
+      id: 'training_end_' + now,
+      type: 'activity',
+      value: actualDuration,
+      timestamp: now,
+      createdAt: new Date(now).toISOString(),
+      notes: `Trening ukończony: ${sportName} (${actualDuration} min). Cukier: ${startSugarVal} ➔ ${endSugarVal} mg/dL`,
+      sportId: currentActive?.sportId,
+      intensity: currentActive?.intensity,
+      isCompleted: true,
+      source: 'glikotrening'
+    };
+
+    // 1. Zapisz wpis ukończenia w SQLite i wyślij zdarzenie
+    try {
+      await dbService.saveLog(endLog);
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('localLogAdd', { detail: endLog }));
+
+    // 2. Czyść stan aktywnego treningu
     setLocalActiveTraining(null);
     if (setSettings) {
       setSettings((prev: any) => ({
@@ -440,17 +524,19 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
       localStorage.removeItem('gliko_active_training');
     } catch (e) {}
 
-    toast.success("Trening zakończony i zapisany! 🏆");
+    toast.success("Trening zakończony i zapisany w historii! 🏆");
 
-    if (user && activeTraining) {
+    // 3. Zaktualizuj chmurę
+    if (user && currentActive) {
       try {
         const uid = getEffectiveUid(user);
-        if (activeTraining.trainingId) {
-          const trainingRef = doc(db, 'users', uid, 'trainings', activeTraining.trainingId);
+        if (currentActive.trainingId) {
+          const trainingRef = doc(db, 'users', uid, 'trainings', currentActive.trainingId);
           await setDoc(trainingRef, {
-            endTime: Date.now(),
+            endTime: now,
             endSugar: currentSugar,
-            isCompleted: true
+            isCompleted: true,
+            actualDuration
           }, { merge: true });
         }
 
@@ -458,6 +544,15 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
         await setDoc(settingsRef, {
           activeTraining: null
         }, { merge: true });
+
+        const logsRef = collection(db, 'users', uid, 'logs');
+        await addDoc(logsRef, {
+          ...endLog,
+          createdAt: serverTimestamp()
+        });
+
+        queryClient.invalidateQueries({ queryKey: ['glikoTraining'] });
+        queryClient.invalidateQueries({ queryKey: ['fbLogs'] });
       } catch (err) {
         console.warn("Błąd zakończenia treningu w chmurze:", err);
       }
@@ -749,6 +844,7 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  </div>
 
  <TrainingChart 
+ user={user}
  startTime={item.startTime}
  endTime={item.endTime} 
  startSugar={item.startSugar} 
@@ -780,10 +876,10 @@ export default function GlikoTraining({ isOpen, onClose, isGlassmorphic, user, s
  Haptics.light();
  setSelectedSportInfo(null);
  }}
- className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1 transition-colors"
+ className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-white/10 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/20 transition-all active:scale-95 uppercase tracking-wider"
  >
- 
- {t('auto.larr_wróć_do_listy', { defaultValue: i18n.t('auto.larr_wroc_do_listy', { defaultValue: "&larr; Wróć do listy" }) })}
+ <ArrowLeft size={16} />
+ <span>{t('auto.wroc_do_listy', { defaultValue: "Wróć do dyscyplin" })}</span>
  </button>
 
  {(() => {

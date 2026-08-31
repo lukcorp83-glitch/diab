@@ -1,10 +1,10 @@
 {
-    "version": "6.0.32",
+    "version": "6.0.33",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.32_OTA.apk",
-    "buildNumber": 147,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.33_OTA.apk",
+    "buildNumber": 148,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.32! 1) Dynamiczna ikona minut na górnej belce stanu Androida (Status Bar) – odliczanie w dół (15->14->1->OK) w stylu aplikacji dostawy jedzenia. 2) Dedykowany kanał alertów Androida (gliko_glucose_alerts_v25) z gwarantowanym dźwiękiem status_clear.mp3. 3) Nowy stoper przedposiłkowy – płynne odliczanie, brak ujemnego czasu i szybki przycisk „Zjadłem”. 4) Zewnętrzna odznaka liczby składników na Talerzu w prawym górnym rogu. 5) Poprawka kompilacji manifestu Health Connect.",
-    "whatsNewEn": "Version 6.0.32! 1) Dynamic status bar countdown icon – live minute ticker (15->14->1->OK) on the top Android bar like food delivery apps. 2) Dedicated Android glucose alert channel (gliko_glucose_alerts_v25) with guaranteed status_clear.mp3 sound. 3) Enhanced meal pre-bolus timer – no negative time, readiness status & instant 'Ate now' button. 4) Exterior plate count badge on the top-right corner of the main action button. 5) Fixed Health Connect manifest build merger.",
-    "otaRevision": 306
+    "whatsNew": "Wersja 6.0.33! 1) Asystent AI dodaje posiłki na Talerz – po komendzie głosowej lub tekstowej składniki z makroskładnikami trafiają od razu na Talerz. 2) Nowy, 4-kierunkowy tryb edycji kafelków w zakładce Więcej (góra, dół, lewo, prawo) bez lagów i nakładania się. 3) Funkcja 'Kliknij i Wstaw tutaj' oraz alternatywny widok listy do płynnego przeciągania kafelków. 4) Poprawki widoczności okna powitalnego i polityki prywatności przy pierwszym uruchomieniu.",
+    "whatsNewEn": "Version 6.0.33! 1) AI Assistant adds meals directly to Plate – voice and text commands instantly populate ingredients with complete macros. 2) Redesigned 4-directional tile editor in the More tab (up, down, left, right) with 0 lag and no overlaps. 3) 'Click & Insert Here' feature and alternative vertical drag-and-drop list view for smooth reordering. 4) Fixed onboarding welcome and privacy policy modal triggers on initial launch.",
+    "otaRevision": 307
 }

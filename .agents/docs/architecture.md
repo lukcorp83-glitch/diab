@@ -8,10 +8,14 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.30.
 - `src/components/GlucoseChart.tsx` - Wdrożono dynamiczną pigułkę aktualnego cukru na prawej krawędzi (styl Dexcom/TradingView) ze 100% zachowaniem pełnej szerokości wykresu.
 - `src/services/preBolusService.ts` & `android/app/src/main/java/com/glikocontrol/app/NightscoutFetcher.java` - Automatyczny stoper przedposiłkowy na pasku stanu Androida odliczający sekunda po sekundzie z generatorem pigułki graficznej (`createPillBadgeBitmap`) i wyeliminowanymi różnicami stref czasowych.
-- `src/components/GlikoTraining.tsx` & `src/components/Dashboard.tsx` - Poprawiono zatrzymywanie treningu z poziomu pulpitu, usuwanie treningów z historii w chmurze i pamięci podręcznej (`queryClient.setQueryData`) oraz wyeliminowano błąd przysłaniania funkcji `t()`.
+- `src/components/GlikoTraining.tsx` & `src/components/Dashboard.tsx` - Pełny i trwały zapis treningów (start oraz zakończenie z czasem trwania i cukrami start/koniec) bezpośrednio w SQLite (`dbService.saveLog`), zdarzeniu `localLogAdd` oraz chmurze Firestore (`users/{uid}/logs` i `users/{uid}/trainings`). Automatyczne odświeżanie pamięci podręcznej React Query (`invalidateQueries`) i pełna widoczność w zakładce Historia.
 - `src/hooks/useGlucoseAlerts.ts` & `src/services/notificationService.ts` & `NotificationBridgePlugin.java` - Pełna synchronizacja preferencji powiadomień (hypo, hyper) oraz odtwarzania dźwięków MP3 z systemem Android i profilem użytkownika.
 - `src/components/app/NavButton.tsx` & `src/components/app/AppLayout.tsx` - Zablokowano niepożądane zaznaczanie tekstu na dolnej belce nawigacyjnej (`select-none`).
 - `public/CNAME` & `version.json` - Wdrożono oficjalną domenę `glikocontrol.pl` z pełnym wsparciem Cloudflare SSL/HSTS oraz metatagami SEO w `index.html`.
+
+## Główne Widżety Androida (Ekran Główny) i Deep Linki
+- `android/app/src/main/java/com/glikocontrol/app/AiCameraWidget.java` & `ai_camera_widget.xml` - Nowy, natywny widżet szybkiego skrótu do Aparatu AI (1x1) na ekranie głównym Androida. Kliknięcie natychmiast uruchamia aplikację i otwiera moduł analizy posiłków AI (`glikocontrol://action=open_camera_vision` -> `open_meal_camera`).
+- `android/app/src/main/java/com/glikocontrol/app/NightscoutFetcher.java` & `MainActivity.java` & `src/App.tsx` - Usunięto przestarzały widżet 3x2 (`GlucoseControlWidget`). Zaimplementowano pancerne przekazywanie intencji (`native_shortcut_action`, `CapacitorApp.addListener('appUrlOpen')`, `__pendingNativeAction`), co całkowicie wyeliminowało problem czarnego ekranu przy otwieraniu aplikacji z poziomu widżetów Androida i skrótów launchera.
 
 ## Główne Widżety Pulpitu i Nowy Design System
 - `src/components/dashboard/widgets/SavedMealsWidget.tsx` - Nowy horyzontalny widżet „Zapisane Posiłki & Przepisy” na Pulpicie: przewijany stos kart ze szklistym tłem (*glassmorphism*), badge'ami diet, szczegółowymi makroskładnikami (W, B, T, kcal), 1-Click wrzucaniem całego dania na Talerz oraz pełnym modalem podglądu przepisu kulinarnego wprost z Pulpitu.
@@ -97,11 +101,19 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
   - Czyste formatowanie i zaokrąglenie liczb: wyeliminowano ułamki dziesiętne z powiadomień Web/PWA i toastów (np. `15 min (4j)` zamiast `14.833333333333334 min (4.000000001j)`).
   - Planuje natywne powiadomienie alarmowe z dźwiękiem `status_clear.mp3` na dokładną godzinę zakończenia odliczania (`targetTime`) w systemie Android.
   - Zabezpieczenie przed ujemnym czasem: po upływie czasu zatrzymuje się na statusie `Gotowe / Możesz jeść!`, a natywny chronometr Androida jest automatycznie zamieniany na alert gotowości do posiłku.
-- `src/components/MealPlate.tsx` & `src/components/MealPlate/ProductSearch.tsx` - Kompozytor Talerza i Wyszukiwarka:
-  - Bezpośrednie dodawanie gotowych dań (zestawów / posiłków z bazy i widżetu) z automatyczną normalizacją składników, nadaniem unikalnych identyfikatorów `plateItemId` oraz funkcyjnym `setPlate((prev) => [...prev, ...items])`.
+- `src/components/Profile.tsx` - Moduł Profilu i zakładki „Więcej”:
+  - Kafelki kategorii i modułów ułożone w responsywną siatkę 2D.
+  - **Tryb Edycji Kafelków (Wielokierunkowy & Lista Drag&Drop)**:
+    - **Siatka (Widok 2D)**: Każdy kafelek posiada 4-kierunkowy minipad (`▲` góra/wiersz wyżej, `▼` dół/wiersz niżej, `◀` lewo, `▶` prawo) oraz tryb **"Kliknij i Wstaw tutaj"** (kliknięcie kafelka podświetla go, a kliknięcie dowolnego innego miejsca natychmiast go tam przenosi).
+    - **Lista do Przeciągania (Widok 1D)**: Przełącznik w nagłówku umożliwia płynne przeciąganie kafelków w pionie (Góra-Dół) z uchwytami `GripVertical` w 60 FPS bez jakichkolwiek lagów.
+    - Przycisk `Domyślne` pozwala w ułamku sekundy przywrócić fabryczny układ.
+- `src/stores/useMealPlateStore.ts` & `src/components/MealPlate.tsx` - Kompozytor Talerza i Integracja AI:
+  - Przechowuje składniki na Talerzu (`plate: PlateItem[]`), wyszukiwanie produktów oraz akcje dodawania/usuwania.
+  - **Integracja z Asystentem AI (`addAiItemToPlate`)**: Asystent głosowy i tekstowy (Gemini) po komendzie np. *"dodaj jabłko do talerza"* generuje tag `<plate_action>`, który jest natychmiast parsowany i dodaje produkt (z gramaturą, węglowodanami, białkiem, tłuszczem, kaloriami i unikalnym `plateItemId`) bezpośrednio do Talerza z powiadomieniem toast i haptyką sukcesu.
+- `src/components/MealPlate.tsx` & `src/components/MealPlate/ProductSearch.tsx` - Wyszukiwarka i Baza Żywności:
+  - Wyszukiwarka produktów z lokalnej bazy + zdalnej FatSecret / OpenFoodFacts.
+  - Normalizacja i zapobieganie zduplikowanym kluczom w animacjach Framer Motion (wszystkie modale posiadają unikalne `key="modal-..."`).
   - Wyeliminowano ostrzeżenia React o zduplikowanych pustych kluczach `""` w listach z `AnimatePresence`.
 - `src/components/app/DynamicActionCapsule.tsx` - Główny pływający przycisk akcji (FAB / Dynamic Action Capsule):
-  - Klasyczna zewnętrzna odznaka (Badge) liczby składników na Talerzu: umieszczona na zewnętrznej prawej górnej krawędzi okrągłego przycisku (`-top-1.5 -right-1.5`), z białą obwódką i cieniem (dokładnie jak w aplikacjach mobilnych/iOS/Android), bez nachodzenia na samą ikonę sztućców.
+  - Klasyczna zewnętrzna odznaka (Badge) liczby składników na Talerze: umieszczona na zewnętrznej prawej górnej krawędzi okrągłego przycisku (`-top-1.5 -right-1.5`), z białą obwódką i cieniem (dokładnie jak w aplikacjach mobilnych/iOS/Android), bez nachodzenia na samą ikonę sztućców.
   - Płynne morfowanie w stany: Hypo Alert, Pre-Bolus Timer (z bezpośrednim przyciskiem „Zjadłem”), Unlinked Carbs oraz Meal Absorbing (wskaźnik trawienia %).
-
-

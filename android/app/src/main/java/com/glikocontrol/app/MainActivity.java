@@ -200,6 +200,12 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        handleShortcutIntent(getIntent());
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
@@ -212,14 +218,15 @@ public class MainActivity extends BridgeActivity {
         if (dataStr.contains("action=")) {
             String[] parts = dataStr.split("action=");
             if (parts.length > 1) {
-                final String action = parts[1];
-                final WebView webView = getBridge().getWebView();
+                final String action = parts[1].replaceAll("[^a-zA-Z0-9_]", "");
+                WidgetUpdaterPlugin.setPendingAction(action);
+                final WebView webView = getBridge() != null ? getBridge().getWebView() : null;
                 if (webView != null) {
                     webView.post(new Runnable() {
                         @Override
                         public void run() {
                             webView.evaluateJavascript(
-                                "window.dispatchEvent(new CustomEvent('native_shortcut_action', { detail: '" + action + "' }));",
+                                "window.__pendingNativeAction = '" + action + "'; window.dispatchEvent(new CustomEvent('native_shortcut_action', { detail: '" + action + "' }));",
                                 null
                             );
                         }

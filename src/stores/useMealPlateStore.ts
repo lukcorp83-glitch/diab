@@ -53,3 +53,43 @@ export const useMealPlateStore = create<MealPlateState>()(
     }
   )
 );
+
+export function addAiItemToPlate(actionData: any) {
+  if (!actionData) return;
+  const rawItem = actionData.item || actionData;
+  if (!rawItem || !rawItem.name) return;
+
+  const weight = Number(rawItem.weight) || 100;
+  const carbs = Number(rawItem.carbs) || 0;
+  const protein = Number(rawItem.protein) || 0;
+  const fat = Number(rawItem.fat) || 0;
+  const kcal = Number(rawItem.kcal) || Math.round(carbs * 4 + protein * 4 + fat * 9);
+
+  const plateItem: PlateItem = {
+    id: rawItem.id || `ai-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    plateItemId: `plate-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+    name: String(rawItem.name),
+    carbs,
+    protein,
+    fat,
+    kcal,
+    weight,
+    fiber: Number(rawItem.fiber) || 0,
+    gi: rawItem.gi ? Number(rawItem.gi) : undefined,
+    gl: rawItem.gl ? Number(rawItem.gl) : undefined,
+    servingSize: Number(rawItem.servingSize) || 100,
+    category: rawItem.category || 'Inne',
+  };
+
+  useMealPlateStore.getState().addToPlate(plateItem);
+  try {
+    import('../lib/haptics').then(({ Haptics }) => Haptics.success()).catch(() => {});
+    import('react-hot-toast').then(({ toast }) => {
+      toast.success(`🍽️ Dodano do Talerza: ${plateItem.name} (${plateItem.weight}g)`, {
+        icon: '🍽️',
+        duration: 4000,
+      });
+    }).catch(() => {});
+  } catch (e) {}
+}
+

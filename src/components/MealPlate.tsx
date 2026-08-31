@@ -1025,6 +1025,14 @@ export default function MealPlate({
     setShowCameraModeModal(true);
   };
 
+  useEffect(() => {
+    const handleOpenCam = () => {
+      startCameraAnalysis();
+    };
+    window.addEventListener('open_meal_camera', handleOpenCam);
+    return () => window.removeEventListener('open_meal_camera', handleOpenCam);
+  }, []);
+
   const startPlateCameraAnalysis = async () => {
     setIsAnalyzing(true);
     setSearchError("");
