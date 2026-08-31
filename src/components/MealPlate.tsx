@@ -1021,7 +1021,12 @@ export default function MealPlate({
  };
 
 
+  const lastCameraTriggerRef = useRef<number>(0);
+
   const startCameraAnalysis = () => {
+    const now = Date.now();
+    if (now - lastCameraTriggerRef.current < 2000) return; // Zapobiega wielokrotnym wibracjom i wywołaniom
+    lastCameraTriggerRef.current = now;
     Haptics.light();
     setShowCameraModeModal(true);
   };
@@ -1036,10 +1041,6 @@ export default function MealPlate({
     };
 
     checkAndTriggerCam();
-    const t1 = setTimeout(checkAndTriggerCam, 100);
-    const t2 = setTimeout(checkAndTriggerCam, 300);
-    const t3 = setTimeout(checkAndTriggerCam, 600);
-    const t4 = setTimeout(checkAndTriggerCam, 1200);
 
     const handleOpenCam = () => {
       startCameraAnalysis();
@@ -1047,10 +1048,6 @@ export default function MealPlate({
     window.addEventListener('open_meal_camera', handleOpenCam);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
       window.removeEventListener('open_meal_camera', handleOpenCam);
     };
   }, []);
