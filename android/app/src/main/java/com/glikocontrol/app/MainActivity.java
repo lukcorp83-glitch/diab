@@ -86,6 +86,9 @@ public class MainActivity extends BridgeActivity {
         } else {
             startService(serviceIntent);
         }
+
+        // Obsługa skrótu przy uruchomieniu na zimno (Cold Start)
+        handleShortcutIntent(getIntent());
     }
 
     @Override
@@ -213,9 +216,15 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void handleShortcutIntent(Intent intent) {
-        if (intent == null || intent.getData() == null) return;
-        String dataStr = intent.getData().toString();
-        if (dataStr.contains("action=")) {
+        if (intent == null) return;
+        String dataStr = intent.getData() != null ? intent.getData().toString() : null;
+        if (dataStr == null && intent.getStringExtra("action") != null) {
+            dataStr = "action=" + intent.getStringExtra("action");
+        }
+        if (dataStr == null && intent.getAction() != null && intent.getAction().contains("action=")) {
+            dataStr = intent.getAction();
+        }
+        if (dataStr != null && dataStr.contains("action=")) {
             String[] parts = dataStr.split("action=");
             if (parts.length > 1) {
                 final String action = parts[1].replaceAll("[^a-zA-Z0-9_]", "");

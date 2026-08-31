@@ -712,9 +712,10 @@ export default function App() {
       if (cleanAction === 'open_camera_vision' || cleanAction === 'ai_camera') {
         useAppStore.getState().setActiveTab('meal');
         useAppStore.getState().setInitialAction('open_camera_vision');
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('open_meal_camera'));
-        }, 150);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('open_meal_camera')), 50);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('open_meal_camera')), 200);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('open_meal_camera')), 500);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('open_meal_camera')), 1000);
       } else if (cleanAction === 'add_glucose') {
         useAppStore.getState().setActiveTab('dashboard');
         useAppStore.getState().setInitialAction('add_glucose');

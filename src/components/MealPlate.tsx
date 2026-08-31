@@ -1026,11 +1026,32 @@ export default function MealPlate({
   };
 
   useEffect(() => {
+    const checkAndTriggerCam = () => {
+      const initAct = useAppStore.getState().initialAction;
+      if (initAct === 'open_camera_vision' || initAct === 'ai_camera') {
+        useAppStore.getState().setInitialAction(null);
+        startCameraAnalysis();
+      }
+    };
+
+    checkAndTriggerCam();
+    const t1 = setTimeout(checkAndTriggerCam, 100);
+    const t2 = setTimeout(checkAndTriggerCam, 300);
+    const t3 = setTimeout(checkAndTriggerCam, 600);
+    const t4 = setTimeout(checkAndTriggerCam, 1200);
+
     const handleOpenCam = () => {
       startCameraAnalysis();
     };
     window.addEventListener('open_meal_camera', handleOpenCam);
-    return () => window.removeEventListener('open_meal_camera', handleOpenCam);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      window.removeEventListener('open_meal_camera', handleOpenCam);
+    };
   }, []);
 
   const startPlateCameraAnalysis = async () => {
