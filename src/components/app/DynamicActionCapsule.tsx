@@ -276,8 +276,7 @@ export function DynamicActionCapsule({
         onClick={() => {
           if (capsuleState === 'default' || capsuleState === 'absorbing') {
             Haptics.light();
-            if (hardwareWarning) hardwareWarning.action();
-            else onClickMain();
+            onClickMain();
           }
         }}
       >
@@ -505,12 +504,7 @@ export function DynamicActionCapsule({
               transition={{ duration: 0.15 }}
               className="flex items-center justify-center w-full h-full relative"
             >
-              {hardwareWarning ? (
-                <div className="flex flex-col items-center justify-center">
-                  {hardwareWarning.icon}
-                  <span className="text-[8px] font-black text-white mt-0.5 leading-none">{hardwareWarning.text}</span>
-                </div>
-              ) : isAbsorbing ? (
+              {isAbsorbing ? (
                 <div className="flex flex-col items-center justify-center">
                   <Utensils className="text-white relative z-10" size={20} />
                   <span className="text-[7px] font-black text-white/90 uppercase tracking-tighter mt-0.5 z-10">
@@ -518,8 +512,14 @@ export function DynamicActionCapsule({
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center relative">
                   <Utensils className="text-white relative z-10" size={24} />
+                  {hardwareWarning && (
+                    <div className="absolute -top-2 -right-2.5 bg-amber-500 text-white rounded-full px-1 py-0.5 border border-white dark:border-slate-900 shadow-md flex items-center gap-0.5 text-[8px] font-black z-20 animate-pulse">
+                      {hardwareWarning.type === 'sensor' ? <Signal size={8} /> : <Droplet size={8} />}
+                      <span>{hardwareWarning.text}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>

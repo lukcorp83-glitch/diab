@@ -12,4 +12,6 @@
     <string name="shortcut_bolus_long">Dodaj Bolus</string>
     <string name="shortcut_meal_short">Posiłek</string>
     <string name="shortcut_meal_long">Dodaj Posiłek</string>
+    <string name="shortcut_camera_short">Aparat AI</string>
+    <string name="shortcut_camera_long">Skaner Posiłków AI</string>
 </resources>

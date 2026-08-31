@@ -40,8 +40,8 @@
         android:shortcutId="ai_camera"
         android:enabled="true"
         android:icon="@mipmap/ic_launcher"
-        android:shortcutShortLabel="Aparat AI"
-        android:shortcutLongLabel="Skaner Posiłków AI">
+        android:shortcutShortLabel="@string/shortcut_camera_short"
+        android:shortcutLongLabel="@string/shortcut_camera_long">
         <intent
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.glikocontrol.app"
