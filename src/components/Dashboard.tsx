@@ -259,7 +259,7 @@ export default function Dashboard({
   const isInsulinMode = treatmentMode === 'insulin' || treatmentMode === 'pump';
   const isPumpMode = treatmentMode === 'pump';
   const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
-  const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(!!initialAction);
+  const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(initialAction === "add_glucose");
 
   const [localActiveTraining, setLocalActiveTraining] = useState<any>(() => {
     try {
@@ -581,9 +581,11 @@ export default function Dashboard({
     if (initialAction === "add_glucose" && !settings.followerMode) {
       setIsGlucoseModalOpen(true);
       onClearInitialAction?.();
+      useAppStore.getState().setInitialAction(null);
     } else if (initialAction === "training") {
       setIsTrainingModalOpen(true);
       onClearInitialAction?.();
+      useAppStore.getState().setInitialAction(null);
     }
   }, [initialAction, settings.followerMode]);
 

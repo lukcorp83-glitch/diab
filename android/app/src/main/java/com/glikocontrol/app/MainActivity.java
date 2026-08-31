@@ -228,6 +228,16 @@ public class MainActivity extends BridgeActivity {
             String[] parts = dataStr.split("action=");
             if (parts.length > 1) {
                 final String action = parts[1].replaceAll("[^a-zA-Z0-9_]", "");
+                
+                // Wyczyść dane intentu, aby akcja nie powtarzała się przy każdym wznowieniu onResume!
+                try {
+                    intent.setData(null);
+                    intent.removeExtra("action");
+                    if (intent.getAction() != null && intent.getAction().contains("action=")) {
+                        intent.setAction(Intent.ACTION_MAIN);
+                    }
+                } catch (Exception ignored) {}
+
                 WidgetUpdaterPlugin.setPendingAction(action);
                 final WebView webView = getBridge() != null ? getBridge().getWebView() : null;
                 if (webView != null) {
