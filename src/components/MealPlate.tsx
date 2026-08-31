@@ -1,3 +1,4 @@
+import { useAppStore } from '../stores/useAppStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useMealPlateLogic } from '../hooks/useMealPlateLogic';
 import { ProductSearch } from "./MealPlate/ProductSearch";
