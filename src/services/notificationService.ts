@@ -638,6 +638,10 @@ export const notificationService = {
 
   async triggerGlucoseAlarm(isHigh: boolean, value: number) {
     const title = isHigh ? i18n.t('auto.wysoki_cukier', { defaultValue: 'Wysoki Cukier!' }) : i18n.t('auto.niski_cukier', { defaultValue: 'Niski Cukier!' });
+    const body = isHigh
+      ? `Glikemia wynosi ${value} mg/dL i przekracza zakres docelowy!`
+      : `Glikemia wynosi ${value} mg/dL! Zjedz natychmiast węglowodany proste!`;
+
     if (Capacitor.isNativePlatform()) {
       try {
         await NotificationBridge.triggerNativeGlucoseAlert({

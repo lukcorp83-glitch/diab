@@ -35,9 +35,9 @@ import { twMerge } from "tailwind-merge";
 import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
 import { healthService } from "./services/healthService";
-import { Toaster, toast, ToastBar } from "react-hot-toast";
-
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
+import { loadLocalLogs } from "./lib/localLogs";
+import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPackageSync";
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
 import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore";
@@ -53,7 +53,6 @@ import GlikoControlLogo from "./components/LogoAnimation";
 import { CURRENT_VERSION } from "./constants/versions";
 
 import { MigrationManager } from "./components/MigrationManager";
-import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPackageSync";
 import { GlucoseAlarmModal } from "./components/GlucoseAlarmModal";
 import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { AppLayout } from "./components/app/AppLayout";
@@ -146,17 +145,35 @@ export default function App() {
     // Inicjalizacja bazy SQLite i pobranie głębokiej historii
     useEffect(() => {
       const initDB = async () => {
-        await dbService.init();
-        const loadedLogs = await dbService.getLogs(60000);
-        if (loadedLogs.length === 0) {
-          const hadSafeTs = !!localStorage.getItem("lastSafeTimestamp");
-          localStorage.removeItem("lastSafeTimestamp");
-          if (hadSafeTs) {
-            window.location.reload();
-            return;
+        try {
+          await dbService.init();
+          let loadedLogs = await dbService.getLogs(60000);
+          if (loadedLogs.length === 0) {
+            try {
+              const idbLogs = await loadLocalLogs();
+              if (idbLogs && idbLogs.length > 0) {
+                console.log(`[App] Odtworzono ${idbLogs.length} wpisów z IndexedDB do SQLite`);
+                loadedLogs = idbLogs;
+                dbService.saveMultipleLogs(idbLogs).catch(console.error);
+              }
+            } catch (idbErr) {
+              console.warn('[App] Błąd odczytu IndexedDB fallback:', idbErr);
+            }
           }
+          setSqliteLogs(loadedLogs);
+          if (loadedLogs.length > 0) {
+            useLogsStore.getState().setLogs(loadedLogs);
+          }
+        } catch (dbErr) {
+          console.error('[App] Błąd inicjalizacji bazy danych:', dbErr);
+          try {
+            const idbLogs = await loadLocalLogs();
+            if (idbLogs && idbLogs.length > 0) {
+              setSqliteLogs(idbLogs);
+              useLogsStore.getState().setLogs(idbLogs);
+            }
+          } catch (e) {}
         }
-        setSqliteLogs(loadedLogs);
       };
       initDB();
     }, []);

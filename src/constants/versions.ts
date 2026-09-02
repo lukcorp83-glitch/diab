@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.33';
+export const CURRENT_VERSION = '6.0.34';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.34",
+    date: "2026-09-02",
+    title: "Niezależny Stoper Live na Pasku Androida, Zabezpieczenie Chronometru i Czyste Alerty",
+    changes: [
+      "Niezależny Stoper Live na belce Androida – stoper przedposiłkowy nie łączy się ani nie zwija z innymi powiadomieniami",
+      "Wyeliminowanie ujemnych wartości chronometru – automatyczne przełączanie na gotowość dokładnie o 00:00",
+      "Czyste alerty glikemii – wyłączność dla dźwięków systemowych Androida bez dublowania dźwięku w tle",
+      "Pancerne odzyskiwanie danych – automatyczne przywracanie historii z bazy IndexedDB i bezpośrednie strumieniowanie logów z chmury"
+    ]
+  },
   {
     version: "6.0.33",
     date: "2026-08-31",
@@ -339,6 +350,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.34",
+    date: "2026-09-02",
+    title: "Niezależny Stoper Live na Pasku Androida, Zabezpieczenie Chronometru i Czyste Alerty",
+    changes: [
+      "Niezależny Stoper Live na belce Androida – stoper przedposiłkowy nie łączy się ani nie zwija z innymi powiadomieniami",
+      "Wyeliminowanie ujemnych wartości chronometru – automatyczne przełączanie na gotowość dokładnie o 00:00",
+      "Czyste alerty glikemii – wyłączność dla dźwięków systemowych Androida bez dublowania dźwięku w tle",
+      "Pancerne odzyskiwanie danych – automatyczne przywracanie historii z bazy IndexedDB i bezpośrednie strumieniowanie logów z chmury"
+    ]
+  },
   {
     version: "6.0.33",
     date: "2026-08-31",

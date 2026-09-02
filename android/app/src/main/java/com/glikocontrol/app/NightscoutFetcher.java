@@ -516,23 +516,27 @@ public class NightscoutFetcher {
                                                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
                                         );
 
-                                        int remainingMinutes = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
-                                        String pillText = remainingMinutes + " min";
-                                        Bitmap pillIcon = createPillBadgeBitmap(context, pillText, false);
-                                        Bitmap statusIcon = createStatusBarTimerBitmap(context, remainingMinutes, false);
+                                        boolean isDone = remainingMs <= 500;
+                                        int remainingMinutes = isDone ? 0 : (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
+                                        String pillText = isDone ? "JEŚĆ!" : remainingMinutes + " min";
+                                        Bitmap pillIcon = createPillBadgeBitmap(context, pillText, isDone);
+                                        Bitmap statusIcon = createStatusBarTimerBitmap(context, remainingMinutes, isDone);
 
                                         String unitsStr = insulin > 0 ? String.format(Locale.US, " (%.1fj)", insulin) : "";
                                         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "gliko_meal_timer_v1")
-                                                .setContentTitle("Czas do posiłku 🍽️")
-                                                .setContentText("Wykryto bolus z pompy" + unitsStr + ". Odliczanie w toku...")
-                                                .setUsesChronometer(true)
-                                                .setChronometerCountDown(true)
-                                                .setWhen(targetTime)
-                                                .setShowWhen(true)
-                                                .setOngoing(true)
-                                                .setAutoCancel(false)
+                                                .setContentTitle(isDone ? "Czas na posiłek! 🍽️" : "Czas do posiłku 🍽️")
+                                                .setContentText(isDone ? "Możesz już zjeść posiłek!" : "Wykryto bolus z pompy" + unitsStr + ". Odliczanie w toku...")
+                                                .setUsesChronometer(!isDone)
+                                                .setChronometerCountDown(!isDone)
+                                                .setWhen(isDone ? 0 : targetTime)
+                                                .setShowWhen(!isDone)
+                                                .setOngoing(!isDone)
+                                                .setAutoCancel(isDone)
                                                 .setOnlyAlertOnce(true)
                                                 .setContentIntent(pendingIntent)
+                                                .setGroup("gliko_live_timer_standalone")
+                                                .setGroupSummary(false)
+                                                .setSortKey("0_live_timer")
                                                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                                                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                                                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);

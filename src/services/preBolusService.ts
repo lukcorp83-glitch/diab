@@ -329,8 +329,8 @@ export function checkAndNotifyNewMeal(
 ): void {
   if (!logs || logs.length === 0) return;
 
-  // Sprawdzamy czy powiadomienia o posiłkach są włączone
-  if (userSettings?.notificationPrefs && userSettings.notificationPrefs.mealDetected === false) {
+  // Sprawdzamy czy powiadomienia o posiłkach są jawnie włączone w preferencjach
+  if (!userSettings?.notificationPrefs?.mealDetected) {
     return;
   }
 

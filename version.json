@@ -1,10 +1,10 @@
 {
-    "version": "6.0.33",
+    "version": "6.0.34",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.33_OTA.apk",
-    "buildNumber": 148,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.34_OTA.apk",
+    "buildNumber": 149,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.33! 1) Asystent AI dodaje posiłki na Talerz – po komendzie głosowej lub tekstowej składniki z makroskładnikami trafiają od razu na Talerz. 2) Nowy, 4-kierunkowy tryb edycji kafelków w zakładce Więcej (góra, dół, lewo, prawo) bez lagów i nakładania się. 3) Funkcja 'Kliknij i Wstaw tutaj' oraz alternatywny widok listy do płynnego przeciągania kafelków. 4) Poprawki widoczności okna powitalnego i polityki prywatności przy pierwszym uruchomieniu.",
-    "whatsNewEn": "Version 6.0.33! 1) AI Assistant adds meals directly to Plate – voice and text commands instantly populate ingredients with complete macros. 2) Redesigned 4-directional tile editor in the More tab (up, down, left, right) with 0 lag and no overlaps. 3) 'Click & Insert Here' feature and alternative vertical drag-and-drop list view for smooth reordering. 4) Fixed onboarding welcome and privacy policy modal triggers on initial launch.",
-    "otaRevision": 307
+    "whatsNew": "Wersja 6.0.34! 1) Niezależny Stoper Live na belce Androida – stoper przedposiłkowy nie łączy się ani nie zwija z innymi powiadomieniami. 2) Wyeliminowanie ujemnych wartości chronometru – automatyczne przełączanie na gotowość dokładnie o 00:00. 3) Czyste alerty glikemii – wyłączność dla dźwięków systemowych Androida bez dublowania dźwięku w tle. 4) Pancerne odzyskiwanie danych – automatyczne przywracanie historii z bazy IndexedDB i bezpośrednie strumieniowanie logów z chmury.",
+    "whatsNewEn": "Version 6.0.34! 1) Standalone Live Timer on Android notification bar – pre-bolus countdown never collapses or bundles with other notifications. 2) Eliminated negative chronometer values – seamless switch to ready state at 00:00. 3) Clean glucose alerts – exclusive native Android sound management without background web audio overlap. 4) Resilient data recovery – automatic IndexedDB fallback and direct Firestore log streaming.",
+    "otaRevision": 308
 }

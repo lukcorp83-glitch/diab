@@ -146,24 +146,30 @@ export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings 
       console.log(`[GlucoseAlerts] 🚨 ALARM NISKIEJ GLIKEMII: ${val} mg/dL!`);
       // Trigger system notification (Native Android channel or Web notification)
       notificationService.triggerGlucoseAlarm(false, Math.round(val));
-      playLowGlucoseSound();
+      
+      // Na Androidzie dźwięk i wibrację obsługuje wyłącznie natywny system Androida.
+      // Dźwięk JS oraz okno modalne odtwarzamy tylko w wersji Web/PWA:
+      if (!Capacitor.isNativePlatform()) {
+        playLowGlucoseSound();
+        window.dispatchEvent(new CustomEvent('active_glucose_alarm', {
+          detail: { type: 'low', value: Math.round(val), timestamp: latestTime }
+        }));
+      }
       Haptics.heavy();
-
-      // Emit event for persistent in-app UI Alarm Modal with STOP SOUND button
-      window.dispatchEvent(new CustomEvent('active_glucose_alarm', {
-        detail: { type: 'low', value: Math.round(val), timestamp: latestTime }
-      }));
     } else if (isHigh) {
       console.log(`[GlucoseAlerts] 📈 ALARM WYSOKIEJ GLIKEMII: ${val} mg/dL!`);
       // Trigger system notification (Native Android channel or Web notification)
       notificationService.triggerGlucoseAlarm(true, Math.round(val));
-      playHighGlucoseSound();
+      
+      // Na Androidzie dźwięk i wibrację obsługuje wyłącznie natywny system Androida.
+      // Dźwięk JS oraz okno modalne odtwarzamy tylko w wersji Web/PWA:
+      if (!Capacitor.isNativePlatform()) {
+        playHighGlucoseSound();
+        window.dispatchEvent(new CustomEvent('active_glucose_alarm', {
+          detail: { type: 'high', value: Math.round(val), timestamp: latestTime }
+        }));
+      }
       Haptics.medium();
-
-      // Emit event for persistent in-app UI Alarm Modal with STOP SOUND button
-      window.dispatchEvent(new CustomEvent('active_glucose_alarm', {
-        detail: { type: 'high', value: Math.round(val), timestamp: latestTime }
-      }));
     }
   }, [logs, settings]);
 }

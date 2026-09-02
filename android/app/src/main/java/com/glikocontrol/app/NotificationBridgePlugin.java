@@ -263,6 +263,9 @@ public class NotificationBridgePlugin extends Plugin {
                 .setAutoCancel(false)
                 .setOnlyAlertOnce(true)
                 .setContentIntent(pendingIntent)
+                .setGroup("gliko_live_timer_standalone")
+                .setGroupSummary(false)
+                .setSortKey("0_live_timer")
                 .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
                 .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
@@ -313,13 +316,17 @@ public class NotificationBridgePlugin extends Plugin {
                     if (nm == null) return;
 
                     long remainingMs = targetTime - System.currentTimeMillis();
-                    if (remainingMs <= 0) {
+                    if (remainingMs <= 500) {
                         androidx.core.app.NotificationCompat.Builder readyBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
                                 .setContentTitle("Czas na posiłek! 🍽️")
                                 .setContentText("Odliczanie zakończone. Możesz już zjeść posiłek!")
                                 .setUsesChronometer(false)
+                                .setShowWhen(false)
                                 .setOngoing(false)
                                 .setAutoCancel(true)
+                                .setGroup("gliko_live_timer_standalone")
+                                .setGroupSummary(false)
+                                .setSortKey("0_live_timer")
                                 .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
                                 .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
                                 .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
@@ -351,6 +358,9 @@ public class NotificationBridgePlugin extends Plugin {
                                 .setAutoCancel(false)
                                 .setOnlyAlertOnce(true)
                                 .setContentIntent(pendingIntent)
+                                .setGroup("gliko_live_timer_standalone")
+                                .setGroupSummary(false)
+                                .setSortKey("0_live_timer")
                                 .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
                                 .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
                                 .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
@@ -369,17 +379,22 @@ public class NotificationBridgePlugin extends Plugin {
 
                         nm.notify(notificationId, updateBuilder.build());
 
-                        long nextTickMs = Math.min(30000, Math.max(5000, remainingMs % 60000));
-                        if (nextTickMs < 5000) nextTickMs = 30000;
+                        long nextTickMs = Math.min(remainingMs, Math.max(1000L, remainingMs % 60000L));
+                        if (nextTickMs <= 0) nextTickMs = Math.min(remainingMs, 10000L);
                         getTimerHandler().postDelayed(this, nextTickMs);
                     }
                 } catch (Exception ignored) {}
             }
         };
 
-        long nextTickMs = Math.min(30000, Math.max(5000, (targetTime - System.currentTimeMillis()) % 60000));
-        if (nextTickMs < 5000) nextTickMs = 30000;
-        getTimerHandler().postDelayed(timerCompletionRunnable, nextTickMs);
+        long remainingMs = targetTime - System.currentTimeMillis();
+        if (remainingMs <= 500) {
+            getTimerHandler().post(timerCompletionRunnable);
+        } else {
+            long nextTickMs = Math.min(remainingMs, Math.max(1000L, remainingMs % 60000L));
+            if (nextTickMs <= 0) nextTickMs = Math.min(remainingMs, 10000L);
+            getTimerHandler().postDelayed(timerCompletionRunnable, nextTickMs);
+        }
     }
 
     @PluginMethod
