@@ -7,6 +7,7 @@ import { Haptics } from '../lib/haptics';
 import { ANATOMICAL_ZONES, calculateTissueRecovery, getNextRecommendedSite, getZoneById, AnatomicalZone } from '../services/siteRotationService';
 import { LogEntry, UserSettings } from '../types';
 import { useBackButton } from '../hooks/useBackButton';
+import { requireParentalAuth } from '../lib/childPermissions';
 
 interface SmartEquipmentModalProps {
   type: 'reservoir' | 'sensor' | null;
@@ -52,8 +53,14 @@ export function SmartEquipmentModal({ type, logs = [], userSettings, onClose, on
   if (!type) return null;
 
   const handleConfirmAction = () => {
-    Haptics.medium();
-    onConfirm(replaceInfusionSet, replaceInfusionSet ? (selectedZone?.name || selectedSiteId) : undefined);
+    requireParentalAuth(userSettings, 'canEditEquipment', {
+      title: type === 'sensor' ? 'Wymiana Sensora 📡' : 'Wymiana Zbiorniczka 💉',
+      description: 'Modyfikacja daty osprzętu wymaga autoryzacji Opiekuna. Podaj PIN rodzica, aby zatwierdzić.',
+      onSuccess: () => {
+        Haptics.medium();
+        onConfirm(replaceInfusionSet, replaceInfusionSet ? (selectedZone?.name || selectedSiteId) : undefined);
+      }
+    });
   };
 
   return (

@@ -1,10 +1,10 @@
 {
-    "version": "6.0.34",
+    "version": "6.0.35",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.34_OTA.apk",
-    "buildNumber": 149,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.35_OTA.apk",
+    "buildNumber": 150,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.34! 1) Niezależny Stoper Live na belce Androida – stoper przedposiłkowy nie łączy się ani nie zwija z innymi powiadomieniami. 2) Wyeliminowanie ujemnych wartości chronometru – automatyczne przełączanie na gotowość dokładnie o 00:00. 3) Czyste alerty glikemii – wyłączność dla dźwięków systemowych Androida bez dublowania dźwięku w tle. 4) Pancerne odzyskiwanie danych – automatyczne przywracanie historii z bazy IndexedDB i bezpośrednie strumieniowanie logów z chmury.",
-    "whatsNewEn": "Version 6.0.34! 1) Standalone Live Timer on Android notification bar – pre-bolus countdown never collapses or bundles with other notifications. 2) Eliminated negative chronometer values – seamless switch to ready state at 00:00. 3) Clean glucose alerts – exclusive native Android sound management without background web audio overlap. 4) Resilient data recovery – automatic IndexedDB fallback and direct Firestore log streaming.",
-    "otaRevision": 308
+    "whatsNew": "Wersja 6.0.35! 1) Kontrola Rodzicielska i Uprawnienia Dziecka – ochrona PIN-em, 7 precyzyjnych przełączników uprawnień i blokada modyfikacji na telefonie dziecka. 2) Zaawansowana Analiza Wydajności Wkłucia – uwzględnienie szczytu działania insuliny (60-90 min), eliminacja fałszywych alarmów o zagięciu kaniuli i nowy status wchłaniania. 3) Ciągły Krokomierz 24/7 – natywne zliczanie kroków w serwisie tła z odświeżaniem co 15s. 4) Ujednolicony panel Parowania i obsługa przycisku Wstecz we wszystkich oknach.",
+    "whatsNewEn": "Version 6.0.35! 1) Parental Control & Child Permissions – PIN code protection, 7 granular permission switches and role lockdown on child device. 2) Advanced Infusion Set Pharmacokinetics – insulin peak awareness (60-90 min), elimination of false occlusion alerts and clear absorption status. 3) Continuous 24/7 Step Counter – native background step tracking via foreground service with 15s UI refresh. 4) Unified Pairing roles and full Android Back button support across all modals.",
+    "otaRevision": 309
 }

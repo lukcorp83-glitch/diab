@@ -17,6 +17,7 @@ import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";
+import { requireParentalAuth } from "../lib/childPermissions";
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 
 // Lazy load Diets to avoid conflict with AppContent.tsx lazy import
@@ -904,30 +905,35 @@ export default function MealPlate({
  return data;
  }, [plate, totalWW, totalWBT, entryTime]);
 
- const prepareToLogMeal = () => {
- if (!user || plate.length === 0) return;
+  const prepareToLogMeal = () => {
+    if (!user || plate.length === 0) return;
 
- // Oparto tylko na wczytanych logach lokalnie (Local State), sprawdza historię 3 godziny wstecz.
- const entryTimestamp = new Date(entryTime).getTime();
- const timeLimit = 3 * 60 * 60 * 1000;
- const candidates = logs.filter(l => 
- (l.type === "bolus" || l.type === "meal" || (l.type as string) === "carbs") &&
- Math.abs(Number(l.timestamp) - entryTimestamp) < timeLimit &&
- (!l.items || l.items.length === 0) &&
- (!l.description || l.description.trim() === "") &&
- (!(l as any).name || (l as any).name.trim() === "") &&
- (!l.linkedMeal?.name || l.linkedMeal.name.trim() === "") &&
- (!l.notes || l.notes.trim() === "") &&
- (!l.userModified) && // nie proponujemy bolusów/posiłków, które już edytowano
- ((l as any).carbs > 0 || l.value > 0 || l.linkedMeal?.carbs > 0)
- );
+    requireParentalAuth(settings, 'canAddMeals', {
+      title: 'Dodawanie Posiłku 🍲',
+      description: 'Zapisywanie posiłków zostało zablokowane przez Opiekuna. Podaj PIN rodzica, aby zatwierdzić.',
+      onSuccess: () => {
+        const entryTimestamp = new Date(entryTime).getTime();
+        const timeLimit = 3 * 60 * 60 * 1000;
+        const candidates = logs.filter(l => 
+          (l.type === "bolus" || l.type === "meal" || (l.type as string) === "carbs") &&
+          Math.abs(Number(l.timestamp) - entryTimestamp) < timeLimit &&
+          (!l.items || l.items.length === 0) &&
+          (!l.description || l.description.trim() === "") &&
+          (!(l as any).name || (l as any).name.trim() === "") &&
+          (!l.linkedMeal?.name || l.linkedMeal.name.trim() === "") &&
+          (!l.notes || l.notes.trim() === "") &&
+          (!l.userModified) &&
+          ((l as any).carbs > 0 || l.value > 0 || l.linkedMeal?.carbs > 0)
+        );
 
- if (candidates.length > 0) {
- setMergeCandidates(candidates);
- } else {
- handleLogMeal();
- }
- };
+        if (candidates.length > 0) {
+          setMergeCandidates(candidates);
+        } else {
+          handleLogMeal();
+        }
+      }
+    });
+  };
 
  const handleMergeMeal = async (logIdOrNsId: string) => {
  if (!user || plate.length === 0) return;

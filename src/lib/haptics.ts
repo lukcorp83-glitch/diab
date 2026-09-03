@@ -8,7 +8,23 @@ const isEnabled = () => {
   return localStorage.getItem('gliko_haptics_enabled') !== 'false';
 };
 
-const safeVibrate = (pattern: number | number[]) => {
+let hasUserInteracted = false;
+if (typeof window !== 'undefined') {
+  const markInteracted = () => {
+    hasUserInteracted = true;
+    window.removeEventListener('pointerdown', markInteracted);
+    window.removeEventListener('touchstart', markInteracted);
+    window.removeEventListener('keydown', markInteracted);
+    window.removeEventListener('click', markInteracted);
+  };
+  window.addEventListener('pointerdown', markInteracted, { passive: true, capture: true });
+  window.addEventListener('touchstart', markInteracted, { passive: true, capture: true });
+  window.addEventListener('keydown', markInteracted, { passive: true, capture: true });
+  window.addEventListener('click', markInteracted, { passive: true, capture: true });
+}
+
+export const safeVibrate = (pattern: number | number[]) => {
+  if (!hasUserInteracted) return;
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     try {
       navigator.vibrate(pattern);

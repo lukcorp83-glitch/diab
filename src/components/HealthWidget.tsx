@@ -48,10 +48,16 @@ export default function HealthWidget() {
     };
 
     fetchSteps();
-    const interval = setInterval(fetchSteps, 5 * 60 * 1000);
+    const interval = setInterval(fetchSteps, 15 * 1000);
+    const handleFocus = () => fetchSteps();
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     return () => {
       mounted = false;
       clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [todayKey]);
 

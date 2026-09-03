@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { Utensils, PieChart, History, Salad, Sparkles, BookOpen, Activity, ArrowLeft, Camera, Mic } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { PlateItem, UserSettings, LogEntry } from "../../types";
 import MealPlate from "../MealPlate";
 import { Diets } from "../Diets";
@@ -198,7 +199,14 @@ export default function NutritionHub({
               transition={{ duration: 0.2 }}
               className="w-full space-y-4"
             >
-              <GlikoSenseNutriView logs={logs} />
+              <GlikoSenseNutriView
+                logs={logs}
+                onAddToPlate={(item) => {
+                  setSharedPlate((prev) => [...prev, item]);
+                  setActiveSubTab('creator');
+                  toast.success(`Dodano „${item.name}” na Talerz! 🍽️`);
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>

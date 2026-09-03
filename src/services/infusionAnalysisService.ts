@@ -27,6 +27,7 @@ export interface CurrentSiteStatus {
 
 export interface OcclusionRiskAlert {
   isRiskDetected: boolean;
+  status: 'safe' | 'pending_peak' | 'occlusion_risk';
   recentFailedBolusCount: number;
   message: string;
 }
@@ -64,7 +65,7 @@ export class InfusionAnalysisService {
     const currentAgeDays = Number((currentAgeHours / 24).toFixed(1));
     const hoursRemaining = Math.max(0, 72 - currentAgeHours);
 
-    // 2. Filtrujemy dane WYŁĄCZNIE dla bieżącego wkłucia (od momentu ostatniej wymiany)
+    // 2. Filtrujemy dane WYŁĄCZNIE dla bieżącego wkłucia
     const getInsulinVal = (l: any): number => Number(l.value || l.insulin || l.amount || (l.type === 'bolus' ? l.value : 0) || 0);
     const getGlucoseVal = (l: any): number => Number(l.value || l.sgv || 0);
     const hasCarbs = (l: any): boolean => Boolean(l.carbs > 0 || l.linkedMeal?.carbs > 0 || l.type === 'meal');
@@ -80,8 +81,9 @@ export class InfusionAnalysisService {
 
     const siteHighs = allGlucosesVals.filter(v => v > 180).length;
     const siteLows = allGlucosesVals.filter(v => v < 70).length;
+    const highRatio = allGlucosesVals.length > 0 ? (siteHighs / allGlucosesVals.length) : 0;
 
-    // 3. Analiza skuteczności bolusów korekcyjnych w bieżącym wkłuciu
+    // 3. Analiza skuteczności bolusów korekcyjnych z podziałem na doby wkłucia
     const dayBuckets: {
       [day: number]: {
         expectedDrops: number[];
@@ -140,7 +142,15 @@ export class InfusionAnalysisService {
       
       let eff: number | null = null;
       if (hasSamples && totalExpected > 0) {
-        eff = Math.min(120, Math.max(20, Math.round((totalActual / totalExpected) * 100)));
+        eff = Math.min(100, Math.max(20, Math.round((totalActual / totalExpected) * 100)));
+      } else {
+        // Oblicz sprawność szacunkową z profilu glikemii danej doby
+        const dayGlucoses = b.glucoses;
+        if (dayGlucoses.length >= 5) {
+          const dayHighRatio = b.highs.length / dayGlucoses.length;
+          const baselineEff = day === 1 ? 98 : day === 2 ? 92 : day === 3 ? 82 : 60;
+          eff = Math.max(40, Math.round(baselineEff - (dayHighRatio * 25)));
+        }
       }
 
       const avgG = b.glucoses.length > 0 
@@ -154,7 +164,7 @@ export class InfusionAnalysisService {
       if (isActive) {
         statusText = 'W trakcie';
       } else if (isPast) {
-        statusText = eff ? (eff >= 85 ? 'Optymalnie' : 'Spadek') : 'Zakończona';
+        statusText = eff ? (eff >= 80 ? 'Optymalnie' : 'Spadek') : 'Zakończona';
       }
 
       return {
@@ -170,24 +180,104 @@ export class InfusionAnalysisService {
       };
     });
 
-    // Szacowanie sprawności bieżącego wkłucia
-    let calculatedEfficiency = 100;
-    if (currentAgeHours <= 24) {
-      calculatedEfficiency = daysBreakdown[0].efficiencyPercent ?? 100;
-    } else if (currentAgeHours <= 48) {
-      calculatedEfficiency = daysBreakdown[1].efficiencyPercent ?? 95;
-    } else if (currentAgeHours <= 72) {
-      calculatedEfficiency = daysBreakdown[2].efficiencyPercent ?? 80;
+    // 4. Zaawansowana ocena farmakokinetyki i detekcja zagięcia kaniuli (Occlusion vs Pending Peak)
+    let isRiskDetected = false;
+    let occlusionStatus: 'safe' | 'pending_peak' | 'occlusion_risk' = 'safe';
+    let recentFailedBolusCount = 0;
+    let riskMessage = '';
+
+    const fourHoursAgo = now - 4 * 60 * 60 * 1000;
+    const recentBolusesInWindow = currentSiteBoluses
+      .filter(b => Number(b.timestamp) >= fourHoursAgo)
+      .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+
+    const recentCorrectionsInWindow = recentBolusesInWindow.filter(b => !hasCarbs(b));
+
+    // Ostatnie odczyty glikemii z ostatnich 4 godzin
+    const recentGlucosesInWindow = currentSiteGlucoses
+      .filter(g => Number(g.timestamp) >= fourHoursAgo - 15 * 60 * 1000)
+      .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+
+    const latestGlucose = recentGlucosesInWindow.length > 0 
+      ? getGlucoseVal(recentGlucosesInWindow[recentGlucosesInWindow.length - 1]) 
+      : 0;
+
+    // Trend z ostatnich 30 minut
+    let isDroppingNow = false;
+    if (recentGlucosesInWindow.length >= 3) {
+      const gNow = latestGlucose;
+      const g30m = getGlucoseVal(recentGlucosesInWindow[Math.max(0, recentGlucosesInWindow.length - 4)]);
+      if (gNow <= g30m - 12) {
+        isDroppingNow = true; // Cukier wyraźnie spada – kaniula drożna!
+      }
+    }
+
+    if (recentCorrectionsInWindow.length > 0 && latestGlucose > 160) {
+      const latestBolus = recentCorrectionsInWindow[recentCorrectionsInWindow.length - 1];
+      const firstBolus = recentCorrectionsInWindow[0];
+      const timeSinceLatestMin = (now - Number(latestBolus.timestamp)) / 60000;
+      const timeSinceFirstMin = (now - Number(firstBolus.timestamp)) / 60000;
+      const totalCorrectionUnits = recentCorrectionsInWindow.reduce((sum, b) => sum + getInsulinVal(b), 0);
+
+      const formatUnits = (val: number) => {
+        const rounded = Math.round(val * 100) / 100;
+        return rounded.toString().replace('.', ',');
+      };
+
+      // A. Jeśli od ostatniego bolusa minęło MNIEJ niż 60 minut:
+      // Insulina jest jeszcze w fazie wchłaniania (szczyt następuje po 60-90 min). NIE straszymy zgięciem!
+      if (timeSinceLatestMin < 60) {
+        occlusionStatus = 'pending_peak';
+        const latestVal = getInsulinVal(latestBolus);
+        riskMessage = `Podano korektę ${formatUnits(latestVal)}j (${Math.round(timeSinceLatestMin)} min temu). Insulina dopiero wnika do krwiobiegu – szczyt działania nastąpi po 60-90 min.`;
+      }
+      // B. Jeśli minęło co najmniej 75 min od ostatniej dawki (lub >=120 min od pierwszej) i podano >=2 dawki lub >=2.0j
+      else if ((recentCorrectionsInWindow.length >= 2 || totalCorrectionUnits >= 2.0) && timeSinceLatestMin >= 75 && timeSinceFirstMin >= 110) {
+        if (!isDroppingNow && latestGlucose >= 180) {
+          const firstBolusGEntry = recentGlucosesInWindow.find(g => Math.abs(Number(g.timestamp) - Number(firstBolus.timestamp)) < 25 * 60 * 1000);
+          const startG = firstBolusGEntry ? getGlucoseVal(firstBolusGEntry) : latestGlucose;
+
+          // Jeśli cukier nie spadł o co najmniej 15 mg/dL mimo upływu czasu szczytu działania
+          if (latestGlucose >= startG - 15) {
+            isRiskDetected = true;
+            occlusionStatus = 'occlusion_risk';
+            recentFailedBolusCount = recentCorrectionsInWindow.length;
+            riskMessage = `Podano łącznie ${formatUnits(totalCorrectionUnits)}j insuliny korekcyjnej (${recentCorrectionsInWindow.length} dawki), od ostatniej minęło ${Math.round(timeSinceLatestMin)} min, a glikemia nie reaguje (${startG} ➔ ${latestGlucose} mg/dL). Sprawdź wkłucie pod kątem zagięcia kaniuli lub zrostu.`;
+          }
+        }
+      }
+    }
+
+    // 5. Szacowanie ogólnej sprawności bieżącego wkłucia (spójne z alertem o zagięciu!)
+    let calculatedEfficiency = 95;
+    const activeDayIdx = Math.min(3, Math.max(0, currentDayNumber - 1));
+    const dayEff = daysBreakdown[activeDayIdx]?.efficiencyPercent;
+
+    if (dayEff !== null && dayEff !== undefined) {
+      calculatedEfficiency = dayEff;
     } else {
-      calculatedEfficiency = daysBreakdown[3].efficiencyPercent ?? 55;
+      if (currentAgeHours <= 24) calculatedEfficiency = 96;
+      else if (currentAgeHours <= 48) calculatedEfficiency = 88;
+      else if (currentAgeHours <= 72) calculatedEfficiency = 76;
+      else calculatedEfficiency = 50;
+
+      // Korekta o średnią hiperglikemię na wkłuciu
+      if (highRatio > 0.4) {
+        calculatedEfficiency = Math.max(40, calculatedEfficiency - 15);
+      }
+    }
+
+    // KRYTYCZNA SPÓJNOŚĆ: Jeśli wykryto zagięcie kaniuli, sprawność MUSI spaść drastycznie!
+    if (isRiskDetected) {
+      calculatedEfficiency = Math.min(calculatedEfficiency, 42);
     }
 
     let statusLevel: 'optimal' | 'good' | 'degraded' | 'expired' = 'optimal';
-    if (currentAgeHours > 72) {
-      statusLevel = 'expired';
+    if (currentAgeHours > 72 || isRiskDetected) {
+      statusLevel = isRiskDetected ? 'degraded' : 'expired';
     } else if (calculatedEfficiency < 75 || currentAgeHours > 54) {
       statusLevel = 'degraded';
-    } else if (currentAgeHours <= 24) {
+    } else if (currentAgeHours <= 24 && calculatedEfficiency >= 85) {
       statusLevel = 'optimal';
     } else {
       statusLevel = 'good';
@@ -206,55 +296,17 @@ export class InfusionAnalysisService {
       lowCount: siteLows
     };
 
-    // Detektor zagięcia kaniuli w bieżącym wkłuciu (ostatnie 3h)
-    let isRiskDetected = false;
-    let recentFailedBolusCount = 0;
-    let riskMessage = '';
-
-    const threeHoursAgo = now - 3 * 60 * 60 * 1000;
-    const recentBoluses = currentSiteBoluses
-      .filter(b => Number(b.timestamp) >= threeHoursAgo && !hasCarbs(b))
-      .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
-    
-    // Weryfikacja: Wymagamy co najmniej 2 bolusów korekcyjnych z odstępem min. 45 min lub min. 60 min od pierwszego bolusa
-    if (recentBoluses.length >= 2) {
-      const firstBolusTime = Number(recentBoluses[0].timestamp);
-      const timeSinceFirstBolusMin = (now - firstBolusTime) / (1000 * 60);
-
-      // Czekamy min. 50 minut od pierwszego bolusa, aby insulina miała fizjologiczny czas rozwinąć działanie
-      if (timeSinceFirstBolusMin >= 50) {
-        const recentGlucoses = currentSiteGlucoses
-          .filter(g => Number(g.timestamp) >= firstBolusTime - 15 * 60 * 1000)
-          .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
-
-        if (recentGlucoses.length >= 2) {
-          const firstG = getGlucoseVal(recentGlucoses[0]);
-          const lastG = getGlucoseVal(recentGlucoses[recentGlucoses.length - 1]);
-          // Jeśli cukier wzrósł lub nie spadł mimo podania korekt i wynosi > 160 mg/dL
-          if (lastG >= firstG - 10 && lastG > 160) {
-            isRiskDetected = true;
-            recentFailedBolusCount = recentBoluses.length;
-            riskMessage = `Podano ${recentBoluses.length} bolusy korekcyjne w ostatnich ${Math.round(timeSinceFirstBolusMin)} min, a cukier nie spadł (${firstG} ➔ ${lastG} mg/dL). Sprawdź drożność tego wkłucia!`;
-          }
-        }
-      }
-    }
-
-    // Jeśli wykryto ryzyko zatkania w tej chwili, dostosuj bieżącą sprawność i status
-    if (isRiskDetected) {
-      calculatedEfficiency = Math.min(calculatedEfficiency, 60);
-      statusLevel = 'degraded';
-    }
-
     let recommendation = 'Bieżące wkłucie założono ' + currentAgeHours + 'h temu. ';
-    if (currentAgeHours <= 24) {
-      recommendation += 'To początek cyklu (Doba 1) – wchłanianie jest optymalne. Kolejne doby odblokują się w miarę upływu czasu.';
+    if (isRiskDetected) {
+      recommendation = '🚨 Wykryto opór na podawaną insulinę korekcyjną po minięciu czasu szczytu działania. Zalecana kontrola miejsca wkłucia!';
+    } else if (currentAgeHours <= 24) {
+      recommendation += 'Doba 1 cyklu – tkanki w pełni chłonne i zregenerowane.';
     } else if (currentAgeHours <= 48) {
-      recommendation += 'Wkłucie jest w 2. dobie – stabilny stan pracy. Pozostało ok. ' + hoursRemaining + 'h do zalecanej wymiany.';
+      recommendation += 'Doba 2 cyklu – stabilne wchłanianie. Pozostało ok. ' + hoursRemaining + 'h do zalecanej wymiany.';
     } else if (currentAgeHours <= 72) {
-      recommendation += 'Wkłucie jest w 3. dobie – zwracaj uwagę na ewentualne opóźnienia wchłaniania bolusów poposiłkowych.';
+      recommendation += 'Doba 3 cyklu – naturalny spadek wchłaniania. Obserwuj reakcję na bolusy posiłkowe.';
     } else {
-      recommendation += 'Wkłucie przekroczyło 72h (3 doby) – zalecana natychmiastowa wymiana kaniuli, aby uniknąć niewyjaśnionych hiperglikemii.';
+      recommendation += 'Wkłucie przekroczyło zalecane 72h (3 doby) – wymień wkłucie, aby zapobiec zrostom i skokom cukru.';
     }
 
     return {
@@ -264,6 +316,7 @@ export class InfusionAnalysisService {
       recommendation,
       occlusionRisk: {
         isRiskDetected,
+        status: occlusionStatus,
         recentFailedBolusCount,
         message: riskMessage
       }

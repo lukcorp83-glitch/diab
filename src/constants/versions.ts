@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.34';
+export const CURRENT_VERSION = '6.0.35';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.35",
+    date: "2026-09-03",
+    title: "Kontrola Rodzicielska, Farmakokinetyka Wkłuć, Krokomierz 24/7 i Obsługa Przycisku Wstecz",
+    changes: [
+      "Kontrola Rodzicielska i Uprawnienia Dziecka – ochrona PIN-em, 7 przełączników uprawnień i bezpieczna blokada ról",
+      "Zaawansowana analiza wydajności wkłucia – eliminacja fałszywych alarmów o zagięciu kaniuli i status rozwijania bolusa",
+      "Ciągły sprzętowy krokomierz 24/7 w pancernym serwisie tła Androida z odświeżaniem widżetów co 15 sekund",
+      "Ujednolicony selektor ról (Master/Admin/Obserwator) oraz pełna obsługa systemowego przycisku Wstecz we wszystkich oknach"
+    ]
+  },
   {
     version: "6.0.34",
     date: "2026-09-02",
@@ -350,6 +361,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.35",
+    date: "2026-09-03",
+    title: "Kontrola Rodzicielska, Farmakokinetyka Wkłuć, Krokomierz 24/7 i Obsługa Przycisku Wstecz",
+    changes: [
+      "Kontrola Rodzicielska i Uprawnienia Dziecka – ochrona PIN-em, 7 przełączników uprawnień i bezpieczna blokada ról",
+      "Zaawansowana analiza wydajności wkłucia – eliminacja fałszywych alarmów o zagięciu kaniuli i status rozwijania bolusa",
+      "Ciągły sprzętowy krokomierz 24/7 w pancernym serwisie tła Androida z odświeżaniem widżetów co 15 sekund",
+      "Ujednolicony selektor ról (Master/Admin/Obserwator) oraz pełna obsługa systemowego przycisku Wstecz we wszystkich oknach"
+    ]
+  },
   {
     version: "6.0.34",
     date: "2026-09-02",

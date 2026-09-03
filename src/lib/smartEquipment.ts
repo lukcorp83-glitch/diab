@@ -11,6 +11,11 @@ export function detectSmartEquipmentChanges(
   entries: LogEntry[],
   userSettings?: UserSettings
 ) {
+  // Jeśli funkcja automatycznego wykrywania została wyłączona w kontroli rodzicielskiej
+  if (userSettings?.childPermissions?.canAutoDetectEquipment === false) {
+    return { triggerReservoir: false, triggerSensor: false };
+  }
+
   let triggerReservoir = false;
   let triggerSensor = false;
 

@@ -55,6 +55,7 @@ import { CURRENT_VERSION } from "./constants/versions";
 import { MigrationManager } from "./components/MigrationManager";
 import { GlucoseAlarmModal } from "./components/GlucoseAlarmModal";
 import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
+import { ParentalPinModal } from "./components/ParentalPinModal";
 import { AppLayout } from "./components/app/AppLayout";
 import { AppContent } from "./components/app/AppContent";
 
@@ -1285,6 +1286,7 @@ export default function App() {
   return (
     <>
       <GlucoseAlarmModal />
+      <ParentalPinModal />
       <SmartEquipmentModal
         type={smartEquipmentType}
         logs={logs}

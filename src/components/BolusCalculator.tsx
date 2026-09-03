@@ -3,6 +3,7 @@ import i18n from '../i18n';
 import { useLogsStore } from "../stores/useLogsStore";
 import { useMealPlateStore } from "../stores/useMealPlateStore";
 import { getEffectiveUid } from "../lib/utils";
+import { requireParentalAuth } from "../lib/childPermissions";
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from 'react-i18next';
 import { motion } from "motion/react";
@@ -435,37 +436,44 @@ export default function BolusCalculator({ setTab,
  }
  };
 
- const handleSave = async () => {
- if (!user || saving) return;
+  const handleSave = async () => {
+    if (!user || saving) return;
 
- const finalDose = manualDose !== null ? parseFloat(manualDose) : dose;
- const bgNum = parseFloat(bg) || 0;
- const carbsNum = parseFloat(carbs) || 0;
- const protNum = parseFloat(protein) || 0;
- const fNum = parseFloat(fat) || 0;
+    const finalDose = manualDose !== null ? parseFloat(manualDose) : dose;
+    const bgNum = parseFloat(bg) || 0;
+    const carbsNum = parseFloat(carbs) || 0;
+    const protNum = parseFloat(protein) || 0;
+    const fNum = parseFloat(fat) || 0;
 
- if (finalDose <= 0 && bgNum <= 0 && carbsNum <= 0) {
- toast.error(t('bolus.err_empty'));
- return;
- }
+    if (finalDose <= 0 && bgNum <= 0 && carbsNum <= 0) {
+      toast.error(t('bolus.err_empty'));
+      return;
+    }
 
- setSaving(true);
- Haptics.medium();
- let tId: string | undefined;
+    const permRequired = finalDose > 0 ? 'canAddBolus' : (carbsNum > 0 ? 'canAddMeals' : 'canAddGlucose');
+    const permTitle = finalDose > 0 ? 'Wprowadzanie Bolusa 💉' : (carbsNum > 0 ? 'Dodawanie Posiłku 🍲' : 'Pomiar Cukru 🩸');
 
- try {
- tId = toast.loading(t('bolus.processing'));
- const effectiveUid = getEffectiveUid(user);
+    requireParentalAuth(settings, permRequired, {
+      title: permTitle,
+      description: 'Ta czynność wymaga autoryzacji Opiekuna. Podaj PIN rodzica, aby zatwierdzić.',
+      onSuccess: async () => {
+        setSaving(true);
+        Haptics.medium();
+        let tId: string | undefined;
 
- const timestamp = new Date(entryTime).getTime();
- const logsRef = collection(
- db,
- "users",
- effectiveUid,
- "logs",
- );
- const batch = writeBatch(db);
- let ops = 0;
+        try {
+          tId = toast.loading(t('bolus.processing'));
+          const effectiveUid = getEffectiveUid(user);
+
+          const timestamp = new Date(entryTime).getTime();
+          const logsRef = collection(
+            db,
+            "users",
+            effectiveUid,
+            "logs",
+          );
+          const batch = writeBatch(db);
+          let ops = 0;
 
  // 1. Bolus + Metadata
  if (finalDose > 0) {
@@ -614,7 +622,9 @@ export default function BolusCalculator({ setTab,
  } finally {
  setSaving(false);
  }
- };
+      }
+    });
+  };
 
  const getTimingAdvice = () => {
  const bgNum = parseFloat(bg) || 0;

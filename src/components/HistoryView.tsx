@@ -1,6 +1,7 @@
 import i18n from '../i18n';
 import { useLogsStore } from "../stores/useLogsStore";
 import { getEffectiveUid, extractInfusionSite } from "../lib/utils";
+import { requireParentalAuth } from "../lib/childPermissions";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { LogEntry } from "../types";
@@ -261,7 +262,13 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
   const handleDeleteItem = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (settings?.followerMode) return;
-    setDeletingLog(log);
+    requireParentalAuth(settings, 'canDeleteLogs', {
+      title: 'Usuwanie Wpisu 🗑️',
+      description: 'Usuwanie danych z historii zostało zablokowane przez Opiekuna. Podaj PIN rodzica, aby zatwierdzić.',
+      onSuccess: () => {
+        setDeletingLog(log);
+      }
+    });
   };
 
   return (

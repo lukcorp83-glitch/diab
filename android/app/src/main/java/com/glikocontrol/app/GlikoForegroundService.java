@@ -12,17 +12,25 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+
 import androidx.core.app.NotificationCompat;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.JavascriptInterface;
 
-public class GlikoForegroundService extends Service {
+public class GlikoForegroundService extends Service implements SensorEventListener {
 
     private static final String CHANNEL_ID = "gliko_foreground_service_v3";
     private static final int FOREGROUND_ID = 999;
     private Handler handler;
     private Runnable runnable;
+    private SensorManager sensorManager;
+    private Sensor stepCounterSensor;
+    private Sensor stepDetectorSensor;
 
     public static WebView headlessWebView;
 
@@ -30,6 +38,22 @@ public class GlikoForegroundService extends Service {
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
+
+        // Inicjalizacja sensora kroków w tle dla ciągłego zliczania
+        try {
+            sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            if (sensorManager != null) {
+                stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+                stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+                if (stepCounterSensor != null) {
+                    sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
+                } else if (stepDetectorSensor != null) {
+                    sensorManager.registerListener(this, stepDetectorSensor, SensorManager.SENSOR_DELAY_NORMAL);
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e("GlikoForegroundService", "Błąd rejestracji sensora kroków", e);
+        }
         
         // Inicjalizacja Headless WebView na głównym wątku UI
         handler = new Handler(Looper.getMainLooper());
@@ -207,10 +231,22 @@ public class GlikoForegroundService extends Service {
     }
 
     @Override
+    public void onSensorChanged(SensorEvent event) {
+        StepCounterPlugin.handleSensorEvent(this, event);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
+        }
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
         }
     }
 

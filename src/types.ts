@@ -112,6 +112,16 @@ export interface InventoryItem {
   reservoirCapacity?: number; // Pojemność zbiorniczka w jednostkach (np. 160, 180, 200, 300 U)
 }
 
+export interface ChildPermissions {
+  canAddMeals?: boolean;            // Dodawanie posiłków (Talerz, Aparat AI)
+  canAddBolus?: boolean;            // Zapisywanie bolusów / dawek insuliny
+  canAddGlucose?: boolean;          // Ręczne pomiary cukru (glukometr)
+  canEditEquipment?: boolean;       // Ręczna zmiana dat osprzętu (sensor, wkłucie, zbiornik)
+  canAutoDetectEquipment?: boolean; // Automatyczne wykrywanie wymiany osprzętu (Smart Equipment)
+  canEditTherapySettings?: boolean; // Zmiana współczynników (ICR, ISF, cele cukru)
+  canDeleteLogs?: boolean;          // Usuwanie logów z historii
+}
+
 export interface UserSettings {
   deviceId?: string;
   deviceName?: string;
@@ -126,6 +136,8 @@ export interface UserSettings {
   followerMode?: boolean;  // Add follower mode for read-only view
   linkedUid?: string;      // Zapamiętuje na twardo w chmurze klucz sparowanego Głównego konta
   isLinkedAdmin?: boolean; // Zapamiętuje na twardo w chmurze uprawnienia administratora
+  childPermissions?: ChildPermissions; // Granularne uprawnienia dla urządzenia dziecka (Kontrola Rodzicielska)
+  parentalPin?: string;    // Kod PIN rodzica (np. "1234") do autoryzacji zablokowanych akcji
   dia?: number; // Duration of Insulin Action in hours
   insulinType?: string; // e.g. 'novorapid', 'fiasp', 'humalog', 'lyumjev', 'apidra'
   hourlyProfiles?: HourlyProfile[];

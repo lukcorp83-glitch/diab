@@ -97,6 +97,27 @@ export default function InfusionPerformanceWidget({ settings }: InfusionPerforma
         </motion.div>
       )}
 
+      {/* Pending Peak / Active Bolus Info */}
+      {!occlusionRisk.isRiskDetected && occlusionRisk.status === 'pending_peak' && (
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="p-3.5 rounded-2xl bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 flex items-start gap-2.5 text-cyan-800 dark:text-cyan-200 shadow-sm z-10"
+        >
+          <div className="p-1.5 bg-cyan-500 text-white rounded-xl shrink-0 mt-0.5">
+            <Clock size={16} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-black uppercase tracking-wider">
+              {t('auto.bolus_w_trakcie_dzialania', { defaultValue: 'Insulina w trakcie rozwijania działania' })}
+            </span>
+            <p className="text-[11px] leading-relaxed font-medium opacity-90">
+              {occlusionRisk.message}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Current Site Main Compact Card */}
       <div className={cn("p-4 rounded-2xl border flex flex-col gap-3 transition-all z-10", statusStyle.bg, statusStyle.border)}>
         <div className="flex items-center justify-between">
