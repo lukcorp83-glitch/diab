@@ -420,6 +420,8 @@ export function AppLayout({
                 onComplete={async (mode) => {
                   setShowTutorial(false);
                   localStorage.setItem("hasSeenTutorial", "true");
+                  localStorage.setItem("glikocontrol_privacy_accepted", "true");
+                  setShowPrivacyPopup(false);
                   localStorage.setItem("treatmentMode", mode); // Fallback offline
                   
                   setUserSettings((prev) => ({ 

@@ -982,12 +982,15 @@ export default function App() {
     return () => clearInterval(interval);
   }, [logs, setMealProgress]);
 
-  // Automatyczny popup Polityki Prywatności (RODO) przy pierwszym uruchomieniu
+  // Automatyczny popup Polityki Prywatności (RODO) – zintegrowany z oknem powitalnym (OnboardingTutorial)
   useEffect(() => {
     if (user) {
+      const hasSeenTutorial = localStorage.getItem("hasSeenTutorial") === "true";
       const privacyAccepted = localStorage.getItem("glikocontrol_privacy_accepted");
-      if (privacyAccepted !== "true") {
-        setShowPrivacyPopup(true);
+      if (hasSeenTutorial && privacyAccepted !== "true") {
+        // Jeśli użytkownik ukończył tutorial (zawierający krok RODO), oznaczamy jako zaakceptowane
+        localStorage.setItem("glikocontrol_privacy_accepted", "true");
+        setShowPrivacyPopup(false);
       }
     }
   }, [user, setShowPrivacyPopup]);
