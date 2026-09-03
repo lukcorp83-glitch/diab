@@ -4,8 +4,8 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 
 ## Główne pliki i komponenty
 - `src/App.tsx` - Główny punkt wejścia, główny layout, zarządzanie routingiem i trwałym zapisem logów do SQLite (`dbService.addLog`).
-- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.35'), adresy URL oraz bazy produktów.
-- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.35.
+- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.36'), adresy URL oraz bazy produktów.
+- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.36.
 - `src/lib/childPermissions.ts` & `src/components/ParentalPinModal.tsx` & `src/components/DevicePairing.tsx` - Moduł Kontroli Rodzicielskiej i Granularnych Uprawnień Dziecka (7 przełączników: posiłki, bolusy, glukometr, osprzęt, Smart Equipment, terapia, historia). Zabezpieczenie kodem PIN rodzica i twarda blokada przełączania ról na telefonie dziecka.
 - `android/app/src/main/java/com/glikocontrol/app/GlikoForegroundService.java` & `StepCounterPlugin.java` - Ciągły, sprzętowy krokomierz działający 24/7 w pancernym serwisie tła Androida z automatycznym zerowaniem o północy i odświeżaniem w interfejsie co 15s.
 - `src/services/infusionAnalysisService.ts` & `src/components/InfusionPerformanceWidget.tsx` - Nowy algorytm farmakokinetyki wkłuć: uwzględnienie szczytu działania insuliny (60-90 min), eliminacja fałszywych alarmów o zagięciu kaniuli tuż po podaniu dawki, zaokrąglanie jednostek oraz nowy status informacyjny „Insulina w trakcie rozwijania działania”.

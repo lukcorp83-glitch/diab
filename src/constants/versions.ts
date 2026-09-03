@@ -14,12 +14,23 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.35';
+export const CURRENT_VERSION = '6.0.36';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.36",
+    date: "2026-09-03",
+    title: "Ulepszone Parowanie Urządzeń, Naprawa Sekcji Trening i Nowe Odżywianie",
+    changes: [
+      "Ulepszenie możliwości parowania i interaktywny przewodnik konfiguracji ról (Master, Admin, Obserwator)",
+      "Naprawa sekcji Trening – pełna synchronizacja i trwały zapis sesji treningowych w historii",
+      "Nowy wygląd modułu Odżywianie (GlikoSense Nutri) ze wskaźnikami stabilności i 1-Click wrzucaniem na Talerz",
+      "Naprawa błędów i optymalizacje stabilności działania aplikacji"
+    ]
+  },
   {
     version: "6.0.35",
     date: "2026-09-03",
@@ -361,6 +372,17 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.36",
+    date: "2026-09-03",
+    title: "Ulepszone Parowanie Urządzeń, Naprawa Sekcji Trening i Nowe Odżywianie",
+    changes: [
+      "Ulepszenie możliwości parowania i interaktywny przewodnik konfiguracji ról (Master, Admin, Obserwator)",
+      "Naprawa sekcji Trening – pełna synchronizacja i trwały zapis sesji treningowych w historii",
+      "Nowy wygląd modułu Odżywianie (GlikoSense Nutri) ze wskaźnikami stabilności i 1-Click wrzucaniem na Talerz",
+      "Naprawa błędów i optymalizacje stabilności działania aplikacji"
+    ]
+  },
   {
     version: "6.0.35",
     date: "2026-09-03",

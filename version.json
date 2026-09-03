@@ -1,10 +1,10 @@
 {
-    "version": "6.0.35",
+    "version": "6.0.36",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.35_OTA.apk",
-    "buildNumber": 150,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.36_OTA.apk",
+    "buildNumber": 151,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.35! 1) Kontrola Rodzicielska i Uprawnienia Dziecka – ochrona PIN-em, 7 precyzyjnych przełączników uprawnień i blokada modyfikacji na telefonie dziecka. 2) Zaawansowana Analiza Wydajności Wkłucia – uwzględnienie szczytu działania insuliny (60-90 min), eliminacja fałszywych alarmów o zagięciu kaniuli i nowy status wchłaniania. 3) Ciągły Krokomierz 24/7 – natywne zliczanie kroków w serwisie tła z odświeżaniem co 15s. 4) Ujednolicony panel Parowania i obsługa przycisku Wstecz we wszystkich oknach.",
-    "whatsNewEn": "Version 6.0.35! 1) Parental Control & Child Permissions – PIN code protection, 7 granular permission switches and role lockdown on child device. 2) Advanced Infusion Set Pharmacokinetics – insulin peak awareness (60-90 min), elimination of false occlusion alerts and clear absorption status. 3) Continuous 24/7 Step Counter – native background step tracking via foreground service with 15s UI refresh. 4) Unified Pairing roles and full Android Back button support across all modals.",
-    "otaRevision": 309
+    "whatsNew": "Wersja 6.0.36! 1) Ulepszenie możliwości parowania i interaktywny przewodnik konfiguracji ról (Master, Admin, Obserwator). 2) Naprawa sekcji Trening – pełna synchronizacja i trwały zapis sesji treningowych w historii. 3) Nowy wygląd modułu Odżywianie (GlikoSense Nutri) ze wskaźnikami stabilności i 1-Click wrzucaniem na Talerz. 4) Naprawa błędów i optymalizacja działania.",
+    "whatsNewEn": "Version 6.0.36! 1) Enhanced device pairing with interactive role setup guide (Master, Admin, Observer). 2) Fixed Training section – full synchronization and persistent logging of workout sessions. 3) Redesigned Nutrition view (GlikoSense Nutri) with stability indicators and 1-Click Add to Plate. 4) General bug fixes and performance improvements.",
+    "otaRevision": 310
 }
