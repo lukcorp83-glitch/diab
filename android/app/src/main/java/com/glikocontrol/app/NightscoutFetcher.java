@@ -552,6 +552,10 @@ public class NightscoutFetcher {
                                         }
 
                                         notificationManager.notify(777, builder.build());
+
+                                        if (!isDone) {
+                                            NotificationBridgePlugin.scheduleTimerCompletionStatic(context, 777, targetTime, pendingIntent);
+                                        }
                                     }
                                 }
                                 break;

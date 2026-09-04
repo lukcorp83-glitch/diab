@@ -165,7 +165,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
           {/* Footer status dot */}
           <div className="flex items-center justify-between border-t border-slate-200/50 dark:border-white/5 pt-1.5 text-[8px] font-black uppercase text-slate-400">
             <span onClick={toggleBackend} className="cursor-pointer hover:text-white transition-colors">
-              {isChildMode ? petName : (engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0')}
+              {isChildMode ? petName : (engineMode === 'v4_tcn' ? 'GlikoSense 4.1' : 'GlikoSense 3.0')}
             </span>
             <motion.div
               animate={{ 
@@ -257,7 +257,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                 className="text-sm font-black dark:text-white leading-tight cursor-pointer hover:text-sky-400 transition-colors"
                 onClick={toggleBackend}
               >
-                {t('auto.glikosense', { defaultValue: engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0' })}
+                {t('auto.glikosense', { defaultValue: engineMode === 'v4_tcn' ? 'GlikoSense 4.1' : 'GlikoSense 3.0' })}
               </h3>
             </div>
           </div>

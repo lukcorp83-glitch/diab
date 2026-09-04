@@ -14,12 +14,45 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.35';
+export const CURRENT_VERSION = '6.0.38';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.38",
+    date: "2026-09-04",
+    title: "Naprawa Odliczania Stopera, Blokada Wartości Ujemnych i Precyzyjne Odświeżanie Paska Stanu",
+    changes: [
+      "Całkowite wyeliminowanie ujemnych wartości stopera przedposiłkowego (twardy clamp na 00:00 i natychmiastowy status 'Możesz jeść!')",
+      "Niezawodne i punktualne odświeżanie cyfry minut na pasku stanu Androida oraz w pastylce powiadomienia",
+      "Automatyczne przełączanie na powiadomienie 'Czas na posiłek!' dokładnie w momencie zakończenia odliczania (z wyłączeniem chronometru)",
+      "Optymalizacja pętli odświeżania stopera w tle z zabezpieczeniem przed uśpieniem w Android Doze Mode"
+    ]
+  },
+  {
+    version: "6.0.37",
+    date: "2026-09-04",
+    title: "GlikoSense 4.1 Pro (TCN), Fizjologiczny Guardrail, Detekcja Oporności i Optymalizacja Pamięci",
+    changes: [
+      "Nowy silnik neuronowy GlikoSense 4.1 Pro (TCN) z fizjologicznym korytarzem bezpieczeństwa (Physics-Bounded Guardrail)",
+      "Inteligentna detekcja zagięcia kaniuli i zmęczenia miejsca wkłucia (Positive Bias Drift)",
+      "Precyzyjne zarządzanie pamięcią Web Workera (Tensor Disposal & Worker GC) eliminujące wycieki RAM",
+      "Zachowanie 100% kompatybilności i lekkości klasycznego silnika GlikoSense 3.0 (LSTM)"
+    ]
+  },
+  {
+    version: "6.0.36",
+    date: "2026-09-03",
+    title: "Ulepszone Parowanie Urządzeń, Naprawa Sekcji Trening, Nowe Odżywianie i Płynny Start",
+    changes: [
+      "Ulepszenie możliwości parowania i interaktywny przewodnik konfiguracji ról (Master, Admin, Obserwator)",
+      "Naprawa sekcji Trening – pełna synchronizacja i trwały zapis sesji treningowych w historii",
+      "Nowy wygląd modułu Odżywianie (GlikoSense Nutri) ze wskaźnikami stabilności i 1-Click wrzucaniem na Talerz",
+      "Płynna animacja startowa z poświatą neonową i optymalizacje stabilności działania"
+    ]
+  },
   {
     version: "6.0.35",
     date: "2026-09-03",
@@ -361,6 +394,39 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.38",
+    date: "2026-09-04",
+    title: "Naprawa Odliczania Stopera, Blokada Wartości Ujemnych i Precyzyjne Odświeżanie Paska Stanu",
+    changes: [
+      "Całkowite wyeliminowanie ujemnych wartości stopera przedposiłkowego (twardy clamp na 00:00 i natychmiastowy status 'Możesz jeść!')",
+      "Niezawodne i punktualne odświeżanie cyfry minut na pasku stanu Androida oraz w pastylce powiadomienia",
+      "Automatyczne przełączanie na powiadomienie 'Czas na posiłek!' dokładnie w momencie zakończenia odliczania (z wyłączeniem chronometru)",
+      "Optymalizacja pętli odświeżania stopera w tle z zabezpieczeniem przed uśpieniem w Android Doze Mode"
+    ]
+  },
+  {
+    version: "6.0.37",
+    date: "2026-09-04",
+    title: "GlikoSense 4.1 Pro (TCN), Fizjologiczny Guardrail, Detekcja Oporności i Optymalizacja Pamięci",
+    changes: [
+      "Nowy silnik neuronowy GlikoSense 4.1 Pro (TCN) z fizjologicznym korytarzem bezpieczeństwa (Physics-Bounded Guardrail)",
+      "Inteligentna detekcja zagięcia kaniuli i zmęczenia miejsca wkłucia (Positive Bias Drift)",
+      "Precyzyjne zarządzanie pamięcią Web Workera (Tensor Disposal & Worker GC) eliminujące wycieki RAM",
+      "Zachowanie 100% kompatybilności i lekkości klasycznego silnika GlikoSense 3.0 (LSTM)"
+    ]
+  },
+  {
+    version: "6.0.36",
+    date: "2026-09-03",
+    title: "Ulepszone Parowanie Urządzeń, Naprawa Sekcji Trening, Nowe Odżywianie i Płynny Start",
+    changes: [
+      "Ulepszenie możliwości parowania i interaktywny przewodnik konfiguracji ról (Master, Admin, Obserwator)",
+      "Naprawa sekcji Trening – pełna synchronizacja i trwały zapis sesji treningowych w historii",
+      "Nowy wygląd modułu Odżywianie (GlikoSense Nutri) ze wskaźnikami stabilności i 1-Click wrzucaniem na Talerz",
+      "Płynna animacja startowa z poświatą neonową i optymalizacje stabilności działania"
+    ]
+  },
   {
     version: "6.0.35",
     date: "2026-09-03",

@@ -19,11 +19,6 @@ const config: CapacitorConfig = {
         'google.com'
       ]
     },
-    CapacitorUpdater: {
-      autoUpdate: 'off',
-      appId: 'com.glikocontrol.app',
-      version: '0.0.0'
-    },
     CapacitorHttp: {
       enabled: false
     }

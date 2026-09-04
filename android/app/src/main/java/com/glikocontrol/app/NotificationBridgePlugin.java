@@ -283,7 +283,7 @@ public class NotificationBridgePlugin extends Plugin {
         notificationManager.notify(notificationId, builder.build());
 
         // Zaplanuj automatyczną aktualizację minut na górnej belce oraz powiadomienie gotowości do posiłku
-        scheduleTimerCompletion(notificationId, targetTime, pendingIntent);
+        scheduleTimerCompletionStatic(getContext(), notificationId, targetTime, pendingIntent);
 
         call.resolve();
     }
@@ -291,20 +291,19 @@ public class NotificationBridgePlugin extends Plugin {
     private static android.os.Handler timerHandler = null;
     private static Runnable timerCompletionRunnable = null;
 
-    private static synchronized android.os.Handler getTimerHandler() {
+    public static synchronized android.os.Handler getTimerHandler() {
         if (timerHandler == null) {
             timerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
         }
         return timerHandler;
     }
 
-    private void scheduleTimerCompletion(final int notificationId, final long targetTime, final android.app.PendingIntent pendingIntent) {
+    public static void scheduleTimerCompletionStatic(final Context context, final int notificationId, final long targetTime, final android.app.PendingIntent pendingIntent) {
         if (timerCompletionRunnable != null) {
             getTimerHandler().removeCallbacks(timerCompletionRunnable);
             timerCompletionRunnable = null;
         }
 
-        final Context context = getContext();
         if (context == null) return;
         final Context appContext = context.getApplicationContext();
 
@@ -324,6 +323,7 @@ public class NotificationBridgePlugin extends Plugin {
                                 .setShowWhen(false)
                                 .setOngoing(false)
                                 .setAutoCancel(true)
+                                .setOnlyAlertOnce(false)
                                 .setGroup("gliko_live_timer_standalone")
                                 .setGroupSummary(false)
                                 .setSortKey("0_live_timer")
@@ -345,6 +345,7 @@ public class NotificationBridgePlugin extends Plugin {
                         }
 
                         nm.notify(notificationId, readyBuilder.build());
+                        timerCompletionRunnable = null;
                     } else {
                         int mins = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
                         androidx.core.app.NotificationCompat.Builder updateBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
@@ -379,8 +380,10 @@ public class NotificationBridgePlugin extends Plugin {
 
                         nm.notify(notificationId, updateBuilder.build());
 
-                        long nextTickMs = Math.min(remainingMs, Math.max(1000L, remainingMs % 60000L));
-                        if (nextTickMs <= 0) nextTickMs = Math.min(remainingMs, 10000L);
+                        long msToNextMin = remainingMs % 60000L;
+                        if (msToNextMin <= 0) msToNextMin = 60000L;
+                        long nextTickMs = Math.min(msToNextMin + 200L, Math.min(remainingMs, 15000L));
+                        if (nextTickMs <= 0) nextTickMs = 1000L;
                         getTimerHandler().postDelayed(this, nextTickMs);
                     }
                 } catch (Exception ignored) {}
@@ -391,23 +394,31 @@ public class NotificationBridgePlugin extends Plugin {
         if (remainingMs <= 500) {
             getTimerHandler().post(timerCompletionRunnable);
         } else {
-            long nextTickMs = Math.min(remainingMs, Math.max(1000L, remainingMs % 60000L));
-            if (nextTickMs <= 0) nextTickMs = Math.min(remainingMs, 10000L);
+            long msToNextMin = remainingMs % 60000L;
+            if (msToNextMin <= 0) msToNextMin = 60000L;
+            long nextTickMs = Math.min(msToNextMin + 200L, Math.min(remainingMs, 15000L));
+            if (nextTickMs <= 0) nextTickMs = 1000L;
             getTimerHandler().postDelayed(timerCompletionRunnable, nextTickMs);
+        }
+    }
+
+    public static void stopLiveTimerStatic(Context context, int notificationId) {
+        if (timerCompletionRunnable != null) {
+            getTimerHandler().removeCallbacks(timerCompletionRunnable);
+            timerCompletionRunnable = null;
+        }
+        if (context != null) {
+            android.app.NotificationManager notificationManager = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                notificationManager.cancel(notificationId);
+            }
         }
     }
 
     @PluginMethod
     public void stopLiveTimer(PluginCall call) {
-        if (timerCompletionRunnable != null) {
-            getTimerHandler().removeCallbacks(timerCompletionRunnable);
-            timerCompletionRunnable = null;
-        }
         int notificationId = call.getInt("id", 777);
-        android.app.NotificationManager notificationManager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager != null) {
-            notificationManager.cancel(notificationId);
-        }
+        stopLiveTimerStatic(getContext(), notificationId);
         call.resolve();
     }
 

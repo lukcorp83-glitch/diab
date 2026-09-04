@@ -1,5 +1,6 @@
 import { useLogsStore } from "../stores/useLogsStore";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useAppStore } from "../stores/useAppStore";
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
@@ -376,7 +377,14 @@ export default function Profile({
  const [auditLoading, setAuditLoading] = useState(false);
  const [auditResult, setAuditResult] = useState<string | null>(null);
  const [tdiInputValue, setTdiInputValue] = useState<string>("");
- const [activeCategory, setActiveCategory] = useState<string | null>(() => initialAction || null);
+
+ const storeCategory = useAppStore((state) => state.profileCategory);
+ const setStoreCategory = useAppStore((state) => state.setProfileCategory);
+ const activeCategory = storeCategory ?? initialAction ?? null;
+ const setActiveCategory = (cat: string | null) => {
+   setStoreCategory(cat);
+ };
+
  const topMenuRef = useRef<HTMLDivElement>(null);
  useEffect(() => {
  const slider = topMenuRef.current;
@@ -689,6 +697,16 @@ export default function Profile({
       }, 100);
     }
   }, [initialAction]);
+
+  useEffect(() => {
+    const handleOpenCat = (e: any) => {
+      if (e.detail) {
+        setActiveCategory(e.detail);
+      }
+    };
+    window.addEventListener('openProfileCategory', handleOpenCat);
+    return () => window.removeEventListener('openProfileCategory', handleOpenCat);
+  }, []);
  const [nukeLoading, setNukeLoading] = useState(false);
  const [showRodo, setShowRodo] = useState(false);
  const [apkVersion, setApkVersion] = useState<string>("1.5.4");
@@ -1765,8 +1783,16 @@ export default function Profile({
  <div className="absolute inset-0 bg-gradient-to-br from-accent-500/10 via-transparent to-purple-500/5 dark:from-accent-500/20"></div>
  <div className="absolute -top-12 -right-12 w-48 h-48 bg-accent-500/10 dark:bg-accent-500/20 blur-[80px] rounded-full pointer-events-none"></div>
  <div className="relative z-10">
- <div className="w-16 h-16 bg-white dark:bg-slate-900 text-accent-600 dark:text-accent-400 rounded-[1.8rem] flex items-center justify-center mx-auto mb-3 shadow-xl border-4 border-white dark:border-slate-800">
- {user?.email ? (
+ <div className="w-16 h-16 bg-white dark:bg-slate-900 text-accent-600 dark:text-accent-400 rounded-[1.8rem] flex items-center justify-center mx-auto mb-3 shadow-xl border-4 border-white dark:border-slate-800 overflow-hidden">
+ {user && !user.isAnonymous && (user.photoURL || user.providerData?.[0]?.photoURL) ? (
+ <img 
+ src={user.photoURL || user.providerData?.[0]?.photoURL || ""} 
+ alt="Avatar" 
+ referrerPolicy="no-referrer"
+ crossOrigin="anonymous"
+ className="w-full h-full object-cover"
+ />
+ ) : user?.email ? (
  <span className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-br from-accent-500 to-indigo-600">
  {user.email.charAt(0)}
  </span>

@@ -41,6 +41,9 @@ interface AppState {
   initialAction: string | null;
   setInitialAction: (action: string | null) => void;
 
+  profileCategory: string | null;
+  setProfileCategory: (cat: string | null) => void;
+
   isOffline: boolean;
   setIsOffline: (isOffline: boolean) => void;
 
@@ -107,6 +110,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   initialAction: null,
   setInitialAction: (action) => set({ initialAction: action }),
+
+  profileCategory: null,
+  setProfileCategory: (cat) => set({ profileCategory: cat }),
 
   isOffline: !navigator.onLine,
   setIsOffline: (isOffline) => set({ isOffline }),

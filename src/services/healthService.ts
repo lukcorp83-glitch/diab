@@ -34,6 +34,7 @@ export const healthService = {
       } catch (e) {
         console.warn('[StepCounter] Permission request error:', e);
       }
+      return true;
     }
 
     const healthObj = this.getHealthObj();

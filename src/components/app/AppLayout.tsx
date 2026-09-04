@@ -27,7 +27,8 @@ import {
   MessageSquare,
   Zap,
   Globe,
-  Database
+  Database,
+  User
 } from "lucide-react";
 import { doc, setDoc, addDoc, collection, serverTimestamp, query, onSnapshot } from "firebase/firestore";
 import { db } from "../../lib/firebase";
@@ -87,12 +88,30 @@ export function AppLayout({
     showStatusPopup,
     setShowStatusPopup,
     isKeyboardOpen,
-    setInitialAction
+    setInitialAction,
+    setProfileCategory
   } = useAppStore();
   const { t } = useTranslation();
   const sharedPlate = useMealPlateStore((state) => state.plate);
 
   const [shortcuts, setShortcuts] = React.useState<any[]>([]);
+  const [avatarError, setAvatarError] = React.useState(false);
+
+  const photoUrl = React.useMemo(() => {
+    if (!user || user.isAnonymous) return null;
+    return user.photoURL || user.providerData?.[0]?.photoURL || null;
+  }, [user]);
+
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [photoUrl]);
+
+  const userInitial = React.useMemo(() => {
+    if (user?.displayName) return user.displayName.trim().charAt(0).toUpperCase();
+    if (user?.email) return user.email.trim().charAt(0).toUpperCase();
+    if (userSettings?.userName) return userSettings.userName.trim().charAt(0).toUpperCase();
+    return null;
+  }, [user, userSettings?.userName]);
 
   React.useEffect(() => {
     if (!user) return;
@@ -232,15 +251,41 @@ export function AppLayout({
                 >
                   {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
                 </button>
-                {user && !user.isAnonymous && user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt="Profile"
-                    className="w-7 h-7 rounded-full border border-accent-500/50 shadow-sm"
-                  />
-                ) : (
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)] ml-2" />
-                )}
+                {/* Zawsze widoczny awatar / profil użytkownika */}
+                <button
+                  onClick={() => {
+                    Haptics.light();
+                    setProfileCategory('account');
+                    changeTab('profile');
+                  }}
+                  title={user?.email || user?.displayName || (user?.isAnonymous ? t('auto.gosc', { defaultValue: 'Gość' }) : t('auto.profil', { defaultValue: 'Profil' }))}
+                  className="relative flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:border-accent-500/60 transition-all active:scale-90 shadow-sm shrink-0 overflow-visible ml-1"
+                >
+                  {photoUrl && !avatarError ? (
+                    <img
+                      src={photoUrl}
+                      alt="Profile"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      onError={() => {
+                        console.warn("[AppLayout] Avatar image failed to load from:", photoUrl);
+                        setAvatarError(true);
+                      }}
+                      className="w-full h-full rounded-full object-cover border border-accent-500/30"
+                    />
+                  ) : userInitial ? (
+                    <span className="text-xs font-black text-accent-500 dark:text-accent-400 font-mono select-none">
+                      {userInitial}
+                    </span>
+                  ) : (
+                    <User size={15} className="text-slate-500 dark:text-slate-400" />
+                  )}
+                  {/* Dioda statusu online */}
+                  <span className={cn(
+                    "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm",
+                    user?.isAnonymous ? "bg-amber-400" : (isOffline ? "bg-slate-400" : "bg-emerald-500 animate-pulse")
+                  )} />
+                </button>
               </div>
             </div>
           </header>

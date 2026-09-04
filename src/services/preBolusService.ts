@@ -76,23 +76,31 @@ export function calculatePreBolusWaitTime(
     reason = 'bardzo wysoka glikemia';
   }
 
-  // 2. Korekta trendem CGM
-  let trendMod = 0;
-  let trendReason = '';
-  if (trend === 'SingleUp' || trend === 'DoubleUp' || trend === 'FortyFiveUp' || trend === '↑' || trend === '⇈' || trend === '↗') {
-    trendMod = 3;
-    trendReason = ', trend rosnący (+3 min)';
-  } else if (trend === 'SingleDown' || trend === 'DoubleDown' || trend === 'FortyFiveDown' || trend === '↓' || trend === '⇊' || trend === '↘') {
-    trendMod = -3;
-    trendReason = ', trend spadkowy (-3 min)';
-  }
+    // GlikoSense 4.1: Sprawdzamy wyuczony osobisty czas opóźnienia insuliny z modelu ML
+    let learnedLagMinutes: number | null = null;
+    try {
+      const cachedMl = typeof window !== 'undefined' ? localStorage.getItem('glikosense_last_result_v2') : null;
+      if (cachedMl) {
+        const parsed = JSON.parse(cachedMl);
+        if (parsed?.learnedPkParams?.optimalLagMinutes && typeof parsed.learnedPkParams.optimalLagMinutes === 'number') {
+          learnedLagMinutes = parsed.learnedPkParams.optimalLagMinutes;
+        }
+      }
+    } catch (e) {}
 
-  const finalWait = Math.max(0, Math.min(35, waitMinutes + trendMod));
+    // Skalowanie czasu oczekiwania względem osobistego profilu wchłaniania
+    if (learnedLagMinutes !== null && learnedLagMinutes >= 5 && learnedLagMinutes <= 35) {
+      const lagRatio = learnedLagMinutes / (isUltraFast ? 8 : (isRegular ? 25 : 15));
+      waitMinutes = Math.round(waitMinutes * Math.max(0.6, Math.min(1.4, lagRatio)));
+      reason += ` (GlikoSense 4.1: ~${learnedLagMinutes} min)`;
+    }
 
-  return {
-    waitMinutes: finalWait,
-    reason: `Sugerowany odstęp: ${finalWait} min (${reason}${trendReason})`
-  };
+    const finalWait = Math.max(0, Math.min(40, waitMinutes + trendMod));
+
+    return {
+      waitMinutes: finalWait,
+      reason: `Sugerowany odstęp: ${finalWait} min (${reason}${trendReason})`
+    };
 }
 
 /**
@@ -163,11 +171,11 @@ export function getPreBolusTimerState(): PreBolusTimerState {
     const now = Date.now();
     const targetTime = parsed.targetTime;
     const startTime = parsed.startTime;
-    const remainingSeconds = Math.round((targetTime - now) / 1000);
-    const elapsedSeconds = Math.round((now - startTime) / 1000);
+    const rawRemaining = Math.round((targetTime - now) / 1000);
+    const elapsedSeconds = Math.max(0, Math.round((now - startTime) / 1000));
 
     // Jeśli od zakończenia minęło ponad 15 minut, wygaszamy stoper
-    if (remainingSeconds < -15 * 60) {
+    if (rawRemaining < -15 * 60) {
       localStorage.removeItem('prebolus_timer_state');
       notificationService.cancelOngoingTimerNotification();
       try {
@@ -184,12 +192,13 @@ export function getPreBolusTimerState(): PreBolusTimerState {
       };
     }
 
+    const remainingSeconds = Math.max(0, rawRemaining);
     const isReady = remainingSeconds <= 0;
 
     return {
       active: true,
-      remainingSeconds: Math.max(0, remainingSeconds),
-      totalMinutes: parsed.totalMinutes,
+      remainingSeconds,
+      totalMinutes: parsed.totalMinutes || 0,
       targetTime,
       startTime,
       bolusUnits: parsed.bolusUnits,

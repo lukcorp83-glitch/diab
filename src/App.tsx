@@ -638,7 +638,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 2500);
+    const timer = setTimeout(() => setShowSplash(false), 1200);
     return () => clearTimeout(timer);
   }, []);
 
@@ -1216,13 +1216,17 @@ export default function App() {
 
   const handleLogout = () => signOut(auth);
 
-  if (loading || showSplash) {
+  if (loading) {
     return <GlikoControlLogo />;
   }
 
   if (!user) {
     return (
-      <div className={cn("min-h-[100dvh] flex items-center justify-center p-4 transition-colors duration-500", theme === "dark" ? "bg-slate-950" : "bg-slate-50")}>
+      <>
+        <AnimatePresence>
+          {showSplash && <GlikoControlLogo />}
+        </AnimatePresence>
+        <div className={cn("min-h-[100dvh] flex items-center justify-center p-4 transition-colors duration-500", theme === "dark" ? "bg-slate-950" : "bg-slate-50")}>
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn("w-full max-w-sm p-10 rounded-[3.5rem] shadow-2xl text-center border transition-all duration-500", theme === "dark" ? "bg-slate-900/60 backdrop-blur-3xl border-slate-800/50" : "bg-white border-slate-200")}>
           <div className="flex items-center justify-center gap-4 mb-2">
             <Logo className="w-14 h-14" />
@@ -1271,7 +1275,8 @@ export default function App() {
           </button>
         </motion.div>
       </div>
-    );
+    </>
+  );
   }
 
   const handleSwipe = (_: any, info: any) => {};
@@ -1285,6 +1290,9 @@ export default function App() {
 
   return (
     <>
+      <AnimatePresence>
+        {showSplash && <GlikoControlLogo />}
+      </AnimatePresence>
       <GlucoseAlarmModal />
       <ParentalPinModal />
       <SmartEquipmentModal

@@ -1,10 +1,10 @@
 {
-    "version": "6.0.35",
+    "version": "6.0.38",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.35_OTA.apk",
-    "buildNumber": 150,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.38_OTA.apk",
+    "buildNumber": 153,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.35! 1) Kontrola Rodzicielska i Uprawnienia Dziecka – ochrona PIN-em, 7 precyzyjnych przełączników uprawnień i blokada modyfikacji na telefonie dziecka. 2) Zaawansowana Analiza Wydajności Wkłucia – uwzględnienie szczytu działania insuliny (60-90 min), eliminacja fałszywych alarmów o zagięciu kaniuli i nowy status wchłaniania. 3) Ciągły Krokomierz 24/7 – natywne zliczanie kroków w serwisie tła z odświeżaniem co 15s. 4) Ujednolicony panel Parowania i obsługa przycisku Wstecz we wszystkich oknach.",
-    "whatsNewEn": "Version 6.0.35! 1) Parental Control & Child Permissions – PIN code protection, 7 granular permission switches and role lockdown on child device. 2) Advanced Infusion Set Pharmacokinetics – insulin peak awareness (60-90 min), elimination of false occlusion alerts and clear absorption status. 3) Continuous 24/7 Step Counter – native background step tracking via foreground service with 15s UI refresh. 4) Unified Pairing roles and full Android Back button support across all modals.",
-    "otaRevision": 309
+    "whatsNew": "Wersja 6.0.38! 1) Usunięcie ujemnych wartości stopera przedposiłkowego (twarde ograniczenie na 00:00 i natychmiastowe przejście w stan 'Możesz jeść!'). 2) Punktualne odświeżanie minut na pasku stanu Androida oraz niezawodna pętla aktualizacji ikony i pastylki. 3) Dalsze usprawnienia silnika GlikoSense 4.1 Pro.",
+    "whatsNewEn": "Version 6.0.38! 1) Fixed negative timer countdown (hard clamped to 00:00 with instant 'Time to eat!' state transition). 2) Accurate status bar badge minute refresh on Android with robust tick loop. 3) Further GlikoSense 4.1 Pro performance optimizations.",
+    "otaRevision": 312
 }

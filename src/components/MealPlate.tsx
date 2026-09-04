@@ -954,7 +954,7 @@ export default function MealPlate({
  protein: totalProtein,
  fat: totalFat,
  calories: Math.round(totalCalsFromMacros),
- timestamp: new Date(entryTime).getTime(),
+ timestamp: logToMerge.timestamp || new Date(entryTime).getTime(),
  };
  
  if (isBolus) {
@@ -981,10 +981,12 @@ export default function MealPlate({
  const effectiveLogId = logToMerge.id || logToMerge.nsId;
  if (!effectiveLogId) throw new Error("Brak prawidłowego ID wpisu.");
 
+ const mergedData = { ...logToMerge, id: effectiveLogId, ...updates, userModified: true };
  const logRef = doc(db, "users", getEffectiveUid(user), "logs", effectiveLogId);
- await setDoc(logRef, { ...logToMerge, id: effectiveLogId, ...updates, userModified: true }, { merge: true });
+ await setDoc(logRef, mergedData, { merge: true });
+ await dbService.saveLog(mergedData);
  
- window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: effectiveLogId, updates: { ...logToMerge, id: effectiveLogId, ...updates, userModified: true } } }));
+ window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: effectiveLogId, updates: mergedData } }));
  
  setPlate([]);
  setMergeCandidates(null);

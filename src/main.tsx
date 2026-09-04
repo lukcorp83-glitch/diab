@@ -9,9 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 import { defineCustomElements as jeepSqlite } from 'jeep-sqlite/loader';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
 
-CapacitorUpdater.notifyAppReady();
 let basePath = import.meta.env.BASE_URL;
 if (basePath === './') {
     basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';

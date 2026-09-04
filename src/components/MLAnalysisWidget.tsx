@@ -38,7 +38,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
   const [engineMode, setEngineMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') || 'v3_lstm' : 'v3_lstm');
   const [autoTuningEnabled, setAutoTuningEnabled] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_autotuning') === 'true' : false);
   const [autoTunerResult, setAutoTunerResult] = useState<AutoTunerResult | null>(null);
-  const glikoName = engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0';
+  const glikoName = engineMode === 'v4_tcn' ? 'GlikoSense 4.1' : 'GlikoSense 3.0';
   const [showEngineSettings, setShowEngineSettings] = useState(false);
  const [isAnalyzing, setIsAnalyzing] = useState(false);
  const [error, setError] = useState<string | null>(null);
@@ -850,7 +850,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                     onClick={() => {
                       localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
                       setEngineMode('v4_tcn');
-                      toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
+                      toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.1 Pro TCN + INT8" }));
                       if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
                       setTimeout(() => runML(true), 50);
                     }}
@@ -867,13 +867,13 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                         : "text-slate-500 dark:text-slate-400 hover:text-indigo-500"
                     )}
                   >
-                    🚀 v4.0 Pro (TCN)
+                    🚀 v4.1 Pro (TCN)
                   </button>
                 </div>
                 
                 <p className="text-[9px] text-slate-400 dark:text-slate-500 text-center px-4 font-medium leading-relaxed">
                   {engineMode === 'v4_tcn' 
-                    ? t('auto.opis_silnika_tcn', { defaultValue: 'Sploty dylatowane (TCN) z kwantyzacją wag INT8 i bezpiecznikiem skrajnych próbek. Wysoka precyzja.' })
+                    ? t('auto.opis_silnika_tcn', { defaultValue: 'Sploty dylatowane (TCN) z kwantyzacją wag INT8 i fizjologicznym guardrailem. Najwyższa precyzja i bezpieczeństwo.' })
                     : t('auto.opis_silnika_lstm', { defaultValue: 'Pamięć sekwencyjna (LSTM). Sprawdzony, klasyczny wariant asystenta o mniejszym zapotrzebowaniu na moc.' })}
                 </p>
 

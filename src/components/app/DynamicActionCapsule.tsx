@@ -56,10 +56,7 @@ export function DynamicActionCapsule({
     const handleUpdate = () => setPreBolusState(getPreBolusTimerState());
     window.addEventListener('prebolus_timer_update', handleUpdate);
     const timer = setInterval(() => {
-      const current = getPreBolusTimerState();
-      if (current.active) {
-        setPreBolusState(current);
-      }
+      setPreBolusState(getPreBolusTimerState());
     }, 1000);
     return () => {
       window.removeEventListener('prebolus_timer_update', handleUpdate);
@@ -255,7 +252,7 @@ export function DynamicActionCapsule({
           capsuleState === 'hypo' 
             ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30 -translate-y-16 rounded-[1.5rem]" 
             : capsuleState === 'prebolus'
-            ? preBolusState.remainingSeconds > 0
+            ? (preBolusState.remainingSeconds > 0 && !preBolusState.isReady)
               ? "bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 shadow-2xl shadow-orange-500/40 border border-orange-300/30 -translate-y-16 rounded-full"
               : "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 shadow-2xl shadow-emerald-500/40 border border-emerald-300/30 -translate-y-16 rounded-full"
             : capsuleState === 'unlinked'
@@ -372,9 +369,9 @@ export function DynamicActionCapsule({
               >
                 <div className={cn(
                   "p-1.5 rounded-full shrink-0 flex items-center justify-center shadow-inner",
-                  preBolusState.remainingSeconds > 0 ? "bg-white/20" : "bg-white/30"
+                  preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? "bg-white/20" : "bg-white/30"
                 )}>
-                  {preBolusState.remainingSeconds > 0 ? (
+                  {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? (
                     <Clock size={14} className="text-amber-200 animate-pulse" />
                   ) : (
                     <Utensils size={14} className="text-emerald-200 animate-bounce" />
@@ -382,10 +379,10 @@ export function DynamicActionCapsule({
                 </div>
                 <div className="flex flex-col justify-center min-w-0">
                   <span className="text-[8px] font-black text-white/90 uppercase tracking-widest leading-none mb-0.5 truncate">
-                    {preBolusState.remainingSeconds > 0 ? 'Odczekaj' : 'Możesz jeść!'}
+                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? 'Odczekaj' : 'Możesz jeść!'}
                   </span>
                   <span className="text-[11px] text-white uppercase font-black tracking-tight leading-none truncate font-mono">
-                    {preBolusState.remainingSeconds > 0 ? (
+                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? (
                       <span className="text-amber-200">{formattedTimer}</span>
                     ) : (
                       <span className="text-emerald-100">Gotowe</span>

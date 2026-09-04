@@ -15,24 +15,25 @@ body.dark .logo-container,
   background-color: #020617 !important;
 }
 
-/* Animacja wjazdu głównego klocka */
+/* Główny klocek logo */
 .logo-box {
-  width: 150px;
-  height: 150px;
-  background-color: #4a4e5d;
-  border-radius: 32px;
+  width: 120px;
+  height: 120px;
+  background-color: #1e293b;
+  border-radius: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  animation: boxEntrance 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 html.dark .logo-box,
 body.dark .logo-box,
 .dark .logo-box {
-  background-color: #1e293b;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(138,43,226,0.2);
+  background-color: #090d16;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Efekt "rysowania" łuku za pomocą stroke-dash */

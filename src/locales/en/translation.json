@@ -435,7 +435,7 @@
     "ostrzezenie_tekst_beta": "Beta test versions are under active development and may contain bugs, visual glitches, or cause unstable application behavior. Enable at your own discretion.",
     "pokaz_wnioski": "Show insights",
     "zwin": "Collapse",
-    "przeanalizowalem_twoje_wy_tcn": "🧠 I analyzed your charts using the TCN Pro engine (GlikoSense 4.0). Prediction error is {{0}} mg/dL.",
+    "przeanalizowalem_twoje_wy_tcn": "🧠 I analyzed your charts using the TCN Pro engine (GlikoSense 4.1). Prediction error is {{0}} mg/dL.",
     "odkryte_wzorce_glikosense": "Discovered Patterns & Rules",
     "monitorowanie": "Active Learning",
     "pokaz_wzorce": "Show Patterns",

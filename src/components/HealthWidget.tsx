@@ -144,13 +144,13 @@ export default function HealthWidget() {
               </div>
               {steps === 0 && (
                 <div className="mt-2 text-[9px] text-slate-400 dark:text-slate-500 italic leading-tight">
-                  Kliknij ikonkę ołówka ✏️ w rogu, aby wpisać kroki ręcznie. (Upewnij się, że masz aplikację Health Connect).
+                  Aktywny czujnik kroków telefonu. Możesz też kliknąć ✏️ w rogu, aby wpisać kroki ręcznie.
                 </div>
               )}
             </div>
           ) : (
             <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 italic leading-tight">
-              Brak uprawnień. Kliknij ✏️ u góry aby wpisać kroki ręcznie lub nadaj uprawnienia Health Connect w Profilu.
+              Kliknij ✏️ u góry aby wpisać kroki ręcznie lub nadaj uprawnienia Aktywności Fizycznej w ustawieniach telefonu.
             </div>
           )}
         </div>
