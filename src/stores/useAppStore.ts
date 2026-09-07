@@ -7,6 +7,16 @@ interface SyncStatus {
   isFirebaseSyncing?: boolean;
 }
 
+export interface AiScanState {
+  isScanning: boolean;
+  title?: string;
+  subtitle?: string;
+  mode?: 'plate' | 'menu' | 'label' | 'product' | 'bolus' | 'general';
+  imagePreview?: string | null;
+  statusMessages?: string[];
+  onCancel?: () => void;
+}
+
 interface AppState {
   email: string;
   setEmail: (e: string) => void;
@@ -73,7 +83,37 @@ interface AppState {
 
   isKeyboardOpen: boolean;
   setIsKeyboardOpen: (isOpen: boolean) => void;
+
+  aiScanState: AiScanState;
+  startAiScan: (options?: Partial<Omit<AiScanState, 'isScanning'>>) => void;
+  updateAiScanMessage: (subtitle: string) => void;
+  stopAiScan: () => void;
 }
+
+const getInitialTheme = (): "light" | "dark" => {
+  if (typeof window === "undefined") return "dark";
+  try {
+    const directTheme = localStorage.getItem("theme");
+    if (directTheme === "dark" || directTheme === "light") {
+      return directTheme;
+    }
+    const userSettingsRaw = localStorage.getItem("glikocontrol_user_settings");
+    if (userSettingsRaw) {
+      const parsed = JSON.parse(userSettingsRaw);
+      if (parsed?.theme === "dark" || parsed?.theme === "light") {
+        return parsed.theme;
+      }
+      if (parsed?.theme === "system") {
+        const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return isDark ? "dark" : "light";
+      }
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return "dark";
+    }
+  } catch (e) {}
+  return "dark";
+};
 
 export const useAppStore = create<AppState>((set) => ({
   email: '',
@@ -101,7 +141,7 @@ export const useAppStore = create<AppState>((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setTab: (tab: string) => set({ activeTab: tab }),
 
-  theme: "light",
+  theme: getInitialTheme(),
   setTheme: (theme) => set({ theme }),
   toggleTheme: () => set((state) => ({ theme: state.theme === "light" ? "dark" : "light" })),
 
@@ -145,4 +185,23 @@ export const useAppStore = create<AppState>((set) => ({
 
   isKeyboardOpen: false,
   setIsKeyboardOpen: (isOpen) => set({ isKeyboardOpen: isOpen }),
+
+  aiScanState: { isScanning: false },
+  startAiScan: (options) => set({
+    aiScanState: {
+      isScanning: true,
+      title: options?.title,
+      subtitle: options?.subtitle,
+      mode: options?.mode || 'general',
+      imagePreview: options?.imagePreview || null,
+      statusMessages: options?.statusMessages,
+      onCancel: options?.onCancel,
+    }
+  }),
+  updateAiScanMessage: (subtitle) => set((state) => ({
+    aiScanState: { ...state.aiScanState, subtitle }
+  })),
+  stopAiScan: () => set({
+    aiScanState: { isScanning: false, imagePreview: null }
+  }),
 }));

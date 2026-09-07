@@ -1,5 +1,6 @@
 import { useAppStore } from '../../../stores/useAppStore';
 import React, { useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { cn, getEffectiveUid } from "../../../lib/utils";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
@@ -171,17 +172,20 @@ export default function ShortcutsWidget({
         )}
       >
         {shortcuts.map((s: any) => (
-          <button
+          <motion.button
             key={s.id}
+            whileTap={{ scale: 0.94 }}
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
             onClick={() => { if (!isEditingLayout && !hasMovedRef.current) quickAdd(s); }}
-            className="shrink-0 glass-card !p-4 flex items-center gap-3 font-black text-xs uppercase tracking-tighter shadow-sm active:scale-95 transition-all border border-black/5 dark:border-white/5 dark:text-white group min-w-[140px] cursor-pointer"
+            className="shrink-0 glass-card !p-4 flex items-center gap-3 font-black text-xs uppercase tracking-tighter shadow-sm border border-black/5 dark:border-white/5 dark:text-white group min-w-[140px] cursor-pointer"
           >
             <span className="text-2xl group-hover:scale-110 transition-transform block pointer-events-none">{s.icon || "📌"}</span>
             <div className="flex flex-col items-start text-left pointer-events-none">
               <span className="leading-tight text-slate-800 dark:text-slate-200">{s.name}</span>
               <span className="text-[9px] opacity-50 lowercase font-bold">{Number(s.carbs).toFixed(1)}{t('auto.g_węgli', { defaultValue: i18n.t('auto.g_wegli', { defaultValue: "g węgli" }) })}</span>
             </div>
-          </button>
+          </motion.button>
         ))}
       </div>
     </div>

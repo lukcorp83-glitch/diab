@@ -9,6 +9,7 @@ import { Product } from '../../types';
 import { cn } from "../../lib/utils";
 import { Haptics } from "../../lib/haptics";
 import { geminiService } from "../../services/gemini";
+import { useAppStore } from "../../stores/useAppStore";
 import toast from "react-hot-toast";
 
 export const MealPlateModals = (props: any) => {
@@ -43,6 +44,12 @@ export const MealPlateModals = (props: any) => {
  reader.onload = async (ev) => {
  const dataUrl = ev.target?.result as string;
  setIsAnalyzingLabel(true);
+ useAppStore.getState().startAiScan({
+   mode: 'label',
+   imagePreview: dataUrl,
+   title: t('camera.scanning_label_title', { defaultValue: 'Odczyt etykiety odżywczej' }),
+   subtitle: t('camera.scanning_label_subtitle', { defaultValue: 'Przetwarzanie tabeli makroskładników na 100g...' })
+ });
  try {
  const result = await geminiService.analyzeNutritionLabel(dataUrl);
  const product: Product = {
@@ -60,6 +67,7 @@ export const MealPlateModals = (props: any) => {
  } catch (err) {
  toast.error(t('auto.blad_ai_podczas_odczytu_etyk', { defaultValue: 'Błąd AI podczas odczytu etykiety' }));
  } finally {
+ useAppStore.getState().stopAiScan();
  setIsAnalyzingLabel(false);
  }
  };

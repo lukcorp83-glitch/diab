@@ -36,6 +36,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { geminiService } from "../services/gemini";
 import { toast } from "react-hot-toast";
 import { notificationService } from "../services/notificationService";
+import { useAppStore } from "../stores/useAppStore";
 import { startPreBolusTimer, calculatePreBolusWaitTime } from "../services/preBolusService";
 
 import { Haptics } from "../lib/haptics";
@@ -380,61 +381,69 @@ export default function BolusCalculator({ setTab,
  setManualDose(null);
  };
 
- const handleMealScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
- const file = e.target.files?.[0];
- if (!file) return;
+  const handleMealScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
- setScanning(true);
- try {
- const reader = new FileReader();
- reader.onload = async (event) => {
- try {
- const base64 = event.target?.result as string;
- const result = await geminiService.analyzeMeal(base64);
- if (result && result.carbs) {
- setCarbs(result.carbs.toString());
- if (result.protein || result.fat) {
- const pProt = result.protein || 0;
- const pFat = result.fat || 0;
- const kcalFromWBT = pProt * 4 + pFat * 9;
- if (kcalFromWBT >= 100) {
- setIsPizzaMode(true);
- }
- setProtein(pProt.toString());
- setFat(pFat.toString());
- }
- setScanResultMsg(t('bolus.scan_recognized', { name: result.mealName }));
- setTimeout(() => setScanResultMsg(null), 5000);
- }
- } catch (err) {
- console.error("AI scan error:", err);
- const errStr = String(err);
- if (
- errStr.includes("API key not valid") ||
- errStr.includes("API_KEY_INVALID")
- ) {
- setScanResultMsg(t('bolus.scan_invalid_api'));
- } else if (
- errStr.includes(i18n.t('auto.wszystkie_modele_ai_sa_obecnie', { defaultValue: i18n.t('auto.wszystkie_modele_ai_sa_ob', { defaultValue: "Wszystkie modele AI są obecnie zajęte" }) })) ||
- errStr.includes(i18n.t('auto.zajete', { defaultValue: i18n.t('auto.zajete', { defaultValue: "zajęte" }) }))
- ) {
- setScanResultMsg(t('bolus.scan_overloaded'));
- } else {
- setScanResultMsg(t('bolus.scan_error'));
- }
- setTimeout(() => setScanResultMsg(null), 5000);
- } finally {
- setScanning(false);
- }
- };
- reader.readAsDataURL(file);
- } catch (e) {
- console.error("Meal scan error:", e);
- setScanResultMsg(t('bolus.scan_error'));
- setTimeout(() => setScanResultMsg(null), 5000);
- setScanning(false);
- }
- };
+    setScanning(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        useAppStore.getState().startAiScan({
+          mode: 'bolus',
+          imagePreview: base64,
+          title: t('camera.scanning_bolus_title', { defaultValue: 'Kalkulacja bolusa AI' }),
+          subtitle: t('camera.scanning_bolus_subtitle', { defaultValue: 'Szacowanie węglowodanów i WBT z posiłku...' })
+        });
+        try {
+          const result = await geminiService.analyzeMeal(base64);
+          if (result && result.carbs) {
+            setCarbs(result.carbs.toString());
+            if (result.protein || result.fat) {
+              const pProt = result.protein || 0;
+              const pFat = result.fat || 0;
+              const kcalFromWBT = pProt * 4 + pFat * 9;
+              if (kcalFromWBT >= 100) {
+                setIsPizzaMode(true);
+              }
+              setProtein(pProt.toString());
+              setFat(pFat.toString());
+            }
+            setScanResultMsg(t('bolus.scan_recognized', { name: result.mealName }));
+            setTimeout(() => setScanResultMsg(null), 5000);
+          }
+        } catch (err) {
+          console.error("AI scan error:", err);
+          const errStr = String(err);
+          if (
+            errStr.includes("API key not valid") ||
+            errStr.includes("API_KEY_INVALID")
+          ) {
+            setScanResultMsg(t('bolus.scan_invalid_api'));
+          } else if (
+            errStr.includes(i18n.t('auto.wszystkie_modele_ai_sa_obecnie', { defaultValue: i18n.t('auto.wszystkie_modele_ai_sa_ob', { defaultValue: "Wszystkie modele AI są obecnie zajęte" }) })) ||
+            errStr.includes(i18n.t('auto.zajete', { defaultValue: i18n.t('auto.zajete', { defaultValue: "zajęte" }) }))
+          ) {
+            setScanResultMsg(t('bolus.scan_overloaded'));
+          } else {
+            setScanResultMsg(t('bolus.scan_error'));
+          }
+          setTimeout(() => setScanResultMsg(null), 5000);
+        } finally {
+          useAppStore.getState().stopAiScan();
+          setScanning(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (e) {
+      console.error("Meal scan error:", e);
+      useAppStore.getState().stopAiScan();
+      setScanResultMsg(t('bolus.scan_error'));
+      setTimeout(() => setScanResultMsg(null), 5000);
+      setScanning(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user || saving) return;

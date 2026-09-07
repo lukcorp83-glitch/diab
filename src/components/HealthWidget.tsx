@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Footprints, Edit2, Check, X } from 'lucide-react';
 import { healthService } from '../services/healthService';
+import { useAuthStore } from '../stores/useAuthStore';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { toast } from 'react-hot-toast';
 
 export default function HealthWidget() {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
   const [steps, setSteps] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -16,6 +18,16 @@ export default function HealthWidget() {
 
   useEffect(() => {
     let mounted = true;
+
+    // 1. Nasłuchuj kroków z chmury (z innych urządzeń) w czasie rzeczywistym
+    const unsubscribeCloud = healthService.listenToCloudSteps(user, todayKey, (cloudSteps) => {
+      if (mounted) {
+        setSteps(cloudSteps);
+        setLoading(false);
+      }
+    });
+
+    // 2. Pobieraj z natywnego sensora kroków urządzenia
     const fetchSteps = async () => {
       try {
         const saved = localStorage.getItem(`glikocontrol_steps_${todayKey}`);
@@ -27,20 +39,20 @@ export default function HealthWidget() {
             const count = await healthService.getStepsLast24h();
             if (mounted && count !== null && count >= 0) {
               setSteps(count);
-              localStorage.setItem(`glikocontrol_steps_${todayKey}`, count.toString());
+              healthService.syncStepsToCloud(user, count, false, todayKey);
               return;
             }
           }
         }
         
-        if (mounted) {
-          setSteps(localVal !== null && !isNaN(localVal) ? localVal : 0);
+        if (mounted && localVal !== null && !isNaN(localVal)) {
+          setSteps(localVal);
         }
       } catch (err) {
         console.error("HealthWidget steps error", err);
         const saved = localStorage.getItem(`glikocontrol_steps_${todayKey}`);
-        if (mounted) {
-          setSteps(saved !== null ? parseInt(saved, 10) : 0);
+        if (mounted && saved !== null) {
+          setSteps(parseInt(saved, 10) || 0);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -55,17 +67,18 @@ export default function HealthWidget() {
 
     return () => {
       mounted = false;
+      unsubscribeCloud();
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleFocus);
     };
-  }, [todayKey]);
+  }, [todayKey, user]);
 
   const handleSaveManual = () => {
     const parsed = parseInt(manualInput, 10);
     if (!isNaN(parsed) && parsed >= 0) {
       setSteps(parsed);
-      localStorage.setItem(`glikocontrol_steps_${todayKey}`, parsed.toString());
+      healthService.syncStepsToCloud(user, parsed, true, todayKey);
       toast.success(t('auto.zapisano_kroki', { defaultValue: `Zapisano kroki: ${parsed.toLocaleString()}` }));
     }
     setIsEditing(false);

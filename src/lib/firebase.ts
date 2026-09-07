@@ -1,9 +1,17 @@
-import { initializeFirestore, persistentLocalCache, memoryLocalCache, persistentSingleTabManager } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  memoryLocalCache,
+  doc, 
+  getDocFromServer 
+} from 'firebase/firestore';
 import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, GoogleAuthProvider } from 'firebase/auth';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { getApps, getApp, initializeApp } from 'firebase/app';
+import { Capacitor } from '@capacitor/core';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
@@ -14,18 +22,17 @@ export const auth = initializeAuth(app, {
 });
 export const googleProvider = new GoogleAuthProvider();
 
-import { Capacitor } from '@capacitor/core';
-
-// Using initializeFirestore with modern persistence API
+// Inicjalizacja Firestore z obsługą wielu kart (MultipleTabManager) oraz automatycznym fallbackiem Long Polling
 export const db = initializeFirestore(app, {
     ignoreUndefinedProperties: true,
-    localCache: Capacitor.isNativePlatform() ? memoryLocalCache() : persistentLocalCache({tabManager: persistentSingleTabManager({})}),
-    experimentalForceLongPolling: Capacitor.isNativePlatform() ? true : false
+    localCache: Capacitor.isNativePlatform() 
+      ? memoryLocalCache() 
+      : persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    experimentalAutoDetectLongPolling: true,
+    experimentalForceLongPolling: Capacitor.isNativePlatform()
 });
 
 // Verification function as per Firestore guidelines
-import { doc, getDocFromServer } from 'firebase/firestore';
-
 export let isFirebaseConnected = false;
 const connectionListeners: ((status: boolean) => void)[] = [];
 
@@ -45,33 +52,30 @@ function updateConnectionStatus(status: boolean) {
 
 export async function testConnection() {
     if (typeof window !== 'undefined' && !window.navigator.onLine) {
-        console.error("[Firestore] Navigator reports offline.");
         updateConnectionStatus(false);
         return false;
     }
     
     try {
-        // Try to fetch a non-existent doc from server to verify connectivity
         await getDocFromServer(doc(db, '_connection_test_', 'ping'));
         console.log('[Firestore] Connection verified');
         updateConnectionStatus(true);
         return true;
     } catch (error: any) {
         if (error.message?.includes('offline') || error.code === 'unavailable') {
-            console.error("[Firestore] Connection issue: Client appears to be offline.", error);
             updateConnectionStatus(false);
             return false;
         } else {
-            console.log(`[Firestore] Connection test successful (server reachable, expected ${error.code})`);
             updateConnectionStatus(true);
             return true;
         }
     }
 }
-testConnection();
 
+// Opóźniony start testu połączenia (aby nie blokować pierwszego renderu i dać czas na ustanowienie socketu)
 if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => testConnection());
+    setTimeout(() => { testConnection().catch(() => {}); }, 2500);
+    window.addEventListener('online', () => testConnection().catch(() => {}));
     window.addEventListener('offline', () => updateConnectionStatus(false));
 }
 

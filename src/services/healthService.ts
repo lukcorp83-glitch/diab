@@ -1,5 +1,8 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { toast } from 'react-hot-toast';
+import { db } from '../lib/firebase';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { getEffectiveUid } from '../lib/utils';
 
 const StepCounter: any = Capacitor.Plugins?.StepCounter || registerPlugin('StepCounter');
 
@@ -188,5 +191,92 @@ export const healthService = {
       }
     }
     return successCount;
+  },
+
+  async syncStepsToCloud(user: any, steps: number, isManual = false, dateKey?: string): Promise<void> {
+    if (typeof steps !== 'number' || isNaN(steps) || steps < 0) return;
+    const todayKey = dateKey || new Date().toISOString().split('T')[0];
+    
+    // 1. Zapis lokalny
+    try {
+      localStorage.setItem(`glikocontrol_steps_${todayKey}`, steps.toString());
+      window.dispatchEvent(new CustomEvent('glikocontrol_steps_update', { 
+        detail: { steps, todayKey, isManual } 
+      }));
+    } catch (e) {}
+
+    // 2. Synchronizacja z chmurą Firebase Firestore
+    if (user) {
+      try {
+        const uid = getEffectiveUid(user);
+        await setDoc(
+          doc(db, "users", uid, "daily_stats", todayKey),
+          {
+            steps,
+            updatedAt: Date.now(),
+            isManual: !!isManual
+          },
+          { merge: true }
+        );
+        console.log(`[HealthService] Zsynchronizowano ${steps} kroków z chmurą (${todayKey})`);
+      } catch (err) {
+        console.warn('[HealthService] Błąd synchronizacji kroków z Firestore:', err);
+      }
+    }
+  },
+
+  listenToCloudSteps(user: any, todayKey: string, onUpdate: (steps: number, isManual?: boolean) => void): () => void {
+    // 1. Nasłuch lokalny w ramach tej samej przeglądarki/aplikacji
+    const handleLocalUpdate = (e: any) => {
+      if (e.detail && e.detail.todayKey === todayKey && typeof e.detail.steps === 'number') {
+        onUpdate(e.detail.steps, e.detail.isManual);
+      }
+    };
+    window.addEventListener('glikocontrol_steps_update', handleLocalUpdate);
+
+    if (!user) {
+      return () => {
+        window.removeEventListener('glikocontrol_steps_update', handleLocalUpdate);
+      };
+    }
+
+    // 2. Real-time synchronizacja między urządzeniami przez Firestore onSnapshot
+    try {
+      const uid = getEffectiveUid(user);
+      const unsubFirestore = onSnapshot(
+        doc(db, "users", uid, "daily_stats", todayKey),
+        (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data && typeof data.steps === 'number') {
+              const saved = localStorage.getItem(`glikocontrol_steps_${todayKey}`);
+              const localVal = saved !== null ? parseInt(saved, 10) : null;
+              
+              // Jeśli w chmurze jest wpis ręczny lub liczba kroków jest większa/równa lokalnej
+              if (data.isManual || localVal === null || data.steps >= localVal) {
+                localStorage.setItem(`glikocontrol_steps_${todayKey}`, data.steps.toString());
+                onUpdate(data.steps, data.isManual);
+              } else if (localVal !== null && localVal > data.steps && !data.isManual) {
+                // Jeśli ten telefon ma wyższy stan z sensora niż chmura, zsynchronizuj w górę
+                healthService.syncStepsToCloud(user, localVal, false, todayKey).catch(() => {});
+              }
+            }
+          }
+        },
+        (error) => {
+          console.warn('[HealthService] Błąd nasłuchu kroków z Firestore:', error);
+        }
+      );
+
+      return () => {
+        window.removeEventListener('glikocontrol_steps_update', handleLocalUpdate);
+        unsubFirestore();
+      };
+    } catch (err) {
+      console.warn('[HealthService] Nie udało się zainicjować nasłuchu Firestore:', err);
+      return () => {
+        window.removeEventListener('glikocontrol_steps_update', handleLocalUpdate);
+      };
+    }
   }
 };

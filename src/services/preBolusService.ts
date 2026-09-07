@@ -76,31 +76,56 @@ export function calculatePreBolusWaitTime(
     reason = 'bardzo wysoka glikemia';
   }
 
-    // GlikoSense 4.1: Sprawdzamy wyuczony osobisty czas opóźnienia insuliny z modelu ML
-    let learnedLagMinutes: number | null = null;
-    try {
-      const cachedMl = typeof window !== 'undefined' ? localStorage.getItem('glikosense_last_result_v2') : null;
-      if (cachedMl) {
-        const parsed = JSON.parse(cachedMl);
-        if (parsed?.learnedPkParams?.optimalLagMinutes && typeof parsed.learnedPkParams.optimalLagMinutes === 'number') {
-          learnedLagMinutes = parsed.learnedPkParams.optimalLagMinutes;
-        }
+  // 2. Wpływ trendu glikemii (strzałki CGM)
+  let trendMod = 0;
+  let trendReason = '';
+
+  const normTrend = (trend || '').toLowerCase().trim();
+  if (normTrend.includes('doubleup') || normTrend === '↑↑' || normTrend === '⇈') {
+    trendMod = 6;
+    trendReason = ', szybki wzrost ↑↑';
+  } else if (normTrend.includes('singleup') || normTrend === '↑' || normTrend === '⇡') {
+    trendMod = 3;
+    trendReason = ', wzrost ↑';
+  } else if (normTrend.includes('fortyfiveup') || normTrend === '↗' || normTrend === '⬈') {
+    trendMod = 2;
+    trendReason = ', lekki wzrost ↗';
+  } else if (normTrend.includes('fortyfivedown') || normTrend === '↘' || normTrend === '⬊') {
+    trendMod = -3;
+    trendReason = ', lekki spadek ↘';
+  } else if (normTrend.includes('singledown') || normTrend === '↓' || normTrend === '⇣') {
+    trendMod = -5;
+    trendReason = ', spadek ↓';
+  } else if (normTrend.includes('doubledown') || normTrend === '↓↓' || normTrend === '⇊') {
+    trendMod = -8;
+    trendReason = ', szybki spadek ↓↓';
+  }
+
+  // 3. GlikoSense 4.1: Sprawdzamy wyuczony osobisty czas opóźnienia insuliny z modelu ML
+  let learnedLagMinutes: number | null = null;
+  try {
+    const cachedMl = typeof window !== 'undefined' ? localStorage.getItem('glikosense_last_result_v2') : null;
+    if (cachedMl) {
+      const parsed = JSON.parse(cachedMl);
+      if (parsed?.learnedPkParams?.optimalLagMinutes && typeof parsed.learnedPkParams.optimalLagMinutes === 'number') {
+        learnedLagMinutes = parsed.learnedPkParams.optimalLagMinutes;
       }
-    } catch (e) {}
-
-    // Skalowanie czasu oczekiwania względem osobistego profilu wchłaniania
-    if (learnedLagMinutes !== null && learnedLagMinutes >= 5 && learnedLagMinutes <= 35) {
-      const lagRatio = learnedLagMinutes / (isUltraFast ? 8 : (isRegular ? 25 : 15));
-      waitMinutes = Math.round(waitMinutes * Math.max(0.6, Math.min(1.4, lagRatio)));
-      reason += ` (GlikoSense 4.1: ~${learnedLagMinutes} min)`;
     }
+  } catch (e) {}
 
-    const finalWait = Math.max(0, Math.min(40, waitMinutes + trendMod));
+  // Skalowanie czasu oczekiwania względem osobistego profilu wchłaniania
+  if (learnedLagMinutes !== null && learnedLagMinutes >= 5 && learnedLagMinutes <= 35) {
+    const lagRatio = learnedLagMinutes / (isUltraFast ? 8 : (isRegular ? 25 : 15));
+    waitMinutes = Math.round(waitMinutes * Math.max(0.6, Math.min(1.4, lagRatio)));
+    reason += ` (GlikoSense 4.1: ~${learnedLagMinutes} min)`;
+  }
 
-    return {
-      waitMinutes: finalWait,
-      reason: `Sugerowany odstęp: ${finalWait} min (${reason}${trendReason})`
-    };
+  const finalWait = Math.max(0, Math.min(40, waitMinutes + trendMod));
+
+  return {
+    waitMinutes: finalWait,
+    reason: `Sugerowany odstęp: ${finalWait} min (${reason}${trendReason})`
+  };
 }
 
 /**

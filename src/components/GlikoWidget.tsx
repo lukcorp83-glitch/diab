@@ -5,6 +5,7 @@ import { LogEntry } from '../types';
 import { cn, getMealAbsorptionTime } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { AnimatedNumber } from "./common/AnimatedNumber";
 
 interface GlikoWidgetProps {
  setTab: (t: string) => void;
@@ -87,14 +88,12 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
 
  <div className="relative z-10 my-auto flex flex-col justify-center">
  <div className="flex items-baseline gap-1 justify-center py-1">
- <motion.span 
- key={`val-${lastGlucose?.timestamp || 'none'}`}
- initial={{ scale: 0.8, opacity: 0 }}
- animate={{ scale: 1, opacity: 1 }}
- className="text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
- >
- {lastGlucose?.value || '--'}
- </motion.span>
+ <AnimatedNumber 
+  value={lastGlucose?.value}
+  decimals={0}
+  fallback="--"
+  className="text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
+  />
  <div className="flex flex-col items-start">
  <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  {trend && (
@@ -117,7 +116,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  </div>
 
  <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 relative z-10 flex items-center justify-between text-[9px] font-bold text-slate-500 dark:text-slate-400">
- <span>{t('auto.iob', { defaultValue: 'IOB:' })} <span className="font-black text-accent-500">{iob.toFixed(1)}j</span></span>
+ <span>{t('auto.iob', { defaultValue: 'IOB:' })} <AnimatedNumber value={iob} decimals={1} suffix="j" className="font-black text-accent-500" /></span>
  <span>{t('auto.hba1c', { defaultValue: 'HbA1c:' })} <span className="font-black text-accent-500">{hba1c > 0 ? hba1c.toFixed(1) : '--'}%</span></span>
  </div>
  </motion.div>
@@ -178,15 +177,12 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <div>
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block mb-1">{t('auto.ostatni_pomiar', { defaultValue: 'Ostatni Pomiar' })}</span>
  <div className="flex items-baseline gap-2">
- <motion.span 
- key={`val-${lastGlucose?.timestamp || 'none'}`}
- initial={{ scale: 0.8, opacity: 0 }}
- animate={{ scale: 1, opacity: 1 }}
- transition={{ type: "spring", bounce: 0.3 }}
- className="text-5xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
- >
- {lastGlucose?.value || '--'}
- </motion.span>
+ <AnimatedNumber 
+  value={lastGlucose?.value}
+  decimals={0}
+  fallback="--"
+  className="text-5xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
+  />
  <div className="flex flex-col">
  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  {trend && (
@@ -211,7 +207,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <div className="text-right">
  <div className="flex items-baseline justify-end gap-1.5 mb-2">
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block">{t('auto.insulina_aktywna', { defaultValue: 'Insulina Aktywna' })}</span>
- <span className="text-xl font-black text-accent-600 dark:text-accent-400 tracking-tight tabular-nums">{iob.toFixed(2)}<span className="text-[10px] ml-0.5 opacity-50">j</span></span>
+ <span className="text-xl font-black text-accent-600 dark:text-accent-400 tracking-tight tabular-nums"><AnimatedNumber value={iob} decimals={2} /><span className="text-[10px] ml-0.5 opacity-50">j</span></span>
  </div>
  
  <motion.div 
@@ -239,7 +235,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_jednostek', { defaultValue: i18n.t('auto.dzis_jednostek', { defaultValue: "Dziś Jednostek" }) })}</span>
  </div>
  <div className="flex items-baseline gap-1">
- <span className="text-2xl font-black text-slate-800 dark:text-white">{todayStats.insulin.toFixed(1)}</span>
+ <AnimatedNumber value={todayStats.insulin} decimals={1} className="text-2xl font-black text-slate-800 dark:text-white" />
  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{t('auto.j', { defaultValue: 'j.' })}</span>
  </div>
  </div>
@@ -275,7 +271,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_węglowodany', { defaultValue: i18n.t('auto.dzis_weglowodany', { defaultValue: "Dziś Węglowodany" }) })}</span>
  </div>
  <div className="flex items-baseline gap-1">
- <span className="text-2xl font-black text-slate-800 dark:text-white">{typeof todayStats.carbs === 'number' ? Number(todayStats.carbs.toFixed(1)) : todayStats.carbs}</span>
+ <AnimatedNumber value={todayStats.carbs} decimals={1} className="text-2xl font-black text-slate-800 dark:text-white" />
  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">g</span>
  </div>
  </div>
@@ -283,6 +279,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <span className="text-[8px] font-bold text-slate-400 block">{t('auto.ostatni', { defaultValue: 'Ostatni:' })} {lastMeal ? getTimeAgo(lastMeal.timestamp) : '--'}</span>
  </div>
  </motion.div>
+ </div>
  </div>
 
  {/* TIR Bar Integrated */}
@@ -313,8 +310,6 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  />
  </div>
  </div>
- </div>
  </motion.div>
  );
 }
-

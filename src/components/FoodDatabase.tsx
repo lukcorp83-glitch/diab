@@ -28,6 +28,7 @@ import { CATEGORIES } from "../constants";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { geminiService } from "../services/gemini";
+import { useAppStore } from "../stores/useAppStore";
 
 export const getProductName = (p: Product, lang: string) => {
  if (lang.startsWith("en") && p.nameEn) return p.nameEn;
@@ -118,16 +119,28 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
        source: CameraSource.Camera
      });
      if (image.dataUrl) {
-       toast.loading("AI analizuje zdjęcie produktu...");
-       const result = await geminiService.analyzeMeal(image.dataUrl);
-       toast.dismiss();
-       if (result.ingredients && result.ingredients.length > 0) {
-         toast.success(`AI zidentyfikowało: ${result.ingredients.map((i: any) => i.name).join(', ')}`);
-         setSearchTerm(result.ingredients[0].name || "");
+       useAppStore.getState().startAiScan({
+         mode: 'product',
+         imagePreview: image.dataUrl,
+         title: t('camera.scanning_food_title', { defaultValue: 'Identyfikacja produktu' }),
+         subtitle: t('camera.scanning_food_subtitle', { defaultValue: 'Rozpoznawanie produktu w bazie AI...' })
+       });
+       try {
+         const result = await geminiService.analyzeMeal(image.dataUrl);
+         if (result.ingredients && result.ingredients.length > 0) {
+           toast.success(`AI zidentyfikowało: ${result.ingredients.map((i: any) => i.name).join(', ')}`);
+           setSearchTerm(result.ingredients[0].name || "");
+         }
+       } catch(err) {
+         console.error("AI photo analyze failed:", err);
+         toast.error(t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: 'Błąd analizy zdjęcia posiłku.' }));
+       } finally {
+         useAppStore.getState().stopAiScan();
        }
      }
    } catch(e: any) {
      console.error(e);
+     useAppStore.getState().stopAiScan();
    } finally {
      setIsAnalyzingPhoto(false);
    }

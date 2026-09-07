@@ -1060,7 +1060,7 @@ export default function MealPlate({
     };
   }, []);
 
-  const startPlateCameraAnalysis = async () => {
+    const startPlateCameraAnalysis = async () => {
     setIsAnalyzing(true);
     setSearchError("");
     try {
@@ -1072,6 +1072,12 @@ export default function MealPlate({
       });
 
       if (image.dataUrl) {
+        useAppStore.getState().startAiScan({
+          mode: 'plate',
+          imagePreview: image.dataUrl,
+          title: i18n.t('camera.scanning_plate_title', { defaultValue: 'Analizuję Twój talerz' }),
+          subtitle: i18n.t('camera.scanning_plate_subtitle', { defaultValue: 'Rozpoznawanie potrawy i szacowanie makroskładników...' })
+        });
         try {
           const result = await geminiService.analyzeMeal(
             image.dataUrl,
@@ -1137,10 +1143,12 @@ export default function MealPlate({
           console.error("Camera vision analysis:", err);
           setSearchError(i18n.t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: "Błąd analizy zdjęcia posiłku." }));
         } finally {
+          useAppStore.getState().stopAiScan();
           setIsAnalyzing(false);
         }
       }
     } catch (e) {
+      useAppStore.getState().stopAiScan();
       setIsAnalyzing(false);
       console.error("Camera cancelled or failed", e);
     }
@@ -1149,7 +1157,6 @@ export default function MealPlate({
   const startRestaurantMenuCameraAnalysis = async () => {
     setIsAnalyzing(true);
     setSearchError("");
-    const toastId = toast.loading(i18n.t('menu_advisor.analyzing_menu', { defaultValue: 'AI analizuje kartę dań i profil diety...' }));
     try {
       const image = await CapCamera.getPhoto({
         quality: 85,
@@ -1159,9 +1166,14 @@ export default function MealPlate({
       });
 
       if (image.dataUrl) {
+        useAppStore.getState().startAiScan({
+          mode: 'menu',
+          imagePreview: image.dataUrl,
+          title: i18n.t('camera.scanning_menu_title', { defaultValue: 'Analizuję kartę dań' }),
+          subtitle: i18n.t('camera.scanning_menu_subtitle', { defaultValue: 'Odczytywanie pozycji menu i dopasowanie do diety...' })
+        });
         try {
           const result = await geminiService.analyzeRestaurantMenu(image.dataUrl, settings);
-          toast.dismiss(toastId);
 
           if (result && Array.isArray(result.menuItems) && result.menuItems.length > 0) {
             setRestaurantMenuResult(result);
@@ -1174,18 +1186,17 @@ export default function MealPlate({
             toast.error(i18n.t('menu_advisor.no_dishes_found', { defaultValue: 'Nie udało się rozpoznać dań z tego zdjęcia menu. Spróbuj zrobić wyraźniejsze ujęcie.' }));
           }
         } catch (err) {
-          toast.dismiss(toastId);
           console.error("Menu vision analysis error:", err);
           toast.error(i18n.t('menu_advisor.err_analysis', { defaultValue: 'Błąd analizy karty menu. Spróbuj ponownie.' }));
         } finally {
+          useAppStore.getState().stopAiScan();
           setIsAnalyzing(false);
         }
       } else {
-        toast.dismiss(toastId);
         setIsAnalyzing(false);
       }
     } catch (e) {
-      toast.dismiss(toastId);
+      useAppStore.getState().stopAiScan();
       setIsAnalyzing(false);
       console.error("Menu camera cancelled or failed", e);
     }

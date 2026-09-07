@@ -58,6 +58,7 @@ import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { ParentalPinModal } from "./components/ParentalPinModal";
 import { AppLayout } from "./components/app/AppLayout";
 import { AppContent } from "./components/app/AppContent";
+import AiScanningOverlay from "./components/common/AiScanningOverlay";
 
 import { Haptics } from "./lib/haptics";
 import { useTranslation } from "react-i18next";
@@ -1216,11 +1217,7 @@ export default function App() {
 
   const handleLogout = () => signOut(auth);
 
-  if (loading) {
-    return <GlikoControlLogo />;
-  }
-
-  if (!user) {
+  if (!user && !loading) {
     return (
       <>
         <AnimatePresence>
@@ -1295,6 +1292,7 @@ export default function App() {
       </AnimatePresence>
       <GlucoseAlarmModal />
       <ParentalPinModal />
+      <AiScanningOverlay />
       <SmartEquipmentModal
         type={smartEquipmentType}
         logs={logs}

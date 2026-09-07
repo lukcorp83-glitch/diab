@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.38';
+export const CURRENT_VERSION = '6.0.39';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.39",
+    date: "2026-09-07",
+    title: "Zunifikowany Skaner Wizyjny AI, Animacje Liczników i Pulpitu oraz Synchronizacja Kroków",
+    changes: [
+      "Zunifikowany ekran skanera AI (AiScanningOverlay) z laserową wiązką skanującą, podglądem fotografii i dynamicznymi statusami",
+      "Płynne animacje liczników (AnimatedNumber) w widżecie głównym glikemii i statystykach",
+      "Kaskadowe animacje wejścia kart pulpitu oraz mikrointerakcje dotykowe dla przycisków szybkiego bolusa i skrótów",
+      "Synchronizacja kroków w czasie rzeczywistym między sparowanymi urządzeniami w chmurze",
+      "Odświeżona animacja startowa z podpisem 'POWERED BY GLIKOSENSE' i eliminacja podwójnego ładowania"
+    ]
+  },
   {
     version: "6.0.38",
     date: "2026-09-04",
@@ -394,6 +406,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.39",
+    date: "2026-09-07",
+    title: "Zunifikowany Skaner Wizyjny AI, Animacje Liczników i Pulpitu oraz Synchronizacja Kroków",
+    changes: [
+      "Zunifikowany ekran skanera AI (AiScanningOverlay) z laserową wiązką skanującą, podglądem fotografii i dynamicznymi statusami",
+      "Płynne animacje liczników (AnimatedNumber) w widżecie głównym glikemii i statystykach",
+      "Kaskadowe animacje wejścia kart pulpitu oraz mikrointerakcje dotykowe dla przycisków szybkiego bolusa i skrótów",
+      "Synchronizacja kroków w czasie rzeczywistym między sparowanymi urządzeniami w chmurze",
+      "Odświeżona animacja startowa z podpisem 'POWERED BY GLIKOSENSE' i eliminacja podwójnego ładowania"
+    ]
+  },
   {
     version: "6.0.38",
     date: "2026-09-04",

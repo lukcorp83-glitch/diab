@@ -1,10 +1,10 @@
 {
-    "version": "6.0.38",
+    "version": "6.0.39",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.38_OTA.apk",
-    "buildNumber": 153,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.39_OTA.apk",
+    "buildNumber": 154,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.38! 1) Usunięcie ujemnych wartości stopera przedposiłkowego (twarde ograniczenie na 00:00 i natychmiastowe przejście w stan 'Możesz jeść!'). 2) Punktualne odświeżanie minut na pasku stanu Androida oraz niezawodna pętla aktualizacji ikony i pastylki. 3) Dalsze usprawnienia silnika GlikoSense 4.1 Pro.",
-    "whatsNewEn": "Version 6.0.38! 1) Fixed negative timer countdown (hard clamped to 00:00 with instant 'Time to eat!' state transition). 2) Accurate status bar badge minute refresh on Android with robust tick loop. 3) Further GlikoSense 4.1 Pro performance optimizations.",
-    "otaRevision": 312
+    "whatsNew": "Wersja 6.0.39! 1) Zunifikowany panel skanera AI z wiązką lasera, podglądem zdjęcia i natychmiastowym feedbackiem wizualnym w całej aplikacji (Talerz, Menu, Etykiety, Baza, Bolus). 2) Płynne animacje liczników (odometer) w widżecie głównym i kaskadowe wejście kart pulpitu. 3) Synchronizacja kroków w czasie rzeczywistym między urządzeniami. 4) Odświeżona animacja startowa z podpisem 'POWERED BY GLIKOSENSE'.",
+    "whatsNewEn": "Version 6.0.39! 1) Unified AI Vision scanning overlay with laser scan beam, photo preview and instant visual feedback across the entire app (Plate, Menu, Labels, Food DB, Bolus). 2) Smooth odometer number animations in main widget and staggered dashboard entrance. 3) Real-time cross-device step synchronization. 4) Refreshed splash startup animation with 'POWERED BY GLIKOSENSE'.",
+    "otaRevision": 313
 }

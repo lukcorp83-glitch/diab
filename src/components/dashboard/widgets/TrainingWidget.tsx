@@ -55,6 +55,15 @@ export default function TrainingWidget({
 
   useEffect(() => {
     let mounted = true;
+
+    // 1. Nasłuchuj aktualizacji z chmury (z innych urządzeń) w czasie rzeczywistym
+    const unsubscribeCloud = healthService.listenToCloudSteps(user, todayKey, (cloudSteps) => {
+      if (mounted) {
+        setSteps(cloudSteps);
+      }
+    });
+
+    // 2. Pobieraj kroki z natywnego sensora tego urządzenia
     const fetchSteps = async () => {
       try {
         const saved = localStorage.getItem(`glikocontrol_steps_${todayKey}`);
@@ -66,20 +75,20 @@ export default function TrainingWidget({
             const count = await healthService.getStepsLast24h();
             if (mounted && count !== null && count >= 0) {
               setSteps(count);
-              localStorage.setItem(`glikocontrol_steps_${todayKey}`, count.toString());
+              healthService.syncStepsToCloud(user, count, false, todayKey);
               return;
             }
           }
         }
 
-        if (mounted) {
-          setSteps(localVal !== null && !isNaN(localVal) ? localVal : 0);
+        if (mounted && localVal !== null && !isNaN(localVal)) {
+          setSteps(localVal);
         }
       } catch (err) {
         console.error("TrainingWidget steps error", err);
         const saved = localStorage.getItem(`glikocontrol_steps_${todayKey}`);
-        if (mounted) {
-          setSteps(saved !== null ? parseInt(saved, 10) : 0);
+        if (mounted && saved !== null) {
+          setSteps(parseInt(saved, 10) || 0);
         }
       }
     };
@@ -92,20 +101,21 @@ export default function TrainingWidget({
 
     return () => {
       mounted = false;
+      unsubscribeCloud();
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleFocus);
     };
-  }, [todayKey]);
+  }, [todayKey, user]);
 
-  // Zapis ręcznej liczby kroków
+  // Zapis ręcznej liczby kroków (synchronizowany ze wszystkimi urządzeniami)
   const handleSaveManualSteps = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const parsed = parseInt(manualInput, 10);
     if (!isNaN(parsed) && parsed >= 0) {
       setSteps(parsed);
-      localStorage.setItem(`glikocontrol_steps_${todayKey}`, parsed.toString());
+      healthService.syncStepsToCloud(user, parsed, true, todayKey);
       toast.success(t('auto.zapisano_kroki', { defaultValue: `Zapisano kroki: ${parsed.toLocaleString()}` }));
     }
     setEditMode('none');
