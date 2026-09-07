@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Camera, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import i18n from "../../i18n";

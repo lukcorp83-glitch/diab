@@ -21,6 +21,52 @@
     <meta name="twitter:title" content="GlikoControl – Inteligentna Kontrola Cukrzycy" />
     <meta name="twitter:description" content="Zaawansowana aplikacja dla diabetyków z kalkulatorem bolusa, AI i bazą wymienników." />
     <script>
+      // W środowisku Capacitor Android/iOS WebView ServiceWorker nie jest używany i wyrzuca błędy przy rejestracji
+      try {
+        if (window.location.protocol === 'capacitor:' || (window.location.hostname === 'localhost' && /Android|iPhone|iPad/i.test(navigator.userAgent))) {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register = function() {
+              return Promise.resolve({
+                scope: './',
+                unregister: function() { return Promise.resolve(true); }
+              });
+            };
+          }
+        }
+      } catch (e) {}
+
+      // Globalny ratunkowy wychwytywacz błędów JS na telefonie
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        var strMsg = msg ? String(msg) : '';
+        if (strMsg.indexOf('ServiceWorker') !== -1 || strMsg.indexOf('service worker') !== -1 || strMsg.indexOf('sw.js') !== -1) {
+          console.warn('[SW Warning ignored]:', strMsg);
+          return true;
+        }
+        var errDiv = document.getElementById('fatal-error-overlay');
+        if (!errDiv) {
+          errDiv = document.createElement('div');
+          errDiv.id = 'fatal-error-overlay';
+          errDiv.style.cssText = 'position:fixed;inset:0;background:#0f172a;color:#f43f5e;padding:24px;z-index:999999;font-family:monospace;font-size:12px;overflow:auto;display:flex;flex-direction:column;gap:12px;';
+          errDiv.innerHTML = '<h2 style="font-size:18px;font-weight:bold;color:#fff;">⚠️ Błąd uruchomienia aplikacji:</h2><pre id="fatal-error-msg" style="white-space:pre-wrap;background:#1e293b;padding:12px;border-radius:8px;border:1px solid #334155;color:#fca5a5;"></pre><button onclick="localStorage.clear();location.reload();" style="padding:12px 20px;background:#ef4444;color:#fff;border:none;border-radius:12px;font-weight:bold;cursor:pointer;margin-top:10px;">Wyczyść pamięć i przeładuj</button>';
+          document.body ? document.body.appendChild(errDiv) : document.documentElement.appendChild(errDiv);
+        }
+        var msgEl = document.getElementById('fatal-error-msg');
+        if (msgEl) {
+          msgEl.textContent = (msg || '') + '\n\nPlik: ' + (url || '') + ':' + lineNo + ':' + columnNo + (error && error.stack ? '\n\n' + error.stack : '');
+        }
+        return false;
+      };
+      window.onunhandledrejection = function(event) {
+        var reason = event.reason || {};
+        var msg = reason.message || String(reason || '');
+        if (msg.indexOf('ServiceWorker') !== -1 || msg.indexOf('service worker') !== -1 || msg.indexOf('sw.js') !== -1) {
+          console.warn('[SW Warning ignored]:', msg);
+          return;
+        }
+        window.onerror(msg, '', 0, 0, reason);
+      };
+    </script>
+    <script>
       (function() {
         try {
           var theme = localStorage.getItem('theme');

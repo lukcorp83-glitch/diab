@@ -28,8 +28,9 @@ export const db = initializeFirestore(app, {
     localCache: Capacitor.isNativePlatform() 
       ? memoryLocalCache() 
       : persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-    experimentalAutoDetectLongPolling: true,
-    experimentalForceLongPolling: Capacitor.isNativePlatform()
+    ...(Capacitor.isNativePlatform()
+      ? { experimentalForceLongPolling: true }
+      : { experimentalAutoDetectLongPolling: true })
 });
 
 // Verification function as per Firestore guidelines

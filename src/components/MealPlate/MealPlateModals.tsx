@@ -1,5 +1,4 @@
-
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { X, Camera, Loader2, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";

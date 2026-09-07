@@ -80,11 +80,15 @@ public class MainActivity extends BridgeActivity {
         }
 
         // Uruchomienie Pancernego Foreground Service
-        Intent serviceIntent = new Intent(this, GlikoForegroundService.class);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            ContextCompat.startForegroundService(this, serviceIntent);
-        } else {
-            startService(serviceIntent);
+        try {
+            Intent serviceIntent = new Intent(this, GlikoForegroundService.class);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(this, serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        } catch (Exception e) {
+            android.util.Log.w("MainActivity", "Nie udalo sie wystartowac GlikoForegroundService (limit systemu Android): " + e.getMessage());
         }
 
         // Obsługa skrótu przy uruchomieniu na zimno (Cold Start)

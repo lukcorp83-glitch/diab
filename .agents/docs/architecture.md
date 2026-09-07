@@ -125,3 +125,11 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 - `src/components/app/DynamicActionCapsule.tsx` - Główny pływający przycisk akcji (FAB / Dynamic Action Capsule):
   - Klasyczna zewnętrzna odznaka (Badge) liczby składników na Talerze: umieszczona na zewnętrznej prawej górnej krawędzi okrągłego przycisku (`-top-1.5 -right-1.5`), z białą obwódką i cieniem (dokładnie jak w aplikacjach mobilnych/iOS/Android), bez nachodzenia na samą ikonę sztućców.
   - Płynne morfowanie w stany: Hypo Alert, Pre-Bolus Timer (z bezpośrednim przyciskiem „Zjadłem”), Unlinked Carbs oraz Meal Absorbing (wskaźnik trawienia %).
+
+## Rozwiązane Problemy i Diagnostyka Natywna (Android / Capacitor)
+- **Problem czarnego ekranu przy starcie (Black Screen on Startup)**:
+  1. **Konflikt Firestore Polling (`src/lib/firebase.ts`)**: Firebase JS SDK rzucało krytyczny błąd `FirebaseError: experimentalForceLongPolling and experimentalAutoDetectLongPolling cannot be used together`, gdy obie flagi były włączone w trybie natywnym. Skorygowano konfigurację, aby w trybie natywnym (`Capacitor.isNativePlatform()`) aktywować wyłącznie `experimentalForceLongPolling`, a w przeglądarce `experimentalAutoDetectLongPolling`.
+  2. **ServiceWorker w Capacitor WebView (`index.html`)**: Android WebView pod adresem `https://localhost/` wyrzucał błąd przy próbie rejestracji `sw.js` generowanego przez VitePWA. W `index.html` zablokowano rejestrację SW w trybie natywnym oraz wyciszono komunikaty SW w `window.onunhandledrejection`.
+  3. **Android 14/15 Foreground Service dataSync (`MainActivity.java` & `GlikoForegroundService.java`)**: Zabezpieczono wywołania `startForegroundService` blokami `try/catch` przed `ForegroundServiceStartNotAllowedException` na nowych wersjach systemu Android.
+  4. **Zgodność paczki Framer Motion**: Zunifikowano importy z `framer-motion` na natywne `motion/react` we wszystkich komponentach.
+

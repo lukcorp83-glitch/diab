@@ -211,7 +211,11 @@ public class GlikoForegroundService extends Service implements SensorEventListen
                     .build();
         }
 
-        startForeground(FOREGROUND_ID, notification);
+        try {
+            startForeground(FOREGROUND_ID, notification);
+        } catch (Exception e) {
+            android.util.Log.e("GlikoForegroundService", "Blad startForeground: " + e.getMessage());
+        }
 
         // Rozpoczęcie pętli pobierającej dane co 5 minut (300 000 ms)
         if (handler == null) {

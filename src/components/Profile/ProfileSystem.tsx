@@ -13,7 +13,7 @@ import i18n from '../../i18n';
 import { dbService } from '../../services/databaseService';
 
 
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { auth } from '../../lib/firebase';
 import { APP_VERSION } from '../../constants';
 import { PWA_VERSIONS } from '../../constants/versions';

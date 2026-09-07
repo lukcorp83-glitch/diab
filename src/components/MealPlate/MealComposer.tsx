@@ -1,7 +1,7 @@
 import { useLogsStore } from "../../stores/useLogsStore";
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Trash2, Check, Zap, Info, Calculator, Utensils, AlertTriangle, Leaf, Settings, Activity, Loader2, Star } from 'lucide-react';
 import { Haptics } from '../../lib/haptics';
