@@ -5,7 +5,7 @@ import { cn } from "../../lib/utils";
 import { Haptics } from '../../lib/haptics';
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
-import { APP_VERSION } from "../../constants";
+import { APP_VERSION, IS_BETA_CHANNEL } from "../../constants";
 import { Toaster, toast, ToastBar } from "react-hot-toast";
 import {
   Activity,
@@ -222,7 +222,7 @@ export function AppLayout({
                 >
                   <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
                   <div>
-                    <p
+                    <div
                       onClick={(e) => {
                         e.stopPropagation();
                         Haptics.medium();
@@ -232,8 +232,13 @@ export function AppLayout({
                       className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
-                      v{APP_VERSION}
-                    </p>
+                      <span>v{APP_VERSION}</span>
+                      {IS_BETA_CHANNEL && (
+                        <span className="px-1 py-0.2 text-[6.5px] font-black uppercase tracking-wider rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/35">
+                          BETA
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

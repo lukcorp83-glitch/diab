@@ -6,6 +6,7 @@ import { Haptics } from "../../lib/haptics";
 import { healthService } from "../../services/healthService";
 import { toast } from "react-hot-toast";
 import { getEffectiveUid, cn, isNativeApp } from "../../lib/utils";
+import { recordMedicationTaken } from "../../lib/medicationManager";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, Reorder } from "motion/react";
 import {
@@ -185,19 +186,8 @@ export default function ProfileMedications({ user, settings, setSettings }: any)
 
   const takeMedicationDose = async (med: Medication) => {
     if (!user) return;
-    Haptics.success();
-    const pillsToDeduct = med.pillsPerDose || 1;
-    const currentStock = typeof med.stockQuantity === 'number' ? med.stockQuantity : null;
-    const newStock = currentStock !== null ? Math.max(0, currentStock - pillsToDeduct) : undefined;
-    
-    const updatedMeds = (settings.medications || []).map((m: any) => 
-      m.id === med.id ? { ...m, ...(newStock !== undefined ? { stockQuantity: newStock } : {}) } : m
-    );
-    const cleanMeds = JSON.parse(JSON.stringify(updatedMeds));
-    setSettings({ ...settings, medications: cleanMeds });
-    await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { medications: cleanMeds }, { merge: true });
+    await recordMedicationTaken(med.id, med.pillsPerDose || 1);
     queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
-    toast.success(`${t('auto.zazyto_lek', { defaultValue: 'Zażyto' })}: ${med.name} (${med.dosage || '1 dawka'})`);
   };
 
   const [isAnalyzingDrug, setIsAnalyzingDrug] = useState(false);

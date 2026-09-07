@@ -3,7 +3,7 @@ import './LogoAnimation.css';
 import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
 import { Haptics } from '../lib/haptics';
-import { APP_VERSION } from '../constants';
+import { APP_VERSION, IS_BETA_CHANNEL } from '../constants';
 
 const GlikoControlLogo = () => {
   const { t } = useTranslation();
@@ -86,10 +86,16 @@ const GlikoControlLogo = () => {
         transition={{ delay: 0.35, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         className="mt-6 flex flex-col items-center z-10"
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-white font-display">
             Gliko<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">Control</span>
           </span>
+          {IS_BETA_CHANNEL && (
+            <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              BETA
+            </span>
+          )}
         </div>
 
         {/* Badge POWERED BY GLIKOSENSE */}

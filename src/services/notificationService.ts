@@ -47,8 +47,24 @@ export const notificationService = {
           visibility: 1,
           vibration: true
         });
+
+        // Rejestracja akcji w powiadomieniu: Zażyłem lek bezpośrednio z paska powiadomień
+        await LocalNotifications.registerActionTypes({
+          types: [
+            {
+              id: 'MEDICATION_ACTIONS',
+              actions: [
+                {
+                  id: 'TAKE_MED',
+                  title: '✅ Zażyłem',
+                  foreground: true
+                }
+              ]
+            }
+          ]
+        });
       } catch (err) {
-        console.warn('Failed to create notification channel:', err);
+        console.warn('Failed to create notification channel or action types:', err);
       }
     }
   },
@@ -520,8 +536,13 @@ export const notificationService = {
               },
               channelId: 'glikocontrol_medications_v2',
               attachments: null,
-              actionTypeId: '',
-              extra: { medicationId: med.id, medicationName: med.name }
+              actionTypeId: 'MEDICATION_ACTIONS',
+              extra: { 
+                medicationId: med.id, 
+                medicationName: med.name,
+                dosage: med.dosage,
+                pillsPerDose: med.pillsPerDose || 1
+              }
             });
           }
         }

@@ -11,6 +11,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { useBackButton } from '../hooks/useBackButton';
+import { recordMedicationTaken } from '../lib/medicationManager';
 
 interface MedicationsWidgetProps {
   medications: Medication[];
@@ -96,29 +97,25 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
         setTakenMeds(JSON.parse(saved));
       } catch(e) {}
     }
-  }, []);
+
+    const handleMedTakenEvent = (e: any) => {
+      const detail = e.detail;
+      if (detail?.medicationId) {
+        setTakenMeds(prev => ({
+          ...prev,
+          [detail.medicationId]: detail.date || new Date().toISOString().split('T')[0]
+        }));
+        queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      }
+    };
+
+    window.addEventListener('medication-taken', handleMedTakenEvent);
+    return () => window.removeEventListener('medication-taken', handleMedTakenEvent);
+  }, [queryClient]);
 
   const markTaken = async (med: Medication) => {
-    Haptics.success();
-    const todayStr = new Date().toISOString().split('T')[0];
-    const newTaken = { ...takenMeds, [med.id]: todayStr };
-    setTakenMeds(newTaken);
-    localStorage.setItem('glikosense_taken_meds', JSON.stringify(newTaken));
-
-    // Jeśli lek ma zdefiniowany stan zapasu, odejmij dawkę z bazy
-    if (user && typeof med.stockQuantity === 'number') {
-      try {
-        const pillsToDeduct = med.pillsPerDose || 1;
-        const newStock = Math.max(0, med.stockQuantity - pillsToDeduct);
-        const updatedMeds = medications.map(m => m.id === med.id ? { ...m, stockQuantity: newStock } : m);
-        await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { medications: updatedMeds }, { merge: true });
-        queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
-      } catch (err) {
-        console.error("Błąd aktualizacji zapasu leku:", err);
-      }
-    }
-
-    toast.success(`${t('auto.zazyto_lek', { defaultValue: 'Zażyto' })}: ${med.name}`);
+    await recordMedicationTaken(med.id, med.pillsPerDose || 1);
+    queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
   };
 
   const activeMeds = medications.filter(m => m.active);

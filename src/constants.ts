@@ -5,6 +5,10 @@ import i18n from "./i18n";
 export const APP_VERSION = '6.0.39';
 export const CURRENT_VERSION = '6.0.39';
 
+export const IS_BETA_CHANNEL: boolean = 
+  Boolean(import.meta.env.VITE_IS_BETA_CHANNEL) || 
+  import.meta.env.VITE_APP_CHANNEL === 'beta';
+
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';
 export const FACEBOOK_GROUP_URL = 'https://www.facebook.com/groups/4442689766059238/';

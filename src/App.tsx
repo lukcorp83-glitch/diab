@@ -58,6 +58,8 @@ import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { ParentalPinModal } from "./components/ParentalPinModal";
 import { AppLayout } from "./components/app/AppLayout";
 import { AppContent } from "./components/app/AppContent";
+import { LocalNotifications } from "@capacitor/local-notifications";
+import { recordMedicationTaken } from "./lib/medicationManager";
 import AiScanningOverlay from "./components/common/AiScanningOverlay";
 
 import { Haptics } from "./lib/haptics";
@@ -805,6 +807,29 @@ export default function App() {
       }).then(l => { urlListener = l; });
     }
 
+    // 4. Nasłuchuj na akcje z powiadomień lokalnych (np. "Zażyłem lek")
+    let notificationActionListener: any;
+    if (Capacitor.isNativePlatform()) {
+      LocalNotifications.addListener('localNotificationActionPerformed', async (notificationAction) => {
+        try {
+          const actionId = notificationAction.actionId;
+          const notification = notificationAction.notification;
+          const extra = notification?.extra;
+
+          if (actionId === 'TAKE_MED' && extra?.medicationId) {
+            console.log('[App] Otrzymano akcję TAKE_MED dla leku:', extra.medicationId);
+            await recordMedicationTaken(extra.medicationId, extra.pillsPerDose);
+            // Usunięcie powiadomienia po wykonaniu akcji
+            if (notification.id) {
+              await LocalNotifications.cancel({ notifications: [{ id: notification.id }] }).catch(() => {});
+            }
+          }
+        } catch (err) {
+          console.error('[App] Błąd obsługi akcji powiadomienia:', err);
+        }
+      }).then(l => { notificationActionListener = l; });
+    }
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('native_shortcut_action', handleNativeShortcutEvent);
@@ -813,6 +838,9 @@ export default function App() {
       }
       if (urlListener && urlListener.remove) {
         urlListener.remove();
+      }
+      if (notificationActionListener && notificationActionListener.remove) {
+        notificationActionListener.remove();
       }
     };
   }, []);

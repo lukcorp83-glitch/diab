@@ -47,6 +47,7 @@ jobs:
         run: npm run build
         env:
           CI: false
+          VITE_APP_CHANNEL: ${{ github.ref_name }}
 
       - name: 📝 Generuj plik wersji (version.json lub beta.json)
         run: |
