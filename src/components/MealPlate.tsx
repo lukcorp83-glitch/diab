@@ -6,6 +6,7 @@ import { MealComposer } from "./MealPlate/MealComposer";
 import { MealPlateModals } from "./MealPlate/MealPlateModals";
 import CameraModeModal from "./MealPlate/CameraModeModal";
 import RestaurantMenuModal, { MenuItemAnalysis, RestaurantMenuResult } from "./MealPlate/RestaurantMenuModal";
+import AiMealVerificationModal, { AiMealResult } from "./MealPlate/AiMealVerificationModal";
 
 
 import i18n from '../i18n';
@@ -199,6 +200,9 @@ export default function MealPlate({
   const [showCameraModeModal, setShowCameraModeModal] = useState(false);
   const [restaurantMenuResult, setRestaurantMenuResult] = useState<RestaurantMenuResult | null>(null);
   const [showRestaurantMenuModal, setShowRestaurantMenuModal] = useState(false);
+  const [showAiMealModal, setShowAiMealModal] = useState(false);
+  const [aiMealPhoto, setAiMealPhoto] = useState<string | null>(null);
+  const [aiMealResult, setAiMealResult] = useState<AiMealResult | null>(null);
 
   useEffect(() => {
     const checkPendingLoad = () => {
@@ -906,7 +910,10 @@ export default function MealPlate({
  }, [plate, totalWW, totalWBT, entryTime]);
 
   const prepareToLogMeal = () => {
-    if (!user || plate.length === 0) return;
+    if (!plate || plate.length === 0) {
+      toast.error(t('meal.plate_empty', { defaultValue: 'Talerz jest pusty! Dodaj najpierw składniki.' }));
+      return;
+    }
 
     requireParentalAuth(settings, 'canAddMeals', {
       title: 'Dodawanie Posiłku 🍲',
@@ -914,17 +921,22 @@ export default function MealPlate({
       onSuccess: () => {
         const entryTimestamp = new Date(entryTime).getTime();
         const timeLimit = 3 * 60 * 60 * 1000;
-        const candidates = logs.filter(l => 
-          (l.type === "bolus" || l.type === "meal" || (l.type as string) === "carbs") &&
-          Math.abs(Number(l.timestamp) - entryTimestamp) < timeLimit &&
-          (!l.items || l.items.length === 0) &&
-          (!l.description || l.description.trim() === "") &&
-          (!(l as any).name || (l as any).name.trim() === "") &&
-          (!l.linkedMeal?.name || l.linkedMeal.name.trim() === "") &&
-          (!l.notes || l.notes.trim() === "") &&
-          (!l.userModified) &&
-          ((l as any).carbs > 0 || l.value > 0 || l.linkedMeal?.carbs > 0)
-        );
+        const candidates = (logs || []).filter(l => {
+          if (!l) return false;
+          const isEligibleType = l.type === "bolus" || l.type === "meal" || (l.type as string) === "carbs";
+          if (!isEligibleType) return false;
+
+          const logTime = Number(l.timestamp || 0);
+          if (Math.abs(logTime - entryTimestamp) >= timeLimit) return false;
+
+          // Nie łącz z wpisami, które mają już skomponowany talerz składników
+          const hasItems = (l.items && l.items.length > 0) || (l.linkedMeal?.items && l.linkedMeal.items.length > 0);
+          if (hasItems) return false;
+
+          // Musi zawierać węglowodany
+          const hasCarbs = ((l as any).carbs > 0 || l.value > 0 || (l.linkedMeal?.carbs || 0) > 0);
+          return hasCarbs;
+        });
 
         if (candidates.length > 0) {
           setMergeCandidates(candidates);
@@ -935,98 +947,138 @@ export default function MealPlate({
     });
   };
 
- const handleMergeMeal = async (logIdOrNsId: string) => {
- if (!user || plate.length === 0) return;
- Haptics.medium();
- 
- try {
- const logToMerge = logs.find(l => (l.id && l.id === logIdOrNsId) || (l.nsId && l.nsId === logIdOrNsId));
- if (!logToMerge) {
- handleLogMeal();
- return;
- }
+  const handleMergeMeal = async (logIdOrNsId: string) => {
+    if (!plate || plate.length === 0) return;
+    Haptics.medium();
+    
+    try {
+      const logToMerge = (logs || []).find(l => 
+        (l.id && l.id === logIdOrNsId) || 
+        (l.nsId && l.nsId === logIdOrNsId) || 
+        ((l as any)._id && (l as any)._id === logIdOrNsId)
+      );
+      if (!logToMerge) {
+        await handleLogMeal();
+        return;
+      }
 
- const isBolus = logToMerge.type === "bolus";
- const updates: any = {
- description: plate.map((i) => i.name).join(", "),
- items: plate,
- polyols: rawPolyols,
- protein: totalProtein,
- fat: totalFat,
- calories: Math.round(totalCalsFromMacros),
- timestamp: logToMerge.timestamp || new Date(entryTime).getTime(),
- };
- 
- if (isBolus) {
- updates.linkedMeal = {
- ...(logToMerge.linkedMeal || {}),
- polyols: rawPolyols,
- protein: totalProtein,
- fat: totalFat,
- name: plate.map((i) => i.name).join(", "),
- items: plate,
- calories: Math.round(totalCalsFromMacros),
- };
- // Preserve pump carbs if available, otherwise use plate carbs
- updates.linkedMeal.carbs = logToMerge.linkedMeal?.carbs || totalCarbs;
- } else {
- updates.value = logToMerge.value || totalCarbs;
- updates.polyols = rawPolyols;
- updates.protein = totalProtein;
- updates.fat = totalFat;
- updates.calories = Math.round(totalCalsFromMacros);
- updates.type = "meal"; // Safety
- }
+      const isBolus = logToMerge.type === "bolus";
+      const updates: any = {
+        description: plate.map((i) => i.name).join(", "),
+        items: plate,
+        polyols: rawPolyols,
+        protein: totalProtein,
+        fat: totalFat,
+        calories: Math.round(totalCalsFromMacros),
+        timestamp: logToMerge.timestamp || new Date(entryTime).getTime(),
+      };
+      
+      if (isBolus) {
+        updates.linkedMeal = {
+          ...(logToMerge.linkedMeal || {}),
+          polyols: rawPolyols,
+          protein: totalProtein,
+          fat: totalFat,
+          name: plate.map((i) => i.name).join(", "),
+          items: plate,
+          calories: Math.round(totalCalsFromMacros),
+        };
+        // Preserve pump carbs if available, otherwise use plate carbs
+        updates.linkedMeal.carbs = logToMerge.linkedMeal?.carbs || totalCarbs;
+      } else {
+        updates.value = logToMerge.value || totalCarbs;
+        updates.polyols = rawPolyols;
+        updates.protein = totalProtein;
+        updates.fat = totalFat;
+        updates.calories = Math.round(totalCalsFromMacros);
+        updates.type = "meal"; // Safety
+      }
 
- const effectiveLogId = logToMerge.id || logToMerge.nsId;
- if (!effectiveLogId) throw new Error("Brak prawidłowego ID wpisu.");
+      const effectiveLogId = logToMerge.id || logToMerge.nsId || (logToMerge as any)._id;
+      if (!effectiveLogId) throw new Error("Brak prawidłowego ID wpisu.");
 
- const mergedData = { ...logToMerge, id: effectiveLogId, ...updates, userModified: true };
- const logRef = doc(db, "users", getEffectiveUid(user), "logs", effectiveLogId);
- await setDoc(logRef, mergedData, { merge: true });
- await dbService.saveLog(mergedData);
- 
- window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: effectiveLogId, updates: mergedData } }));
- 
- setPlate([]);
- setMergeCandidates(null);
- Haptics.success();
- toast.success(i18n.t('auto.polaczono_z_wpisem_z_pompy', { defaultValue: i18n.t('auto.polaczono_z_wpisem_z_pomp', { defaultValue: "Połączono z wpisem z pompy!" }) }));
- } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + " " + e.message); Haptics.error(); }
- };
+      const mergedData = { ...logToMerge, id: effectiveLogId, ...updates, userModified: true };
+      
+      // Natychmiast aktualizujemy stan w Zustand oraz IndexedDB
+      useLogsStore.getState().updateLog(effectiveLogId, mergedData);
+      await dbService.saveLog(mergedData);
+      window.dispatchEvent(new CustomEvent('localLogUpdate', { detail: { id: effectiveLogId, updates: mergedData } }));
 
- const handleLogMeal = async () => {
- if (!user || plate.length === 0) return;
- Haptics.medium();
- try {
- const payload = {
- type: "meal",
- value: totalCarbs,
- carbs: totalCarbs,
- polyols: rawPolyols,
- protein: totalProtein,
- fat: totalFat,
- calories: Math.round(totalCalsFromMacros),
- timestamp: new Date(entryTime).getTime(),
- description: plate.map((i) => i.name).join(", "),
- items: plate,
- createdAt: Date.now()
- };
- const docRef = await addDoc(
- collection(
- db,
- "users",
- getEffectiveUid(user),
- "logs",
- ),
- payload,
- );
- await dbService.saveLog({ ...payload, id: docRef.id });
- window.dispatchEvent(new CustomEvent("localLogAdd", { detail: { ...payload, id: docRef.id } }));
- setPlate([]);
- Haptics.success();
- } catch (e: any) { console.error(e); toast.error(i18n.t('auto.blad_scalania', { defaultValue: i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) }) + e.message); Haptics.error(); }
- };
+      // Asynchroniczny zapis do Firestore
+      const uid = getEffectiveUid(user);
+      if (uid) {
+        const logRef = doc(db, "users", uid, "logs", effectiveLogId);
+        setDoc(logRef, mergedData, { merge: true }).catch(err => {
+          console.warn("Firestore setDoc merge warning:", err);
+        });
+      }
+      
+      setPlate([]);
+      setMergeCandidates(null);
+      Haptics.success();
+      toast.success(i18n.t('auto.polaczono_z_wpisem_z_pompy', { defaultValue: "Połączono z wpisem z pompy! 🍽️" }));
+    } catch (e: any) { 
+      console.error(e); 
+      toast.error(i18n.t('auto.blad_scalania', { defaultValue: "Błąd scalania:" }) + " " + e.message); 
+      Haptics.error(); 
+    }
+  };
+
+  const handleLogMeal = async () => {
+    if (!plate || plate.length === 0) return;
+    Haptics.medium();
+    try {
+      const payload: any = {
+        type: "meal",
+        value: totalCarbs,
+        carbs: totalCarbs,
+        polyols: rawPolyols,
+        protein: totalProtein,
+        fat: totalFat,
+        calories: Math.round(totalCalsFromMacros),
+        timestamp: new Date(entryTime).getTime(),
+        description: plate.map((i) => i.name).join(", "),
+        items: plate,
+        createdAt: Date.now()
+      };
+
+      const uid = getEffectiveUid(user);
+      let assignedId = `meal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+      if (uid) {
+        try {
+          const docRef = await addDoc(
+            collection(
+              db,
+              "users",
+              uid,
+              "logs",
+            ),
+            payload,
+          );
+          if (docRef && docRef.id) {
+            assignedId = docRef.id;
+          }
+        } catch (cloudErr) {
+          console.warn("Firestore offline/failed, using generated ID:", cloudErr);
+        }
+      }
+
+      const completePayload = { ...payload, id: assignedId };
+      useLogsStore.getState().addLog(completePayload);
+      await dbService.saveLog(completePayload);
+      window.dispatchEvent(new CustomEvent("localLogAdd", { detail: completePayload }));
+      
+      setPlate([]);
+      setMergeCandidates(null);
+      Haptics.success();
+      toast.success(t('meal.saved_successfully', { defaultValue: 'Posiłek zapisany w dzienniku! 🍽️' }));
+    } catch (e: any) { 
+      console.error(e); 
+      toast.error(i18n.t('auto.blad_scalania', { defaultValue: "Błąd zapisu posiłku: " }) + e.message); 
+      Haptics.error(); 
+    }
+  };
 
 
   const lastCameraTriggerRef = useRef<number>(0);
@@ -1084,61 +1136,10 @@ export default function MealPlate({
             settings,
           );
 
-          let htmlAnalysis = "";
-          if (result.analysis) {
-            htmlAnalysis += `<div>${result.analysis}</div>`;
-          }
-          if (result.glycemicImpact) {
-            htmlAnalysis += `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);"><b>⚡ ${i18n.t('auto.przewidywany_wplyw_na_cukier', { defaultValue: 'Wpływ na glikemię' })}:</b> ${result.glycemicImpact}</div>`;
-          }
-          if (result.balanceAdvice) {
-            htmlAnalysis += `<div style="margin-top: 6px;"><b>💡 ${i18n.t('auto.wskazowka_bilansowania', { defaultValue: 'Wskazówka bilansowania' })}:</b> ${result.balanceAdvice}</div>`;
-          }
-          setAnalysis(htmlAnalysis);
-
-          // Automatycznie ustawiamy nazwę posiłku rozpoznaną przez AI
-          if (result.mealName) {
-            setMealName(result.mealName);
-          }
-
-          if (result.ingredients && Array.isArray(result.ingredients) && result.ingredients.length > 0) {
-            const itemsToAdd = result.ingredients.map((ing: any, idx: number) => {
-              const ingWeight = ing.weight && ing.weight > 0 ? ing.weight : 100;
-              const carbs100 = ing.carbsPer100g !== undefined ? ing.carbsPer100g : (ing.carbs ? ((ing.carbs / ingWeight) * 100) : 0);
-              const prot100 = ing.proteinPer100g !== undefined ? ing.proteinPer100g : (ing.protein ? ((ing.protein / ingWeight) * 100) : 0);
-              const fat100 = ing.fatPer100g !== undefined ? ing.fatPer100g : (ing.fat ? ((ing.fat / ingWeight) * 100) : 0);
-              return {
-                id: `ai_ing_${Date.now()}_${idx}`,
-                name: ing.name || `Składnik ${idx + 1}`,
-                carbs: Number(carbs100.toFixed(1)),
-                protein: Number(prot100.toFixed(1)),
-                fat: Number(fat100.toFixed(1)),
-                gi: ing.ig || result.ig || 50,
-                weight: ingWeight,
-                category: "AI Wizja",
-              };
-            });
-
-            setPlate((prev) => [...prev, ...itemsToAdd]);
-            toast.success(
-              result.mealName 
-                ? `Rozpoznano: ${result.mealName} (${itemsToAdd.length} składników dodano na talerz)`
-                : `Wykryto ${itemsToAdd.length} składników posiłku!`,
-              { duration: 4000 }
-            );
-          } else {
-            const estimatedWeight = result.weight && result.weight > 0 ? result.weight : 100;
-            const p = {
-              id: `ai_${Date.now()}`,
-              name: result.mealName || i18n.t('auto.posilek_ai', { defaultValue: "Posiłek AI" }),
-              carbs: Number((((result.carbs || 0) / estimatedWeight) * 100).toFixed(1)),
-              protein: Number((((result.protein || 0) / estimatedWeight) * 100).toFixed(1)),
-              fat: Number((((result.fat || 0) / estimatedWeight) * 100).toFixed(1)),
-              gi: result.ig || result.gi || 50,
-              category: "AI Wizja",
-            };
-            setPlate((prev) => [...prev, { ...p, weight: estimatedWeight }]);
-          }
+          setAiMealPhoto(image.dataUrl);
+          setAiMealResult(result);
+          setShowAiMealModal(true);
+          Haptics.success();
         } catch (err) {
           console.error("Camera vision analysis:", err);
           setSearchError(i18n.t('auto.blad_analizy_zdjecia_sprobuj_p', { defaultValue: "Błąd analizy zdjęcia posiłku." }));
@@ -1152,6 +1153,67 @@ export default function MealPlate({
       setIsAnalyzing(false);
       console.error("Camera cancelled or failed", e);
     }
+  };
+
+  const handleConfirmAiMeal = (finalResult: AiMealResult) => {
+    let htmlAnalysis = "";
+    if (finalResult.analysis) {
+      htmlAnalysis += `<div>${finalResult.analysis}</div>`;
+    }
+    if (finalResult.glycemicImpact) {
+      htmlAnalysis += `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);"><b>⚡ ${i18n.t('auto.przewidywany_wplyw_na_cukier', { defaultValue: 'Wpływ na glikemię' })}:</b> ${finalResult.glycemicImpact}</div>`;
+    }
+    if (finalResult.balanceAdvice) {
+      htmlAnalysis += `<div style="margin-top: 6px;"><b>💡 ${i18n.t('auto.wskazowka_bilansowania', { defaultValue: 'Wskazówka bilansowania' })}:</b> ${finalResult.balanceAdvice}</div>`;
+    }
+    setAnalysis(htmlAnalysis);
+
+    if (finalResult.mealName) {
+      setMealName(finalResult.mealName);
+    }
+
+    if (finalResult.ingredients && Array.isArray(finalResult.ingredients) && finalResult.ingredients.length > 0) {
+      const itemsToAdd: PlateItem[] = finalResult.ingredients.map((ing: any, idx: number) => {
+        const ingWeight = ing.weight && ing.weight > 0 ? ing.weight : 100;
+        const carbs100 = ing.carbsPer100g !== undefined ? ing.carbsPer100g : (ing.carbs ? ((ing.carbs / ingWeight) * 100) : 0);
+        const prot100 = ing.proteinPer100g !== undefined ? ing.proteinPer100g : (ing.protein ? ((ing.protein / ingWeight) * 100) : 0);
+        const fat100 = ing.fatPer100g !== undefined ? ing.fatPer100g : (ing.fat ? ((ing.fat / ingWeight) * 100) : 0);
+        return {
+          id: `ai_ing_${Date.now()}_${idx}`,
+          name: ing.name || `Składnik ${idx + 1}`,
+          carbs: Number(Number(carbs100).toFixed(1)),
+          protein: Number(Number(prot100).toFixed(1)),
+          fat: Number(Number(fat100).toFixed(1)),
+          gi: ing.ig || finalResult.ig || 50,
+          weight: ingWeight,
+          category: "AI Wizja",
+        };
+      });
+
+      setPlate((prev) => [...prev, ...itemsToAdd]);
+      toast.success(
+        finalResult.mealName 
+          ? `Dodano na talerz: ${finalResult.mealName} (${itemsToAdd.length} składników)`
+          : `Wykryto i dodano ${itemsToAdd.length} składników posiłku!`,
+        { icon: '🍽️', duration: 4000 }
+      );
+    } else {
+      const estimatedWeight = finalResult.weight && finalResult.weight > 0 ? finalResult.weight : 100;
+      const p: PlateItem = {
+        id: `ai_${Date.now()}`,
+        name: finalResult.mealName || i18n.t('auto.posilek_ai', { defaultValue: "Posiłek AI" }),
+        carbs: Number((((finalResult.carbs || 0) / estimatedWeight) * 100).toFixed(1)),
+        protein: Number((((finalResult.protein || 0) / estimatedWeight) * 100).toFixed(1)),
+        fat: Number((((finalResult.fat || 0) / estimatedWeight) * 100).toFixed(1)),
+        gi: finalResult.ig || 50,
+        weight: estimatedWeight,
+        category: "AI Wizja",
+      };
+      setPlate((prev) => [...prev, p]);
+      toast.success(`Dodano: ${p.name} na talerz!`, { icon: '🍽️' });
+    }
+
+    setShowAiMealModal(false);
   };
 
   const startRestaurantMenuCameraAnalysis = async () => {
@@ -1247,22 +1309,32 @@ export default function MealPlate({
  >
  { (mode === "plate" || mode === "both") && (
  <>
- <div className="flex items-center justify-between mb-2 px-2">
- <h1 className="text-3xl font-black tracking-tight dark:text-white">
- {t('auto.talerz', { defaultValue: "Centrum Żywieniowe" })}
- </h1>
- <button
- onClick={startCameraAnalysis}
- className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-500 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shrink-0"
- >
- <Camera size={24} />
- </button>
- </div>
+        <div className="flex items-center justify-between mb-2 px-2">
+          <h1 className="text-3xl font-black tracking-tight dark:text-white">
+            {t('auto.talerz', { defaultValue: "Centrum Żywieniowe" })}
+          </h1>
+          <div className="flex items-center gap-2">
+            {aiMealResult && aiMealPhoto && (
+              <button
+                type="button"
+                onClick={() => { Haptics.light(); setShowAiMealModal(true); }}
+                className="px-3 h-12 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shadow-sm flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition-all active:scale-95 shrink-0 cursor-pointer"
+                title="Popraw ostatnią analizę potrawy ze zdjęcia AI"
+              >
+                <Sparkles size={16} className="text-indigo-500 animate-pulse" />
+                <span className="hidden sm:inline">Popraw AI</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={startCameraAnalysis}
+              className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center text-slate-500 hover:text-accent-500 hover:border-accent-200 transition-all active:scale-95 shrink-0 cursor-pointer"
+            >
+              <Camera size={24} />
+            </button>
+          </div>
+        </div>
  </>
- )}
-
- {(mode === "plate" || mode === "both") && (
- <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-2 flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 mx-2"></div>
  )}
 
  <MealPlateModals
@@ -1298,6 +1370,19 @@ export default function MealPlate({
    result={restaurantMenuResult}
    onSelectDish={handleSelectRestaurantDish}
    activeDiet={settings?.activeDiet || null}
+ />
+
+ <AiMealVerificationModal
+   isOpen={showAiMealModal}
+   onClose={() => setShowAiMealModal(false)}
+   imagePreview={aiMealPhoto}
+   initialResult={aiMealResult}
+   onConfirm={handleConfirmAiMeal}
+   onRetakePhoto={() => {
+     setShowAiMealModal(false);
+     startPlateCameraAnalysis();
+   }}
+   settings={settings}
  />
 
  { (mode === "search" || mode === "both") && (

@@ -28,6 +28,7 @@ import { useAuthStore } from "../stores/useAuthStore";
 import DoseEditModal from "./DoseEditModal";
 import { nightscoutService } from "../services/nightscout";
 import { useTranslation } from "react-i18next";
+import { useNightscoutSettings } from "../hooks/queries/useProfileData";
 
 interface HistoryProps {
  user?: any;
@@ -41,6 +42,7 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
  const uid = getEffectiveUid(user);
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
+ const { data: nsSettings } = useNightscoutSettings(user);
  const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
  const [deletingLog, setDeletingLog] = useState<LogEntry | null>(null);
  const [isDeleting, setIsDeleting] = useState(false);
@@ -56,20 +58,45 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
    if (settings?.followerMode) return;
    setIsDeleting(true);
    try {
-     window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: logToDelete.id, nsId: logToDelete.nsId } }));
-     const { dbService } = await import('../services/databaseService');
-     await dbService.deleteLog(logToDelete.id);
+     const logId = logToDelete.id;
+     const logNsId = logToDelete.nsId || (logToDelete as any)._id;
+     const targetId = logId || logNsId;
+     if (!targetId) return;
 
-     if (logToDelete.nsId && settings?.apiIntegration?.nightscoutUrl && settings?.apiIntegration?.nightscoutSecret) {
-       nightscoutService.deleteTreatment(
-         logToDelete.nsId,
-         settings.apiIntegration.nightscoutUrl,
-         settings.apiIntegration.nightscoutSecret
-       ).catch(err => console.warn("Failed to delete from NS", err));
+     // 1. Zdarzenie dla aplikacji (App.tsx, store, etc.)
+     window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: targetId, nsId: logNsId } }));
+
+     // 2. Usuń z SQLite
+     const { dbService } = await import('../services/databaseService');
+     if (logId) await dbService.deleteLog(logId).catch(() => {});
+     if (logNsId && logNsId !== logId) await dbService.deleteLog(logNsId).catch(() => {});
+
+     // 3. Usuń z IndexedDB
+     const { deleteLocalLog } = await import('../lib/localLogs');
+     if (logId) await deleteLocalLog(logId).catch(() => {});
+     if (logNsId && logNsId !== logId) await deleteLocalLog(logNsId).catch(() => {});
+
+     // 4. Usuń z Nightscout (jeśli wpis pochodzi z Nightscout)
+     const nsTargetId = logNsId || (logId && logId.startsWith('ns-') ? logId : null);
+     if (nsTargetId) {
+       if (logToDelete.type === 'glucose') {
+         nightscoutService.deleteEntry(
+           nsTargetId,
+           nsSettings?.url,
+           nsSettings?.secret
+         ).catch(err => console.warn("Failed to delete entry from NS", err));
+       } else {
+         nightscoutService.deleteTreatment(
+           nsTargetId,
+           nsSettings?.url,
+           nsSettings?.secret
+         ).catch(err => console.warn("Failed to delete treatment from NS", err));
+       }
      }
 
-     if (uid && logToDelete.id) {
-       await deleteDoc(doc(db, "users", uid, "logs", logToDelete.id)).catch(err => console.warn("Failed to delete remotely", err));
+     // 5. Usuń z Firestore
+     if (uid && logId) {
+       await deleteDoc(doc(db, "users", uid, "logs", logId)).catch(err => console.warn("Failed to delete remotely", err));
      }
 
       if (logToDelete.type === "site_change") {

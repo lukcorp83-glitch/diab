@@ -279,7 +279,7 @@ export function DynamicActionCapsule({
         }}
       >
         {/* Odznaka z liczbą składników na talerzu ze sprężystym podskokiem */}
-        {plateCount > 0 && capsuleState === 'default' && (
+        {plateCount > 0 && (capsuleState === 'default' || capsuleState === 'absorbing') && (
           <motion.span 
             key={`plate-badge-${plateCount}`}
             initial={{ scale: 0.3, y: -6 }}
@@ -291,16 +291,20 @@ export function DynamicActionCapsule({
           </motion.span>
         )}
 
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay" />
+        {/* Wewnętrzny kontener tła i progresu - ściśle przycięty do kształtu zaokrąglenia kapsuły, aby żaden kwadrat nie wystawał na zewnątrz */}
+        <div className="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
 
-        {capsuleState === 'absorbing' && (
-          <>
+          {capsuleState === 'absorbing' && (
             <div 
-              className="absolute top-0 left-0 right-0 bg-black/30 transition-all duration-1000 ease-linear pointer-events-none"
+              className="absolute top-0 left-0 right-0 bg-black/30 transition-all duration-1000 ease-linear"
               style={{ height: ((mealProgress || 0) * 100) + '%' }}
             />
-            <div className="absolute inset-0 border-[3px] border-amber-400 rounded-full z-20 pointer-events-none" />
-          </>
+          )}
+        </div>
+
+        {capsuleState === 'absorbing' && (
+          <div className="absolute inset-0 border-[3px] border-amber-400 rounded-full z-20 pointer-events-none" />
         )}
 
         {/* Zawartość wewnętrzna z płynnym cross-fadem */}
@@ -411,11 +415,16 @@ export function DynamicActionCapsule({
                     Haptics.medium();
                     onClickMain();
                   }}
-                  className="bg-white/20 hover:bg-white/30 text-white active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-1.5 rounded-full transition-all flex items-center gap-0.5 cursor-pointer"
+                  className="bg-white/20 hover:bg-white/30 text-white active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-1.5 rounded-full transition-all flex items-center gap-0.5 cursor-pointer relative"
                   title="Przejdź do Talerza"
                 >
                   <Utensils size={10} />
                   <span>Talerz</span>
+                  {plateCount > 0 && (
+                    <span className="ml-0.5 bg-rose-500 text-white text-[8px] font-black px-1 rounded-full leading-tight">
+                      {plateCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={handleCancelPreBolus}
@@ -468,10 +477,15 @@ export function DynamicActionCapsule({
                     Haptics.medium();
                     onClickMain();
                   }}
-                  className="bg-white text-indigo-600 hover:bg-indigo-50 active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded-full shadow-md transition-all flex items-center gap-1 cursor-pointer"
+                  className="bg-white text-indigo-600 hover:bg-indigo-50 active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded-full shadow-md transition-all flex items-center gap-1 cursor-pointer relative"
                 >
                   <Utensils size={10} className="text-indigo-500" />
                   <span>Talerz</span>
+                  {plateCount > 0 && (
+                    <span className="bg-rose-500 text-white text-[8px] font-black px-1 rounded-full leading-tight">
+                      {plateCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={(e) => {

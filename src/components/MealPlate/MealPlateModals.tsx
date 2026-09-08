@@ -575,10 +575,11 @@ export const MealPlateModals = (props: any) => {
  ? (c.linkedMeal?.carbs || c.carbs || 0)
  : (c.carbs || (c.type === 'meal' ? c.value : 0) || 0);
  const insulinVal = c.type === 'bolus' ? (c.value || 0) : 0;
+ const candId = c.id || c.nsId || c._id;
  return (
  <button
- key={c.id || c.nsId || `candidate-${cIdx}`}
- onClick={() => handleMergeMeal(c.id || c.nsId)}
+ key={candId || `candidate-${cIdx}`}
+ onClick={() => handleMergeMeal(candId)}
  className="w-full bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4 text-left hover:scale-[0.98] transition-transform"
  >
  <div className="flex-1 min-w-0">

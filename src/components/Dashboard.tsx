@@ -79,6 +79,7 @@ import DidYouKnowWidget from "./DidYouKnowWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
 import { dbService } from "../services/databaseService";
+import { deleteLocalLog } from "../lib/localLogs";
 import GlikoTraining, { SPORTS } from "./GlikoTraining";
 import {
   collection,
@@ -517,21 +518,45 @@ export default function Dashboard({
   const handleDeleteLog = async (log: LogEntry) => {
     if (settings?.followerMode) return;
     try {
-      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id, nsId: log.nsId } }));
-      
-      if (log.nsId && nsUrl && nsSecret) {
-        nightscoutService.deleteTreatment(log.nsId, nsUrl, nsSecret).catch(err => console.warn("Failed NS delete", err));
+      const targetId = log.id || log.nsId || (log as any)._id;
+      const logId = log.id;
+      const logNsId = log.nsId || (log as any)._id;
+      if (!targetId) return;
+
+      // 1. Dispatch local delete
+      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: targetId, nsId: logNsId } }));
+
+      // 2. Usunięcie z SQLite
+      if (logId) await dbService.deleteLog(logId).catch(() => {});
+      if (logNsId && logNsId !== logId) await dbService.deleteLog(logNsId).catch(() => {});
+
+      // 3. Usunięcie z IndexedDB
+      if (logId) await deleteLocalLog(logId).catch(() => {});
+      if (logNsId && logNsId !== logId) await deleteLocalLog(logNsId).catch(() => {});
+
+      // 4. Usunięcie z Nightscout
+      const nsTargetId = logNsId || (logId && logId.startsWith('ns-') ? logId : null);
+      if (nsTargetId) {
+        if (log.type === 'glucose') {
+          nightscoutService.deleteEntry(nsTargetId, nsUrl, nsSecret).catch(err => console.warn("Failed NS entry delete", err));
+        } else {
+          nightscoutService.deleteTreatment(nsTargetId, nsUrl, nsSecret).catch(err => console.warn("Failed NS treatment delete", err));
+        }
       }
 
-      await deleteDoc(
-        doc(
-          db,
-          "users",
-          getEffectiveUid(user),
-          "logs",
-          log.id!
-        )
-      );
+      // 5. Usunięcie z Firestore
+      const uid = getEffectiveUid(user);
+      if (uid && logId) {
+        await deleteDoc(
+          doc(
+            db,
+            "users",
+            uid,
+            "logs",
+            logId
+          )
+        ).catch(err => console.warn("Failed Firestore delete", err));
+      }
     } catch (e) {
       console.error(e);
     }

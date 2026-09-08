@@ -202,28 +202,29 @@ function processTreatments(data: any[]): any[] {
 function processDeviceStatus(data: any[]): any {
   if (!Array.isArray(data) || data.length === 0) return null;
   
-  // Znajdź najświeższe dane z pompy (z ostatniej godziny). Jeśli nie ma, użyj po prostu pierwszego z brzegu wpisu.
-  const ONE_HOUR_MS = 60 * 60 * 1000;
-  const now = Date.now();
-  
-  let latest = data[0]; 
+  // Znajdź najświeższy wpis zawierający rzeczywiste dane z pompy lub poziom zbiorniczka.
+  // Nie ograniczamy się sztywno do 60 minut – jeśli uploader nie miał zasięgu pompy przez 2h,
+  // nadal zachowujemy ostatni znany stan pompy, zamiast zastępować go pustym rekordem z telefonu!
+  let latestWithPump: any = null;
   for (const item of data) {
-    if (item.pump) {
-      const itemTime = new Date(item.created_at).getTime();
-      if (now - itemTime < ONE_HOUR_MS) {
-        latest = item;
-        break;
-      }
+    if (!item) continue;
+    const hasPumpObj = !!item.pump;
+    const hasReservoir = item.reservoir !== undefined || item.pump?.reservoir !== undefined || item.openaps?.enacted?.reservoir !== undefined;
+    if (hasPumpObj || hasReservoir) {
+      latestWithPump = item;
+      break;
     }
   }
 
-  const pumpInfo = latest.pump;
-  const uploaderInfo = latest.uploader;
+  const latest = latestWithPump || data[0]; 
+
+  const pumpInfo = latest?.pump;
+  const uploaderInfo = latest?.uploader;
   const batteryPercent = pumpInfo?.battery?.percent ?? 
                         uploaderInfo?.battery ?? 
-                        latest.battery ?? 
+                        latest?.battery ?? 
                         pumpInfo?.battery?.voltage ?? 0;
-  if (!pumpInfo && !uploaderInfo) return null;
+  if (!pumpInfo && !uploaderInfo && !latest?.reservoir && !latest?.openaps) return null;
 
   let resVal = pumpInfo?.reservoir ?? latest?.reservoir ?? pumpInfo?.status?.reservoir ?? latest?.openaps?.enacted?.reservoir ?? latest?.openaps?.suggested?.reservoir;
   if (resVal && typeof resVal === 'object') {
@@ -232,7 +233,8 @@ function processDeviceStatus(data: any[]): any {
   if (typeof resVal === 'string') {
     resVal = parseFloat(resVal);
   }
-  const parsedRes = (typeof resVal === 'number' && !isNaN(resVal)) ? resVal : undefined;
+  // Zbiornik musi być prawidłową liczbą dodatnią > 0. Wartości <= 0 oznaczają brak odczytu z pompy.
+  const parsedRes = (typeof resVal === 'number' && !isNaN(resVal) && resVal > 0) ? resVal : undefined;
   
   return {
     battery: batteryPercent,

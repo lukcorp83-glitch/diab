@@ -36,7 +36,7 @@ import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
 import { healthService } from "./services/healthService";
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
-import { loadLocalLogs } from "./lib/localLogs";
+import { loadLocalLogs, deleteLocalLog } from "./lib/localLogs";
 import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPackageSync";
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
@@ -108,22 +108,18 @@ export default function App() {
   
   const userSettingsRef = useRef(userSettings);
   useEffect(() => { userSettingsRef.current = userSettings; }, [userSettings]);
-  const deletedNsIdsRef = useRef(new Set<string>());
-
-  // Wczytanie z pamięci lokalnej (aby Nightscout nie "ożywiał" starych usuniętych wpisów po restarcie aplikacji)
-  useEffect(() => {
+  const deletedNsIdsRef = useRef<Set<string>>((() => {
     try {
       const stored = localStorage.getItem('diab_deleted_ns_ids');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          deletedNsIdsRef.current = new Set(parsed);
-        }
+        if (Array.isArray(parsed)) return new Set(parsed);
       }
     } catch (e) {
-      console.warn("Failed to load deleted NS ids", e);
+      console.warn("Failed to load deleted NS ids synchronously", e);
     }
-  }, []);
+    return new Set<string>();
+  })());
 
   const { nsLogs, nsDeviceStatus } = useNightscoutWorker(
     user, 
@@ -133,11 +129,36 @@ export default function App() {
     deletedNsIdsRef
   );
   
+    // Pamiętamy ostatni prawidłowy poziom zbiorniczka pompy (> 0) w pamięci podręcznej i localStorage,
+    // aby chwilowy brak danych z Nightscout / rozłączenie pompy nie zerowało wartości na 0J.
+    const lastValidReservoir = useMemo(() => {
+      if (nsDeviceStatus?.reservoir !== undefined && nsDeviceStatus.reservoir > 0) {
+        try { localStorage.setItem('last_valid_reservoir', nsDeviceStatus.reservoir.toString()); } catch (e) {}
+        return nsDeviceStatus.reservoir;
+      }
+      if (fbPumpStatus?.reservoir !== undefined && fbPumpStatus.reservoir > 0) {
+        try { localStorage.setItem('last_valid_reservoir', fbPumpStatus.reservoir.toString()); } catch (e) {}
+        return fbPumpStatus.reservoir;
+      }
+      try {
+        const cached = localStorage.getItem('last_valid_reservoir') || localStorage.getItem('last_known_reservoir');
+        if (cached) {
+          const val = parseFloat(cached);
+          if (!isNaN(val) && val > 0) return val;
+        }
+      } catch (e) {}
+      return undefined;
+    }, [nsDeviceStatus?.reservoir, fbPumpStatus?.reservoir]);
+
     const pumpStatus = {
       ...(fbPumpStatus || {}),
       ...(nsDeviceStatus || {}),
-      // Zabezpieczenie przed uciętymi payloadami z Nightscout (np. gdy telefon dosłał samą baterię bez stanu zbiorniczka pompy)
-      reservoir: nsDeviceStatus?.reservoir !== undefined ? nsDeviceStatus.reservoir : (fbPumpStatus?.reservoir || 0),
+      // Zabezpieczenie przed uciętymi payloadami z Nightscout: zachowujemy ostatni znany stan zbiornika zamiast 0
+      reservoir: (nsDeviceStatus?.reservoir !== undefined && nsDeviceStatus.reservoir > 0)
+        ? nsDeviceStatus.reservoir
+        : ((fbPumpStatus?.reservoir !== undefined && fbPumpStatus.reservoir > 0)
+            ? fbPumpStatus.reservoir
+            : lastValidReservoir),
       battery: nsDeviceStatus?.battery !== undefined ? nsDeviceStatus.battery : (fbPumpStatus?.battery || 0),
       activeInsulin: nsDeviceStatus?.activeInsulin !== undefined ? nsDeviceStatus.activeInsulin : (fbPumpStatus?.activeInsulin || 0)
     };
@@ -154,8 +175,16 @@ export default function App() {
           let loadedLogs = await dbService.getLogs(60000);
           if (loadedLogs.length === 0) {
             try {
-              const idbLogs = await loadLocalLogs();
+              let idbLogs = await loadLocalLogs();
               if (idbLogs && idbLogs.length > 0) {
+                if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
+                  idbLogs = idbLogs.filter((l: any) => {
+                    if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+                    if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+                    if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+                    return true;
+                  });
+                }
                 console.log(`[App] Odtworzono ${idbLogs.length} wpisów z IndexedDB do SQLite`);
                 loadedLogs = idbLogs;
                 dbService.saveMultipleLogs(idbLogs).catch(console.error);
@@ -164,6 +193,16 @@ export default function App() {
               console.warn('[App] Błąd odczytu IndexedDB fallback:', idbErr);
             }
           }
+
+          if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
+            loadedLogs = loadedLogs.filter((l: any) => {
+              if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+              if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+              if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+              return true;
+            });
+          }
+
           setSqliteLogs(loadedLogs);
           if (loadedLogs.length > 0) {
             useLogsStore.getState().setLogs(loadedLogs);
@@ -171,8 +210,16 @@ export default function App() {
         } catch (dbErr) {
           console.error('[App] Błąd inicjalizacji bazy danych:', dbErr);
           try {
-            const idbLogs = await loadLocalLogs();
+            let idbLogs = await loadLocalLogs();
             if (idbLogs && idbLogs.length > 0) {
+              if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
+                idbLogs = idbLogs.filter((l: any) => {
+                  if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+                  if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+                  if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+                  return true;
+                });
+              }
               setSqliteLogs(idbLogs);
               useLogsStore.getState().setLogs(idbLogs);
             }
@@ -225,6 +272,15 @@ export default function App() {
             localStorage.setItem('diab_deleted_ns_ids', JSON.stringify(arr));
           } catch (err) {}
         }
+        // Trwałe usunięcie ze SQLite i IndexedDB dla 100% gwarancji
+        if (id) {
+          dbService.deleteLog(id).catch(() => {});
+          deleteLocalLog(id).catch(() => {});
+        }
+        if (nsId && nsId !== id) {
+          dbService.deleteLog(nsId).catch(() => {});
+          deleteLocalLog(nsId).catch(() => {});
+        }
         // Aby odświeżenie działało natychmiast, potrzebujemy usunąć też z nsLogs
         window.dispatchEvent(new CustomEvent('nsLogDelete', { detail: { id, nsId } }));
       };
@@ -252,7 +308,13 @@ export default function App() {
     useEffect(() => {
       if (fbLogs.length === 0 && nsLogs.length === 0) return;
       const timeoutId = setTimeout(() => {
-        const toSave = [...fbLogs, ...nsLogs];
+        const toSave = [...fbLogs, ...nsLogs].filter(l => {
+          if (!deletedNsIdsRef.current) return true;
+          if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+          if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+          if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+          return true;
+        });
         if (toSave.length > 0) {
           dbService.saveMultipleLogs(toSave).catch(e => console.warn("Background DB save failed", e));
         }
@@ -310,13 +372,25 @@ export default function App() {
     useEffect(() => {
       const allMap = new Map();
 
-      // 1. Ładujemy pełną historię ze SQLite (nigdy jej nie kasujemy)
+      // 1. Ładujemy pełną historię ze SQLite (z wykluczeniem trwale usuniętych wpisów)
       sqliteLogs.forEach((l: any) => {
+        if (deletedNsIdsRef.current) {
+          if (l.id && deletedNsIdsRef.current.has(l.id)) return;
+          if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return;
+          if (l._id && deletedNsIdsRef.current.has(l._id)) return;
+        }
         allMap.set(l.id, l);
       });
 
-      // 2. Nadpisujemy nowszymi danymi z chmury Firebase
-      fbLogs.forEach((l: any) => allMap.set(l.id, l));
+      // 2. Nadpisujemy nowszymi danymi z chmury Firebase (z wykluczeniem trwale usuniętych wpisów)
+      fbLogs.forEach((l: any) => {
+        if (deletedNsIdsRef.current) {
+          if (l.id && deletedNsIdsRef.current.has(l.id)) return;
+          if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return;
+          if (l._id && deletedNsIdsRef.current.has(l._id)) return;
+        }
+        allMap.set(l.id, l);
+      });
       
       // 3. Doklejamy wpisy z Nightscout API
       nsLogs.forEach((nsLog: any) => {

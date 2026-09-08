@@ -452,15 +452,19 @@ export const geminiService = {
     return this.generateContent(prompt);
   },
 
-  async analyzeMeal(imageData: string, settings?: any) {
+  async analyzeMeal(imageData: string, settings?: any, correctionHint?: string) {
     const dietInfo = settings?.activeDiet
       ? i18n.t("auto.uwaga_uzytkownik_przestrz", { defaultValue: "UWAGA: Użytkownik przestrzega diety: {{var0}}. Zwróć szczególną uwagę jak ten posiłek wpisuje się w jej zasady.", var0: settings.activeDiet })
       : "";
     const currentLang = i18n.language || "pl";
     const langInstruction = currentLang === "en" ? "Respond in ENGLISH." : "Odpowiadaj po POLSKU.";
+    const userCorrectionPrompt = correctionHint
+      ? `\nKOREKTA / DOPRECYZOWANIE UŻYTKOWNIKA: Użytkownik wskazuje, że danie/produkt na zdjęciu to: "${correctionHint}". Bezwzględnie przyjmij tę informację jako nadrzędną i poprawną! Zidentyfikuj składniki, wagi i makroskładniki dokładnie w oparciu o tę potrawę.\n`
+      : "";
 
     const prompt = `Przeanalizuj to zdjęcie posiłku.
 ${langInstruction}
+${userCorrectionPrompt}
 1. Podaj DOKŁADNĄ, ROZPOZNAWALNĄ NAZWĘ GŁÓWNĄ CAŁEGO POSIŁKU (pole "mealName", np. "Pizza Pepperoni", "Kanapka z szynką i serem", "Spaghetti Bolognese", "Jajecznica na maśle z pieczywem", "Kotlet schabowy z ziemniakami i surówką").
 2. Rozbij ten posiłek na WSZYSTKIE WIDOCZNE POJEDYNCZE SKŁADNIKI (tablica "ingredients", np. ser mozzarella, ciasto do pizzy, sos pomidorowy, szynka, oliwki) i oszacuj orientacyjną wagę każdego składnika (w gramach) oraz wartości odżywcze NA 100g każdego składnika (węglowodany, białko, tłuszcz, IG).
 3. Oszacuj CAŁKOWITĄ sumaryczną wagę całego dania oraz CAŁKOWITĄ ilość węglowodanów, białek, tłuszczy i wypadkowe IG.

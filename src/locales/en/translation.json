@@ -378,6 +378,8 @@
     "community_btn": "Community",
     "plate_btn": "Plate",
     "no_products": "No products were found in this category.",
+    "plate_empty": "Plate is empty! Add ingredients first.",
+    "saved_successfully": "Meal saved to diary! 🍽️",
     "plate_empty_title": "The plate is still empty",
     "plate_empty_desc": "Your plate is waiting for treats! Visit the base and choose something delicious to count.",
     "browse_ingredients": "Browse Ingredients",

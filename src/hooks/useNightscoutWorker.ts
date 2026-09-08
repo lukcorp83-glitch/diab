@@ -33,16 +33,29 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
           // --- SMART EQUIPMENT DETECTION ---
           if (userSettingsRef.current?.smartEquipmentDetection) {
             import('../lib/smartEquipment').then(({ detectSmartEquipmentChanges }) => {
-              // We use localStorage as a reliable backup of the previous reservoir level
-              const prevReservoir = localStorage.getItem('last_known_reservoir') ? parseFloat(localStorage.getItem('last_known_reservoir')!) : undefined;
-              const newReservoir = payload.deviceStatus?.reservoir;
+              // Odczytujemy ostatni ZNANY PRAWIDŁOWY poziom zbiorniczka (> 0)
+              const prevRaw = localStorage.getItem('last_known_reservoir');
+              const prevReservoir = prevRaw ? parseFloat(prevRaw) : undefined;
               
-              if (newReservoir !== undefined) {
+              const rawRes = payload.deviceStatus?.reservoir;
+              const hasValidNewRes = typeof rawRes === 'number' && !isNaN(rawRes) && rawRes > 0;
+              const newReservoir = hasValidNewRes ? rawRes : undefined;
+
+              // Analizujemy zmianę: porównujemy nowy poziom z ostatnim zapamiętanym prawidłowym poziomem
+              const { triggerReservoir, triggerSensor } = detectSmartEquipmentChanges(
+                newReservoir, 
+                prevReservoir, 
+                payload.entries || [], 
+                userSettingsRef.current
+              );
+
+              // Zapisujemy poziom TYLKO gdy jest to prawidłowy, fizyczny stan pompy (> 0)
+              // Jeśli przez jakiś czas nie ma danych lub odczyt jest pusty/0, NIE nadpisujemy pamięci zerem!
+              if (hasValidNewRes && newReservoir !== undefined) {
                 localStorage.setItem('last_known_reservoir', newReservoir.toString());
+                localStorage.setItem('last_known_reservoir_time', Date.now().toString());
               }
 
-              const { triggerReservoir, triggerSensor } = detectSmartEquipmentChanges(newReservoir, prevReservoir, payload.entries || [], userSettingsRef.current);
-              
               if (triggerReservoir) {
                 window.dispatchEvent(new CustomEvent('smart-equipment-trigger', { detail: 'reservoir' }));
               } else if (triggerSensor) {

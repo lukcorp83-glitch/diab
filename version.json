@@ -1,10 +1,10 @@
 {
-    "version": "6.0.40",
+    "version": "6.0.41",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.40_OTA.apk",
-    "buildNumber": 155,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.41_OTA.apk",
+    "buildNumber": 156,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.40! 1) Inteligentny stoper przedposiłkowy: bezpiecznik kliniczny zerujący czas (0 min - zjedz od razu) przy glikemii ≤ 105 mg/dL i tendencji spadkowej, chroniąc przed hipoglikemią. 2) Poprawka wyliczania czasu dla cukru 100 mg/dL i pełna obsługa trendów spadkowych w stoperze. 3) Nowe kompaktowe okno nowości aplikacji bez zbędnych nagłówków. 4) Własne okno potwierdzenia usuwania skrótów. 5) Powiększone napisy 'ostatnie' w widżetach pulpitu. 6) Poprawki stabilności toast i addLogs.",
-    "whatsNewEn": "Version 6.0.40! 1) Smart Pre-Bolus Timer: clinical safety guardrail setting 0 min (eat immediately) when glucose is ≤ 105 mg/dL with falling trend to prevent hypoglycemia. 2) Fixed lag-time calculation for 100 mg/dL glucose and full downward trend support in timer. 3) New compact changelog popup focused cleanly on changes. 4) Native in-app shortcut removal modal. 5) Enlarged 'last' labels on dashboard widgets. 6) Stability fixes for toast and addLogs.",
-    "otaRevision": 314
+    "whatsNew": "Wersja 6.0.41! 1) Trwałe usuwanie historii: usunięte posiłki, bolusy, pomiary i osprzęt nie wracają po synchronizacji (czyszczenie SQLite, IndexedDB, Nightscout i Firestore). 2) Ulepszone wykrywanie wkłuć (Smart Equipment): eliminacja fałszywych alarmów po przerwach w dostawie danych z Nightscout. 3) Pamięć poziomu zbiorniczka na Pulpicie zapobiegająca chwilowemu spadkowi do 0 U. 4) Obsługa trwałego usuwania pomiarów cukru z Nightscout (deleteEntry API).",
+    "whatsNewEn": "Version 6.0.41! 1) Permanent history deletion: deleted meals, boluses, readings, and equipment never revive (clearing SQLite, IndexedDB, Nightscout, and Firestore). 2) Improved Smart Equipment detection: eliminated false alerts after Nightscout data dropouts. 3) Dashboard reservoir memory preventing temporary 0 U drops during connection gaps. 4) Permanent glucose entry deletion support for Nightscout (deleteEntry API).",
+    "otaRevision": 315
 }

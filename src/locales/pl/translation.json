@@ -378,6 +378,8 @@
     "community_btn": "Społeczność",
     "plate_btn": "Talerz",
     "no_products": "Nie znaleziono produktów w tej kategorii.",
+    "plate_empty": "Talerz jest pusty! Dodaj najpierw składniki.",
+    "saved_successfully": "Posiłek zapisany w dzienniku! 🍽️",
     "plate_empty_title": "Talerz jeszcze pusty",
     "plate_empty_desc": "Twój talerz czeka na smakołyki! Odwiedź bazę i wybierz coś pysznego do przeliczenia.",
     "browse_ingredients": "Przeglądaj Składniki",

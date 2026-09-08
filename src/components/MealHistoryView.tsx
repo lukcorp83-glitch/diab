@@ -90,17 +90,44 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
   const handleDelete = async (log: LogEntry) => {
     if (!user) return;
     try {
-      const eid = log.id || log.nsId;
+      const eid = log.id || log.nsId || (log as any)._id;
       if (!eid) return;
+      const nsId = log.nsId || (log as any)._id;
 
-      if (log.nsId && nsSettings?.url && nsSettings?.secret) {
-        nightscoutService.deleteTreatment(log.nsId, nsSettings.url, nsSettings.secret).catch(err => console.warn("Failed NS delete", err));
+      Haptics.medium();
+
+      // 1. Natychmiastowe usunięcie ze stanu UI aplikacji
+      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: eid, nsId } }));
+
+      // 2. Trwałe usunięcie z lokalnej bazy SQLite
+      const { dbService } = await import('../services/databaseService');
+      await dbService.deleteLog(eid).catch(() => {});
+      if (nsId && nsId !== eid) {
+        await dbService.deleteLog(nsId).catch(() => {});
       }
 
-      await deleteDoc(doc(db, "users", getEffectiveUid(user), "logs", eid));
-      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: eid } }));
+      // 3. Trwałe usunięcie z IndexedDB
+      const { deleteLocalLog } = await import('../lib/localLogs');
+      await deleteLocalLog(eid).catch(() => {});
+      if (nsId && nsId !== eid) {
+        await deleteLocalLog(nsId).catch(() => {});
+      }
+
+      // 4. Usunięcie z serwera Nightscout (jeśli wpis pochodzi z pompy/NS)
+      const targetNsId = nsId || (eid.startsWith('ns-') ? eid : null);
+      if (targetNsId) {
+        nightscoutService.deleteTreatment(targetNsId, nsSettings?.url, nsSettings?.secret).catch(err => console.warn("Failed NS delete", err));
+      }
+
+      // 5. Asynchroniczne usunięcie z Firestore (nie blokuje UI)
+      const uid = getEffectiveUid(user);
+      if (uid && log.id) {
+        deleteDoc(doc(db, "users", uid, "logs", log.id)).catch(err => console.warn("Failed Firestore delete", err));
+      }
+
       toast.success(t('auto.usunieto', { defaultValue: "Usunięto!" }), { id: "meal-delete" });
     } catch (e) {
+      console.error("Meal delete error:", e);
       toast.error("Błąd usuwania", { id: "meal-delete" });
     }
   };

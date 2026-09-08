@@ -14,12 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.40';
+export const CURRENT_VERSION = '6.0.41';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.41",
+    date: "2026-09-08",
+    title: "Trwałe Usuwanie z Historii, Inteligentne Wykrywanie Wkłuć i Pamięć Zbiorniczka Pompy",
+    changes: [
+      "Trwałe usuwanie historii: usunięte posiłki, bolusy, pomiary i osprzęt są trwale usuwane ze wszystkich warstw (SQLite, IndexedDB, Nightscout i Firestore) bez ryzyka powrotu",
+      "Inteligentne wykrywanie wkłuć (Smart Equipment): eliminacja fałszywych alarmów po przerwie w dostawie danych z Nightscout – aplikacja pamięta ostatni poziom i nie traktuje zera jako odniesienia",
+      "Stabilny wskaźnik zbiorniczka na Pulpicie: zapobieganie chwilowemu zerowaniu poziomu na 0 U podczas przerw w komunikacji pompy z telefonem",
+      "Dodano metodę trwałego usuwania pomiarów cukru z serwera Nightscout (deleteEntry API)",
+      "Synchroniczna ochrona czarnej listy usuniętych identyfikatorów przed ponownym wczytaniem przy restarcie aplikacji"
+    ]
+  },
   {
     version: "6.0.40",
     date: "2026-09-08",
@@ -419,6 +431,18 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.41",
+    date: "2026-09-08",
+    title: "Trwałe Usuwanie z Historii, Inteligentne Wykrywanie Wkłuć i Pamięć Zbiorniczka Pompy",
+    changes: [
+      "Trwałe usuwanie historii: usunięte posiłki, bolusy, pomiary i osprzęt są trwale usuwane ze wszystkich warstw (SQLite, IndexedDB, Nightscout i Firestore) bez ryzyka powrotu",
+      "Inteligentne wykrywanie wkłuć (Smart Equipment): eliminacja fałszywych alarmów po przerwie w dostawie danych z Nightscout – aplikacja pamięta ostatni poziom i nie traktuje zera jako odniesienia",
+      "Stabilny wskaźnik zbiorniczka na Pulpicie: zapobieganie chwilowemu zerowaniu poziomu na 0 U podczas przerw w komunikacji pompy z telefonem",
+      "Dodano metodę trwałego usuwania pomiarów cukru z serwera Nightscout (deleteEntry API)",
+      "Synchroniczna ochrona czarnej listy usuniętych identyfikatorów przed ponownym wczytaniem przy restarcie aplikacji"
+    ]
+  },
   {
     version: "6.0.40",
     date: "2026-09-08",

@@ -10,6 +10,8 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useLogsStore } from "../stores/useLogsStore";
 import { dbService } from "../services/databaseService";
+import { deleteLocalLog } from "../lib/localLogs";
+import { nightscoutService } from "../services/nightscout";
 
 interface DoseEditModalProps {
   log: LogEntry;
@@ -127,21 +129,45 @@ export default function DoseEditModal({ log, user: propUser, onClose }: DoseEdit
   };
 
   const handleDelete = async () => {
-    if (!user || !log.id || loading) return;
+    const targetId = log.id || log.nsId || (log as any)._id;
+    if (!user || !targetId || loading) return;
 
     setLoading(true);
     try {
-      if (uid && log.id) {
-        await deleteDoc(doc(db, "users", uid, "logs", log.id)).catch(e => console.warn("Delete doc error:", e));
+      const logId = log.id;
+      const logNsId = log.nsId || (log as any)._id;
+
+      // 1. Rozgłoszenie zdarzenia lokalnego
+      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: targetId, nsId: logNsId } }));
+
+      // 2. Trwałe usunięcie z bazy SQLite
+      if (logId) await dbService.deleteLog(logId).catch(() => {});
+      if (logNsId && logNsId !== logId) await dbService.deleteLog(logNsId).catch(() => {});
+
+      // 3. Trwałe usunięcie z IndexedDB
+      if (logId) await deleteLocalLog(logId).catch(() => {});
+      if (logNsId && logNsId !== logId) await deleteLocalLog(logNsId).catch(() => {});
+
+      // 4. Usunięcie z serwera Nightscout (jeśli wpis pochodzi z Nightscout)
+      const nsTargetId = logNsId || (logId && logId.startsWith('ns-') ? logId : null);
+      if (nsTargetId) {
+        if (log.type === 'glucose') {
+          nightscoutService.deleteEntry(nsTargetId).catch(err => console.warn("Failed to delete entry from NS", err));
+        } else {
+          nightscoutService.deleteTreatment(nsTargetId).catch(err => console.warn("Failed to delete treatment from NS", err));
+        }
       }
-      await dbService.deleteLog(log.id).catch(() => {});
-      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id, nsId: log.nsId } }));
+
+      // 5. Usunięcie z Firestore
+      if (uid && logId) {
+        await deleteDoc(doc(db, "users", uid, "logs", logId)).catch(e => console.warn("Delete doc error:", e));
+      }
 
       // Jeśli usunięto wkłucie lub sensor, cofnij datę w profilu do poprzedniego wpisu!
       if (uid) {
         if (log.type === "site_change") {
           const remainingSiteLogs = (logs || [])
-            .filter(l => l.id !== log.id && l.type === "site_change" && !l.notes?.toLowerCase().includes("zbiorniczk"))
+            .filter(l => l.id !== targetId && l.nsId !== targetId && l.type === "site_change" && !l.notes?.toLowerCase().includes("zbiorniczk"))
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
           const prevSiteLog = remainingSiteLogs[0];
           const newSite = prevSiteLog ? extractInfusionSite(prevSiteLog) : "Lewy brzuch";
@@ -161,7 +187,7 @@ export default function DoseEditModal({ log, user: propUser, onClose }: DoseEdit
           window.dispatchEvent(new CustomEvent('userSettingsUpdate', { detail: updates }));
         } else if (log.type === "sensor_change") {
           const remainingSensorLogs = (logs || [])
-            .filter(l => l.id !== log.id && l.type === "sensor_change")
+            .filter(l => l.id !== targetId && l.nsId !== targetId && l.type === "sensor_change")
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
           const prevSensorLog = remainingSensorLogs[0];
           const updates = {
