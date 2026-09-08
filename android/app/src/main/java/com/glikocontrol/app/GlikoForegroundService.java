@@ -54,6 +54,23 @@ public class GlikoForegroundService extends Service implements SensorEventListen
         } catch (Exception e) {
             android.util.Log.e("GlikoForegroundService", "Błąd rejestracji sensora kroków", e);
         }
+
+        // Dynamiczna rejestracja XDripBroadcastReceiver w serwisie tła
+        try {
+            android.content.IntentFilter xdripFilter = new android.content.IntentFilter();
+            xdripFilter.addAction(XDripBroadcastReceiver.XDRIP_ACTION_BG_ESTIMATE);
+            xdripFilter.addAction(XDripBroadcastReceiver.NS_ACTION_DBACCESS);
+            xdripFilter.addAction(XDripBroadcastReceiver.NS_ACTION_NEW_TREATMENT);
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                new XDripBroadcastReceiver(),
+                xdripFilter,
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            );
+            android.util.Log.i("GlikoForegroundService", "Zarejestrowano XDripBroadcastReceiver w GlikoForegroundService");
+        } catch (Exception e) {
+            android.util.Log.e("GlikoForegroundService", "Błąd rejestracji dynamicznej XDripBroadcastReceiver w tle", e);
+        }
         
         // Inicjalizacja Headless WebView na głównym wątku UI
         handler = new Handler(Looper.getMainLooper());

@@ -33,13 +33,34 @@ public class NotificationBridgePlugin extends Plugin {
                     int glucose = intent.getIntExtra("glucose", -1);
                     float iob = intent.getFloatExtra("iob", -1);
                     String pkg = intent.getStringExtra("package");
+                    String trend = intent.getStringExtra("trend");
+                    double delta = intent.getDoubleExtra("delta", 0.0);
+                    long timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis());
 
                     JSObject ret = new JSObject();
                     ret.put("glucose", glucose);
                     ret.put("iob", iob);
                     ret.put("package", pkg);
+                    if (trend != null) ret.put("trend", trend);
+                    ret.put("delta", delta);
+                    ret.put("timestamp", timestamp);
                     
                     notifyListeners("glucoseNotificationReceived", ret);
+                } else if (XDripBroadcastReceiver.ACTION_TREATMENT_RECEIVED.equals(intent.getAction())) {
+                    double insulin = intent.getDoubleExtra("insulin", 0.0);
+                    double carbs = intent.getDoubleExtra("carbs", 0.0);
+                    String eventType = intent.getStringExtra("eventType");
+                    String notes = intent.getStringExtra("notes");
+                    long timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis());
+
+                    JSObject ret = new JSObject();
+                    ret.put("insulin", insulin);
+                    ret.put("carbs", carbs);
+                    ret.put("eventType", eventType);
+                    ret.put("notes", notes);
+                    ret.put("timestamp", timestamp);
+
+                    notifyListeners("treatmentNotificationReceived", ret);
                 } else if (GlucoseNotificationListener.ACTION_NOTIFICATION_DEBUG.equals(intent.getAction())) {
                     String pkg = intent.getStringExtra("package");
                     String title = intent.getStringExtra("title");
@@ -57,6 +78,7 @@ public class NotificationBridgePlugin extends Plugin {
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(GlucoseNotificationListener.ACTION_GLUCOSE_RECEIVED);
+        filter.addAction(XDripBroadcastReceiver.ACTION_TREATMENT_RECEIVED);
         filter.addAction(GlucoseNotificationListener.ACTION_NOTIFICATION_DEBUG);
 
         // We use ContextCompat.registerReceiver to ensure compatibility across all Android versions
@@ -108,6 +130,20 @@ public class NotificationBridgePlugin extends Plugin {
         
         // Clear history after sending it to avoid processing the same values again later
         prefs.edit().putString("glucose_history", "").apply();
+        
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void getTreatmentHistory(PluginCall call) {
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+        String history = prefs.getString("treatment_history", "");
+        
+        JSObject ret = new JSObject();
+        ret.put("history", history);
+        
+        // Clear history after sending it to avoid processing the same treatments again
+        prefs.edit().putString("treatment_history", "").apply();
         
         call.resolve(ret);
     }

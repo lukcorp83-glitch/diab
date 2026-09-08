@@ -289,7 +289,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
       : 'classic_lstm';
     
     // HEURISTIC INSIGHTS
-    const insights: string[] = [];
+    let insights: string[] = [];
     const discoveredRules = { ...rules };
     const mealPatterns: { [key: string]: { spikes: number, count: number, totalCorrections?: number, totalReturnTime?: number, totalMaxBg?: number } } = {};
     const timeBlocks = {
@@ -1263,8 +1263,11 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     if (insulinSensitivity < -30) insights.push(i18n.t('auto.masz_w_tym_momencie_podwyzszon', { defaultValue: i18n.t('auto.masz_w_tym_momencie_podwy', { defaultValue: i18n.t('auto.masz_w_tym_momencie_podwy', { defaultValue: "💉 Masz w tym momencie podwyższoną wrażliwość na insulinę. Postaraj się delikatniej podejść do ewentualnych korekt." }) }) }));
 
-    if (avgBias < -15) insights.push(i18n.t('raw.opor', { bias: Math.abs(Math.round(avgBias)), defaultValue: `🚨 Z moich szacunków wynika, że masz lekką oporność (byłem o ${Math.abs(Math.round(avgBias))} mg/dL w błędzie w dół). Jakieś emocje, stres?` }));
-    else if (avgBias > 15) insights.push(i18n.t('auto.cukier_trzyma_sie_nizej_niz_pr', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: "🏃‍♂️ Cukier trzyma się niżej niż przewidywałem! Miałeś ukryty wysiłek fizyczny, o którym mi nie powiedziałeś?" }) }) }));
+    if (avgBias > 15) {
+        insights.push(i18n.t('raw.opor', { bias: Math.round(avgBias), defaultValue: `🚨 Z moich szacunków wynika, że wystąpiła lekka oporność lub niedoszacowanie (byłem o ${Math.round(avgBias)} mg/dL w błędzie w dół). Jakieś emocje, stres?` }));
+    } else if (avgBias < -15 && latestBg < 140) {
+        insights.push(i18n.t('auto.cukier_trzyma_sie_nizej_niz_pr', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: i18n.t('auto.cukier_trzyma_sie_nizej_n', { defaultValue: "🏃‍♂️ Cukier trzyma się niżej niż przewidywałem! Miałeś ukryty wysiłek fizyczny, o którym mi nie powiedziałeś?" }) }) }));
+    }
 
     const latestDate = new Date(latestTimeMs);
     const lastHourDec = latestDate.getHours() + (latestDate.getMinutes() / 60);
@@ -1362,24 +1365,59 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
 
     // Guardrail medyczny Ochrony Hipo:
     // 1. Jeśli cukier jest wysoki (>130 mg/dL) i IOB nie pokrywa drastycznego spadku do normy, to NIE MA hipo
-    // 2. Alert jest włączany tylko gdy min. punkt trajektorii lub prognoza 1h/2h faktycznie zagraża spadkiem < 75 mg/dL
+    // 2. Jeśli cukier jest już < 70, to jest AKTYWNA hipoglikemia
+    // 3. Alert jest włączany tylko gdy min. punkt trajektorii lub prognoza 1h/2h faktycznie zagraża spadkiem < 75 mg/dL
     const isCurrentSugarHigh = latestBg > 130 && (latestBg - (currentIob * 35)) > 80 && lastTrendNum > -3;
-    const riskOfHypo = !isCurrentSugarHigh && latestBg >= 70 && (
+    const isCurrentSugarLow = latestBg > 0 && latestBg < 70;
+    const riskOfHypo = isCurrentSugarLow || (!isCurrentSugarHigh && (
       troughObj.value < 75 ||
       predictedNextHour < 75 ||
       predictedNext2Hours < 75 ||
       (latestBg <= 95 && lastTrendNum < -2.5 && predictedNextHour < 85)
-    );
+    ));
 
-    if (riskOfHypo) {
+    if (isCurrentSugarLow) {
+        insights.push(`🚨 Aktywny niski poziom cukru (${Math.round(latestBg)} mg/dL)! Przyjmij 15-20g szybkich węglowodanów (glukoza, sok).`);
+    } else if (riskOfHypo) {
         const hypoPhrases = [i18n.t('auto.przeczucie_mi_mowi_ze_zbliza_s', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: "⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały." }) }) }), i18n.t('auto.bardzo_czerwone_swiatlo_u_mnie', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku." }) }) }), i18n.t('auto.spadek_i_maly_zakres_konieczni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!" }) }) })];
         insights.push(hypoPhrases[Math.floor(Math.random() * hypoPhrases.length)]);
-    } else if (predictedNextHour > 180) {
+    } else if (predictedNextHour > 180 || latestBg > 180) {
         const hyperPhrases = [i18n.t('auto.powoli_wybiegamy_w_teren_wysok', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: "📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem." }) }) }), i18n.t('auto.sklaniamy_sie_gwaltownie_przed', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: "📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę." }) }) }), i18n.t('auto.wydaje_mi_sie_ze_ostatnio_musi', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: "📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Spodziewaj się lotu powyżej linii." }) }) })]
         insights.push(hyperPhrases[Math.floor(Math.random() * hyperPhrases.length)]);
     } else {
         const normalPhrases = [i18n.t('auto.piekna_chwila_homeostazy_napra', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: "✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!" }) }) }), i18n.t('auto.krok_po_kroku_i_mamy_idealny_m', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: "✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!" }) }) }), i18n.t('auto.w_tej_minucie_mozna_powiedziec', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: "✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!" }) }) })];
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
+    }
+
+    // Mutual Exclusivity Guardrail dla Wniosków GlikoSense:
+    const isStateHigh = latestBg > 160 || (latestBg > 130 && lastTrendNum > 1 && predictedNextHour > 160);
+    const isStateLow = isCurrentSugarLow || riskOfHypo || latestBg < 75;
+
+    insights = Array.from(new Set(insights));
+    if (isStateHigh) {
+        // Cukier jest wysoki - usuwamy sprzeczne wnioski o niedocukrzeniu, piciu soku, wysiłku fizycznym i ratunkowej glukozie
+        insights = insights.filter(ins => {
+            const lower = ins.toLowerCase();
+            return !(
+                lower.includes('hipo') || 
+                lower.includes('soku') || 
+                lower.includes('łyk') || 
+                lower.includes('zlecieć') || 
+                lower.includes('zapikował') || 
+                lower.includes('wylatujesz na dół') || 
+                lower.includes('niski poziom') ||
+                lower.includes('trzyma się niżej') ||
+                lower.includes('trzyma sie nizej') ||
+                lower.includes('ukryty wysiłek') ||
+                lower.includes('ukryty wysilek')
+            );
+        });
+    } else if (isStateLow) {
+        // Cukier jest niski - usuwamy sprzeczne wnioski o hiperglikemii, terenie wysokich cukrów czy homeostazie
+        insights = insights.filter(ins => {
+            const lower = ins.toLowerCase();
+            return !(lower.includes('teren wysokich') || lower.includes('hiperglikemi') || lower.includes('utknął wysoko') || lower.includes('homeostaz') || lower.includes('drzwiami') || lower.includes('równowagi'));
+        });
     }
 
     // Stacking detection

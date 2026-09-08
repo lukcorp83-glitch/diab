@@ -116,7 +116,10 @@ async function startServer() {
 
     try {
       // Find the user mapping for this hashed secret
-      const mappingDoc = await db.doc(`/artifacts/diacontrolapp/apiSecrets/${secretHash}`).get();
+      let mappingDoc = await db.doc(`/artifacts/diacontrolapp/apiSecrets/${secretHash}`).get();
+      if (!mappingDoc.exists) {
+        mappingDoc = await db.doc(`/apiSecrets/${secretHash}`).get();
+      }
       
       if (!mappingDoc.exists) {
         return res.status(401).json({ error: "Unauthorized: Invalid API Secret" });

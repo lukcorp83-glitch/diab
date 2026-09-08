@@ -113,7 +113,6 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
     case "daily_tir":
       return ["1x1", "2x1", "2x2"];
     case "neural_pet":
-      return ["2x2"];
       return ["2x2", "2x1"];
     case "weather":
     case "sensor_reminder":
@@ -145,7 +144,7 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
 
 export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "main_stats", name: i18n.t('auto.podsumowanie_glikemii_gliko', { defaultValue: 'Podsumowanie glikemii (Gliko)' }), visible: true, size: "2x2", canResize: false, canChangeShape: false },
-  { id: "neural_pet", name: i18n.t('auto.glikosense_ai_zwierzak', { defaultValue: 'GlikoSense AI & Zwierzak' }), visible: true, size: "2x2", canResize: false, canChangeShape: false },
+  { id: "neural_pet", name: i18n.t('auto.glikosense_ai_zwierzak', { defaultValue: 'GlikoSense AI & Zwierzak' }), visible: true, size: "2x2", canResize: true, canChangeShape: false },
   { id: "weather", name: i18n.t('auto.wpływ_pogody_na_insulinę', { defaultValue: i18n.t('auto.wplyw_pogody_na_insuline', { defaultValue: "Wpływ pogody na insulinę" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: true },
   { id: "sensor_reminder", name: i18n.t('auto.wymiana_sensora_urządzenie', { defaultValue: i18n.t('auto.wymiana_sensora_urzadzeni', { defaultValue: "Wymiana sensora (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
   { id: "infusion_reminder", name: i18n.t('auto.wymiana_wkłucia_urządzenie', { defaultValue: i18n.t('auto.wymiana_wklucia_urzadzeni', { defaultValue: "Wymiana wkłucia (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
@@ -790,73 +789,16 @@ export default function Dashboard({
 
   const hba1c = calculateHbA1c();
 
-  const patternInsights = useMemo(() => {
-    const insights = [];
-    const glucoseLogs = logs.filter((l) => l.type === "glucose").slice(0, 100);
-
-    if (glucoseLogs.length > 5) {
-      const morningLogs = glucoseLogs.filter((l) => {
-        const hour = new Date(l.timestamp).getHours();
-        return hour >= 5 && hour <= 9;
-      });
-      if (morningLogs.some((l) => l.value > 150)) {
-        insights.push({
-          type: "dawn",
-          text: i18n.t('auto.możliwy_efekt_brzasku_skoki_rano', { defaultValue: i18n.t('auto.mozliwy_efekt_brzasku_sko', { defaultValue: "Możliwy efekt brzasku (skoki rano)" }) }),
-        });
-      }
-
-      const lows = glucoseLogs.filter((l) => l.value < 70);
-      if (lows.length > 2) {
-        insights.push({ type: "lows", text: i18n.t('auto.zbyt_wiele_niskich_cukrów', { defaultValue: i18n.t('auto.zbyt_wiele_niskich_cukrow', { defaultValue: "Zbyt wiele niskich cukrów" }) }) });
-      }
-
-      const postMeal = logs.filter((l) => l.type === "meal").slice(0, 5);
-      postMeal.forEach((m) => {
-        const afterMeal = glucoseLogs.find(
-          (g) =>
-            g.timestamp > m.timestamp &&
-            g.timestamp < m.timestamp + 2 * 60 * 60 * 1000,
-        );
-        if (afterMeal && afterMeal.value > 180) {
-          insights.push({
-            type: "postMeal",
-            text: i18n.t('auto.wysoki_cukier_po_ostatnim_posiłku', { defaultValue: i18n.t('auto.wysoki_cukier_po_ostatnim', { defaultValue: "Wysoki cukier po ostatnim posiłku" }) }),
-          });
-        }
-      });
-    }
-
-    // Deduplicate by text
-    const unique = [];
-    const seen = new Set();
-    for (const insight of insights) {
-      if (!seen.has(insight.text)) {
-        seen.add(insight.text);
-        unique.push(insight);
-      }
-    }
-
-    return unique.slice(0, 2).map((i) => {
-      let icon = <TrendingUp className="text-orange-500" size={14} />;
-      if (i.type === "lows")
-        icon = <AlertTriangle className="text-red-500" size={14} />;
-      if (i.type === "postMeal")
-        icon = <Utensils className="text-amber-500" size={14} />;
-      return { ...i, icon };
-    });
-  }, [logs]);
-
   const getTrend = () => {
     const glucoseLogs = logs
       .filter((l) => l.type === "glucose")
-      .sort((a, b) => b.timestamp - a.timestamp);
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     if (glucoseLogs.length < 2) return null;
     const current = glucoseLogs[0];
     const prev = glucoseLogs[1];
     
     const rawDiff = current.value - prev.value;
-    const timeDiff = (current.timestamp - prev.timestamp) / (1000 * 60); // minutes
+    const timeDiff = ((current.timestamp || 0) - (prev.timestamp || 0)) / (1000 * 60); // minutes
 
     if (timeDiff <= 0 || timeDiff > 120) return null; // Too much time passed to determine trend
 
@@ -911,6 +853,109 @@ export default function Dashboard({
   };
 
   const trend = getTrend();
+
+  const patternInsights = useMemo(() => {
+    const now = Date.now();
+    const sortedGlucose = logs
+      .filter((l) => l.type === "glucose" || (l as any).bg)
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    if (sortedGlucose.length < 3) return [];
+
+    const latest = sortedGlucose[0];
+    const latestBg = latest.value || (latest as any).bg || 0;
+    const isCurrentLow = latestBg < 75 || (latestBg < 90 && trend?.direction?.includes('DOWN'));
+    const isCurrentHigh = latestBg > 180 || (latestBg > 160 && trend?.direction?.includes('UP'));
+
+    const insights = [];
+
+    // 1. Priorytet: Zagrożenie niskim cukrem (wyklucza wnioski o wysokim cukrze)
+    if (isCurrentLow) {
+      if (latestBg < 70) {
+        insights.push({
+          type: "lows",
+          text: i18n.t('auto.niski_poziom_cukru_wymaga_glukozy', { defaultValue: "Niski poziom cukru – przyjmij szybkie węglowodany!" })
+        });
+      } else {
+        insights.push({
+          type: "lows",
+          text: i18n.t('auto.tendencja_spadkowa_ryzyko_hipo', { defaultValue: "Glikemia zbliża się do dolnej granicy normy" })
+        });
+      }
+    } else {
+      // 2. Jeśli nie ma bieżącego niskiego cukru, sprawdzamy OSTATNI posiłek z ostatnich 3h
+      const recentMeal = logs.find(
+        (l) =>
+          (l.type === "meal" || l.type === "carbs" || (l.type === "bolus" && (l.linkedMeal || l.notes?.toLowerCase().includes("posiłek")))) &&
+          now - (l.timestamp || 0) <= 3 * 60 * 60 * 1000
+      );
+
+      if (recentMeal && isCurrentHigh) {
+        // Mamy bieżący wzrost poposiłkowy
+        insights.push({
+          type: "postMeal",
+          text: i18n.t('auto.wysoki_cukier_po_ostatnim_posiłku', { defaultValue: "Wysoki cukier po ostatnim posiłku" }),
+        });
+      } else if (recentMeal && latestBg > 180) {
+        const readingsAfterMeal = sortedGlucose.filter(
+          (g) => (g.timestamp || 0) >= (recentMeal.timestamp || 0) && (g.timestamp || 0) <= (recentMeal.timestamp || 0) + 2.5 * 60 * 60 * 1000
+        );
+        if (readingsAfterMeal.some((g) => (g.value || (g as any).bg) > 180)) {
+          insights.push({
+            type: "postMeal",
+            text: i18n.t('auto.wysoki_cukier_po_ostatnim_posiłku', { defaultValue: "Wysoki cukier po ostatnim posiłku" }),
+          });
+        }
+      } else if (!recentMeal) {
+        // Brak posiłku w ostatnich 3h - sprawdzamy poranny brzask (tylko rano 5:00-10:00)
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour <= 10 && latestBg > 150) {
+          insights.push({
+            type: "dawn",
+            text: i18n.t('auto.możliwy_efekt_brzasku_skoki_rano', { defaultValue: "Możliwy efekt brzasku (skoki rano)" }),
+          });
+        }
+      }
+
+      // 3. Sprawdzanie częstych hipoglikemii (tylko jeśli aktualnie cukier NIE jest wysoki)
+      if (!isCurrentHigh) {
+        const past12hLows = sortedGlucose.filter(
+          (l) => (l.timestamp || 0) >= now - 12 * 60 * 60 * 1000 && (l.value || (l as any).bg) < 70
+        );
+        if (past12hLows.length >= 2) {
+          insights.push({
+            type: "lows",
+            text: i18n.t('auto.zbyt_wiele_niskich_cukrów', { defaultValue: "Powtarzające się niskie cukry w ostatnich godzinach" }),
+          });
+        }
+      }
+    }
+
+    // Deduplikacja i spójność: nigdy nie łączymy 'lows' z 'postMeal' ani 'dawn'
+    const unique = [];
+    const seen = new Set();
+    for (const insight of insights) {
+      if (!seen.has(insight.text)) {
+        if (insight.type === "lows" && unique.some((u) => u.type === "postMeal" || u.type === "dawn")) {
+          continue;
+        }
+        if ((insight.type === "postMeal" || insight.type === "dawn") && unique.some((u) => u.type === "lows")) {
+          continue;
+        }
+        seen.add(insight.text);
+        unique.push(insight);
+      }
+    }
+
+    return unique.slice(0, 2).map((i) => {
+      let icon = <TrendingUp className="text-orange-500" size={14} />;
+      if (i.type === "lows")
+        icon = <AlertTriangle className="text-rose-500" size={14} />;
+      if (i.type === "postMeal")
+        icon = <Utensils className="text-amber-500" size={14} />;
+      return { ...i, icon };
+    });
+  }, [logs, trend]);
 
   const getTodayStats = () => {
     const today = new Date();
@@ -1717,7 +1762,7 @@ export default function Dashboard({
                            : w.id === "history_measurements" || 
                              w.id === "history_treatments"
                            ? "1x2"
-                           : "2x2"
+                           : (w.id === "neural_pet" && w.size ? w.size : "2x2")
                        )
                  );
 

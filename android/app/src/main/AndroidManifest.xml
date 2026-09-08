@@ -104,6 +104,17 @@
             </intent-filter>
         </receiver>
 
+        <!-- Direct xDrip Broadcast Receiver (100% offline, real-time) -->
+        <receiver
+            android:name=".XDripBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.eveningoutpost.dexdrip.BgEstimate" />
+                <action android:name="info.nightscout.client.DBACCESS" />
+                <action android:name="info.nightscout.client.NEW_TREATMENT" />
+            </intent-filter>
+        </receiver>
+
         <!-- Pancerny serwis w tle -->
         <service
             android:name=".GlikoForegroundService"

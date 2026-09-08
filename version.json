@@ -1,10 +1,10 @@
 {
-    "version": "6.0.41",
+    "version": "6.0.42",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.41_OTA.apk",
-    "buildNumber": 156,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.42_OTA.apk",
+    "buildNumber": 157,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.41! 1) Trwałe usuwanie historii: usunięte posiłki, bolusy, pomiary i osprzęt nie wracają po synchronizacji (czyszczenie SQLite, IndexedDB, Nightscout i Firestore). 2) Ulepszone wykrywanie wkłuć (Smart Equipment): eliminacja fałszywych alarmów po przerwach w dostawie danych z Nightscout. 3) Pamięć poziomu zbiorniczka na Pulpicie zapobiegająca chwilowemu spadkowi do 0 U. 4) Obsługa trwałego usuwania pomiarów cukru z Nightscout (deleteEntry API).",
-    "whatsNewEn": "Version 6.0.41! 1) Permanent history deletion: deleted meals, boluses, readings, and equipment never revive (clearing SQLite, IndexedDB, Nightscout, and Firestore). 2) Improved Smart Equipment detection: eliminated false alerts after Nightscout data dropouts. 3) Dashboard reservoir memory preventing temporary 0 U drops during connection gaps. 4) Permanent glucose entry deletion support for Nightscout (deleteEntry API).",
-    "otaRevision": 315
+    "whatsNew": "Wersja 6.0.42! 1) Bezpośrednia integracja z xDrip+ (Direct Broadcast Intents): odbiór cukru, trendów i baterii w 100% offline bez uprawnień do powiadomień. 2) Automatyczny odbiór zabiegów (Treatments): wpisane w xDrip+ bolusy i węglowodany trafiają bezpośrednio do historii i SQLite. 3) Karta konfiguracji xDrip+ z 3-krokowym poradnikiem w Ustawieniach Integracji. 4) Poprawki wniosków GlikoSense 4.1 (eliminacja fałszywych wzmianek o wysiłku przy hiperglikemii). 5) Poprawka analizy AI (Sparkles) oraz generowania kluczy API.",
+    "whatsNewEn": "Version 6.0.42! 1) Direct xDrip+ system integration (Direct Broadcast Intents): receive glucose, trends, and sensor battery 100% offline with zero notification permissions. 2) Automatic treatments sync: boluses and carbs logged in xDrip+ are immediately saved to SQLite history. 3) xDrip+ configuration card with a 3-step guide in Integration Settings. 4) GlikoSense 4.1 clinical guardrail fixes (eliminated false exercise hints during hyperglycemia). 5) AI meal analysis (Sparkles) and API secret generation fixes.",
+    "otaRevision": 316
 }

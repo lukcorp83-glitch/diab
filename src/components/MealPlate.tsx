@@ -57,6 +57,7 @@ import {
  Heart,
  Share2,
  Check,
+ Sparkles,
 } from "lucide-react";
 import SwipeableItem from "./SwipeableItem";
 import MealHistoryView from "./MealHistoryView";

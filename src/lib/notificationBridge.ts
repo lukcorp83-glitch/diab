@@ -5,12 +5,17 @@ export interface NotificationBridgePlugin {
   requestPermission(): Promise<void>;
   requestActiveNotifications(): Promise<void>;
   getGlucoseHistory(): Promise<{ history: string }>;
+  getTreatmentHistory(): Promise<{ history: string }>;
   updateForegroundNotification(options: { title: string, text: string }): Promise<void>;
   startLiveTimer(options: { targetTime: number; title?: string; text?: string; id?: number }): Promise<void>;
   stopLiveTimer(options?: { id?: number }): Promise<void>;
   addListener(
     eventName: 'glucoseNotificationReceived',
-    listenerFunc: (data: { glucose: number; iob: number; package: string }) => void,
+    listenerFunc: (data: { glucose: number; iob: number; package: string; trend?: string; delta?: number; timestamp?: number }) => void,
+  ): Promise<any>;
+  addListener(
+    eventName: 'treatmentNotificationReceived',
+    listenerFunc: (data: { insulin: number; carbs: number; eventType?: string; notes?: string; timestamp: number }) => void,
   ): Promise<any>;
 }
 

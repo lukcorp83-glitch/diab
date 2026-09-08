@@ -14,12 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.41';
+export const CURRENT_VERSION = '6.0.42';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.42",
+    date: "2026-09-08",
+    title: "Bezpośrednie Rozgłoszenia xDrip+ (100% Offline), Synchronizacja Bolusów i Posiłków oraz Poprawki AI",
+    changes: [
+      "Bezpośrednia integracja z xDrip+ (Direct Broadcast Intents): natychmiastowy odbiór glikemii, trendów i delty w 100% offline bez internetu i bez uprawnień do powiadomień",
+      "Automatyczny odbiór zabiegów (Treatments): bolusy insuliny i spożyte węglowodany z kalkulatora xDrip+ automatycznie zasilają historię i bazę SQLite",
+      "Karta konfiguracji xDrip+ z 3-krokową instrukcją uruchomienia w zakładce Ustawienia Integracji",
+      "GlikoSense 4.1: wprowadzono bezpiecznik kliniczny eliminujący sprzeczne komunikaty o ukrytym wysiłku przy hiperglikemii",
+      "Naprawiono błąd 'Sparkles is not defined' w module wizualnej weryfikacji potraw aparatu AI",
+      "Naprawiono błąd 'useMemo is not defined' oraz 500 Internal Server Error przy generowaniu kluczy API dla xDrip+"
+    ]
+  },
   {
     version: "6.0.41",
     date: "2026-09-08",
@@ -431,6 +444,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.42",
+    date: "2026-09-08",
+    title: "Bezpośrednie Rozgłoszenia xDrip+ (100% Offline), Synchronizacja Bolusów i Posiłków oraz Poprawki AI",
+    changes: [
+      "Bezpośrednia integracja z xDrip+ (Direct Broadcast Intents): natychmiastowy odbiór glikemii, trendów i delty w 100% offline bez internetu i bez uprawnień do powiadomień",
+      "Automatyczny odbiór zabiegów (Treatments): bolusy insuliny i spożyte węglowodany z kalkulatora xDrip+ automatycznie zasilają historię i bazę SQLite",
+      "Karta konfiguracji xDrip+ z 3-krokową instrukcją uruchomienia w zakładce Ustawienia Integracji",
+      "GlikoSense 4.1: wprowadzono bezpiecznik kliniczny eliminujący sprzeczne komunikaty o ukrytym wysiłku przy hiperglikemii",
+      "Naprawiono błąd 'Sparkles is not defined' w module wizualnej weryfikacji potraw aparatu AI",
+      "Naprawiono błąd 'useMemo is not defined' oraz 500 Internal Server Error przy generowaniu kluczy API dla xDrip+"
+    ]
+  },
   {
     version: "6.0.41",
     date: "2026-09-08",

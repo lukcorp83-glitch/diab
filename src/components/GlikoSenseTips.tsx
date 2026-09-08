@@ -19,7 +19,9 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  const tips = useMemo(() => {
  const today = new Date().setHours(0,0,0,0);
  const todayLogs = logs.filter(l => (l.timestamp || 0) >= today);
- const recentGlucose = logs.filter(l => l.type === 'glucose').slice(-10);
+ const sortedGlucose = logs
+   .filter(l => l.type === 'glucose' || (l as any).bg)
+   .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
  
  // Calculate REAL values from central engine
  const iob = getEffectiveIOB(logs, pumpStatus);
@@ -50,9 +52,9 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  });
  }
 
- // Trend analysis
- if (recentGlucose.length >= 3) {
- const last3 = recentGlucose.slice(-3).map(l => l.value);
+ // Trend analysis (chronologicznie: przedostatni-1, przedostatni, najnowszy)
+ if (sortedGlucose.length >= 3) {
+ const last3 = sortedGlucose.slice(0, 3).reverse().map(l => l.value || (l as any).bg);
  if (last3[0] > last3[1] && last3[1] > last3[2]) {
  results.push({
  id: 'trend_down',

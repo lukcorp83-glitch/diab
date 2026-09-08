@@ -83,6 +83,48 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
   const [isInsightsExpanded, setIsInsightsExpanded] = useState(false);
   const [isPatternsExpanded, setIsPatternsExpanded] = useState(false);
 
+  const latestBgValue = useMemo(() => {
+    const glucoseLogs = logs.filter(l => l.type === 'glucose' || l.bg);
+    if (glucoseLogs.length === 0) return 0;
+    const first = glucoseLogs[0];
+    return Number(first.value || first.bg || 0);
+  }, [logs]);
+
+  const sanitizedInsights = useMemo(() => {
+    const raw = mlResult?.insights || [];
+    if (raw.length === 0) return [];
+    const unique = Array.from(new Set(raw));
+    const isHigh = latestBgValue > 160;
+    const isLow = latestBgValue > 0 && latestBgValue < 75;
+
+    return unique.filter(ins => {
+      const lower = ins.toLowerCase();
+      if (isHigh) {
+        if (
+          lower.includes('hipo') || 
+          lower.includes('soku') || 
+          lower.includes('łyk') || 
+          lower.includes('zlecieć') || 
+          lower.includes('zapikował') || 
+          lower.includes('wylatujesz na dół') || 
+          lower.includes('niski poziom') ||
+          lower.includes('trzyma się niżej') ||
+          lower.includes('trzyma sie nizej') ||
+          lower.includes('ukryty wysiłek') ||
+          lower.includes('ukryty wysilek')
+        ) {
+          return false;
+        }
+      }
+      if (isLow) {
+        if (lower.includes('teren wysokich') || lower.includes('hiperglikemi') || lower.includes('utknął wysoko') || lower.includes('homeostaz') || lower.includes('drzwiami') || lower.includes('równowagi')) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [mlResult?.insights, latestBgValue]);
+
   const activePatterns = useMemo(() => {
     let localRules: any = {};
     try {
@@ -1288,7 +1330,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </span>
  </div>
  <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
- ⚡ GlikoSense 4.0
+ ⚡ GlikoSense 4.1
  </span>
  </div>
 
@@ -1535,7 +1577,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
               </AnimatePresence>
             </div>
 
- {mlResult.insights && mlResult.insights.length > 0 && (
+ {sanitizedInsights && sanitizedInsights.length > 0 && (
  <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full transition-all">
  <button
  type="button"
@@ -1551,7 +1593,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  {t('auto.wnioski_glikosense', { defaultValue: 'Wnioski GlikoSense' })}
  </span>
  <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-500/20">
- {mlResult.insights.length}
+ {sanitizedInsights.length}
  </span>
  </div>
  </div>
@@ -1571,7 +1613,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  className="overflow-hidden"
  >
  <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
- {mlResult.insights.map((insight, idx) => (
+ {sanitizedInsights.map((insight, idx) => (
  <div key={idx} className="flex items-start gap-2.5 bg-white dark:bg-slate-950/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
  <div className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-snug">{insight}</p>

@@ -259,20 +259,10 @@ export const MLAnalyzer = {
             } catch(e) {}
           }
           
-          // Persistent Brain: save valid insights, restore if missing data
+          // Persistent Brain: save valid insights
           const hasEnoughData = !(payload.insights || []).some((i: string) => i.includes('Zbyt mało'));
           if (hasEnoughData && payload.insights?.length > 0) {
              localStorage.setItem('glikosense_memorized_insights', JSON.stringify(payload.insights));
-          } else {
-             const memorized = localStorage.getItem('glikosense_memorized_insights');
-             if (memorized) {
-                try {
-                   const parsed = JSON.parse(memorized);
-                   if (Array.isArray(parsed) && parsed.length > 0) {
-                      payload.insights = [...(payload.insights || []), ...parsed];
-                   }
-                } catch(e) {}
-             }
           }
           
           if (payload && payload.discoveredRules && typeof window !== 'undefined') {

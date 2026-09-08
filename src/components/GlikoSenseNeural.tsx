@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Cpu, Zap, Shield, TrendingUp, AlertCircle, Heart, Sparkles } from 'lucide-react';
+import { Cpu, Zap, Shield, TrendingUp, TrendingDown, AlertCircle, Heart, Sparkles, Activity, CheckCircle2, Utensils, ShieldCheck, ShieldAlert } from 'lucide-react';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { useLogsStore } from '../stores/useLogsStore';
 
 interface NeuralNode {
   id: number;
@@ -26,6 +27,7 @@ interface GlikoSenseNeuralProps {
 
 export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName = 'Gliko', accuracy = 88.2, datasetSize, children, compact }: GlikoSenseNeuralProps) {
     const { t } = useTranslation();
+    const logs = useLogsStore((state) => state.logs);
     const [engineMode, setEngineMode] = React.useState(localStorage.getItem('glikosense_engine_mode') || 'v3_lstm');
   
     React.useEffect(() => {
@@ -38,9 +40,9 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
     
     const toggleBackend = (e: React.MouseEvent) => {
       e.stopPropagation();
-      const next = activeBackend === 'v5_lstm' ? 'v4_tcn' : 'v5_lstm';
-      setActiveBackend(next);
-      localStorage.setItem('glikosense_active_backend', next);
+      const next = engineMode === 'v4_tcn' ? 'v3_lstm' : 'v4_tcn';
+      setEngineMode(next);
+      localStorage.setItem('glikosense_engine_mode', next);
       window.dispatchEvent(new CustomEvent('glikosense_backend_changed', { detail: next }));
     };
   // Generate stable random nodes for the background animation
@@ -90,6 +92,132 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
     // Deep premium soft teal-blue for stable/in-range
     return "bg-gradient-to-br from-teal-50 to-blue-50 dark:from-teal-900/20 dark:to-blue-950/25 border border-teal-100 dark:border-teal-900/30";
   }, [glucose, trend]);
+
+  const shieldCards = useMemo(() => {
+    // 1. Analiza Trendu
+    const isRising = trend?.includes('UP') || false;
+    const isFalling = trend?.includes('DOWN') || false;
+    const isFast = trend?.includes('FAST') || false;
+    const isStable = !isRising && !isFalling;
+
+    const trendTitle = t('auto.analiza_trendu', { defaultValue: 'Analiza Trendu' });
+    let trendStatus = t('auto.trend_stabilny', { defaultValue: 'Stabilny profil' });
+    let trendDesc = t('auto.trend_stabilny_opis', { defaultValue: 'Brak gwałtownych wahań glikemii w oknie obserwacji.' });
+    let trendColor: 'emerald' | 'rose' | 'amber' | 'indigo' | 'slate' = 'emerald';
+
+    if (isRising) {
+      trendStatus = isFast 
+        ? t('auto.szybki_wzrost', { defaultValue: 'Szybki wzrost' })
+        : t('auto.tendencja_wzrostowa', { defaultValue: 'Tendencja wzrostowa' });
+      trendDesc = t('auto.trend_wzrostowy_opis', { defaultValue: 'Predykcja 30m uwzględnia dynamiczny wektor wznoszący.' });
+      trendColor = 'amber';
+    } else if (isFalling) {
+      trendStatus = isFast 
+        ? t('auto.szybki_spadek', { defaultValue: 'Szybki spadek' })
+        : t('auto.tendencja_spadkowa', { defaultValue: 'Tendencja spadkowa' });
+      trendDesc = t('auto.trend_spadkowy_opis', { defaultValue: 'Predykcja 30m uwzględnia wektor zniżkowy – czujność na hipo.' });
+      trendColor = 'rose';
+    }
+
+    // 2. Detekcja Anomalii
+    const hasAnomaly = (glucose !== null && (glucose < 70 || glucose > 200)) || isFast;
+    const anomalyTitle = t('auto.detekcja_anomalii', { defaultValue: 'Detekcja Anomalii' });
+    let anomalyStatus = t('auto.wzorzec_prawidlowy', { defaultValue: 'Wzorzec prawidłowy' });
+    let anomalyDesc = t('auto.anomalia_brak_opis', { defaultValue: 'Dynamika glikemii mieści się w standardowym korytarzu.' });
+    let anomalyColor: 'emerald' | 'rose' | 'amber' | 'indigo' | 'slate' = 'emerald';
+
+    if (hasAnomaly) {
+      anomalyStatus = glucose && glucose < 70 
+        ? t('auto.odchylenie_dolne', { defaultValue: 'Niski poziom' })
+        : glucose && glucose > 200 
+        ? t('auto.odchylenie_gorne', { defaultValue: 'Wysoki poziom' })
+        : t('auto.anomalia_dynamiki', { defaultValue: 'Skok dynamiki' });
+      anomalyDesc = isFast 
+        ? t('auto.anomalia_tempo_opis', { defaultValue: 'Wykryto przyspieszone tempo zmiany odbiegające od normy.' })
+        : t('auto.anomalia_prog_opis', { defaultValue: 'Zarejestrowano przekroczenie docelowych progów bezpieczeństwa.' });
+      anomalyColor = glucose && glucose < 70 ? 'rose' : 'amber';
+    }
+
+    // 3. Weryfikacja Posiłku
+    const now = Date.now();
+    const recentMealLog = logs.find(l => {
+      const isMeal = l.type === 'meal' || l.type === 'carbs' || (l.type === 'bolus' && (l.linkedMeal || (l.notes && /posiłek|meal|śniadanie|obiad|kolacja/i.test(l.notes))));
+      const diffMin = (now - (l.timestamp || 0)) / 60000;
+      return isMeal && diffMin >= 0 && diffMin <= 240; // ostatnie 4h
+    });
+
+    const mealTitle = t('auto.weryfikacja_posilku', { defaultValue: 'Weryfikacja Posiłku' });
+    let mealStatus = t('auto.stan_spoczynku', { defaultValue: 'Stan spoczynkowy' });
+    let mealDesc = t('auto.posilek_brak_opis', { defaultValue: 'Brak aktywnych posiłków zarejestrowanych w ostatnich 4h.' });
+    let mealActive = false;
+    let mealColor: 'emerald' | 'rose' | 'amber' | 'indigo' | 'slate' = 'slate';
+
+    if (recentMealLog) {
+      mealActive = true;
+      const minutesAgo = Math.max(1, Math.round((now - (recentMealLog.timestamp || 0)) / 60000));
+      const hoursAgo = (minutesAgo / 60).toFixed(1);
+      const timeText = minutesAgo < 60 ? `${minutesAgo}m temu` : `${hoursAgo}h temu`;
+      mealStatus = t('auto.wchlanianie_posilku', { defaultValue: `Posiłek (${timeText})` });
+      mealDesc = t('auto.posilek_aktywny_opis', { defaultValue: 'AI śledzi profil wchłaniania węglowodanów i krzywą glikemii.' });
+      mealColor = 'indigo';
+    }
+
+    // 4. Ochrona Hypo
+    const isHypoRisk = (glucose !== null && glucose < 90 && isFalling) || (glucose !== null && glucose < 70);
+    const hypoTitle = t('auto.ochrona_hypo', { defaultValue: 'Ochrona Hypo' });
+    let hypoStatus = t('auto.tarcza_bezpieczna', { defaultValue: 'Brak ryzyka hipo' });
+    let hypoDesc = t('auto.hypo_bezpiecznie_opis', { defaultValue: 'Brak prognozowanego ryzyka hipoglikemii w oknie 60 min.' });
+    let hypoColor: 'emerald' | 'rose' | 'amber' | 'indigo' | 'slate' = 'emerald';
+
+    if (glucose !== null && glucose < 70) {
+      hypoStatus = t('auto.alarm_hypo', { defaultValue: 'Aktywna hipoglikemia' });
+      hypoDesc = t('auto.hypo_alarm_opis', { defaultValue: 'Cukier poniżej 70 mg/dL. Wymagane natychmiastowe szybkie węglowodany!' });
+      hypoColor = 'rose';
+    } else if (isHypoRisk) {
+      hypoStatus = t('auto.ostrzezenie_spadek', { defaultValue: 'Czujność prewencyjna' });
+      hypoDesc = t('auto.hypo_czuwanie_opis', { defaultValue: 'Glikemia opada ku dolnej granicy. Model monitoruje bufor bezpieczeństwa.' });
+      hypoColor = 'amber';
+    }
+
+    return [
+      {
+        id: 'trend',
+        title: trendTitle,
+        status: trendStatus,
+        desc: trendDesc,
+        color: trendColor,
+        active: !isStable,
+        icon: isRising ? <TrendingUp size={16} /> : isFalling ? <TrendingDown size={16} /> : <Activity size={16} />
+      },
+      {
+        id: 'anomaly',
+        title: anomalyTitle,
+        status: anomalyStatus,
+        desc: anomalyDesc,
+        color: anomalyColor,
+        active: hasAnomaly,
+        icon: hasAnomaly ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />
+      },
+      {
+        id: 'meal',
+        title: mealTitle,
+        status: mealStatus,
+        desc: mealDesc,
+        color: mealColor,
+        active: mealActive,
+        icon: <Utensils size={16} />
+      },
+      {
+        id: 'hypo',
+        title: hypoTitle,
+        status: hypoStatus,
+        desc: hypoDesc,
+        color: hypoColor,
+        active: isHypoRisk || (glucose !== null && glucose < 70),
+        icon: isHypoRisk || (glucose !== null && glucose < 70) ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />
+      }
+    ];
+  }, [trend, glucose, logs, t]);
 
   if (compact) {
     return (
@@ -186,7 +314,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
   }
 
   return (
-    <div className={cn("relative w-full p-6 rounded-[2.5rem] overflow-hidden shadow-lg transition-all duration-700 text-slate-800 dark:text-slate-100", dynamicBg)}>
+    <div className={cn("relative w-full p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-lg transition-all duration-700 text-slate-800 dark:text-slate-100", dynamicBg)}>
       {/* Neural Background Animation */}
       <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none">
         {nodes.map((node, i) => {
@@ -247,14 +375,14 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
       </div>
 
       <div className="relative z-10">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl ${statusColor} bg-opacity-20`}>
-              <GlikoSenseIcon size={20} isAnalyzing={true} />
+        <div className="flex items-center justify-between mb-3 md:mb-5">
+          <div className="flex items-center gap-2.5 md:gap-3">
+            <div className={`p-1.5 md:p-2 rounded-xl ${statusColor} bg-opacity-20 shrink-0`}>
+              <GlikoSenseIcon size={18} isAnalyzing={true} />
             </div>
             <div>
               <h3 
-                className="text-sm font-black dark:text-white leading-tight cursor-pointer hover:text-sky-400 transition-colors"
+                className="text-xs md:text-sm font-black dark:text-white leading-tight cursor-pointer hover:text-sky-400 transition-colors"
                 onClick={toggleBackend}
               >
                 {t('auto.glikosense', { defaultValue: engineMode === 'v4_tcn' ? 'GlikoSense 4.1' : 'GlikoSense 3.0' })}
@@ -262,15 +390,14 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             </div>
           </div>
           
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-            <TrendingUp size={12} />
-            <span>{t('auto.predykcja_30m', { defaultValue: 'Predykcja 30m' })}: </span>
-            <span className="text-indigo-700 dark:text-indigo-300 text-xs">
+          <div className="flex items-center gap-1.5 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <TrendingUp size={11} className="shrink-0" />
+            <span className="hidden sm:inline">{t('auto.predykcja_30m', { defaultValue: 'Predykcja 30m' })}: </span>
+            <span className="sm:hidden">{t('auto.30m', { defaultValue: '30m' })}: </span>
+            <span className="text-indigo-700 dark:text-indigo-300 text-xs font-black">
               {glucose ? Math.round(glucose + (trend?.includes('UP') ? 18 : trend?.includes('DOWN') ? -12 : 0)) : '--'}
             </span>
           </div>
-
-
         </div>
 
         {isChildMode ? (
@@ -313,44 +440,82 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2 mb-2 items-center">
-              {[
-                { label: i18n.t('auto.analiza_trendu', { defaultValue: 'Analiza Trendu' }), active: trend !== 'STABLE' && trend !== null },
-                { label: i18n.t('auto.detekcja_anomalii', { defaultValue: 'Detekcja Anomalii' }), active: (glucose !== null && (glucose < 70 || glucose > 200)) || (trend?.includes('FAST')) },
-                { label: i18n.t('auto.weryfikacja_posilku', { defaultValue: i18n.t('auto.weryfikacja_posilku', { defaultValue: "Weryfikacja Posiłku" }) }), active: false }, // Will be linked to recent logs in next step if needed
-                { label: i18n.t('auto.ochrona_hypo', { defaultValue: 'Ochrona Hypo' }), active: glucose !== null && (glucose < 90 || (glucose < 110 && trend?.includes('DOWN'))) }
-              ].map(fn => (
-                <div 
-                  key={fn.label}
-                  className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${
-                    fn.active 
-                      ? `${statusColor} text-white border-transparent shadow-sm` 
-                      : 'bg-white/30 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 border-slate-200/70 dark:border-slate-800/40'
-                  }`}
-                >
-                  {fn.label}
-                </div>
-              ))}
+          <div className="space-y-3">
+            {/* Siatka 2x2: na telefonie ultra-zwarta (same pigułki/statusy), na sm/md rozwinięta z opisami */}
+            <div className="grid grid-cols-2 gap-2 md:gap-3.5">
+              {shieldCards.map((card) => {
+                const colorClasses = {
+                  emerald: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+                  rose: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20",
+                  amber: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20",
+                  indigo: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+                  slate: "text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/20",
+                }[card.color] || "text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/20";
+
+                return (
+                  <div 
+                    key={card.id}
+                    className="p-2.5 sm:p-3 md:p-3.5 rounded-xl sm:rounded-2xl md:rounded-[1.4rem] bg-white/50 dark:bg-slate-900/40 border border-white/70 dark:border-slate-800/60 backdrop-blur-sm shadow-xs flex flex-col justify-between transition-all hover:bg-white/70 dark:hover:bg-slate-900/60 min-h-[58px] sm:min-h-auto"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className={cn("p-1 md:p-1.5 rounded-lg md:rounded-xl border shrink-0", colorClasses)}>
+                          {card.icon}
+                        </div>
+                        <span className="text-[10px] md:text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight truncate">
+                          {card.title}
+                        </span>
+                      </div>
+                      <span className={cn("text-[8px] md:text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full border shrink-0 tracking-wider self-start sm:self-auto truncate max-w-full", colorClasses)}>
+                        {card.status}
+                      </span>
+                    </div>
+                    {/* Długi opis pojawia się dopiero na większych ekranach (tablet / desktop), zapobiegając rozciąganiu widżetu na smartfonie */}
+                    <p className="hidden sm:block text-[10px] md:text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-snug mt-1.5">
+                      {card.desc}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Neural Footer Telemetry */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-white/5 text-[9px] font-black uppercase text-slate-400">
+              <div className="flex items-center gap-2 md:gap-3">
+                <span onClick={toggleBackend} className="cursor-pointer hover:text-indigo-500 transition-colors flex items-center gap-1">
+                  <Cpu size={11} className="text-indigo-500" />
+                  <span className="hidden sm:inline">{engineMode === 'v4_tcn' ? 'Silnik TCN 4.1' : 'Silnik LSTM 3.0'}</span>
+                  <span className="sm:hidden">{engineMode === 'v4_tcn' ? 'TCN 4.1' : 'LSTM 3.0'}</span>
+                </span>
+                {datasetSize && (
+                  <span className="opacity-70 hidden sm:inline">
+                    {datasetSize} {t('auto.probek', { defaultValue: 'próbek' })}
+                  </span>
+                )}
+                {accuracy && (
+                  <span className="opacity-70">
+                    {accuracy}%
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[8px] tracking-wider text-slate-400 dark:text-slate-500 font-bold">LIVE</span>
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.25, 1],
+                    boxShadow: [
+                      `0 0 0px ${glowColor}`,
+                      `0 0 10px ${glowColor}`,
+                      `0 0 0px ${glowColor}`
+                    ]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className={`w-2.5 h-2.5 rounded-full ${statusColor}`}
+                />
+              </div>
             </div>
           </div>
         )}
-
-        {/* Neural Activity Pulse */}
-        <div className="mt-6 flex justify-center">
-          <motion.div
-            animate={{ 
-              scale: [1, 1.2, 1],
-              boxShadow: [
-                `0 0 0px ${glowColor}`,
-                `0 0 20px ${glowColor}`,
-                `0 0 0px ${glowColor}`
-              ]
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className={`w-3 h-3 rounded-full ${statusColor}`}
-          />
-        </div>
       </div>
     </div>
   );
