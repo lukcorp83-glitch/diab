@@ -10,6 +10,7 @@ import { getPreBolusTimerState, cancelPreBolusTimer, PreBolusTimerState } from '
 import { dbService } from '../../services/databaseService';
 import { db } from '../../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 interface DynamicActionCapsuleProps {
   lastGlucose: number | null;
@@ -277,11 +278,13 @@ export function DynamicActionCapsule({
           }
         }}
       >
-        {/* Odznaka z liczbą składników na talerzu na zewnętrznym rogu przycisku */}
+        {/* Odznaka z liczbą składników na talerzu ze sprężystym podskokiem */}
         {plateCount > 0 && capsuleState === 'default' && (
           <motion.span 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+            key={`plate-badge-${plateCount}`}
+            initial={{ scale: 0.3, y: -6 }}
+            animate={{ scale: [1.35, 0.9, 1.06, 1], y: 0 }}
+            transition={{ type: "spring", stiffness: 550, damping: 14 }}
             className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-black text-[10px] min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-md shadow-rose-500/40 z-30 pointer-events-none"
           >
             {plateCount}
@@ -510,7 +513,13 @@ export function DynamicActionCapsule({
                 </div>
               ) : (
                 <div className="flex items-center justify-center relative">
-                  <Utensils className="text-white relative z-10" size={24} />
+                  <motion.div
+                    animate={plateCount > 0 ? { scale: [1, 1.1, 1], rotate: [0, -4, 4, 0] } : { scale: 1, rotate: 0 }}
+                    transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+                    className="flex items-center justify-center"
+                  >
+                    <Utensils className="text-white relative z-10" size={24} />
+                  </motion.div>
                   {hardwareWarning && (
                     <div className="absolute -top-2 -right-2.5 bg-amber-500 text-white rounded-full px-1 py-0.5 border border-white dark:border-slate-900 shadow-md flex items-center gap-0.5 text-[8px] font-black z-20 animate-pulse">
                       {hardwareWarning.type === 'sensor' ? <Signal size={8} /> : <Droplet size={8} />}

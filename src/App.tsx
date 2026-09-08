@@ -197,7 +197,7 @@ export default function App() {
         setSqliteLogs(prev => [...e.detail, ...prev]);
         useLogsStore.getState().addLogs(e.detail);
         try {
-          dbService.saveLogs(e.detail).catch(() => {});
+          dbService.saveMultipleLogs(e.detail).catch(() => {});
         } catch (err) {}
       };
       const handleLocalUpdate = (e: any) => {

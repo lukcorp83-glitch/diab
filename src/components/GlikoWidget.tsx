@@ -8,15 +8,44 @@ import i18n from "../i18n";
 import { AnimatedNumber } from "./common/AnimatedNumber";
 
 interface GlikoWidgetProps {
- setTab: (t: string) => void;
- iob: number;
- todayStats: { carbs: number; insulin: number };
- trend?: { icon: React.ReactNode, color: string, text: string, deltaText?: string } | null;
- tir: { low: number; inRange: number; high: number };
- hba1c: number;
- glassmorphismEnabled?: boolean;
- compact?: boolean;
+  setTab: (t: string) => void;
+  iob: number;
+  todayStats: { carbs: number; insulin: number };
+  trend?: { icon: React.ReactNode, color: string, text: string, deltaText?: string, direction?: string } | null;
+  tir: { low: number; inRange: number; high: number };
+  hba1c: number;
+  glassmorphismEnabled?: boolean;
+  compact?: boolean;
 }
+
+const FloatingTrendArrow = ({ trend }: { trend: NonNullable<GlikoWidgetProps['trend']> }) => {
+  const dir = trend.direction || '';
+  const isUp = dir === 'UP' || dir === 'UP_FAST';
+  const isDown = dir === 'DOWN' || dir === 'DOWN_FAST';
+  const isStable = dir === 'STABLE';
+
+  const animateProps = isUp 
+    ? { y: [0, -3.5, 0] }
+    : isDown 
+    ? { y: [0, 3.5, 0] }
+    : isStable 
+    ? { x: [0, 2, 0] }
+    : { scale: [1, 1.08, 1] };
+
+  return (
+    <motion.div
+      animate={animateProps}
+      transition={{
+        repeat: Infinity,
+        duration: dir.includes('FAST') ? 1.2 : 2.0,
+        ease: "easeInOut"
+      }}
+      className={cn("origin-center inline-flex items-center", trend.color)}
+    >
+      {trend.icon}
+    </motion.div>
+  );
+};
 
 export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c, glassmorphismEnabled, compact }: GlikoWidgetProps) {
  const logs = useLogsStore((state) => state.logs);
@@ -88,17 +117,25 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
 
  <div className="relative z-10 my-auto flex flex-col justify-center">
  <div className="flex items-baseline gap-1 justify-center py-1">
- <AnimatedNumber 
-  value={lastGlucose?.value}
-  decimals={0}
-  fallback="--"
-  className="text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
-  />
+ <motion.div
+  key={`glucose-compact-${lastGlucose?.timestamp || 'none'}`}
+  initial={{ scale: 0.94, opacity: 0.8 }}
+  animate={{ scale: 1, opacity: 1 }}
+  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+  className="inline-block"
+ >
+  <AnimatedNumber 
+   value={lastGlucose?.value}
+   decimals={0}
+   fallback="--"
+   className="text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
+   />
+ </motion.div>
  <div className="flex flex-col items-start">
  <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  {trend && (
- <div className={cn("scale-90 origin-left mt-0.5", trend.color)}>
- {trend.icon}
+ <div className="scale-90 origin-left mt-0.5">
+  <FloatingTrendArrow trend={trend} />
  </div>
  )}
  </div>
@@ -177,29 +214,31 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <div>
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block mb-1">{t('auto.ostatni_pomiar', { defaultValue: 'Ostatni Pomiar' })}</span>
  <div className="flex items-baseline gap-2">
- <AnimatedNumber 
-  value={lastGlucose?.value}
-  decimals={0}
-  fallback="--"
-  className="text-5xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
-  />
+ <motion.div
+  key={`glucose-full-${lastGlucose?.timestamp || 'none'}`}
+  initial={{ scale: 0.94, opacity: 0.8 }}
+  animate={{ scale: 1, opacity: 1 }}
+  transition={{ type: "spring", stiffness: 350, damping: 22 }}
+  className="inline-block"
+ >
+  <AnimatedNumber 
+   value={lastGlucose?.value}
+   decimals={0}
+   fallback="--"
+   className="text-5xl font-black text-slate-900 dark:text-white leading-none tracking-tighter tabular-nums"
+   />
+ </motion.div>
  <div className="flex flex-col">
  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter leading-none">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
  {trend && (
- <motion.div 
- initial={{ y: 5, opacity: 0 }}
- animate={{ y: 0, opacity: 1 }}
- className={cn("flex items-center gap-0.5", trend.color)}
- >
- <div className="scale-75 origin-left">
- {trend.icon}
+ <div className="flex items-center gap-0.5 mt-0.5">
+  <FloatingTrendArrow trend={trend} />
+  {trend.deltaText && (
+   <span className={cn("text-[10px] font-black tracking-tighter opacity-80 ml-0.5", trend.color)}>
+    {trend.deltaText}
+   </span>
+  )}
  </div>
- {trend.deltaText && (
- <span className="text-[10px] font-black tracking-tighter opacity-80 mt-0.5">
- {trend.deltaText}
- </span>
- )}
- </motion.div>
  )}
  </div>
  </div>
@@ -230,7 +269,7 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <div className="grid grid-cols-2 gap-4">
  <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between glass-target">
  <div>
- <div className="flex items-center gap-2 mb-3">
+ <div className="flex items-center gap-2 mb-2">
  <Cylinder size={12} className="text-accent-500" />
  <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_jednostek', { defaultValue: i18n.t('auto.dzis_jednostek', { defaultValue: "Dziś Jednostek" }) })}</span>
  </div>
@@ -239,14 +278,16 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{t('auto.j', { defaultValue: 'j.' })}</span>
  </div>
  </div>
- <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-white/5">
- <span className="text-[8px] font-bold text-slate-400 block">{t('auto.ostatnia', { defaultValue: 'Ostatnia:' })} {lastBolus ? getTimeAgo(lastBolus.timestamp) : '--'}</span>
+ <div className="mt-1.5 pt-1.5 border-t border-slate-200/40 dark:border-white/10">
+ <span className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400 block truncate">
+   {t('auto.ostatnia', { defaultValue: 'Ostatnia:' })} <span className="font-extrabold text-slate-700 dark:text-slate-200">{lastBolus ? getTimeAgo(lastBolus.timestamp) : '--'}</span>
+ </span>
  </div>
  </motion.div>
 
  <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between glass-target">
  <div>
- <div className="flex items-center gap-2 mb-3">
+ <div className="flex items-center gap-2 mb-2">
  {mealProgress >= 0 ? (
   <div className="relative flex items-center justify-center w-5 h-5 -ml-1">
   <svg className="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 48 48">
@@ -275,8 +316,10 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">g</span>
  </div>
  </div>
- <div className="mt-2 pt-2 border-t border-slate-200/30 dark:border-white/5">
- <span className="text-[8px] font-bold text-slate-400 block">{t('auto.ostatni', { defaultValue: 'Ostatni:' })} {lastMeal ? getTimeAgo(lastMeal.timestamp) : '--'}</span>
+ <div className="mt-1.5 pt-1.5 border-t border-slate-200/40 dark:border-white/10">
+ <span className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400 block truncate">
+   {t('auto.ostatni', { defaultValue: 'Ostatni:' })} <span className="font-extrabold text-slate-700 dark:text-slate-200">{lastMeal ? getTimeAgo(lastMeal.timestamp) : '--'}</span>
+ </span>
  </div>
  </motion.div>
  </div>

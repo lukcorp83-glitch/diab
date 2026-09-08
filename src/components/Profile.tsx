@@ -163,7 +163,8 @@ export default function Profile({
  const { logs } = useLogsStore();
  const { data: shortcuts = [] } = useShortcuts(user);
  const queryClient = useQueryClient();
- const [newShortcut, setNewShortcut] = useState<any>(null);
+  const [newShortcut, setNewShortcut] = useState<any>(null);
+  const [shortcutToDelete, setShortcutToDelete] = useState<any>(null);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
   const updatePetName = async () => { if (!user || !newName.trim()) return; setEditingName(false); try { await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "pet"), { name: newName.trim() }, { merge: true }); toast.success("Zapisano"); } catch (e) { toast.error("Błąd"); } };
@@ -911,57 +912,67 @@ export default function Profile({
  console.error("Error equipping background:", err);
  }
  };
- const saveShortcut = async () => {
- if (!newShortcut.name) return;
- try {
- if (newShortcut.id) {
- // Edit
- const { id, ...data } = newShortcut;
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "shortcuts",
- id,
- ),
- data,
- );
- } else {
- // Add
- const { id, ...data } = newShortcut;
- await addDoc(
- collection(
- db,
- "users",
- getEffectiveUid(user),
- "shortcuts",
- ),
- data,
- );
- }
- queryClient.invalidateQueries({ queryKey: ['shortcuts', getEffectiveUid(user)] });
- setNewShortcut(null);
- } catch (e) {
- console.error(e);
- }
- };
- const deleteShortcut = async (id: string) => {
- try {
- await deleteDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "shortcuts",
- id,
- ),
- );
- queryClient.invalidateQueries({ queryKey: ['shortcuts', getEffectiveUid(user)] });
- } catch (e) {
- console.error(e);
- }
- };
+  const saveShortcut = async () => {
+    if (!newShortcut?.name?.trim()) {
+      toast.error("Podaj nazwę skrótu");
+      return;
+    }
+    try {
+      if (newShortcut.id) {
+        // Edit
+        const { id, ...data } = newShortcut;
+        await setDoc(
+          doc(
+            db,
+            "users",
+            getEffectiveUid(user),
+            "shortcuts",
+            id,
+          ),
+          data,
+        );
+        toast.success("Zaktualizowano skrót!");
+      } else {
+        // Add
+        const { id, ...data } = newShortcut;
+        await addDoc(
+          collection(
+            db,
+            "users",
+            getEffectiveUid(user),
+            "shortcuts",
+          ),
+          data,
+        );
+        toast.success("Dodano nowy skrót!");
+      }
+      Haptics.success();
+      queryClient.invalidateQueries({ queryKey: ['shortcuts', getEffectiveUid(user)] });
+      setNewShortcut(null);
+    } catch (e) {
+      console.error("Błąd zapisu skrótu:", e);
+      toast.error("Nie udało się zapisać skrótu");
+    }
+  };
+  const deleteShortcut = async (id: string) => {
+    try {
+      await deleteDoc(
+        doc(
+          db,
+          "users",
+          getEffectiveUid(user),
+          "shortcuts",
+          id,
+        ),
+      );
+      Haptics.medium();
+      toast.success("Usunięto skrót");
+      queryClient.invalidateQueries({ queryKey: ['shortcuts', getEffectiveUid(user)] });
+    } catch (e) {
+      console.error("Błąd usuwania skrótu:", e);
+      toast.error("Nie udało się usunąć skrótu");
+    }
+  };
  const analyzeDrug = async () => {
  if (!newMedication?.name || !user) return;
  setIsAnalyzingDrug(true);
@@ -3576,8 +3587,9 @@ export default function Profile({
  </p>
  </div>
  </div>
- <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+ <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
  <button
+ type="button"
  onClick={() =>
  setNewShortcut({
  id: s.id,
@@ -3587,15 +3599,21 @@ export default function Profile({
  carbs: s.carbs || 0,
  })
  }
- className="p-2 text-slate-400 hover:text-accent-500 transition-colors"
+ className="p-2.5 rounded-xl text-slate-400 hover:text-accent-500 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 active:scale-90 transition-all cursor-pointer"
+ title="Edytuj skrót"
  >
- <Settings size={14} />
+ <Settings size={16} />
  </button>
  <button
- onClick={() => deleteShortcut(s.id)}
- className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+ type="button"
+ onClick={() => {
+   Haptics.warning();
+   setShortcutToDelete(s);
+ }}
+ className="p-2.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 active:scale-90 transition-all cursor-pointer"
+ title="Usuń skrót"
  >
- <Trash size={14} />
+ <Trash2 size={16} />
  </button>
  </div>
  </motion.div>
@@ -3703,16 +3721,89 @@ export default function Profile({
  </div>
  </div>
  </div>
- <button
- onClick={saveShortcut}
- className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl"
- >
- {newShortcut.id ? "Zapisz zmiany" : i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: "Zatwierdź i dodaj" }) })}
- </button>
- </motion.div>
- )}
- </div>
- </motion.div>
+  <div className="flex gap-2 pt-2">
+    {newShortcut.id && (
+      <button
+        type="button"
+        onClick={() => {
+          Haptics.warning();
+          setShortcutToDelete(newShortcut);
+        }}
+        className="px-5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+        title="Usuń ten skrót"
+      >
+        <Trash2 size={16} />
+        <span>Usuń</span>
+      </button>
+    )}
+    <button
+      type="button"
+      onClick={saveShortcut}
+      className="flex-1 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl cursor-pointer"
+    >
+      {newShortcut.id ? "Zapisz zmiany" : i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: "Zatwierdź i dodaj" }) })}
+    </button>
+  </div>
+  </motion.div>
+  )}
+  </div>
+
+  {/* Okno dialogowe aplikacji potwierdzające usunięcie skrótu */}
+  {shortcutToDelete && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-6 shadow-2xl space-y-5 text-center"
+      >
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-3xl shadow-inner border border-rose-500/20">
+          {shortcutToDelete.icon || <Trash2 size={28} />}
+        </div>
+        
+        <div className="space-y-1.5">
+          <h3 className="text-lg font-black text-slate-800 dark:text-white">
+            Usunąć skrót?
+          </h3>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            Czy na pewno chcesz usunąć <strong className="text-slate-800 dark:text-slate-200">"{shortcutToDelete.name}"</strong>?
+          </p>
+          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+            Tej operacji nie można cofnąć
+          </p>
+        </div>
+
+        <div className="flex gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              Haptics.light();
+              setShortcutToDelete(null);
+            }}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-black text-[11px] uppercase tracking-wider text-slate-700 dark:text-slate-300 transition-all active:scale-95 cursor-pointer"
+          >
+            Anuluj
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              const id = shortcutToDelete.id;
+              setShortcutToDelete(null);
+              if (newShortcut?.id === id) {
+                setNewShortcut(null);
+              }
+              await deleteShortcut(id);
+            }}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-black text-[11px] uppercase tracking-wider shadow-lg shadow-rose-500/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Trash2 size={15} />
+            <span>Usuń</span>
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  )}
+  </motion.div>
  )}
  {activeCategory === "meds" && <ProfileMedications user={user} settings={settings} setSettings={setSettings} />}
  {activeCategory === "simulator" && <React.Suspense fallback={null}><PumpSimulator settings={settings} /></React.Suspense>}

@@ -1206,12 +1206,22 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  )}
  </div>
  
- <div className="flex items-center gap-2 mb-3 relative z-10">
+ <div className="flex items-center justify-between mb-3 relative z-10">
+ <div className="flex items-center gap-2.5">
  <div className="bg-cyan-500/30 p-2 rounded-xl backdrop-blur-md">
  <ShieldAlert size={16} className="text-cyan-200" />
  </div>
- <span className="text-xs font-black text-cyan-100 uppercase tracking-wider opacity-90">{t('auto.najniższy_spadek', { defaultValue: 'Nocne Minimum' })}</span>
+ <div className="flex flex-col">
+ <span className="text-xs font-black text-cyan-100 uppercase tracking-wider">
+ {t('auto.nocna_ochrona', { defaultValue: 'Nocna Ochrona' })}
+ </span>
+ <span className="text-[10px] text-cyan-300/80 font-semibold tracking-tight">
+ {t('auto.prognozowane_minimum', { defaultValue: 'Prognozowane minimum' })}
+ </span>
  </div>
+ </div>
+ </div>
+ 
  <div className="flex items-baseline gap-2 relative z-10 my-auto">
  <span className="text-5xl sm:text-6xl font-black tracking-tight leading-none">{Math.round(Math.min(...(mlResult.predictionCurve?.map((p: any) => p.value) || [999])))}</span>
  <span className="text-xs font-bold text-cyan-300 tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>

@@ -754,11 +754,11 @@ export default function MealPlate({
 
  // Meal Impacts
  for (const m of recentMeals) {
- const mSrc = m.linkedMeal ? m.linkedMeal : m;
+ const mSrc: any = m.linkedMeal ? m.linkedMeal : m;
  if (!mSrc) continue;
  const mWW =
  mSrc.value !== undefined
- ? mSrc.value / 10
+ ? Number(mSrc.value) / 10
  : mSrc.carbs !== undefined
  ? mSrc.carbs / 10
  : 0;
@@ -791,7 +791,7 @@ export default function MealPlate({
 
  // Insulin Impacts
  for (const b of recentBoluses) {
- const bVal = parseFloat(b.value || 0);
+ const bVal = Number(b.value) || 0;
  const relativeAgeHr =
  (chartTime.getTime() - (b.timestamp || 0)) / (1000 * 60 * 60);
  // Find nearest 0.5 step
@@ -812,7 +812,7 @@ export default function MealPlate({
  (l) => Math.abs(l.timestamp - chartTime.getTime()) < 1000 * 60 * 15,
  );
  if (closestBg) {
- Cukier = parseFloat(closestBg.value);
+ Cukier = Number(closestBg.value);
  }
  }
 
@@ -1483,7 +1483,7 @@ export default function MealPlate({
   <h3 className="font-bold text-slate-800 dark:text-white text-sm">
   {activeMeal.type === "bolus" && activeMeal.linkedMeal
   ? activeMeal.linkedMeal.name || t('meal.pump_meal_fallback', { defaultValue: i18n.t('auto.posilek_z_pompy', { defaultValue: "Posiłek z pompy" }) })
-  : activeMeal.name ||
+  : (activeMeal as any).name ||
   activeMeal.notes ||
   t('meal.active_meal_fallback', { defaultValue: i18n.t('auto.aktywny_posilek', { defaultValue: "Aktywny posiłek" }) })}
   </h3>

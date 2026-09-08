@@ -39,38 +39,31 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
  className="absolute top-0 left-0 h-[6px] bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" 
  />
 
- {/* Close Button */}
- <button
- onClick={onClose}
- className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all cursor-pointer"
- aria-label={t('auto.zamknij', { defaultValue: 'Zamknij' })}
- id="changelog-close-btn"
- >
- <X size={18} />
- </button>
+ {/* Header section - compact without large header */}
+ <div className="pt-5 px-6 pb-4 border-b border-slate-100/50 dark:border-white/5 flex items-center justify-between">
+   <div className="flex items-center gap-2.5">
+     <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/20">
+       <Sparkles size={12} className="animate-pulse" />
+       {t('auto.aktualizacja', { defaultValue: 'Nowości' })}
+     </span>
+     <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200/50 dark:border-white/5">
+       v{current.version}
+     </span>
+   </div>
 
- {/* Header section */}
- <div className="pt-10 px-8 pb-6 border-b border-slate-100/50 dark:border-white/5">
- <div className="flex items-center gap-2.5 mb-2">
- <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40">
- <Sparkles size={11} className="animate-pulse" />
- {t('auto.aktualizacja', { defaultValue: 'Aktualizacja' })}
- </span>
- <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400">
- v{current.version}
- </span>
- </div>
-
- <h2 className="text-2xl font-black text-slate-950 dark:text-white tracking-tight leading-snug">
- {t(current.title, { defaultValue: current.title })}
- </h2>
- <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">
- {t('auto.odkryj_najnowsze_inteligentne_funkc', { defaultValue: 'Odkryj najnowsze inteligentne funkcje i ulepszenia w wersji mobilnej.' })}
- </p>
+   {/* Close Button */}
+   <button
+     onClick={onClose}
+     className="p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900 transition-all cursor-pointer"
+     aria-label={t('auto.zamknij', { defaultValue: 'Zamknij' })}
+     id="changelog-close-btn"
+   >
+     <X size={18} />
+   </button>
  </div>
 
  {/* List of changes */}
- <div className="px-5 sm:px-8 py-6 max-h-[50vh] overflow-y-auto space-y-3 no-scrollbar relative">
+ <div className="px-5 sm:px-8 py-5 max-h-[62vh] overflow-y-auto space-y-3 no-scrollbar relative">
  {current.changes.map((change: any, idx: number) => {
  let iconInfo: ChangeMeta;
  if (typeof change === 'string') {

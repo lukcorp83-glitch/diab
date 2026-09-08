@@ -1,10 +1,10 @@
 {
-    "version": "6.0.39",
+    "version": "6.0.40",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.39_OTA.apk",
-    "buildNumber": 154,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.40_OTA.apk",
+    "buildNumber": 155,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.39! 1) Zunifikowany panel skanera AI z wiązką lasera, podglądem zdjęcia i natychmiastowym feedbackiem wizualnym w całej aplikacji (Talerz, Menu, Etykiety, Baza, Bolus). 2) Płynne animacje liczników (odometer) w widżecie głównym i kaskadowe wejście kart pulpitu. 3) Synchronizacja kroków w czasie rzeczywistym między urządzeniami. 4) Odświeżona animacja startowa z podpisem 'POWERED BY GLIKOSENSE'.",
-    "whatsNewEn": "Version 6.0.39! 1) Unified AI Vision scanning overlay with laser scan beam, photo preview and instant visual feedback across the entire app (Plate, Menu, Labels, Food DB, Bolus). 2) Smooth odometer number animations in main widget and staggered dashboard entrance. 3) Real-time cross-device step synchronization. 4) Refreshed splash startup animation with 'POWERED BY GLIKOSENSE'.",
-    "otaRevision": 313
+    "whatsNew": "Wersja 6.0.40! 1) Inteligentny stoper przedposiłkowy: bezpiecznik kliniczny zerujący czas (0 min - zjedz od razu) przy glikemii ≤ 105 mg/dL i tendencji spadkowej, chroniąc przed hipoglikemią. 2) Poprawka wyliczania czasu dla cukru 100 mg/dL i pełna obsługa trendów spadkowych w stoperze. 3) Nowe kompaktowe okno nowości aplikacji bez zbędnych nagłówków. 4) Własne okno potwierdzenia usuwania skrótów. 5) Powiększone napisy 'ostatnie' w widżetach pulpitu. 6) Poprawki stabilności toast i addLogs.",
+    "whatsNewEn": "Version 6.0.40! 1) Smart Pre-Bolus Timer: clinical safety guardrail setting 0 min (eat immediately) when glucose is ≤ 105 mg/dL with falling trend to prevent hypoglycemia. 2) Fixed lag-time calculation for 100 mg/dL glucose and full downward trend support in timer. 3) New compact changelog popup focused cleanly on changes. 4) Native in-app shortcut removal modal. 5) Enlarged 'last' labels on dashboard widgets. 6) Stability fixes for toast and addLogs.",
+    "otaRevision": 314
 }

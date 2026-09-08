@@ -102,8 +102,21 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, inventory = []
         {/* Reservoir */}
         {isPump ? (
           <div className="flex flex-col items-center flex-1 px-1">
-            <div className="flex items-center gap-1">
-              <Cylinder size={12} className="text-blue-500" />
+            <div className="flex items-center gap-1.5">
+              <div className="relative w-3.5 h-4.5 rounded-[3px] border border-blue-400/70 bg-blue-500/10 overflow-hidden flex flex-col justify-end p-0.5 shadow-xs">
+                <motion.div 
+                  initial={{ height: 0 }}
+                  animate={{ height: `${Math.min(100, Math.max(8, ((displayReservoir ?? 0) / reservoirCap) * 100))}%` }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  className="w-full bg-blue-500 rounded-[1px] relative"
+                >
+                  <motion.div 
+                    animate={{ x: [-1.5, 1.5, -1.5] }}
+                    transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
+                    className="absolute -top-0.5 left-0 right-0 h-1 bg-blue-300/80 rounded-full"
+                  />
+                </motion.div>
+              </div>
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Zbiornik</span>
             </div>
             <span className={cn("text-sm sm:text-base font-black tabular-nums tracking-tight mt-1", getReservoirColor(displayReservoir ?? 0))}>

@@ -50,12 +50,12 @@ export function calculatePreBolusWaitTime(
       waitMinutes: 0,
       reason: i18n.t('bolus.timing_hypo', { defaultValue: '⚠️ Niski cukier! Zjedz posiłek natychmiast, bez czekania.' })
     };
-  } else if (glucoseValue < 100) {
-    // 80 - 99: niska norma
+  } else if (glucoseValue <= 100) {
+    // 80 - 100: niska norma
     waitMinutes = isUltraFast ? 0 : (isRegular ? 15 : 5);
     reason = 'glikemia 80-100 mg/dL (niska norma)';
   } else if (glucoseValue <= 130) {
-    // 100 - 130: idealna norma
+    // 101 - 130: idealna norma
     waitMinutes = isUltraFast ? 3 : (isRegular ? 20 : 10);
     reason = 'glikemia w normie';
   } else if (glucoseValue <= 160) {
@@ -76,29 +76,29 @@ export function calculatePreBolusWaitTime(
     reason = 'bardzo wysoka glikemia';
   }
 
-  // 2. Wpływ trendu glikemii (strzałki CGM)
+  // 2. Wpływ trendu glikemii (strzałki CGM, delty, kierunki)
   let trendMod = 0;
   let trendReason = '';
 
   const normTrend = (trend || '').toLowerCase().trim();
-  if (normTrend.includes('doubleup') || normTrend === '↑↑' || normTrend === '⇈') {
+  if (normTrend.includes('doubledown') || normTrend === '↓↓' || normTrend === '⇊' || normTrend === '-2' || normTrend === '-3' || normTrend.startsWith('--')) {
+    trendMod = -8;
+    trendReason = ', szybki spadek ↓↓';
+  } else if (normTrend.includes('fortyfivedown') || normTrend === '↘' || normTrend === '⬊') {
+    trendMod = -3;
+    trendReason = ', lekki spadek ↘';
+  } else if (normTrend.includes('singledown') || normTrend === 'down' || normTrend === '↓' || normTrend === '⇣' || normTrend === '-1' || normTrend.includes('fall')) {
+    trendMod = -5;
+    trendReason = ', spadek ↓';
+  } else if (normTrend.includes('doubleup') || normTrend === '↑↑' || normTrend === '⇈' || normTrend === '+2' || normTrend === '+3') {
     trendMod = 6;
     trendReason = ', szybki wzrost ↑↑';
-  } else if (normTrend.includes('singleup') || normTrend === '↑' || normTrend === '⇡') {
+  } else if (normTrend.includes('singleup') || normTrend === 'up' || normTrend === '↑' || normTrend === '⇡' || normTrend === '+1' || normTrend.includes('rise')) {
     trendMod = 3;
     trendReason = ', wzrost ↑';
   } else if (normTrend.includes('fortyfiveup') || normTrend === '↗' || normTrend === '⬈') {
     trendMod = 2;
     trendReason = ', lekki wzrost ↗';
-  } else if (normTrend.includes('fortyfivedown') || normTrend === '↘' || normTrend === '⬊') {
-    trendMod = -3;
-    trendReason = ', lekki spadek ↘';
-  } else if (normTrend.includes('singledown') || normTrend === '↓' || normTrend === '⇣') {
-    trendMod = -5;
-    trendReason = ', spadek ↓';
-  } else if (normTrend.includes('doubledown') || normTrend === '↓↓' || normTrend === '⇊') {
-    trendMod = -8;
-    trendReason = ', szybki spadek ↓↓';
   }
 
   // 3. GlikoSense 4.1: Sprawdzamy wyuczony osobisty czas opóźnienia insuliny z modelu ML
@@ -120,7 +120,23 @@ export function calculatePreBolusWaitTime(
     reason += ` (GlikoSense 4.1: ~${learnedLagMinutes} min)`;
   }
 
+  // Bezpieczeństwo kliniczne: jeśli cukier jest w dolnej normie (<= 105 mg/dL) i spada (trend ujemny),
+  // czas oczekiwania zerujemy - posiłek natychmiast, aby uniknąć hipoglikemii!
+  if (glucoseValue <= 105 && trendMod < 0) {
+    return {
+      waitMinutes: 0,
+      reason: i18n.t('bolus.timing_immediate', { defaultValue: '🟢 Spadek glikemii przy normie: zjedz od razu bez czekania!' })
+    };
+  }
+
   const finalWait = Math.max(0, Math.min(40, waitMinutes + trendMod));
+
+  if (finalWait === 0) {
+    return {
+      waitMinutes: 0,
+      reason: i18n.t('bolus.timing_immediate', { defaultValue: '🟢 Zjedz od razu bez czekania' })
+    };
+  }
 
   return {
     waitMinutes: finalWait,
@@ -137,6 +153,10 @@ export function startPreBolusTimer(
   customStartTime?: number
 ): void {
   const roundedWaitMinutes = Math.round(Number(totalWaitMinutes) || 0);
+  if (roundedWaitMinutes <= 0) {
+    cancelPreBolusTimer();
+    return;
+  }
   const startTime = customStartTime || Date.now();
   const targetTime = startTime + roundedWaitMinutes * 60 * 1000;
   const remainingMinutes = Math.max(1, Math.ceil((targetTime - Date.now()) / 60000));

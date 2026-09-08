@@ -498,20 +498,31 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
 
  const isDark = theme === 'dark';
 
- useEffect(() => {
- const canvas = canvasRef.current;
- if (!canvas) return;
- const ctx = canvas.getContext('2d');
- if (!ctx) return;
- 
- const draw = () => {
- const rect = canvas.getBoundingClientRect();
- const dpr = window.devicePixelRatio || 1;
- canvas.width = rect.width * dpr;
- canvas.height = rect.height * dpr;
- ctx.scale(dpr, dpr);
- const w = rect.width;
- const h = rect.height;
+  useEffect(() => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const isEco = settings?.ecoMode || false;
+  const animStartTime = performance.now();
+  const animDuration = 420; // 420ms ultra-smooth progressive trace
+
+  let frameId: number;
+
+  const draw = (nowTime?: number) => {
+  const currentTime = typeof nowTime === 'number' ? nowTime : performance.now();
+  const elapsed = currentTime - animStartTime;
+  const rawProgress = (isEco || isDragging) ? 1 : Math.min(1, elapsed / animDuration);
+  const progress = (isEco || isDragging) ? 1 : (1 - Math.pow(1 - rawProgress, 3));
+
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width;
+  const h = rect.height;
  
  ctx.clearRect(0, 0, w, h);
  
@@ -745,8 +756,14 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  // fallback
  }
 
- ctx.beginPath();
- const gPts = chartData.filter(d => d.glucose !== undefined && !isNaN(d.glucose)).map(d => ({ x: getX(d.timestamp), y: getY(d.glucose) }));
+  // Progressive Path Trace Animation - Ograniczenie rysowania do postępu animacji
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(pL, 0, Math.max(0, cw * progress), h);
+  ctx.clip();
+
+  ctx.beginPath();
+  const gPts = chartData.filter(d => d.glucose !== undefined && !isNaN(d.glucose)).map(d => ({ x: getX(d.timestamp), y: getY(d.glucose) }));
   if (gPts.length > 0) {
     // 1. Ambient Glow Fill (Wypełnienie łuną świetlną pod linią wykresu)
     if (gPts.length > 1) {
@@ -910,6 +927,26 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
         ctx.fillText(text, x, labelY);
       }
     }
+  }
+  ctx.restore(); // Koniec clip maski linii glikemii
+
+  // Iskra czołowa (laser trace spark) podczas trwania animacji
+  if (progress < 1 && !isEco && !isDragging && gPts.length > 0) {
+    const leadX = pL + cw * progress;
+    const closest = gPts.find(p => p.x >= leadX) || gPts[gPts.length - 1];
+    const sparkY = closest ? closest.y : pT + ch / 2;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(leadX, sparkY, 4, 0, 2 * Math.PI);
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = isDark ? '#a5b4fc' : '#6366f1';
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.strokeStyle = isDark ? '#818cf8' : '#4f46e5';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
   }
  
  // Bolus, Meal, Site, Sensor
@@ -1254,9 +1291,13 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  ctx.fill();
  }
  }
- };
+
+  // Jeśli animacja rysowania trwa, zamawiamy kolejną klatkę
+  if (progress < 1 && !isEco && !isDragging) {
+    frameId = requestAnimationFrame(draw);
+  }
+  };
  
- let frameId;
  const triggerDraw = () => {
  cancelAnimationFrame(frameId);
  frameId = requestAnimationFrame(draw);

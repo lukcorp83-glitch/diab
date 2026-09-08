@@ -14,12 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.39';
+export const CURRENT_VERSION = '6.0.40';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.40",
+    date: "2026-09-08",
+    title: "Inteligentny Stoper Przedposiłkowy, Bezpiecznik Hipo, Kompaktowe Okno Nowości i Poprawki Stabilności",
+    changes: [
+      "Inteligentny stoper przedposiłkowy: bezpiecznik kliniczny zerujący czas (0 min - zjedz od razu) przy glikemii ≤ 105 mg/dL i tendencji spadkowej, chroniąc przed hipoglikemią",
+      "Poprawka wyliczania czasu dla cukru 100 mg/dL i pełna obsługa trendów spadkowych w stoperze (down, singledown, delta ≤ -1)",
+      "Nowe, kompaktowe okno nowości (ChangelogPopup) skupione bezpośrednio na czytelnej liście zmian",
+      "Własne natywne okno modalne potwierdzenia usuwania szybkich skrótów zamiast okna systemowego",
+      "Zwiększona czytelność i powiększone etykiety 'ostatnie' w kafelkach jednostek i węglowodanów na pulpicie",
+      "Poprawki stabilności: wyeliminowano błędy toast oraz addLogs przy synchronizacji paczki w chmurze"
+    ]
+  },
   {
     version: "6.0.39",
     date: "2026-09-07",
@@ -406,6 +419,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.40",
+    date: "2026-09-08",
+    title: "Inteligentny Stoper Przedposiłkowy, Bezpiecznik Hipo, Kompaktowe Okno Nowości i Poprawki Stabilności",
+    changes: [
+      "Inteligentny stoper przedposiłkowy: bezpiecznik kliniczny zerujący czas (0 min - zjedz od razu) przy glikemii ≤ 105 mg/dL i tendencji spadkowej, chroniąc przed hipoglikemią",
+      "Poprawka wyliczania czasu dla cukru 100 mg/dL i pełna obsługa trendów spadkowych w stoperze (down, singledown, delta ≤ -1)",
+      "Nowe, kompaktowe okno nowości (ChangelogPopup) skupione bezpośrednio na czytelnej liście zmian",
+      "Własne natywne okno modalne potwierdzenia usuwania szybkich skrótów zamiast okna systemowego",
+      "Zwiększona czytelność i powiększone etykiety 'ostatnie' w kafelkach jednostek i węglowodanów na pulpicie",
+      "Poprawki stabilności: wyeliminowano błędy toast oraz addLogs przy synchronizacji paczki w chmurze"
+    ]
+  },
   {
     version: "6.0.39",
     date: "2026-09-07",

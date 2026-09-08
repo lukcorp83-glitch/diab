@@ -22,6 +22,7 @@ import {
  Bell,
  AlertTriangle,
  BarChart2,
+ CheckCircle2,
 } from "lucide-react";
 import { cn, calculateIOB, calculateCOB, getEffectiveIOB } from "../lib/utils";
 import { db, auth } from "../lib/firebase";
@@ -118,6 +119,7 @@ export default function BolusCalculator({ setTab,
  } | null>(null);
  const [loadingAi, setLoadingAi] = useState(false);
  const [saving, setSaving] = useState(false);
+ const [isSuccess, setIsSuccess] = useState(false);
  const [isAlcoholMode, setIsAlcoholMode] = useState(false);
  const [alcoholType, setAlcoholType] = useState<string | null>(null);
  const [alcoholWarning, setAlcoholWarning] = useState<string | null>(null);
@@ -161,8 +163,8 @@ export default function BolusCalculator({ setTab,
  else if (['SingleDown', 'DoubleDown', 'FortyFiveDown'].includes(lastG.direction)) setTrend('down');
  else setTrend('stable');
  } else if (lastG.delta !== undefined) {
- if (lastG.delta >= 2) setTrend('up');
- else if (lastG.delta <= -2) setTrend('down');
+ if (lastG.delta >= 1) setTrend('up');
+ else if (lastG.delta <= -1) setTrend('down');
  else setTrend('stable');
  }
  }
@@ -590,17 +592,28 @@ export default function BolusCalculator({ setTab,
       const { waitMinutes } = calculatePreBolusWaitTime(bgNum > 0 ? bgNum : null, trend, settings?.insulinType);
       if (waitMinutes > 0) {
         startPreBolusTimer(waitMinutes, finalDose, timestamp);
+      } else if (bgNum > 0) {
+        cancelPreBolusTimer();
+        toast(t('bolus.timing_immediate', { defaultValue: '🟢 Zjedz od razu bez czekania' }), {
+          icon: '🍽️',
+          duration: 5000
+        });
       }
     }
 
- // OPTIMISTIC UPDATE: Close first, save in background
- Haptics.success();
- if (tId) toast.success(t('bolus.saved_syncing'), { id: tId });
- if (isShortcutMode) {
- CapacitorApp.exitApp();
- } else if (setTab) {
- setTab("dashboard");
- }
+  // OPTIMISTIC UPDATE: Sukces z animacją i mikro-haptyką
+  Haptics.success();
+  setIsSuccess(true);
+  setSaving(false);
+  if (tId) toast.success(t('bolus.saved_syncing'), { id: tId });
+
+  setTimeout(() => {
+    if (isShortcutMode) {
+      CapacitorApp.exitApp();
+    } else if (setTab) {
+      setTab("dashboard");
+    }
+  }, 650);
 
  // Background save - if it fails (e.g. Guest), we don't block the UI
  batch.commit().catch((err) => {
@@ -644,7 +657,7 @@ export default function BolusCalculator({ setTab,
  color: "text-red-500",
  };
  if (bgNum <= 130) {
- if (trend === 'down' && bgNum <= 95) {
+ if (trend === 'down' && bgNum <= 105) {
  return {
  text: t('bolus.timing_immediate', { defaultValue: "🟢 Zjedz od razu bez czekania" }),
  color: "text-green-500",
@@ -1406,14 +1419,36 @@ export default function BolusCalculator({ setTab,
  </button>
  </div>
 
- <button
- onClick={handleSave}
- disabled={saving || ((manualDose !== null ? parseFloat(manualDose) || 0 : dose) === 0 && !bg && !carbs)}
- className="w-full bg-accent-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg shadow-accent-600/30 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
- >
- {saving && <Loader2 size={18} className="animate-spin" />}
- {saving ? t('bolus.saving') : t('bolus.save_btn')}
- </button>
+ <motion.button
+  onClick={handleSave}
+  disabled={saving || isSuccess || ((manualDose !== null ? parseFloat(manualDose) || 0 : dose) === 0 && !bg && !carbs)}
+  animate={isSuccess ? { scale: [1, 1.03, 1] } : {}}
+  className={cn(
+    "w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 relative overflow-hidden",
+    isSuccess 
+      ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-emerald-500/40" 
+      : "bg-accent-600 text-white shadow-accent-600/30"
+  )}
+  >
+  {isSuccess ? (
+    <motion.div 
+      initial={{ scale: 0, rotate: -45 }}
+      animate={{ scale: 1, rotate: 0 }}
+      transition={{ type: "spring", stiffness: 500, damping: 14 }}
+      className="flex items-center gap-2"
+    >
+      <CheckCircle2 size={20} className="text-white" />
+      <span>{t('auto.podano_i_zapisano', { defaultValue: 'PODANO I ZAPISANO! ✨' })}</span>
+    </motion.div>
+  ) : saving ? (
+    <>
+      <Loader2 size={18} className="animate-spin" />
+      <span>{t('bolus.saving')}</span>
+    </>
+  ) : (
+    <span>{t('bolus.save_btn')}</span>
+  )}
+  </motion.button>
  </div>
 
  <div className="bg-accent-50 dark:bg-accent-900/20 p-6 rounded-[2.5rem] border border-accent-100 dark:border-accent-800/50 flex gap-4">
