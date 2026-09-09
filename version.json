@@ -1,10 +1,10 @@
 {
-    "version": "6.0.43",
+    "version": "6.0.44",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.43_OTA.apk",
-    "buildNumber": 158,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.44_OTA.apk",
+    "buildNumber": 159,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.43! 1) Naprawa błędu 'Notification is not defined' na urządzeniach mobilnych (Safari iOS, przeglądarka Facebooka/Messengera, okna prywatne). 2) Płynne przewijanie do góry i powrót na szczyt po ponownym stuknięciu aktywnej ikony na dolnym pasku. 3) Niezawodne pobieranie plików APK (eliminacja blokowania okna instalatora przez Androida i popup-blockery przeglądarek). 4) Dodano uprawnienie REQUEST_INSTALL_PACKAGES w manifeście Androida. 5) Wskazówka instalatora APK przy pobieraniu.",
-    "whatsNewEn": "Version 6.0.43! 1) Fixed 'Notification is not defined' crash on mobile browsers (Safari, Facebook in-app browser, private windows). 2) Smooth vertical scrolling fix and tap active tab to scroll to top. 3) Reliable APK downloads (bypassing Android installer blocks and browser popup blockers). 4) Added REQUEST_INSTALL_PACKAGES permission in Android Manifest. 5) Added APK installation tips in the update dialog.",
-    "otaRevision": 317
+    "whatsNew": "Wersja 6.0.44! 1) Pełne połączenie opcji 'Informacje o cukrach na pasku powiadomień' z natywnym systemem Androida – wyłączenie opcji w profilu natychmiast usuwa ciągłe powiadomienie (ID: 999) z paska stanu i ekranu blokady. 2) Zachowanie ciągłego działania serwisu tła bez zaśmiecania paska powiadomień. 3) Dodano przełącznik powiadomień systemowych również do sekcji Profil -> System & Aplikacja. 4) Dalsze usprawnienia stabilności i synchronizacji.",
+    "whatsNewEn": "Version 6.0.44! 1) Fully connected 'Blood glucose on notification bar' toggle with Android native system – turning it off immediately dismisses the continuous status bar notification (ID: 999). 2) Background service keeps running reliably without cluttering the notification shade. 3) Added notification toggle to Profile -> System & App settings as well. 4) Further stability and sync improvements.",
+    "otaRevision": 318
 }

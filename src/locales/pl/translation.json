@@ -3735,5 +3735,6 @@
   "auto.tendencja_spadkowa_ryzyko_hipo": "Glikemia zbliża się do dolnej granicy normy",
   "update.tip_title": "Wskazówka:",
   "update.tip_text": "Jeśli pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie, ściągnij górną belkę powiadomień lub otwórz aplikację \"Pliki\" ➔ folder \"Pobrane\" i kliknij pobrany plik APK.",
-  "auto.gdy_pobieranie_stanie_na_99": "Gdy pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie: ściągnij górną belkę powiadomień lub otwórz aplikację „Pliki” (folder „Pobrane”) i kliknij pobrany plik APK."
+  "auto.gdy_pobieranie_stanie_na_99": "Gdy pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie: ściągnij górną belkę powiadomień lub otwórz aplikację „Pliki” (folder „Pobrane”) i kliknij pobrany plik APK.",
+  "auto.status_pompy_na_pulpicie": "Status Pompy (Pulpit)"
 }

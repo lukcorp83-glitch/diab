@@ -1,0 +1,152 @@
+﻿scratch/temp_unlinked.tsx(2,26): error TS2307: Cannot find module '../types' or its corresponding type declarations.
+scratch/temp_unlinked.tsx(6,18): error TS2307: Cannot find module '../i18n' or its corresponding type declarations.
+server.ts(9,15): error TS2694: Namespace '"C:/Users/luk/Downloads/diab/node_modules/firebase-admin/lib/index"' has no exported member 'firestore'.
+server.ts(18,13): error TS2339: Property 'apps' does not exist on type 'typeof import("C:/Users/luk/Downloads/diab/node_modules/firebase-admin/lib/index")'.
+server.ts(20,32): error TS2339: Property 'credential' does not exist on type 'typeof import("C:/Users/luk/Downloads/diab/node_modules/firebase-admin/lib/index")'.
+server.ts(20,62): error TS2339: Property 'credential' does not exist on type 'typeof import("C:/Users/luk/Downloads/diab/node_modules/firebase-admin/lib/index")'.
+server.ts(23,14): error TS2339: Property 'firestore' does not exist on type 'typeof import("C:/Users/luk/Downloads/diab/node_modules/firebase-admin/lib/index")'.
+server.ts(80,35): error TS2339: Property 'auth' does not exist on type 'typeof import("C:/Users/luk/Downloads/diab/node_modules/firebase-admin/lib/index")'.
+server.ts(158,28): error TS2339: Property 'firestore' does not exist on type 'typeof import("C:/Users/luk/Downloads/diab/node_modules/firebase-admin/lib/index")'.
+src/components/Achievements.tsx(15,40): error TS2339: Property 'user' does not exist on type 'AchievementsProps'.
+src/components/app/AppContent.tsx(86,19): error TS2322: Type '"light" | "system" | "dark"' is not assignable to type '"light" | "dark"'.
+  Type '"system"' is not assignable to type '"light" | "dark"'.
+src/components/app/AppContent.tsx(102,19): error TS2322: Type '"light" | "system" | "dark"' is not assignable to type '"light" | "dark"'.
+  Type '"system"' is not assignable to type '"light" | "dark"'.
+src/components/app/AppContent.tsx(111,19): error TS2322: Type '"light" | "system" | "dark"' is not assignable to type '"light" | "dark"'.
+  Type '"system"' is not assignable to type '"light" | "dark"'.
+src/components/app/AppContent.tsx(118,19): error TS2322: Type '"light" | "system" | "dark"' is not assignable to type '"light" | "dark"'.
+  Type '"system"' is not assignable to type '"light" | "dark"'.
+src/components/app/AppContent.tsx(223,18): error TS2741: Property 'user' is missing in type '{ settings: any; setTab: (tab: string) => void; }' but required in type '{ user: any; settings?: UserSettings; setTab?: (tab: string) => void; }'.
+src/components/app/AppContent.tsx(247,18): error TS2741: Property 'user' is missing in type '{ settings: any; setTab: (tab: string) => void; }' but required in type '{ user: any; settings?: UserSettings; setTab?: (tab: string) => void; }'.
+src/components/app/AppContent.tsx(281,17): error TS2322: Type '"light" | "system" | "dark"' is not assignable to type '"light" | "dark"'.
+  Type '"system"' is not assignable to type '"light" | "dark"'.
+src/components/app/AppContent.tsx(301,16): error TS2741: Property 'user' is missing in type '{ setTab: (tab: string) => void; settings: any; }' but required in type 'DietsProps'.
+src/components/app/AppLayout.tsx(184,10): error TS2741: Property 'user' is missing in type '{}' but required in type '{ user: any; }'.
+src/components/app/AppLayout.tsx(260,65): error TS2322: Type '"light" | "system" | "dark"' is not assignable to type '"light" | "dark"'.
+  Type '"system"' is not assignable to type '"light" | "dark"'.
+src/components/app/AppLayout.tsx(322,11): error TS2322: Type '"light" | "system" | "dark"' is not assignable to type '"light" | "dark"'.
+  Type '"system"' is not assignable to type '"light" | "dark"'.
+src/components/app/DynamicActionCapsule.tsx(249,9): error TS2322: Type '{ type: string; stiffness: number; damping: number; mass: number; }' is not assignable to type 'Transition<any>'.
+  Type '{ type: string; stiffness: number; damping: number; mass: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+    Type '{ type: string; stiffness: number; damping: number; mass: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+      Types of property 'type' are incompatible.
+        Type 'string' is not assignable to type 'AnimationGeneratorType'.
+src/components/BolusCalculator.tsx(596,9): error TS2304: Cannot find name 'cancelPreBolusTimer'.
+src/components/BolusCalculator.tsx(720,2): error TS2345: Argument of type 'UserSettings' is not assignable to parameter of type 'any[]'.
+  Type 'UserSettings' is missing the following properties from type 'any[]': length, pop, push, concat, and 35 more.
+src/components/CloudPackageSync.tsx(18,31): error TS2304: Cannot find name 'auth'.
+src/components/CloudPackageSync.tsx(94,31): error TS2304: Cannot find name 'auth'.
+src/components/Dashboard.tsx(337,13): error TS2322: Type '{ isOpen: true; onClose: () => void; user: User; }' is not assignable to type 'IntrinsicAttributes & GlucoseModalProps'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & GlucoseModalProps'.
+src/components/Dashboard.tsx(889,33): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/Dashboard.tsx(964,64): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/Dashboard.tsx(969,89): error TS2339: Property 'carbs' does not exist on type 'LogEntry'.
+src/components/Dashboard.tsx(1008,42): error TS2322: Type '{ user: User; logs: LogEntry[]; glucose: number; setTab: (t: string) => void; embedded: true; pumpStatus: any; }' is not assignable to type 'IntrinsicAttributes & { user: any; glucose: number; setTab?: (t: string) => void; embedded?: boolean; pumpStatus?: any; }'.
+  Property 'logs' does not exist on type 'IntrinsicAttributes & { user: any; glucose: number; setTab?: (t: string) => void; embedded?: boolean; pumpStatus?: any; }'.
+src/components/Dashboard.tsx(1017,29): error TS2322: Type '{ logs: LogEntry[]; settings: UserSettings; }' is not assignable to type 'IntrinsicAttributes & DailyTirWidgetProps'.
+  Property 'logs' does not exist on type 'IntrinsicAttributes & DailyTirWidgetProps'.
+src/components/Dashboard.tsx(1299,33): error TS2322: Type '{ logs: LogEntry[]; pumpStatus: any; compact: true; }' is not assignable to type 'IntrinsicAttributes & { pumpStatus?: any; compact?: boolean; }'.
+  Property 'logs' does not exist on type 'IntrinsicAttributes & { pumpStatus?: any; compact?: boolean; }'.
+src/components/Dashboard.tsx(1340,33): error TS2322: Type '{ logs: LogEntry[]; pumpStatus: any; }' is not assignable to type 'IntrinsicAttributes & { pumpStatus?: any; compact?: boolean; }'.
+  Property 'logs' does not exist on type 'IntrinsicAttributes & { pumpStatus?: any; compact?: boolean; }'.
+src/components/Dashboard.tsx(1378,36): error TS2322: Type '{ logs: LogEntry[]; settings: UserSettings; size: "1x1" | "1x2" | "2x1" | "2x2"; setTab: (t: string) => void; onAction: (action: string) => void; }' is not assignable to type 'IntrinsicAttributes & CarbsBalanceWidgetProps'.
+  Property 'logs' does not exist on type 'IntrinsicAttributes & CarbsBalanceWidgetProps'.
+src/components/Dashboard.tsx(1385,36): error TS2322: Type '{ logs: LogEntry[]; settings: UserSettings; size: "1x1" | "1x2" | "2x1" | "2x2"; setTab: (t: string) => void; onAction: (action: string) => void; }' is not assignable to type 'IntrinsicAttributes & SiteRotationWidgetProps'.
+  Property 'logs' does not exist on type 'IntrinsicAttributes & SiteRotationWidgetProps'.
+src/components/Dashboard.tsx(1940,25): error TS2322: Type '{ logs: LogEntry[]; pumpStatus: any; }' is not assignable to type 'IntrinsicAttributes & { pumpStatus?: any; compact?: boolean; }'.
+  Property 'logs' does not exist on type 'IntrinsicAttributes & { pumpStatus?: any; compact?: boolean; }'.
+src/components/Dashboard.tsx(2040,28): error TS2304: Cannot find name 'lastGlucoseVal'.
+src/components/Dashboard.tsx(2095,118): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/Dashboard.tsx(2126,9): error TS2322: Type '{ isOpen: boolean; onClose: () => void; user: User; }' is not assignable to type 'IntrinsicAttributes & GlucoseModalProps'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & GlucoseModalProps'.
+src/components/DevicePairing.tsx(44,2): error TS2339: Property 'user' does not exist on type '{ settings: UserSettings; onImport: (s: UserSettings) => void; onUpdateSettings: (s: Partial<UserSettings>) => void; wsDevices?: ConnectedDevice[]; kickDevice?: (id: string) => void; localDeviceId?: string; }'.
+src/components/Diets.tsx(243,3): error TS2741: Property 'user' is missing in type '{ activeDiet: string; settings: UserSettings; }' but required in type '{ user: User; activeDiet: string; settings?: UserSettings; }'.
+src/components/DoseEditModal.tsx(46,42): error TS2339: Property 'bolus' does not exist on type 'LogEntry'.
+src/components/DoseEditModal.tsx(46,61): error TS2339: Property 'bolus' does not exist on type 'LogEntry'.
+src/components/DoseEditModal.tsx(47,38): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/DoseEditModal.tsx(76,11): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/DoseEditModal.tsx(82,31): error TS2339: Property 'bolus' does not exist on type 'LogEntry'.
+src/components/DoseEditModal.tsx(306,4): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/FoodDatabase.tsx(261,9): error TS2304: Cannot find name 'sortBy'.
+src/components/FoodDatabase.tsx(262,9): error TS2304: Cannot find name 'sortBy'.
+src/components/FoodDatabase.tsx(263,9): error TS2304: Cannot find name 'sortBy'.
+src/components/FoodDatabase.tsx(301,10): error TS2304: Cannot find name 'sortBy'.
+src/components/FoodDatabase.tsx(302,18): error TS2304: Cannot find name 'setSortBy'.
+src/components/GlikoChat.tsx(396,5): error TS2304: Cannot find name 'toast'.
+src/components/GlikoGames.tsx(31,38): error TS2339: Property 'user' does not exist on type 'GlikoGamesProps'.
+src/components/GlikoSenseNeural.tsx(144,43): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/GlikoTraining.tsx(792,47): error TS2339: Property 'sportId' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(809,9): error TS2339: Property 'isCompleted' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(814,70): error TS2339: Property 'duration' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(816,8): error TS2339: Property 'intensity' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(816,45): error TS2339: Property 'intensity' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(830,8): error TS2339: Property 'timestamp' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(830,42): error TS2339: Property 'timestamp' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(838,79): error TS2339: Property 'startSugar' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(842,79): error TS2339: Property 'endSugar' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(848,18): error TS2339: Property 'startTime' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(849,16): error TS2339: Property 'endTime' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(850,19): error TS2339: Property 'startSugar' does not exist on type '{ id: string; }'.
+src/components/GlikoTraining.tsx(851,17): error TS2339: Property 'endSugar' does not exist on type '{ id: string; }'.
+src/components/GlucoseModal.tsx(20,57): error TS2339: Property 'user' does not exist on type 'GlucoseModalProps'.
+src/components/HistoryView.tsx(182,45): error TS2339: Property 'name' does not exist on type 'LogEntry'.
+src/components/HistoryView.tsx(427,9): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/HistoryView.tsx(456,38): error TS2339: Property 'name' does not exist on type 'LogEntry'.
+src/components/HistoryView.tsx(502,4): error TS2367: This comparison appears to be unintentional because the types '"activity" | "bolus" | "water" | "medication"' and '"sensor_change"' have no overlap.
+src/components/MealEditModal.tsx(62,18): error TS2339: Property 'carbs' does not exist on type 'LogEntry'.
+src/components/MealEditModal.tsx(96,64): error TS2554: Expected 0 arguments, but got 1.
+src/components/MealHistoryView.tsx(36,11): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/MealHistoryView.tsx(187,36): error TS2339: Property 'name' does not exist on type 'LogEntry'.
+src/components/MealHistoryView.tsx(258,30): error TS2339: Property 'name' does not exist on type 'LogEntry'.
+src/components/MealHistoryView.tsx(267,53): error TS2339: Property 'carbs' does not exist on type 'LogEntry | { carbs: number; polyols?: number; protein?: number; fat?: number; name?: string; items?: any[]; }'.
+  Property 'carbs' does not exist on type 'LogEntry'.
+src/components/MealHistoryView.tsx(270,55): error TS2339: Property 'calories' does not exist on type 'LogEntry | { carbs: number; polyols?: number; protein?: number; fat?: number; name?: string; items?: any[]; }'.
+  Property 'calories' does not exist on type 'LogEntry'.
+src/components/MealPlate.tsx(264,65): error TS2554: Expected 0 arguments, but got 1.
+src/components/MealPlate.tsx(607,56): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/MealPlate.tsx(652,37): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"insulin"' have no overlap.
+src/components/MealPlate.tsx(657,31): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"insulin"' have no overlap.
+src/components/MealPlate.tsx(678,11): error TS2339: Property 'value' does not exist on type 'LogEntry | { carbs: number; polyols?: number; protein?: number; fat?: number; name?: string; items?: any[]; }'.
+  Property 'value' does not exist on type '{ carbs: number; polyols?: number; protein?: number; fat?: number; name?: string; items?: any[]; }'.
+src/components/MealPlate.tsx(679,12): error TS2339: Property 'value' does not exist on type 'LogEntry | { carbs: number; polyols?: number; protein?: number; fat?: number; name?: string; items?: any[]; }'.
+  Property 'value' does not exist on type '{ carbs: number; polyols?: number; protein?: number; fat?: number; name?: string; items?: any[]; }'.
+src/components/MealPlate.tsx(680,13): error TS2339: Property 'carbs' does not exist on type 'LogEntry | { carbs: number; polyols?: number; protein?: number; fat?: number; name?: string; items?: any[]; }'.
+  Property 'carbs' does not exist on type 'LogEntry'.
+src/components/MealPlate.tsx(681,12): error TS2339: Property 'carbs' does not exist on type 'LogEntry | { carbs: number; polyols?: number; protein?: number; fat?: number; name?: string; items?: any[]; }'.
+  Property 'carbs' does not exist on type 'LogEntry'.
+src/components/MealPlate.tsx(729,24): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "water" | "site_change" | "sensor_change" | "medication"' and '"carbs"' have no overlap.
+src/components/MealPlate.tsx(734,25): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"insulin"' have no overlap.
+src/components/MLAnalysisWidget.tsx(133,50): error TS2339: Property 'discoveredRules' does not exist on type '{ predictedNextHour: number; predictedNext2Hours: number; riskOfHypo: boolean; insights: string[]; accuracy: number; datasetSize?: number; predictionCurve?: { timestamp: number; offsetMs: number; value: number; confidenceMin?: number; confidenceMax?: number; }[]; ... 4 more ...; analyzedPeriod?: string; }'.
+src/components/MLAnalysisWidget.tsx(409,50): error TS2554: Expected 1 arguments, but got 2.
+src/components/MLAnalysisWidget.tsx(905,36): error TS2339: Property 'deviceMemory' does not exist on type 'Navigator'.
+src/components/MLAnalysisWidget.tsx(905,62): error TS2339: Property 'deviceMemory' does not exist on type 'Navigator'.
+src/components/nutrition/GlikoSenseNutriView.tsx(113,106): error TS2551: Property 'note' does not exist on type 'LogEntry'. Did you mean 'notes'?
+src/components/nutrition/GlikoSenseNutriView.tsx(115,62): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"insulin"' have no overlap.
+src/components/nutrition/GlikoSenseNutriView.tsx(129,23): error TS2551: Property 'note' does not exist on type 'LogEntry'. Did you mean 'notes'?
+src/components/nutrition/GlikoSenseNutriView.tsx(129,33): error TS2339: Property 'name' does not exist on type 'LogEntry'.
+src/components/nutrition/GlikoSenseNutriView.tsx(182,53): error TS2339: Property 'carbs' does not exist on type 'LogEntry'.
+src/components/nutrition/NutritionHub.tsx(134,19): error TS2322: Type '{ user: any; setTab: (tab: string, action?: string) => void; sharedPlate: PlateItem[]; setSharedPlate: Dispatch<SetStateAction<PlateItem[]>>; ... 4 more ...; hideInternalTabs: boolean; }' is not assignable to type 'IntrinsicAttributes & { setTab: (t: string) => void; sharedPlate?: PlateItem[]; setSharedPlate?: Dispatch<SetStateAction<PlateItem[]>>; ... 4 more ...; onClearInitialAction?: () => void; }'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & { setTab: (t: string) => void; sharedPlate?: PlateItem[]; setSharedPlate?: Dispatch<SetStateAction<PlateItem[]>>; ... 4 more ...; onClearInitialAction?: () => void; }'.
+src/components/nutrition/NutritionHub.tsx(188,34): error TS2322: Type '{ logs: LogEntry[]; user: any; }' is not assignable to type 'IntrinsicAttributes & MealHistoryProps'.
+  Property 'logs' does not exist on type 'IntrinsicAttributes & MealHistoryProps'.
+src/components/Profile.tsx(1875,2): error TS2322: Type '{ user: User; settings: UserSettings; setSettings: Dispatch<SetStateAction<UserSettings>>; wsDevices: ConnectedDevice[]; kickDevice: (id: string) => void; onImport: (s: UserSettings) => void; onUpdateSettings: (partial: Partial<...>) => void; }' is not assignable to type 'IntrinsicAttributes & { settings: UserSettings; onImport: (s: UserSettings) => void; onUpdateSettings: (s: Partial<UserSettings>) => void; wsDevices?: ConnectedDevice[]; kickDevice?: (id: string) => void; localDeviceId?: string; }'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & { settings: UserSettings; onImport: (s: UserSettings) => void; onUpdateSettings: (s: Partial<UserSettings>) => void; wsDevices?: ConnectedDevice[]; kickDevice?: (id: string) => void; localDeviceId?: string; }'.
+src/components/Profile.tsx(1910,3): error TS2741: Property 'user' is missing in type '{}' but required in type '{ user: any; }'.
+src/components/Profile.tsx(3466,103): error TS2367: This comparison appears to be unintentional because the types '"glucose" | "activity" | "bolus" | "meal" | "water" | "site_change" | "sensor_change" | "medication"' and '"insulin_change"' have no overlap.
+src/components/Profile.tsx(3579,5): error TS2339: Property 'icon' does not exist on type '{ id: string; }'.
+src/components/Profile.tsx(3583,5): error TS2339: Property 'name' does not exist on type '{ id: string; }'.
+src/components/Profile.tsx(3586,5): error TS2339: Property 'carbs' does not exist on type '{ id: string; }'.
+src/components/Profile.tsx(3586,113): error TS2339: Property 'carbs' does not exist on type '{ id: string; }'.
+src/components/Profile.tsx(3596,10): error TS2339: Property 'name' does not exist on type '{ id: string; }'.
+src/components/Profile.tsx(3597,10): error TS2339: Property 'icon' does not exist on type '{ id: string; }'.
+src/components/Profile.tsx(3598,10): error TS2339: Property 'type' does not exist on type '{ id: string; }'.
+src/components/Profile.tsx(3599,11): error TS2339: Property 'carbs' does not exist on type '{ id: string; }'.
+src/components/Profile.tsx(3845,3): error TS2741: Property 'user' is missing in type '{}' but required in type '{ user: any; }'.
+src/components/Profile.tsx(4208,3): error TS2741: Property 'user' is missing in type '{ onComplete: () => boolean; }' but required in type '{ user: any; onComplete?: () => void; }'.
+src/components/Profile.tsx(4371,3): error TS2304: Cannot find name 'Diets'.
+src/components/Profile/ProfileMedications.tsx(165,62): error TS2304: Cannot find name 'Medication'.
+src/components/Profile/ProfileMedications.tsx(167,51): error TS2304: Cannot find name 'Medication'.
+src/components/Profile/ProfileMedications.tsx(187,42): error TS2304: Cannot find name 'Medication'.
+src/components/Profile/ProfileSystem.tsx(1136,2): error TS2322: Type '{ user: any; settings: any; onImport: (s: UserSettings) => void; }' is not assignable to type 'IntrinsicAttributes & { settings: UserSettings; onImport: (s: UserSettings) => void; }'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & { settings: UserSettings; onImport: (s: UserSettings) => void; }'.
+src/stores/useMealPlateStore.ts(75,5): error TS2353: Object literal may only specify known properties, and 'kcal' does not exist in type 'PlateItem'.

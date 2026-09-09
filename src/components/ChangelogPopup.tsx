@@ -19,7 +19,9 @@ import i18n from "../i18n";
 
 export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
  const { t } = useTranslation();
- const current = PWA_VERSIONS[0]; // Active top release (ver 4.1)
+ const current = PWA_VERSIONS[0] || { version: '6.0.44', changes: [] };
+
+ const changesList = Array.isArray(current?.changes) ? current.changes : [];
 
  return (
  <div className="fixed inset-0 pt-safe pb-safe z-[100] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 backdrop-blur-[12px]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 24px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 16px)' }}>
@@ -64,7 +66,7 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
 
  {/* List of changes */}
  <div className="px-5 sm:px-8 py-5 max-h-[62vh] overflow-y-auto space-y-3 no-scrollbar relative">
- {current.changes.map((change: any, idx: number) => {
+ {changesList.map((change: any, idx: number) => {
  let iconInfo: ChangeMeta;
  if (typeof change === 'string') {
  const translatedChange = t(change, { defaultValue: change });

@@ -49,8 +49,9 @@ export default function DevicePairing({
  kickDevice = () => {},
  localDeviceId
 }: {
- 
+ user?: any;
  settings: UserSettings;
+ setSettings?: any;
  onImport: (s: UserSettings) => void;
  onUpdateSettings: (s: Partial<UserSettings>) => void;
  wsDevices?: ConnectedDevice[];

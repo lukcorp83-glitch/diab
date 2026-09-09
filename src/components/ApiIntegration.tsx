@@ -26,8 +26,9 @@ function generateRandomSecret() {
  return result;
 }
 
-export default function ApiIntegration({ }: { user: any }) {
-  const user = useAuthStore(state => state.user);
+export default function ApiIntegration({ user: propUser }: { user?: any } = {}) {
+  const storeUser = useAuthStore(state => state.user);
+  const user = propUser || storeUser;
 
  const { t } = useTranslation();
  const [localSecret, setLocalSecret] = useState<string>('');

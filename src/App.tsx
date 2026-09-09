@@ -97,13 +97,17 @@ export default function App() {
       if (userSettings.medications) {
         notificationService.scheduleMedicationReminders(userSettings.medications);
       }
+      if (Capacitor.isNativePlatform() && userSettings.apkSystemNotificationsEnabled !== undefined) {
+        NotificationBridge.setOngoingNotificationEnabled({ enabled: userSettings.apkSystemNotificationsEnabled }).catch(() => {});
+      }
     }
   }, [
     userSettings?.sensorChangeDate,
     userSettings?.infusionSetChangeDate,
     userSettings?.sensorDurationDays,
     userSettings?.infusionSetDurationDays,
-    userSettings?.medications
+    userSettings?.medications,
+    userSettings?.apkSystemNotificationsEnabled
   ]);
   
   const userSettingsRef = useRef(userSettings);

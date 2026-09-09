@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { Switch } from '@headlessui/react';
 import i18n from '../../i18n';
 import { dbService } from '../../services/databaseService';
+import { Capacitor } from '@capacitor/core';
 
 
 import { motion } from 'motion/react';
@@ -431,11 +432,11 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  <div className="text-left">
  <p className="text-sm font-black dark:text-white leading-tight">
  
- {t('auto.widgety_statusu', { defaultValue: 'Widgety Statusu' })}
+ {t('auto.status_pompy_na_pulpicie', { defaultValue: 'Status Pompy (Pulpit)' })}
  </p>
  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
  
- {t('auto.monitoruj_baterię_telefonu_i_osprzę', { defaultValue: i18n.t('auto.monitoruj_baterie_telefon', { defaultValue: "Monitoruj baterię telefonu i osprzętu" }) })}
+ {t('auto.monitoruj_baterie_telefon', { defaultValue: "Monitoruj baterię telefonu i osprzętu na pulpicie" })}
  </p>
  </div>
  </div>
@@ -463,6 +464,67 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  className={cn(
  "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
  settings.showPumpWidget !== false && "bg-indigo-500 pl-5",
+ )}
+ >
+ <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+ </button>
+ </div>
+
+ {/* Informacje o cukrach na pasku powiadomień Androida */}
+ <div
+ className={cn(
+ "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md",
+ settings.glassmorphismEnabled
+ ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+ : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+ )}
+ >
+ <div className="flex items-center gap-4">
+ <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+ <Bell size={22} />
+ </div>
+ <div className="text-left">
+ <p className="text-sm font-black dark:text-white leading-tight">
+ {t('auto.informacje_o_cukrach_na_pasku', { defaultValue: 'Informacje o cukrach na pasku powiadomień' })}
+ </p>
+ <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
+ {t('auto.powiadomienia_na_systemowym_pasku_opis', { defaultValue: 'Bieżący poziom cukru i alerty na pasku stanu w telefonie' })}
+ </p>
+ </div>
+ </div>
+ <button
+ onClick={async () => {
+ const currentState = settings.apkSystemNotificationsEnabled ?? true;
+ const targetState = !currentState;
+
+ setSettings((prev: any) => ({
+ ...prev,
+ apkSystemNotificationsEnabled: targetState,
+ }));
+ localStorage.setItem("apkSystemNotificationsEnabled", targetState ? "true" : "false");
+
+ if (user) {
+ await setDoc(
+ doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+ { apkSystemNotificationsEnabled: targetState },
+ { merge: true },
+ );
+ }
+
+ if (Capacitor.isNativePlatform()) {
+ try {
+ const { NotificationBridge } = await import('../../lib/notificationBridge');
+ await NotificationBridge.setOngoingNotificationEnabled({ enabled: targetState });
+ } catch (e) {
+ console.warn("Failed setting ongoing notification on Android:", e);
+ }
+ }
+
+ toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
+ }}
+ className={cn(
+ "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
+ (settings.apkSystemNotificationsEnabled ?? true) && "bg-emerald-500 pl-5",
  )}
  >
  <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
@@ -1071,7 +1133,6 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  />
 
  <SettingsTransfer
- user={user}
  settings={settings}
  onImport={(s) => {
  setSettings((prev) => ({ ...prev, ...s }));

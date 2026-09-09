@@ -851,47 +851,62 @@ public class NightscoutFetcher {
             }
 
             // --- Aktualizacja powiadomienia w pasku (Powiadomienie) ---
+            SharedPreferences widgetPrefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+            boolean ongoingEnabled = widgetPrefs.getBoolean("apk_system_notifications_enabled", true);
+
             NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                NotificationChannel channel = new NotificationChannel("gliko_foreground_service_v3", "Powiadomienia Glikemii", NotificationManager.IMPORTANCE_LOW);
-                channel.setShowBadge(false);
-                manager.createNotificationChannel(channel);
+            if (!ongoingEnabled) {
+                if (manager != null) {
+                    try {
+                        manager.cancel(999);
+                    } catch (Exception ignored) {}
+                }
+            } else {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    NotificationChannel channel = new NotificationChannel("gliko_foreground_service_v3", "Powiadomienia Glikemii", NotificationManager.IMPORTANCE_LOW);
+                    channel.setShowBadge(false);
+                    if (manager != null) {
+                        manager.createNotificationChannel(channel);
+                    }
+                }
+
+                RemoteViews notifViews = new RemoteViews(context.getPackageName(), R.layout.notification_glucose);
+                notifViews.setTextViewText(R.id.notif_glucose_val, glucose);
+                notifViews.setTextColor(R.id.notif_glucose_val, color);
+                notifViews.setTextViewText(R.id.notif_glucose_arrow, arrow);
+                notifViews.setTextColor(R.id.notif_glucose_arrow, color);
+                notifViews.setTextViewText(R.id.notif_glucose_delta, deltaStr);
+                notifViews.setTextViewText(R.id.notif_glucose_time, time);
+                
+                RemoteViews expandedViews = new RemoteViews(context.getPackageName(), R.layout.notification_glucose_expanded);
+                expandedViews.setTextViewText(R.id.notif_glucose_val, glucose);
+                expandedViews.setTextColor(R.id.notif_glucose_val, color);
+                expandedViews.setTextViewText(R.id.notif_glucose_arrow, arrow);
+                expandedViews.setTextColor(R.id.notif_glucose_arrow, color);
+                expandedViews.setTextViewText(R.id.notif_glucose_delta, deltaStr);
+                expandedViews.setTextViewText(R.id.notif_glucose_time, time);
+
+                if (chartBitmap != null) {
+                    expandedViews.setImageViewBitmap(R.id.notif_chart, chartBitmap);
+                }
+                
+                Intent intentDefault = new Intent(context, MainActivity.class);
+                PendingIntent pendingIntentDefault = PendingIntent.getActivity(context, 20, intentDefault, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                notifViews.setOnClickPendingIntent(R.id.notif_glucose_val, pendingIntentDefault);
+                expandedViews.setOnClickPendingIntent(R.id.notif_glucose_val, pendingIntentDefault);
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "gliko_foreground_service_v3")
+                        .setSmallIcon(R.drawable.ic_stat_name)
+                        .setCustomContentView(notifViews)
+                        .setCustomBigContentView(expandedViews)
+                        .setOngoing(true)
+                        .setOnlyAlertOnce(true)
+                        .setContentIntent(pendingIntentDefault);
+
+                if (manager != null) {
+                    manager.notify(999, builder.build());
+                }
             }
-
-            RemoteViews notifViews = new RemoteViews(context.getPackageName(), R.layout.notification_glucose);
-            notifViews.setTextViewText(R.id.notif_glucose_val, glucose);
-            notifViews.setTextColor(R.id.notif_glucose_val, color);
-            notifViews.setTextViewText(R.id.notif_glucose_arrow, arrow);
-            notifViews.setTextColor(R.id.notif_glucose_arrow, color);
-            notifViews.setTextViewText(R.id.notif_glucose_delta, deltaStr);
-            notifViews.setTextViewText(R.id.notif_glucose_time, time);
-            
-            RemoteViews expandedViews = new RemoteViews(context.getPackageName(), R.layout.notification_glucose_expanded);
-            expandedViews.setTextViewText(R.id.notif_glucose_val, glucose);
-            expandedViews.setTextColor(R.id.notif_glucose_val, color);
-            expandedViews.setTextViewText(R.id.notif_glucose_arrow, arrow);
-            expandedViews.setTextColor(R.id.notif_glucose_arrow, color);
-            expandedViews.setTextViewText(R.id.notif_glucose_delta, deltaStr);
-            expandedViews.setTextViewText(R.id.notif_glucose_time, time);
-
-            if (chartBitmap != null) {
-                expandedViews.setImageViewBitmap(R.id.notif_chart, chartBitmap);
-            }
-            
-            Intent intentDefault = new Intent(context, MainActivity.class);
-            PendingIntent pendingIntentDefault = PendingIntent.getActivity(context, 20, intentDefault, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            notifViews.setOnClickPendingIntent(R.id.notif_glucose_val, pendingIntentDefault);
-            expandedViews.setOnClickPendingIntent(R.id.notif_glucose_val, pendingIntentDefault);
-
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "gliko_foreground_service_v3")
-                    .setSmallIcon(R.drawable.ic_stat_name)
-                    .setCustomContentView(notifViews)
-                    .setCustomBigContentView(expandedViews)
-                    .setOngoing(true)
-                    .setOnlyAlertOnce(true)
-                    .setContentIntent(pendingIntentDefault);
-
-            manager.notify(999, builder.build());
             
             // Odświeżenie kafelka szybkich ustawień za każdym razem (sukces, błąd, brak URL)
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {

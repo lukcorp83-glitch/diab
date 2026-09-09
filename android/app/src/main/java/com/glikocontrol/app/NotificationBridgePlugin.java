@@ -168,6 +168,15 @@ public class NotificationBridgePlugin extends Plugin {
         }
 
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+        boolean isOngoingEnabled = prefs.getBoolean("apk_system_notifications_enabled", true);
+        if (!isOngoingEnabled) {
+            try {
+                notificationManager.cancel(999);
+            } catch (Exception ignored) {}
+            call.resolve();
+            return;
+        }
+
         String glucose = prefs.getString("widget_glucose", null);
         
         if (glucose != null && !glucose.equals("---") && !glucose.isEmpty() && (text.contains("Pętla zamknięta") || text.contains("GlikoSense"))) {
@@ -219,6 +228,23 @@ public class NotificationBridgePlugin extends Plugin {
             notificationManager.notify(999, builder.build());
         }
         
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void setOngoingNotificationEnabled(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", true);
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+        prefs.edit().putBoolean("apk_system_notifications_enabled", enabled).apply();
+        
+        android.app.NotificationManager manager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if (!enabled && manager != null) {
+            try {
+                manager.cancel(999);
+            } catch (Exception ignored) {}
+        } else if (enabled) {
+            NightscoutFetcher.fetchAndUpdate(getContext(), null, null);
+        }
         call.resolve();
     }
 

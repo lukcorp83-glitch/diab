@@ -171,6 +171,9 @@ export default function MealPlate({
  mode = "both",
  openHistory,
  settings,
+ user: propUser,
+ logs: propLogs,
+ hideInternalTabs,
  initialAction,
  onClearInitialAction}: {
  
@@ -180,13 +183,16 @@ export default function MealPlate({
  mode?: "search" | "plate" | "both";
  openHistory?: () => void;
  settings?: any;
+ user?: any;
+ logs?: any;
+ hideInternalTabs?: boolean;
  initialAction?: string | null;
  onClearInitialAction?: () => void;
 }) {
-  const user = useAuthStore(state => state.user);
+  const user = propUser || useAuthStore(state => state.user);
   const queryClient = useQueryClient();
 
- const logs = useLogsStore(state => state.logs);
+ const logs = propLogs || useLogsStore(state => state.logs);
  const plate = sharedPlate;
  const setPlate = setSharedPlate || (() => {});
  const { t } = useTranslation();
@@ -643,44 +649,44 @@ export default function MealPlate({
  }
 
  return null;
- }, [logs, settings?.showMealWidget, currentTime]);
+  }, [logs, settings?.showMealWidget, currentTime]);
 
- const activeBolus = useMemo(() => {
- if (!logs || !activeMeal) return null;
+  const activeBolus = useMemo(() => {
+    if (!logs || !activeMeal) return null;
 
- // If the active meal is actually a bolus with a linked meal, it IS the bolus
- if (activeMeal.type === "bolus" || activeMeal.type === "insulin") {
- return activeMeal;
- }
+    // If the active meal is actually a bolus with a linked meal, it IS the bolus
+    if (activeMeal.type === "bolus" || (activeMeal.type as string) === "insulin") {
+      return activeMeal;
+    }
 
- const boluses = logs.filter(
- (l) => l.type === "bolus" || l.type === "insulin",
- );
- for (const b of boluses) {
- if (
- Math.abs((b.timestamp || 0) - (activeMeal.timestamp || 0)) <
- 1000 * 60 * 30
- ) {
- return b;
- }
- }
- return null;
- }, [logs, activeMeal]);
+    const boluses = logs.filter(
+      (l) => l.type === "bolus" || (l.type as string) === "insulin",
+    );
+    for (const b of boluses) {
+      if (
+        Math.abs((b.timestamp || 0) - (activeMeal.timestamp || 0)) <
+        1000 * 60 * 30
+      ) {
+        return b;
+      }
+    }
+    return null;
+  }, [logs, activeMeal]);
 
- const activeChartData = useMemo(() => {
- if (!activeMeal) return [];
+  const activeChartData = useMemo(() => {
+    if (!activeMeal) return [];
 
- const carbSrc =
- activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
+    const carbSrc: any =
+      activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
 
- // Default to WW and WBT from activeMeal
- const WW =
- carbSrc?.value !== undefined
- ? carbSrc.value / 10
- : carbSrc?.carbs !== undefined
- ? carbSrc.carbs / 10
- : 0;
- const WBT = ((carbSrc?.protein || 0) * 4 + (carbSrc?.fat || 0) * 9) / 100;
+    // Default to WW and WBT from activeMeal
+    const WW =
+      carbSrc?.value !== undefined
+        ? carbSrc.value / 10
+        : carbSrc?.carbs !== undefined
+        ? carbSrc.carbs / 10
+        : 0;
+    const WBT = ((carbSrc?.protein || 0) * 4 + (carbSrc?.fat || 0) * 9) / 100;
  const gI = 50;
 
  const data = [];
@@ -726,12 +732,12 @@ export default function MealPlate({
  // Find all meals and boluses within 6h window before activeMeal
  const recentMeals = logs.filter(
  (l) =>
- (l.type === "meal" || l.type === "carbs" || l.linkedMeal) &&
+ (l.type === "meal" || (l.type as string) === "carbs" || l.linkedMeal) &&
  (activeMeal.timestamp || 0) - (l.timestamp || 0) < 1000 * 60 * 60 * 6,
  );
  const recentBoluses = logs.filter(
  (l) =>
- (l.type === "bolus" || l.type === "insulin") &&
+ (l.type === "bolus" || (l.type as string) === "insulin") &&
  Math.abs((activeMeal.timestamp || 0) - (l.timestamp || 0)) <
  1000 * 60 * 60 * 6,
  );

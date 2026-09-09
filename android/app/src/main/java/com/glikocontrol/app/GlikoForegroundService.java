@@ -230,6 +230,13 @@ public class GlikoForegroundService extends Service implements SensorEventListen
 
         try {
             startForeground(FOREGROUND_ID, notification);
+            if (!prefs.getBoolean("apk_system_notifications_enabled", true)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                } else {
+                    stopForeground(true);
+                }
+            }
         } catch (Exception e) {
             android.util.Log.e("GlikoForegroundService", "Blad startForeground: " + e.getMessage());
         }

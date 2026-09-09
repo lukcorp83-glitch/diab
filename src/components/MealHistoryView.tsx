@@ -19,6 +19,7 @@ import { dbService } from "../services/databaseService";
 
 interface MealHistoryProps {
   user?: any;
+  logs?: any;
   onMergeToLog?: (log: LogEntry) => void;
   hasItems?: boolean;
 }

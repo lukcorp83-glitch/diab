@@ -130,6 +130,7 @@ import ProfileSystem from "./Profile/ProfileSystem";
 import TreatmentModeSelector from "./Profile/TreatmentModeSelector";
 import SiteRotationWidget from './SiteRotationWidget';
 import StatisticsView from "./StatisticsView";
+import Diets from "./Diets";
 import TutorialView from "./TutorialView";
 import GlikoTraining from "./GlikoTraining";
 import { ConnectedDevice } from "../hooks/useGlikoServer";
@@ -3463,7 +3464,7 @@ export default function Profile({
         { merge: true },
       );
       const latestResLog = logs
-        .filter((l) => (l.type === "site_change" && l.notes?.toLowerCase().includes("zbiorniczk")) || l.type === "insulin_change")
+        .filter((l) => (l.type === "site_change" && l.notes?.toLowerCase().includes("zbiorniczk")) || (l.type as string) === "insulin_change")
         .sort((a, b) => b.timestamp - a.timestamp)[0];
       if (latestResLog && latestResLog.id) {
         await updateDoc(

@@ -95,7 +95,7 @@ import {
  serverTimestamp,
 } from "firebase/firestore";
 import { notificationService } from "../../services/notificationService";
-import { UserSettings, LogEntry, InventoryItem } from "../../types";
+import { UserSettings, LogEntry, InventoryItem, Medication } from "../../types";
 import { useQueryClient } from "@tanstack/react-query";
 import {
  APP_VERSION,

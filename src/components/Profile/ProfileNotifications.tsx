@@ -215,6 +215,15 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
             { merge: true },
           );
         }
+        if (Capacitor.isNativePlatform()) {
+          try {
+            const { NotificationBridge } = await import('../../lib/notificationBridge');
+            await NotificationBridge.setOngoingNotificationEnabled({ enabled: targetState });
+          } catch (e) {
+            console.warn("Failed setting ongoing notification on Android:", e);
+          }
+        }
+
         toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
       }}
       className={cn(

@@ -9,8 +9,9 @@ import { Activity, Award, TrendingUp } from 'lucide-react';
 import { UserSettings } from '../types';
 import { useTranslation } from "react-i18next";
 
-export default function DietScoreWidget({ activeDiet, settings}: { user: User, activeDiet: string, settings?: UserSettings }) {
-  const user = useAuthStore(state => state.user);
+export default function DietScoreWidget({ activeDiet, settings, user: propUser }: { user?: any, activeDiet: string, settings?: UserSettings }) {
+  const storeUser = useAuthStore(state => state.user);
+  const user = propUser || storeUser;
 
  const { t } = useTranslation();
  const [score, setScore] = useState(85);

@@ -4,8 +4,8 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
 
 ## Główne pliki i komponenty
 - `src/App.tsx` - Główny punkt wejścia, główny layout, zarządzanie routingiem i trwałym zapisem logów do SQLite (`dbService.addLog`).
-- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.43'), adresy URL oraz bazy produktów.
-- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.43.
+- `src/constants.ts` - Główne stałe, w tym `APP_VERSION` ('6.0.44'), adresy URL oraz bazy produktów.
+- `src/constants/versions.ts` - Logika wersji (PWA, APK), definicje okien z historią nowości (`whatsNew`). Zaktualizowano do v6.0.44.
 - `src/workers/glikosense.worker.ts` & `src/components/MLAnalysisWidget.tsx` - Silnik neuronowy **GlikoSense 4.1 Pro (TCN)** z fizjologicznym korytarzem bezpieczeństwa (`Physics-Bounded Guardrail`), wielofazowym modelem **Dual-Wave Pizza (WBT)** dla białek i tłuszczów, modułem **Pre-Bolus Latency Learner** mierzącym rzeczywisty czas reakcji organizmu na dawkę i kalibrującym stoper przedposiłkowy, detektorem zmęczenia wkłucia/kaniuli (`Positive Bias Drift`), ścisłym zarządzaniem pamięcią (`tf.tidy`) oraz zachowaniem 100% lekkości i stabilności klasycznego **GlikoSense 3.0 (LSTM)**.
 - `src/lib/childPermissions.ts` & `src/components/ParentalPinModal.tsx` & `src/components/DevicePairing.tsx` - Moduł Kontroli Rodzicielskiej i Granularnych Uprawnień Dziecka (7 przełączników: posiłki, bolusy, glukometr, osprzęt, Smart Equipment, terapia, historia). Zabezpieczenie kodem PIN rodzica i twarda blokada przełączania ról na telefonie dziecka.
 - `android/app/src/main/java/com/glikocontrol/app/GlikoForegroundService.java` & `StepCounterPlugin.java` - Ciągły, sprzętowy krokomierz działający 24/7 w pancernym serwisie tła Androida z automatycznym zerowaniem o północy i odświeżaniem w interfejsie co 15s.
@@ -158,4 +158,10 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
   - `src/types.ts`: Rozszerzono interfejs `LogEntry` o opcjonalne pola `site?: string` oraz `glucose?: number`.
   - `src/components/ConsentClause.tsx`: Uzupełniono `interface ConsentClauseProps` o opcjonalny prop `user?: any`.
   - `src/components/NotificationCenter.tsx` & `src/components/NotebookManager.tsx`: Wprowadzono bezpieczny odczyt `JSON.parse` z `localStorage` (`safeGetStoredArray`), zabezpieczając aplikację przed krytycznym błędem `SyntaxError` w przypadku uszkodzenia pamięci podręcznej.
-  - Pełna weryfikacja diagnostyczna: 0 błędów w całym projekcie (175 plików `src`).
+  - **Natywne powiadomienie ciągłe o cukrach na pasku stanu Androida (Ongoing Status Notification ID: 999)**:
+  - Wdrożono pełną synchronizację ustawienia `apkSystemNotificationsEnabled` (`settings.apkSystemNotificationsEnabled`) z natywnym kodem Androida:
+    - `android/app/src/main/java/com/glikocontrol/app/NotificationBridgePlugin.java`: dodano `@PluginMethod setOngoingNotificationEnabled(PluginCall call)`, która zapisuje preferencję `apk_system_notifications_enabled` w `GlikoWidgetPrefs`. Przy wyłączeniu natychmiast anuluje powiadomienie `id: 999`, a przy włączeniu wymusza odświeżenie (`NightscoutFetcher.fetchAndUpdate`).
+    - `android/app/src/main/java/com/glikocontrol/app/NightscoutFetcher.java`: sprawdza flagę `apk_system_notifications_enabled`. Gdy wyłączona – anuluje powiadomienie `999` i nie publikuje go w tle.
+    - `android/app/src/main/java/com/glikocontrol/app/GlikoForegroundService.java`: spełnia kontrakt Androida dla Foreground Service (`startForeground(999, ...)`), a następnie sprawdza flagę `apk_system_notifications_enabled` – jeśli wyłączona, natychmiast wywołuje `stopForeground(STOP_FOREGROUND_REMOVE)`, usuwając ciągłe powiadomienie z paska stanu bez ubijania serwisu w tle.
+    - `src/lib/notificationBridge.ts` & `src/App.tsx` & `ProfileNotifications.tsx` & `ProfileSystem.tsx`: podpięto wywołanie mostka przy każdej zmianie przełącznika w ustawieniach oraz automatyczną synchronizację przy uruchomieniu aplikacji.
+- Pełna weryfikacja diagnostyczna: 0 błędów w całym projekcie (175 plików `src`).

@@ -2,8 +2,8 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.43';
-export const CURRENT_VERSION = '6.0.43';
+export const APP_VERSION = '6.0.44';
+export const CURRENT_VERSION = '6.0.44';
 
 export const IS_BETA_CHANNEL: boolean = 
   Boolean(import.meta.env.VITE_IS_BETA_CHANNEL) || 

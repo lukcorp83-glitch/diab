@@ -8,8 +8,9 @@ import { db } from '../lib/firebase';
 import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { useTranslation } from "react-i18next";
 
-export default function CgmImport({ onComplete}: { user: any, onComplete?: () => void }) {
-  const user = useAuthStore(state => state.user);
+export default function CgmImport({ onComplete, user: propUser }: { user?: any, onComplete?: () => void }) {
+  const storeUser = useAuthStore(state => state.user);
+  const user = propUser || storeUser;
 
  const { t } = useTranslation();
  const [loading, setLoading] = useState(false);

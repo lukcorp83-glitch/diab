@@ -7,7 +7,11 @@ export interface Product {
   polyols?: number;
   protein?: number;
   fat?: number;
+  kcal?: number;
+  fiber?: number;
+  servingSize?: number;
   gi: number;
+  gl?: number;
   category?: string;
   isOnline?: boolean;
   author?: string;

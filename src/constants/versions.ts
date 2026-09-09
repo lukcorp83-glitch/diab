@@ -14,12 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.43';
+export const CURRENT_VERSION = '6.0.44';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.44",
+    date: "2026-09-09",
+    title: "Połączenie Przełącznika Powiadomień Cukru z Natywnym Paskiem Androida",
+    changes: [
+      "Połączono opcję 'Informacje o cukrach na pasku powiadomień' bezpośrednio z natywnym kodem Androida",
+      "Wyłączenie opcji w profilu natychmiast usuwa ciągłe powiadomienie glikemii (ID: 999) z paska powiadomień i ekranu blokady",
+      "Zachowano 100% ciągłość pracy serwisu w tle (GlikoForegroundService) bez zaśmiecania paska stanu",
+      "Włączenie opcji natychmiast odświeża i przywraca powiadomienie z bieżącym cukrem i wykresem",
+      "Dodano przełącznik powiadomień systemowych również do sekcji Profil ➔ System & Aplikacja",
+      "Automatyczna synchronizacja stanu powiadomień przy każdym uruchomieniu aplikacji"
+    ]
+  },
   {
     version: "6.0.43",
     date: "2026-09-09",
@@ -457,6 +470,19 @@ export const PWA_VERSIONS: VersionEntry[] = [
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
+  {
+    version: "6.0.44",
+    date: "2026-09-09",
+    title: "Połączenie Przełącznika Powiadomień Cukru z Natywnym Paskiem Androida",
+    changes: [
+      "Połączono opcję 'Informacje o cukrach na pasku powiadomień' bezpośrednio z natywnym kodem Androida",
+      "Wyłączenie opcji w profilu natychmiast usuwa ciągłe powiadomienie glikemii (ID: 999) z paska powiadomień i ekranu blokady",
+      "Zachowano 100% ciągłość pracy serwisu w tle (GlikoForegroundService) bez zaśmiecania paska stanu",
+      "Włączenie opcji natychmiast odświeża i przywraca powiadomienie z bieżącym cukrem i wykresem",
+      "Dodano przełącznik powiadomień systemowych również do sekcji Profil ➔ System & Aplikacja",
+      "Automatyczna synchronizacja stanu powiadomień przy każdym uruchomieniu aplikacji"
+    ]
+  },
   {
     version: "6.0.43",
     date: "2026-09-09",

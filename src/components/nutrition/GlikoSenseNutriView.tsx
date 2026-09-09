@@ -110,9 +110,9 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
       lastTimestamp: number;
     }> = {};
 
-    const meals = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && (l.linkedMeal?.carbs || l.note || (l as any).description)));
-    const glucoseLogs = logs.filter(l => l.type === 'glucose' || l.bg).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-    const bolusLogs = logs.filter(l => l.type === 'bolus' || l.type === 'insulin');
+    const meals = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && (l.linkedMeal?.carbs || l.notes || (l as any).note || (l as any).description)));
+    const glucoseLogs = logs.filter(l => l.type === 'glucose' || (l as any).bg).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    const bolusLogs = logs.filter(l => l.type === 'bolus' || (l.type as string) === 'insulin');
 
     const isSpecificMealName = (name: string): boolean => {
       if (!name) return false;
@@ -126,7 +126,7 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
     };
 
     meals.forEach(m => {
-      let rawName = m.note || m.name || (m as any).description || m.linkedMeal?.name;
+      let rawName = m.notes || (m as any).note || (m as any).name || (m as any).description || m.linkedMeal?.name;
       if (!rawName && Array.isArray(m.linkedMeal?.items) && m.linkedMeal.items.length > 0) {
         rawName = m.linkedMeal.items.map((i: any) => i.name).filter(Boolean).join(", ");
       }

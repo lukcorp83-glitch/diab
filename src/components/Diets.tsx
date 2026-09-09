@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 interface DietsProps {
- user: User;
+ user?: any;
  setTab: (tab: string) => void;
  settings?: UserSettings;
  logs?: any[];
@@ -403,3 +403,4 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
  );
 }
 
+export default Diets;

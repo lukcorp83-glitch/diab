@@ -130,7 +130,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
     try {
       localRules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
     } catch {}
-    const rules = { ...localRules, ...(mlResult?.discoveredRules || {}) };
+    const rules = { ...localRules, ...((mlResult as any)?.discoveredRules || {}) };
     const patterns: { id: string; title: string; desc: string; icon: string; tag: string }[] = [];
 
     if (rules.dawnPhenomenonEnabled) {
@@ -406,7 +406,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
     }
     try {
       Haptics.impact();
-      const uid = getEffectiveUid(effectiveUser, settings);
+      const uid = getEffectiveUid(effectiveUser);
       
       let newProfiles = [...(settings?.hourlyProfiles || [])];
       
@@ -902,7 +902,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                         typeof OffscreenCanvas === 'undefined' || 
                         typeof window.WebGLRenderingContext === 'undefined' || 
                         localStorage.getItem('glikosense_active_backend') === 'cpu' || 
-                        (navigator.deviceMemory && navigator.deviceMemory < 3)
+                        ((navigator as any).deviceMemory && (navigator as any).deviceMemory < 3)
                       )) ? "opacity-50 cursor-not-allowed" : "",
                       engineMode === 'v4_tcn'
                         ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400"
