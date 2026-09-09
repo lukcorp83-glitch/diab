@@ -188,6 +188,10 @@ export class DatabaseService {
     }
   }
 
+  async addLog(log: any) {
+    return this.saveLog(log);
+  }
+
   async saveMultipleLogs(logs: any[], onProgress?: (progress: number) => void) {
     if (!this.db || logs.length === 0) {
       onProgress?.(100);

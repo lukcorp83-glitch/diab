@@ -8,7 +8,7 @@ import {
 import { Capacitor, registerPlugin } from "@capacitor/core";
 const MaterialYou: any = Capacitor.Plugins?.MaterialYou || registerPlugin("MaterialYou");
 import { App as CapacitorApp } from "@capacitor/app";
-import { CapacitorUpdater } from "@capgo/capacitor-updater";
+import { toast } from "react-hot-toast";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useAuthStore } from './stores/useAuthStore';

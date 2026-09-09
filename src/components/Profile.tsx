@@ -710,8 +710,8 @@ export default function Profile({
   }, []);
  const [nukeLoading, setNukeLoading] = useState(false);
  const [showRodo, setShowRodo] = useState(false);
- const [apkVersion, setApkVersion] = useState<string>("1.5.4");
- const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.4_OTA_FINISH.apk");
+ const [apkVersion, setApkVersion] = useState<string>("6.0.42");
+ const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.42_OTA.apk");
  useEffect(() => {
  const isBeta = localStorage.getItem("betaProgramEnabled") === "true";
  const url = isBeta
@@ -4427,20 +4427,33 @@ export default function Profile({
  rel="noopener noreferrer"
  className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors active:scale-95"
  onClick={(e) => {
- e.preventDefault();
  Haptics.success();
  localStorage.setItem("dismissedApkVersion", apkVersion);
+ if (Capacitor.isNativePlatform()) {
+ e.preventDefault();
  // Otwórz w systemowej przeglądarce by uniknąć problemów z pobieraniem plików w WebView
  import('@capacitor/browser').then(({ Browser }) => {
  Browser.open({ url: apkUrl }).catch(() => {
  window.open(apkUrl, '_system');
  });
  }).catch(() => window.open(apkUrl, '_system'));
+ }
  }}
  >
  <Download size={20} />
  {t('auto.pobierz_apk', { defaultValue: 'Pobierz APK' })} ({apkVersion})
  </a>
+
+ {/* Wskazówka o instalacji / 99% */}
+ <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-2xl border border-amber-500/25 text-left">
+ <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+ 💡 <b>{t('update.tip_title', { defaultValue: 'Wskazówka:' })}</b>{' '}
+ {t('update.tip_text', {
+ defaultValue: 'Jeśli pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie, ściągnij górną belkę powiadomień lub otwórz aplikację "Pliki" ➔ folder "Pobrane" i kliknij pobrany plik APK.'
+ })}
+ </p>
+ </div>
+
  <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
  <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
  
@@ -4469,12 +4482,14 @@ export default function Profile({
  <ol className="list-decimal pl-4 text-[10px] space-y-1 text-amber-700 dark:text-amber-400/80">
  <li>{t('auto.pobierz_plik_klikając_przycisk_powy', { defaultValue: i18n.t('auto.pobierz_plik_klikajac_prz', { defaultValue: "Pobierz plik klikając przycisk powyżej." }) })}</li>
  <li>
- 
  {t('auto.otwórz_pobrany_plik_apk_z_powiadomi', { defaultValue: i18n.t('auto.otworz_pobrany_plik_apk_z', { defaultValue: "Otwórz pobrany plik .apk z powiadomienia lub menedżera plików" }) })}
  </li>
  <li>
  
  {t('auto.jeśli_system_zapyta_zezwól_na_quot_', { defaultValue: i18n.t('auto.jesli_system_zapyta_zezwo', { defaultValue: "Jeśli system zapyta, zezwól na \"Instalację z nieznanych źródeł\"." }) })}
+ </li>
+ <li>
+ {t('auto.gdy_pobieranie_stanie_na_99', { defaultValue: "Gdy pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie: ściągnij górną belkę powiadomień lub otwórz aplikację „Pliki” (folder „Pobrane”) i kliknij pobrany plik APK." })}
  </li>
  </ol>
  </div>

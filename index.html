@@ -38,8 +38,8 @@
       // Globalny ratunkowy wychwytywacz błędów JS na telefonie
       window.onerror = function(msg, url, lineNo, columnNo, error) {
         var strMsg = msg ? String(msg) : '';
-        if (strMsg.indexOf('ServiceWorker') !== -1 || strMsg.indexOf('service worker') !== -1 || strMsg.indexOf('sw.js') !== -1) {
-          console.warn('[SW Warning ignored]:', strMsg);
+        if (strMsg.indexOf('ServiceWorker') !== -1 || strMsg.indexOf('service worker') !== -1 || strMsg.indexOf('sw.js') !== -1 || strMsg.indexOf('Notification') !== -1 || strMsg.indexOf('notification') !== -1) {
+          console.warn('[Warning ignored]:', strMsg);
           return true;
         }
         var errDiv = document.getElementById('fatal-error-overlay');
@@ -59,8 +59,8 @@
       window.onunhandledrejection = function(event) {
         var reason = event.reason || {};
         var msg = reason.message || String(reason || '');
-        if (msg.indexOf('ServiceWorker') !== -1 || msg.indexOf('service worker') !== -1 || msg.indexOf('sw.js') !== -1) {
-          console.warn('[SW Warning ignored]:', msg);
+        if (msg.indexOf('ServiceWorker') !== -1 || msg.indexOf('service worker') !== -1 || msg.indexOf('sw.js') !== -1 || msg.indexOf('Notification') !== -1 || msg.indexOf('notification') !== -1) {
+          console.warn('[Warning ignored]:', msg);
           return;
         }
         window.onerror(msg, '', 0, 0, reason);

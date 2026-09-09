@@ -41,8 +41,8 @@ interface AppState {
   setActiveTab: (tab: string) => void;
   setTab?: (tab: string) => void;
 
-  theme: "light" | "dark";
-  setTheme: (theme: "light" | "dark") => void;
+  theme: "light" | "dark" | "system";
+  setTheme: (theme: "light" | "dark" | "system") => void;
   toggleTheme: () => void;
 
   authError: string;

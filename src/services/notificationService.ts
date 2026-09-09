@@ -607,8 +607,8 @@ export const notificationService = {
               tag: `med_${med.id}_${Date.now()}`
             } as any);
           });
-        } else {
-          new Notification(title, { body, icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/') });
+        } else if (typeof (window as any).Notification === 'function') {
+          try { new (window as any).Notification(title, { body, icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/') }); } catch(err) {}
         }
       } catch(e) {
         console.warn('Web notification error:', e);

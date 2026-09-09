@@ -1,10 +1,10 @@
 {
-    "version": "6.0.42",
+    "version": "6.0.43",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.42_OTA.apk",
-    "buildNumber": 157,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.43_OTA.apk",
+    "buildNumber": 158,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.42! 1) Bezpośrednia integracja z xDrip+ (Direct Broadcast Intents): odbiór cukru, trendów i baterii w 100% offline bez uprawnień do powiadomień. 2) Automatyczny odbiór zabiegów (Treatments): wpisane w xDrip+ bolusy i węglowodany trafiają bezpośrednio do historii i SQLite. 3) Karta konfiguracji xDrip+ z 3-krokowym poradnikiem w Ustawieniach Integracji. 4) Poprawki wniosków GlikoSense 4.1 (eliminacja fałszywych wzmianek o wysiłku przy hiperglikemii). 5) Poprawka analizy AI (Sparkles) oraz generowania kluczy API.",
-    "whatsNewEn": "Version 6.0.42! 1) Direct xDrip+ system integration (Direct Broadcast Intents): receive glucose, trends, and sensor battery 100% offline with zero notification permissions. 2) Automatic treatments sync: boluses and carbs logged in xDrip+ are immediately saved to SQLite history. 3) xDrip+ configuration card with a 3-step guide in Integration Settings. 4) GlikoSense 4.1 clinical guardrail fixes (eliminated false exercise hints during hyperglycemia). 5) AI meal analysis (Sparkles) and API secret generation fixes.",
-    "otaRevision": 316
+    "whatsNew": "Wersja 6.0.43! 1) Naprawa błędu 'Notification is not defined' na urządzeniach mobilnych (Safari iOS, przeglądarka Facebooka/Messengera, okna prywatne). 2) Płynne przewijanie do góry i powrót na szczyt po ponownym stuknięciu aktywnej ikony na dolnym pasku. 3) Niezawodne pobieranie plików APK (eliminacja blokowania okna instalatora przez Androida i popup-blockery przeglądarek). 4) Dodano uprawnienie REQUEST_INSTALL_PACKAGES w manifeście Androida. 5) Wskazówka instalatora APK przy pobieraniu.",
+    "whatsNewEn": "Version 6.0.43! 1) Fixed 'Notification is not defined' crash on mobile browsers (Safari, Facebook in-app browser, private windows). 2) Smooth vertical scrolling fix and tap active tab to scroll to top. 3) Reliable APK downloads (bypassing Android installer blocks and browser popup blockers). 4) Added REQUEST_INSTALL_PACKAGES permission in Android Manifest. 5) Added APK installation tips in the update dialog.",
+    "otaRevision": 317
 }

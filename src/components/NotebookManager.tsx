@@ -37,7 +37,12 @@ export default function NotebookManager() {
     const checkReminders = async () => {
       if (!notes || notes.length === 0) return;
       const now = Date.now();
-      const notifiedNotes = JSON.parse(localStorage.getItem('notebook_notified_notes') || '[]');
+      let notifiedNotes: string[] = [];
+      try {
+        notifiedNotes = JSON.parse(localStorage.getItem('notebook_notified_notes') || '[]');
+      } catch {
+        notifiedNotes = [];
+      }
 
       for (const n of notes) {
         if (n.reminderDate) {
@@ -78,21 +83,25 @@ export default function NotebookManager() {
               } catch(e) {
                 console.warn("[Notebook] Native notification error:", e);
               }
-            } else if ('Notification' in window && Notification.permission === 'granted') {
+            } else if (typeof window !== 'undefined' && 'Notification' in window && typeof (window as any).Notification !== 'undefined' && (window as any).Notification?.permission === 'granted') {
               try {
-                navigator.serviceWorker.ready.then(reg => {
-                  if (reg) {
-                    reg.showNotification('GlikoControl • Przypomnienie', {
-                      body: n.content,
-                      icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
-                      vibrate: [200, 100, 200]
-                    } as any);
-                  } else {
-                    new Notification('GlikoControl • Przypomnienie', { body: n.content });
-                  }
-                }).catch(() => {
-                  new Notification('GlikoControl • Przypomnienie', { body: n.content });
-                });
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.ready.then(reg => {
+                    if (reg) {
+                      reg.showNotification('GlikoControl • Przypomnienie', {
+                        body: n.content,
+                        icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+                        vibrate: [200, 100, 200]
+                      } as any);
+                    } else if (typeof (window as any).Notification === 'function') {
+                      try { new (window as any).Notification('GlikoControl • Przypomnienie', { body: n.content }); } catch(err) {}
+                    }
+                  }).catch(() => {
+                    if (typeof (window as any).Notification === 'function') {
+                      try { new (window as any).Notification('GlikoControl • Przypomnienie', { body: n.content }); } catch(err) {}
+                    }
+                  });
+                }
               } catch(e) {}
             }
 

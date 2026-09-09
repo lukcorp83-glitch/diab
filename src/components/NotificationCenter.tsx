@@ -53,6 +53,15 @@ const DEFAULT_NOTIFICATION_PREFS = {
   hypoProtection: true
 };
 
+const safeGetStoredArray = (key: string): string[] => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : [];
+  } catch {
+    return [];
+  }
+};
+
 interface NotificationCenterProps {
   userSettings: UserSettings | null;
   theme: 'light' | 'dark';
@@ -120,9 +129,9 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
 
   useEffect(() => {
     const checkNotifications = () => {
-      const deletedIds = JSON.parse(localStorage.getItem('deletedNotifications') || '[]');
-      const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
-      const notifiedIds = JSON.parse(localStorage.getItem('systemNotifiedIds') || '[]');
+      const deletedIds = safeGetStoredArray('deletedNotifications');
+      const readIds = safeGetStoredArray('readNotifications');
+      const notifiedIds = safeGetStoredArray('systemNotifiedIds');
 
       const newNotifications: AppNotification[] = [];
       const now = Date.now();
@@ -154,12 +163,20 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
             } catch(e) {
               console.error("Capacitor local notification error:", e);
             }
-          } else if ('Notification' in window && window.Notification.permission === 'granted') {
+          } else if (typeof window !== 'undefined' && 'Notification' in window && typeof (window as any).Notification !== 'undefined' && (window as any).Notification?.permission === 'granted') {
             try {
-              navigator.serviceWorker.ready.then(reg => {
-                if (reg) reg.showNotification(title, { body: message, icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'), vibrate: [200, 100, 200] } as any);
-                else new Notification(title, { body: message });
-              }).catch(() => { new Notification(title, { body: message }); });
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(reg => {
+                  if (reg) reg.showNotification(title, { body: message, icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'), vibrate: [200, 100, 200] } as any);
+                  else if (typeof (window as any).Notification === 'function') {
+                    try { new (window as any).Notification(title, { body: message }); } catch(err) {}
+                  }
+                }).catch(() => {
+                  if (typeof (window as any).Notification === 'function') {
+                    try { new (window as any).Notification(title, { body: message }); } catch(err) {}
+                  }
+                });
+              }
             } catch(e) {}
           }
           if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -229,7 +246,7 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
 
   const markAsRead = (id: string) => {
     Haptics.selection();
-    const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+    const readIds = safeGetStoredArray('readNotifications');
     if (!readIds.includes(id)) {
       readIds.push(id);
       localStorage.setItem('readNotifications', JSON.stringify(readIds));
@@ -240,7 +257,7 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
 
   const deleteNotification = (id: string) => {
     Haptics.light();
-    const deletedIds = JSON.parse(localStorage.getItem('deletedNotifications') || '[]');
+    const deletedIds = safeGetStoredArray('deletedNotifications');
     if (!deletedIds.includes(id)) {
       deletedIds.push(id);
       localStorage.setItem('deletedNotifications', JSON.stringify(deletedIds));

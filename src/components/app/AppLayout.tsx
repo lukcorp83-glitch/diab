@@ -135,6 +135,17 @@ export function AppLayout({
     }
   }, [activeTab]);
 
+  const handleNavClick = (tabKey: string) => {
+    if (activeTab === tabKey) {
+      if (mainRef && mainRef.current) {
+        mainRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        Haptics.light();
+      }
+    } else {
+      changeTab(tabKey);
+    }
+  };
+
   const handleQuickAdd = async (s: any) => {
     if (s.carbs > 0) {
       if (!user) return;
@@ -313,10 +324,10 @@ export function AppLayout({
           settings={userSettings}
         />
 
-        {/* Main Content with Swipe Navigation */}
+        {/* Main Content */}
         <main
           ref={mainRef}
-          className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto overscroll-y-contain overscroll-x-none touch-pan-y overflow-x-hidden no-scrollbar"
+          className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto overscroll-y-auto overflow-x-hidden no-scrollbar"
         >
           <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div
@@ -327,11 +338,6 @@ export function AppLayout({
               animate="center"
               exit="exit"
               transition={{ duration: 0.12, ease: "easeOut" }}
-              drag="x"
-              dragDirectionLock
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.1}
-              onDragEnd={handleSwipe}
               className={cn(
                 "w-full min-h-full p-4 pb-32 flex flex-col",
               )}
@@ -349,14 +355,14 @@ export function AppLayout({
             <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
               <NavButton
                 active={activeTab === "chart"}
-                onClick={() => changeTab("chart")}
+                onClick={() => handleNavClick("chart")}
                 icon={<Activity />}
                 label={t("nav.chart")}
                 ecoMode={userSettings?.ecoMode}
               />
               <NavButton
                 active={activeTab === "dashboard"}
-                onClick={() => changeTab("dashboard")}
+                onClick={() => handleNavClick("dashboard")}
                 icon={<LayoutDashboard />}
                 label={t("nav.dashboard")}
                 ecoMode={userSettings?.ecoMode}
@@ -364,7 +370,7 @@ export function AppLayout({
               {!userSettings?.followerMode && (
                 <NavButton
                   active={activeTab === "database"}
-                  onClick={() => changeTab("database")}
+                  onClick={() => handleNavClick("database")}
                   icon={<Database />}
                   label={t("sidebar.sections.database", { defaultValue: "Baza" })}
                   ecoMode={userSettings?.ecoMode}
@@ -383,7 +389,7 @@ export function AppLayout({
                     user={user}
                     onClickMain={() => {
                       Haptics.light();
-                      changeTab("meal");
+                      handleNavClick("meal");
                     }}
                     onQuickAdd={handleQuickAdd}
                   />
@@ -392,7 +398,7 @@ export function AppLayout({
               {!userSettings?.followerMode && (
                 <NavButton
                   active={activeTab === "ai"}
-                  onClick={() => changeTab("ai")}
+                  onClick={() => handleNavClick("ai")}
                   icon={<GlikoSenseIcon size={24} isAnalyzing={activeTab === 'ai'} />}
                   label={"GlikoSense"}
                   ecoMode={userSettings?.ecoMode}
@@ -401,7 +407,7 @@ export function AppLayout({
               {!userSettings?.followerMode && (
                 <NavButton
                   active={activeTab === "assistant"}
-                  onClick={() => changeTab("assistant")}
+                  onClick={() => handleNavClick("assistant")}
                   icon={<MessageSquare />}
                   label={t("nav.chat")}
                   ecoMode={userSettings?.ecoMode}
@@ -409,7 +415,7 @@ export function AppLayout({
               )}
               <NavButton
                 active={activeTab === "profile"}
-                onClick={() => changeTab("profile")}
+                onClick={() => handleNavClick("profile")}
                 icon={<Menu />}
                 label={t("nav.more")}
                 ecoMode={userSettings?.ecoMode}

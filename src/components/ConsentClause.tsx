@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 interface ConsentClauseProps {
  onAccept: () => void;
- 
+ user?: any;
 }
 
 export default function ConsentClause({ onAccept, user }: ConsentClauseProps) {

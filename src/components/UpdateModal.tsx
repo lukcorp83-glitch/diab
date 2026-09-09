@@ -91,6 +91,23 @@ export default function UpdateModal() {
 
   const apkDownloadUrl = versionData.apkUrl || `https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_${versionData.version}_OTA.apk`;
 
+  const handleDownloadApk = async () => {
+    Haptics.success();
+    localStorage.setItem("dismissedApkVersion", versionData.version);
+    setShow(false);
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url: apkDownloadUrl });
+      } catch {
+        window.open(apkDownloadUrl, '_system');
+      }
+    } else {
+      window.location.href = apkDownloadUrl;
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -134,33 +151,37 @@ export default function UpdateModal() {
             </div>
           </div>
 
-          <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border border-slate-100 dark:border-slate-700">
             <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
               {i18n.language?.startsWith('en') && versionData.whatsNewEn ? versionData.whatsNewEn : versionData.whatsNew}
             </p>
           </div>
 
+          {/* Wskazówka o instalacji / 99% */}
+          <div className="mb-6 p-3.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-2xl border border-amber-500/25 text-left">
+            <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+              💡 <b>{t('update.tip_title', { defaultValue: 'Wskazówka:' })}</b>{' '}
+              {t('update.tip_text', {
+                defaultValue: 'Jeśli pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie, ściągnij górną belkę powiadomień lub otwórz aplikację "Pliki" ➔ folder "Pobrane" i kliknij pobrany plik APK.'
+              })}
+            </p>
+          </div>
+
           <div className="flex flex-col gap-3">
-            <a
-              href={apkDownloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                Haptics.light();
-                localStorage.setItem("dismissedApkVersion", versionData.version);
-              }}
-              className="flex items-center justify-center gap-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-600/25 active:scale-95 transition-all"
+            <button
+              onClick={handleDownloadApk}
+              className="flex items-center justify-center gap-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-600/25 active:scale-95 transition-all cursor-pointer"
             >
               <Download size={18} />
               {t('auto.pobierz_aplikację_android_apk', { defaultValue: i18n.t('auto.pobierz_aplikacje_android', { defaultValue: "Pobierz plik APK" }) })}
-            </a>
+            </button>
             <button
               onClick={() => {
                 Haptics.light();
                 localStorage.setItem("dismissedApkVersion", versionData.version);
                 setShow(false);
               }}
-              className="w-full py-3.5 font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition-all text-sm"
+              className="w-full py-3.5 font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition-all text-sm cursor-pointer"
             >
               {t('auto.przypomnij_później', { defaultValue: i18n.t('auto.przypomnij_pozniej', { defaultValue: "Przypomnij później" }) })}
             </button>

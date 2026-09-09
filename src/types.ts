@@ -63,6 +63,8 @@ export interface LogEntry {
   isExtended?: boolean;
   extendedTime?: number;
   items?: any[];
+  site?: string;
+  glucose?: number;
 }
 
 export interface PlateItem extends Product {
