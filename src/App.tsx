@@ -557,7 +557,10 @@ export default function App() {
     localStorage.setItem("glikocontrol_privacy_accepted", "true");
     setShowPrivacyPopup(false);
   };
-  const handleCloseChangelog = () => setShowChangelog(false);
+  const handleCloseChangelog = () => {
+    localStorage.setItem('last_seen_changelog_version', CURRENT_VERSION);
+    setShowChangelog(false);
+  };
   const setUserSettings = () => {};
   
   const sendAssistantMessage = async (msg: string, petDataOverride?: any) => {
@@ -741,6 +744,22 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2300);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Automatyczne wyświetlenie okna Nowości (ChangelogPopup) po aktualizacji aplikacji
+  useEffect(() => {
+    try {
+      const lastSeen = localStorage.getItem('last_seen_changelog_version');
+      if (lastSeen !== CURRENT_VERSION) {
+        // Płynne opóźnienie po zakończeniu animacji splash screena
+        const timer = setTimeout(() => {
+          setShowChangelog(true);
+        }, 2600);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {
+      console.warn('Failed to check changelog version:', e);
+    }
   }, []);
 
   // Handle Android system back button & Web/PWA modal closing

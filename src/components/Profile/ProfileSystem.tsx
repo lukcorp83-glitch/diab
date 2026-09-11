@@ -1444,9 +1444,17 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
             : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800"
         )}
       >
-        <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
-          <History size={14} /> {t('auto.dziennik_aktualizacji', { defaultValue: 'Dziennik Aktualizacji' })}
-        </h4>
+        <div className="flex items-center justify-between mb-6">
+          <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            <History size={14} /> {t('auto.dziennik_aktualizacji', { defaultValue: 'Dziennik Aktualizacji' })}
+          </h4>
+          <button
+            onClick={() => useAppStore.getState().setShowChangelog(true)}
+            className="text-[9px] font-bold text-emerald-500 hover:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full active:scale-95 transition-all cursor-pointer"
+          >
+            {t('auto.pokaz_nowosci', { defaultValue: 'Pokaż okno nowości' })}
+          </button>
+        </div>
         <div className="space-y-6">
           {PWA_VERSIONS.slice(0, 3).map((v, i) => (
             <div
