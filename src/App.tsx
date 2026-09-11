@@ -1,9 +1,8 @@
 import {
- calculateIOB,
- calculateCOB,
- getEffectiveUid,
- getEffectiveIOB as getEffectiveIOBUtils,
- getMealAbsorptionTime,
+  getEffectiveUid,
+  getEffectiveIOB as getEffectiveIOBUtils,
+  getMealAbsorptionTime,
+  calculateCOB,
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 const MaterialYou: any = Capacitor.Plugins?.MaterialYou || registerPlugin("MaterialYou");
@@ -14,24 +13,22 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useAuthStore } from './stores/useAuthStore';
 import { useAppStore } from './stores/useAppStore';
 import {
- Activity, Database, Utensils, FileText, Settings, Plus, Scan, TrendingUp, Zap, LogOut, Bell, CheckCircle2, History, Apple, ChevronRight, Search, Camera, Trash2, Save, MessageSquare, Globe, Sun, Moon, LogIn, Menu, LayoutDashboard, Beaker, Sparkles, X,
+  Zap, Globe, Sun, Moon, LogIn,
 } from "lucide-react";
-import { motion, AnimatePresence, MotionConfig } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { auth, db } from "./lib/firebase";
 import { dbService } from "./services/databaseService";
 import {
- onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signInWithCustomToken, signInWithCredential,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signInWithCredential,
 } from "firebase/auth";
 import {
- collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, getDocFromServer, setDoc, deleteDoc, writeBatch, limit,
+  collection, query, addDoc, serverTimestamp, doc, setDoc,
 } from "firebase/firestore";
 import {
- LogEntry, UserSettings, Product, PlateItem, AssistantMessage,
+  UserSettings,
 } from "./types";
 import { geminiService } from "./services/gemini";
-import { CATEGORIES, APP_VERSION } from "./constants";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { APP_VERSION } from "./constants";
 import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
 import { healthService } from "./services/healthService";
@@ -43,8 +40,8 @@ import { NotificationBridge } from './lib/notificationBridge';
 import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore";
 import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePetStatus, useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
+import { useQuery } from "@tanstack/react-query";
+import { useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
 import { useGlikoServer } from "./hooks/useGlikoServer";
 import { useAppSubscriptions } from "./hooks/useAppSubscriptions";
 
@@ -563,7 +560,7 @@ export default function App() {
   const handleCloseChangelog = () => setShowChangelog(false);
   const setUserSettings = () => {};
   
-  const sendAssistantMessage = async (msg: string) => {
+  const sendAssistantMessage = async (msg: string, petDataOverride?: any) => {
       if (!msg.trim()) return;
       const userMsg = { id: Date.now().toString(), role: 'user', text: msg, content: msg, timestamp: Date.now() };
       setAssistantMessages((prev: any[]) => [...prev, userMsg]);
@@ -575,12 +572,35 @@ export default function App() {
           parts: [{ text: m.text || m.content || "" }]
         }));
 
-        const response = await geminiService.getGlikoChatResponse(
+        const iob = getEffectiveIOB();
+        const cob = calculateCOB(logs, userSettings?.carbAbsorptionMinutes || 180);
+        const glEntry = (logs || []).find((l: any) => l.type === 'glucose' || l.type === 'sgv');
+        const glucose = glEntry?.value ? Math.round(glEntry.value) : (lastGlucoseValue ? Math.round(lastGlucoseValue) : 100);
+        const trend = glEntry?.direction || glEntry?.trend || null;
+        const pumpModel = pumpStatus?.pump || pumpStatus?.pumpModel || userSettings?.pumpModel || null;
+
+        let memorizedInsights: string[] = [];
+        try {
+          const saved = localStorage.getItem('glikosense_memorized_insights');
+          if (saved) memorizedInsights = JSON.parse(saved);
+        } catch (e) {}
+
+        const currentStatus = {
+          iob,
+          cob,
+          glucose,
+          trend,
+          pumpModel
+        };
+
+        const response = await geminiService.getAssistantResponse(
           msg,
           history,
-          null,
-          userSettings?.treatmentMode,
-          userSettings?.childMode
+          logs,
+          userSettings,
+          currentStatus,
+          memorizedInsights,
+          petDataOverride
         );
 
         let cleanText = response || "";

@@ -218,37 +218,7 @@ export const geminiService = {
       120000,
     );
 
-    if (isProxyUrl && creds.key === "proxy") {
-        const CLOUDFLARE_WORKER_URL = creds.baseUrl;
-        const payload = { contents };
-        for (const model of modelsToTry) {
-          try {
-            console.log(i18n.t('auto.proba_uzycia_modelu_proxy', { defaultValue: "Próba użycia modelu (Proxy): {{var0}}...", var0: model }));
-            const response = await fetch(CLOUDFLARE_WORKER_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ model: model, payload: payload }),
-            });
-            const data = await response.json();
-            if (response.ok) {
-              recordModelSuccess(model);
-            console.log(`Sukces z modelem (Proxy): ${model}`);
-              if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-                return data.candidates[0].content.parts.map(p => p.text).join("") || "";
-              } else if (data.text) {
-                return data.text;
-              }
-              return typeof data === "string" ? data : JSON.stringify(data);
-            }
-            throw new Error(data.error?.message || "Proxy Error");
-          } catch (error) {
-            console.warn("Proxy model failed", error);
-          }
-        }
-        throw new Error("Wszystkie modele AI(Proxy) są obecnie zajęte.");
-      }
-
-      for (const model of modelsToTry) {
+    for (const model of modelsToTry) {
         try {
           console.log(i18n.t('auto.proba_uzycia_modelu_var0', { defaultValue: "Próba użycia modelu: {{var0}}...", var0: model }));
 
@@ -998,8 +968,9 @@ Odpowiedz TYLKO czystym JSON-em:
     history: any[],
     logs: any[],
     settings: any,
-    currentStatus?: { iob: number; cob: number; glucose: number; pumpModel?: string | null },
+    currentStatus?: { iob: number; cob: number; glucose: number; pumpModel?: string | null; trend?: string | null },
     insights?: string[],
+    petData?: any,
   ) {
     const now = new Date();
     const twentyFourHoursAgo = new Date(
@@ -1007,7 +978,7 @@ Odpowiedz TYLKO czystym JSON-em:
     ).getTime();
 
     // Process logs: filter 24h, sort chronological, take last 100
-    const lastLogs = logs
+    const lastLogs = (logs || [])
       .filter((l) => {
         const ts = new Date(l.timestamp || l.createdAt).getTime();
         return ts >= twentyFourHoursAgo;
@@ -1025,8 +996,10 @@ Odpowiedz TYLKO czystym JSON-em:
           l.type === "glucose"
             ? "mg/dL"
             : l.type === "meal"
-              ? i18n.t('auto.g_wegli', { defaultValue: i18n.t('auto.g_wegli', { defaultValue: "g węgli" }) })
-              : "j. insuliny",
+              ? "g węgli"
+              : l.type === "bolus"
+                ? "j. insuliny"
+                : "",
         czas: new Date(l.timestamp || l.createdAt).toLocaleString("pl-PL", {
           hour: "2-digit",
           minute: "2-digit",
@@ -1036,20 +1009,34 @@ Odpowiedz TYLKO czystym JSON-em:
       }));
 
     const isChild = settings?.childMode ?? false;
+    const petName = petData?.name || "Gliko";
+    const petType = petData?.type || "standard";
+
+    const lang = (typeof window !== "undefined" ? (localStorage.getItem("i18nextLng") || i18n.language) : "pl") || "pl";
+    const isEn = lang.startsWith("en");
+    const langNote = isEn
+      ? "IMPORTANT: You MUST respond in English! Your tone and wording should be entirely English."
+      : "IMPORTANT: You MUST respond in Polish!";
+
+    const treatmentMode = settings?.treatmentMode;
+    const dietRestriction = treatmentMode === "diet_only"
+      ? "\nBARDZO WAŻNE: Pacjent leczy cukrzycę wyłącznie dietą (lub tabletkami), BEZ INSULINY. Kategorycznie zabrania się sugerowania podawania bolusów, zmiany bazy czy wstrzyknięć. Odpowiadaj jako asystent dietetyczno-motywacyjny (skup się na ruchu, indeksie glikemicznym i wodzie).\n"
+      : "";
 
     const insightsStr =
       insights && insights.length > 0
-        ? i18n.t('auto.najnowsze_wnioski_glikose', { defaultValue: "\nNAJNOWSZE WNIOSKI GLIKOSENSE (Dostępne analizy): \n- {{var0}}\n", var0: insights.join("\n- ") })
+        ? `\nNAJNOWSZE WNIOSKI GLIKOSENSE (Dostępne analizy): \n- ${insights.join("\n- ")}\n`
         : "";
 
     const activeDietStr = settings?.activeDiet
-      ? i18n.t('auto.uwaga_uzytkownik_ma_aktyw', { defaultValue: "\nUWAGA! Użytkownik ma aktywną dietę: {{var0}}. WSZYSTKIE TWOJE ANALIZY I SUGESTIE POSIŁKOWE (i GlikoSense) MUSZĄ JĄ UWZGLĘDNIAĆ!", var0: settings.activeDiet })
+      ? `\nUWAGA! Użytkownik ma aktywną dietę: ${settings.activeDiet}. WSZYSTKIE TWOJE ANALIZY I SUGESTIE POSIŁKOWE (i GlikoSense) MUSZĄ JĄ UWZGLĘDNIAĆ!`
       : "";
       
     const pumpModelInfo = currentStatus?.pumpModel ? `\n    - Używana Pompa/Sprzęt (dane z Nightscout): ${currentStatus.pumpModel}` : "";
+    const trendInfo = currentStatus?.trend ? ` (trend: ${currentStatus.trend})` : "";
 
     const currentDataStr = currentStatus
-      ? i18n.t('auto.aktualny_status_urzadzen', { defaultValue: "\n    AKTUALNY STATUS URZĄDZEŃ (Stan na: {{var0}}):\n    - Bieżąca glikemia: {{var1}} mg/dL (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): {{var2}} j.\n    - Aktywne węglowodany (COB): {{var3}} g\n    {{var4}}{{var5}}\n    ", var0: now.toLocaleString("pl-PL"), var1: currentStatus.glucose, var2: currentStatus.iob.toFixed(2), var3: currentStatus.cob.toFixed(0), var4: insightsStr, var5: activeDietStr }) + pumpModelInfo
+      ? `\n    AKTUALNY STATUS PACJENTA (Stan na: ${now.toLocaleString("pl-PL")}):\n    - Bieżąca glikemia: ${currentStatus.glucose} mg/dL${trendInfo} (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): ${currentStatus.iob.toFixed(2)} j.\n    - Aktywne węglowodany (COB): ${currentStatus.cob.toFixed(0)} g\n    ${insightsStr}${activeDietStr}\n    ` + pumpModelInfo
       : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}${pumpModelInfo}`;
 
     let medicalRulesStr = "";
@@ -1057,7 +1044,7 @@ Odpowiedz TYLKO czystym JSON-em:
       try {
         const rules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
         if (rules.pkParams) {
-          medicalRulesStr = i18n.t('auto.osobnicze_tempo_wchlanian', { defaultValue: "\nOsobnicze tempo wchłaniania pacjenta: metabolizm \"{{var0}}\" (czas wchłaniania standardowych węglowodanów: {{var1}}h). Wykorzystaj to w swoich poradach dotyczących wchłaniania powołując się na system GlikoSense!", var0: rules.pkParams.label, var1: rules.pkParams.normalCarbDuration });
+          medicalRulesStr = `\nOsobnicze tempo wchłaniania pacjenta: metabolizm "${rules.pkParams.label}" (czas wchłaniania standardowych węglowodanów: ${rules.pkParams.normalCarbDuration}h). Wykorzystaj to w swoich poradach dotyczących wchłaniania powołując się na system GlikoSense!`;
         }
         
         const nutriSaved = localStorage.getItem('glikosense_nutri_profile');
@@ -1073,8 +1060,43 @@ Odpowiedz TYLKO czystym JSON-em:
     const disclaimer = " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
     
     let systemInstruction = isChild
-      ? i18n.t('auto.jestes_smart_asystentem_g', { defaultValue: "Jesteś Smart Asystentem Gliko w aplikacji GlikoControl. \n    Twoim zadaniem jest pomaganie dzieciom i ich rodzicom w codziennym zarządzaniu cukrzycą w sposób przyjazny, cierpliwy i zachęcający. Posiadasz pełną integrację aplikacyjną (wiedz o ustawieniach, dziennikach itd.).\n    {{var0}}\n    MASZ DOSTĘP DO DANYCH UŻYTKOWNIKA (z ostatnich 24 godzin):\n    - Ostatnie logi: {{var1}}\n    - Ustawienia (ISF, WW): {{var2}}{{var3}}\n    \n    ZASADY ODPOWIADANIA:\n    1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. Nie generuj długich raportów (tym zajmuje się system GlikoSense). Odpowiadaj maksymalnie zwięźle.\n    2. AKCJE Z APLIKACJĄ I ZARZĄDZANIE DANYMI: Możesz wykonywać akcje! Na samym końcu wiadomości możesz wpisać poniższe tagi:\n       ZAPISANIE BOLUSA LUB CUKRU (np. \"zapisz cukier 120\" albo \"zapisz bolus 3j\"): <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"glucose\", \"value\": 120, \"notes\": \"Cukier z AI\"}}</app_action>\n       ZAPISANIE WYMIANY (wkłucie/sensor, np. \"wymieniłem wkłucie\"): <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"site_change\", \"value\": 1, \"notes\": \"wymiana wkłucia\"}}</app_action> (type jako site_change/sensor_change)\n       ZMIANA USTAWIEŃ (np. wyłącz wibracje, zmień isf): <app_action>{\"action\": \"set_setting\", \"key\": \"isf\", \"value\": 30}</app_action>\n       NAWIGACJA (np. \"gdzie jest dzienniczek\", \"pokaż mi jedzenie\"): <app_action>{\"action\": \"navigate\", \"value\": \"history\"}</app_action> (dashboard, profile, database, meal, history)\n    3. INTERAKCJA Z TALERZEM: Jeśli użytkownik chce dodać jedzenie np. (\"dodaj jabłko\"): <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Jabłko\", \"carbs\": 15, \"protein\": 1, \"fat\": 0, \"kcal\": 60}}</plate_action>\n    4. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown. Pamiętaj by poinformować użytkownika, że akcja została pomyślnie wykonana.\n    5. BEZWZGLĘDNE BEZPIECZEŃSTWO DZIECKA: Przy wszelkich pytaniach o dawki insuliny, posiłki, bolusy, korekty czy samopoczucie ZAWSZE nakazuj dziecku: 'Zapytaj rodziców lub opiekuna!' lub 'Powiedz o tym rodzicom lub opiekunowi!'. Dziecko nie może podejmować decyzji medycznych bez dorosłych.\n    6. Wspieraj dziecko: chwal za dobre wyniki, pocieszaj przy gorszych.\n    7. Język: Polski.", var0: currentDataStr, var1: JSON.stringify(lastLogs), var2: JSON.stringify(settings), var3: medicalRulesStr })
-      : i18n.t('auto.jestes_eksperckim_systeme', { defaultValue: "Jesteś Inteligentnym Asystentem AI GlikoControl (narzędziem wspomagającym kontrolę cukrzycy, pamiętającym że nie jesteś lekarzem).\n    {{var0}}\n    DANE UŻYTKOWNIKA (24h):\n    - Logi: {{var1}}\n    - Parametry: {{var2}}{{var3}}\n \n    ZASADY:\n    1. AKCJE I DOSTĘP: Użytkownik może poprosić o zapisanie pomiaru, bolusa, bądź zmianę ustawień aplikacji lub ułatwienie nawigacji w samej aplikacji. Robi to za sprawą niewidzialnych tagów w Twoich wiadomościach:\n       - BOLUS/CUKIER: <app_action>{\"action\": \"add_log\", \"logData\": {\"type\": \"bolus\", \"value\": 3, \"notes\": \"Korekta\"}}</app_action>\n       - USTAWIENIA (targetMin, isf, wwRatio, hapticsEnabled itp.): <app_action>{\"action\": \"set_setting\", \"key\": \"hapticsEnabled\", \"value\": false}</app_action>\n       - NAWIGACJA (np. \"skoczmy do talerza\" value=meal/history/dashboard): <app_action>{\"action\": \"navigate\", \"value\": \"meal\"}</app_action>\n       - ZJEDZONY POSIŁEK: <plate_action>{\"action\": \"add\", \"item\": {\"name\": \"Nazwa\", \"carbs\": 20, \"protein\": 5, \"fat\": 2, \"kcal\": 150}}</plate_action>\n    2. BĄDŹ BARDZO ZWIĘZŁY: Odpowiadaj krótko i na temat. Absolutnie NIE generuj długich raportów, analiz medycznych ani podsumowań - tym zajmuje się wbudowany system GlikoSense. Odpowiadaj krótko, chyba że użytkownik prosi o rozwinięcie.\n    3. HTML formatting (<b>, <ul>). Zapisz tagi na DOKŁADNYM KOŃCU response'a! Poinformuj w treści, że dokonałeś operacji na rzecz użytkownika.", var0: currentDataStr, var1: JSON.stringify(lastLogs), var2: JSON.stringify(settings), var3: medicalRulesStr });
+      ? `Jesteś ${petName} - wesołym i mądrym opiekunem-stworkiem (typ: ${petType}) w aplikacji GlikoControl.
+    Pomagasz dzieciom i ich rodzicom w codziennym zarządzaniu cukrzycą w sposób przyjazny, cierpliwy, bezpieczny i pełen empatii (używaj emotikonów ✨, 🐾, 🍎).
+    ${currentDataStr}
+    DANE UŻYTKOWNIKA (24h):
+    - Ostatnie logi: ${JSON.stringify(lastLogs)}
+    - Parametry (ISF, WW): ${JSON.stringify(settings)}${medicalRulesStr}
+
+    ZASADY ODPOWIADANIA:
+    1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. Odpowiadaj zwięźle i zrozumiale.
+    2. AKCJE Z APLIKACJĄ I ZARZĄDZANIE DANYMI: Możesz wykonywać akcje za pomocą ukrytych tagów na samym końcu wiadomości:
+       - ZAPISANIE BOLUSA LUB CUKRU: <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "Cukier z AI"}}</app_action>
+       - ZAPISANIE WYMIANY: <app_action>{"action": "add_log", "logData": {"type": "site_change", "value": 1, "notes": "wymiana wkłucia"}}</app_action>
+       - ZMIANA USTAWIEŃ: <app_action>{"action": "set_setting", "key": "isf", "value": 30}</app_action>
+       - NAWIGACJA: <app_action>{"action": "navigate", "value": "history"}</app_action> (dashboard, profile, database, meal, history, chart, ai)
+       - DODANIE DO TALERZA: <plate_action>{"action": "add", "item": {"name": "Jabłko", "carbs": 15, "protein": 1, "fat": 0, "kcal": 60}}</plate_action>
+    3. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown. Poinformuj dziecko/rodzica w treści, co zrobiłeś.
+    4. BEZWZGLĘDNE BEZPIECZEŃSTWO DZIECKA: Przy wszelkich pytaniach o dawki insuliny, posiłki, bolusy, korekty czy złe samopoczucie ZAWSZE nakazuj dziecku: 'Zapytaj rodziców lub opiekuna!' lub 'Powiedz o tym rodzicom lub opiekunowi!'. Dziecko nie może podejmować decyzji medycznych bez dorosłych.
+    ${langNote}
+    ${dietRestriction}`
+      : `Jesteś ${petName} - inteligentnym i empatycznym doradcą medycznym AI w aplikacji GlikoControl do zarządzania cukrzycą. Posiadasz pełny wgląd w bieżące parametry pacjenta (cukier, IOB, COB, pompę) i historię terapii.
+    ${currentDataStr}
+    DANE UŻYTKOWNIKA (z ostatnich 24 godzin):
+    - Ostatnie logi: ${JSON.stringify(lastLogs)}
+    - Parametry terapii: ${JSON.stringify(settings)}${medicalRulesStr}
+ 
+    ZASADY:
+    1. PEŁNY KONTEKST MEDYCZNY: Wykorzystuj powyższe dane w czasie rzeczywistym. Gdy użytkownik pyta o samopoczucie, posiłki czy glikemię, odnoś się precyzyjnie do jego bieżącego poziomu cukru, aktywnej insuliny (IOB) i węglowodanów (COB).
+    2. AKCJE W APLIKACJI (ukryte tagi na samym końcu odpowiedzi, jeśli użytkownik o to prosi):
+       - BOLUS/CUKIER: <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "Cukier z AI"}}</app_action> (lub type: "bolus")
+       - WYMIANA OSPRZĘTU: <app_action>{"action": "add_log", "logData": {"type": "site_change", "value": 1, "notes": "wymiana wkłucia"}}</app_action>
+       - USTAWIENIA: <app_action>{"action": "set_setting", "key": "isf", "value": 30}</app_action>
+       - NAWIGACJA (meal/history/dashboard/chart/profile/database/ai): <app_action>{"action": "navigate", "value": "meal"}</app_action>
+       - POSIŁEK DO TALERZA: <plate_action>{"action": "add", "item": {"name": "Nazwa", "carbs": 20, "protein": 5, "fat": 2, "kcal": 150}}</plate_action>
+    3. BĄDŹ ZWIĘZŁY: Odpowiadaj krótko, naturalnie i merytorycznie. Nie twórz sztucznie długich referatów – pacjent potrzebuje szybkiej, konkretnej informacji.
+    4. FORMATOWANIE: Używaj prostego formatowania HTML (<b>, <ul>, <li>). NIE używaj gwiazdek markdown. Ukryte tagi akcji umieszczaj zawsze na samym końcu wypowiedzi.
+    ${langNote}
+    ${dietRestriction}`;
       
     systemInstruction += disclaimer;
 

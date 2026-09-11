@@ -48,8 +48,15 @@ export default function GlikoAssistant({
 }) {
   const user = useAuthStore(state => state.user);
 
- const { t } = useTranslation();
- const isChild = settings?.childMode ?? false;
+  const { t } = useTranslation();
+  const isChild = settings?.childMode ?? false;
+  const logs = useLogsStore((state) => state.logs);
+  const glEntry = useMemo(() => {
+    return (logs || []).find((l: any) => l.type === 'glucose' || l.type === 'sgv');
+  }, [logs]);
+  const currentBg = glEntry?.value ? Math.round(glEntry.value) : null;
+  const currentTrend = glEntry?.direction || glEntry?.trend || null;
+
   const [activeAiModel, setActiveAiModel] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('glikocontrol_last_ai_model') : null) || 'gemini-3.6-flash');
 
   useEffect(() => {
@@ -298,6 +305,8 @@ export default function GlikoAssistant({
  <img 
  src={src} 
  alt="Pet" 
+ loading="eager"
+ decoding="async"
  className="w-full h-full object-contain p-1" 
  referrerPolicy="no-referrer" 
  onError={() => setImageError(src)}
@@ -310,6 +319,8 @@ export default function GlikoAssistant({
  <img 
  src={currentAccessory.imageUrl} 
  alt="Accessory" 
+ loading="eager"
+ decoding="async"
  className={cn(
  "absolute pointer-events-none object-contain",
  currentAccessory.id.includes('hat') ? "top-[-10%] left-1/2 -translate-x-1/2 w-1/2 h-1/2" :
@@ -342,11 +353,20 @@ export default function GlikoAssistant({
               <h3 className="font-black text-sm tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
                 {assistantName}
               </h3>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 px-2.5 py-0.5 rounded-full border border-indigo-500/20 shadow-sm">
+              <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/20 shadow-sm flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   ⚡ {activeAiModel.replace('gemini-', 'Gemini ').replace('-flash', ' Flash').replace('-pro', ' Pro')}
                 </span>
+                {currentBg !== null && (
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700/60 flex items-center gap-1">
+                    <span className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      currentBg < 70 ? "bg-rose-500 animate-ping" : currentBg > 180 ? "bg-amber-500" : "bg-emerald-500"
+                    )} />
+                    {currentBg} mg/dL {currentTrend ? `(${currentTrend})` : ''}
+                  </span>
+                )}
               </div>
             </div>
           </div>

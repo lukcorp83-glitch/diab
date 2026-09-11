@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion, AnimatePresence } from 'motion/react';
 import { LogEntry } from '../types';
-import { AlertCircle, FileQuestion, Bug, X } from 'lucide-react';
+import { AlertCircle, FileQuestion, Search, X } from 'lucide-react';
 import InsulinDetective from './InsulinDetective';
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
@@ -105,7 +105,7 @@ export default function InsulinDetectiveAlert({}: InsulinDetectiveAlertProps) {
  onClick={() => setShowSurvey(true)}
  className="px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-rose-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 w-full md:w-auto"
  >
- <Bug size={16} />
+ <Search size={16} />
  
  {t('auto.insulina_nie_działa', { defaultValue: i18n.t('auto.insulina_nie_dziala', { defaultValue: "Insulina nie działa?" }) })}
  </button>

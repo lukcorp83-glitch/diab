@@ -1,10 +1,10 @@
 {
-    "version": "6.0.44",
+    "version": "6.0.45",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.44_OTA.apk",
-    "buildNumber": 159,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.45_OTA.apk",
+    "buildNumber": 160,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.44! 1) Pełne połączenie opcji 'Informacje o cukrach na pasku powiadomień' z natywnym systemem Androida – wyłączenie opcji w profilu natychmiast usuwa ciągłe powiadomienie (ID: 999) z paska stanu i ekranu blokady. 2) Zachowanie ciągłego działania serwisu tła bez zaśmiecania paska powiadomień. 3) Dodano przełącznik powiadomień systemowych również do sekcji Profil -> System & Aplikacja. 4) Dalsze usprawnienia stabilności i synchronizacji.",
-    "whatsNewEn": "Version 6.0.44! 1) Fully connected 'Blood glucose on notification bar' toggle with Android native system – turning it off immediately dismisses the continuous status bar notification (ID: 999). 2) Background service keeps running reliably without cluttering the notification shade. 3) Added notification toggle to Profile -> System & App settings as well. 4) Further stability and sync improvements.",
-    "otaRevision": 318
+    "whatsNew": "Optymalizacja aplikacji",
+    "whatsNewEn": "Application optimization",
+    "otaRevision": 319
 }

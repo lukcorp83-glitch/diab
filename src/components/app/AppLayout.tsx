@@ -329,22 +329,12 @@ export function AppLayout({
           ref={mainRef}
           className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto overscroll-y-auto overflow-x-hidden no-scrollbar"
         >
-          <AnimatePresence mode="wait" custom={direction} initial={false}>
-            <motion.div
-              key={activeTab}
-              custom={direction}
-              variants={tabVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.12, ease: "easeOut" }}
-              className={cn(
-                "w-full min-h-full p-4 pb-32 flex flex-col",
-              )}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <div
+            key={activeTab}
+            className="w-full min-h-full p-4 pb-32 flex flex-col animate-in fade-in duration-100"
+          >
+            {children}
+          </div>
         </main>
         {/* Navigation */}
         {!isShortcutMode && (

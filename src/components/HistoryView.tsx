@@ -2,8 +2,10 @@ import i18n from '../i18n';
 import { useLogsStore } from "../stores/useLogsStore";
 import { getEffectiveUid, extractInfusionSite } from "../lib/utils";
 import { requireParentalAuth } from "../lib/childPermissions";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+
+const PAGE_SIZE = 40;
 import { LogEntry } from "../types";
 import {
  Activity,
@@ -46,13 +48,59 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
  const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
  const [deletingLog, setDeletingLog] = useState<LogEntry | null>(null);
  const [isDeleting, setIsDeleting] = useState(false);
- const [listFilter, setListFilter] = useState<"all" | "glucose" | "treatment">(
- "treatment",
- );
+  const [listFilter, setListFilter] = useState<"all" | "glucose" | "treatment">(
+    "treatment",
+  );
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
- useEffect(() => {
- window.scrollTo(0, 0);
- }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [listFilter]);
+
+  const filteredLogs = useMemo(() => {
+    return (logs || []).filter((log) => {
+      if (listFilter === "glucose") return log.type === "glucose";
+      if ((listFilter as any) === "equipment") return log.type === "site_change" || log.type === "sensor_change";
+      if (listFilter === "treatment") {
+        return (
+          log.type === "bolus" ||
+          (log.type as any) === "insulin" ||
+          log.type === "meal" ||
+          log.type === "site_change" ||
+          log.type === "sensor_change"
+        );
+      }
+      return true;
+    });
+  }, [logs, listFilter]);
+
+  const displayedLogs = useMemo(() => {
+    return filteredLogs.slice(0, visibleCount);
+  }, [filteredLogs, visibleCount]);
+
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => {
+            if (prev < filteredLogs.length) {
+              return Math.min(prev + PAGE_SIZE, filteredLogs.length);
+            }
+            return prev;
+          });
+        }
+      },
+      { rootMargin: "350px" }
+    );
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [filteredLogs.length]);
 
  const executeDelete = async (logToDelete: LogEntry) => {
    if (settings?.followerMode) return;
@@ -270,22 +318,7 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
   </div>
 
   <div className="space-y-1 will-change-transform">
-  {logs
-  .filter((log) => {
-  if (listFilter === "glucose") return log.type === "glucose";
-  if ((listFilter as any) === "equipment") return log.type === "site_change" || log.type === "sensor_change";
-  if (listFilter === "treatment")
-  return (
-  log.type === "bolus" ||
-  (log.type as any) === "insulin" ||
-  log.type === "meal" ||
-  log.type === "site_change" ||
-  log.type === "sensor_change"
-  );
-  return true;
-  })
-  .slice(0, 1000)
-  .map((log, idx) => {
+  {displayedLogs.map((log, idx) => {
   const handleDeleteItem = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (settings?.followerMode) return;
@@ -303,7 +336,7 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
   key={`${log.id}-${idx}`}
   initial={{ opacity: 0, y: 10 }}
   animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: Math.min(idx * 0.05, 0.5), duration: 0.2 }}
+  transition={{ delay: Math.min((idx % PAGE_SIZE) * 0.02, 0.2), duration: 0.15 }}
   >
   <SwipeableItem
   id={log.id}
@@ -563,7 +596,24 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
   </motion.div>
   );
   })}
- {logs.length === 0 && (
+
+  {visibleCount < filteredLogs.length && (
+    <div ref={loadMoreRef} className="py-6 flex flex-col items-center justify-center gap-2">
+      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+        <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
+        <span>{t('common.loadingMore', { defaultValue: 'Wczytywanie kolejnych wpisów...' })}</span>
+      </div>
+      <button
+        type="button"
+        onClick={() => setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredLogs.length))}
+        className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline mt-1 cursor-pointer"
+      >
+        {t('common.loadMore', { defaultValue: 'Pokaż więcej' })} ({filteredLogs.length - visibleCount})
+      </button>
+    </div>
+  )}
+
+  {filteredLogs.length === 0 && (
  <div className="flex flex-col items-center justify-center py-20 bg-gradient-to-b from-slate-50/50 to-slate-100/50 dark:from-slate-800/20 dark:to-slate-900/20 rounded-[3rem] border-2 border-dashed border-slate-200/60 dark:border-slate-700/50 opacity-80 backdrop-blur-sm">
  <div className="w-16 h-16 rounded-[2rem] bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 shadow-inner ring-1 ring-slate-200 dark:ring-slate-700/50 text-slate-300 dark:text-slate-600">
  <span className="text-2xl">📝</span>

@@ -1994,5 +1994,7 @@
   "update.tip_title": "Tip:",
   "update.tip_text": "If the download stalls at 99% or the installer popup does not appear, swipe down the notification bar or open the \"Files\" app ➔ \"Downloads\" folder and tap the APK file.",
   "auto.gdy_pobieranie_stanie_na_99": "If the download stalls at 99% or the installer popup doesn't appear automatically: swipe down the notification shade or open the \"Files\" app (Downloads folder) and tap the downloaded APK file.",
-  "auto.status_pompy_na_pulpicie": "Pump Status (Dashboard)"
+  "auto.status_pompy_na_pulpicie": "Pump Status (Dashboard)",
+  "common.loadingMore": "Loading more entries...",
+  "common.loadMore": "Load more"
 }

@@ -250,34 +250,38 @@ export default function GlikoChat({ petData, settings }: { petData: any, setting
  const assetSize = size === 'sm' ? "text-xl" : size === 'md' ? "text-3xl" : "text-5xl";
 
  return (
- <div className={containerClasses}>
- {src && imageError !== src ? (
- <img 
- src={src} 
- alt="Pet" 
- className="w-full h-full object-contain p-1" 
- referrerPolicy="no-referrer" 
- onError={() => setImageError(src)}
- />
- ) : (
- <span className={assetSize}>{emoji || '🐾'}</span>
- )}
- 
- {currentAccessory && currentAccessory.id !== 'none' && currentAccessory.imageUrl && (
- <img 
- src={currentAccessory.imageUrl} 
- alt="Accessory" 
- className={cn(
- "absolute pointer-events-none",
- currentAccessory.id.includes('hat') ? "top-[-10%] left-1/2 -translate-x-1/2 w-1/2 h-1/2" :
- currentAccessory.id.includes('glasses') ? "top-[20%] left-1/2 -translate-x-1/2 w-1/2 h-1/2" :
- currentAccessory.id.includes('crown') ? "top-[-20%] left-1/2 -translate-x-1/2 w-1/2 h-1/2" :
- "bottom-[10%] left-1/2 -translate-x-1/2 w-1/3 h-1/3"
- )}
- referrerPolicy="no-referrer"
- />
- )}
- </div>
+  <div className={containerClasses}>
+  {src && imageError !== src ? (
+  <img 
+  src={src} 
+  alt="Pet" 
+  loading="eager"
+  decoding="async"
+  className="w-full h-full object-contain p-1" 
+  referrerPolicy="no-referrer" 
+  onError={() => setImageError(src)}
+  />
+  ) : (
+  <span className={assetSize}>{emoji || '🐾'}</span>
+  )}
+  
+  {currentAccessory && currentAccessory.id !== 'none' && currentAccessory.imageUrl && (
+  <img 
+  src={currentAccessory.imageUrl} 
+  alt="Accessory" 
+  loading="eager"
+  decoding="async"
+  className={cn(
+  "absolute pointer-events-none",
+  currentAccessory.id.includes('hat') ? "top-[-10%] left-1/2 -translate-x-1/2 w-1/2 h-1/2" :
+  currentAccessory.id.includes('glasses') ? "top-[20%] left-1/2 -translate-x-1/2 w-1/2 h-1/2" :
+  currentAccessory.id.includes('crown') ? "top-[-20%] left-1/2 -translate-x-1/2 w-1/2 h-1/2" :
+  "bottom-[10%] left-1/2 -translate-x-1/2 w-1/3 h-1/3"
+  )}
+  referrerPolicy="no-referrer"
+  />
+  )}
+  </div>
  );
  };
  const [messages, setMessages] = useState<Message[]>(() => {

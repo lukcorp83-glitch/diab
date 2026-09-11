@@ -241,18 +241,30 @@ export default function Dashboard({
   isShortcutMode
 }: DashboardProps) {
   const user = useAuthStore(state => state.user);
-  const { logs } = useLogsStore();
-  const effSensorDate = Math.max(
-    settings?.sensorChangeDate || 0,
-    Number(localStorage.getItem('sensorChangeDate') || 0),
-    logs.filter((l: any) => l.type === 'sensor_change' || l.type === 'sensor').reduce((max: number, l: any) => Math.max(max, l.timestamp || 0), 0)
-  ) || undefined;
+  const logs = useLogsStore(state => state.logs);
+  const effSensorDate = useMemo(() => {
+    const rawSetting = settings?.sensorChangeDate || 0;
+    const local = Number(localStorage.getItem('sensorChangeDate') || 0);
+    const maxLog = (logs || []).reduce((max: number, l: any) => {
+      if (l.type === 'sensor_change' || l.type === 'sensor') {
+        return Math.max(max, l.timestamp || 0);
+      }
+      return max;
+    }, 0);
+    return Math.max(rawSetting, local, maxLog) || undefined;
+  }, [settings?.sensorChangeDate, logs]);
 
-  const effInfusionDate = Math.max(
-    settings?.infusionSetChangeDate || 0,
-    Number(localStorage.getItem('infusionSetChangeDate') || 0),
-    logs.filter((l: any) => l.type === 'site_change' || l.type === 'site').reduce((max: number, l: any) => Math.max(max, l.timestamp || 0), 0)
-  ) || undefined;
+  const effInfusionDate = useMemo(() => {
+    const rawSetting = settings?.infusionSetChangeDate || 0;
+    const local = Number(localStorage.getItem('infusionSetChangeDate') || 0);
+    const maxLog = (logs || []).reduce((max: number, l: any) => {
+      if (l.type === 'site_change' || l.type === 'site') {
+        return Math.max(max, l.timestamp || 0);
+      }
+      return max;
+    }, 0);
+    return Math.max(rawSetting, local, maxLog) || undefined;
+  }, [settings?.infusionSetChangeDate, logs]);
   const { t } = useTranslation();
   // Tryb leczenia: domyślnie 'insulin' dla wstecznej kompatybilności
   const treatmentMode = settings.treatmentMode ?? 'insulin';
@@ -613,7 +625,22 @@ export default function Dashboard({
     }
   }, [initialAction, settings.followerMode]);
 
-  const lastG = logs.find((l) => l.type === "glucose");
+  const lastG = useMemo(() => {
+    return (logs || []).find((l) => l.type === "glucose" || (l.type as any) === "sgv") || null;
+  }, [logs]);
+
+  const recentGlucoseLogs = useMemo(() => {
+    return (logs || []).filter(log => log.type === 'glucose').slice(0, 3);
+  }, [logs]);
+
+  const recentTreatmentLogs = useMemo(() => {
+    return (logs || []).filter(log => 
+      log.type === 'bolus' || 
+      (log.type as any) === 'insulin' || 
+      log.type === 'meal' || 
+      log.type === 'carbs'
+    ).slice(0, 3);
+  }, [logs]);
 
   const moveWidget = (originalIndex: number, direction: 'up' | 'down') => {
     Haptics.light();
@@ -757,10 +784,12 @@ export default function Dashboard({
     }
   };
 
-  const iob = getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
+  const iob = useMemo(() => {
+    return getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
+  }, [logs, pumpStatus, settings.dia]);
 
-  const calculateTIR = () => {
-    const glucoseLogs = logs.filter((l) => l.type === "glucose");
+  const tir = useMemo(() => {
+    const glucoseLogs = (logs || []).filter((l) => l.type === "glucose");
     if (glucoseLogs.length === 0) return { inRange: 0, high: 0, low: 0 };
 
     const inRange = glucoseLogs.filter(
@@ -775,24 +804,18 @@ export default function Dashboard({
       low: Math.round((low / total) * 100),
       high: Math.round((high / total) * 100),
     };
-  };
+  }, [logs, settings.targetMin, settings.targetMax]);
 
-  const tir = calculateTIR();
-
-  const calculateHbA1c = () => {
-    const glucoseLogs = logs.filter((l) => l.type === "glucose");
+  const hba1c = useMemo(() => {
+    const glucoseLogs = (logs || []).filter((l) => l.type === "glucose");
     if (glucoseLogs.length === 0) return 0;
     const avg =
       glucoseLogs.reduce((acc, l) => acc + l.value, 0) / glucoseLogs.length;
     return (avg + 46.7) / 28.7;
-  };
+  }, [logs]);
 
-  const hba1c = calculateHbA1c();
-
-  const getTrend = () => {
-    const glucoseLogs = logs
-      .filter((l) => l.type === "glucose")
-      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  const trend = useMemo(() => {
+    const glucoseLogs = (logs || []).filter((l) => l.type === "glucose");
     if (glucoseLogs.length < 2) return null;
     const current = glucoseLogs[0];
     const prev = glucoseLogs[1];
@@ -850,9 +873,7 @@ export default function Dashboard({
       deltaText,
       rawDiff: diff
     };
-  };
-
-  const trend = getTrend();
+  }, [logs]);
 
   const patternInsights = useMemo(() => {
     const now = Date.now();
@@ -957,10 +978,11 @@ export default function Dashboard({
     });
   }, [logs, trend]);
 
-  const getTodayStats = () => {
+  const todayStats = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayLogs = logs.filter((l) => l.timestamp >= today.getTime());
+    const todayTs = today.getTime();
+    const todayLogs = (logs || []).filter((l) => (l.timestamp || 0) >= todayTs);
     const meals = todayLogs.filter((l) => l.type === "meal" || l.type === "carbs" || (l.type === "bolus" && l.linkedMeal));
     const insulin = todayLogs.filter((l) => l.type === "bolus");
 
@@ -971,9 +993,7 @@ export default function Dashboard({
       }, 0),
       insulin: insulin.reduce((acc, l) => acc + (l.value || 0), 0),
     };
-  };
-
-  const todayStats = getTodayStats();
+  }, [logs]);
 
 
 
@@ -1425,8 +1445,7 @@ export default function Dashboard({
           );
         }
 
-        const latestGlucoseLog = logs.filter(l => l.type === 'glucose' || (l.type as any) === 'sgv').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
-        const lastGlucoseVal = latestGlucoseLog ? latestGlucoseLog.value : null;
+        const lastGlucoseVal = lastG ? lastG.value : null;
 
         return (
           <QuickBolusWidget
@@ -2047,7 +2066,7 @@ export default function Dashboard({
 
       {/* 8. Recent History View */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {logs.filter(log => log.type === 'glucose').length > 0 && (
+        {recentGlucoseLogs.length > 0 && (
           <motion.div className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
@@ -2058,7 +2077,7 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('glucose'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'glucose').slice(0, 3).map((log, idx) => (
+               {recentGlucoseLogs.map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                       <div className="glass-card !p-4 flex items-center gap-4">
@@ -2081,7 +2100,7 @@ export default function Dashboard({
           </motion.div>
         )}
 
-        {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').length > 0 && (
+        {recentTreatmentLogs.length > 0 && (
           <motion.div className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
@@ -2092,7 +2111,7 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal' || log.type === 'carbs').slice(0, 3).map((log, idx) => (
+               {recentTreatmentLogs.map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                       <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">

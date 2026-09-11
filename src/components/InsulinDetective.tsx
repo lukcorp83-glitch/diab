@@ -2,7 +2,7 @@ import i18n from '../i18n';
 import { useLogsStore } from "../stores/useLogsStore";
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, Loader2, Sparkles, Thermometer, Clock, Syringe, Bug, Activity } from 'lucide-react';
+import { AlertTriangle, Loader2, Sparkles, Thermometer, Clock, Syringe, Search, Activity } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { cn } from '../lib/utils';
 import { LogEntry } from '../types';
@@ -53,7 +53,7 @@ export default function InsulinDetective({ onClose }: InsulinDetectiveProps) {
  <div className="p-6 bg-white dark:bg-[#121212] border-b border-slate-200 dark:border-white/10 sticky top-0 z-10 flex items-center justify-between">
  <div className="flex items-center gap-3">
  <div className="w-12 h-12 rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400">
- <Bug size={24} />
+ <Search size={24} />
  </div>
  <div>
  <h1 className="text-xl font-bold tracking-tight">{t('auto.insulina_nie_działa', { defaultValue: i18n.t('auto.insulina_nie_dziala', { defaultValue: "Insulina Nie Działa?" }) })}</h1>

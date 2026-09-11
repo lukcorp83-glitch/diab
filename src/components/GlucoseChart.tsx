@@ -97,97 +97,199 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  const [lastX, setLastX] = useState<number | null>(null);
 
  useEffect(() => {
- // Reset view when base hours change
- setZoomLevel(1);
- setPanOffsetMs(0);
- }, [hours]);
+  // Reset view when base hours change
+  setZoomLevel(1);
+  setPanOffsetMs(0);
+  }, [hours]);
 
- const containerRef = React.useRef<HTMLDivElement>(null);
- const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const rafIdRef = React.useRef<number | null>(null);
+  const pendingPanRef = React.useRef<number>(0);
 
- const handleZoomIn = (e: React.MouseEvent) => {
- e.stopPropagation();
- setZoomLevel(prev => Math.min(prev * 1.4, 30));
- };
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
 
- const handleZoomOut = (e: React.MouseEvent) => {
- e.stopPropagation();
- setZoomLevel(prev => Math.max(prev / 1.4, 0.1));
- };
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoomLevel(prev => Math.min(prev * 1.4, 30));
+  };
 
- const handleReset = (e: React.MouseEvent) => {
- e.stopPropagation();
- setZoomLevel(1);
- setPanOffsetMs(0);
- };
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoomLevel(prev => Math.max(prev / 1.4, 0.1));
+  };
 
- const handleMouseDownNative = (e: React.MouseEvent) => {
- setIsDragging(true);
- setLastX(e.clientX);
- };
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoomLevel(1);
+    setPanOffsetMs(0);
+  };
 
- const handleMouseMoveNative = (e: React.MouseEvent) => {
- if (isDragging && lastX !== null && containerRef.current) {
- const width = containerRef.current.clientWidth || 1000;
- const rangeMs = (hours * 60 * 60 * 1000) / zoomLevel;
- const msPerPixel = rangeMs / width;
- const deltaX = e.clientX - lastX;
- setPanOffsetMs(prev => prev - (deltaX * msPerPixel));
- setLastX(e.clientX);
- }
- };
+  const minPanOffset = useMemo(() => {
+    if (!logs || logs.length === 0) return -7 * 24 * 60 * 60 * 1000;
+    let earliest = Date.now();
+    for (const l of logs) {
+      const ts = (l as any).timestamp || ((l as any).createdAt ? new Date((l as any).createdAt).getTime() : 0);
+      if (ts > 0 && ts < earliest) earliest = ts;
+    }
+    return Math.min(-24 * 60 * 60 * 1000, earliest - Date.now() - 12 * 60 * 60 * 1000);
+  }, [logs]);
 
- const handleMouseUpNative = () => {
- setIsDragging(false);
- setLastX(null);
- };
+  const clampPanOffset = useCallback((offset: number) => {
+    return Math.max(minPanOffset, Math.min(0, offset));
+  }, [minPanOffset]);
 
- const handleTouchStartNative = (e: React.TouchEvent) => {
- if (e.touches.length === 1) {
- setIsDragging(true);
- setLastX(e.touches[0].clientX);
- setCrosshair(null); // Dismiss crosshair on pan
- }
- };
+  const handleMouseDownNative = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setLastX(e.clientX);
+  };
 
- const handleTouchMoveNative = (e: React.TouchEvent) => {
- if (isDragging && e.touches.length === 1 && lastX !== null && containerRef.current) {
- const width = containerRef.current.clientWidth || 1000;
- const rangeMs = (hours * 60 * 60 * 1000) / zoomLevel;
- const msPerPixel = rangeMs / width;
- const currentX = e.touches[0].clientX;
- const deltaX = currentX - lastX;
- setPanOffsetMs(prev => prev - (deltaX * msPerPixel));
- setLastX(currentX);
- }
- };
+  const handleMouseMoveNative = (e: React.MouseEvent) => {
+    if (isDragging && lastX !== null && containerRef.current) {
+      const width = containerRef.current.clientWidth || 1000;
+      const rangeMs = (hours * 60 * 60 * 1000) / zoomLevel;
+      const msPerPixel = rangeMs / width;
+      const deltaX = e.clientX - lastX;
+      setLastX(e.clientX);
+      pendingPanRef.current += deltaX * msPerPixel;
 
- const handleWheel = (e: React.WheelEvent) => {
- // Only zoom if ctrl key is pressed or just scroll? 
- // Usually on mobile it's pinch. On desktop wheel is good.
- if (Math.abs(e.deltaY) > 0) {
- const factor = e.deltaY > 0 ? 0.9 : 1.1;
- setZoomLevel(prev => {
- const next = prev * factor;
- return Math.max(0.1, Math.min(30, next));
- });
- }
- };
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          const delta = pendingPanRef.current;
+          pendingPanRef.current = 0;
+          rafIdRef.current = null;
+          if (delta !== 0) {
+            setPanOffsetMs(prev => clampPanOffset(prev - delta));
+          }
+        });
+      }
+    }
+  };
+
+  const handleMouseUpNative = () => {
+    setIsDragging(false);
+    setLastX(null);
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    pendingPanRef.current = 0;
+  };
+
+  const handleTouchStartNative = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setLastX(e.touches[0].clientX);
+      setCrosshair(null);
+    }
+  };
+
+  const handleTouchMoveNative = (e: React.TouchEvent) => {
+    if (isDragging && e.touches.length === 1 && lastX !== null && containerRef.current) {
+      const width = containerRef.current.clientWidth || 1000;
+      const rangeMs = (hours * 60 * 60 * 1000) / zoomLevel;
+      const msPerPixel = rangeMs / width;
+      const currentX = e.touches[0].clientX;
+      const deltaX = currentX - lastX;
+      setLastX(currentX);
+      pendingPanRef.current += deltaX * msPerPixel;
+
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          const delta = pendingPanRef.current;
+          pendingPanRef.current = 0;
+          rafIdRef.current = null;
+          if (delta !== 0) {
+            setPanOffsetMs(prev => clampPanOffset(prev - delta));
+          }
+        });
+      }
+    }
+  };
+
+  // Pre-sort and partition logs ONCE when logs change, rather than on every pan move
+  const partitionedLogs = useMemo(() => {
+    const getLogTs = (l: any) => l.timestamp || (l.createdAt ? new Date(l.createdAt).getTime() : 0);
+    const gLogs: any[] = [];
+    const bLogs: any[] = [];
+    const mLogs: any[] = [];
+    const siteLogs: any[] = [];
+    const sensorLogs: any[] = [];
+
+    for (let i = 0; i < (logs || []).length; i++) {
+      const l = logs[i];
+      const ts = getLogTs(l);
+      if (l.type === 'glucose' || l.type === 'sgv') {
+        gLogs.push({ ...l, timestamp: ts });
+      } else if (l.type === 'bolus' || (l.type as any) === 'insulin') {
+        bLogs.push({ ...l, timestamp: ts });
+      } else if (l.type === 'meal') {
+        mLogs.push({ ...l, timestamp: ts });
+      } else if (l.type === 'site_change') {
+        siteLogs.push({ ...l, timestamp: ts });
+      } else if (l.type === 'sensor_change') {
+        sensorLogs.push({ ...l, timestamp: ts });
+      }
+    }
+
+    gLogs.sort((a, b) => a.timestamp - b.timestamp);
+    bLogs.sort((a, b) => a.timestamp - b.timestamp);
+    mLogs.sort((a, b) => a.timestamp - b.timestamp);
+    siteLogs.sort((a, b) => a.timestamp - b.timestamp);
+    sensorLogs.sort((a, b) => a.timestamp - b.timestamp);
+
+    return { gLogs, bLogs, mLogs, siteLogs, sensorLogs };
+  }, [logs]);
+
+  // Compute insulin stacking events ONCE when boluses change, NOT during pan
+  const stackingEvents = useMemo(() => {
+    const diaHours = settings?.dia || 4;
+    const { bLogs } = partitionedLogs;
+    const events = new Set<number>();
+    const diaMs = diaHours * 60 * 60 * 1000;
+
+    for (let i = 1; i < bLogs.length; i++) {
+      const current = bLogs[i];
+      let startIdx = i - 1;
+      while (startIdx >= 0 && current.timestamp - bLogs[startIdx].timestamp < diaMs) {
+        startIdx--;
+      }
+      const previousBoluses = bLogs.slice(startIdx + 1, i);
+      if (previousBoluses.length > 0) {
+        const activeInsulinBefore = calculateIOBAt(current.timestamp - 1000, previousBoluses, diaHours);
+        if (activeInsulinBefore > 0.5) {
+          events.add(current.timestamp);
+        }
+      }
+    }
+    return events;
+  }, [partitionedLogs, settings?.dia]);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (Math.abs(e.deltaY) > 0) {
+      const factor = e.deltaY > 0 ? 0.9 : 1.1;
+      setZoomLevel(prev => {
+        const next = prev * factor;
+        return Math.max(0.1, Math.min(30, next));
+      });
+    }
+  };
 
  const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end, hasData } = useMemo(() => {
  let now = Date.now();
+ const { gLogs, bLogs, mLogs, siteLogs, sensorLogs } = partitionedLogs;
  
  // Logic for 'now' focus
- if (logs.length > 0) {
- const gLogs = logs.filter(l => l.type === 'glucose');
  if (gLogs.length > 0) {
- let latestLogTime = 0;
- for (const l of gLogs) {
- if (l.timestamp > latestLogTime) latestLogTime = l.timestamp;
- }
+ const latestLogTime = gLogs[gLogs.length - 1].timestamp;
  if (Date.now() - latestLogTime > 2 * 60 * 60 * 1000) {
  now = latestLogTime + 30 * 60 * 1000;
- }
  }
  }
 
@@ -199,28 +301,14 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  const start = now - rangeMs + panOffsetMs;
  const end = start + totalMs;
 
-  const dataG = logs.filter(l => l.type === 'glucose' && l.timestamp >= start - rangeMs).sort((a, b) => a.timestamp - b.timestamp);
-  const dataB = logs.filter(l => (l.type === 'bolus' || (l.type as any) === 'insulin') && l.timestamp >= start - rangeMs).sort((a, b) => a.timestamp - b.timestamp);
-  const getTs = (l: any) => l.timestamp || new Date(l.createdAt).getTime();
- const dataM = logs.filter(l => l.type === 'meal' && getTs(l) >= start - rangeMs).map(l => ({...l, timestamp: getTs(l)}));
- const dataSite = logs.filter(l => l.type === 'site_change' && l.timestamp >= start - rangeMs);
- const dataSensor = logs.filter(l => l.type === 'sensor_change' && l.timestamp >= start - rangeMs);
+ const dataG = gLogs.filter(l => l.timestamp >= start - rangeMs && l.timestamp <= end + rangeMs);
+ const dataB = bLogs.filter(l => l.timestamp >= start - rangeMs && l.timestamp <= end + rangeMs);
+ const dataM = mLogs.filter(l => l.timestamp >= start - rangeMs && l.timestamp <= end + rangeMs);
+ const dataSite = siteLogs.filter(l => l.timestamp >= start - rangeMs && l.timestamp <= end + rangeMs);
+ const dataSensor = sensorLogs.filter(l => l.timestamp >= start - rangeMs && l.timestamp <= end + rangeMs);
 
  const diaHours = settings?.dia || 4;
  const diaMs = diaHours * 60 * 60 * 1000;
-
- // Detect insulin stacking (overlapping boluses)
- const stackingEvents = new Set<number>();
- for (let i = 1; i < dataB.length; i++) {
- const current = dataB[i];
- const previousBoluses = dataB.slice(0, i);
- const activeInsulinBefore = calculateIOBAt(current.timestamp - 1000, previousBoluses, diaHours);
- 
- // If we take a bolus while more than 0.5 units or 20% of previous dose is active
- if (activeInsulinBefore > 0.5) {
- stackingEvents.add(current.timestamp);
- }
- }
 
   let loopPredictions: { timestamp: number, value: number, actionType?: 'bolus' | 'suspend', actionAmount?: number }[] = [];
   let mlPredictionData: { timestamp: number, value: number, confidenceMin?: number, confidenceMax?: number }[] = [];
@@ -381,16 +469,15 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  if (extra) Object.assign(p, extra);
  };
 
- const allG = logs.filter(l => l.type === 'glucose').sort((a,b) => a.timestamp - b.timestamp);
- const absoluteLatest = allG.length > 0 ? allG[allG.length - 1].timestamp : 0;
+ const absoluteLatest = gLogs.length > 0 ? gLogs[gLogs.length - 1].timestamp : 0;
  
  let globalVelocity = 0;
- if (allG.length >= 2) {
- const last = allG[allG.length - 1];
- let prev = allG[allG.length - 2];
- for (let i = allG.length - 2; i >= 0; i--) {
- if (last.timestamp - allG[i].timestamp >= 20 * 60000) {
- prev = allG[i];
+ if (gLogs.length >= 2) {
+ const last = gLogs[gLogs.length - 1];
+ let prev = gLogs[gLogs.length - 2];
+ for (let i = gLogs.length - 2; i >= 0; i--) {
+ if (last.timestamp - gLogs[i].timestamp >= 20 * 60000) {
+ prev = gLogs[i];
  break;
  }
  }
@@ -430,10 +517,10 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  }
 
  // Now calculate IOB and Activity for EVERY point in the map to prevent gaps
- const bolusLogs = logs.filter(l => l.type === 'bolus' || (l.type as any) === 'insulin');
+ const relevantBoluses = bLogs.filter(l => l.timestamp >= start - diaMs && l.timestamp <= end);
  timeMap.forEach((point, t) => {
- point.iob = calculateIOBAt(t, bolusLogs, diaHours);
- point.activity = calculateActivityAt(t, bolusLogs, diaHours);
+ point.iob = calculateIOBAt(t, relevantBoluses, diaHours);
+ point.activity = calculateActivityAt(t, relevantBoluses, diaHours);
  });
 
  dataM.forEach(d => addPoint(d.timestamp, 'mealVal', true, { originalM: d, mealY: chartMinY }));
