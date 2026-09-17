@@ -148,7 +148,12 @@ jobs:
           distribution: 'temurin'
 
       - name: 🤖 Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+
+      - name: 📄 Akceptacja licencji Android SDK
+        run: yes | sdkmanager --licenses || true
 
       - name: 📦 Instalacja zależności npm
         run: npm install --no-audit --no-fund
