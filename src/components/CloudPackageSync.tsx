@@ -5,7 +5,7 @@ import { CloudUpload, CloudDownload, Loader2, Cloud, Clock } from 'lucide-react'
 import { toast } from 'react-hot-toast';
 import { loadLocalLogs, saveLocalLogs } from '../lib/localLogs';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { getEffectiveUid, cn } from '../lib/utils';
 import { UserSettings } from '../types';
 import { useTranslation } from "react-i18next";
@@ -14,8 +14,12 @@ import { dbService } from '../services/databaseService';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 import * as LZString from 'lz-string';
 
+const getUtf8ByteLength = (str: string): number => {
+  return new TextEncoder().encode(str).length;
+};
+
 export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
-  const currentUser = user || auth.currentUser;
+  const currentUser = user || auth?.currentUser;
   if (!currentUser) return false;
   const uid = getEffectiveUid(currentUser) || currentUser.uid;
   if (!uid) return false;
@@ -24,8 +28,12 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
     const lsData: Record<string, string> = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && !key.startsWith('firebase')) {
-        lsData[key] = localStorage.getItem(key) || '';
+      if (key && !key.startsWith('firebase') && !key.startsWith('auto_cloud_restore')) {
+        const val = localStorage.getItem(key) || '';
+        // Pomiń wielkie klucze tymczasowe i pamięci podręcznej powyżej 30 KB
+        if (val.length < 30000 && !key.includes('dataset') && !key.includes('backup_package')) {
+          lsData[key] = val;
+        }
       }
     }
   
@@ -37,52 +45,85 @@ export const uploadCloudPackage = async (user: any, settings: UserSettings) => {
     activeLogs.forEach((l: any) => { if (l && l.id) allMap.set(l.id, l); });
     let logsToSave = Array.from(allMap.values()).sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
     
-    // Zrzut (Eksport) całej wyuczonej struktury i wag sieci neuronowej GlikoSense
+    // Zrzut (Eksport) struktury i wag sieci neuronowej GlikoSense
     const mlModelBackup = await MLAnalyzer.exportCurrentModel().catch(e => {
       console.warn("Could not export ML model during cloud sync", e);
       return null;
     });
 
-    // Inteligentny kompresor z bezpiecznym buforem Firebase (max 900 KB, twardy limit Firestore to 1048576 B)
-    const MAX_SAFE_BYTES = 900 * 1024;
+    // Twardy limit właściwości w Firestore to 1 048 487 bajtów w kodowaniu UTF-8.
+    // Ustawiamy bezpieczny próg 750 KB (768 000 bajtów), gwarantując brak błędu Firebase.
+    const MAX_SAFE_BYTES = 750 * 1024;
     let compressedPayload = '';
-    let maxLogsLimit = Math.min(logsToSave.length, 30000);
+    let candidateLogsCount = Math.min(logsToSave.length, 25000);
+    let candidateLogs: any[] = [];
+    let includeMlModel = !!mlModelBackup;
 
-    while (maxLogsLimit >= 2000) {
-      const candidateLogs = logsToSave.slice(0, maxLogsLimit);
-      const exportData = {
+    while (candidateLogsCount >= 100) {
+      candidateLogs = logsToSave.slice(0, candidateLogsCount);
+      const exportData: any = {
         timestamp: Date.now(),
         localStorage: lsData,
         logs: candidateLogs,
-        mlModel: mlModelBackup,
         settings: settings
       };
+      if (includeMlModel) {
+        exportData.mlModel = mlModelBackup;
+      }
 
       const jsonStr = JSON.stringify(exportData);
-      compressedPayload = LZString.compressToUTF16(jsonStr);
-      const estimatedBytes = compressedPayload.length * 2;
+      
+      // Testujemy kompresję Base64 (w UTF-8 każdy znak Base64 zajmuje dokładnie 1 bajt)
+      const b64 = LZString.compressToBase64(jsonStr);
+      const b64Bytes = getUtf8ByteLength(b64);
 
-      console.log(`[CloudPackageSync] Packing ${candidateLogs.length} logs: size is ${Math.round(estimatedBytes / 1024)} KB / 1024 KB max`);
+      // Oraz kompresję UTF-16
+      const utf16 = LZString.compressToUTF16(jsonStr);
+      const utf16Bytes = getUtf8ByteLength(utf16);
 
-      if (estimatedBytes < MAX_SAFE_BYTES) {
+      let chosen = b64;
+      let chosenBytes = b64Bytes;
+      let compressionType = 'base64';
+
+      if (utf16Bytes < b64Bytes) {
+        chosen = utf16;
+        chosenBytes = utf16Bytes;
+        compressionType = 'utf16';
+      }
+
+      console.log(`[CloudPackageSync] Packing ${candidateLogs.length} logs: size is ${Math.round(chosenBytes / 1024)} KB (${compressionType}) / 1024 KB max`);
+
+      if (chosenBytes < MAX_SAFE_BYTES) {
+        compressedPayload = chosen;
         break;
       }
-      // Jeśli paczka zbliża się do limitu Firebase, delikatnie redukujemy najstarsze logi
-      maxLogsLimit = Math.floor(maxLogsLimit * 0.75);
+
+      // Jeśli nadal za duża i zawiera model ML, najpierw odrzucamy wagi ML
+      if (includeMlModel) {
+        includeMlModel = false;
+        continue;
+      }
+
+      // Zmniejszamy liczbę logów o 30% w każdej kolejnej próbie
+      candidateLogsCount = Math.floor(candidateLogsCount * 0.7);
     }
 
-    await Promise.all([
-      setDoc(
-        doc(db, "users", uid, "syncPackage", "latest"),
-        { payload: compressedPayload, timestamp: Date.now(), isCompressed: true }
-      ),
-      setDoc(
-        doc(db, "artifacts/diacontrolapp/users", uid, "syncPackage", "latest"),
-        { payload: compressedPayload, timestamp: Date.now(), isCompressed: true }
-      ).catch(() => {})
-    ]);
+    if (!compressedPayload) {
+      const minData = {
+        timestamp: Date.now(),
+        localStorage: lsData,
+        logs: logsToSave.slice(0, 100),
+        settings: settings
+      };
+      compressedPayload = LZString.compressToBase64(JSON.stringify(minData));
+    }
+
+    await setDoc(
+      doc(db, "users", uid, "syncPackage", "latest"),
+      { payload: compressedPayload, timestamp: Date.now(), isCompressed: true, logsCount: candidateLogs.length }
+    );
     localStorage.setItem('last_cloud_package_sync', Date.now().toString());
-    console.log(`[CloudPackageSync] Successfully saved package to Firestore (well under 1MB limit).`);
+    console.log(`[CloudPackageSync] Successfully saved package to Firestore (${Math.round(getUtf8ByteLength(compressedPayload) / 1024)} KB, ${candidateLogs.length} logs).`);
     return true;
   } catch (e) {
     console.error("Cloud package upload failed:", e);
@@ -121,8 +162,8 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
       if (data && data.payload) {
         try {
           if (data.isCompressed) {
-            let decompressed = LZString.decompressFromUTF16(data.payload);
-            if (!decompressed) decompressed = LZString.decompressFromBase64(data.payload);
+            let decompressed = LZString.decompressFromBase64(data.payload);
+            if (!decompressed) decompressed = LZString.decompressFromUTF16(data.payload);
             if (!decompressed) decompressed = LZString.decompress(data.payload);
             if (!decompressed) decompressed = LZString.decompressFromEncodedURIComponent(data.payload);
             if (decompressed) {

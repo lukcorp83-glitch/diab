@@ -210,6 +210,15 @@
     "step10_title": "Important Medical Disclaimer",
     "step6_desc": "Your medical data is sacred. It is NOT processed for advertising purposes or shared with anyone without your explicit consent. Everything is encrypted and secure."
   },
+  "trend": {
+    "double_up": "rising fast",
+    "single_up": "rising",
+    "forty_five_up": "rising slowly",
+    "double_down": "falling fast",
+    "single_down": "falling",
+    "forty_five_down": "falling slowly",
+    "flat": "stable"
+  },
   "bolus": {
     "title": "Dose Calculator",
     "sugar": "Blood Sugar",

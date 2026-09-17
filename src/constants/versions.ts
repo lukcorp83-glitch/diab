@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.45';
+export const CURRENT_VERSION = '6.0.46';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.46",
+    date: "2026-09-17",
+    title: "Naprawa zawieszania widżetów, stabilizacja serwisu w tle i optymalizacja bazy",
+    changes: [
+      "Naprawiono pętlę serwisu w tle (GlikoForegroundService), gwarantując ciągłe odświeżanie danych 24/7",
+      "Zabezpieczono harmonogram alarmów widżetów Androida przed przerwaniem przy błędach sieciowych",
+      "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
+      "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
+      "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
+    ]
+  },
+  {
     version: "6.0.45",
     date: "2026-09-11",
     title: "Optymalizacja aplikacji",
@@ -65,24 +77,24 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "GlikoSense 4.1: wprowadzono bezpiecznik kliniczny eliminujący sprzeczne komunikaty o ukrytym wysiłku przy hiperglikemii",
       "Naprawiono błąd 'Sparkles is not defined' w module wizualnej weryfikacji potraw aparatu AI",
       "Naprawiono błąd 'useMemo is not defined' oraz 500 Internal Server Error przy generowaniu kluczy API dla xDrip+"
-    ]
-  },
-  {
-    version: "6.0.41",
-    date: "2026-09-08",
-    title: "Trwałe Usuwanie z Historii, Inteligentne Wykrywanie Wkłuć i Pamięć Zbiorniczka Pompy",
-    changes: [
-      "Trwałe usuwanie historii: usunięte posiłki, bolusy, pomiary i osprzęt są trwale usuwane ze wszystkich warstw (SQLite, IndexedDB, Nightscout i Firestore) bez ryzyka powrotu",
-      "Inteligentne wykrywanie wkłuć (Smart Equipment): eliminacja fałszywych alarmów po przerwie w dostawie danych z Nightscout – aplikacja pamięta ostatni poziom i nie traktuje zera jako odniesienia",
-      "Stabilny wskaźnik zbiorniczka na Pulpicie: zapobieganie chwilowemu zerowaniu poziomu na 0 U podczas przerw w komunikacji pompy z telefonem",
-      "Dodano metodę trwałego usuwania pomiarów cukru z serwera Nightscout (deleteEntry API)",
-      "Synchroniczna ochrona czarnej listy usuniętych identyfikatorów przed ponownym wczytaniem przy restarcie aplikacji"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.46",
+    date: "2026-09-17",
+    title: "Naprawa zawieszania widżetów, stabilizacja serwisu w tle i optymalizacja bazy",
+    changes: [
+      "Naprawiono pętlę serwisu w tle (GlikoForegroundService), gwarantując ciągłe odświeżanie danych 24/7",
+      "Zabezpieczono harmonogram alarmów widżetów Androida przed przerwaniem przy błędach sieciowych",
+      "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
+      "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
+      "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
+    ]
+  },
+  {
     version: "6.0.45",
     date: "2026-09-11",
     title: "Optymalizacja aplikacji",
@@ -127,18 +139,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "GlikoSense 4.1: wprowadzono bezpiecznik kliniczny eliminujący sprzeczne komunikaty o ukrytym wysiłku przy hiperglikemii",
       "Naprawiono błąd 'Sparkles is not defined' w module wizualnej weryfikacji potraw aparatu AI",
       "Naprawiono błąd 'useMemo is not defined' oraz 500 Internal Server Error przy generowaniu kluczy API dla xDrip+"
-    ]
-  },
-  {
-    version: "6.0.41",
-    date: "2026-09-08",
-    title: "Trwałe Usuwanie z Historii, Inteligentne Wykrywanie Wkłuć i Pamięć Zbiorniczka Pompy",
-    changes: [
-      "Trwałe usuwanie historii: usunięte posiłki, bolusy, pomiary i osprzęt są trwale usuwane ze wszystkich warstw (SQLite, IndexedDB, Nightscout i Firestore) bez ryzyka powrotu",
-      "Inteligentne wykrywanie wkłuć (Smart Equipment): eliminacja fałszywych alarmów po przerwie w dostawie danych z Nightscout – aplikacja pamięta ostatni poziom i nie traktuje zera jako odniesienia",
-      "Stabilny wskaźnik zbiorniczka na Pulpicie: zapobieganie chwilowemu zerowaniu poziomu na 0 U podczas przerw w komunikacji pompy z telefonem",
-      "Dodano metodę trwałego usuwania pomiarów cukru z serwera Nightscout (deleteEntry API)",
-      "Synchroniczna ochrona czarnej listy usuniętych identyfikatorów przed ponownym wczytaniem przy restarcie aplikacji"
     ]
   }
 ];

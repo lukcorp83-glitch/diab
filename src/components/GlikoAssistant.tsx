@@ -19,7 +19,7 @@ import {
  ArrowRight
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
-import { cn } from '../lib/utils';
+import { cn, getTrendInfo } from '../lib/utils';
 import { LogEntry, UserSettings, AssistantMessage } from '../types';
 import { SKINS, ACCESSORIES } from '../data/petDatabase';
 import { Capacitor } from '@capacitor/core';
@@ -358,15 +358,26 @@ export default function GlikoAssistant({
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   ⚡ {activeAiModel.replace('gemini-', 'Gemini ').replace('-flash', ' Flash').replace('-pro', ' Pro')}
                 </span>
-                {currentBg !== null && (
-                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700/60 flex items-center gap-1">
-                    <span className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      currentBg < 70 ? "bg-rose-500 animate-ping" : currentBg > 180 ? "bg-amber-500" : "bg-emerald-500"
-                    )} />
-                    {currentBg} mg/dL {currentTrend ? `(${currentTrend})` : ''}
-                  </span>
-                )}
+                {currentBg !== null && (() => {
+                  const trendInfo = getTrendInfo(currentTrend, t);
+                  return (
+                    <span 
+                      className="text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700/60 flex items-center gap-1.5"
+                      title={trendInfo.label ? `${currentBg} mg/dL • ${trendInfo.label}` : `${currentBg} mg/dL`}
+                    >
+                      <span className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        currentBg < 70 ? "bg-rose-500 animate-ping" : currentBg > 180 ? "bg-amber-500" : "bg-emerald-500"
+                      )} />
+                      <span>{currentBg} mg/dL</span>
+                      {currentTrend && (
+                        <span className="font-extrabold text-xs text-indigo-600 dark:text-indigo-400">
+                          {trendInfo.arrow}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>

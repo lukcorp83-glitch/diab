@@ -571,8 +571,9 @@ public class NightscoutFetcher {
 
     public static void fetchAndUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         new Thread(() -> {
-            SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
-            String nsUrl = prefs.getString("widget_ns_url", "");
+            try {
+                SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+                String nsUrl = prefs.getString("widget_ns_url", "");
             String secret = prefs.getString("widget_ns_secret", "");
             
             int targetMin = 70;
@@ -919,8 +920,11 @@ public class NightscoutFetcher {
                     e.printStackTrace();
                 }
             }
-
-            scheduleNextUpdate(context);
+            } catch (Throwable t) {
+                android.util.Log.e("GlikoControlWidget", "Nieoczekiwany błąd w wątku fetchAndUpdate: " + t.getMessage(), t);
+            } finally {
+                scheduleNextUpdate(context);
+            }
         }).start();
     }
 }

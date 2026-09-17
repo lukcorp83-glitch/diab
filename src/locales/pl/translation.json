@@ -210,6 +210,15 @@
     "step10_title": "Ważna Klauzula Medyczna",
     "step6_desc": "Twoje dane medyczne są święte. NIE są one przetwarzane w celach reklamowych ani udostępniane nikomu bez Twojej wyraźnej zgody. Wszystko jest szyfrowane i bezpieczne."
   },
+  "trend": {
+    "double_up": "szybko rośnie",
+    "single_up": "rośnie",
+    "forty_five_up": "rośnie powoli",
+    "double_down": "szybko spada",
+    "single_down": "spada",
+    "forty_five_down": "spada powoli",
+    "flat": "stabilnie"
+  },
   "bolus": {
     "title": "Kalkulator Dawki",
     "sugar": "Cukier",

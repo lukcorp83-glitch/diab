@@ -69,6 +69,13 @@ export const useUserSettings = (user: any) => {
              if (data.treatmentMode) {
                localStorage.setItem("treatmentMode", data.treatmentMode);
              }
+             if (data.infusionSetSite) {
+               localStorage.setItem("infusionSetSite", data.infusionSetSite);
+               localStorage.setItem("infusionSite", data.infusionSetSite);
+             }
+             if (data.infusionSetChangeDate) {
+               localStorage.setItem("infusionSetChangeDate", String(data.infusionSetChangeDate));
+             }
              localStorage.setItem("hasSeenTutorial", "true");
            } catch(e){}
            return merged;

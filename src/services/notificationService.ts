@@ -193,6 +193,27 @@ export const notificationService = {
   },
 
   async sendHypoProtectionAlert() {
+    try {
+      if (localStorage.getItem('notificationsEnabled') === 'false') return;
+
+      const rawPrefs = localStorage.getItem('notificationPrefs');
+      if (rawPrefs) {
+        const prefs = JSON.parse(rawPrefs);
+        if (prefs.hypo === false || prefs.hypoProtection === false) {
+          console.log('[NotificationService] sendHypoProtectionAlert pominięty - alerty hipo wyłączone w notificationPrefs');
+          return;
+        }
+      }
+      const rawSettings = localStorage.getItem('glikocontrol_user_settings');
+      if (rawSettings) {
+        const s = JSON.parse(rawSettings);
+        if (s.notificationsEnabled === false || s.notificationPrefs?.hypo === false || s.notificationPrefs?.hypoProtection === false) {
+          console.log('[NotificationService] sendHypoProtectionAlert pominięty - alerty hipo wyłączone w glikocontrol_user_settings');
+          return;
+        }
+      }
+    } catch (e) {}
+
     const title = i18n.t('auto.ochrona_przed_hipo', { defaultValue: "Ochrona przed hipo (AI)" });
     const body = i18n.t('auto.uwaga_glikosense_przewiduje_hipo', { defaultValue: "Ostrzeżenie: GlikoSense przewiduje spadek poniżej normy (hipoglikemia)!" });
     
@@ -658,6 +679,24 @@ export const notificationService = {
   },
 
   async triggerGlucoseAlarm(isHigh: boolean, value: number) {
+    try {
+      if (localStorage.getItem('notificationsEnabled') === 'false') return;
+
+      const rawPrefs = localStorage.getItem('notificationPrefs');
+      if (rawPrefs) {
+        const prefs = JSON.parse(rawPrefs);
+        if (isHigh && prefs.hyper === false) return;
+        if (!isHigh && (prefs.hypo === false || prefs.hypoProtection === false)) return;
+      }
+      const rawSettings = localStorage.getItem('glikocontrol_user_settings');
+      if (rawSettings) {
+        const s = JSON.parse(rawSettings);
+        if (s.notificationsEnabled === false) return;
+        if (isHigh && s.notificationPrefs?.hyper === false) return;
+        if (!isHigh && (s.notificationPrefs?.hypo === false || s.notificationPrefs?.hypoProtection === false)) return;
+      }
+    } catch (e) {}
+
     const title = isHigh ? i18n.t('auto.wysoki_cukier', { defaultValue: 'Wysoki Cukier!' }) : i18n.t('auto.niski_cukier', { defaultValue: 'Niski Cukier!' });
     const body = isHigh
       ? `Glikemia wynosi ${value} mg/dL i przekracza zakres docelowy!`

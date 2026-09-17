@@ -210,3 +210,70 @@ export function extractInfusionSite(log?: any): string {
   }
   return "Lewy brzuch";
 }
+
+/**
+ * Konwertuje techniczny kierunek trendu CGM (np. 'SingleUp', 'FortyFiveDown', 'Flat')
+ * na czytelną strzałkę oraz zlokalizowany opis (PL / EN).
+ */
+export function getTrendInfo(trendRaw?: string | null, t?: (key: string, opts?: any) => string): { arrow: string; label: string } {
+  if (!trendRaw) return { arrow: '→', label: '' };
+  const tStr = String(trendRaw).toLowerCase().trim();
+
+  // DoubleUp
+  if (tStr.includes('doubleup') || tStr === '⇈' || tStr === '↑↑') {
+    return {
+      arrow: '⇈',
+      label: t ? t('trend.double_up', { defaultValue: 'szybko rośnie' }) : 'szybko rośnie'
+    };
+  }
+
+  // SingleUp
+  if (tStr.includes('singleup') || tStr === 'up' || tStr === '↑') {
+    return {
+      arrow: '↑',
+      label: t ? t('trend.single_up', { defaultValue: 'rośnie' }) : 'rośnie'
+    };
+  }
+
+  // FortyFiveUp
+  if (tStr.includes('fortyfiveup') || tStr.includes('45up') || tStr === '↗') {
+    return {
+      arrow: '↗',
+      label: t ? t('trend.forty_five_up', { defaultValue: 'rośnie powoli' }) : 'rośnie powoli'
+    };
+  }
+
+  // DoubleDown
+  if (tStr.includes('doubledown') || tStr === '⇊' || tStr === '↓↓') {
+    return {
+      arrow: '⇊',
+      label: t ? t('trend.double_down', { defaultValue: 'szybko spada' }) : 'szybko spada'
+    };
+  }
+
+  // SingleDown
+  if (tStr.includes('singledown') || tStr === 'down' || tStr === '↓') {
+    return {
+      arrow: '↓',
+      label: t ? t('trend.single_down', { defaultValue: 'spada' }) : 'spada'
+    };
+  }
+
+  // FortyFiveDown
+  if (tStr.includes('fortyfivedown') || tStr.includes('45down') || tStr === '↘') {
+    return {
+      arrow: '↘',
+      label: t ? t('trend.forty_five_down', { defaultValue: 'spada powoli' }) : 'spada powoli'
+    };
+  }
+
+  // Flat / Stable
+  if (tStr.includes('flat') || tStr.includes('stable') || tStr === '→' || tStr === 'none') {
+    return {
+      arrow: '→',
+      label: t ? t('trend.flat', { defaultValue: 'stabilnie' }) : 'stabilnie'
+    };
+  }
+
+  return { arrow: '→', label: '' };
+}

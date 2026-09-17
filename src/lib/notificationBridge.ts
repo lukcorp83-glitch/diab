@@ -10,6 +10,9 @@ export interface NotificationBridgePlugin {
   setOngoingNotificationEnabled(options: { enabled: boolean }): Promise<void>;
   startLiveTimer(options: { targetTime: number; title?: string; text?: string; id?: number }): Promise<void>;
   stopLiveTimer(options?: { id?: number }): Promise<void>;
+  syncAlertPreferences(options: { hypoEnabled: boolean; hyperEnabled: boolean; targetMin?: number; targetMax?: number }): Promise<void>;
+  triggerNativeGlucoseAlert(options: { title: string; body: string; isHigh: boolean; value: number }): Promise<void>;
+  getLastAlertInfo(): Promise<{ lastAlertTime: number; lastAlertType: string }>;
   addListener(
     eventName: 'glucoseNotificationReceived',
     listenerFunc: (data: { glucose: number; iob: number; package: string; trend?: string; delta?: number; timestamp?: number }) => void,

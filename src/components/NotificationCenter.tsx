@@ -32,6 +32,7 @@ import { Haptics } from '../lib/haptics';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
+import { NotificationBridge } from '../lib/notificationBridge';
 
 interface AppNotification {
   id: string;
@@ -272,6 +273,11 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
     const newVal = !currentVal;
     const updatedPrefs = { ...DEFAULT_NOTIFICATION_PREFS, ...localPrefs, [prefKey]: newVal };
 
+    // Jeśli wyłączamy/włączamy niedocukrzenia, synchronizujemy też regułę ochrony przed hipo
+    if (prefKey === 'hypo') {
+      updatedPrefs.hypoProtection = newVal;
+    }
+
     setLocalPrefs(updatedPrefs);
     if (setUserSettings && userSettings) {
       setUserSettings({ ...userSettings, notificationPrefs: updatedPrefs });
@@ -283,6 +289,21 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
         const fullSaved = { ...userSettings, notificationPrefs: updatedPrefs };
         localStorage.setItem('glikocontrol_user_settings', JSON.stringify(fullSaved));
       } catch(e) {}
+    }
+
+    // Natychmiastowa synchronizacja preferencji z natywnym serwisem Androida
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const notifsEnabled = (userSettings?.notificationsEnabled !== false) && (localStorage.getItem('notificationsEnabled') !== 'false');
+        const hypoOn = notifsEnabled && (updatedPrefs.hypo !== false) && (updatedPrefs.hypoProtection !== false);
+        const hyperOn = notifsEnabled && (updatedPrefs.hyper !== false);
+        NotificationBridge.syncAlertPreferences({
+          hypoEnabled: hypoOn,
+          hyperEnabled: hyperOn,
+          targetMin: userSettings?.targetMin || 70,
+          targetMax: userSettings?.targetMax || 180
+        }).catch(() => {});
+      } catch (err) {}
     }
 
     if (user) {
@@ -321,6 +342,12 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
         const fullSaved = { ...userSettings, apkSystemNotificationsEnabled: targetState };
         localStorage.setItem('glikocontrol_user_settings', JSON.stringify(fullSaved));
       } catch(e) {}
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        NotificationBridge.setOngoingNotificationEnabled({ enabled: targetState }).catch(() => {});
+      } catch (err) {}
     }
 
     if (user) {

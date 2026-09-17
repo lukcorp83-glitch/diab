@@ -226,6 +226,9 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         handleShortcutIntent(getIntent());
+        try {
+            NightscoutFetcher.fetchAndUpdate(this, null, null);
+        } catch (Exception ignored) {}
     }
 
     @Override

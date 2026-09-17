@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { auth, db } from "./lib/firebase";
 import { dbService } from "./services/databaseService";
 import {
-  signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signInWithCredential,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, sendPasswordResetEmail, signInWithCredential, browserPopupRedirectResolver,
 } from "firebase/auth";
 import {
   collection, query, addDoc, serverTimestamp, doc, setDoc,
@@ -168,46 +168,54 @@ export default function App() {
     const { logs, setLogs } = useLogsStore();
     const [sqliteLogs, setSqliteLogs] = useState<any[]>([]);
     
-    // Inicjalizacja bazy SQLite i pobranie głębokiej historii
+    const reloadDbLogs = async () => {
+      try {
+        let loadedLogs = await dbService.getLogs(60000);
+        if (loadedLogs.length === 0) {
+          try {
+            let idbLogs = await loadLocalLogs();
+            if (idbLogs && idbLogs.length > 0) {
+              if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
+                idbLogs = idbLogs.filter((l: any) => {
+                  if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+                  if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+                  if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+                  return true;
+                });
+              }
+              console.log(`[App] Odtworzono ${idbLogs.length} wpisów z IndexedDB do SQLite`);
+              loadedLogs = idbLogs;
+              dbService.saveMultipleLogs(idbLogs).catch(console.error);
+            }
+          } catch (idbErr) {
+            console.warn('[App] Błąd odczytu IndexedDB fallback:', idbErr);
+          }
+        }
+
+        if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
+          loadedLogs = loadedLogs.filter((l: any) => {
+            if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+            if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+            if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+            return true;
+          });
+        }
+
+        setSqliteLogs(loadedLogs);
+        if (loadedLogs.length > 0) {
+          useLogsStore.getState().setLogs(loadedLogs);
+        }
+      } catch (dbErr) {
+        console.error('[App] Błąd odświeżania logów z bazy danych:', dbErr);
+      }
+    };
+
+    // Inicjalizacja bazy SQLite oraz nasłuch wybudzenia z tła (Foreground Resume)
     useEffect(() => {
       const initDB = async () => {
         try {
           await dbService.init();
-          let loadedLogs = await dbService.getLogs(60000);
-          if (loadedLogs.length === 0) {
-            try {
-              let idbLogs = await loadLocalLogs();
-              if (idbLogs && idbLogs.length > 0) {
-                if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
-                  idbLogs = idbLogs.filter((l: any) => {
-                    if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
-                    if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
-                    if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
-                    return true;
-                  });
-                }
-                console.log(`[App] Odtworzono ${idbLogs.length} wpisów z IndexedDB do SQLite`);
-                loadedLogs = idbLogs;
-                dbService.saveMultipleLogs(idbLogs).catch(console.error);
-              }
-            } catch (idbErr) {
-              console.warn('[App] Błąd odczytu IndexedDB fallback:', idbErr);
-            }
-          }
-
-          if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
-            loadedLogs = loadedLogs.filter((l: any) => {
-              if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
-              if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
-              if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
-              return true;
-            });
-          }
-
-          setSqliteLogs(loadedLogs);
-          if (loadedLogs.length > 0) {
-            useLogsStore.getState().setLogs(loadedLogs);
-          }
+          await reloadDbLogs();
         } catch (dbErr) {
           console.error('[App] Błąd inicjalizacji bazy danych:', dbErr);
           try {
@@ -228,6 +236,38 @@ export default function App() {
         }
       };
       initDB();
+
+      // Natychmiastowe odświeżenie danych po powrocie do aplikacji (odblokowanie telefonu / przełączenie z innej apki)
+      const handleAppResume = () => {
+        console.log('[App] Wybudzenie aplikacji – natychmiastowe odświeżenie bazy SQLite i Nightscout');
+        reloadDbLogs();
+        window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
+      };
+
+      let appStateListener: any = null;
+      if (Capacitor.isNativePlatform()) {
+        CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            handleAppResume();
+          }
+        }).then(l => { appStateListener = l; });
+      }
+
+      const handleVisibility = () => {
+        if (!document.hidden) {
+          handleAppResume();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+      window.addEventListener('focus', handleAppResume);
+
+      return () => {
+        if (appStateListener && appStateListener.remove) {
+          appStateListener.remove();
+        }
+        document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('focus', handleAppResume);
+      };
     }, []);
 
     // Cichy nasłuch na natychmiastowe aktualizacje lokalne (Optimistic UI) - naprawia niewidzialne wkłucia/sensory
@@ -306,18 +346,25 @@ export default function App() {
     });
 
     // Cichy zapis nowych danych z chmury i Nightscout do lokalnej bazy SQLite (Local-First)
+    const lastSavedMaxTimestampRef = useRef<number>(0);
     useEffect(() => {
       if (fbLogs.length === 0 && nsLogs.length === 0) return;
       const timeoutId = setTimeout(() => {
+        const recentCutoff = Date.now() - 48 * 60 * 60 * 1000;
         const toSave = [...fbLogs, ...nsLogs].filter(l => {
-          if (!deletedNsIdsRef.current) return true;
-          if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
-          if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
-          if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+          const ts = l.timestamp || l.createdAt || 0;
+          if (ts < recentCutoff && lastSavedMaxTimestampRef.current > 0) return false;
+          if (deletedNsIdsRef.current) {
+            if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+            if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+            if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+          }
           return true;
         });
         if (toSave.length > 0) {
-          dbService.saveMultipleLogs(toSave).catch(e => console.warn("Background DB save failed", e));
+          lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
+          const batch = toSave.slice(0, 300); // max 300 najświeższych wpisów na cykl
+          dbService.saveMultipleLogs(batch).catch(e => console.warn("Background DB save failed", e));
         }
       }, 5000);
       return () => clearTimeout(timeoutId);
@@ -393,7 +440,20 @@ export default function App() {
         allMap.set(l.id, l);
       });
       
-      // 3. Doklejamy wpisy z Nightscout API
+      // Indeksujemy wpisy zabiegowe w kubelkach minutowych dla błyskawicznego sprawdzania O(1)
+      const treatmentIndex = new Map<string, any[]>();
+      allMap.forEach((item: any) => {
+        if (!item || !item.type || !item.timestamp) return;
+        if (item.type === 'bolus' || item.type === 'meal' || item.type === 'site_change' || item.type === 'sensor_change') {
+          const minuteBucket = Math.floor(item.timestamp / 60000);
+          const key = `${item.type}_${minuteBucket}`;
+          const list = treatmentIndex.get(key);
+          if (list) list.push(item);
+          else treatmentIndex.set(key, [item]);
+        }
+      });
+
+      // 3. Doklejamy wpisy z Nightscout API z błyskawicznym dopasowaniem
       nsLogs.forEach((nsLog: any) => {
         if (deletedNsIdsRef.current) {
           if (nsLog.id && deletedNsIdsRef.current.has(nsLog.id)) return;
@@ -402,20 +462,29 @@ export default function App() {
         }
         if (allMap.has(nsLog.id)) return;
 
-        // Sprawdzamy czy ten wpis (np. posiłek, bolus, wymiana) już istnieje w bazie lokalnej / Firebase
+        // Sprawdzamy czy ten wpis już istnieje w bazie (sprawdzamy tylko sąsiednie minuty, max kilka pozycji)
         if (nsLog.type === 'bolus' || nsLog.type === 'meal' || nsLog.type === 'site_change' || nsLog.type === 'sensor_change') {
-          for (const existingLog of allMap.values()) {
-            if (existingLog.type === nsLog.type && Math.abs((existingLog.timestamp || 0) - (nsLog.timestamp || 0)) <= 90000) {
-              const diffVal = Math.abs((existingLog.value || 0) - (nsLog.value || 0));
-              if (diffVal < 0.2) {
-                // To ten sam wpis – łączymy metadane (np. nsId), ale zachowujemy bogate dane posiłku (opis, składniki)
-                if (nsLog.nsId && !existingLog.nsId) existingLog.nsId = nsLog.nsId;
-                if (!existingLog.description && nsLog.description) existingLog.description = nsLog.description;
-                if (!existingLog.notes && nsLog.notes) existingLog.notes = nsLog.notes;
-                return;
+          const minuteBucket = Math.floor((nsLog.timestamp || 0) / 60000);
+          let matched = false;
+          for (let b = minuteBucket - 1; b <= minuteBucket + 1; b++) {
+            const bucketList = treatmentIndex.get(`${nsLog.type}_${b}`);
+            if (bucketList) {
+              for (const existingLog of bucketList) {
+                if (Math.abs((existingLog.timestamp || 0) - (nsLog.timestamp || 0)) <= 90000) {
+                  const diffVal = Math.abs((existingLog.value || 0) - (nsLog.value || 0));
+                  if (diffVal < 0.2) {
+                    if (nsLog.nsId && !existingLog.nsId) existingLog.nsId = nsLog.nsId;
+                    if (!existingLog.description && nsLog.description) existingLog.description = nsLog.description;
+                    if (!existingLog.notes && nsLog.notes) existingLog.notes = nsLog.notes;
+                    matched = true;
+                    break;
+                  }
+                }
               }
+              if (matched) break;
             }
           }
+          if (matched) return;
         }
 
         allMap.set(nsLog.id, nsLog);
@@ -744,6 +813,17 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2300);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Przechwycenie wyniku logowania przez przekierowanie Google (signInWithRedirect) na Web/PWA
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      getRedirectResult(auth).catch((e: any) => {
+        if (e?.code !== 'auth/null-user') {
+          console.debug('[App] getRedirectResult status:', e?.code || e?.message);
+        }
+      });
+    }
   }, []);
 
   // Automatyczne wyświetlenie okna Nowości (ChangelogPopup) po aktualizacji aplikacji
@@ -1151,6 +1231,19 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = initAuthListener(setShowTutorial);
+    if (!Capacitor.isNativePlatform()) {
+      getRedirectResult(auth, browserPopupRedirectResolver)
+        .then((res) => {
+          if (res?.user) {
+            console.log("Logged in via Google redirect:", res.user.email);
+          }
+        })
+        .catch((err) => {
+          if (err?.code !== 'auth/popup-closed-by-user') {
+            console.warn("getRedirectResult error:", err);
+          }
+        });
+    }
     return () => {
       if (unsubscribe) unsubscribe();
     };
@@ -1319,44 +1412,178 @@ export default function App() {
     }
   };
 
+  const getFriendlyAuthErrorMessage = (error: any, context?: 'login' | 'register' | 'google' | 'reset'): string => {
+    const code = (error?.code || "").toLowerCase();
+    const msg = (error?.message || "").toLowerCase();
+
+    if (code.includes("invalid-email") || msg.includes("invalid-email")) {
+      return "Wprowadź prawidłowy adres e-mail (np. nazwa@domena.pl).";
+    }
+    if (code.includes("missing-password") || msg.includes("missing-password")) {
+      return "Wprowadź hasło.";
+    }
+    if (code.includes("weak-password") || msg.includes("weak-password")) {
+      return "Hasło musi mieć co najmniej 6 znaków.";
+    }
+    if (code.includes("email-already-in-use") || msg.includes("email-already-in-use")) {
+      return "Konto z tym adresem e-mail już istnieje. Kliknij 'Wejdź' lub zresetuj hasło.";
+    }
+    if (code.includes("user-not-found") || msg.includes("user-not-found")) {
+      return "Nie znaleziono konta dla tego adresu e-mail. Sprawdź pisownię lub kliknij 'Rejestracja'.";
+    }
+    if (code.includes("wrong-password") || code.includes("invalid-credential") || msg.includes("wrong-password") || msg.includes("invalid-credential")) {
+      return "Nieprawidłowy e-mail lub hasło. Sprawdź poprawność danych.";
+    }
+    if (code.includes("too-many-requests") || msg.includes("too-many-requests")) {
+      return "Zbyt wiele nieudanych prób logowania. Odczekaj chwilę przed kolejną próbą.";
+    }
+    if (code.includes("network-request-failed") || msg.includes("network-request-failed")) {
+      return "Błąd połączenia z siecią. Sprawdź dostęp do internetu.";
+    }
+    if (code.includes("popup-closed-by-user") || msg.includes("popup-closed-by-user")) {
+      return "Logowanie przez Google zostało anulowane.";
+    }
+    if (code.includes("popup-blocked") || msg.includes("popup-blocked")) {
+      return "Wyskakujące okno logowania zostało zablokowane przez przeglądarkę. Zezwól na okna popup.";
+    }
+    if (code.includes("argument-error") || msg.includes("argument-error")) {
+      if (context === 'google') {
+        return "Błąd sesji logowania Google. Odśwież stronę i spróbuj ponownie.";
+      }
+      return "Uzupełnij wymagane pola (prawidłowy e-mail i hasło).";
+    }
+
+    return error?.message || "Wystąpił błąd autoryzacji.";
+  };
+
   const handleLogin = async () => {
-    try { await signInWithEmailAndPassword(auth, email, password); } 
-    catch (e: any) { setAuthError(e.message); }
+    setAuthError("");
+    const cleanEmail = (email || "").trim();
+    const cleanPassword = (password || "").trim();
+
+    if (!cleanEmail) {
+      setAuthError("Wprowadź adres e-mail.");
+      return;
+    }
+    if (!cleanPassword) {
+      setAuthError("Wprowadź hasło.");
+      return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+    } catch (e: any) {
+      setAuthError(getFriendlyAuthErrorMessage(e, 'login'));
+    }
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
+    setAuthError("");
+    const cleanEmail = (email || "").trim();
+    if (!cleanEmail) {
       setAuthError("Podaj adres email aby zresetować hasło.");
       return;
     }
-    try { await sendPasswordResetEmail(auth, email); setAuthError(""); } 
-    catch (e: any) { setAuthError(e.message); }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setAuthError("Wprowadź prawidłowy format adresu e-mail (np. nazwa@domena.pl).");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+      setAuthError("");
+      alert("Wysłano link do zresetowania hasła na podany adres e-mail.");
+    } catch (e: any) {
+      setAuthError(getFriendlyAuthErrorMessage(e, 'reset'));
+    }
   };
 
   const handleRegister = async () => {
-    try { await createUserWithEmailAndPassword(auth, email, password); } 
-    catch (e: any) { setAuthError(e.message); }
+    setAuthError("");
+    const cleanEmail = (email || "").trim();
+    const cleanPassword = (password || "").trim();
+
+    if (!cleanEmail) {
+      setAuthError("Wprowadź adres e-mail.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setAuthError("Wprowadź prawidłowy format adresu e-mail (np. nazwa@domena.pl).");
+      return;
+    }
+    if (!cleanPassword) {
+      setAuthError("Wprowadź hasło.");
+      return;
+    }
+    if (cleanPassword.length < 6) {
+      setAuthError("Hasło musi mieć co najmniej 6 znaków.");
+      return;
+    }
+
+    try {
+      await createUserWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+    } catch (e: any) {
+      setAuthError(getFriendlyAuthErrorMessage(e, 'register'));
+    }
   };
 
   const handleAnonymous = async () => {
-    try { await signInAnonymously(auth); } 
-    catch (e: any) { setAuthError(e.message); }
+    setAuthError("");
+    try {
+      await signInAnonymously(auth);
+    } catch (e: any) {
+      setAuthError(getFriendlyAuthErrorMessage(e));
+    }
   };
 
   const handleGoogle = async () => {
+    setAuthError("");
     try {
       if (Capacitor.isNativePlatform()) {
         const result = await FirebaseAuthentication.signInWithGoogle();
-        if (result.credential?.idToken) {
-          const credential = GoogleAuthProvider.credential(result.credential.idToken);
+        let idToken = result.credential?.idToken;
+        if (!idToken) {
+          try {
+            const tokenRes = await FirebaseAuthentication.getIdToken();
+            idToken = tokenRes?.token;
+          } catch (tErr) {
+            console.warn("Could not retrieve idToken from FirebaseAuthentication:", tErr);
+          }
+        }
+        if (idToken) {
+          const credential = GoogleAuthProvider.credential(idToken);
           await signInWithCredential(auth, credential);
+        } else {
+          throw new Error("Nie udało się uzyskać tokenu autoryzacji Google z urządzenia. Spróbuj ponownie.");
         }
       } else {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        provider.setCustomParameters({ prompt: 'select_account' });
+        try {
+          await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+        } catch (popupErr: any) {
+          const errCode = popupErr?.code || "";
+          const errMsg = popupErr?.message || "";
+          if (errCode === 'auth/popup-closed-by-user') {
+            return;
+          }
+          if (
+            errCode === 'auth/popup-blocked' ||
+            errCode === 'auth/cancelled-popup-request' ||
+            errMsg.includes('Cross-Origin-Opener-Policy') ||
+            errMsg.includes('window.closed')
+          ) {
+            console.warn("Popup blocked or COOP restricted, falling back to signInWithRedirect:", popupErr);
+            await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
+            return;
+          }
+          throw popupErr;
+        }
       }
     } catch (e: any) {
-      setAuthError(e.message || "Błąd logowania Google");
+      if (e?.code === 'auth/popup-closed-by-user') return;
+      setAuthError(getFriendlyAuthErrorMessage(e, 'google'));
     }
   };
 

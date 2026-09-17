@@ -24,30 +24,47 @@ interface NightscoutTreatment {
 
 let workingProxyIndex = -1; // -1 means direct, 0-3 means proxies
 
-async function fetchWithFallbacks(directUrl: string, headers: Record<string, string>): Promise<any> {
+async function fetchWithFallbacks(directUrl: string, headers: Record<string, string>, parentSignal?: AbortSignal): Promise<any> {
+  if (parentSignal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
+
   console.log(`[Worker] Rozpoczynam fetchWithFallbacks dla URL: ${directUrl}, używany proxy: ${workingProxyIndex}`);
   let lastError = null;
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for large history // 10 second timeout per fetch
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s max na bezpośrednie połączenie
+
+  const abortListener = () => controller.abort();
+  if (parentSignal) {
+    parentSignal.addEventListener('abort', abortListener, { once: true });
+  }
   
   if (workingProxyIndex === -1) {
     console.log(`[Worker] Próbuję połączenia bezpośredniego...`);
     try {
       const directResponse = await fetch(directUrl, { headers, signal: controller.signal });
       clearTimeout(timeoutId);
+      if (parentSignal) parentSignal.removeEventListener('abort', abortListener);
       console.log(`[Worker] Bezpośrednie połączenie zakończone ze statusem: ${directResponse.status}`);
       if (directResponse.ok) return await directResponse.json();
       lastError = `Direct fetch failed with status ${directResponse.status}`;
     } catch (e: any) {
       clearTimeout(timeoutId);
+      if (parentSignal) parentSignal.removeEventListener('abort', abortListener);
+      if (parentSignal?.aborted) throw e;
       if (e.name === 'AbortError') {
-        console.warn(`[Worker] Bezpośrednie połączenie: TIMEOUT (60s)`);
-        lastError = "Request timed out (60s limit)";
+        console.warn(`[Worker] Bezpośrednie połączenie: TIMEOUT (15s)`);
+        lastError = "Request timed out (15s limit)";
       } else {
         console.warn(`[Worker] Bezpośrednie połączenie: BŁĄD SIECI - ${e.message}`);
         lastError = e.message || "Network error on direct fetch";
       }
     }
+  }
+
+  if (parentSignal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
   }
 
   // Try proxies if direct fails
@@ -61,13 +78,20 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
   const startIndex = workingProxyIndex !== -1 ? workingProxyIndex : 0;
 
   for (let i = startIndex; i < proxies.length; i++) {
+    if (parentSignal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
     const proxyUrl = proxies[i];
     console.log(`[Worker] Próbuję połączenia przez proxy [${i}]: ${proxyUrl}`);
     const proxyController = new AbortController();
-    const proxyTimeoutId = setTimeout(() => proxyController.abort(), 10000);
+    const proxyTimeoutId = setTimeout(() => proxyController.abort(), 8000);
+    const proxyAbortListener = () => proxyController.abort();
+    if (parentSignal) parentSignal.addEventListener('abort', proxyAbortListener, { once: true });
+
     try {
       const proxyResponse = await fetch(proxyUrl, { headers, signal: proxyController.signal });
       clearTimeout(proxyTimeoutId);
+      if (parentSignal) parentSignal.removeEventListener('abort', proxyAbortListener);
       console.log(`[Worker] Proxy [${i}] zakończone ze statusem: ${proxyResponse.status}`);
       if (proxyResponse.ok) {
         workingProxyIndex = i; // Save working proxy for future requests
@@ -76,9 +100,11 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
       lastError = `Proxy fetch failed with status ${proxyResponse.status}`;
     } catch (e: any) {
       clearTimeout(proxyTimeoutId);
+      if (parentSignal) parentSignal.removeEventListener('abort', proxyAbortListener);
+      if (parentSignal?.aborted) throw e;
       if (e.name === 'AbortError') {
-        console.warn(`[Worker] Proxy [${i}] TIMEOUT (60s)`);
-        lastError = "Proxy request timed out (10s limit)";
+        console.warn(`[Worker] Proxy [${i}] TIMEOUT (8s)`);
+        lastError = "Proxy request timed out (8s limit)";
       } else {
         console.warn(`[Worker] Proxy [${i}] BŁĄD SIECI - ${e.message}`);
         lastError = e.message || "Network error on proxy";
@@ -253,14 +279,15 @@ function processDeviceStatus(data: any[]): any {
   };
 }
 
-async function fetchNightscoutData(url: string, secret: string | undefined, count: number) {
+async function fetchNightscoutData(url: string, secret: string | undefined, count: number, signal?: AbortSignal) {
   const headers: Record<string, string> = { 'Accept': 'application/json' };
   if (secret) headers['api-secret'] = secret;
   const baseUrl = url.replace(/\/$/, '');
   const cacheBust = `_t=${Date.now()}`;
   
   const entriesCount = count;
-  const treatmentsCount = count > 500 ? 20000 : 1000;
+  // Optymalizacja: dla małych/szybkich odświeżeń pobieramy tylko bieżące zabiegi (100), dla pełnej historii max 2000 (nigdy 20 000!)
+  const treatmentsCount = count <= 150 ? 100 : (count <= 1000 ? 500 : 2000);
   
   const entriesUrl = secret && secret.includes('-') 
     ? `${baseUrl}/api/v1/entries.json?count=${entriesCount}&${cacheBust}&token=${secret}` 
@@ -274,16 +301,15 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
     ? `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}&token=${secret}` 
     : `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}`;
 
-  console.log(`[Worker] Pobieranie wpisów (entries)...`);
-  const entriesRaw = await fetchWithFallbacks(entriesUrl, headers);
-  console.log(`[Worker] Pobieranie zabiegów (treatments)...`);
-  const treatmentsRaw = await fetchWithFallbacks(treatmentsUrl, headers).catch(() => []);
+  console.log(`[Worker] Pobieranie wpisów (entries: ${entriesCount})...`);
+  const entriesRaw = await fetchWithFallbacks(entriesUrl, headers, signal);
+  console.log(`[Worker] Pobieranie zabiegów (treatments: ${treatmentsCount})...`);
+  const treatmentsRaw = await fetchWithFallbacks(treatmentsUrl, headers, signal).catch(() => []);
   console.log(`[Worker] Pobieranie statusu urządzenia (devicestatus)...`);
-  const deviceRaw = await fetchWithFallbacks(deviceUrl, headers).catch(() => null);
+  const deviceRaw = await fetchWithFallbacks(deviceUrl, headers, signal).catch(() => null);
   console.log("[Worker] Zakończono pobieranie z Nightscout.");
 
   const processedDeviceStatus = processDeviceStatus(deviceRaw);
-  console.log("Nightscout PROCESSED devicestatus:", processedDeviceStatus);
 
   return {
     entries: processEntries(entriesRaw),
@@ -293,6 +319,7 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
 }
 
 let syncInterval: any = null;
+let currentSyncController: AbortController | null = null;
 
 self.onmessage = async (e: MessageEvent) => {
   const { type, payload } = e.data;
@@ -300,33 +327,50 @@ self.onmessage = async (e: MessageEvent) => {
   if (type === 'START_SYNC') {
     const { url, secret, intervalMs = 5 * 60 * 1000, count = 3000 } = payload;
     
+    // Przerwij wszelkie trwające w tle zapytania z poprzedniej sesji
+    if (currentSyncController) {
+      try { currentSyncController.abort(); } catch (ignored) {}
+    }
+    const syncController = new AbortController();
+    currentSyncController = syncController;
+
     const runSync = async (fetchCount: number) => {
+      if (syncController.signal.aborted) return;
       console.log(`[Worker] Wywołanie runSync z ilością: ${fetchCount}`);
       try {
-        const { entries, treatments, deviceStatus } = await fetchNightscoutData(url, secret, fetchCount);
+        const { entries, treatments, deviceStatus } = await fetchNightscoutData(url, secret, fetchCount, syncController.signal);
+        if (syncController.signal.aborted) return;
         console.log(`[Worker] runSync(${fetchCount}) SUCCESS. Wysyłam zdarzenie SYNC_SUCCESS.`);
         self.postMessage({ type: 'SYNC_SUCCESS', payload: { entries, treatments, deviceStatus } });
       } catch (err: any) {
+        if (syncController.signal.aborted || err?.name === 'AbortError') {
+          console.log(`[Worker] runSync(${fetchCount}) przerwane (nowa sesja).`);
+          return;
+        }
         console.error(`[Worker] runSync(${fetchCount}) ERROR:`, err);
         self.postMessage({ type: 'SYNC_ERROR', payload: err.message });
       }
     };
 
     console.log(`[Worker] Inicjalizuję pobieranie progresywne...`);
-    // Progressive loading: first fetch a small batch (very fast), then the massive history batch in background
+    // Szybkie odświeżenie najnowszych wpisów (150), a w tle dociągnięcie historii
     runSync(150).then(() => {
-        if (count > 150) {
-            console.log(`[Worker] Pierwszy etap (150) gotowy, uruchamiam pełne pobranie (${count}).`);
-            runSync(count);
-        }
+      if (!syncController.signal.aborted && count > 150) {
+        console.log(`[Worker] Pierwszy etap (150) gotowy, uruchamiam pełne pobranie (${count}).`);
+        runSync(count);
+      }
     });
 
     if (syncInterval) clearInterval(syncInterval);
-    syncInterval = setInterval(() => runSync(150), intervalMs); // Subsequent fetches are small
+    syncInterval = setInterval(() => runSync(150), intervalMs); // Cykliczne małe paczki
   }
 
   if (type === 'STOP_SYNC') {
     if (syncInterval) clearInterval(syncInterval);
+    if (currentSyncController) {
+      try { currentSyncController.abort(); } catch (ignored) {}
+      currentSyncController = null;
+    }
   }
 };
 

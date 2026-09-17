@@ -244,12 +244,16 @@ public class GlikoForegroundService extends Service implements SensorEventListen
         // Rozpoczęcie pętli pobierającej dane co 5 minut (300 000 ms)
         if (handler == null) {
             handler = new Handler(Looper.getMainLooper());
+        }
+        if (runnable == null) {
             runnable = new Runnable() {
                 @Override
                 public void run() {
                     android.util.Log.i("GlikoForeground", "Pętla Foreground Service wybudzona. Odpalam NightscoutFetcher...");
                     NightscoutFetcher.fetchAndUpdate(GlikoForegroundService.this, null, null);
-                    handler.postDelayed(this, 300000);
+                    if (handler != null) {
+                        handler.postDelayed(this, 300000);
+                    }
                 }
             };
             handler.post(runnable);

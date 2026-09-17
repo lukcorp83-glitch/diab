@@ -11,6 +11,7 @@ import { Switch } from '@headlessui/react';
 import i18n from '../../i18n';
 import { Capacitor } from '@capacitor/core';
 import { notificationService } from '../../services/notificationService';
+import { NotificationBridge } from '../../lib/notificationBridge';
 // import { enableNotifications, registerServiceWorker } from '../../lib/firebase';
 
 const DEFAULT_NOTIFICATION_PREFS = {
@@ -66,84 +67,112 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- if (!settings.notificationsEnabled) {
- if (window.self !== window.top && !Capacitor.isNativePlatform()) {
- alert(
- i18n.t('auto.wazne_przegladarki_blokuja_pow', { defaultValue: i18n.t('auto.wazne_przegladarki_blokuj', { defaultValue: "📢 WAŻNE: Przeglądarki blokują powiadomienia PUSH wewnątrz podglądu (iframe).\n\nAby włączyć powiadomienia, kliknij przycisk \"Otwórz w nowej karcie\" (prawy górny róg) i spróbuj tam jesze raz." }) }),
- );
- return;
- }
- const token = await notificationService.requestPermission();
- if (token || (Capacitor.isNativePlatform() && token !== null) || (window.Notification && window.Notification.permission === 'granted')) {
- const prefs = settings.notificationPrefs || {
- hypo: true,
- hyper: true,
- reminders: true,
- predictions: true,
- };
- setSettings({
- ...settings,
- notificationsEnabled: true,
- notificationPrefs: prefs,
- });
- localStorage.setItem("notificationsEnabled", "true");
- if (user) {
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- {
- notificationsEnabled: true,
- notificationPrefs: prefs,
- },
- { merge: true },
- );
- }
- } else {
- setSettings({ ...settings, notificationsEnabled: false });
- localStorage.setItem("notificationsEnabled", "false");
- if (user) {
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- {
- notificationsEnabled: false,
- },
- { merge: true },
- );
- }
- }
- } else {
- setSettings({ ...settings, notificationsEnabled: false });
- localStorage.setItem("notificationsEnabled", "false");
- if (user) {
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- {
- notificationsEnabled: false,
- },
- { merge: true },
- );
- }
- }
- }}
+  <button
+    onClick={async () => {
+      if (!settings.notificationsEnabled) {
+        if (window.self !== window.top && !Capacitor.isNativePlatform()) {
+          alert(
+            i18n.t('auto.wazne_przegladarki_blokuja_pow', { defaultValue: i18n.t('auto.wazne_przegladarki_blokuj', { defaultValue: "📢 WAŻNE: Przeglądarki blokują powiadomienia PUSH wewnątrz podglądu (iframe).\n\nAby włączyć powiadomienia, kliknij przycisk \"Otwórz w nowej karcie\" (prawy górny róg) i spróbuj tam jesze raz." }) }),
+          );
+          return;
+        }
+        const token = await notificationService.requestPermission();
+        if (token || (Capacitor.isNativePlatform() && token !== null) || (window.Notification && window.Notification.permission === 'granted')) {
+          const prefs = {
+            ...DEFAULT_NOTIFICATION_PREFS,
+            ...(settings.notificationPrefs || {})
+          };
+          const updated = {
+            ...settings,
+            notificationsEnabled: true,
+            notificationPrefs: prefs,
+          };
+          setSettings(updated);
+          localStorage.setItem("notificationsEnabled", "true");
+          localStorage.setItem("notificationPrefs", JSON.stringify(prefs));
+          localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+          if (Capacitor.isNativePlatform()) {
+            NotificationBridge.syncAlertPreferences({
+              hypoEnabled: (prefs.hypo !== false) && (prefs.hypoProtection !== false),
+              hyperEnabled: prefs.hyper !== false,
+              targetMin: settings.targetMin || 70,
+              targetMax: settings.targetMax || 180
+            }).catch(() => {});
+          }
+
+          if (user) {
+            const uid = getEffectiveUid(user);
+            await setDoc(
+              doc(db, "users", uid, "settings", "profile"),
+              {
+                notificationsEnabled: true,
+                notificationPrefs: prefs,
+              },
+              { merge: true },
+            );
+            queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+              ...(old || {}),
+              notificationsEnabled: true,
+              notificationPrefs: prefs,
+            }));
+            queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+          }
+        } else {
+          const updated = { ...settings, notificationsEnabled: false };
+          setSettings(updated);
+          localStorage.setItem("notificationsEnabled", "false");
+          localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+          if (Capacitor.isNativePlatform()) {
+            NotificationBridge.syncAlertPreferences({
+              hypoEnabled: false,
+              hyperEnabled: false,
+              targetMin: settings.targetMin || 70,
+              targetMax: settings.targetMax || 180
+            }).catch(() => {});
+          }
+          if (user) {
+            const uid = getEffectiveUid(user);
+            await setDoc(
+              doc(db, "users", uid, "settings", "profile"),
+              { notificationsEnabled: false },
+              { merge: true },
+            );
+            queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+              ...(old || {}),
+              notificationsEnabled: false,
+            }));
+            queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+          }
+        }
+      } else {
+        const updated = { ...settings, notificationsEnabled: false };
+        setSettings(updated);
+        localStorage.setItem("notificationsEnabled", "false");
+        localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+        if (Capacitor.isNativePlatform()) {
+          NotificationBridge.syncAlertPreferences({
+            hypoEnabled: false,
+            hyperEnabled: false,
+            targetMin: settings.targetMin || 70,
+            targetMax: settings.targetMax || 180
+          }).catch(() => {});
+        }
+        if (user) {
+          const uid = getEffectiveUid(user);
+          await setDoc(
+            doc(db, "users", uid, "settings", "profile"),
+            { notificationsEnabled: false },
+            { merge: true },
+          );
+          queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+            ...(old || {}),
+            notificationsEnabled: false,
+          }));
+          queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+        }
+      }
+    }}
  className={cn(
  "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
  settings.notificationsEnabled && "bg-accent-500 pl-5",
@@ -314,6 +343,9 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
         key={pref.id}
         onClick={async () => {
           const newPrefs = { ...prefs, [pref.id]: !isActive };
+          if (pref.id === 'hypo') {
+            newPrefs.hypoProtection = !isActive;
+          }
           const updated = {
             ...settings,
             notificationPrefs: newPrefs,
@@ -321,6 +353,20 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
           setSettings(updated);
           localStorage.setItem("notificationPrefs", JSON.stringify(newPrefs));
           localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+          if (Capacitor.isNativePlatform()) {
+            try {
+              const notifsEnabled = settings.notificationsEnabled !== false;
+              const hypoOn = notifsEnabled && (newPrefs.hypo !== false) && (newPrefs.hypoProtection !== false);
+              const hyperOn = notifsEnabled && (newPrefs.hyper !== false);
+              NotificationBridge.syncAlertPreferences({
+                hypoEnabled: hypoOn,
+                hyperEnabled: hyperOn,
+                targetMin: settings.targetMin || 70,
+                targetMax: settings.targetMax || 180
+              }).catch(() => {});
+            } catch (err) {}
+          }
 
           if (user) {
             const uid = getEffectiveUid(user);
@@ -407,6 +453,20 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   setSettings(updated);
   localStorage.setItem("notificationPrefs", JSON.stringify(newPrefs));
   localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const notifsEnabled = settings.notificationsEnabled !== false;
+      const hypoOn = notifsEnabled && (newPrefs.hypo !== false) && (newPrefs.hypoProtection !== false);
+      const hyperOn = notifsEnabled && (newPrefs.hyper !== false);
+      NotificationBridge.syncAlertPreferences({
+        hypoEnabled: hypoOn,
+        hyperEnabled: hyperOn,
+        targetMin: settings.targetMin || 70,
+        targetMax: settings.targetMax || 180
+      }).catch(() => {});
+    } catch (err) {}
+  }
 
   if (user) {
   const uid = getEffectiveUid(user);

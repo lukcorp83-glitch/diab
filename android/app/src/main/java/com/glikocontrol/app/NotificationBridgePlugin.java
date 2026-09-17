@@ -510,12 +510,59 @@ public class NotificationBridgePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getLastAlertInfo(PluginCall call) {
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+            long lastAlertTime = prefs.getLong("widget_last_alert_time", 0);
+            String lastAlertType = prefs.getString("widget_last_alert_type", "");
+            JSObject ret = new JSObject();
+            ret.put("lastAlertTime", lastAlertTime);
+            ret.put("lastAlertType", lastAlertType);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void triggerNativeGlucoseAlert(PluginCall call) {
         try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+            boolean hypoEnabled = prefs.getBoolean("widget_hypo_alerts_enabled", true);
+            boolean hyperEnabled = prefs.getBoolean("widget_hyper_alerts_enabled", true);
+
             String title = call.getString("title", "Alert Glikemii");
             String body = call.getString("body", "Sprawdź poziom cukru");
             boolean isHigh = call.getBoolean("isHigh", false);
             int value = call.getInt("value", 0);
+
+            if (isHigh && !hyperEnabled) {
+                android.util.Log.d("NotificationBridge", "Hyper alert ignored - disabled in preferences");
+                call.resolve();
+                return;
+            }
+            if (!isHigh && !hypoEnabled) {
+                android.util.Log.d("NotificationBridge", "Hypo alert ignored - disabled in preferences");
+                call.resolve();
+                return;
+            }
+
+            long lastAlertTime = prefs.getLong("widget_last_alert_time", 0);
+            long nowMs = System.currentTimeMillis();
+            String currentType = isHigh ? "hyper" : "hypo";
+            String lastType = prefs.getString("widget_last_alert_type", "");
+
+            // Deduplikacja: Jeśli ten sam typ alertu został wyzwolony w ciągu ostatnich 10 minut, nie dubluj
+            if (currentType.equals(lastType) && (nowMs - lastAlertTime < 10 * 60 * 1000)) {
+                android.util.Log.d("NotificationBridge", "Duplicate alert suppressed: " + currentType + " already triggered " + ((nowMs - lastAlertTime) / 1000) + "s ago");
+                call.resolve();
+                return;
+            }
+
+            prefs.edit()
+                .putString("widget_last_alert_type", currentType)
+                .putLong("widget_last_alert_time", nowMs)
+                .apply();
 
             android.app.NotificationManager manager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {

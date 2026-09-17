@@ -62,12 +62,26 @@ export default function SiteRotationWidget({
 
   const locationText = useMemo(() => {
     if (localSiteOverride) return localSiteOverride;
-    if (lastSiteChange) {
-      const extracted = extractInfusionSite(lastSiteChange);
-      if (extracted) return extracted;
+
+    const settingDate = settings.infusionSetChangeDate || 0;
+    const logDate = lastSiteChange?.timestamp || 0;
+    const settingSite = settings.infusionSetSite || (settings as any).infusionSite;
+
+    // 1. Jeśli w ustawieniach profilu jest podane miejsce i data z profilu jest nowsza lub równa logowi, priorytet ma profil
+    if (settingSite && settingDate >= logDate) {
+      return settingSite;
     }
-    return settings.infusionSetSite || (settings as any).infusionSite || localStorage.getItem('infusionSetSite') || 'Prawy brzuch';
-  }, [lastSiteChange, localSiteOverride, settings.infusionSetSite, (settings as any).infusionSite]);
+
+    // 2. Jeśli log z historii/Nightscout jest ściśle nowszy niż data w profilu, wyciągamy miejsce z najświeższego logu
+    if (lastSiteChange && logDate > settingDate) {
+      const extracted = extractInfusionSite(lastSiteChange);
+      if (extracted && extracted !== 'Lewy brzuch') return extracted;
+      if (lastSiteChange.site) return lastSiteChange.site;
+    }
+
+    // 3. Fallback do profilu, pamięci urządzenia i domyślnej lokalizacji
+    return settingSite || localStorage.getItem('infusionSetSite') || localStorage.getItem('infusionSite') || 'Prawy brzuch';
+  }, [lastSiteChange, localSiteOverride, settings.infusionSetSite, settings.infusionSetChangeDate, (settings as any).infusionSite]);
   const currentZoneId = useMemo(() => normalizeSiteToZoneId(locationText), [locationText]);
   const currentZone = useMemo(() => getZoneById(currentZoneId), [currentZoneId]);
 

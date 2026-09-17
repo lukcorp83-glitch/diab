@@ -6,7 +6,7 @@ import {
   doc, 
   getDocFromServer 
 } from 'firebase/firestore';
-import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, GoogleAuthProvider } from 'firebase/auth';
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserPopupRedirectResolver, GoogleAuthProvider } from 'firebase/auth';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -16,9 +16,10 @@ import { Capacitor } from '@capacitor/core';
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // Inicjalizujemy autoryzację synchronicznie z wielopoziomową trwałością sesji (IndexedDB + localStorage fallback)
-// Zapobiega to wylogowywaniu użytkownika po aktualizacjach OTA/APK i restarcie WebView!
+// oraz resolverem dla okien popup/redirect Google Sign-In
 export const auth = initializeAuth(app, {
-  persistence: [indexedDBLocalPersistence, browserLocalPersistence]
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+  popupRedirectResolver: browserPopupRedirectResolver
 });
 export const googleProvider = new GoogleAuthProvider();
 
