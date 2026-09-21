@@ -1,12 +1,28 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import fs from 'fs';
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const basePath = './';
+
+  let gitBranch = process.env.VITE_APP_CHANNEL || process.env.GITHUB_REF_NAME || '';
+  if (!gitBranch) {
+    try {
+      const headContent = fs.readFileSync(path.resolve(__dirname, '.git/HEAD'), 'utf8').trim();
+      if (headContent.startsWith('ref: refs/heads/')) {
+        gitBranch = headContent.replace('ref: refs/heads/', '').trim();
+      } else {
+        gitBranch = headContent;
+      }
+    } catch (e) {
+      gitBranch = 'main';
+    }
+  }
+  const isBetaChannel = gitBranch === 'beta' || process.env.VITE_APP_CHANNEL === 'beta';
   
   return {
     base: basePath,
@@ -42,6 +58,48 @@ export default defineConfig(({ mode }) => {
                   statuses: [0, 200]
                 }
               }
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'gstatic-fonts-cache',
+                expiration: {
+                  maxEntries: 30,
+                  maxAgeSeconds: 60 * 60 * 24 * 365
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/raw\.githubusercontent\.com\/.*\/Animated-Fluent-Emojis\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'fluent-emojis-cache',
+                expiration: {
+                  maxEntries: 150,
+                  maxAgeSeconds: 60 * 60 * 24 * 90 // 90 dni
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/www\.transparenttextures\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'textures-cache',
+                expiration: {
+                  maxEntries: 20,
+                  maxAgeSeconds: 60 * 60 * 24 * 90
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
             }
           ]
         },
@@ -55,9 +113,9 @@ export default defineConfig(({ mode }) => {
           orientation: 'any',
           dir: 'ltr',
           lang: 'pl-PL',
-          start_url: '/diab/',
-          scope: '/diab/',
-          id: '/diab/',
+          start_url: '/',
+          scope: '/',
+          id: '/',
           categories: ['medical', 'health', 'fitness'],
           icons: [
             {
@@ -84,21 +142,21 @@ export default defineConfig(({ mode }) => {
               name: 'Dodaj Cukier',
               short_name: 'Cukier',
               description: 'Szybkie wpisanie poziomu glukozy',
-              url: '/diab/?action=add_glucose',
+              url: '/?action=add_glucose',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             },
             {
               name: 'Dodaj Bolus',
               short_name: 'Bolus',
               description: 'Szybkie wpisanie insuliny',
-              url: '/diab/?action=add_bolus',
+              url: '/?action=add_bolus',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             },
             {
               name: 'Dodaj Posiłek',
               short_name: 'Posiłek',
               description: 'Szybkie wpisanie posiłku',
-              url: '/diab/?action=add_meal',
+              url: '/?action=add_meal',
               icons: [{ src: 'pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml' }]
             }
           ],
@@ -136,10 +194,22 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_FIREBASE_APP_ID': JSON.stringify(env.VITE_FIREBASE_APP_ID),
       'import.meta.env.VITE_FIREBASE_MEASUREMENT_ID': JSON.stringify(env.VITE_FIREBASE_MEASUREMENT_ID),
       'import.meta.env.VITE_FIREBASE_DATABASE_URL': JSON.stringify(env.VITE_FIREBASE_DATABASE_URL),
+      'import.meta.env.VITE_GIT_BRANCH': JSON.stringify(gitBranch),
+      'import.meta.env.VITE_IS_BETA_CHANNEL': JSON.stringify(isBetaChannel),
     },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+      },
+    },
+    server: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      },
+    },
+    preview: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       },
     },
     build: {

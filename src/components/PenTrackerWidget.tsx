@@ -4,8 +4,7 @@ import { UserSettings } from "../types";
 import { useTranslation } from "react-i18next";
 import { cn } from "../lib/utils";
 import { motion } from "motion/react";
-import { getAuth } from "firebase/auth";
-import { db } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { getEffectiveUid } from "../lib/utils";
 import toast from "react-hot-toast";
@@ -49,7 +48,6 @@ export function PenTrackerWidget({ settings }: PenTrackerWidgetProps) {
  return;
  }
 
- const auth = getAuth();
  if (!auth.currentUser) return;
 
  let newCount = penCount;

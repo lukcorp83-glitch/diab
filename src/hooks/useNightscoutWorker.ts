@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { LogEntry } from '../types';
 import { useAppStore } from '../stores/useAppStore';
 import { notificationService } from '../services/notificationService';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 
 export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, userSettingsRef: any, deletedNsIdsRef: any) {
   const [nsLogs, setNsLogs] = useState<LogEntry[]>([]);
@@ -33,16 +35,29 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
           // --- SMART EQUIPMENT DETECTION ---
           if (userSettingsRef.current?.smartEquipmentDetection) {
             import('../lib/smartEquipment').then(({ detectSmartEquipmentChanges }) => {
-              // We use localStorage as a reliable backup of the previous reservoir level
-              const prevReservoir = localStorage.getItem('last_known_reservoir') ? parseFloat(localStorage.getItem('last_known_reservoir')!) : undefined;
-              const newReservoir = payload.deviceStatus?.reservoir;
+              // Odczytujemy ostatni ZNANY PRAWIDŁOWY poziom zbiorniczka (> 0)
+              const prevRaw = localStorage.getItem('last_known_reservoir');
+              const prevReservoir = prevRaw ? parseFloat(prevRaw) : undefined;
               
-              if (newReservoir !== undefined) {
+              const rawRes = payload.deviceStatus?.reservoir;
+              const hasValidNewRes = typeof rawRes === 'number' && !isNaN(rawRes) && rawRes > 0;
+              const newReservoir = hasValidNewRes ? rawRes : undefined;
+
+              // Analizujemy zmianę: porównujemy nowy poziom z ostatnim zapamiętanym prawidłowym poziomem
+              const { triggerReservoir, triggerSensor } = detectSmartEquipmentChanges(
+                newReservoir, 
+                prevReservoir, 
+                payload.entries || [], 
+                userSettingsRef.current
+              );
+
+              // Zapisujemy poziom TYLKO gdy jest to prawidłowy, fizyczny stan pompy (> 0)
+              // Jeśli przez jakiś czas nie ma danych lub odczyt jest pusty/0, NIE nadpisujemy pamięci zerem!
+              if (hasValidNewRes && newReservoir !== undefined) {
                 localStorage.setItem('last_known_reservoir', newReservoir.toString());
+                localStorage.setItem('last_known_reservoir_time', Date.now().toString());
               }
 
-              const { triggerReservoir, triggerSensor } = detectSmartEquipmentChanges(newReservoir, prevReservoir, payload.entries || [], userSettingsRef.current);
-              
               if (triggerReservoir) {
                 window.dispatchEvent(new CustomEvent('smart-equipment-trigger', { detail: 'reservoir' }));
               } else if (triggerSensor) {
@@ -130,29 +145,46 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
     
     const handleHypoAlert = (e: any) => {
       if (userSettingsRef.current?.notificationsEnabled === false) return;
+      if (localStorage.getItem('notificationsEnabled') === 'false') return;
+
       const prefs = userSettingsRef.current?.notificationPrefs;
-      if (prefs?.hypoProtection !== false) {
-        const payload = e?.detail;
-        const latestBg = payload?.predictionCurve?.[0]?.value;
-        const pred1h = payload?.predictedNextHour;
-        const trough = payload?.predictedTrough?.value;
+      // Jeśli użytkownik wyłączył alerty hipo (albo w NotificationCenter jako 'hypo', albo w profilu jako 'hypoProtection') - anuluj
+      if (prefs?.hypo === false || prefs?.hypoProtection === false) return;
 
-        // Jeśli aktualny cukier jest wysoki (>130) i prognoza nie wykazuje drastycznego spadku <80, zignoruj alert
-        if (latestBg && latestBg > 130 && (pred1h === undefined || pred1h >= 80)) {
-          console.log(`[HypoProtection] Zignorowano fałszywy alert: aktualny cukier jest wysoki (${latestBg} mg/dL)`);
-          return;
+      try {
+        const rawPrefs = localStorage.getItem('notificationPrefs');
+        if (rawPrefs) {
+          const p = JSON.parse(rawPrefs);
+          if (p.hypo === false || p.hypoProtection === false) return;
         }
+      } catch (err) {}
 
-        if (trough !== undefined && trough >= 80 && (pred1h === undefined || pred1h >= 80)) {
-          console.log(`[HypoProtection] Zignorowano alert: prognoza jest bezpieczna (trough: ${trough} mg/dL)`);
-          return;
-        }
+      const payload = e?.detail;
+      const latestBg = payload?.predictionCurve?.[0]?.value;
+      const pred1h = payload?.predictedNextHour;
+      const trough = payload?.predictedTrough?.value;
 
-        const lastSent = parseInt(localStorage.getItem('last_hypo_protect_alert') || '0', 10);
-        if (Date.now() - lastSent > 60 * 60 * 1000) {
-          localStorage.setItem('last_hypo_protect_alert', Date.now().toString());
-          notificationService.sendHypoProtectionAlert();
-        }
+      // Jeśli aktualny cukier już jest niski (<= 70), standardowy alarm glikemii już go obsługuje - unikamy zdublowania
+      if (latestBg && latestBg <= 70) {
+        console.log(`[HypoProtection] Zignorowano alert: aktualny cukier (${latestBg} mg/dL) jest już w hipo (obsługiwany przez główny alarm)`);
+        return;
+      }
+
+      // Jeśli aktualny cukier jest wysoki (>130) i prognoza nie wykazuje drastycznego spadku <80, zignoruj alert
+      if (latestBg && latestBg > 130 && (pred1h === undefined || pred1h >= 80)) {
+        console.log(`[HypoProtection] Zignorowano fałszywy alert: aktualny cukier jest wysoki (${latestBg} mg/dL)`);
+        return;
+      }
+
+      if (trough !== undefined && trough >= 80 && (pred1h === undefined || pred1h >= 80)) {
+        console.log(`[HypoProtection] Zignorowano alert: prognoza jest bezpieczna (trough: ${trough} mg/dL)`);
+        return;
+      }
+
+      const lastSent = parseInt(localStorage.getItem('last_hypo_protect_alert') || '0', 10);
+      if (Date.now() - lastSent > 60 * 60 * 1000) {
+        localStorage.setItem('last_hypo_protect_alert', Date.now().toString());
+        notificationService.sendHypoProtectionAlert();
       }
     };
     window.addEventListener("glikosense_hypo_alert", handleHypoAlert);
@@ -164,6 +196,17 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
+
+    let appStateListener: any = null;
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          console.log("[Native] App returned to active state, syncing Nightscout...");
+          handleForceSync();
+        }
+      }).then(l => { appStateListener = l; });
+    }
 
     return () => {
       worker.postMessage({ type: 'STOP_SYNC' });
@@ -171,6 +214,10 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       window.removeEventListener("force-nightscout-sync", handleForceSync);
       window.removeEventListener("glikosense_hypo_alert", handleHypoAlert);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
+      if (appStateListener && appStateListener.remove) {
+        appStateListener.remove();
+      }
       window.removeEventListener('nsLogDelete', handleNsLogDelete);
     };
   }, [user, nsUrl, nsSecret, userSettingsRef, deletedNsIdsRef]);

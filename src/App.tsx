@@ -1,42 +1,39 @@
 import {
- calculateIOB,
- calculateCOB,
- getEffectiveUid,
- getEffectiveIOB as getEffectiveIOBUtils,
- getMealAbsorptionTime,
+  getEffectiveUid,
+  getEffectiveIOB as getEffectiveIOBUtils,
+  getMealAbsorptionTime,
+  calculateCOB,
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 const MaterialYou: any = Capacitor.Plugins?.MaterialYou || registerPlugin("MaterialYou");
 import { App as CapacitorApp } from "@capacitor/app";
-import { CapacitorUpdater } from "@capgo/capacitor-updater";
+import { toast } from "react-hot-toast";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useAuthStore } from './stores/useAuthStore';
 import { useAppStore } from './stores/useAppStore';
 import {
- Activity, Database, Utensils, FileText, Settings, Plus, Scan, TrendingUp, Zap, LogOut, Bell, CheckCircle2, History, Apple, ChevronRight, Search, Camera, Trash2, Save, MessageSquare, Globe, Sun, Moon, LogIn, Menu, LayoutDashboard, Beaker, Sparkles, X,
+  Zap, Sun, Moon, LogIn, Facebook,
 } from "lucide-react";
-import { motion, AnimatePresence, MotionConfig } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { auth, db } from "./lib/firebase";
 import { dbService } from "./services/databaseService";
 import {
- onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signInWithCustomToken, signInWithCredential,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, sendPasswordResetEmail, signInWithCredential, browserPopupRedirectResolver,
 } from "firebase/auth";
 import {
- collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, getDoc, getDocFromServer, setDoc, deleteDoc, writeBatch, limit,
+  collection, query, addDoc, serverTimestamp, doc, setDoc,
 } from "firebase/firestore";
 import {
- LogEntry, UserSettings, Product, PlateItem, AssistantMessage,
+  UserSettings,
 } from "./types";
 import { geminiService } from "./services/gemini";
-import { CATEGORIES, APP_VERSION } from "./constants";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { APP_VERSION } from "./constants";
 import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
 import { healthService } from "./services/healthService";
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
-import { loadLocalLogs } from "./lib/localLogs";
+import { loadLocalLogs, deleteLocalLog } from "./lib/localLogs";
 import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPackageSync";
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
@@ -44,7 +41,7 @@ import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore"
 import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePetStatus, useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
+import { useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
 import { useGlikoServer } from "./hooks/useGlikoServer";
 import { useAppSubscriptions } from "./hooks/useAppSubscriptions";
 
@@ -58,6 +55,9 @@ import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { ParentalPinModal } from "./components/ParentalPinModal";
 import { AppLayout } from "./components/app/AppLayout";
 import { AppContent } from "./components/app/AppContent";
+import { LocalNotifications } from "@capacitor/local-notifications";
+import { recordMedicationTaken } from "./lib/medicationManager";
+import AiScanningOverlay from "./components/common/AiScanningOverlay";
 
 import { Haptics } from "./lib/haptics";
 import { useTranslation } from "react-i18next";
@@ -66,6 +66,27 @@ import { cn } from "./lib/utils";
 import { handleBackPress } from "./lib/modalStack";
 
 
+
+const GoogleIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24">
+    <path
+      fill="#4285F4"
+      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+    />
+  </svg>
+);
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -81,12 +102,14 @@ export default function App() {
     email, setEmail, password, setPassword, assistantMessages, setAssistantMessages,
     isAssistantTyping, setIsAssistantTyping, wsDevices, setWsDevices, mealProgress, setMealProgress
   } = useAppStore();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { user, loading, initAuthListener } = useAuthStore();
   useAppSubscriptions(user);
   const { data: fbPumpStatus = null } = usePumpStatus(user);
   const { data: userSettings = null } = useUserSettings(user) as any;
   const { data: nsSettings } = useNightscoutSettings(user);
+  const lastDeviceSyncKeyRef = useRef<string>('');
 
   useEffect(() => {
     if (userSettings) {
@@ -94,33 +117,26 @@ export default function App() {
       if (userSettings.medications) {
         notificationService.scheduleMedicationReminders(userSettings.medications);
       }
+      if (Capacitor.isNativePlatform() && userSettings.apkSystemNotificationsEnabled !== undefined) {
+        NotificationBridge.setOngoingNotificationEnabled({ enabled: userSettings.apkSystemNotificationsEnabled }).catch(() => {});
+      }
     }
-  }, [
-    userSettings?.sensorChangeDate,
-    userSettings?.infusionSetChangeDate,
-    userSettings?.sensorDurationDays,
-    userSettings?.infusionSetDurationDays,
-    userSettings?.medications
-  ]);
+  }, [userSettings]);
   
   const userSettingsRef = useRef(userSettings);
   useEffect(() => { userSettingsRef.current = userSettings; }, [userSettings]);
-  const deletedNsIdsRef = useRef(new Set<string>());
-
-  // Wczytanie z pamięci lokalnej (aby Nightscout nie "ożywiał" starych usuniętych wpisów po restarcie aplikacji)
-  useEffect(() => {
+  const deletedNsIdsRef = useRef<Set<string>>((() => {
     try {
       const stored = localStorage.getItem('diab_deleted_ns_ids');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          deletedNsIdsRef.current = new Set(parsed);
-        }
+        if (Array.isArray(parsed)) return new Set(parsed);
       }
     } catch (e) {
-      console.warn("Failed to load deleted NS ids", e);
+      console.warn("Failed to load deleted NS ids synchronously", e);
     }
-  }, []);
+    return new Set<string>();
+  })());
 
   const { nsLogs, nsDeviceStatus } = useNightscoutWorker(
     user, 
@@ -130,11 +146,36 @@ export default function App() {
     deletedNsIdsRef
   );
   
+    // Pamiętamy ostatni prawidłowy poziom zbiorniczka pompy (> 0) w pamięci podręcznej i localStorage,
+    // aby chwilowy brak danych z Nightscout / rozłączenie pompy nie zerowało wartości na 0J.
+    const lastValidReservoir = useMemo(() => {
+      if (nsDeviceStatus?.reservoir !== undefined && nsDeviceStatus.reservoir > 0) {
+        try { localStorage.setItem('last_valid_reservoir', nsDeviceStatus.reservoir.toString()); } catch (e) {}
+        return nsDeviceStatus.reservoir;
+      }
+      if (fbPumpStatus?.reservoir !== undefined && fbPumpStatus.reservoir > 0) {
+        try { localStorage.setItem('last_valid_reservoir', fbPumpStatus.reservoir.toString()); } catch (e) {}
+        return fbPumpStatus.reservoir;
+      }
+      try {
+        const cached = localStorage.getItem('last_valid_reservoir') || localStorage.getItem('last_known_reservoir');
+        if (cached) {
+          const val = parseFloat(cached);
+          if (!isNaN(val) && val > 0) return val;
+        }
+      } catch (e) {}
+      return undefined;
+    }, [nsDeviceStatus?.reservoir, fbPumpStatus?.reservoir]);
+
     const pumpStatus = {
       ...(fbPumpStatus || {}),
       ...(nsDeviceStatus || {}),
-      // Zabezpieczenie przed uciętymi payloadami z Nightscout (np. gdy telefon dosłał samą baterię bez stanu zbiorniczka pompy)
-      reservoir: nsDeviceStatus?.reservoir !== undefined ? nsDeviceStatus.reservoir : (fbPumpStatus?.reservoir || 0),
+      // Zabezpieczenie przed uciętymi payloadami z Nightscout: zachowujemy ostatni znany stan zbiornika zamiast 0
+      reservoir: (nsDeviceStatus?.reservoir !== undefined && nsDeviceStatus.reservoir > 0)
+        ? nsDeviceStatus.reservoir
+        : ((fbPumpStatus?.reservoir !== undefined && fbPumpStatus.reservoir > 0)
+            ? fbPumpStatus.reservoir
+            : lastValidReservoir),
       battery: nsDeviceStatus?.battery !== undefined ? nsDeviceStatus.battery : (fbPumpStatus?.battery || 0),
       activeInsulin: nsDeviceStatus?.activeInsulin !== undefined ? nsDeviceStatus.activeInsulin : (fbPumpStatus?.activeInsulin || 0)
     };
@@ -143,33 +184,67 @@ export default function App() {
     const { logs, setLogs } = useLogsStore();
     const [sqliteLogs, setSqliteLogs] = useState<any[]>([]);
     
-    // Inicjalizacja bazy SQLite i pobranie głębokiej historii
+    const reloadDbLogs = async () => {
+      try {
+        let loadedLogs = await dbService.getLogs(60000);
+        if (loadedLogs.length === 0) {
+          try {
+            let idbLogs = await loadLocalLogs();
+            if (idbLogs && idbLogs.length > 0) {
+              if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
+                idbLogs = idbLogs.filter((l: any) => {
+                  if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+                  if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+                  if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+                  return true;
+                });
+              }
+              console.log(`[App] Odtworzono ${idbLogs.length} wpisów z IndexedDB do SQLite`);
+              loadedLogs = idbLogs;
+              dbService.saveMultipleLogs(idbLogs).catch(console.error);
+            }
+          } catch (idbErr) {
+            console.warn('[App] Błąd odczytu IndexedDB fallback:', idbErr);
+          }
+        }
+
+        if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
+          loadedLogs = loadedLogs.filter((l: any) => {
+            if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+            if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+            if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+            return true;
+          });
+        }
+
+        setSqliteLogs(loadedLogs);
+        if (loadedLogs.length > 0) {
+          useLogsStore.getState().setLogs(loadedLogs);
+        }
+      } catch (dbErr) {
+        console.error('[App] Błąd odświeżania logów z bazy danych:', dbErr);
+      }
+    };
+
+    // Inicjalizacja bazy SQLite oraz nasłuch wybudzenia z tła (Foreground Resume)
     useEffect(() => {
       const initDB = async () => {
         try {
           await dbService.init();
-          let loadedLogs = await dbService.getLogs(60000);
-          if (loadedLogs.length === 0) {
-            try {
-              const idbLogs = await loadLocalLogs();
-              if (idbLogs && idbLogs.length > 0) {
-                console.log(`[App] Odtworzono ${idbLogs.length} wpisów z IndexedDB do SQLite`);
-                loadedLogs = idbLogs;
-                dbService.saveMultipleLogs(idbLogs).catch(console.error);
-              }
-            } catch (idbErr) {
-              console.warn('[App] Błąd odczytu IndexedDB fallback:', idbErr);
-            }
-          }
-          setSqliteLogs(loadedLogs);
-          if (loadedLogs.length > 0) {
-            useLogsStore.getState().setLogs(loadedLogs);
-          }
+          await reloadDbLogs();
         } catch (dbErr) {
           console.error('[App] Błąd inicjalizacji bazy danych:', dbErr);
           try {
-            const idbLogs = await loadLocalLogs();
+            let idbLogs = await loadLocalLogs();
             if (idbLogs && idbLogs.length > 0) {
+              if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
+                idbLogs = idbLogs.filter((l: any) => {
+                  if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+                  if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+                  if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+                  return true;
+                });
+              }
               setSqliteLogs(idbLogs);
               useLogsStore.getState().setLogs(idbLogs);
             }
@@ -177,6 +252,38 @@ export default function App() {
         }
       };
       initDB();
+
+      // Natychmiastowe odświeżenie danych po powrocie do aplikacji (odblokowanie telefonu / przełączenie z innej apki)
+      const handleAppResume = () => {
+        console.log('[App] Wybudzenie aplikacji – natychmiastowe odświeżenie bazy SQLite i Nightscout');
+        reloadDbLogs();
+        window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
+      };
+
+      let appStateListener: any = null;
+      if (Capacitor.isNativePlatform()) {
+        CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            handleAppResume();
+          }
+        }).then(l => { appStateListener = l; });
+      }
+
+      const handleVisibility = () => {
+        if (!document.hidden) {
+          handleAppResume();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+      window.addEventListener('focus', handleAppResume);
+
+      return () => {
+        if (appStateListener && appStateListener.remove) {
+          appStateListener.remove();
+        }
+        document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('focus', handleAppResume);
+      };
     }, []);
 
     // Cichy nasłuch na natychmiastowe aktualizacje lokalne (Optimistic UI) - naprawia niewidzialne wkłucia/sensory
@@ -194,7 +301,7 @@ export default function App() {
         setSqliteLogs(prev => [...e.detail, ...prev]);
         useLogsStore.getState().addLogs(e.detail);
         try {
-          dbService.saveLogs(e.detail).catch(() => {});
+          dbService.saveMultipleLogs(e.detail).catch(() => {});
         } catch (err) {}
       };
       const handleLocalUpdate = (e: any) => {
@@ -222,6 +329,15 @@ export default function App() {
             localStorage.setItem('diab_deleted_ns_ids', JSON.stringify(arr));
           } catch (err) {}
         }
+        // Trwałe usunięcie ze SQLite i IndexedDB dla 100% gwarancji
+        if (id) {
+          dbService.deleteLog(id).catch(() => {});
+          deleteLocalLog(id).catch(() => {});
+        }
+        if (nsId && nsId !== id) {
+          dbService.deleteLog(nsId).catch(() => {});
+          deleteLocalLog(nsId).catch(() => {});
+        }
         // Aby odświeżenie działało natychmiast, potrzebujemy usunąć też z nsLogs
         window.dispatchEvent(new CustomEvent('nsLogDelete', { detail: { id, nsId } }));
       };
@@ -246,12 +362,25 @@ export default function App() {
     });
 
     // Cichy zapis nowych danych z chmury i Nightscout do lokalnej bazy SQLite (Local-First)
+    const lastSavedMaxTimestampRef = useRef<number>(0);
     useEffect(() => {
       if (fbLogs.length === 0 && nsLogs.length === 0) return;
       const timeoutId = setTimeout(() => {
-        const toSave = [...fbLogs, ...nsLogs];
+        const recentCutoff = Date.now() - 48 * 60 * 60 * 1000;
+        const toSave = [...fbLogs, ...nsLogs].filter(l => {
+          const ts = l.timestamp || l.createdAt || 0;
+          if (ts < recentCutoff && lastSavedMaxTimestampRef.current > 0) return false;
+          if (deletedNsIdsRef.current) {
+            if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
+            if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
+            if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
+          }
+          return true;
+        });
         if (toSave.length > 0) {
-          dbService.saveMultipleLogs(toSave).catch(e => console.warn("Background DB save failed", e));
+          lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
+          const batch = toSave.slice(0, 300); // max 300 najświeższych wpisów na cykl
+          dbService.saveMultipleLogs(batch).catch(e => console.warn("Background DB save failed", e));
         }
       }, 5000);
       return () => clearTimeout(timeoutId);
@@ -307,15 +436,40 @@ export default function App() {
     useEffect(() => {
       const allMap = new Map();
 
-      // 1. Ładujemy pełną historię ze SQLite (nigdy jej nie kasujemy)
+      // 1. Ładujemy pełną historię ze SQLite (z wykluczeniem trwale usuniętych wpisów)
       sqliteLogs.forEach((l: any) => {
+        if (deletedNsIdsRef.current) {
+          if (l.id && deletedNsIdsRef.current.has(l.id)) return;
+          if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return;
+          if (l._id && deletedNsIdsRef.current.has(l._id)) return;
+        }
         allMap.set(l.id, l);
       });
 
-      // 2. Nadpisujemy nowszymi danymi z chmury Firebase
-      fbLogs.forEach((l: any) => allMap.set(l.id, l));
+      // 2. Nadpisujemy nowszymi danymi z chmury Firebase (z wykluczeniem trwale usuniętych wpisów)
+      fbLogs.forEach((l: any) => {
+        if (deletedNsIdsRef.current) {
+          if (l.id && deletedNsIdsRef.current.has(l.id)) return;
+          if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return;
+          if (l._id && deletedNsIdsRef.current.has(l._id)) return;
+        }
+        allMap.set(l.id, l);
+      });
       
-      // 3. Doklejamy wpisy z Nightscout API
+      // Indeksujemy wpisy zabiegowe w kubelkach minutowych dla błyskawicznego sprawdzania O(1)
+      const treatmentIndex = new Map<string, any[]>();
+      allMap.forEach((item: any) => {
+        if (!item || !item.type || !item.timestamp) return;
+        if (item.type === 'bolus' || item.type === 'meal' || item.type === 'site_change' || item.type === 'sensor_change') {
+          const minuteBucket = Math.floor(item.timestamp / 60000);
+          const key = `${item.type}_${minuteBucket}`;
+          const list = treatmentIndex.get(key);
+          if (list) list.push(item);
+          else treatmentIndex.set(key, [item]);
+        }
+      });
+
+      // 3. Doklejamy wpisy z Nightscout API z błyskawicznym dopasowaniem
       nsLogs.forEach((nsLog: any) => {
         if (deletedNsIdsRef.current) {
           if (nsLog.id && deletedNsIdsRef.current.has(nsLog.id)) return;
@@ -324,20 +478,29 @@ export default function App() {
         }
         if (allMap.has(nsLog.id)) return;
 
-        // Sprawdzamy czy ten wpis (np. posiłek, bolus, wymiana) już istnieje w bazie lokalnej / Firebase
+        // Sprawdzamy czy ten wpis już istnieje w bazie (sprawdzamy tylko sąsiednie minuty, max kilka pozycji)
         if (nsLog.type === 'bolus' || nsLog.type === 'meal' || nsLog.type === 'site_change' || nsLog.type === 'sensor_change') {
-          for (const existingLog of allMap.values()) {
-            if (existingLog.type === nsLog.type && Math.abs((existingLog.timestamp || 0) - (nsLog.timestamp || 0)) <= 90000) {
-              const diffVal = Math.abs((existingLog.value || 0) - (nsLog.value || 0));
-              if (diffVal < 0.2) {
-                // To ten sam wpis – łączymy metadane (np. nsId), ale zachowujemy bogate dane posiłku (opis, składniki)
-                if (nsLog.nsId && !existingLog.nsId) existingLog.nsId = nsLog.nsId;
-                if (!existingLog.description && nsLog.description) existingLog.description = nsLog.description;
-                if (!existingLog.notes && nsLog.notes) existingLog.notes = nsLog.notes;
-                return;
+          const minuteBucket = Math.floor((nsLog.timestamp || 0) / 60000);
+          let matched = false;
+          for (let b = minuteBucket - 1; b <= minuteBucket + 1; b++) {
+            const bucketList = treatmentIndex.get(`${nsLog.type}_${b}`);
+            if (bucketList) {
+              for (const existingLog of bucketList) {
+                if (Math.abs((existingLog.timestamp || 0) - (nsLog.timestamp || 0)) <= 90000) {
+                  const diffVal = Math.abs((existingLog.value || 0) - (nsLog.value || 0));
+                  if (diffVal < 0.2) {
+                    if (nsLog.nsId && !existingLog.nsId) existingLog.nsId = nsLog.nsId;
+                    if (!existingLog.description && nsLog.description) existingLog.description = nsLog.description;
+                    if (!existingLog.notes && nsLog.notes) existingLog.notes = nsLog.notes;
+                    matched = true;
+                    break;
+                  }
+                }
               }
+              if (matched) break;
             }
           }
+          if (matched) return;
         }
 
         allMap.set(nsLog.id, nsLog);
@@ -353,27 +516,51 @@ export default function App() {
     const latestSiteLog = logs.find((l: any) => l.type === 'site_change' && !l.notes?.toLowerCase().includes('zbiorniczk'));
     const latestSensorLog = logs.find((l: any) => l.type === 'sensor_change');
 
+    const siteLogTs = Number(latestSiteLog?.timestamp) || 0;
+    const sensorLogTs = Number(latestSensorLog?.timestamp) || 0;
+    const siteName = latestSiteLog?.site || '';
+
+    const currentInfusionTs = Number(userSettings.infusionSetChangeDate) || 0;
+    const currentSensorTs = Number(userSettings.sensorChangeDate) || 0;
+    const currentSite = userSettings.infusionSetSite || userSettings.infusionSite || '';
+
+    const uid = getEffectiveUid(user);
+    const syncKey = `${uid}|${latestSiteLog?.id || ''}|${siteLogTs}|${siteName}|${latestSensorLog?.id || ''}|${sensorLogTs}`;
+    if (lastDeviceSyncKeyRef.current === syncKey) return;
+
     const updates: any = {};
-    if (latestSiteLog && latestSiteLog.timestamp) {
-      if (!userSettings.infusionSetChangeDate || latestSiteLog.timestamp > userSettings.infusionSetChangeDate) {
-        updates.infusionSetChangeDate = latestSiteLog.timestamp;
-      }
-      if (latestSiteLog.site && latestSiteLog.site !== userSettings.infusionSetSite) {
-        updates.infusionSetSite = latestSiteLog.site;
-        updates.infusionSite = latestSiteLog.site;
-      }
+    if (siteLogTs > 0 && siteLogTs > currentInfusionTs) {
+      updates.infusionSetChangeDate = siteLogTs;
     }
-    if (latestSensorLog && latestSensorLog.timestamp) {
-      if (!userSettings.sensorChangeDate || latestSensorLog.timestamp > userSettings.sensorChangeDate) {
-        updates.sensorChangeDate = latestSensorLog.timestamp;
-      }
+    if (siteName && siteName !== currentSite) {
+      updates.infusionSetSite = siteName;
+      updates.infusionSite = siteName;
     }
+    if (sensorLogTs > 0 && sensorLogTs > currentSensorTs) {
+      updates.sensorChangeDate = sensorLogTs;
+    }
+
+    lastDeviceSyncKeyRef.current = syncKey;
 
     if (Object.keys(updates).length > 0) {
       console.log('[App] Auto-synced device replacement dates from latest logs:', updates);
-      setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+      try {
+        const cached = localStorage.getItem('glikocontrol_user_settings');
+        const parsed = cached ? JSON.parse(cached) : {};
+        localStorage.setItem('glikocontrol_user_settings', JSON.stringify({ ...parsed, ...updates }));
+      } catch (e) {}
+
+      queryClient.setQueryData(['userSettings', uid], (prev: any) => ({ ...(prev || {}), ...updates }));
+
+      setDoc(doc(db, "users", uid, "settings", "profile"), updates, { merge: true }).catch((err) => {
+        console.warn('[App] Failed to save device replacement updates to Firestore:', err);
+      });
+
+      try {
+        notificationService.updateDeviceReminders({ ...userSettings, ...updates });
+      } catch (e) {}
     }
-  }, [user, userSettings, logs]);
+  }, [user, userSettings, logs, queryClient]);
 
   // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
   useGlucoseAlerts(logs, userSettings);
@@ -479,10 +666,13 @@ export default function App() {
     localStorage.setItem("glikocontrol_privacy_accepted", "true");
     setShowPrivacyPopup(false);
   };
-  const handleCloseChangelog = () => setShowChangelog(false);
+  const handleCloseChangelog = () => {
+    localStorage.setItem('last_seen_changelog_version', CURRENT_VERSION);
+    setShowChangelog(false);
+  };
   const setUserSettings = () => {};
   
-  const sendAssistantMessage = async (msg: string) => {
+  const sendAssistantMessage = async (msg: string, petDataOverride?: any) => {
       if (!msg.trim()) return;
       const userMsg = { id: Date.now().toString(), role: 'user', text: msg, content: msg, timestamp: Date.now() };
       setAssistantMessages((prev: any[]) => [...prev, userMsg]);
@@ -494,12 +684,35 @@ export default function App() {
           parts: [{ text: m.text || m.content || "" }]
         }));
 
-        const response = await geminiService.getGlikoChatResponse(
+        const iob = getEffectiveIOB();
+        const cob = calculateCOB(logs, userSettings?.carbAbsorptionMinutes || 180);
+        const glEntry = (logs || []).find((l: any) => l.type === 'glucose' || l.type === 'sgv');
+        const glucose = glEntry?.value ? Math.round(glEntry.value) : (lastGlucoseValue ? Math.round(lastGlucoseValue) : 100);
+        const trend = glEntry?.direction || glEntry?.trend || null;
+        const pumpModel = pumpStatus?.pump || pumpStatus?.pumpModel || userSettings?.pumpModel || null;
+
+        let memorizedInsights: string[] = [];
+        try {
+          const saved = localStorage.getItem('glikosense_memorized_insights');
+          if (saved) memorizedInsights = JSON.parse(saved);
+        } catch (e) {}
+
+        const currentStatus = {
+          iob,
+          cob,
+          glucose,
+          trend,
+          pumpModel
+        };
+
+        const response = await geminiService.getAssistantResponse(
           msg,
           history,
-          null,
-          userSettings?.treatmentMode,
-          userSettings?.childMode
+          logs,
+          userSettings,
+          currentStatus,
+          memorizedInsights,
+          petDataOverride
         );
 
         let cleanText = response || "";
@@ -638,8 +851,39 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 2500);
+    const timer = setTimeout(() => setShowSplash(false), 2300);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Przechwycenie wyniku logowania przez przekierowanie OAuth (Google / Facebook signInWithRedirect)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.debug('[App] Zalogowano pomyślnie przez przekierowanie:', result.user.email || result.user.uid);
+        }
+      })
+      .catch((e: any) => {
+        if (e?.code !== 'auth/null-user') {
+          console.debug('[App] getRedirectResult status:', e?.code || e?.message);
+        }
+      });
+  }, []);
+
+  // Automatyczne wyświetlenie okna Nowości (ChangelogPopup) po aktualizacji aplikacji
+  useEffect(() => {
+    try {
+      const lastSeen = localStorage.getItem('last_seen_changelog_version');
+      if (lastSeen !== CURRENT_VERSION) {
+        // Płynne opóźnienie po zakończeniu animacji splash screena
+        const timer = setTimeout(() => {
+          setShowChangelog(true);
+        }, 2600);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {
+      console.warn('Failed to check changelog version:', e);
+    }
   }, []);
 
   // Handle Android system back button & Web/PWA modal closing
@@ -804,6 +1048,29 @@ export default function App() {
       }).then(l => { urlListener = l; });
     }
 
+    // 4. Nasłuchuj na akcje z powiadomień lokalnych (np. "Zażyłem lek")
+    let notificationActionListener: any;
+    if (Capacitor.isNativePlatform()) {
+      LocalNotifications.addListener('localNotificationActionPerformed', async (notificationAction) => {
+        try {
+          const actionId = notificationAction.actionId;
+          const notification = notificationAction.notification;
+          const extra = notification?.extra;
+
+          if (actionId === 'TAKE_MED' && extra?.medicationId) {
+            console.log('[App] Otrzymano akcję TAKE_MED dla leku:', extra.medicationId);
+            await recordMedicationTaken(extra.medicationId, extra.pillsPerDose);
+            // Usunięcie powiadomienia po wykonaniu akcji
+            if (notification.id) {
+              await LocalNotifications.cancel({ notifications: [{ id: notification.id }] }).catch(() => {});
+            }
+          }
+        } catch (err) {
+          console.error('[App] Błąd obsługi akcji powiadomienia:', err);
+        }
+      }).then(l => { notificationActionListener = l; });
+    }
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('native_shortcut_action', handleNativeShortcutEvent);
@@ -812,6 +1079,9 @@ export default function App() {
       }
       if (urlListener && urlListener.remove) {
         urlListener.remove();
+      }
+      if (notificationActionListener && notificationActionListener.remove) {
+        notificationActionListener.remove();
       }
     };
   }, []);
@@ -913,6 +1183,9 @@ export default function App() {
 
     if (user) {
       await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+      try {
+        notificationService.updateDeviceReminders({ ...userSettings, ...updates });
+      } catch (e) {}
         
       try {
         const logPayload: any = {
@@ -1008,6 +1281,19 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = initAuthListener(setShowTutorial);
+    if (!Capacitor.isNativePlatform()) {
+      getRedirectResult(auth, browserPopupRedirectResolver)
+        .then((res) => {
+          if (res?.user) {
+            console.log("Logged in via Google redirect:", res.user.email);
+          }
+        })
+        .catch((err) => {
+          if (err?.code !== 'auth/popup-closed-by-user') {
+            console.warn("getRedirectResult error:", err);
+          }
+        });
+    }
     return () => {
       if (unsubscribe) unsubscribe();
     };
@@ -1176,56 +1462,254 @@ export default function App() {
     }
   };
 
+  const getFriendlyAuthErrorMessage = (error: any, context?: 'login' | 'register' | 'google' | 'facebook' | 'reset'): string => {
+    const code = (error?.code || "").toLowerCase();
+    const msg = (error?.message || "").toLowerCase();
+
+    if (code.includes("account-exists-with-different-credential") || msg.includes("account-exists-with-different-credential")) {
+      return "Konto z tym adresem e-mail jest już zarejestrowane inną metodą (np. Google lub Hasło). Zaloguj się pierwotną metodą.";
+    }
+    if (code.includes("invalid-email") || msg.includes("invalid-email")) {
+      return "Wprowadź prawidłowy adres e-mail (np. nazwa@domena.pl).";
+    }
+    if (code.includes("missing-password") || msg.includes("missing-password")) {
+      return "Wprowadź hasło.";
+    }
+    if (code.includes("weak-password") || msg.includes("weak-password")) {
+      return "Hasło musi mieć co najmniej 6 znaków.";
+    }
+    if (code.includes("email-already-in-use") || msg.includes("email-already-in-use")) {
+      return "Konto z tym adresem e-mail już istnieje. Kliknij 'Wejdź' lub zresetuj hasło.";
+    }
+    if (code.includes("user-not-found") || msg.includes("user-not-found")) {
+      return "Nie znaleziono konta dla tego adresu e-mail. Sprawdź pisownię lub kliknij 'Rejestracja'.";
+    }
+    if (code.includes("wrong-password") || code.includes("invalid-credential") || msg.includes("wrong-password") || msg.includes("invalid-credential")) {
+      return "Nieprawidłowy e-mail lub hasło. Sprawdź poprawność danych.";
+    }
+    if (code.includes("too-many-requests") || msg.includes("too-many-requests")) {
+      return "Zbyt wiele nieudanych prób logowania. Odczekaj chwilę przed kolejną próbą.";
+    }
+    if (code.includes("network-request-failed") || msg.includes("network-request-failed")) {
+      return "Błąd połączenia z siecią. Sprawdź dostęp do internetu.";
+    }
+    if (code.includes("popup-closed-by-user") || msg.includes("popup-closed-by-user")) {
+      if (context === 'facebook') return "Logowanie przez Facebook zostało anulowane.";
+      return "Logowanie przez Google zostało anulowane.";
+    }
+    if (code.includes("popup-blocked") || msg.includes("popup-blocked")) {
+      return "Wyskakujące okno logowania zostało zablokowane przez przeglądarkę. Zezwól na okna popup.";
+    }
+    if (code.includes("argument-error") || msg.includes("argument-error")) {
+      if (context === 'google') {
+        return "Błąd sesji logowania Google. Odśwież stronę i spróbuj ponownie.";
+      }
+      if (context === 'facebook') {
+        return "Błąd sesji logowania Facebook. Odśwież stronę i spróbuj ponownie.";
+      }
+      return "Uzupełnij wymagane pola (prawidłowy e-mail i hasło).";
+    }
+
+    return error?.message || "Wystąpił błąd autoryzacji.";
+  };
+
   const handleLogin = async () => {
-    try { await signInWithEmailAndPassword(auth, email, password); } 
-    catch (e: any) { setAuthError(e.message); }
+    setAuthError("");
+    const cleanEmail = (email || "").trim();
+    const cleanPassword = (password || "").trim();
+
+    if (!cleanEmail) {
+      setAuthError("Wprowadź adres e-mail.");
+      return;
+    }
+    if (!cleanPassword) {
+      setAuthError("Wprowadź hasło.");
+      return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+    } catch (e: any) {
+      setAuthError(getFriendlyAuthErrorMessage(e, 'login'));
+    }
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
+    setAuthError("");
+    const cleanEmail = (email || "").trim();
+    if (!cleanEmail) {
       setAuthError("Podaj adres email aby zresetować hasło.");
       return;
     }
-    try { await sendPasswordResetEmail(auth, email); setAuthError(""); } 
-    catch (e: any) { setAuthError(e.message); }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setAuthError("Wprowadź prawidłowy format adresu e-mail (np. nazwa@domena.pl).");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+      setAuthError("");
+      alert("Wysłano link do zresetowania hasła na podany adres e-mail.");
+    } catch (e: any) {
+      setAuthError(getFriendlyAuthErrorMessage(e, 'reset'));
+    }
   };
 
   const handleRegister = async () => {
-    try { await createUserWithEmailAndPassword(auth, email, password); } 
-    catch (e: any) { setAuthError(e.message); }
+    setAuthError("");
+    const cleanEmail = (email || "").trim();
+    const cleanPassword = (password || "").trim();
+
+    if (!cleanEmail) {
+      setAuthError("Wprowadź adres e-mail.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setAuthError("Wprowadź prawidłowy format adresu e-mail (np. nazwa@domena.pl).");
+      return;
+    }
+    if (!cleanPassword) {
+      setAuthError("Wprowadź hasło.");
+      return;
+    }
+    if (cleanPassword.length < 6) {
+      setAuthError("Hasło musi mieć co najmniej 6 znaków.");
+      return;
+    }
+
+    try {
+      await createUserWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+    } catch (e: any) {
+      setAuthError(getFriendlyAuthErrorMessage(e, 'register'));
+    }
   };
 
   const handleAnonymous = async () => {
-    try { await signInAnonymously(auth); } 
-    catch (e: any) { setAuthError(e.message); }
+    setAuthError("");
+    try {
+      await signInAnonymously(auth);
+    } catch (e: any) {
+      setAuthError(getFriendlyAuthErrorMessage(e));
+    }
   };
 
   const handleGoogle = async () => {
+    setAuthError("");
     try {
       if (Capacitor.isNativePlatform()) {
         const result = await FirebaseAuthentication.signInWithGoogle();
-        if (result.credential?.idToken) {
-          const credential = GoogleAuthProvider.credential(result.credential.idToken);
+        let idToken = result.credential?.idToken;
+        if (!idToken) {
+          try {
+            const tokenRes = await FirebaseAuthentication.getIdToken();
+            idToken = tokenRes?.token;
+          } catch (tErr) {
+            console.warn("Could not retrieve idToken from FirebaseAuthentication:", tErr);
+          }
+        }
+        if (idToken) {
+          const credential = GoogleAuthProvider.credential(idToken);
           await signInWithCredential(auth, credential);
+        } else {
+          throw new Error("Nie udało się uzyskać tokenu autoryzacji Google z urządzenia. Spróbuj ponownie.");
         }
       } else {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        provider.setCustomParameters({ prompt: 'select_account' });
+        try {
+          await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+        } catch (popupErr: any) {
+          const errCode = popupErr?.code || "";
+          const errMsg = popupErr?.message || "";
+          if (errCode === 'auth/popup-closed-by-user') {
+            return;
+          }
+          if (
+            errCode === 'auth/popup-blocked' ||
+            errCode === 'auth/cancelled-popup-request' ||
+            errMsg.includes('Cross-Origin-Opener-Policy') ||
+            errMsg.includes('window.closed')
+          ) {
+            console.warn("Popup blocked or COOP restricted, falling back to signInWithRedirect:", popupErr);
+            await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
+            return;
+          }
+          throw popupErr;
+        }
       }
     } catch (e: any) {
-      setAuthError(e.message || "Błąd logowania Google");
+      if (e?.code === 'auth/popup-closed-by-user') return;
+      setAuthError(getFriendlyAuthErrorMessage(e, 'google'));
+    }
+  };
+
+  const handleFacebook = async () => {
+    setAuthError("");
+    try {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const result = await FirebaseAuthentication.signInWithOpenIdConnect({
+            providerId: 'facebook.com',
+            scopes: ['public_profile']
+          });
+          const accessToken = result.credential?.accessToken || (result as any)?.accessToken;
+          if (accessToken) {
+            const credential = FacebookAuthProvider.credential(accessToken);
+            await signInWithCredential(auth, credential);
+            return;
+          }
+          const idToken = result.credential?.idToken || (result as any)?.idToken;
+          if (idToken) {
+            const provider = new OAuthProvider('facebook.com');
+            const credential = provider.credential({ idToken });
+            await signInWithCredential(auth, credential);
+            return;
+          }
+        } catch (nativeErr: any) {
+          console.warn("Native Facebook sign-in attempt failed, falling back to Web OAuth:", nativeErr);
+        }
+      }
+
+      const provider = new FacebookAuthProvider();
+      provider.setCustomParameters({ display: 'touch' });
+
+      try {
+        await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+      } catch (popupErr: any) {
+        const errCode = popupErr?.code || "";
+        const errMsg = popupErr?.message || "";
+        if (errCode === 'auth/popup-closed-by-user') {
+          return;
+        }
+        if (
+          errCode === 'auth/popup-blocked' ||
+          errCode === 'auth/cancelled-popup-request' ||
+          errCode === 'auth/operation-not-supported-in-this-environment' ||
+          errMsg.includes('Cross-Origin-Opener-Policy') ||
+          errMsg.includes('window.closed')
+        ) {
+          console.warn("Popup blocked or not supported, falling back to signInWithRedirect:", popupErr);
+          await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
+          return;
+        }
+        throw popupErr;
+      }
+    } catch (e: any) {
+      if (e?.code === 'auth/popup-closed-by-user') return;
+      setAuthError(getFriendlyAuthErrorMessage(e, 'facebook'));
     }
   };
 
   const handleLogout = () => signOut(auth);
 
-  if (loading || showSplash) {
-    return <GlikoControlLogo />;
-  }
-
-  if (!user) {
+  if (!user && !loading) {
     return (
-      <div className={cn("min-h-[100dvh] flex items-center justify-center p-4 transition-colors duration-500", theme === "dark" ? "bg-slate-950" : "bg-slate-50")}>
+      <>
+        <AnimatePresence>
+          {showSplash && <GlikoControlLogo />}
+        </AnimatePresence>
+        <div className={cn("min-h-[100dvh] flex items-center justify-center p-4 transition-colors duration-500", theme === "dark" ? "bg-slate-950" : "bg-slate-50")}>
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn("w-full max-w-sm p-10 rounded-[3.5rem] shadow-2xl text-center border transition-all duration-500", theme === "dark" ? "bg-slate-900/60 backdrop-blur-3xl border-slate-800/50" : "bg-white border-slate-200")}>
           <div className="flex items-center justify-center gap-4 mb-2">
             <Logo className="w-14 h-14" />
@@ -1233,8 +1717,7 @@ export default function App() {
               GlikoControl v{CURRENT_VERSION}
             </h2>
           </div>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Zintegrowany System Glikemii</p>
-          <p className="text-accent-400 text-xs font-bold mb-8 italic">GlikoControl AI</p>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-8">Zintegrowany System Glikemii</p>
 
           <div className="space-y-4 mb-6">
             <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className={cn("w-full p-4 rounded-2xl text-sm font-bold border outline-none focus:border-accent-500 transition-all", theme === "dark" ? "bg-slate-800/50 border-slate-700/50 text-white" : "bg-slate-50 border-slate-200 text-slate-900")} />
@@ -1259,14 +1742,20 @@ export default function App() {
             </button>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <button onClick={() => { Haptics.impact(); handleGoogle(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all", theme === "dark" ? "bg-slate-950 text-white border-slate-800" : "bg-white text-slate-700 border-slate-200")}>
-              <Globe className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Kontynuuj przez Google</span>
+          <div className="flex flex-col gap-2.5">
+            <button onClick={() => { Haptics.impact(); handleGoogle(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all", theme === "dark" ? "bg-slate-950 text-white border-slate-800 hover:bg-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50")}>
+              <GoogleIcon className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.kontynuuj_przez_google', { defaultValue: 'Kontynuuj przez Google' })}</span>
             </button>
-            <button onClick={() => { Haptics.impact(); handleAnonymous(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-2", theme === "dark" ? "bg-accent-500/10 text-accent-400 border-accent-500/20" : "bg-accent-50 text-accent-600 border-accent-100")}>
+
+            <button onClick={() => { Haptics.impact(); handleFacebook(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all", theme === "dark" ? "bg-[#1877F2]/15 text-[#4592ff] border-[#1877F2]/30 hover:bg-[#1877F2]/25" : "bg-[#1877F2] text-white border-[#1877F2] hover:bg-[#166fe5]")}>
+              <Facebook className="w-4 h-4 fill-current" />
+              <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.kontynuuj_przez_facebook', { defaultValue: 'Kontynuuj przez Facebook' })}</span>
+            </button>
+
+            <button onClick={() => { Haptics.impact(); handleAnonymous(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-1", theme === "dark" ? "bg-accent-500/10 text-accent-400 border-accent-500/20 hover:bg-accent-500/15" : "bg-accent-50 text-accent-600 border-accent-100 hover:bg-accent-100/60")}>
               <Zap className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Logowanie bez konta (Gość)</span>
+              <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.logowanie_bez_konta_gosc', { defaultValue: 'Logowanie bez konta (Gość)' })}</span>
             </button>
           </div>
           <button onClick={toggleTheme} className="mt-8 p-3 rounded-full hover:bg-slate-500/10 transition-colors">
@@ -1274,7 +1763,8 @@ export default function App() {
           </button>
         </motion.div>
       </div>
-    );
+    </>
+  );
   }
 
   const handleSwipe = (_: any, info: any) => {};
@@ -1288,8 +1778,12 @@ export default function App() {
 
   return (
     <>
+      <AnimatePresence>
+        {showSplash && <GlikoControlLogo />}
+      </AnimatePresence>
       <GlucoseAlarmModal />
       <ParentalPinModal />
+      <AiScanningOverlay />
       <SmartEquipmentModal
         type={smartEquipmentType}
         logs={logs}

@@ -50,12 +50,12 @@ export function calculatePreBolusWaitTime(
       waitMinutes: 0,
       reason: i18n.t('bolus.timing_hypo', { defaultValue: '⚠️ Niski cukier! Zjedz posiłek natychmiast, bez czekania.' })
     };
-  } else if (glucoseValue < 100) {
-    // 80 - 99: niska norma
+  } else if (glucoseValue <= 100) {
+    // 80 - 100: niska norma
     waitMinutes = isUltraFast ? 0 : (isRegular ? 15 : 5);
     reason = 'glikemia 80-100 mg/dL (niska norma)';
   } else if (glucoseValue <= 130) {
-    // 100 - 130: idealna norma
+    // 101 - 130: idealna norma
     waitMinutes = isUltraFast ? 3 : (isRegular ? 20 : 10);
     reason = 'glikemia w normie';
   } else if (glucoseValue <= 160) {
@@ -76,23 +76,150 @@ export function calculatePreBolusWaitTime(
     reason = 'bardzo wysoka glikemia';
   }
 
-  // 2. Korekta trendem CGM
+  // 2. Wpływ trendu glikemii (strzałki CGM, delty, kierunki)
   let trendMod = 0;
   let trendReason = '';
-  if (trend === 'SingleUp' || trend === 'DoubleUp' || trend === 'FortyFiveUp' || trend === '↑' || trend === '⇈' || trend === '↗') {
-    trendMod = 3;
-    trendReason = ', trend rosnący (+3 min)';
-  } else if (trend === 'SingleDown' || trend === 'DoubleDown' || trend === 'FortyFiveDown' || trend === '↓' || trend === '⇊' || trend === '↘') {
+
+  const normTrend = (trend || '').toLowerCase().trim();
+  if (normTrend.includes('doubledown') || normTrend === '↓↓' || normTrend === '⇊' || normTrend === '-2' || normTrend === '-3' || normTrend.startsWith('--')) {
+    trendMod = -8;
+    trendReason = ', szybki spadek ↓↓';
+  } else if (normTrend.includes('fortyfivedown') || normTrend === '↘' || normTrend === '⬊') {
     trendMod = -3;
-    trendReason = ', trend spadkowy (-3 min)';
+    trendReason = ', lekki spadek ↘';
+  } else if (normTrend.includes('singledown') || normTrend === 'down' || normTrend === '↓' || normTrend === '⇣' || normTrend === '-1' || normTrend.includes('fall')) {
+    trendMod = -5;
+    trendReason = ', spadek ↓';
+  } else if (normTrend.includes('doubleup') || normTrend === '↑↑' || normTrend === '⇈' || normTrend === '+2' || normTrend === '+3') {
+    trendMod = 6;
+    trendReason = ', szybki wzrost ↑↑';
+  } else if (normTrend.includes('singleup') || normTrend === 'up' || normTrend === '↑' || normTrend === '⇡' || normTrend === '+1' || normTrend.includes('rise')) {
+    trendMod = 3;
+    trendReason = ', wzrost ↑';
+  } else if (normTrend.includes('fortyfiveup') || normTrend === '↗' || normTrend === '⬈') {
+    trendMod = 2;
+    trendReason = ', lekki wzrost ↗';
   }
 
-  const finalWait = Math.max(0, Math.min(35, waitMinutes + trendMod));
+  // 3. GlikoSense 4.1: Sprawdzamy wyuczony osobisty czas opóźnienia insuliny z modelu ML
+  let learnedLagMinutes: number | null = null;
+  try {
+    const cachedMl = typeof window !== 'undefined' ? localStorage.getItem('glikosense_last_result_v2') : null;
+    if (cachedMl) {
+      const parsed = JSON.parse(cachedMl);
+      if (parsed?.learnedPkParams?.optimalLagMinutes && typeof parsed.learnedPkParams.optimalLagMinutes === 'number') {
+        learnedLagMinutes = parsed.learnedPkParams.optimalLagMinutes;
+      }
+    }
+  } catch (e) {}
+
+  // Skalowanie czasu oczekiwania względem osobistego profilu wchłaniania
+  if (learnedLagMinutes !== null && learnedLagMinutes >= 5 && learnedLagMinutes <= 35) {
+    const lagRatio = learnedLagMinutes / (isUltraFast ? 8 : (isRegular ? 25 : 15));
+    waitMinutes = Math.round(waitMinutes * Math.max(0.6, Math.min(1.4, lagRatio)));
+    reason += ` (GlikoSense 4.1: ~${learnedLagMinutes} min)`;
+  }
+
+  // Bezpieczeństwo kliniczne: jeśli cukier jest w dolnej normie (<= 105 mg/dL) i spada (trend ujemny),
+  // czas oczekiwania zerujemy - posiłek natychmiast, aby uniknąć hipoglikemii!
+  if (glucoseValue <= 105 && trendMod < 0) {
+    return {
+      waitMinutes: 0,
+      reason: i18n.t('bolus.timing_immediate', { defaultValue: '🟢 Spadek glikemii przy normie: zjedz od razu bez czekania!' })
+    };
+  }
+
+  const finalWait = Math.max(0, Math.min(40, waitMinutes + trendMod));
+
+  if (finalWait === 0) {
+    return {
+      waitMinutes: 0,
+      reason: i18n.t('bolus.timing_immediate', { defaultValue: '🟢 Zjedz od razu bez czekania' })
+    };
+  }
 
   return {
     waitMinutes: finalWait,
     reason: `Sugerowany odstęp: ${finalWait} min (${reason}${trendReason})`
   };
+}
+
+/**
+ * Uruchamia stoper przedposiłkowy i planuje powiadomienie
+ */
+const HANDLED_BOLUSES_KEY = 'prebolus_handled_boluses';
+const COMPLETED_BOLUSES_KEY = 'prebolus_completed_boluses';
+
+interface BolusRecord {
+  timestamp: number;
+  bolusId?: string;
+  time: number;
+}
+
+export function getHandledBoluses(): BolusRecord[] {
+  try {
+    const raw = localStorage.getItem(HANDLED_BOLUSES_KEY);
+    if (!raw) return [];
+    const list: BolusRecord[] = JSON.parse(raw);
+    const now = Date.now();
+    return list.filter(item => (now - item.time) < 3 * 60 * 60 * 1000);
+  } catch (e) {
+    return [];
+  }
+}
+
+export function markBolusAsHandled(timestamp: number, bolusId?: string): void {
+  try {
+    const list = getHandledBoluses();
+    const exists = list.some(item =>
+      (bolusId && item.bolusId === bolusId) ||
+      Math.abs(item.timestamp - timestamp) < 5 * 60 * 1000
+    );
+    if (!exists) {
+      list.push({ timestamp, bolusId, time: Date.now() });
+      localStorage.setItem(HANDLED_BOLUSES_KEY, JSON.stringify(list));
+    }
+  } catch (e) {}
+}
+
+export function getCompletedBoluses(): BolusRecord[] {
+  try {
+    const raw = localStorage.getItem(COMPLETED_BOLUSES_KEY);
+    if (!raw) return [];
+    const list: BolusRecord[] = JSON.parse(raw);
+    const now = Date.now();
+    return list.filter(item => (now - item.time) < 3 * 60 * 60 * 1000);
+  } catch (e) {
+    return [];
+  }
+}
+
+export function markBolusAsCompleted(timestamp: number, bolusId?: string): void {
+  try {
+    const list = getCompletedBoluses();
+    const exists = list.some(item =>
+      (bolusId && item.bolusId === bolusId) ||
+      Math.abs(item.timestamp - timestamp) < 5 * 60 * 1000
+    );
+    if (!exists) {
+      list.push({ timestamp, bolusId, time: Date.now() });
+      localStorage.setItem(COMPLETED_BOLUSES_KEY, JSON.stringify(list));
+    }
+  } catch (e) {}
+}
+
+export function isBolusHandledOrCompleted(timestamp: number, bolusId?: string): boolean {
+  try {
+    const handled = getHandledBoluses();
+    if (handled.some(item => (bolusId && item.bolusId === bolusId) || Math.abs(item.timestamp - timestamp) < 5 * 60 * 1000)) {
+      return true;
+    }
+    const completed = getCompletedBoluses();
+    if (completed.some(item => (bolusId && item.bolusId === bolusId) || Math.abs(item.timestamp - timestamp) < 5 * 60 * 1000)) {
+      return true;
+    }
+  } catch (e) {}
+  return false;
 }
 
 /**
@@ -104,12 +231,18 @@ export function startPreBolusTimer(
   customStartTime?: number
 ): void {
   const roundedWaitMinutes = Math.round(Number(totalWaitMinutes) || 0);
+  if (roundedWaitMinutes <= 0) {
+    cancelPreBolusTimer(customStartTime);
+    return;
+  }
   const startTime = customStartTime || Date.now();
   const targetTime = startTime + roundedWaitMinutes * 60 * 1000;
-  const remainingMinutes = Math.max(1, Math.ceil((targetTime - Date.now()) / 60000));
   const cleanUnitsStr = bolusUnits !== undefined && bolusUnits !== null && !isNaN(Number(bolusUnits))
     ? Number(bolusUnits).toFixed(1).replace(/\.0$/, '')
     : '';
+
+  // Trwale oznaczamy bolus jako obsłużony, aby nie był powtórnie przeliczany
+  markBolusAsHandled(startTime);
 
   const state = {
     startTime,
@@ -120,7 +253,7 @@ export function startPreBolusTimer(
 
   localStorage.setItem('prebolus_timer_state', JSON.stringify(state));
 
-  // 1. Uruchamiamy natychmiastowe powiadomienie na belce stanu (widoczne od 1. sekundy na każdym telefonie)
+  // 1. Uruchamiamy natychmiastowe powiadomienie na belce stanu
   notificationService.startOngoingTimerNotification(targetTime, roundedWaitMinutes, bolusUnits);
 
   // 2. Uruchamiamy natywny chronometr Androida na belce i ekranie blokady (Live Chronometer)
@@ -163,11 +296,14 @@ export function getPreBolusTimerState(): PreBolusTimerState {
     const now = Date.now();
     const targetTime = parsed.targetTime;
     const startTime = parsed.startTime;
-    const remainingSeconds = Math.round((targetTime - now) / 1000);
-    const elapsedSeconds = Math.round((now - startTime) / 1000);
+    const rawRemaining = Math.round((targetTime - now) / 1000);
+    const elapsedSeconds = Math.max(0, Math.round((now - startTime) / 1000));
 
     // Jeśli od zakończenia minęło ponad 15 minut, wygaszamy stoper
-    if (remainingSeconds < -15 * 60) {
+    if (rawRemaining < -15 * 60) {
+      if (startTime) {
+        markBolusAsCompleted(startTime);
+      }
       localStorage.removeItem('prebolus_timer_state');
       notificationService.cancelOngoingTimerNotification();
       try {
@@ -184,12 +320,18 @@ export function getPreBolusTimerState(): PreBolusTimerState {
       };
     }
 
+    const remainingSeconds = Math.max(0, rawRemaining);
     const isReady = remainingSeconds <= 0;
+
+    if (isReady && startTime) {
+      // Oznaczamy ten bolus jako ukończony
+      markBolusAsCompleted(startTime);
+    }
 
     return {
       active: true,
-      remainingSeconds: Math.max(0, remainingSeconds),
-      totalMinutes: parsed.totalMinutes,
+      remainingSeconds,
+      totalMinutes: parsed.totalMinutes || 0,
       targetTime,
       startTime,
       bolusUnits: parsed.bolusUnits,
@@ -212,7 +354,20 @@ export function getPreBolusTimerState(): PreBolusTimerState {
 /**
  * Anuluje / zamyka stoper przedposiłkowy
  */
-export function cancelPreBolusTimer(): void {
+export function cancelPreBolusTimer(customBolusTime?: number): void {
+  const saved = localStorage.getItem('prebolus_timer_state');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.startTime) {
+        markBolusAsCompleted(parsed.startTime);
+      }
+    } catch (e) {}
+  }
+  if (customBolusTime) {
+    markBolusAsCompleted(customBolusTime);
+  }
+
   localStorage.removeItem('prebolus_timer_state');
   notificationService.cancelOngoingTimerNotification();
   try {
@@ -238,6 +393,13 @@ export function checkAndNotifyPumpBolus(
     return;
   }
 
+  // 1. Jeśli stoper przedposiłkowy jest już aktywny (odlicza lub jest już w stanie isReady),
+  // NIE wolno go restartować ani zmieniać czasu tylko dlatego, że wzrósł cukier!
+  const currentTimer = getPreBolusTimerState();
+  if (currentTimer.active) {
+    return;
+  }
+
   const now = Date.now();
   const THIRTY_MINUTES = 30 * 60 * 1000;
 
@@ -253,33 +415,40 @@ export function checkAndNotifyPumpBolus(
     return; // Zbyt stary bolus
   }
 
+  const bolusId = `${latestBolus.id || latestBolus.timestamp}_${latestBolus.value}`;
+
+  // 2. Sprawdzamy czy ten bolus był już obsłużony lub ukończony w pamięci trwałej (localStorage)
+  if (isBolusHandledOrCompleted(latestBolus.timestamp, bolusId)) {
+    return;
+  }
+
   // Sprawdzamy czy ten bolus jest związany z posiłkiem / węglowodanami LUB ma dawkę >= 0.4j (bolus przedposiłkowy podany w pompie):
   const bolusCarbs = Number((latestBolus as any).carbs || (latestBolus as any).carb_input || (latestBolus as any).carbsBolus || 0);
   const bolusUnitsVal = Number(latestBolus.value || (latestBolus as any).carbsBolus || 0);
   
-  // Szukamy wpisu posiłku zarejestrowanego w pobliżu tego bolusa (w przedziale +/- 12 minut)
-  const hasNearbyMeal = logs.some(l => 
+  // Szukamy wpisu posiłku zarejestrowanego w pobliżu tego bolusa lub tuż po nim (w przedziale -12 min do +15 min)
+  const hasNearbyOrLaterMeal = logs.some(l => 
     l.type === 'meal' && 
-    Math.abs((l.timestamp || 0) - latestBolus.timestamp) <= 12 * 60 * 1000 &&
+    (l.timestamp || 0) >= (latestBolus.timestamp - 12 * 60 * 1000) &&
     Number(l.value || (l as any).carbs || 0) > 0
   );
 
-  const isExplicitMealBolus = bolusCarbs > 0 || hasNearbyMeal || bolusUnitsVal >= 0.4;
+  // Jeśli posiłek został już zarejestrowany / zjedzony, oznaczamy bolus i nie uruchamiamy stopera
+  if (hasNearbyOrLaterMeal) {
+    markBolusAsHandled(latestBolus.timestamp, bolusId);
+    markBolusAsCompleted(latestBolus.timestamp, bolusId);
+    return;
+  }
+
+  const isExplicitMealBolus = bolusCarbs > 0 || bolusUnitsVal >= 0.4;
 
   // Jeśli to jest czysta mikro-korekta (np. 0.05j, 0.1j z pętli) - ignorujemy!
   if (!isExplicitMealBolus) {
     return;
   }
 
-  // Identyfikator bolusa zapobiegający wielokrotnym alertom na ten sam wpis
-  const bolusId = `${latestBolus.id || latestBolus.timestamp}_${latestBolus.value}`;
-  const lastProcessed = sessionStorage.getItem('last_processed_pump_bolus');
-
-  if (lastProcessed === bolusId) {
-    return; // Już obsłużony w bieżącej sesji
-  }
-
-  sessionStorage.setItem('last_processed_pump_bolus', bolusId);
+  // Oznaczamy bolus jako obsłużony
+  markBolusAsHandled(latestBolus.timestamp, bolusId);
 
   // Rzeczywisty czas, jaki upłynął od wykonania bolusa w pompie do przyjścia do aplikacji
   const elapsedMinutes = Math.floor(bolusAgeMs / 60000);
@@ -308,6 +477,7 @@ export function checkAndNotifyPumpBolus(
     );
   } else {
     // Bolus dotarł ze sporym opóźnieniem i czas oczekiwania już minął
+    markBolusAsCompleted(latestBolus.timestamp, bolusId);
     Haptics.light();
     toast(
       i18n.t('prebolus.pump_detected_ready', {

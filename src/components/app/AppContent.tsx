@@ -24,18 +24,8 @@ import GlikoAssistant from "../GlikoAssistant";
 import InsulinDetective from "../InsulinDetective";
 import { Diets } from "../Diets";
 import JetLagMode from "../JetLagMode";
-
-// Dynamic preloader functions for bottom navigation & key views
-const preloadMainViews = () => {
-  import("../ChartFullView");
-  import("../MealPlate");
-  import("../nutrition/NutritionHub");
-  import("../AiReports");
-  import("../GlikoAssistant");
-  import("../Profile");
-  import("../BolusCalculator");
-  import("../HistoryView");
-};
+import { preloadPetAssets } from "../../lib/assetCache";
+import FloatingChatCapsule from "../common/FloatingChatCapsule";
 
 export const AppContent = (props: any) => {
   const {
@@ -47,6 +37,11 @@ export const AppContent = (props: any) => {
   const { data: userSettings = null } = useUserSettings(user) as any;
   const pumpStatus = propPumpStatus || null;
   const { data: petData = null } = usePetStatus(user);
+
+  React.useEffect(() => {
+    preloadPetAssets(petData);
+  }, [petData?.skin, petData?.currentAccessory, petData?.level]);
+
   const { data: nsSettings = null } = useNightscoutSettings(user);
   const nsUrl = nsSettings?.url || "";
   const nsSecret = nsSettings?.secret || "";
@@ -64,14 +59,6 @@ export const AppContent = (props: any) => {
   } = useAppStore();
   const sharedPlate = useMealPlateStore((state) => state.plate);
   const setSharedPlate = useMealPlateStore((state) => state.setPlate);
-
-  // Preload tab chunks in background after initial render
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      preloadMainViews();
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const content = (
     <LocalErrorBoundary>
@@ -216,7 +203,7 @@ export const AppContent = (props: any) => {
                   messages={assistantMessages}
                   setMessages={setAssistantMessages}
                   isTyping={isAssistantTyping}
-                  onSend={sendAssistantMessage}
+                  onSend={(text) => sendAssistantMessage(text, petData)}
                 />
               )}
               {activeTab === "ai" && (
@@ -240,7 +227,7 @@ export const AppContent = (props: any) => {
                   messages={assistantMessages}
                   setMessages={setAssistantMessages}
                   isTyping={isAssistantTyping}
-                  onSend={sendAssistantMessage}
+                  onSend={(text) => sendAssistantMessage(text, petData)}
                 />
               </div>
               <div>
@@ -289,13 +276,18 @@ export const AppContent = (props: any) => {
               />
             )}
             {activeTab === "achievements" && (
-              <Achievements
-                setTab={changeTab}
-                petData={petData}
-              />
+              userSettings?.childMode ? (
+                <Achievements
+                  user={user}
+                  setTab={changeTab}
+                  petData={petData}
+                />
+              ) : null
             )}
             {activeTab === "games" && (
-              <GlikoGames setTab={changeTab} />
+              userSettings?.childMode ? (
+                <GlikoGames setTab={changeTab} />
+              ) : null
             )}
             {activeTab === "diets" && (
               <Diets
@@ -311,6 +303,26 @@ export const AppContent = (props: any) => {
             )}
           </div>
         )}
+
+        {/* Pływająca Pigułka Asystenta AI (Floating Chat Capsule) */}
+        <FloatingChatCapsule
+          settings={userSettings || undefined}
+          petData={petData}
+          onAddToPlate={(item) =>
+            setSharedPlate((prev) => [
+              ...prev,
+              {
+                ...item,
+                plateItemId: Math.random().toString(36).substr(2, 9),
+              },
+            ])
+          }
+          messages={assistantMessages}
+          setMessages={setAssistantMessages}
+          isTyping={isAssistantTyping}
+          onSend={(text) => sendAssistantMessage(text, petData)}
+          activeTab={activeTab}
+        />
       </div>
     </LocalErrorBoundary>
   );

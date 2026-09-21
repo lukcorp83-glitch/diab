@@ -27,8 +27,15 @@ export function detectSmartEquipmentChanges(
   const lastSensorChange = userSettings?.sensorChangeDate || parseInt(localStorage.getItem('sensorChangeDate') || '0', 10);
 
   // 1. Detect Reservoir Change
-  if (currentReservoir !== undefined && previousReservoir !== undefined) {
-    if (currentReservoir - previousReservoir >= RESERVOIR_INCREASE_THRESHOLD) {
+  // Prawidłowy odczyt poziomu zbiorniczka pompy musi być dodatnią liczbą > 0.
+  // Wartości <= 0 lub brak danych oznaczają brak komunikacji/telemetrii, a nie pusty zbiornik,
+  // więc nie mogą być punktem odniesienia (zapobiega to fałszywym alertom po powrocie danych z zera).
+  const isValidCurrent = typeof currentReservoir === 'number' && !isNaN(currentReservoir) && currentReservoir > 0;
+  const isValidPrevious = typeof previousReservoir === 'number' && !isNaN(previousReservoir) && previousReservoir > 0;
+
+  if (isValidCurrent && isValidPrevious) {
+    const diff = currentReservoir - previousReservoir;
+    if (diff >= RESERVOIR_INCREASE_THRESHOLD) {
       const lastResPrompt = parseInt(localStorage.getItem('last_smart_reservoir_prompt') || '0', 10);
       
       // Ignoruj, jeśli użytkownik w ciągu ostatnich 6 godzin sam zarejestrował wymianę wkłucia lub zbiorniczka w aplikacji

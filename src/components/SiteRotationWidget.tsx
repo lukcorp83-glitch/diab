@@ -62,12 +62,26 @@ export default function SiteRotationWidget({
 
   const locationText = useMemo(() => {
     if (localSiteOverride) return localSiteOverride;
-    if (lastSiteChange) {
-      const extracted = extractInfusionSite(lastSiteChange);
-      if (extracted) return extracted;
+
+    const settingDate = settings.infusionSetChangeDate || 0;
+    const logDate = lastSiteChange?.timestamp || 0;
+    const settingSite = settings.infusionSetSite || (settings as any).infusionSite;
+
+    // 1. Jeśli w ustawieniach profilu jest podane miejsce i data z profilu jest nowsza lub równa logowi, priorytet ma profil
+    if (settingSite && settingDate >= logDate) {
+      return settingSite;
     }
-    return settings.infusionSetSite || (settings as any).infusionSite || localStorage.getItem('infusionSetSite') || 'Prawy brzuch';
-  }, [lastSiteChange, localSiteOverride, settings.infusionSetSite, (settings as any).infusionSite]);
+
+    // 2. Jeśli log z historii/Nightscout jest ściśle nowszy niż data w profilu, wyciągamy miejsce z najświeższego logu
+    if (lastSiteChange && logDate > settingDate) {
+      const extracted = extractInfusionSite(lastSiteChange);
+      if (extracted && extracted !== 'Lewy brzuch') return extracted;
+      if (lastSiteChange.site) return lastSiteChange.site;
+    }
+
+    // 3. Fallback do profilu, pamięci urządzenia i domyślnej lokalizacji
+    return settingSite || localStorage.getItem('infusionSetSite') || localStorage.getItem('infusionSite') || 'Prawy brzuch';
+  }, [lastSiteChange, localSiteOverride, settings.infusionSetSite, settings.infusionSetChangeDate, (settings as any).infusionSite]);
   const currentZoneId = useMemo(() => normalizeSiteToZoneId(locationText), [locationText]);
   const currentZone = useMemo(() => getZoneById(currentZoneId), [currentZoneId]);
 
@@ -212,6 +226,16 @@ export default function SiteRotationWidget({
                 strokeDashoffset={251.2 * (1 - (currentZoneIndex + 1) / totalZones)}
                 className="transition-all duration-1000 ease-out opacity-85"
               />
+
+              {/* Animowana igła kompasu rotacji wskazująca aktywną strefę */}
+              <motion.g
+                initial={{ rotate: 0 }}
+                animate={{ rotate: (currentZoneIndex / totalZones) * 360 }}
+                transition={{ type: "spring", stiffness: 140, damping: 18 }}
+                style={{ transformOrigin: "50px 50px" }}
+              >
+                <polygon points="50,13 47,21 53,21" fill={isOverdue ? "#f43f5e" : "#10b981"} />
+              </motion.g>
             </svg>
 
             {/* Centrum Tarczy - Czytelna nazwa i status strefy */}
@@ -240,7 +264,13 @@ export default function SiteRotationWidget({
                 {nextZone.name}
               </span>
             </div>
-            <ArrowRight size={10} className="text-indigo-500 shrink-0 group-hover:translate-x-0.5 transition-transform ml-1" />
+            <motion.div
+              animate={{ x: [0, 2.5, 0] }}
+              transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+              className="shrink-0 ml-1"
+            >
+              <ArrowRight size={10} className="text-indigo-500" />
+            </motion.div>
           </div>
         </div>
       </div>

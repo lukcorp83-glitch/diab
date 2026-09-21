@@ -1,5 +1,4 @@
-
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { X, Camera, Loader2, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -9,6 +8,7 @@ import { Product } from '../../types';
 import { cn } from "../../lib/utils";
 import { Haptics } from "../../lib/haptics";
 import { geminiService } from "../../services/gemini";
+import { useAppStore } from "../../stores/useAppStore";
 import toast from "react-hot-toast";
 
 export const MealPlateModals = (props: any) => {
@@ -43,6 +43,12 @@ export const MealPlateModals = (props: any) => {
  reader.onload = async (ev) => {
  const dataUrl = ev.target?.result as string;
  setIsAnalyzingLabel(true);
+ useAppStore.getState().startAiScan({
+   mode: 'label',
+   imagePreview: dataUrl,
+   title: t('camera.scanning_label_title', { defaultValue: 'Odczyt etykiety odżywczej' }),
+   subtitle: t('camera.scanning_label_subtitle', { defaultValue: 'Przetwarzanie tabeli makroskładników na 100g...' })
+ });
  try {
  const result = await geminiService.analyzeNutritionLabel(dataUrl);
  const product: Product = {
@@ -60,6 +66,7 @@ export const MealPlateModals = (props: any) => {
  } catch (err) {
  toast.error(t('auto.blad_ai_podczas_odczytu_etyk', { defaultValue: 'Błąd AI podczas odczytu etykiety' }));
  } finally {
+ useAppStore.getState().stopAiScan();
  setIsAnalyzingLabel(false);
  }
  };
@@ -568,10 +575,11 @@ export const MealPlateModals = (props: any) => {
  ? (c.linkedMeal?.carbs || c.carbs || 0)
  : (c.carbs || (c.type === 'meal' ? c.value : 0) || 0);
  const insulinVal = c.type === 'bolus' ? (c.value || 0) : 0;
+ const candId = c.id || c.nsId || c._id;
  return (
  <button
- key={c.id || c.nsId || `candidate-${cIdx}`}
- onClick={() => handleMergeMeal(c.id || c.nsId)}
+ key={candId || `candidate-${cIdx}`}
+ onClick={() => handleMergeMeal(candId)}
  className="w-full bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-4 text-left hover:scale-[0.98] transition-transform"
  >
  <div className="flex-1 min-w-0">

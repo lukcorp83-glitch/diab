@@ -1,10 +1,10 @@
 {
-    "version": "6.0.36",
+    "version": "6.0.47",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.36_OTA.apk",
-    "buildNumber": 151,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.47-beta_OTA.apk",
+    "buildNumber": 162,
     "forceUpdate": false,
-    "whatsNew": "Wersja 6.0.36! 1) Ulepszenie możliwości parowania i interaktywny przewodnik konfiguracji ról (Master, Admin, Obserwator). 2) Naprawa sekcji Trening – pełna synchronizacja i trwały zapis sesji treningowych w historii. 3) Nowy wygląd modułu Odżywianie (GlikoSense Nutri) ze wskaźnikami stabilności i 1-Click wrzucaniem na Talerz. 4) Naprawa błędów i optymalizacja działania.",
-    "whatsNewEn": "Version 6.0.36! 1) Enhanced device pairing with interactive role setup guide (Master, Admin, Observer). 2) Fixed Training section – full synchronization and persistent logging of workout sessions. 3) Redesigned Nutrition view (GlikoSense Nutri) with stability indicators and 1-Click Add to Plate. 4) General bug fixes and performance improvements.",
-    "otaRevision": 310
+    "whatsNew": "Logowanie przez Facebook (Web & APK), wskaźnik daty i godziny wymiany na widżetach osprzętu, presety żywotności sensora (7, 10, 14 dni), poprawki timera pre-bolusa i powiadomień 12h.",
+    "whatsNewEn": "Facebook login (Web & APK), change date and time indicator on equipment widgets, sensor lifespan presets (7, 10, 14 days), pre-bolus timer and 12h reminder fixes.",
+    "otaRevision": 322
 }

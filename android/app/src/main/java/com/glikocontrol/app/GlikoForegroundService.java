@@ -54,6 +54,23 @@ public class GlikoForegroundService extends Service implements SensorEventListen
         } catch (Exception e) {
             android.util.Log.e("GlikoForegroundService", "Błąd rejestracji sensora kroków", e);
         }
+
+        // Dynamiczna rejestracja XDripBroadcastReceiver w serwisie tła
+        try {
+            android.content.IntentFilter xdripFilter = new android.content.IntentFilter();
+            xdripFilter.addAction(XDripBroadcastReceiver.XDRIP_ACTION_BG_ESTIMATE);
+            xdripFilter.addAction(XDripBroadcastReceiver.NS_ACTION_DBACCESS);
+            xdripFilter.addAction(XDripBroadcastReceiver.NS_ACTION_NEW_TREATMENT);
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                new XDripBroadcastReceiver(),
+                xdripFilter,
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            );
+            android.util.Log.i("GlikoForegroundService", "Zarejestrowano XDripBroadcastReceiver w GlikoForegroundService");
+        } catch (Exception e) {
+            android.util.Log.e("GlikoForegroundService", "Błąd rejestracji dynamicznej XDripBroadcastReceiver w tle", e);
+        }
         
         // Inicjalizacja Headless WebView na głównym wątku UI
         handler = new Handler(Looper.getMainLooper());
@@ -104,7 +121,7 @@ public class GlikoForegroundService extends Service implements SensorEventListen
                                             .setFullScreenIntent(pendingIntent, true)
                                             .setAutoCancel(true);
                                             
-                                    notificationManager.notify(777, builder.build());
+                                    notificationManager.notify(779, builder.build());
                                 }
                             } catch (Exception e) {
                                 android.util.Log.e("GlikoSenseML", "Błąd analizy JSONa z wynikiem", e);
@@ -211,17 +228,32 @@ public class GlikoForegroundService extends Service implements SensorEventListen
                     .build();
         }
 
-        startForeground(FOREGROUND_ID, notification);
+        try {
+            startForeground(FOREGROUND_ID, notification);
+            if (!prefs.getBoolean("apk_system_notifications_enabled", true)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                } else {
+                    stopForeground(true);
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e("GlikoForegroundService", "Blad startForeground: " + e.getMessage());
+        }
 
         // Rozpoczęcie pętli pobierającej dane co 5 minut (300 000 ms)
         if (handler == null) {
             handler = new Handler(Looper.getMainLooper());
+        }
+        if (runnable == null) {
             runnable = new Runnable() {
                 @Override
                 public void run() {
                     android.util.Log.i("GlikoForeground", "Pętla Foreground Service wybudzona. Odpalam NightscoutFetcher...");
                     NightscoutFetcher.fetchAndUpdate(GlikoForegroundService.this, null, null);
-                    handler.postDelayed(this, 300000);
+                    if (handler != null) {
+                        handler.postDelayed(this, 300000);
+                    }
                 }
             };
             handler.post(runnable);

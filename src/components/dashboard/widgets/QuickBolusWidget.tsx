@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { motion } from 'motion/react';
 import { cn } from '../../../lib/utils';
 import { Zap, ArrowRight, ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -68,10 +69,13 @@ export default function QuickBolusWidget({
   const hasCorrection = correctionData !== null && correctionData.dose > 0;
 
   return (
-    <button
+    <motion.button
+      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onClick={handleClick}
       className={cn(
-        "flex flex-col items-center justify-between gap-1 shadow-2xl active:scale-95 group transition-all text-white overflow-hidden relative w-full select-none h-full p-4 rounded-[2.5rem] min-h-[140px]",
+        "flex flex-col items-center justify-between gap-1 shadow-2xl group transition-all text-white overflow-hidden relative w-full select-none h-full p-4 rounded-[2.5rem] min-h-[140px] cursor-pointer",
         hasCorrection
           ? "bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 shadow-indigo-600/40 border-2 border-indigo-300/30"
           : "bg-accent-600 shadow-accent-600/40"
@@ -125,6 +129,6 @@ export default function QuickBolusWidget({
           </span>
         </>
       )}
-    </button>
+    </motion.button>
   );
 }

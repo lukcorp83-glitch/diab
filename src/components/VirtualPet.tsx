@@ -520,6 +520,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  <img 
  src={src} 
  alt="pet" 
+ loading="eager"
+ decoding="async"
  className="w-full h-full object-contain drop-shadow-xl relative z-10" 
  referrerPolicy="no-referrer"
  onError={() => setImageError(src)}
@@ -528,6 +530,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  <img 
  src={accessory.imageUrl} 
  alt="accessory" 
+ loading="eager"
+ decoding="async"
  className={`absolute z-20 w-1/2 h-1/2 object-contain pointer-events-none drop-shadow-md ${
  accessory.id.includes('hat') ? 'top-[-10%] left-1/2 -translate-x-1/2' : 
  accessory.id.includes('glasses') ? 'top-[25%] left-1/2 -translate-x-1/2 scale-110' :
@@ -1100,7 +1104,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  })}
 
  {shopTab === 'skins' && SKINS.map(skin => {
- const isUnlocked = (petData.unlockedSkins || ['default']).includes(skin.id);
+ const isUnlocked = (petData.unlockedSkins || ['default']).includes(skin.id) ||
+   (!!skin.unlockedBy && (petData.unlockedAchievements || []).includes(skin.unlockedBy));
  const isEquipped = (petData.skin || 'default') === skin.id;
  const canAfford = (petData.coins || 0) >= skin.price;
  const isAchievementSkin = !!skin.unlockedBy;
@@ -1113,6 +1118,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  <img 
  src={skin.imageUrl} 
  alt={skin.name} 
+ loading="lazy"
+ decoding="async"
  className="w-6 h-6 object-contain" 
  onError={(e) => {
  (e.target as HTMLImageElement).style.display = 'none';
@@ -1175,6 +1182,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  <img 
  src={acc.imageUrl} 
  alt={acc.name} 
+ loading="lazy"
+ decoding="async"
  className="w-6 h-6 object-contain" 
  onError={(e) => {
  (e.target as HTMLImageElement).style.display = 'none';

@@ -6,170 +6,242 @@ import { Haptics } from '../lib/haptics';
 import { Capacitor } from '@capacitor/core';
 import { NotificationBridge } from '../lib/notificationBridge';
 
+const getStoredSettings = () => {
+  let notifsEnabled = true;
+  let hypoPref = true;
+  let hyperPref = true;
+  let hypoProtectionPref = true;
+  let targetMin = 70;
+  let targetMax = 180;
+
+  try {
+    const rawSaved = localStorage.getItem('glikocontrol_user_settings');
+    if (rawSaved) {
+      const parsed = JSON.parse(rawSaved);
+      if (parsed.notificationsEnabled !== undefined) notifsEnabled = parsed.notificationsEnabled;
+      if (parsed.targetMin !== undefined) targetMin = parsed.targetMin;
+      if (parsed.targetMax !== undefined) targetMax = parsed.targetMax;
+      if (parsed.notificationPrefs) {
+        if (parsed.notificationPrefs.hypo !== undefined) hypoPref = parsed.notificationPrefs.hypo;
+        if (parsed.notificationPrefs.hyper !== undefined) hyperPref = parsed.notificationPrefs.hyper;
+        if (parsed.notificationPrefs.hypoProtection !== undefined) hypoProtectionPref = parsed.notificationPrefs.hypoProtection;
+      }
+    }
+    const rawPrefs = localStorage.getItem('notificationPrefs');
+    if (rawPrefs) {
+      const parsedPrefs = JSON.parse(rawPrefs);
+      if (parsedPrefs.hypo !== undefined) hypoPref = parsedPrefs.hypo;
+      if (parsedPrefs.hyper !== undefined) hyperPref = parsedPrefs.hyper;
+      if (parsedPrefs.hypoProtection !== undefined) hypoProtectionPref = parsedPrefs.hypoProtection;
+    }
+    const rawEnabled = localStorage.getItem('notificationsEnabled');
+    if (rawEnabled !== null) {
+      notifsEnabled = rawEnabled !== 'false';
+    }
+  } catch (e) {}
+
+  return { notifsEnabled, hypoPref, hyperPref, hypoProtectionPref, targetMin, targetMax };
+};
+
 export function useGlucoseAlerts(logs: LogEntry[] = [], settings?: UserSettings | null) {
   useEffect(() => {
-    // Sync alert preferences with native Android SharedPreferences
-    if (Capacitor.isNativePlatform()) {
-      NotificationBridge.syncAlertPreferences({
-        hypoEnabled: settings?.notificationsEnabled !== false && settings?.notificationPrefs?.hypo !== false,
-        hyperEnabled: settings?.notificationsEnabled !== false && settings?.notificationPrefs?.hyper !== false,
-        targetMin: settings?.targetMin || 70,
-        targetMax: settings?.targetMax || 180
-      }).catch(() => {});
-    }
+    const checkAlerts = async () => {
+      const stored = getStoredSettings();
+      const effectiveNotificationsEnabled = settings?.notificationsEnabled !== undefined 
+        ? settings.notificationsEnabled 
+        : stored.notifsEnabled;
 
-    if (!logs || logs.length === 0) return;
+      const effectiveHypoEnabled = (settings?.notificationPrefs?.hypo !== undefined 
+        ? settings.notificationPrefs.hypo 
+        : stored.hypoPref) && (settings?.notificationPrefs?.hypoProtection !== undefined 
+        ? settings.notificationPrefs.hypoProtection 
+        : stored.hypoProtectionPref);
 
-    // Get all glucose logs sorted by timestamp descending
-    const glucoseLogs = logs
-      .filter(l => {
-        const hasBg = l.type === 'glucose' || (l.type as any) === 'sgv' || (l as any).bg !== undefined;
-        const val = parseFloat((l.value !== undefined ? l.value : (l as any).bg) || 0);
-        return hasBg && !isNaN(val) && val > 0;
-      })
-      .sort((a, b) => {
-        const ta = a.timestamp || (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-        const tb = b.timestamp || (b.createdAt ? new Date(b.createdAt).getTime() : 0);
-        return tb - ta;
-      });
+      const effectiveHyperEnabled = settings?.notificationPrefs?.hyper !== undefined 
+        ? settings.notificationPrefs.hyper 
+        : stored.hyperPref;
 
-    if (glucoseLogs.length === 0) return;
-    const latest = glucoseLogs[0];
-    const latestId = latest.id || (latest as any).nsId || (latest as any)._id || `bg_${latest.timestamp}`;
-    
-    // Parse timestamp strictly
-    let latestTime = latest.timestamp;
-    if (!latestTime && latest.createdAt) {
-      latestTime = typeof latest.createdAt === 'number' ? latest.createdAt : new Date(latest.createdAt).getTime();
-    }
-    if (!latestTime || isNaN(latestTime)) return;
+      const targetMin = settings?.targetMin || stored.targetMin || 70;
+      const targetMax = settings?.targetMax || stored.targetMax || 180;
 
-    const rawVal = latest.value !== undefined ? latest.value : (latest as any).bg;
-    const val = typeof rawVal === 'number' ? rawVal : parseFloat(rawVal);
-    if (!val || isNaN(val) || val <= 0) return;
-
-    // Ignore logs older than 45 minutes (zabezpieczenie przed archiwalnymi wpisami)
-    if (Date.now() - latestTime > 45 * 60 * 1000) return;
-
-    // Check if user disabled notifications in settings
-    if (settings?.notificationsEnabled === false) return;
-
-    const targetMin = settings?.targetMin || 70;
-    const targetMax = settings?.targetMax || 180;
-
-    const isLow = val < targetMin;
-    const isHigh = val > targetMax;
-
-    // Check specific hypo / hyper preferences
-    if (isLow && settings?.notificationPrefs && settings.notificationPrefs.hypo === false) {
-      return;
-    }
-    if (isHigh && settings?.notificationPrefs && settings.notificationPrefs.hyper === false) {
-      return;
-    }
-
-    // If sugar returned to normal range, reset alert memory and clear snooze flag
-    if (!isLow && !isHigh) {
-      if (localStorage.getItem('last_glucose_alert_type') || localStorage.getItem('glucose_alarm_snooze_until')) {
-        console.log(`[GlucoseAlerts] Cukier w normie (${val} mg/dL). Resetowanie pamięci alarmu i drzemki.`);
-        localStorage.removeItem('last_glucose_alert_type');
-        localStorage.removeItem('last_glucose_alert_time');
-        localStorage.removeItem('last_glucose_alert_id');
-        localStorage.removeItem('last_glucose_alert_val');
-        localStorage.removeItem('glucose_alarm_snooze_until');
-        localStorage.removeItem('glucose_alarm_snooze_type');
+      // Sync alert preferences with native Android SharedPreferences
+      if (Capacitor.isNativePlatform()) {
+        NotificationBridge.syncAlertPreferences({
+          hypoEnabled: effectiveNotificationsEnabled && effectiveHypoEnabled,
+          hyperEnabled: effectiveNotificationsEnabled && effectiveHyperEnabled,
+          targetMin,
+          targetMax
+        }).catch(() => {});
       }
-      return;
-    }
 
-    // Check user explicit snooze flag (drzemka po wyciszeniu alarmu)
-    const snoozeUntilStr = localStorage.getItem('glucose_alarm_snooze_until');
-    if (snoozeUntilStr) {
-      const snoozeUntil = parseInt(snoozeUntilStr, 10);
-      if (Date.now() < snoozeUntil) {
-        console.log(`[GlucoseAlerts] Alarm wyciszony (drzemka do ${new Date(snoozeUntil).toLocaleTimeString()}). Aktualny cukier: ${val} mg/dL`);
+      // Check if user disabled notifications in settings
+      if (!effectiveNotificationsEnabled) return;
+
+      if (!logs || logs.length === 0) return;
+
+      // Get all glucose logs sorted by timestamp descending
+      const glucoseLogs = logs
+        .filter(l => {
+          const hasBg = l.type === 'glucose' || (l.type as any) === 'sgv' || (l as any).bg !== undefined;
+          const val = parseFloat((l.value !== undefined ? l.value : (l as any).bg) || 0);
+          return hasBg && !isNaN(val) && val > 0;
+        })
+        .sort((a, b) => {
+          const ta = a.timestamp || (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+          const tb = b.timestamp || (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+          return tb - ta;
+        });
+
+      if (glucoseLogs.length === 0) return;
+      const latest = glucoseLogs[0];
+      const latestId = latest.id || (latest as any).nsId || (latest as any)._id || `bg_${latest.timestamp}`;
+      
+      // Parse timestamp strictly
+      let latestTime = latest.timestamp;
+      if (!latestTime && latest.createdAt) {
+        latestTime = typeof latest.createdAt === 'number' ? latest.createdAt : new Date(latest.createdAt).getTime();
+      }
+      if (!latestTime || isNaN(latestTime)) return;
+
+      const rawVal = latest.value !== undefined ? latest.value : (latest as any).bg;
+      const val = typeof rawVal === 'number' ? rawVal : parseFloat(rawVal);
+      if (!val || isNaN(val) || val <= 0) return;
+
+      // Ignore logs older than 45 minutes (zabezpieczenie przed archiwalnymi wpisami)
+      if (Date.now() - latestTime > 45 * 60 * 1000) return;
+
+      const isLow = val < targetMin;
+      const isHigh = val > targetMax;
+
+      // Check specific hypo / hyper preferences
+      if (isLow && !effectiveHypoEnabled) {
         return;
+      }
+      if (isHigh && !effectiveHyperEnabled) {
+        return;
+      }
+
+      // If sugar returned to normal range, reset alert memory and clear snooze flag
+      if (!isLow && !isHigh) {
+        if (localStorage.getItem('last_glucose_alert_type') || localStorage.getItem('glucose_alarm_snooze_until')) {
+          console.log(`[GlucoseAlerts] Cukier w normie (${val} mg/dL). Resetowanie pamięci alarmu i drzemki.`);
+          localStorage.removeItem('last_glucose_alert_type');
+          localStorage.removeItem('last_glucose_alert_time');
+          localStorage.removeItem('last_glucose_alert_id');
+          localStorage.removeItem('last_glucose_alert_val');
+          localStorage.removeItem('glucose_alarm_snooze_until');
+          localStorage.removeItem('glucose_alarm_snooze_type');
+        }
+        return;
+      }
+
+      // Check user explicit snooze flag (drzemka po wyciszeniu alarmu)
+      const snoozeUntilStr = localStorage.getItem('glucose_alarm_snooze_until');
+      if (snoozeUntilStr) {
+        const snoozeUntil = parseInt(snoozeUntilStr, 10);
+        if (Date.now() < snoozeUntil) {
+          console.log(`[GlucoseAlerts] Alarm wyciszony (drzemka do ${new Date(snoozeUntil).toLocaleTimeString()}). Aktualny cukier: ${val} mg/dL`);
+          return;
+        } else {
+          localStorage.removeItem('glucose_alarm_snooze_until');
+          localStorage.removeItem('glucose_alarm_snooze_type');
+        }
+      }
+
+      // Deduplikacja między tłem Androida a aplikacją webową
+      let nativeLastAlertTime = 0;
+      let nativeLastAlertType = '';
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const info = await NotificationBridge.getLastAlertInfo();
+          if (info && info.lastAlertTime) {
+            nativeLastAlertTime = Number(info.lastAlertTime) || 0;
+            nativeLastAlertType = info.lastAlertType || '';
+          }
+        } catch (e) {}
+      }
+
+      const localLastAlertTime = parseInt(localStorage.getItem('last_glucose_alert_time') || '0', 10);
+      const lastAlertTime = Math.max(localLastAlertTime, nativeLastAlertTime);
+      const lastAlertId = localStorage.getItem('last_glucose_alert_id') || '';
+      const lastAlertType = (nativeLastAlertTime > localLastAlertTime && nativeLastAlertType) 
+        ? (nativeLastAlertType === 'hypo' ? 'low' : 'high') 
+        : (localStorage.getItem('last_glucose_alert_type') as ('low' | 'high' | null));
+      const lastAlertVal = parseFloat(localStorage.getItem('last_glucose_alert_val') || '0');
+
+      // Strict deduplication: if this exact measurement was already alerted, skip
+      if (lastAlertId === latestId && lastAlertTime > 0 && Date.now() - lastAlertTime < 5 * 60 * 1000) {
+        return;
+      }
+
+      const now = Date.now();
+      const timeSinceLastAlert = now - lastAlertTime;
+      const alertType: 'low' | 'high' = isLow ? 'low' : 'high';
+
+      let shouldAlert = false;
+
+      if (lastAlertType !== alertType) {
+        // First time entering low or high state -> IMMEDIATE ALERT
+        shouldAlert = true;
       } else {
-        localStorage.removeItem('glucose_alarm_snooze_until');
-        localStorage.removeItem('glucose_alarm_snooze_type');
+        // PERSISTENT / UNCORRECTED ALERT REPEAT RULES
+        if (isLow) {
+          // Low sugar repeat rule: Repeat alarm every 15 minutes if sugar stays low (< targetMin)
+          const lowRepeatIntervalMs = 15 * 60 * 1000;
+          if (timeSinceLastAlert >= lowRepeatIntervalMs) {
+            shouldAlert = true;
+            console.log(`[GlucoseAlerts] 🔄 POWTÓRZENIE ALARMU: Niski cukier (${val} mg/dL) utrzymuje się od 15 min!`);
+          }
+        } else if (isHigh) {
+          // High sugar repeat rule: Repeat alarm every 30 minutes if sugar stays high (> targetMax) and hasn't dropped by >= 15 mg/dL
+          const highRepeatIntervalMs = 30 * 60 * 1000;
+          const hasDroppedSignificantly = (lastAlertVal - val) >= 15;
+          if (timeSinceLastAlert >= highRepeatIntervalMs && !hasDroppedSignificantly) {
+            shouldAlert = true;
+            console.log(`[GlucoseAlerts] 🔄 POWTÓRZENIE ALARMU: Wysoki cukier (${val} mg/dL) utrzymuje się od 30 min!`);
+          }
+        }
       }
-    }
 
-    const lastAlertTime = parseInt(localStorage.getItem('last_glucose_alert_time') || '0', 10);
-    const lastAlertId = localStorage.getItem('last_glucose_alert_id') || '';
-    const lastAlertType = localStorage.getItem('last_glucose_alert_type') as ('low' | 'high' | null);
-    const lastAlertVal = parseFloat(localStorage.getItem('last_glucose_alert_val') || '0');
+      if (!shouldAlert) return;
 
-    // Strict deduplication: if this exact measurement was already alerted, skip
-    if (lastAlertId === latestId && lastAlertTime > 0 && Date.now() - lastAlertTime < 5 * 60 * 1000) {
-      return;
-    }
+      // Persist alert state in localStorage so app restarts don't trigger duplicate alarms
+      localStorage.setItem('last_glucose_alert_time', now.toString());
+      localStorage.setItem('last_glucose_alert_id', latestId);
+      localStorage.setItem('last_glucose_alert_type', alertType);
+      localStorage.setItem('last_glucose_alert_val', val.toString());
 
-    const now = Date.now();
-    const timeSinceLastAlert = now - lastAlertTime;
-    const alertType: 'low' | 'high' = isLow ? 'low' : 'high';
-
-    let shouldAlert = false;
-
-    if (lastAlertType !== alertType) {
-      // First time entering low or high state -> IMMEDIATE ALERT
-      shouldAlert = true;
-    } else {
-      // PERSISTENT / UNCORRECTED ALERT REPEAT RULES
       if (isLow) {
-        // Low sugar repeat rule: Repeat alarm every 15 minutes if sugar stays low (< targetMin)
-        const lowRepeatIntervalMs = 15 * 60 * 1000;
-        if (timeSinceLastAlert >= lowRepeatIntervalMs) {
-          shouldAlert = true;
-          console.log(`[GlucoseAlerts] 🔄 POWTÓRZENIE ALARMU: Niski cukier (${val} mg/dL) utrzymuje się od 15 min!`);
+        console.log(`[GlucoseAlerts] 🚨 ALARM NISKIEJ GLIKEMII: ${val} mg/dL!`);
+        // Trigger system notification (Native Android channel or Web notification)
+        notificationService.triggerGlucoseAlarm(false, Math.round(val));
+        
+        // Na Androidzie dźwięk i wibrację obsługuje wyłącznie natywny system Androida.
+        // Dźwięk JS oraz okno modalne odtwarzamy tylko w wersji Web/PWA:
+        if (!Capacitor.isNativePlatform()) {
+          playLowGlucoseSound();
+          window.dispatchEvent(new CustomEvent('active_glucose_alarm', {
+            detail: { type: 'low', value: Math.round(val), timestamp: latestTime }
+          }));
         }
+        Haptics.heavy();
       } else if (isHigh) {
-        // High sugar repeat rule: Repeat alarm every 30 minutes if sugar stays high (> targetMax) and hasn't dropped by >= 15 mg/dL
-        const highRepeatIntervalMs = 30 * 60 * 1000;
-        const hasDroppedSignificantly = (lastAlertVal - val) >= 15;
-        if (timeSinceLastAlert >= highRepeatIntervalMs && !hasDroppedSignificantly) {
-          shouldAlert = true;
-          console.log(`[GlucoseAlerts] 🔄 POWTÓRZENIE ALARMU: Wysoki cukier (${val} mg/dL) utrzymuje się od 30 min!`);
+        console.log(`[GlucoseAlerts] 📈 ALARM WYSOKIEJ GLIKEMII: ${val} mg/dL!`);
+        // Trigger system notification (Native Android channel or Web notification)
+        notificationService.triggerGlucoseAlarm(true, Math.round(val));
+        
+        // Na Androidzie dźwięk i wibrację obsługuje wyłącznie natywny system Androida.
+        // Dźwięk JS oraz okno modalne odtwarzamy tylko w wersji Web/PWA:
+        if (!Capacitor.isNativePlatform()) {
+          playHighGlucoseSound();
+          window.dispatchEvent(new CustomEvent('active_glucose_alarm', {
+            detail: { type: 'high', value: Math.round(val), timestamp: latestTime }
+          }));
         }
+        Haptics.medium();
       }
-    }
+    };
 
-    if (!shouldAlert) return;
-
-    // Persist alert state in localStorage so app restarts don't trigger duplicate alarms
-    localStorage.setItem('last_glucose_alert_time', now.toString());
-    localStorage.setItem('last_glucose_alert_id', latestId);
-    localStorage.setItem('last_glucose_alert_type', alertType);
-    localStorage.setItem('last_glucose_alert_val', val.toString());
-
-    if (isLow) {
-      console.log(`[GlucoseAlerts] 🚨 ALARM NISKIEJ GLIKEMII: ${val} mg/dL!`);
-      // Trigger system notification (Native Android channel or Web notification)
-      notificationService.triggerGlucoseAlarm(false, Math.round(val));
-      
-      // Na Androidzie dźwięk i wibrację obsługuje wyłącznie natywny system Androida.
-      // Dźwięk JS oraz okno modalne odtwarzamy tylko w wersji Web/PWA:
-      if (!Capacitor.isNativePlatform()) {
-        playLowGlucoseSound();
-        window.dispatchEvent(new CustomEvent('active_glucose_alarm', {
-          detail: { type: 'low', value: Math.round(val), timestamp: latestTime }
-        }));
-      }
-      Haptics.heavy();
-    } else if (isHigh) {
-      console.log(`[GlucoseAlerts] 📈 ALARM WYSOKIEJ GLIKEMII: ${val} mg/dL!`);
-      // Trigger system notification (Native Android channel or Web notification)
-      notificationService.triggerGlucoseAlarm(true, Math.round(val));
-      
-      // Na Androidzie dźwięk i wibrację obsługuje wyłącznie natywny system Androida.
-      // Dźwięk JS oraz okno modalne odtwarzamy tylko w wersji Web/PWA:
-      if (!Capacitor.isNativePlatform()) {
-        playHighGlucoseSound();
-        window.dispatchEvent(new CustomEvent('active_glucose_alarm', {
-          detail: { type: 'high', value: Math.round(val), timestamp: latestTime }
-        }));
-      }
-      Haptics.medium();
-    }
+    checkAlerts();
   }, [logs, settings]);
 }

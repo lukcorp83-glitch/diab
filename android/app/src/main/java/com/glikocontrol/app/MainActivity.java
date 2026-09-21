@@ -80,11 +80,31 @@ public class MainActivity extends BridgeActivity {
         }
 
         // Uruchomienie Pancernego Foreground Service
-        Intent serviceIntent = new Intent(this, GlikoForegroundService.class);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            ContextCompat.startForegroundService(this, serviceIntent);
-        } else {
-            startService(serviceIntent);
+        try {
+            Intent serviceIntent = new Intent(this, GlikoForegroundService.class);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(this, serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        } catch (Exception e) {
+            android.util.Log.w("MainActivity", "Nie udalo sie wystartowac GlikoForegroundService (limit systemu Android): " + e.getMessage());
+        }
+
+        // Dynamiczna rejestracja XDripBroadcastReceiver dla natychmiastowego odbioru w aplikacji
+        try {
+            android.content.IntentFilter xdripFilter = new android.content.IntentFilter();
+            xdripFilter.addAction(XDripBroadcastReceiver.XDRIP_ACTION_BG_ESTIMATE);
+            xdripFilter.addAction(XDripBroadcastReceiver.NS_ACTION_DBACCESS);
+            xdripFilter.addAction(XDripBroadcastReceiver.NS_ACTION_NEW_TREATMENT);
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                new XDripBroadcastReceiver(),
+                xdripFilter,
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            );
+        } catch (Exception e) {
+            android.util.Log.e("MainActivity", "Błąd rejestracji dynamicznej XDripBroadcastReceiver", e);
         }
 
         // Obsługa skrótu przy uruchomieniu na zimno (Cold Start)
@@ -206,6 +226,9 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         handleShortcutIntent(getIntent());
+        try {
+            NightscoutFetcher.fetchAndUpdate(this, null, null);
+        } catch (Exception ignored) {}
     }
 
     @Override

@@ -38,7 +38,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
   const [engineMode, setEngineMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_engine_mode') || 'v3_lstm' : 'v3_lstm');
   const [autoTuningEnabled, setAutoTuningEnabled] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('glikosense_autotuning') === 'true' : false);
   const [autoTunerResult, setAutoTunerResult] = useState<AutoTunerResult | null>(null);
-  const glikoName = engineMode === 'v4_tcn' ? 'GlikoSense 4.0' : 'GlikoSense 3.0';
+  const glikoName = engineMode === 'v4_tcn' ? 'GlikoSense 4.1' : 'GlikoSense 3.0';
   const [showEngineSettings, setShowEngineSettings] = useState(false);
  const [isAnalyzing, setIsAnalyzing] = useState(false);
  const [error, setError] = useState<string | null>(null);
@@ -83,12 +83,54 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
   const [isInsightsExpanded, setIsInsightsExpanded] = useState(false);
   const [isPatternsExpanded, setIsPatternsExpanded] = useState(false);
 
+  const latestBgValue = useMemo(() => {
+    const glucoseLogs = logs.filter(l => l.type === 'glucose' || l.bg);
+    if (glucoseLogs.length === 0) return 0;
+    const first = glucoseLogs[0];
+    return Number(first.value || first.bg || 0);
+  }, [logs]);
+
+  const sanitizedInsights = useMemo(() => {
+    const raw = mlResult?.insights || [];
+    if (raw.length === 0) return [];
+    const unique = Array.from(new Set(raw));
+    const isHigh = latestBgValue > 160;
+    const isLow = latestBgValue > 0 && latestBgValue < 75;
+
+    return unique.filter(ins => {
+      const lower = ins.toLowerCase();
+      if (isHigh) {
+        if (
+          lower.includes('hipo') || 
+          lower.includes('soku') || 
+          lower.includes('łyk') || 
+          lower.includes('zlecieć') || 
+          lower.includes('zapikował') || 
+          lower.includes('wylatujesz na dół') || 
+          lower.includes('niski poziom') ||
+          lower.includes('trzyma się niżej') ||
+          lower.includes('trzyma sie nizej') ||
+          lower.includes('ukryty wysiłek') ||
+          lower.includes('ukryty wysilek')
+        ) {
+          return false;
+        }
+      }
+      if (isLow) {
+        if (lower.includes('teren wysokich') || lower.includes('hiperglikemi') || lower.includes('utknął wysoko') || lower.includes('homeostaz') || lower.includes('drzwiami') || lower.includes('równowagi')) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [mlResult?.insights, latestBgValue]);
+
   const activePatterns = useMemo(() => {
     let localRules: any = {};
     try {
       localRules = JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
     } catch {}
-    const rules = { ...localRules, ...(mlResult?.discoveredRules || {}) };
+    const rules = { ...localRules, ...((mlResult as any)?.discoveredRules || {}) };
     const patterns: { id: string; title: string; desc: string; icon: string; tag: string }[] = [];
 
     if (rules.dawnPhenomenonEnabled) {
@@ -364,7 +406,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
     }
     try {
       Haptics.impact();
-      const uid = getEffectiveUid(effectiveUser, settings);
+      const uid = getEffectiveUid(effectiveUser);
       
       let newProfiles = [...(settings?.hourlyProfiles || [])];
       
@@ -850,7 +892,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                     onClick={() => {
                       localStorage.setItem('glikosense_engine_mode', 'v4_tcn');
                       setEngineMode('v4_tcn');
-                      toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.0 Pro TCN + INT8" }));
+                      toast.success(t('auto.przelaczono_na_silnik_tcn', { defaultValue: "Przełączono na GlikoSense 4.1 Pro TCN + INT8" }));
                       if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'));
                       setTimeout(() => runML(true), 50);
                     }}
@@ -860,20 +902,20 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                         typeof OffscreenCanvas === 'undefined' || 
                         typeof window.WebGLRenderingContext === 'undefined' || 
                         localStorage.getItem('glikosense_active_backend') === 'cpu' || 
-                        (navigator.deviceMemory && navigator.deviceMemory < 3)
+                        ((navigator as any).deviceMemory && (navigator as any).deviceMemory < 3)
                       )) ? "opacity-50 cursor-not-allowed" : "",
                       engineMode === 'v4_tcn'
                         ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400"
                         : "text-slate-500 dark:text-slate-400 hover:text-indigo-500"
                     )}
                   >
-                    🚀 v4.0 Pro (TCN)
+                    🚀 v4.1 Pro (TCN)
                   </button>
                 </div>
                 
                 <p className="text-[9px] text-slate-400 dark:text-slate-500 text-center px-4 font-medium leading-relaxed">
                   {engineMode === 'v4_tcn' 
-                    ? t('auto.opis_silnika_tcn', { defaultValue: 'Sploty dylatowane (TCN) z kwantyzacją wag INT8 i bezpiecznikiem skrajnych próbek. Wysoka precyzja.' })
+                    ? t('auto.opis_silnika_tcn', { defaultValue: 'Sploty dylatowane (TCN) z kwantyzacją wag INT8 i fizjologicznym guardrailem. Najwyższa precyzja i bezpieczeństwo.' })
                     : t('auto.opis_silnika_lstm', { defaultValue: 'Pamięć sekwencyjna (LSTM). Sprawdzony, klasyczny wariant asystenta o mniejszym zapotrzebowaniu na moc.' })}
                 </p>
 
@@ -1206,12 +1248,22 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  )}
  </div>
  
- <div className="flex items-center gap-2 mb-3 relative z-10">
+ <div className="flex items-center justify-between mb-3 relative z-10">
+ <div className="flex items-center gap-2.5">
  <div className="bg-cyan-500/30 p-2 rounded-xl backdrop-blur-md">
  <ShieldAlert size={16} className="text-cyan-200" />
  </div>
- <span className="text-xs font-black text-cyan-100 uppercase tracking-wider opacity-90">{t('auto.najniższy_spadek', { defaultValue: 'Nocne Minimum' })}</span>
+ <div className="flex flex-col">
+ <span className="text-xs font-black text-cyan-100 uppercase tracking-wider">
+ {t('auto.nocna_ochrona', { defaultValue: 'Nocna Ochrona' })}
+ </span>
+ <span className="text-[10px] text-cyan-300/80 font-semibold tracking-tight">
+ {t('auto.prognozowane_minimum', { defaultValue: 'Prognozowane minimum' })}
+ </span>
  </div>
+ </div>
+ </div>
+ 
  <div className="flex items-baseline gap-2 relative z-10 my-auto">
  <span className="text-5xl sm:text-6xl font-black tracking-tight leading-none">{Math.round(Math.min(...(mlResult.predictionCurve?.map((p: any) => p.value) || [999])))}</span>
  <span className="text-xs font-bold text-cyan-300 tracking-widest">{t('auto.mg_dl', { defaultValue: 'mg/dL' })}</span>
@@ -1278,7 +1330,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  </span>
  </div>
  <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
- ⚡ GlikoSense 4.0
+ ⚡ GlikoSense 4.1
  </span>
  </div>
 
@@ -1525,7 +1577,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
               </AnimatePresence>
             </div>
 
- {mlResult.insights && mlResult.insights.length > 0 && (
+ {sanitizedInsights && sanitizedInsights.length > 0 && (
  <div className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-md w-full transition-all">
  <button
  type="button"
@@ -1541,7 +1593,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  {t('auto.wnioski_glikosense', { defaultValue: 'Wnioski GlikoSense' })}
  </span>
  <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-500/20">
- {mlResult.insights.length}
+ {sanitizedInsights.length}
  </span>
  </div>
  </div>
@@ -1561,7 +1613,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  className="overflow-hidden"
  >
  <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
- {mlResult.insights.map((insight, idx) => (
+ {sanitizedInsights.map((insight, idx) => (
  <div key={idx} className="flex items-start gap-2.5 bg-white dark:bg-slate-950/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
  <div className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-snug">{insight}</p>

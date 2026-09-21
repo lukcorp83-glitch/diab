@@ -5,7 +5,7 @@ import { cn } from "../../lib/utils";
 import { Haptics } from '../../lib/haptics';
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
-import { APP_VERSION } from "../../constants";
+import { APP_VERSION, IS_BETA_CHANNEL } from "../../constants";
 import { Toaster, toast, ToastBar } from "react-hot-toast";
 import {
   Activity,
@@ -27,7 +27,19 @@ import {
   MessageSquare,
   Zap,
   Globe,
-  Database
+  Database,
+  User,
+  BarChart2,
+  Pill,
+  Signal,
+  Bell,
+  Plane,
+  Trophy,
+  Gamepad2,
+  ShoppingBag,
+  BookOpen,
+  Dumbbell,
+  Calculator
 } from "lucide-react";
 import { doc, setDoc, addDoc, collection, serverTimestamp, query, onSnapshot } from "firebase/firestore";
 import { db } from "../../lib/firebase";
@@ -50,6 +62,7 @@ import GlikoSenseIcon from "../GlikoSenseIcon";
 import { NavButton } from "./NavButton";
 import { DynamicActionCapsule } from "./DynamicActionCapsule";
 import { useMealPlateStore } from "../../stores/useMealPlateStore";
+import { resolveNavSlot, getNavSlotIcon } from "../../constants/navSlots";
 
 export function AppLayout({
   children,
@@ -87,12 +100,59 @@ export function AppLayout({
     showStatusPopup,
     setShowStatusPopup,
     isKeyboardOpen,
-    setInitialAction
+    setInitialAction,
+    profileCategory,
+    setProfileCategory
   } = useAppStore();
   const { t } = useTranslation();
   const sharedPlate = useMealPlateStore((state) => state.plate);
 
   const [shortcuts, setShortcuts] = React.useState<any[]>([]);
+  const [avatarError, setAvatarError] = React.useState(false);
+
+  const currentNavSlot = React.useMemo(() => {
+    const slotId = userSettings?.customNavSlot || 'assistant';
+    return resolveNavSlot(slotId, !!userSettings?.childMode, userSettings?.treatmentMode || 'insulin');
+  }, [userSettings?.customNavSlot, userSettings?.childMode, userSettings?.treatmentMode]);
+
+  const isCustomSlotActive = React.useMemo(() => {
+    if (currentNavSlot.category) {
+      return activeTab === 'profile' && profileCategory === currentNavSlot.category;
+    }
+    return activeTab === currentNavSlot.tab;
+  }, [currentNavSlot, activeTab, profileCategory]);
+
+  const isProfileTabActive = React.useMemo(() => {
+    if (activeTab !== 'profile') return false;
+    if (currentNavSlot.category && profileCategory === currentNavSlot.category) return false;
+    return true;
+  }, [activeTab, currentNavSlot.category, profileCategory]);
+
+  const handleCustomSlotClick = () => {
+    if (currentNavSlot.category) {
+      setProfileCategory(currentNavSlot.category);
+      handleNavClick('profile');
+    } else {
+      setProfileCategory(null);
+      handleNavClick(currentNavSlot.tab);
+    }
+  };
+
+  const photoUrl = React.useMemo(() => {
+    if (!user || user.isAnonymous) return null;
+    return user.photoURL || user.providerData?.[0]?.photoURL || null;
+  }, [user]);
+
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [photoUrl]);
+
+  const userInitial = React.useMemo(() => {
+    if (user?.displayName) return user.displayName.trim().charAt(0).toUpperCase();
+    if (user?.email) return user.email.trim().charAt(0).toUpperCase();
+    if (userSettings?.userName) return userSettings.userName.trim().charAt(0).toUpperCase();
+    return null;
+  }, [user, userSettings?.userName]);
 
   React.useEffect(() => {
     if (!user) return;
@@ -115,6 +175,17 @@ export function AppLayout({
       mainRef.current.scrollTop = 0;
     }
   }, [activeTab]);
+
+  const handleNavClick = (tabKey: string) => {
+    if (activeTab === tabKey) {
+      if (mainRef && mainRef.current) {
+        mainRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        Haptics.light();
+      }
+    } else {
+      changeTab(tabKey);
+    }
+  };
 
   const handleQuickAdd = async (s: any) => {
     if (s.carbs > 0) {
@@ -203,7 +274,7 @@ export function AppLayout({
                 >
                   <Logo className="w-10 h-10 drop-shadow-sm group-hover:rotate-12 transition-transform" />
                   <div>
-                    <p
+                    <div
                       onClick={(e) => {
                         e.stopPropagation();
                         Haptics.medium();
@@ -213,8 +284,13 @@ export function AppLayout({
                       className="text-accent-500 hover:text-accent-400 text-[7px] font-black uppercase tracking-[0.2em] mt-1 opacity-90 flex items-center gap-1.5 font-mono cursor-pointer transition-colors hover:scale-105 active:scale-95"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
-                      v{APP_VERSION}
-                    </p>
+                      <span>v{APP_VERSION}</span>
+                      {IS_BETA_CHANNEL && (
+                        <span className="px-1 py-0.2 text-[6.5px] font-black uppercase tracking-wider rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/35">
+                          BETA
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -232,15 +308,41 @@ export function AppLayout({
                 >
                   {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
                 </button>
-                {user && !user.isAnonymous && user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt="Profile"
-                    className="w-7 h-7 rounded-full border border-accent-500/50 shadow-sm"
-                  />
-                ) : (
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)] ml-2" />
-                )}
+                {/* Zawsze widoczny awatar / profil użytkownika */}
+                <button
+                  onClick={() => {
+                    Haptics.light();
+                    setProfileCategory('account');
+                    changeTab('profile');
+                  }}
+                  title={user?.email || user?.displayName || (user?.isAnonymous ? t('auto.gosc', { defaultValue: 'Gość' }) : t('auto.profil', { defaultValue: 'Profil' }))}
+                  className="relative flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:border-accent-500/60 transition-all active:scale-90 shadow-sm shrink-0 overflow-visible ml-1"
+                >
+                  {photoUrl && !avatarError ? (
+                    <img
+                      src={photoUrl}
+                      alt="Profile"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      onError={() => {
+                        console.warn("[AppLayout] Avatar image failed to load from:", photoUrl);
+                        setAvatarError(true);
+                      }}
+                      className="w-full h-full rounded-full object-cover border border-accent-500/30"
+                    />
+                  ) : userInitial ? (
+                    <span className="text-xs font-black text-accent-500 dark:text-accent-400 font-mono select-none">
+                      {userInitial}
+                    </span>
+                  ) : (
+                    <User size={15} className="text-slate-500 dark:text-slate-400" />
+                  )}
+                  {/* Dioda statusu online */}
+                  <span className={cn(
+                    "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm",
+                    user?.isAnonymous ? "bg-amber-400" : (isOffline ? "bg-slate-400" : "bg-emerald-500 animate-pulse")
+                  )} />
+                </button>
               </div>
             </div>
           </header>
@@ -263,32 +365,17 @@ export function AppLayout({
           settings={userSettings}
         />
 
-        {/* Main Content with Swipe Navigation */}
+        {/* Main Content */}
         <main
           ref={mainRef}
-          className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto overscroll-y-contain overscroll-x-none touch-pan-y overflow-x-hidden no-scrollbar"
+          className="flex-1 max-w-md md:max-w-5xl lg:max-w-7xl mx-auto w-full relative overflow-y-auto overscroll-y-auto overflow-x-hidden no-scrollbar"
         >
-          <AnimatePresence mode="wait" custom={direction} initial={false}>
-            <motion.div
-              key={activeTab}
-              custom={direction}
-              variants={tabVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.12, ease: "easeOut" }}
-              drag="x"
-              dragDirectionLock
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.1}
-              onDragEnd={handleSwipe}
-              className={cn(
-                "w-full min-h-full p-4 pb-32 flex flex-col",
-              )}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <div
+            key={activeTab}
+            className="w-full min-h-full p-4 pb-32 flex flex-col animate-in fade-in duration-100"
+          >
+            {children}
+          </div>
         </main>
         {/* Navigation */}
         {!isShortcutMode && (
@@ -299,14 +386,14 @@ export function AppLayout({
             <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
               <NavButton
                 active={activeTab === "chart"}
-                onClick={() => changeTab("chart")}
+                onClick={() => handleNavClick("chart")}
                 icon={<Activity />}
                 label={t("nav.chart")}
                 ecoMode={userSettings?.ecoMode}
               />
               <NavButton
                 active={activeTab === "dashboard"}
-                onClick={() => changeTab("dashboard")}
+                onClick={() => handleNavClick("dashboard")}
                 icon={<LayoutDashboard />}
                 label={t("nav.dashboard")}
                 ecoMode={userSettings?.ecoMode}
@@ -314,7 +401,7 @@ export function AppLayout({
               {!userSettings?.followerMode && (
                 <NavButton
                   active={activeTab === "database"}
-                  onClick={() => changeTab("database")}
+                  onClick={() => handleNavClick("database")}
                   icon={<Database />}
                   label={t("sidebar.sections.database", { defaultValue: "Baza" })}
                   ecoMode={userSettings?.ecoMode}
@@ -333,7 +420,7 @@ export function AppLayout({
                     user={user}
                     onClickMain={() => {
                       Haptics.light();
-                      changeTab("meal");
+                      handleNavClick("meal");
                     }}
                     onQuickAdd={handleQuickAdd}
                   />
@@ -342,7 +429,7 @@ export function AppLayout({
               {!userSettings?.followerMode && (
                 <NavButton
                   active={activeTab === "ai"}
-                  onClick={() => changeTab("ai")}
+                  onClick={() => handleNavClick("ai")}
                   icon={<GlikoSenseIcon size={24} isAnalyzing={activeTab === 'ai'} />}
                   label={"GlikoSense"}
                   ecoMode={userSettings?.ecoMode}
@@ -350,16 +437,19 @@ export function AppLayout({
               )}
               {!userSettings?.followerMode && (
                 <NavButton
-                  active={activeTab === "assistant"}
-                  onClick={() => changeTab("assistant")}
-                  icon={<MessageSquare />}
-                  label={t("nav.chat")}
+                  active={isCustomSlotActive}
+                  onClick={handleCustomSlotClick}
+                  icon={getNavSlotIcon(currentNavSlot.iconName, 22)}
+                  label={t(currentNavSlot.labelKey, { defaultValue: currentNavSlot.defaultLabel })}
                   ecoMode={userSettings?.ecoMode}
                 />
               )}
               <NavButton
-                active={activeTab === "profile"}
-                onClick={() => changeTab("profile")}
+                active={isProfileTabActive}
+                onClick={() => {
+                  setProfileCategory(null);
+                  handleNavClick("profile");
+                }}
                 icon={<Menu />}
                 label={t("nav.more")}
                 ecoMode={userSettings?.ecoMode}

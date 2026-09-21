@@ -10,6 +10,7 @@ import { getPreBolusTimerState, cancelPreBolusTimer, PreBolusTimerState } from '
 import { dbService } from '../../services/databaseService';
 import { db } from '../../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 interface DynamicActionCapsuleProps {
   lastGlucose: number | null;
@@ -56,10 +57,7 @@ export function DynamicActionCapsule({
     const handleUpdate = () => setPreBolusState(getPreBolusTimerState());
     window.addEventListener('prebolus_timer_update', handleUpdate);
     const timer = setInterval(() => {
-      const current = getPreBolusTimerState();
-      if (current.active) {
-        setPreBolusState(current);
-      }
+      setPreBolusState(getPreBolusTimerState());
     }, 1000);
     return () => {
       window.removeEventListener('prebolus_timer_update', handleUpdate);
@@ -255,7 +253,7 @@ export function DynamicActionCapsule({
           capsuleState === 'hypo' 
             ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30 -translate-y-16 rounded-[1.5rem]" 
             : capsuleState === 'prebolus'
-            ? preBolusState.remainingSeconds > 0
+            ? (preBolusState.remainingSeconds > 0 && !preBolusState.isReady)
               ? "bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 shadow-2xl shadow-orange-500/40 border border-orange-300/30 -translate-y-16 rounded-full"
               : "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 shadow-2xl shadow-emerald-500/40 border border-emerald-300/30 -translate-y-16 rounded-full"
             : capsuleState === 'unlinked'
@@ -280,27 +278,33 @@ export function DynamicActionCapsule({
           }
         }}
       >
-        {/* Odznaka z liczbą składników na talerzu na zewnętrznym rogu przycisku */}
-        {plateCount > 0 && capsuleState === 'default' && (
+        {/* Odznaka z liczbą składników na talerzu ze sprężystym podskokiem */}
+        {plateCount > 0 && (capsuleState === 'default' || capsuleState === 'absorbing') && (
           <motion.span 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+            key={`plate-badge-${plateCount}`}
+            initial={{ scale: 0.3, y: -6 }}
+            animate={{ scale: [1.35, 0.9, 1.06, 1], y: 0 }}
+            transition={{ type: "spring", stiffness: 550, damping: 14 }}
             className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-black text-[10px] min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-md shadow-rose-500/40 z-30 pointer-events-none"
           >
             {plateCount}
           </motion.span>
         )}
 
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay" />
+        {/* Wewnętrzny kontener tła i progresu - ściśle przycięty do kształtu zaokrąglenia kapsuły, aby żaden kwadrat nie wystawał na zewnątrz */}
+        <div className="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
 
-        {capsuleState === 'absorbing' && (
-          <>
+          {capsuleState === 'absorbing' && (
             <div 
-              className="absolute top-0 left-0 right-0 bg-black/30 transition-all duration-1000 ease-linear pointer-events-none"
+              className="absolute top-0 left-0 right-0 bg-black/30 transition-all duration-1000 ease-linear"
               style={{ height: ((mealProgress || 0) * 100) + '%' }}
             />
-            <div className="absolute inset-0 border-[3px] border-amber-400 rounded-full z-20 pointer-events-none" />
-          </>
+          )}
+        </div>
+
+        {capsuleState === 'absorbing' && (
+          <div className="absolute inset-0 border-[3px] border-amber-400 rounded-full z-20 pointer-events-none" />
         )}
 
         {/* Zawartość wewnętrzna z płynnym cross-fadem */}
@@ -372,9 +376,9 @@ export function DynamicActionCapsule({
               >
                 <div className={cn(
                   "p-1.5 rounded-full shrink-0 flex items-center justify-center shadow-inner",
-                  preBolusState.remainingSeconds > 0 ? "bg-white/20" : "bg-white/30"
+                  preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? "bg-white/20" : "bg-white/30"
                 )}>
-                  {preBolusState.remainingSeconds > 0 ? (
+                  {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? (
                     <Clock size={14} className="text-amber-200 animate-pulse" />
                   ) : (
                     <Utensils size={14} className="text-emerald-200 animate-bounce" />
@@ -382,10 +386,10 @@ export function DynamicActionCapsule({
                 </div>
                 <div className="flex flex-col justify-center min-w-0">
                   <span className="text-[8px] font-black text-white/90 uppercase tracking-widest leading-none mb-0.5 truncate">
-                    {preBolusState.remainingSeconds > 0 ? 'Odczekaj' : 'Możesz jeść!'}
+                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? 'Odczekaj' : 'Możesz jeść!'}
                   </span>
                   <span className="text-[11px] text-white uppercase font-black tracking-tight leading-none truncate font-mono">
-                    {preBolusState.remainingSeconds > 0 ? (
+                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? (
                       <span className="text-amber-200">{formattedTimer}</span>
                     ) : (
                       <span className="text-emerald-100">Gotowe</span>
@@ -411,11 +415,16 @@ export function DynamicActionCapsule({
                     Haptics.medium();
                     onClickMain();
                   }}
-                  className="bg-white/20 hover:bg-white/30 text-white active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-1.5 rounded-full transition-all flex items-center gap-0.5 cursor-pointer"
+                  className="bg-white/20 hover:bg-white/30 text-white active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-1.5 rounded-full transition-all flex items-center gap-0.5 cursor-pointer relative"
                   title="Przejdź do Talerza"
                 >
                   <Utensils size={10} />
                   <span>Talerz</span>
+                  {plateCount > 0 && (
+                    <span className="ml-0.5 bg-rose-500 text-white text-[8px] font-black px-1 rounded-full leading-tight">
+                      {plateCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={handleCancelPreBolus}
@@ -468,10 +477,15 @@ export function DynamicActionCapsule({
                     Haptics.medium();
                     onClickMain();
                   }}
-                  className="bg-white text-indigo-600 hover:bg-indigo-50 active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded-full shadow-md transition-all flex items-center gap-1 cursor-pointer"
+                  className="bg-white text-indigo-600 hover:bg-indigo-50 active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded-full shadow-md transition-all flex items-center gap-1 cursor-pointer relative"
                 >
                   <Utensils size={10} className="text-indigo-500" />
                   <span>Talerz</span>
+                  {plateCount > 0 && (
+                    <span className="bg-rose-500 text-white text-[8px] font-black px-1 rounded-full leading-tight">
+                      {plateCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={(e) => {
@@ -513,7 +527,13 @@ export function DynamicActionCapsule({
                 </div>
               ) : (
                 <div className="flex items-center justify-center relative">
-                  <Utensils className="text-white relative z-10" size={24} />
+                  <motion.div
+                    animate={plateCount > 0 ? { scale: [1, 1.1, 1], rotate: [0, -4, 4, 0] } : { scale: 1, rotate: 0 }}
+                    transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+                    className="flex items-center justify-center"
+                  >
+                    <Utensils className="text-white relative z-10" size={24} />
+                  </motion.div>
                   {hardwareWarning && (
                     <div className="absolute -top-2 -right-2.5 bg-amber-500 text-white rounded-full px-1 py-0.5 border border-white dark:border-slate-900 shadow-md flex items-center gap-0.5 text-[8px] font-black z-20 animate-pulse">
                       {hardwareWarning.type === 'sensor' ? <Signal size={8} /> : <Droplet size={8} />}

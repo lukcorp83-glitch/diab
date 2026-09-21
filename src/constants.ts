@@ -2,8 +2,12 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.36';
-export const CURRENT_VERSION = '6.0.36';
+export const APP_VERSION = '6.0.47';
+export const CURRENT_VERSION = '6.0.47';
+
+export const IS_BETA_CHANNEL: boolean = 
+  Boolean(import.meta.env.VITE_IS_BETA_CHANNEL) || 
+  import.meta.env.VITE_APP_CHANNEL === 'beta';
 
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';
@@ -130,8 +134,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
  glassmorphismEnabled: false,
  material3Enabled: false,
  treatmentMode: (localStorage.getItem("treatmentMode") as 'diet_only' | 'insulin' | 'pump') || 'insulin',
+ floatingChatEnabled: true,
+ customNavSlot: 'assistant',
 };
-
-
-
-

@@ -7,7 +7,11 @@ export interface Product {
   polyols?: number;
   protein?: number;
   fat?: number;
+  kcal?: number;
+  fiber?: number;
+  servingSize?: number;
   gi: number;
+  gl?: number;
   category?: string;
   isOnline?: boolean;
   author?: string;
@@ -63,6 +67,8 @@ export interface LogEntry {
   isExtended?: boolean;
   extendedTime?: number;
   items?: any[];
+  site?: string;
+  glucose?: number;
 }
 
 export interface PlateItem extends Product {
@@ -204,6 +210,8 @@ export interface UserSettings {
     intensity: "low" | "medium" | "high";
   } | null;
   treatmentMode?: 'diet_only' | 'insulin' | 'pump'; // Typ leczenia: dieta/tabletki, insulina, pompa
+  floatingChatEnabled?: boolean; // Pływająca pigułka asystenta AI
+  customNavSlot?: string; // Identyfikator wybranej zakładki na 4. pozycji dolnego paska
 }
 
 export interface AssistantMessage {

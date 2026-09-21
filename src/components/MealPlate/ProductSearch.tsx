@@ -3,16 +3,16 @@ import { useTranslation } from "react-i18next";
 import { Search, Loader2, Globe, Mic, Plus, Info, Scale, Share2, BookMarked, Tag, X, Scan, Camera, Barcode } from "lucide-react";
 import { Haptics } from "../../lib/haptics";
 import { useMealPlateStore } from "../../stores/useMealPlateStore";
-import { Product } from "../../types/product";
+import { Product } from "../../types";
 import { getProductName } from "../FoodDatabase";
 import { geminiService } from "../../services/gemini";
-import toast from "react-hot-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import i18n from "../../i18n";
 import SwipeableItem from "../SwipeableItem";
 import { cn } from "../../lib/utils";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as CapSpeechRecognition } from "@capacitor-community/speech-recognition";
+import { toast } from "react-hot-toast";
 
 const getDietBadge = (product: Product, activeDiet: string | null) => {
  if (!activeDiet) return null;

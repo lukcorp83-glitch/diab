@@ -20,6 +20,7 @@ import { doc, setDoc, addDoc, collection } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
+import { notificationService } from '../services/notificationService';
 
 interface SiteRotationModalProps {
   isOpen: boolean;
@@ -135,6 +136,10 @@ export default function SiteRotationModal({
       window.dispatchEvent(new CustomEvent('localLogAddBatch', { detail: [siteLog] }));
       window.dispatchEvent(new CustomEvent('siteChangeRecorded', { detail: { site: newSite, timestamp: now } }));
       window.dispatchEvent(new CustomEvent('userSettingsUpdate', { detail: newSettings }));
+
+      try {
+        notificationService.updateDeviceReminders(newSettings);
+      } catch (err) {}
 
       toast.success(t('auto.wklucie_zmienione_sukces', { 
         defaultValue: `Wkłucie zmienione: ${newSite}!`,

@@ -188,6 +188,10 @@ export class DatabaseService {
     }
   }
 
+  async addLog(log: any) {
+    return this.saveLog(log);
+  }
+
   async saveMultipleLogs(logs: any[], onProgress?: (progress: number) => void) {
     if (!this.db || logs.length === 0) {
       onProgress?.(100);
@@ -280,16 +284,25 @@ export class DatabaseService {
   }
   
   async deleteLog(id: string) {
-    if (!this.db) return;
-    const query = `DELETE FROM application_logs WHERE id = ? OR payload LIKE ?`;
+    if (!this.db || !id) return;
+    const cleanId = String(id).replace(/^ns-(meal|insulin|site|sensor|cgm|entry|glucose)-/, '');
+    const query = `DELETE FROM application_logs WHERE id = ? OR id = ? OR payload LIKE ? OR payload LIKE ? OR payload LIKE ? OR payload LIKE ?`;
+    const params = [
+      id,
+      cleanId,
+      `%"id":"${id}"%`,
+      `%"nsId":"${id}"%`,
+      `%"id":"${cleanId}"%`,
+      `%"nsId":"${cleanId}"%`
+    ];
     
     try {
-      await this.db.run(query, [id, `%"nsId":"${id}"%`]);
+      await this.db.run(query, params);
     } catch(e: any) {
       if (e?.message?.includes("not opened") || e?.message?.includes("closed")) {
          console.warn("DB not opened in deleteLog, attempting to open and retry", e);
          await this.db.open();
-         await this.db.run(query, [id, `%"nsId":"${id}"%`]);
+         await this.db.run(query, params);
       } else {
          throw e;
       }

@@ -33,13 +33,34 @@ public class NotificationBridgePlugin extends Plugin {
                     int glucose = intent.getIntExtra("glucose", -1);
                     float iob = intent.getFloatExtra("iob", -1);
                     String pkg = intent.getStringExtra("package");
+                    String trend = intent.getStringExtra("trend");
+                    double delta = intent.getDoubleExtra("delta", 0.0);
+                    long timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis());
 
                     JSObject ret = new JSObject();
                     ret.put("glucose", glucose);
                     ret.put("iob", iob);
                     ret.put("package", pkg);
+                    if (trend != null) ret.put("trend", trend);
+                    ret.put("delta", delta);
+                    ret.put("timestamp", timestamp);
                     
                     notifyListeners("glucoseNotificationReceived", ret);
+                } else if (XDripBroadcastReceiver.ACTION_TREATMENT_RECEIVED.equals(intent.getAction())) {
+                    double insulin = intent.getDoubleExtra("insulin", 0.0);
+                    double carbs = intent.getDoubleExtra("carbs", 0.0);
+                    String eventType = intent.getStringExtra("eventType");
+                    String notes = intent.getStringExtra("notes");
+                    long timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis());
+
+                    JSObject ret = new JSObject();
+                    ret.put("insulin", insulin);
+                    ret.put("carbs", carbs);
+                    ret.put("eventType", eventType);
+                    ret.put("notes", notes);
+                    ret.put("timestamp", timestamp);
+
+                    notifyListeners("treatmentNotificationReceived", ret);
                 } else if (GlucoseNotificationListener.ACTION_NOTIFICATION_DEBUG.equals(intent.getAction())) {
                     String pkg = intent.getStringExtra("package");
                     String title = intent.getStringExtra("title");
@@ -57,6 +78,7 @@ public class NotificationBridgePlugin extends Plugin {
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(GlucoseNotificationListener.ACTION_GLUCOSE_RECEIVED);
+        filter.addAction(XDripBroadcastReceiver.ACTION_TREATMENT_RECEIVED);
         filter.addAction(GlucoseNotificationListener.ACTION_NOTIFICATION_DEBUG);
 
         // We use ContextCompat.registerReceiver to ensure compatibility across all Android versions
@@ -113,6 +135,20 @@ public class NotificationBridgePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getTreatmentHistory(PluginCall call) {
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+        String history = prefs.getString("treatment_history", "");
+        
+        JSObject ret = new JSObject();
+        ret.put("history", history);
+        
+        // Clear history after sending it to avoid processing the same treatments again
+        prefs.edit().putString("treatment_history", "").apply();
+        
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void updateForegroundNotification(PluginCall call) {
         String title = call.getString("title", "GlikoControl");
         String text = call.getString("text", "GlikoSense działa w tle");
@@ -132,6 +168,15 @@ public class NotificationBridgePlugin extends Plugin {
         }
 
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+        boolean isOngoingEnabled = prefs.getBoolean("apk_system_notifications_enabled", true);
+        if (!isOngoingEnabled) {
+            try {
+                notificationManager.cancel(999);
+            } catch (Exception ignored) {}
+            call.resolve();
+            return;
+        }
+
         String glucose = prefs.getString("widget_glucose", null);
         
         if (glucose != null && !glucose.equals("---") && !glucose.isEmpty() && (text.contains("Pętla zamknięta") || text.contains("GlikoSense"))) {
@@ -183,6 +228,23 @@ public class NotificationBridgePlugin extends Plugin {
             notificationManager.notify(999, builder.build());
         }
         
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void setOngoingNotificationEnabled(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", true);
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+        prefs.edit().putBoolean("apk_system_notifications_enabled", enabled).apply();
+        
+        android.app.NotificationManager manager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if (!enabled && manager != null) {
+            try {
+                manager.cancel(999);
+            } catch (Exception ignored) {}
+        } else if (enabled) {
+            NightscoutFetcher.fetchAndUpdate(getContext(), null, null);
+        }
         call.resolve();
     }
 
@@ -280,10 +342,18 @@ public class NotificationBridgePlugin extends Plugin {
             builder.setLargeIcon(pillIcon);
         }
 
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+            prefs.edit()
+                    .putLong("last_active_prebolus_target", targetTime)
+                    .putString("last_notified_pump_bolus_id", "active_" + targetTime)
+                    .apply();
+        } catch (Exception ignored) {}
+
         notificationManager.notify(notificationId, builder.build());
 
         // Zaplanuj automatyczną aktualizację minut na górnej belce oraz powiadomienie gotowości do posiłku
-        scheduleTimerCompletion(notificationId, targetTime, pendingIntent);
+        scheduleTimerCompletionStatic(getContext(), notificationId, targetTime, pendingIntent);
 
         call.resolve();
     }
@@ -291,20 +361,19 @@ public class NotificationBridgePlugin extends Plugin {
     private static android.os.Handler timerHandler = null;
     private static Runnable timerCompletionRunnable = null;
 
-    private static synchronized android.os.Handler getTimerHandler() {
+    public static synchronized android.os.Handler getTimerHandler() {
         if (timerHandler == null) {
             timerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
         }
         return timerHandler;
     }
 
-    private void scheduleTimerCompletion(final int notificationId, final long targetTime, final android.app.PendingIntent pendingIntent) {
+    public static void scheduleTimerCompletionStatic(final Context context, final int notificationId, final long targetTime, final android.app.PendingIntent pendingIntent) {
         if (timerCompletionRunnable != null) {
             getTimerHandler().removeCallbacks(timerCompletionRunnable);
             timerCompletionRunnable = null;
         }
 
-        final Context context = getContext();
         if (context == null) return;
         final Context appContext = context.getApplicationContext();
 
@@ -317,6 +386,14 @@ public class NotificationBridgePlugin extends Plugin {
 
                     long remainingMs = targetTime - System.currentTimeMillis();
                     if (remainingMs <= 500) {
+                        try {
+                            android.content.SharedPreferences prefs = appContext.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+                            prefs.edit()
+                                    .putLong("last_completed_prebolus_timestamp", System.currentTimeMillis())
+                                    .putLong("last_active_prebolus_target", 0)
+                                    .apply();
+                        } catch (Exception ignored) {}
+
                         androidx.core.app.NotificationCompat.Builder readyBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
                                 .setContentTitle("Czas na posiłek! 🍽️")
                                 .setContentText("Odliczanie zakończone. Możesz już zjeść posiłek!")
@@ -324,6 +401,7 @@ public class NotificationBridgePlugin extends Plugin {
                                 .setShowWhen(false)
                                 .setOngoing(false)
                                 .setAutoCancel(true)
+                                .setOnlyAlertOnce(false)
                                 .setGroup("gliko_live_timer_standalone")
                                 .setGroupSummary(false)
                                 .setSortKey("0_live_timer")
@@ -345,6 +423,7 @@ public class NotificationBridgePlugin extends Plugin {
                         }
 
                         nm.notify(notificationId, readyBuilder.build());
+                        timerCompletionRunnable = null;
                     } else {
                         int mins = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
                         androidx.core.app.NotificationCompat.Builder updateBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
@@ -379,8 +458,10 @@ public class NotificationBridgePlugin extends Plugin {
 
                         nm.notify(notificationId, updateBuilder.build());
 
-                        long nextTickMs = Math.min(remainingMs, Math.max(1000L, remainingMs % 60000L));
-                        if (nextTickMs <= 0) nextTickMs = Math.min(remainingMs, 10000L);
+                        long msToNextMin = remainingMs % 60000L;
+                        if (msToNextMin <= 0) msToNextMin = 60000L;
+                        long nextTickMs = Math.min(msToNextMin + 200L, Math.min(remainingMs, 15000L));
+                        if (nextTickMs <= 0) nextTickMs = 1000L;
                         getTimerHandler().postDelayed(this, nextTickMs);
                     }
                 } catch (Exception ignored) {}
@@ -391,23 +472,38 @@ public class NotificationBridgePlugin extends Plugin {
         if (remainingMs <= 500) {
             getTimerHandler().post(timerCompletionRunnable);
         } else {
-            long nextTickMs = Math.min(remainingMs, Math.max(1000L, remainingMs % 60000L));
-            if (nextTickMs <= 0) nextTickMs = Math.min(remainingMs, 10000L);
+            long msToNextMin = remainingMs % 60000L;
+            if (msToNextMin <= 0) msToNextMin = 60000L;
+            long nextTickMs = Math.min(msToNextMin + 200L, Math.min(remainingMs, 15000L));
+            if (nextTickMs <= 0) nextTickMs = 1000L;
             getTimerHandler().postDelayed(timerCompletionRunnable, nextTickMs);
+        }
+    }
+
+    public static void stopLiveTimerStatic(Context context, int notificationId) {
+        if (timerCompletionRunnable != null) {
+            getTimerHandler().removeCallbacks(timerCompletionRunnable);
+            timerCompletionRunnable = null;
+        }
+        if (context != null) {
+            try {
+                android.content.SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+                prefs.edit()
+                        .putLong("last_completed_prebolus_timestamp", System.currentTimeMillis())
+                        .putLong("last_active_prebolus_target", 0)
+                        .apply();
+            } catch (Exception ignored) {}
+            android.app.NotificationManager notificationManager = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                notificationManager.cancel(notificationId);
+            }
         }
     }
 
     @PluginMethod
     public void stopLiveTimer(PluginCall call) {
-        if (timerCompletionRunnable != null) {
-            getTimerHandler().removeCallbacks(timerCompletionRunnable);
-            timerCompletionRunnable = null;
-        }
         int notificationId = call.getInt("id", 777);
-        android.app.NotificationManager notificationManager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager != null) {
-            notificationManager.cancel(notificationId);
-        }
+        stopLiveTimerStatic(getContext(), notificationId);
         call.resolve();
     }
 
@@ -437,12 +533,59 @@ public class NotificationBridgePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getLastAlertInfo(PluginCall call) {
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+            long lastAlertTime = prefs.getLong("widget_last_alert_time", 0);
+            String lastAlertType = prefs.getString("widget_last_alert_type", "");
+            JSObject ret = new JSObject();
+            ret.put("lastAlertTime", lastAlertTime);
+            ret.put("lastAlertType", lastAlertType);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void triggerNativeGlucoseAlert(PluginCall call) {
         try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+            boolean hypoEnabled = prefs.getBoolean("widget_hypo_alerts_enabled", true);
+            boolean hyperEnabled = prefs.getBoolean("widget_hyper_alerts_enabled", true);
+
             String title = call.getString("title", "Alert Glikemii");
             String body = call.getString("body", "Sprawdź poziom cukru");
             boolean isHigh = call.getBoolean("isHigh", false);
             int value = call.getInt("value", 0);
+
+            if (isHigh && !hyperEnabled) {
+                android.util.Log.d("NotificationBridge", "Hyper alert ignored - disabled in preferences");
+                call.resolve();
+                return;
+            }
+            if (!isHigh && !hypoEnabled) {
+                android.util.Log.d("NotificationBridge", "Hypo alert ignored - disabled in preferences");
+                call.resolve();
+                return;
+            }
+
+            long lastAlertTime = prefs.getLong("widget_last_alert_time", 0);
+            long nowMs = System.currentTimeMillis();
+            String currentType = isHigh ? "hyper" : "hypo";
+            String lastType = prefs.getString("widget_last_alert_type", "");
+
+            // Deduplikacja: Jeśli ten sam typ alertu został wyzwolony w ciągu ostatnich 10 minut, nie dubluj
+            if (currentType.equals(lastType) && (nowMs - lastAlertTime < 10 * 60 * 1000)) {
+                android.util.Log.d("NotificationBridge", "Duplicate alert suppressed: " + currentType + " already triggered " + ((nowMs - lastAlertTime) / 1000) + "s ago");
+                call.resolve();
+                return;
+            }
+
+            prefs.edit()
+                .putString("widget_last_alert_type", currentType)
+                .putLong("widget_last_alert_time", nowMs)
+                .apply();
 
             android.app.NotificationManager manager = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {

@@ -39,3 +39,8 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
   - Podczas dodawania nowych wpisów do `src/constants/versions.ts` za pomocą `multi_replace_file_content` (szczególnie do wielkich tablic `PWA_VERSIONS` i `APK_VERSIONS`), dokładnie sprawdzaj granice klamr i nawiasów przed nadpisaniem zawartości, aby przypadkiem nie wkleić zduplikowanego bloku starych wersji czy nie zepsuć domknięcia JSONa.
   - **KRYTYCZNE**: Dodając nowy wpis do `PWA_VERSIONS` i `APK_VERSIONS`, ZAWSZE dodawaj tablicę `changes: string[]` z listą wprowadzonych poprawek. Brak tej tablicy wywoła błąd `.map is undefined` i zawiesi ekran powitalny (ChangelogPopup) tuż po instalacji nowej aktualizacji!
 
+- **Czystość Kodu i Sprzątanie po Sobie (Higiena Kodu)**:
+  - Zawsze sprzątaj po sobie na bieżąco: usuwaj martwe importy, nieużywane zmienne, osierocone komponenty oraz pliki tymczasowe (scratch).
+  - Tablice `PWA_VERSIONS` i `APK_VERSIONS` w `src/constants/versions.ts` powinny trzymać wyłącznie ostatnie 5 wersji (interfejs aplikacji w Profilu wyświetla maksymalnie 3 ostatnie wydania, a okno nowości tylko 1 najnowsze). Przy dodawaniu nowego wydania ZAWSZE usuwaj najstarsze wpisy przekraczające limit 5, aby nie pompować rozmiaru bundle'a niepotrzebną historią.
+  - Jeśli usuwasz lub zastępujesz bibliotekę npm, natychmiast usuwaj ją z `package.json` oraz aktualizuj `package-lock.json` (`npm install --package-lock-only`).
+

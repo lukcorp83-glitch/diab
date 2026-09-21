@@ -8,8 +8,9 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
-export default function RemoteAlertSender({ }: { user: any }) {
-  const user = useAuthStore(state => state.user);
+export default function RemoteAlertSender({ user: propUser }: { user?: any } = {}) {
+  const storeUser = useAuthStore(state => state.user);
+  const user = propUser || storeUser;
 
  // HIDDEN FOR NOW: Remote alerts do not trigger background system notifications reliably without a backend
  return null;

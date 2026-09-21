@@ -327,19 +327,24 @@ export const nightscoutService = {
     }
   },
 
-  async deleteTreatment(nsId: string, url: string, apiSecret: string): Promise<boolean> {
-    if (!url || !nsId) return false;
+  async deleteTreatment(nsId: string, url?: string, apiSecret?: string): Promise<boolean> {
+    const effUrl = url || (typeof window !== 'undefined' ? localStorage.getItem('nightscout_url') || '' : '');
+    const effSecret = apiSecret || (typeof window !== 'undefined' ? localStorage.getItem('nightscout_secret') || '' : '');
+    if (!effUrl || !nsId) return false;
 
-    let cleanUrl = url.trim();
+    let cleanUrl = effUrl.trim();
     if (!cleanUrl.startsWith("http")) cleanUrl = "https://" + cleanUrl;
     cleanUrl = cleanUrl.replace(/\/$/, "");
 
+    // Usuwamy ewentualne prefiksy wewnętrzne aplikacji (np. ns-meal-, ns-insulin-)
+    const cleanNsId = nsId.replace(/^ns-(meal|insulin|site|sensor)-/, '');
+
     try {
-      const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(apiSecret.trim()));
+      const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(effSecret.trim()));
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-      const apiUrl = `${cleanUrl}/api/v1/treatments/${nsId}`;
+      const apiUrl = `${cleanUrl}/api/v1/treatments/${cleanNsId}`;
       const response = await fetch(apiUrl, {
         method: "DELETE",
         headers: {
@@ -349,7 +354,7 @@ export const nightscoutService = {
       });
 
       if (response && response.ok) {
-        console.log(i18n.t('auto.pomyslnie_usunieto_treatm', { defaultValue: "Pomyślnie usunięto treatment z NS: {{var0}}", var0: nsId }));
+        console.log(i18n.t('auto.pomyslnie_usunieto_treatm', { defaultValue: "Pomyślnie usunięto treatment z NS: {{var0}}", var0: cleanNsId }));
         return true;
       } else {
         console.error(i18n.t('auto.blad_przy_usuwaniu_z_ns_v', { defaultValue: "Błąd przy usuwaniu z NS: {{var0}}", var0: response?.status }));
@@ -357,6 +362,44 @@ export const nightscoutService = {
       }
     } catch (error) {
       console.error("Nightscout deleteTreatment error:", error instanceof Error ? error.message : error);
+      return false;
+    }
+  },
+
+  async deleteEntry(entryId: string, url?: string, apiSecret?: string): Promise<boolean> {
+    const effUrl = url || (typeof window !== 'undefined' ? localStorage.getItem('nightscout_url') || '' : '');
+    const effSecret = apiSecret || (typeof window !== 'undefined' ? localStorage.getItem('nightscout_secret') || '' : '');
+    if (!effUrl || !entryId) return false;
+
+    let cleanUrl = effUrl.trim();
+    if (!cleanUrl.startsWith("http")) cleanUrl = "https://" + cleanUrl;
+    cleanUrl = cleanUrl.replace(/\/$/, "");
+
+    const cleanEntryId = entryId.replace(/^ns-(cgm|entry|glucose)-/, '');
+
+    try {
+      const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(effSecret.trim()));
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const apiUrl = `${cleanUrl}/api/v1/entries/${cleanEntryId}`;
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "api-secret": hash,
+        },
+      });
+
+      if (response && response.ok) {
+        console.log("Pomyślnie usunięto entry z NS:", cleanEntryId);
+        return true;
+      } else {
+        console.error("Błąd przy usuwaniu entry z NS:", response?.status);
+        return false;
+      }
+    } catch (error) {
+      console.error("Nightscout deleteEntry error:", error instanceof Error ? error.message : error);
       return false;
     }
   },

@@ -1,5 +1,6 @@
 import { useLogsStore } from "../stores/useLogsStore";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useAppStore } from "../stores/useAppStore";
 import { geminiService } from "../services/gemini";
 import { Capacitor } from '@capacitor/core';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
@@ -86,7 +87,9 @@ import {
  Camera,
  Pizza,
  FileJson,
+ ExternalLink,
 } from "lucide-react";
+import { resolveApkDownloadUrl, triggerApkDownload } from "../utils/apkDownloader";
 import { db, auth, onConnectionChange } from "../lib/firebase";
 import { deleteUser } from "firebase/auth";
 import {
@@ -129,6 +132,7 @@ import ProfileSystem from "./Profile/ProfileSystem";
 import TreatmentModeSelector from "./Profile/TreatmentModeSelector";
 import SiteRotationWidget from './SiteRotationWidget';
 import StatisticsView from "./StatisticsView";
+import Diets from "./Diets";
 import TutorialView from "./TutorialView";
 import GlikoTraining from "./GlikoTraining";
 import { ConnectedDevice } from "../hooks/useGlikoServer";
@@ -162,7 +166,8 @@ export default function Profile({
  const { logs } = useLogsStore();
  const { data: shortcuts = [] } = useShortcuts(user);
  const queryClient = useQueryClient();
- const [newShortcut, setNewShortcut] = useState<any>(null);
+  const [newShortcut, setNewShortcut] = useState<any>(null);
+  const [shortcutToDelete, setShortcutToDelete] = useState<any>(null);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
   const updatePetName = async () => { if (!user || !newName.trim()) return; setEditingName(false); try { await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "pet"), { name: newName.trim() }, { merge: true }); toast.success("Zapisano"); } catch (e) { toast.error("Błąd"); } };
@@ -376,7 +381,14 @@ export default function Profile({
  const [auditLoading, setAuditLoading] = useState(false);
  const [auditResult, setAuditResult] = useState<string | null>(null);
  const [tdiInputValue, setTdiInputValue] = useState<string>("");
- const [activeCategory, setActiveCategory] = useState<string | null>(() => initialAction || null);
+
+ const storeCategory = useAppStore((state) => state.profileCategory);
+ const setStoreCategory = useAppStore((state) => state.setProfileCategory);
+ const activeCategory = storeCategory ?? initialAction ?? null;
+ const setActiveCategory = (cat: string | null) => {
+   setStoreCategory(cat);
+ };
+
  const topMenuRef = useRef<HTMLDivElement>(null);
  useEffect(() => {
  const slider = topMenuRef.current;
@@ -689,27 +701,25 @@ export default function Profile({
       }, 100);
     }
   }, [initialAction]);
+
+  useEffect(() => {
+    const handleOpenCat = (e: any) => {
+      if (e.detail) {
+        setActiveCategory(e.detail);
+      }
+    };
+    window.addEventListener('openProfileCategory', handleOpenCat);
+    return () => window.removeEventListener('openProfileCategory', handleOpenCat);
+  }, []);
  const [nukeLoading, setNukeLoading] = useState(false);
  const [showRodo, setShowRodo] = useState(false);
- const [apkVersion, setApkVersion] = useState<string>("1.5.4");
- const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_1.5.4_OTA_FINISH.apk");
+ const [apkVersion, setApkVersion] = useState<string>(CURRENT_VERSION);
+ const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases");
  useEffect(() => {
- const isBeta = localStorage.getItem("betaProgramEnabled") === "true";
- const url = isBeta
- ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
- : 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now();
- fetch(url)
- .then(res => res.json())
- .then(data => {
- if (data.version) setApkVersion(data.version);
- if (data.apkUrl) {
- const finalApkUrl = isBeta 
- ? data.apkUrl.replace('aktualizacja', 'aktualizacja-beta').replace('_OTA.apk', '-beta_OTA.apk')
- : data.apkUrl;
- setApkUrl(finalApkUrl);
- }
- })
- .catch(() => {});
+   resolveApkDownloadUrl().then(info => {
+     if (info.version) setApkVersion(info.version);
+     if (info.url) setApkUrl(info.url);
+   }).catch(() => {});
  }, []);
  const nukeAllData = async () => {
  if (
@@ -806,8 +816,10 @@ export default function Profile({
  console.error("Error buying skin:", err);
  }
  };
- const handleEquipSkin = async (skinId: string) => {
- if (!petData.unlockedSkins.includes(skinId)) return;
+  const handleEquipSkin = async (skinId: string) => {
+  const isUnlocked = (petData.unlockedSkins || []).includes(skinId) ||
+    (!!SKINS.find(s => s.id === skinId)?.unlockedBy && (petData.unlockedAchievements || []).includes(SKINS.find(s => s.id === skinId)?.unlockedBy!));
+  if (!isUnlocked) return;
  Haptics.light();
  try {
  const petRef = doc(
@@ -893,57 +905,67 @@ export default function Profile({
  console.error("Error equipping background:", err);
  }
  };
- const saveShortcut = async () => {
- if (!newShortcut.name) return;
- try {
- if (newShortcut.id) {
- // Edit
- const { id, ...data } = newShortcut;
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "shortcuts",
- id,
- ),
- data,
- );
- } else {
- // Add
- const { id, ...data } = newShortcut;
- await addDoc(
- collection(
- db,
- "users",
- getEffectiveUid(user),
- "shortcuts",
- ),
- data,
- );
- }
- queryClient.invalidateQueries({ queryKey: ['shortcuts', getEffectiveUid(user)] });
- setNewShortcut(null);
- } catch (e) {
- console.error(e);
- }
- };
- const deleteShortcut = async (id: string) => {
- try {
- await deleteDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "shortcuts",
- id,
- ),
- );
- queryClient.invalidateQueries({ queryKey: ['shortcuts', getEffectiveUid(user)] });
- } catch (e) {
- console.error(e);
- }
- };
+  const saveShortcut = async () => {
+    if (!newShortcut?.name?.trim()) {
+      toast.error("Podaj nazwę skrótu");
+      return;
+    }
+    try {
+      if (newShortcut.id) {
+        // Edit
+        const { id, ...data } = newShortcut;
+        await setDoc(
+          doc(
+            db,
+            "users",
+            getEffectiveUid(user),
+            "shortcuts",
+            id,
+          ),
+          data,
+        );
+        toast.success("Zaktualizowano skrót!");
+      } else {
+        // Add
+        const { id, ...data } = newShortcut;
+        await addDoc(
+          collection(
+            db,
+            "users",
+            getEffectiveUid(user),
+            "shortcuts",
+          ),
+          data,
+        );
+        toast.success("Dodano nowy skrót!");
+      }
+      Haptics.success();
+      queryClient.invalidateQueries({ queryKey: ['shortcuts', getEffectiveUid(user)] });
+      setNewShortcut(null);
+    } catch (e) {
+      console.error("Błąd zapisu skrótu:", e);
+      toast.error("Nie udało się zapisać skrótu");
+    }
+  };
+  const deleteShortcut = async (id: string) => {
+    try {
+      await deleteDoc(
+        doc(
+          db,
+          "users",
+          getEffectiveUid(user),
+          "shortcuts",
+          id,
+        ),
+      );
+      Haptics.medium();
+      toast.success("Usunięto skrót");
+      queryClient.invalidateQueries({ queryKey: ['shortcuts', getEffectiveUid(user)] });
+    } catch (e) {
+      console.error("Błąd usuwania skrótu:", e);
+      toast.error("Nie udało się usunąć skrótu");
+    }
+  };
  const analyzeDrug = async () => {
  if (!newMedication?.name || !user) return;
  setIsAnalyzingDrug(true);
@@ -1765,8 +1787,16 @@ export default function Profile({
  <div className="absolute inset-0 bg-gradient-to-br from-accent-500/10 via-transparent to-purple-500/5 dark:from-accent-500/20"></div>
  <div className="absolute -top-12 -right-12 w-48 h-48 bg-accent-500/10 dark:bg-accent-500/20 blur-[80px] rounded-full pointer-events-none"></div>
  <div className="relative z-10">
- <div className="w-16 h-16 bg-white dark:bg-slate-900 text-accent-600 dark:text-accent-400 rounded-[1.8rem] flex items-center justify-center mx-auto mb-3 shadow-xl border-4 border-white dark:border-slate-800">
- {user?.email ? (
+ <div className="w-16 h-16 bg-white dark:bg-slate-900 text-accent-600 dark:text-accent-400 rounded-[1.8rem] flex items-center justify-center mx-auto mb-3 shadow-xl border-4 border-white dark:border-slate-800 overflow-hidden">
+ {user && !user.isAnonymous && (user.photoURL || user.providerData?.[0]?.photoURL) ? (
+ <img 
+ src={user.photoURL || user.providerData?.[0]?.photoURL || ""} 
+ alt="Avatar" 
+ referrerPolicy="no-referrer"
+ crossOrigin="anonymous"
+ className="w-full h-full object-cover"
+ />
+ ) : user?.email ? (
  <span className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-br from-accent-500 to-indigo-600">
  {user.email.charAt(0)}
  </span>
@@ -1976,7 +2006,8 @@ export default function Profile({
  {shopTab === "skins" && (
  <div className="grid grid-cols-2 gap-4">
  {SKINS.map((skin) => {
- const isUnlocked = petData.unlockedSkins.includes(skin.id);
+ const isUnlocked = (petData.unlockedSkins || []).includes(skin.id) ||
+   (!!skin.unlockedBy && (petData.unlockedAchievements || []).includes(skin.unlockedBy));
  const isEquipped = petData.skin === skin.id;
  return (
  <div
@@ -2909,6 +2940,9 @@ export default function Profile({
         sensorDurationDays: days
       };
       setSettings((prev) => ({ ...prev, ...updates }));
+      try {
+        notificationService.updateDeviceReminders({ ...settings, ...updates });
+      } catch (e) {}
       if (user) {
         await setDoc(
           doc(
@@ -3160,6 +3194,9 @@ export default function Profile({
         infusionSite: insertionSite
       };
       setSettings((prev) => ({ ...prev, ...updates }));
+      try {
+        notificationService.updateDeviceReminders({ ...settings, ...updates });
+      } catch (e) {}
       localStorage.setItem("infusionSetChangeDate", String(chosenDate));
       localStorage.setItem("last_smart_reservoir_prompt", String(Date.now()));
       if (user) {
@@ -3426,7 +3463,7 @@ export default function Profile({
         { merge: true },
       );
       const latestResLog = logs
-        .filter((l) => (l.type === "site_change" && l.notes?.toLowerCase().includes("zbiorniczk")) || l.type === "insulin_change")
+        .filter((l) => (l.type === "site_change" && l.notes?.toLowerCase().includes("zbiorniczk")) || (l.type as string) === "insulin_change")
         .sort((a, b) => b.timestamp - a.timestamp)[0];
       if (latestResLog && latestResLog.id) {
         await updateDoc(
@@ -3550,8 +3587,9 @@ export default function Profile({
  </p>
  </div>
  </div>
- <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+ <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
  <button
+ type="button"
  onClick={() =>
  setNewShortcut({
  id: s.id,
@@ -3561,15 +3599,21 @@ export default function Profile({
  carbs: s.carbs || 0,
  })
  }
- className="p-2 text-slate-400 hover:text-accent-500 transition-colors"
+ className="p-2.5 rounded-xl text-slate-400 hover:text-accent-500 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 active:scale-90 transition-all cursor-pointer"
+ title="Edytuj skrót"
  >
- <Settings size={14} />
+ <Settings size={16} />
  </button>
  <button
- onClick={() => deleteShortcut(s.id)}
- className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+ type="button"
+ onClick={() => {
+   Haptics.warning();
+   setShortcutToDelete(s);
+ }}
+ className="p-2.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 active:scale-90 transition-all cursor-pointer"
+ title="Usuń skrót"
  >
- <Trash size={14} />
+ <Trash2 size={16} />
  </button>
  </div>
  </motion.div>
@@ -3677,16 +3721,89 @@ export default function Profile({
  </div>
  </div>
  </div>
- <button
- onClick={saveShortcut}
- className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl"
- >
- {newShortcut.id ? "Zapisz zmiany" : i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: "Zatwierdź i dodaj" }) })}
- </button>
- </motion.div>
- )}
- </div>
- </motion.div>
+  <div className="flex gap-2 pt-2">
+    {newShortcut.id && (
+      <button
+        type="button"
+        onClick={() => {
+          Haptics.warning();
+          setShortcutToDelete(newShortcut);
+        }}
+        className="px-5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+        title="Usuń ten skrót"
+      >
+        <Trash2 size={16} />
+        <span>Usuń</span>
+      </button>
+    )}
+    <button
+      type="button"
+      onClick={saveShortcut}
+      className="flex-1 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl cursor-pointer"
+    >
+      {newShortcut.id ? "Zapisz zmiany" : i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: i18n.t('auto.zatwierdz_i_dodaj', { defaultValue: "Zatwierdź i dodaj" }) })}
+    </button>
+  </div>
+  </motion.div>
+  )}
+  </div>
+
+  {/* Okno dialogowe aplikacji potwierdzające usunięcie skrótu */}
+  {shortcutToDelete && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-6 shadow-2xl space-y-5 text-center"
+      >
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-3xl shadow-inner border border-rose-500/20">
+          {shortcutToDelete.icon || <Trash2 size={28} />}
+        </div>
+        
+        <div className="space-y-1.5">
+          <h3 className="text-lg font-black text-slate-800 dark:text-white">
+            Usunąć skrót?
+          </h3>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            Czy na pewno chcesz usunąć <strong className="text-slate-800 dark:text-slate-200">"{shortcutToDelete.name}"</strong>?
+          </p>
+          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+            Tej operacji nie można cofnąć
+          </p>
+        </div>
+
+        <div className="flex gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              Haptics.light();
+              setShortcutToDelete(null);
+            }}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-black text-[11px] uppercase tracking-wider text-slate-700 dark:text-slate-300 transition-all active:scale-95 cursor-pointer"
+          >
+            Anuluj
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              const id = shortcutToDelete.id;
+              setShortcutToDelete(null);
+              if (newShortcut?.id === id) {
+                setNewShortcut(null);
+              }
+              await deleteShortcut(id);
+            }}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-black text-[11px] uppercase tracking-wider shadow-lg shadow-rose-500/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Trash2 size={15} />
+            <span>Usuń</span>
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  )}
+  </motion.div>
  )}
  {activeCategory === "meds" && <ProfileMedications user={user} settings={settings} setSettings={setSettings} />}
  {activeCategory === "simulator" && <React.Suspense fallback={null}><PumpSimulator settings={settings} /></React.Suspense>}
@@ -4298,32 +4415,56 @@ export default function Profile({
  </p>
  </div>
  </div>
- <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+ <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
  
  {t('auto.pobierz_najnowszą_wersję_oficjalnej', { defaultValue: i18n.t('auto.pobierz_najnowsza_wersje', { defaultValue: "Pobierz najnowszą wersję oficjalnej aplikacji na system Android (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia i mniejsze zużycie baterii." }) })}
  </p>
- 
- {/* Przycisk pobierania APK - zawsze dostepny niezaleznie od platformy */}
- <a
- href={apkUrl}
- target="_blank"
- rel="noopener noreferrer"
- className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors active:scale-95"
- onClick={(e) => {
- e.preventDefault();
- Haptics.success();
- localStorage.setItem("dismissedApkVersion", apkVersion);
- // Otwórz w systemowej przeglądarce by uniknąć problemów z pobieraniem plików w WebView
- import('@capacitor/browser').then(({ Browser }) => {
- Browser.open({ url: apkUrl }).catch(() => {
- window.open(apkUrl, '_system');
- });
- }).catch(() => window.open(apkUrl, '_system'));
- }}
- >
- <Download size={20} />
- {t('auto.pobierz_apk', { defaultValue: 'Pobierz APK' })} ({apkVersion})
- </a>
+  {/* Przycisk pobierania APK */}
+  <button
+    type="button"
+    onClick={() => {
+      Haptics.success();
+      localStorage.setItem("dismissedApkVersion", apkVersion);
+      triggerApkDownload(apkUrl);
+      toast.success(
+        i18n.language?.startsWith('en')
+          ? 'APK download started! In Chrome, accept "Download anyway".'
+          : 'Pobieranie APK rozpoczęte! W Chrome kliknij „Pobierz mimo to”.',
+        { duration: 5000 }
+      );
+    }}
+    className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors active:scale-95 cursor-pointer mb-3"
+  >
+    <Download size={20} />
+    {t('auto.pobierz_apk', { defaultValue: 'Pobierz APK' })} ({apkVersion})
+  </button>
+
+  {/* Wskazówka o instalacji / 99% / Safe Browsing */}
+  <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-2xl border border-amber-500/25 text-left space-y-2 mb-2">
+    <p className="text-[11px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">
+      💡 <b>{t('update.tip_title', { defaultValue: 'Wskazówka dla Androida (Chrome):' })}</b>
+    </p>
+    <ul className="list-disc pl-4 text-[10.5px] text-amber-900/90 dark:text-amber-300/90 font-medium leading-relaxed space-y-1">
+      <li>
+        Chrome wyświetli na dole ekranu lub w powiadomieniach: <b>„Plik może być szkodliwy”</b>. Kliknij <b>„Pobierz mimo to”</b> lub <b>„Zachowaj”</b> (bez tego Android nie zapisze pliku).
+      </li>
+      <li>
+        Jeśli pobieranie zatrzyma się na 99% lub brak pliku w Pobranych: ściągnij górną belkę powiadomień lub otwórz aplikację <b>„Pliki” ➔ folder „Pobrane”</b> i kliknij pobrany plik APK.
+      </li>
+    </ul>
+    <div className="pt-0.5">
+      <a
+        href="https://glikocontrol.pl/pobierz/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+      >
+        <ExternalLink size={13} />
+        Otwórz oficjalną stronę pobierania (glikocontrol.pl/pobierz)
+      </a>
+    </div>
+  </div>
+
  <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
  <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
  
@@ -4352,12 +4493,14 @@ export default function Profile({
  <ol className="list-decimal pl-4 text-[10px] space-y-1 text-amber-700 dark:text-amber-400/80">
  <li>{t('auto.pobierz_plik_klikając_przycisk_powy', { defaultValue: i18n.t('auto.pobierz_plik_klikajac_prz', { defaultValue: "Pobierz plik klikając przycisk powyżej." }) })}</li>
  <li>
- 
  {t('auto.otwórz_pobrany_plik_apk_z_powiadomi', { defaultValue: i18n.t('auto.otworz_pobrany_plik_apk_z', { defaultValue: "Otwórz pobrany plik .apk z powiadomienia lub menedżera plików" }) })}
  </li>
  <li>
  
  {t('auto.jeśli_system_zapyta_zezwól_na_quot_', { defaultValue: i18n.t('auto.jesli_system_zapyta_zezwo', { defaultValue: "Jeśli system zapyta, zezwól na \"Instalację z nieznanych źródeł\"." }) })}
+ </li>
+ <li>
+ {t('auto.gdy_pobieranie_stanie_na_99', { defaultValue: "Gdy pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie: ściągnij górną belkę powiadomień lub otwórz aplikację „Pliki” (folder „Pobrane”) i kliknij pobrany plik APK." })}
  </li>
  </ol>
  </div>
@@ -4503,7 +4646,6 @@ function SettingInput({
  </div>
  );
 }
-
 
 
 

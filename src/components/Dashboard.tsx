@@ -79,6 +79,7 @@ import DidYouKnowWidget from "./DidYouKnowWidget";
 import { MLAnalyzer } from "../services/mlSugarAnalyzer";
 import { db } from "../lib/firebase";
 import { dbService } from "../services/databaseService";
+import { deleteLocalLog } from "../lib/localLogs";
 import GlikoTraining, { SPORTS } from "./GlikoTraining";
 import {
   collection,
@@ -112,7 +113,6 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
     case "daily_tir":
       return ["1x1", "2x1", "2x2"];
     case "neural_pet":
-      return ["2x2"];
       return ["2x2", "2x1"];
     case "weather":
     case "sensor_reminder":
@@ -144,7 +144,7 @@ export const getAllowedSizesForWidget = (id: string): ("1x1" | "2x1" | "1x2" | "
 
 export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "main_stats", name: i18n.t('auto.podsumowanie_glikemii_gliko', { defaultValue: 'Podsumowanie glikemii (Gliko)' }), visible: true, size: "2x2", canResize: false, canChangeShape: false },
-  { id: "neural_pet", name: i18n.t('auto.glikosense_ai_zwierzak', { defaultValue: 'GlikoSense AI & Zwierzak' }), visible: true, size: "2x2", canResize: false, canChangeShape: false },
+  { id: "neural_pet", name: i18n.t('auto.glikosense_ai_zwierzak', { defaultValue: 'GlikoSense AI & Zwierzak' }), visible: true, size: "2x2", canResize: true, canChangeShape: false },
   { id: "weather", name: i18n.t('auto.wpływ_pogody_na_insulinę', { defaultValue: i18n.t('auto.wplyw_pogody_na_insuline', { defaultValue: "Wpływ pogody na insulinę" }) }), visible: true, size: "2x1", canResize: true, canChangeShape: true },
   { id: "sensor_reminder", name: i18n.t('auto.wymiana_sensora_urządzenie', { defaultValue: i18n.t('auto.wymiana_sensora_urzadzeni', { defaultValue: "Wymiana sensora (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf-mirror" },
   { id: "infusion_reminder", name: i18n.t('auto.wymiana_wkłucia_urządzenie', { defaultValue: i18n.t('auto.wymiana_wklucia_urzadzeni', { defaultValue: "Wymiana wkłucia (Urządzenie)" }) }), visible: true, size: "1x1", canResize: true, canChangeShape: true, shape: "leaf" },
@@ -241,18 +241,30 @@ export default function Dashboard({
   isShortcutMode
 }: DashboardProps) {
   const user = useAuthStore(state => state.user);
-  const { logs } = useLogsStore();
-  const effSensorDate = Math.max(
-    settings?.sensorChangeDate || 0,
-    Number(localStorage.getItem('sensorChangeDate') || 0),
-    logs.filter((l: any) => l.type === 'sensor_change' || l.type === 'sensor').reduce((max: number, l: any) => Math.max(max, l.timestamp || 0), 0)
-  ) || undefined;
+  const logs = useLogsStore(state => state.logs);
+  const effSensorDate = useMemo(() => {
+    const rawSetting = settings?.sensorChangeDate || 0;
+    const local = Number(localStorage.getItem('sensorChangeDate') || 0);
+    const maxLog = (logs || []).reduce((max: number, l: any) => {
+      if (l.type === 'sensor_change' || l.type === 'sensor') {
+        return Math.max(max, l.timestamp || 0);
+      }
+      return max;
+    }, 0);
+    return Math.max(rawSetting, local, maxLog) || undefined;
+  }, [settings?.sensorChangeDate, logs]);
 
-  const effInfusionDate = Math.max(
-    settings?.infusionSetChangeDate || 0,
-    Number(localStorage.getItem('infusionSetChangeDate') || 0),
-    logs.filter((l: any) => l.type === 'site_change' || l.type === 'site').reduce((max: number, l: any) => Math.max(max, l.timestamp || 0), 0)
-  ) || undefined;
+  const effInfusionDate = useMemo(() => {
+    const rawSetting = settings?.infusionSetChangeDate || 0;
+    const local = Number(localStorage.getItem('infusionSetChangeDate') || 0);
+    const maxLog = (logs || []).reduce((max: number, l: any) => {
+      if (l.type === 'site_change' || l.type === 'site') {
+        return Math.max(max, l.timestamp || 0);
+      }
+      return max;
+    }, 0);
+    return Math.max(rawSetting, local, maxLog) || undefined;
+  }, [settings?.infusionSetChangeDate, logs]);
   const { t } = useTranslation();
   // Tryb leczenia: domyślnie 'insulin' dla wstecznej kompatybilności
   const treatmentMode = settings.treatmentMode ?? 'insulin';
@@ -517,21 +529,45 @@ export default function Dashboard({
   const handleDeleteLog = async (log: LogEntry) => {
     if (settings?.followerMode) return;
     try {
-      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: log.id, nsId: log.nsId } }));
-      
-      if (log.nsId && nsUrl && nsSecret) {
-        nightscoutService.deleteTreatment(log.nsId, nsUrl, nsSecret).catch(err => console.warn("Failed NS delete", err));
+      const targetId = log.id || log.nsId || (log as any)._id;
+      const logId = log.id;
+      const logNsId = log.nsId || (log as any)._id;
+      if (!targetId) return;
+
+      // 1. Dispatch local delete
+      window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: targetId, nsId: logNsId } }));
+
+      // 2. Usunięcie z SQLite
+      if (logId) await dbService.deleteLog(logId).catch(() => {});
+      if (logNsId && logNsId !== logId) await dbService.deleteLog(logNsId).catch(() => {});
+
+      // 3. Usunięcie z IndexedDB
+      if (logId) await deleteLocalLog(logId).catch(() => {});
+      if (logNsId && logNsId !== logId) await deleteLocalLog(logNsId).catch(() => {});
+
+      // 4. Usunięcie z Nightscout
+      const nsTargetId = logNsId || (logId && logId.startsWith('ns-') ? logId : null);
+      if (nsTargetId) {
+        if (log.type === 'glucose') {
+          nightscoutService.deleteEntry(nsTargetId, nsUrl, nsSecret).catch(err => console.warn("Failed NS entry delete", err));
+        } else {
+          nightscoutService.deleteTreatment(nsTargetId, nsUrl, nsSecret).catch(err => console.warn("Failed NS treatment delete", err));
+        }
       }
 
-      await deleteDoc(
-        doc(
-          db,
-          "users",
-          getEffectiveUid(user),
-          "logs",
-          log.id!
-        )
-      );
+      // 5. Usunięcie z Firestore
+      const uid = getEffectiveUid(user);
+      if (uid && logId) {
+        await deleteDoc(
+          doc(
+            db,
+            "users",
+            uid,
+            "logs",
+            logId
+          )
+        ).catch(err => console.warn("Failed Firestore delete", err));
+      }
     } catch (e) {
       console.error(e);
     }
@@ -589,7 +625,22 @@ export default function Dashboard({
     }
   }, [initialAction, settings.followerMode]);
 
-  const lastG = logs.find((l) => l.type === "glucose");
+  const lastG = useMemo(() => {
+    return (logs || []).find((l) => l.type === "glucose" || (l.type as any) === "sgv") || null;
+  }, [logs]);
+
+  const recentGlucoseLogs = useMemo(() => {
+    return (logs || []).filter(log => log.type === 'glucose').slice(0, 3);
+  }, [logs]);
+
+  const recentTreatmentLogs = useMemo(() => {
+    return (logs || []).filter(log => 
+      log.type === 'bolus' || 
+      (log.type as any) === 'insulin' || 
+      log.type === 'meal' || 
+      log.type === 'carbs'
+    ).slice(0, 3);
+  }, [logs]);
 
   const moveWidget = (originalIndex: number, direction: 'up' | 'down') => {
     Haptics.light();
@@ -733,10 +784,12 @@ export default function Dashboard({
     }
   };
 
-  const iob = getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
+  const iob = useMemo(() => {
+    return getEffectiveIOB(logs, pumpStatus, settings.dia || 4);
+  }, [logs, pumpStatus, settings.dia]);
 
-  const calculateTIR = () => {
-    const glucoseLogs = logs.filter((l) => l.type === "glucose");
+  const tir = useMemo(() => {
+    const glucoseLogs = (logs || []).filter((l) => l.type === "glucose");
     if (glucoseLogs.length === 0) return { inRange: 0, high: 0, low: 0 };
 
     const inRange = glucoseLogs.filter(
@@ -751,87 +804,24 @@ export default function Dashboard({
       low: Math.round((low / total) * 100),
       high: Math.round((high / total) * 100),
     };
-  };
+  }, [logs, settings.targetMin, settings.targetMax]);
 
-  const tir = calculateTIR();
-
-  const calculateHbA1c = () => {
-    const glucoseLogs = logs.filter((l) => l.type === "glucose");
+  const hba1c = useMemo(() => {
+    const glucoseLogs = (logs || []).filter((l) => l.type === "glucose");
     if (glucoseLogs.length === 0) return 0;
     const avg =
       glucoseLogs.reduce((acc, l) => acc + l.value, 0) / glucoseLogs.length;
     return (avg + 46.7) / 28.7;
-  };
-
-  const hba1c = calculateHbA1c();
-
-  const patternInsights = useMemo(() => {
-    const insights = [];
-    const glucoseLogs = logs.filter((l) => l.type === "glucose").slice(0, 100);
-
-    if (glucoseLogs.length > 5) {
-      const morningLogs = glucoseLogs.filter((l) => {
-        const hour = new Date(l.timestamp).getHours();
-        return hour >= 5 && hour <= 9;
-      });
-      if (morningLogs.some((l) => l.value > 150)) {
-        insights.push({
-          type: "dawn",
-          text: i18n.t('auto.możliwy_efekt_brzasku_skoki_rano', { defaultValue: i18n.t('auto.mozliwy_efekt_brzasku_sko', { defaultValue: "Możliwy efekt brzasku (skoki rano)" }) }),
-        });
-      }
-
-      const lows = glucoseLogs.filter((l) => l.value < 70);
-      if (lows.length > 2) {
-        insights.push({ type: "lows", text: i18n.t('auto.zbyt_wiele_niskich_cukrów', { defaultValue: i18n.t('auto.zbyt_wiele_niskich_cukrow', { defaultValue: "Zbyt wiele niskich cukrów" }) }) });
-      }
-
-      const postMeal = logs.filter((l) => l.type === "meal").slice(0, 5);
-      postMeal.forEach((m) => {
-        const afterMeal = glucoseLogs.find(
-          (g) =>
-            g.timestamp > m.timestamp &&
-            g.timestamp < m.timestamp + 2 * 60 * 60 * 1000,
-        );
-        if (afterMeal && afterMeal.value > 180) {
-          insights.push({
-            type: "postMeal",
-            text: i18n.t('auto.wysoki_cukier_po_ostatnim_posiłku', { defaultValue: i18n.t('auto.wysoki_cukier_po_ostatnim', { defaultValue: "Wysoki cukier po ostatnim posiłku" }) }),
-          });
-        }
-      });
-    }
-
-    // Deduplicate by text
-    const unique = [];
-    const seen = new Set();
-    for (const insight of insights) {
-      if (!seen.has(insight.text)) {
-        seen.add(insight.text);
-        unique.push(insight);
-      }
-    }
-
-    return unique.slice(0, 2).map((i) => {
-      let icon = <TrendingUp className="text-orange-500" size={14} />;
-      if (i.type === "lows")
-        icon = <AlertTriangle className="text-red-500" size={14} />;
-      if (i.type === "postMeal")
-        icon = <Utensils className="text-amber-500" size={14} />;
-      return { ...i, icon };
-    });
   }, [logs]);
 
-  const getTrend = () => {
-    const glucoseLogs = logs
-      .filter((l) => l.type === "glucose")
-      .sort((a, b) => b.timestamp - a.timestamp);
+  const trend = useMemo(() => {
+    const glucoseLogs = (logs || []).filter((l) => l.type === "glucose");
     if (glucoseLogs.length < 2) return null;
     const current = glucoseLogs[0];
     const prev = glucoseLogs[1];
     
     const rawDiff = current.value - prev.value;
-    const timeDiff = (current.timestamp - prev.timestamp) / (1000 * 60); // minutes
+    const timeDiff = ((current.timestamp || 0) - (prev.timestamp || 0)) / (1000 * 60); // minutes
 
     if (timeDiff <= 0 || timeDiff > 120) return null; // Too much time passed to determine trend
 
@@ -883,14 +873,116 @@ export default function Dashboard({
       deltaText,
       rawDiff: diff
     };
-  };
+  }, [logs]);
 
-  const trend = getTrend();
+  const patternInsights = useMemo(() => {
+    const now = Date.now();
+    const sortedGlucose = logs
+      .filter((l) => l.type === "glucose" || (l as any).bg)
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-  const getTodayStats = () => {
+    if (sortedGlucose.length < 3) return [];
+
+    const latest = sortedGlucose[0];
+    const latestBg = latest.value || (latest as any).bg || 0;
+    const isCurrentLow = latestBg < 75 || (latestBg < 90 && trend?.direction?.includes('DOWN'));
+    const isCurrentHigh = latestBg > 180 || (latestBg > 160 && trend?.direction?.includes('UP'));
+
+    const insights = [];
+
+    // 1. Priorytet: Zagrożenie niskim cukrem (wyklucza wnioski o wysokim cukrze)
+    if (isCurrentLow) {
+      if (latestBg < 70) {
+        insights.push({
+          type: "lows",
+          text: i18n.t('auto.niski_poziom_cukru_wymaga_glukozy', { defaultValue: "Niski poziom cukru – przyjmij szybkie węglowodany!" })
+        });
+      } else {
+        insights.push({
+          type: "lows",
+          text: i18n.t('auto.tendencja_spadkowa_ryzyko_hipo', { defaultValue: "Glikemia zbliża się do dolnej granicy normy" })
+        });
+      }
+    } else {
+      // 2. Jeśli nie ma bieżącego niskiego cukru, sprawdzamy OSTATNI posiłek z ostatnich 3h
+      const recentMeal = logs.find(
+        (l) =>
+          (l.type === "meal" || l.type === "carbs" || (l.type === "bolus" && (l.linkedMeal || l.notes?.toLowerCase().includes("posiłek")))) &&
+          now - (l.timestamp || 0) <= 3 * 60 * 60 * 1000
+      );
+
+      if (recentMeal && isCurrentHigh) {
+        // Mamy bieżący wzrost poposiłkowy
+        insights.push({
+          type: "postMeal",
+          text: i18n.t('auto.wysoki_cukier_po_ostatnim_posiłku', { defaultValue: "Wysoki cukier po ostatnim posiłku" }),
+        });
+      } else if (recentMeal && latestBg > 180) {
+        const readingsAfterMeal = sortedGlucose.filter(
+          (g) => (g.timestamp || 0) >= (recentMeal.timestamp || 0) && (g.timestamp || 0) <= (recentMeal.timestamp || 0) + 2.5 * 60 * 60 * 1000
+        );
+        if (readingsAfterMeal.some((g) => (g.value || (g as any).bg) > 180)) {
+          insights.push({
+            type: "postMeal",
+            text: i18n.t('auto.wysoki_cukier_po_ostatnim_posiłku', { defaultValue: "Wysoki cukier po ostatnim posiłku" }),
+          });
+        }
+      } else if (!recentMeal) {
+        // Brak posiłku w ostatnich 3h - sprawdzamy poranny brzask (tylko rano 5:00-10:00)
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour <= 10 && latestBg > 150) {
+          insights.push({
+            type: "dawn",
+            text: i18n.t('auto.możliwy_efekt_brzasku_skoki_rano', { defaultValue: "Możliwy efekt brzasku (skoki rano)" }),
+          });
+        }
+      }
+
+      // 3. Sprawdzanie częstych hipoglikemii (tylko jeśli aktualnie cukier NIE jest wysoki)
+      if (!isCurrentHigh) {
+        const past12hLows = sortedGlucose.filter(
+          (l) => (l.timestamp || 0) >= now - 12 * 60 * 60 * 1000 && (l.value || (l as any).bg) < 70
+        );
+        if (past12hLows.length >= 2) {
+          insights.push({
+            type: "lows",
+            text: i18n.t('auto.zbyt_wiele_niskich_cukrów', { defaultValue: "Powtarzające się niskie cukry w ostatnich godzinach" }),
+          });
+        }
+      }
+    }
+
+    // Deduplikacja i spójność: nigdy nie łączymy 'lows' z 'postMeal' ani 'dawn'
+    const unique = [];
+    const seen = new Set();
+    for (const insight of insights) {
+      if (!seen.has(insight.text)) {
+        if (insight.type === "lows" && unique.some((u) => u.type === "postMeal" || u.type === "dawn")) {
+          continue;
+        }
+        if ((insight.type === "postMeal" || insight.type === "dawn") && unique.some((u) => u.type === "lows")) {
+          continue;
+        }
+        seen.add(insight.text);
+        unique.push(insight);
+      }
+    }
+
+    return unique.slice(0, 2).map((i) => {
+      let icon = <TrendingUp className="text-orange-500" size={14} />;
+      if (i.type === "lows")
+        icon = <AlertTriangle className="text-rose-500" size={14} />;
+      if (i.type === "postMeal")
+        icon = <Utensils className="text-amber-500" size={14} />;
+      return { ...i, icon };
+    });
+  }, [logs, trend]);
+
+  const todayStats = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayLogs = logs.filter((l) => l.timestamp >= today.getTime());
+    const todayTs = today.getTime();
+    const todayLogs = (logs || []).filter((l) => (l.timestamp || 0) >= todayTs);
     const meals = todayLogs.filter((l) => l.type === "meal" || l.type === "carbs" || (l.type === "bolus" && l.linkedMeal));
     const insulin = todayLogs.filter((l) => l.type === "bolus");
 
@@ -901,9 +993,7 @@ export default function Dashboard({
       }, 0),
       insulin: insulin.reduce((acc, l) => acc + (l.value || 0), 0),
     };
-  };
-
-  const todayStats = getTodayStats();
+  }, [logs]);
 
 
 
@@ -989,26 +1079,44 @@ export default function Dashboard({
             </div>
             <div className={isSensCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
-                const msLeft = effSensorDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
+                const totalDurationMs = (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000;
+                const expiryTimestamp = effSensorDate + totalDurationMs;
+                const msLeft = expiryTimestamp - Date.now();
                 const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                 const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const isExpired = msLeft <= 0;
+
+                const expiryDateObj = new Date(expiryTimestamp);
+                const expiryDayStr = expiryDateObj.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'numeric'
+                });
+                const expiryTimeStr = expiryDateObj.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+
                 return (
                   <div>
                     <div className="flex items-baseline gap-1">
-                      <span className={cn("font-black tracking-tight", isSensCompact ? "text-xl" : "text-3xl", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                      <span className={cn("font-black tracking-tight leading-none", isSensCompact ? "text-xl" : "text-3xl", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                       <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.dni', { defaultValue: 'Dni' })}</span>
                       {!isExpired && hoursLeft > 0 && (
                         <>
-                          <span className={cn("font-black text-slate-800 dark:text-white ml-1", isSensCompact ? "text-base" : "text-xl")}>{hoursLeft}</span>
+                          <span className={cn("font-black text-slate-800 dark:text-white ml-1 leading-none", isSensCompact ? "text-base" : "text-xl")}>{hoursLeft}</span>
                           <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">g</span>
                         </>
                       )}
                     </div>
-                    <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
+                    <div className="text-[9px] font-bold text-violet-600/80 dark:text-violet-400/90 truncate mt-0.5 tracking-tight flex items-center gap-1" title={`${expiryDayStr} ${expiryTimeStr}`}>
+                      <Calendar size={10} className="shrink-0 opacity-70" />
+                      <span>{expiryDayStr} {expiryTimeStr}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }}
+                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / totalDurationMs) * 100))}%` }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
                         className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} 
                       />
@@ -1058,26 +1166,44 @@ export default function Dashboard({
             </div>
             <div className={isInfCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
-                const msLeft = effInfusionDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
+                const totalDurationMs = (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000;
+                const expiryTimestamp = effInfusionDate + totalDurationMs;
+                const msLeft = expiryTimestamp - Date.now();
                 const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                 const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const isExpired = msLeft <= 0;
+
+                const expiryDateObj = new Date(expiryTimestamp);
+                const expiryDayStr = expiryDateObj.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'numeric'
+                });
+                const expiryTimeStr = expiryDateObj.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+
                 return (
                   <div>
                     <div className="flex items-baseline gap-1">
-                      <span className={cn("font-black tracking-tight", isInfCompact ? "text-xl" : "text-3xl", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                      <span className={cn("font-black tracking-tight leading-none", isInfCompact ? "text-xl" : "text-3xl", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                       <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.dni', { defaultValue: 'Dni' })}</span>
                       {!isExpired && hoursLeft > 0 && (
                         <>
-                          <span className={cn("font-black text-slate-800 dark:text-white ml-1", isInfCompact ? "text-base" : "text-xl")}>{hoursLeft}</span>
+                          <span className={cn("font-black text-slate-800 dark:text-white ml-1 leading-none", isInfCompact ? "text-base" : "text-xl")}>{hoursLeft}</span>
                           <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">g</span>
                         </>
                       )}
                     </div>
-                    <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
+                    <div className="text-[9px] font-bold text-cyan-600/80 dark:text-cyan-400/90 truncate mt-0.5 tracking-tight flex items-center gap-1" title={`${expiryDayStr} ${expiryTimeStr}`}>
+                      <Calendar size={10} className="shrink-0 opacity-70" />
+                      <span>{expiryDayStr} {expiryTimeStr}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }}
+                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / totalDurationMs) * 100))}%` }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
                         className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} 
                       />
@@ -1355,8 +1481,7 @@ export default function Dashboard({
           );
         }
 
-        const latestGlucoseLog = logs.filter(l => l.type === 'glucose' || (l.type as any) === 'sgv').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
-        const lastGlucoseVal = latestGlucoseLog ? latestGlucoseLog.value : null;
+        const lastGlucoseVal = lastG ? lastG.value : null;
 
         return (
           <QuickBolusWidget
@@ -1625,7 +1750,19 @@ export default function Dashboard({
       )}
 
       {/* 1. Main Stats Widget */}
-        <div 
+        <motion.div 
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.04,
+                delayChildren: 0.02
+              }
+            }
+          }}
           onPointerDownCapture={(e) => {
             if (isEditingLayout) {
               e.stopPropagation();
@@ -1680,7 +1817,7 @@ export default function Dashboard({
                            : w.id === "history_measurements" || 
                              w.id === "history_treatments"
                            ? "1x2"
-                           : "2x2"
+                           : (w.id === "neural_pet" && w.size ? w.size : "2x2")
                        )
                  );
 
@@ -1691,6 +1828,19 @@ export default function Dashboard({
              return (
                  <motion.div
                    layout
+                   variants={{
+                     hidden: { opacity: 0, y: 12, scale: 0.98 },
+                     show: { 
+                       opacity: 1, 
+                       y: 0, 
+                       scale: 1,
+                       transition: {
+                         type: "spring",
+                         stiffness: 350,
+                         damping: 26
+                       }
+                     }
+                   }}
                    key={w.id}
                    id={w.id}
                    className={cn(
@@ -1710,7 +1860,7 @@ export default function Dashboard({
              );
           })
         )}
-      </div>
+      </motion.div>
 
       {/* Dynamic Grid replaced all static elements below. We keep the overlay modals. */}
       {false && (
@@ -1732,24 +1882,42 @@ export default function Dashboard({
                </div>
                <div className="mt-4">
                  {(() => {
-                   const msLeft = effSensorDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
+                   const totalDurationMs = (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000;
+                   const expiryTimestamp = effSensorDate + totalDurationMs;
+                   const msLeft = expiryTimestamp - Date.now();
                    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                    const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                    const isExpired = msLeft <= 0;
+
+                   const expiryDateObj = new Date(expiryTimestamp);
+                   const expiryDayStr = expiryDateObj.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                     weekday: 'short',
+                     day: 'numeric',
+                     month: 'numeric'
+                   });
+                   const expiryTimeStr = expiryDateObj.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                     hour: '2-digit',
+                     minute: '2-digit'
+                   });
+
                    return (
                      <div>
                        <div className="flex items-baseline gap-1">
-                         <span className={cn("text-3xl font-black tracking-tight", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                         <span className={cn("text-3xl font-black tracking-tight leading-none", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.dni', { defaultValue: 'Dni' })}</span>
                          {!isExpired && hoursLeft > 0 && (
                            <>
-                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1">{hoursLeft}</span>
+                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1 leading-none">{hoursLeft}</span>
                              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">{t('auto.godz', { defaultValue: 'Godz' })}</span>
                            </>
                          )}
                        </div>
-                       <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                       <div className="text-[9px] font-bold text-violet-600/80 dark:text-violet-400/90 truncate mt-0.5 tracking-tight flex items-center gap-1">
+                         <Calendar size={10} className="shrink-0 opacity-70" />
+                         <span>{expiryDayStr} {expiryTimeStr}</span>
+                       </div>
+                       <div className="mt-1.5 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / totalDurationMs)) * 100)}%` }} />
                        </div>
                      </div>
                    );
@@ -1773,24 +1941,42 @@ export default function Dashboard({
                </div>
                <div className="mt-4">
                  {(() => {
-                   const msLeft = effInfusionDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
+                   const totalDurationMs = (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000;
+                   const expiryTimestamp = effInfusionDate + totalDurationMs;
+                   const msLeft = expiryTimestamp - Date.now();
                    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                    const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                    const isExpired = msLeft <= 0;
+
+                   const expiryDateObj = new Date(expiryTimestamp);
+                   const expiryDayStr = expiryDateObj.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                     weekday: 'short',
+                     day: 'numeric',
+                     month: 'numeric'
+                   });
+                   const expiryTimeStr = expiryDateObj.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                     hour: '2-digit',
+                     minute: '2-digit'
+                   });
+
                    return (
                      <div>
                        <div className="flex items-baseline gap-1">
-                         <span className={cn("text-3xl font-black tracking-tight", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                         <span className={cn("text-3xl font-black tracking-tight leading-none", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.dni', { defaultValue: 'Dni' })}</span>
                          {!isExpired && hoursLeft > 0 && (
                            <>
-                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1">{hoursLeft}</span>
+                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1 leading-none">{hoursLeft}</span>
                              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">{t('auto.godz', { defaultValue: 'Godz' })}</span>
                            </>
                          )}
                        </div>
-                       <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                       <div className="text-[9px] font-bold text-cyan-600/80 dark:text-cyan-400/90 truncate mt-0.5 tracking-tight flex items-center gap-1">
+                         <Calendar size={10} className="shrink-0 opacity-70" />
+                         <span>{expiryDayStr} {expiryTimeStr}</span>
+                       </div>
+                       <div className="mt-1.5 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / totalDurationMs)) * 100)}%` }} />
                        </div>
                      </div>
                    );
@@ -1952,7 +2138,7 @@ export default function Dashboard({
 
       {/* 8. Recent History View */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {logs.filter(log => log.type === 'glucose').length > 0 && (
+        {recentGlucoseLogs.length > 0 && (
           <motion.div className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
@@ -1963,7 +2149,7 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('glucose'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'glucose').slice(0, 3).map((log, idx) => (
+               {recentGlucoseLogs.map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                       <div className="glass-card !p-4 flex items-center gap-4">
@@ -1986,7 +2172,7 @@ export default function Dashboard({
           </motion.div>
         )}
 
-        {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal').length > 0 && (
+        {recentTreatmentLogs.length > 0 && (
           <motion.div className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
@@ -1997,7 +2183,7 @@ export default function Dashboard({
               <button onClick={() => { Haptics.light(); setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
             </div>
             <div className="space-y-2">
-               {logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin' || log.type === 'meal' || log.type === 'carbs').slice(0, 3).map((log, idx) => (
+               {recentTreatmentLogs.map((log, idx) => (
                   <motion.div key={`${log.id}-${idx}`} layout>
                     <SwipeableItem id={log.id} onDelete={() => handleDeleteLog(log)}>
                       <div onClick={() => setEditingLog(log)} className="glass-card !p-4 flex items-center gap-4 cursor-pointer">
