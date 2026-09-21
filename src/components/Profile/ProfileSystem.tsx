@@ -2,7 +2,8 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Settings2, Activity, Globe, Signal, Apple, Baby, Utensils, CloudRain, Moon, Sun, RefreshCw, Lock as LucideLock, Sparkles, Network, ChevronRight, Info, Cloud, ShieldCheck, LogOut, Play, History, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Palette, Layers, Monitor, RotateCcw, Smartphone, Zap, FileJson, Share2, Search, Database, FlaskConical } from 'lucide-react';
+import { Settings2, Activity, Globe, Signal, Apple, Baby, Utensils, CloudRain, Moon, Sun, RefreshCw, Lock as LucideLock, Sparkles, Network, ChevronRight, Info, Cloud, ShieldCheck, LogOut, Play, History, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Palette, Layers, Monitor, RotateCcw, Smartphone, Zap, FileJson, Share2, Search, Database, FlaskConical, MessageSquare, Check, X, Download } from 'lucide-react';
+import { resolveApkDownloadUrl, triggerApkDownload } from '../../utils/apkDownloader';
 import { cn } from '../../lib/utils';
 import { updateDoc, doc, setDoc, addDoc, collection, serverTimestamp, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -18,12 +19,14 @@ import { motion } from 'motion/react';
 import { auth } from '../../lib/firebase';
 import { APP_VERSION } from '../../constants';
 import { PWA_VERSIONS } from '../../constants/versions';
+import { NAV_SLOT_OPTIONS, resolveNavSlot, getNavSlotIcon } from '../../constants/navSlots';
 import CloudPackageSync from '../CloudPackageSync';
 import SettingsTransfer from '../SettingsTransfer';
 import LocalSync from '../LocalSync';
 import { Settings } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useLogsStore } from '../../stores/useLogsStore';
+import { useAppStore } from '../../stores/useAppStore';
 import { geminiService } from '../../services/gemini';
 import { Haptics } from '../../lib/haptics';
 
@@ -36,6 +39,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  const [updateLoading, setUpdateLoading] = useState(false);
  const [cleaningResult, setCleaningResult] = useState<any>(null);
  const [showRodo, setShowRodo] = useState(false);
+ const [showNavSlotModal, setShowNavSlotModal] = useState(false);
 
  const normalizeName = (name: string) =>
  name
@@ -581,6 +585,91 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  >
  <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
  </button>
+ </div>
+
+ {/* Pływająca Pigułka Czatu */}
+ <div
+ className={cn(
+ "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md",
+ settings.glassmorphismEnabled
+ ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+ : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+ )}
+ >
+ <div className="flex items-center gap-4">
+ <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+ <MessageSquare size={22} />
+ </div>
+ <div className="text-left">
+ <p className="text-sm font-black dark:text-white leading-tight">
+ {t('system.floating_chat_title', { defaultValue: 'Pływająca pigułka czatu' })}
+ </p>
+ <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
+ {t('system.floating_chat_desc', { defaultValue: 'Szybki dostęp do asystenta AI z każdego ekranu' })}
+ </p>
+ </div>
+ </div>
+ <button
+ onClick={async () => {
+ const newVal = settings.floatingChatEnabled === false ? true : false;
+ setSettings((prev: any) => ({
+ ...prev,
+ floatingChatEnabled: newVal,
+ }));
+ if (user)
+ await setDoc(
+ doc(
+ db,
+ "users",
+ getEffectiveUid(user),
+ "settings",
+ "profile",
+ ),
+ { floatingChatEnabled: newVal },
+ { merge: true },
+ );
+ }}
+ className={cn(
+ "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
+ settings.floatingChatEnabled !== false && "bg-indigo-500 pl-5",
+ )}
+ >
+ <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+ </button>
+ </div>
+
+ {/* Czwarty przycisk dolnego paska */}
+ <div
+ onClick={() => {
+ Haptics.light();
+ setShowNavSlotModal(true);
+ }}
+ className={cn(
+ "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md cursor-pointer",
+ settings.glassmorphismEnabled
+ ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+ : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+ )}
+ >
+ <div className="flex items-center gap-4">
+ <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+ {getNavSlotIcon(resolveNavSlot(settings.customNavSlot, !!settings.childMode, settings.treatmentMode).iconName, 22)}
+ </div>
+ <div className="text-left">
+ <p className="text-sm font-black dark:text-white leading-tight">
+ {t('system.custom_nav_slot_title', { defaultValue: 'Czwarty przycisk dolnego paska' })}
+ </p>
+ <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
+ {t(resolveNavSlot(settings.customNavSlot, !!settings.childMode, settings.treatmentMode).labelKey, { defaultValue: resolveNavSlot(settings.customNavSlot, !!settings.childMode, settings.treatmentMode).defaultLabel })}
+ </p>
+ </div>
+ </div>
+ <div className="flex items-center gap-2">
+ <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 px-3 py-1 rounded-xl">
+ {t(resolveNavSlot(settings.customNavSlot, !!settings.childMode, settings.treatmentMode).labelKey, { defaultValue: resolveNavSlot(settings.customNavSlot, !!settings.childMode, settings.treatmentMode).defaultLabel })}
+ </span>
+ <ChevronRight size={18} className="text-slate-400 group-hover:translate-x-1 transition-transform" />
+ </div>
  </div>
 
  <div
@@ -1287,6 +1376,45 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  <ChevronRight size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 transition-colors" />
  </button>
 
+ <button
+ onClick={async () => {
+ Haptics.success();
+ try {
+ const info = await resolveApkDownloadUrl();
+ triggerApkDownload(info.url);
+ toast.success(
+ i18n.language?.startsWith('en')
+ ? 'APK download started! In Chrome, tap "Download anyway".'
+ : 'Pobieranie APK rozpoczęte! W Chrome kliknij „Pobierz mimo to”.',
+ { duration: 5000 }
+ );
+ } catch {
+ window.open('https://glikocontrol.pl/pobierz/', '_blank');
+ }
+ }}
+ className={cn(
+ "w-full p-4 rounded-2xl flex items-center justify-between text-left transition-all active:scale-95 group",
+ settings.glassmorphismEnabled
+ ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+ : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+ )}
+ >
+ <div className="flex items-center gap-3">
+ <div className="p-2 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+ <Download size={16} />
+ </div>
+ <div>
+ <p className="text-[10px] font-black dark:text-white uppercase tracking-tight">
+ Pobierz Instalator APK (Android)
+ </p>
+ <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium mt-1">
+ Oficjalna aplikacja na telefon z widżetami i odczytem CGM w tle
+ </p>
+ </div>
+ </div>
+ <Download size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 transition-colors" />
+ </button>
+
  <div className="flex flex-col gap-3">
  <div className="flex flex-col gap-2 p-2">
  <button
@@ -1503,6 +1631,119 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
           ))}
         </div>
       </div>
+
+    {/* Modal wyboru czwartego przycisku */}
+    {showNavSlotModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          className={cn(
+            "w-full max-w-lg rounded-[2.5rem] p-6 shadow-2xl border max-h-[85vh] flex flex-col relative",
+            settings.glassmorphismEnabled
+              ? "backdrop-blur-2xl bg-white/90 dark:bg-slate-900/90 border-white/40 dark:border-white/10"
+              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+          )}
+        >
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 className="text-lg font-black dark:text-white leading-tight">
+                {t('system.custom_nav_slot_modal_title', { defaultValue: 'Wybierz czwarty przycisk' })}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('system.custom_nav_slot_modal_desc', { defaultValue: 'Wybierz zakładkę, która zastąpi domyślny czat na dolnym pasku:' })}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                Haptics.light();
+                setShowNavSlotModal(false);
+              }}
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="overflow-y-auto py-4 space-y-2 pr-1 scrollbar-none flex-1">
+            {NAV_SLOT_OPTIONS.filter((opt) => {
+              if (opt.childOnly && !settings.childMode) return false;
+              if (opt.insulinOnly && settings.treatmentMode === 'diet_only') return false;
+              return true;
+            }).map((opt) => {
+              const isSelected = (settings.customNavSlot || 'assistant') === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={async () => {
+                    Haptics.selection();
+                    setSettings((prev: any) => ({
+                      ...prev,
+                      customNavSlot: opt.id,
+                    }));
+                    localStorage.setItem("customNavSlot", opt.id);
+                    if (user) {
+                      try {
+                        await setDoc(
+                          doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+                          { customNavSlot: opt.id },
+                          { merge: true }
+                        );
+                      } catch (e) {
+                        console.error("Failed to save customNavSlot", e);
+                      }
+                    }
+                    queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+                    setShowNavSlotModal(false);
+                    toast.success(t('auto.zapisano', { defaultValue: 'Zapisano!' }), { id: 'nav-slot-saved' });
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left group",
+                    isSelected
+                      ? "bg-indigo-500/10 border-indigo-500 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm"
+                      : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105",
+                        isSelected
+                          ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                          : "bg-slate-200/70 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300"
+                      )}
+                    >
+                      {getNavSlotIcon(opt.iconName, 20)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold leading-tight">
+                        {t(opt.labelKey, { defaultValue: opt.defaultLabel })}
+                      </p>
+                      {opt.childOnly && (
+                        <span className="inline-block text-[9px] font-black uppercase tracking-wider text-amber-500 mt-0.5">
+                          {t('auto.tryb_dziecka', { defaultValue: 'Tryb Dziecka' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-sm">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {!settings.childMode && (
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                💡 {t('system.custom_nav_slot_child_note', { defaultValue: 'Salon gier oraz Sklepik są dostępne wyłącznie w trybie dziecka.' })}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
 
   </motion.div>
   </>

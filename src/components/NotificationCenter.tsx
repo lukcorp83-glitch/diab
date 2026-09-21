@@ -28,6 +28,7 @@ import { UserSettings } from '../types';
 import { cn, getEffectiveUid } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import { notificationService } from '../services/notificationService';
 import { Haptics } from '../lib/haptics';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -132,7 +133,9 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
     const checkNotifications = () => {
       const deletedIds = safeGetStoredArray('deletedNotifications');
       const readIds = safeGetStoredArray('readNotifications');
-      const notifiedIds = safeGetStoredArray('systemNotifiedIds');
+      const rawNotifiedIds = safeGetStoredArray('systemNotifiedIds');
+      // Usuwamy ewentualne stare statyczne klucze, które mogły trwale zablokować alerty
+      const notifiedIds = rawNotifiedIds.filter((k: string) => k !== 'infusion-warning-alert' && k !== 'sensor-warning-alert');
 
       const newNotifications: AppNotification[] = [];
       const now = Date.now();
@@ -187,38 +190,40 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
         }
       };
 
-      if (userSettings?.sensorChangeDate && userSettings?.sensorDurationDays) {
-        const sensorExpiryDate = userSettings.sensorChangeDate + (userSettings.sensorDurationDays * 24 * 60 * 60 * 1000);
+      const dev = notificationService.getEffectiveDeviceDates(userSettings);
+
+      if (dev.sensorChangeDate > 0 && dev.sensorDurationDays > 0) {
+        const sensorExpiryDate = dev.sensorChangeDate + (dev.sensorDurationDays * 24 * 60 * 60 * 1000);
         const sensorMsLeft = sensorExpiryDate - now;
         const id = sensorMsLeft <= 0 ? 'sensor-expired' : (sensorMsLeft <= warningThresholdMs ? 'sensor-warning' : 'sensor-info');
         
         if (!deletedIds.includes(id)) {
           if (sensorMsLeft <= 0) {
             newNotifications.push({ id: 'sensor-expired', title: i18n.t('auto.sensor_wygasl', { defaultValue: "Sensor wygasł" }), message: i18n.t('auto.czas_na_wymiane_sensora', { defaultValue: "Czas na wymianę sensora!" }), type: 'alert', timestamp: sensorExpiryDate, read: false });
-            triggerSystemAlert('sensor-expired-alert', i18n.t('auto.wymien_sensor', { defaultValue: "Wymień Sensor" }), i18n.t('auto.twoj_sensor_wygasl_czas_n', { defaultValue: "Twój sensor wygasł. Czas na wymianę!" }));
+            triggerSystemAlert(`sensor-expired-alert-${sensorExpiryDate}`, i18n.t('auto.wymien_sensor', { defaultValue: "Wymień Sensor 📡" }), i18n.t('auto.twoj_sensor_wygasl_czas_n', { defaultValue: "Twój sensor wygasł. Czas na wymianę!" }));
           } else if (sensorMsLeft <= warningThresholdMs) {
             newNotifications.push({ id: 'sensor-warning', title: i18n.t('auto.zbliza_sie_wymiana_sensor', { defaultValue: "Zbliża się wymiana sensora" }), message: i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora." }), type: 'warning', timestamp: sensorExpiryDate - warningThresholdMs, read: false });
-            triggerSystemAlert('sensor-warning-alert', i18n.t('auto.zbliza_sie_wymiana_sensor', { defaultValue: "Zbliża się wymiana sensora" }), i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora." }));
+            triggerSystemAlert(`sensor-warning-alert-${sensorExpiryDate}`, i18n.t('auto.zbliza_sie_wymiana_sensor', { defaultValue: "Zbliża się wymiana sensora 📡" }), i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia sensora." }));
           } else {
-            newNotifications.push({ id: 'sensor-info', title: i18n.t('auto.aktywny_sensor', { defaultValue: 'Aktywny sensor' }), message: `${i18n.t('auto.kolejna_wymiana', { defaultValue: 'Kolejna wymiana:' })} ${new Date(sensorExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: userSettings.sensorChangeDate, read: true });
+            newNotifications.push({ id: 'sensor-info', title: i18n.t('auto.aktywny_sensor', { defaultValue: 'Aktywny sensor' }), message: `${i18n.t('auto.kolejna_wymiana', { defaultValue: 'Kolejna wymiana:' })} ${new Date(sensorExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: dev.sensorChangeDate, read: true });
           }
         }
       }
 
-      if (userSettings?.infusionSetChangeDate && userSettings?.infusionSetDurationDays) {
-        const infusionExpiryDate = userSettings.infusionSetChangeDate + (userSettings.infusionSetDurationDays * 24 * 60 * 60 * 1000);
+      if (dev.infusionSetChangeDate > 0 && dev.infusionSetDurationDays > 0) {
+        const infusionExpiryDate = dev.infusionSetChangeDate + (dev.infusionSetDurationDays * 24 * 60 * 60 * 1000);
         const infusionMsLeft = infusionExpiryDate - now;
         const id = infusionMsLeft <= 0 ? 'infusion-expired' : (infusionMsLeft <= warningThresholdMs ? 'infusion-warning' : 'infusion-info');
         
         if (!deletedIds.includes(id)) {
           if (infusionMsLeft <= 0) {
             newNotifications.push({ id: 'infusion-expired', title: i18n.t('auto.wklucie_wygaslo', { defaultValue: "Wkłucie wygasło" }), message: i18n.t('auto.czas_na_wymiane_wklucia', { defaultValue: "Czas na wymianę wkłucia!" }), type: 'alert', timestamp: infusionExpiryDate, read: false });
-            triggerSystemAlert('infusion-expired-alert', i18n.t('auto.wymien_wklucie', { defaultValue: "Wymień Wkłucie" }), i18n.t('auto.twoje_wklucie_wygaslo_cz', { defaultValue: "Twoje wkłucie wygasło. Czas na zmianę miejsca!" }));
+            triggerSystemAlert(`infusion-expired-alert-${infusionExpiryDate}`, i18n.t('auto.wymien_wklucie', { defaultValue: "Wymień Wkłucie 💉" }), i18n.t('auto.twoje_wklucie_wygaslo_cz', { defaultValue: "Twoje wkłucie wygasło. Czas na zmianę miejsca!" }));
           } else if (infusionMsLeft <= warningThresholdMs) {
             newNotifications.push({ id: 'infusion-warning', title: i18n.t('auto.zbliza_sie_wymiana_wkluci', { defaultValue: "Zbliża się wymiana wkłucia" }), message: i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia." }), type: 'warning', timestamp: infusionExpiryDate - warningThresholdMs, read: false });
-            triggerSystemAlert('infusion-warning-alert', i18n.t('auto.zbliza_sie_wymiana_wkluci', { defaultValue: "Zbliża się wymiana wkłucia" }), i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia." }));
+            triggerSystemAlert(`infusion-warning-alert-${infusionExpiryDate}`, i18n.t('auto.zbliza_sie_wymiana_wkluci', { defaultValue: "Zbliża się wymiana wkłucia 💉" }), i18n.t('auto.pozostalo_mniej_niz_12_go', { defaultValue: "Pozostało mniej niż 12 godzin do końca cyklu życia wkłucia." }));
           } else {
-            newNotifications.push({ id: 'infusion-info', title: i18n.t('auto.aktywne_wklucie', { defaultValue: 'Aktywne wkłucie' }), message: `${i18n.t('auto.kolejna_wymiana', { defaultValue: 'Kolejna wymiana:' })} ${new Date(infusionExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: userSettings.infusionSetChangeDate, read: true });
+            newNotifications.push({ id: 'infusion-info', title: i18n.t('auto.aktywne_wklucie', { defaultValue: 'Aktywne wkłucie' }), message: `${i18n.t('auto.kolejna_wymiana', { defaultValue: 'Kolejna wymiana:' })} ${new Date(infusionExpiryDate).toLocaleDateString()}`, type: 'info', timestamp: dev.infusionSetChangeDate, read: true });
           }
         }
       }

@@ -1079,26 +1079,44 @@ export default function Dashboard({
             </div>
             <div className={isSensCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
-                const msLeft = effSensorDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
+                const totalDurationMs = (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000;
+                const expiryTimestamp = effSensorDate + totalDurationMs;
+                const msLeft = expiryTimestamp - Date.now();
                 const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                 const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const isExpired = msLeft <= 0;
+
+                const expiryDateObj = new Date(expiryTimestamp);
+                const expiryDayStr = expiryDateObj.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'numeric'
+                });
+                const expiryTimeStr = expiryDateObj.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+
                 return (
                   <div>
                     <div className="flex items-baseline gap-1">
-                      <span className={cn("font-black tracking-tight", isSensCompact ? "text-xl" : "text-3xl", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                      <span className={cn("font-black tracking-tight leading-none", isSensCompact ? "text-xl" : "text-3xl", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                       <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.dni', { defaultValue: 'Dni' })}</span>
                       {!isExpired && hoursLeft > 0 && (
                         <>
-                          <span className={cn("font-black text-slate-800 dark:text-white ml-1", isSensCompact ? "text-base" : "text-xl")}>{hoursLeft}</span>
+                          <span className={cn("font-black text-slate-800 dark:text-white ml-1 leading-none", isSensCompact ? "text-base" : "text-xl")}>{hoursLeft}</span>
                           <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">g</span>
                         </>
                       )}
                     </div>
-                    <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
+                    <div className="text-[9px] font-bold text-violet-600/80 dark:text-violet-400/90 truncate mt-0.5 tracking-tight flex items-center gap-1" title={`${expiryDayStr} ${expiryTimeStr}`}>
+                      <Calendar size={10} className="shrink-0 opacity-70" />
+                      <span>{expiryDayStr} {expiryTimeStr}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }}
+                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / totalDurationMs) * 100))}%` }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
                         className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} 
                       />
@@ -1148,26 +1166,44 @@ export default function Dashboard({
             </div>
             <div className={isInfCompact ? "mt-2 w-full" : "mt-4 w-full"}>
               {(() => {
-                const msLeft = effInfusionDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
+                const totalDurationMs = (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000;
+                const expiryTimestamp = effInfusionDate + totalDurationMs;
+                const msLeft = expiryTimestamp - Date.now();
                 const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                 const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const isExpired = msLeft <= 0;
+
+                const expiryDateObj = new Date(expiryTimestamp);
+                const expiryDayStr = expiryDateObj.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'numeric'
+                });
+                const expiryTimeStr = expiryDateObj.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+
                 return (
                   <div>
                     <div className="flex items-baseline gap-1">
-                      <span className={cn("font-black tracking-tight", isInfCompact ? "text-xl" : "text-3xl", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                      <span className={cn("font-black tracking-tight leading-none", isInfCompact ? "text-xl" : "text-3xl", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                       <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.dni', { defaultValue: 'Dni' })}</span>
                       {!isExpired && hoursLeft > 0 && (
                         <>
-                          <span className={cn("font-black text-slate-800 dark:text-white ml-1", isInfCompact ? "text-base" : "text-xl")}>{hoursLeft}</span>
+                          <span className={cn("font-black text-slate-800 dark:text-white ml-1 leading-none", isInfCompact ? "text-base" : "text-xl")}>{hoursLeft}</span>
                           <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">g</span>
                         </>
                       )}
                     </div>
-                    <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
+                    <div className="text-[9px] font-bold text-cyan-600/80 dark:text-cyan-400/90 truncate mt-0.5 tracking-tight flex items-center gap-1" title={`${expiryDayStr} ${expiryTimeStr}`}>
+                      <Calendar size={10} className="shrink-0 opacity-70" />
+                      <span>{expiryDayStr} {expiryTimeStr}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden w-full">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }}
+                        animate={{ width: `${Math.max(0, Math.min(100, (msLeft / totalDurationMs) * 100))}%` }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
                         className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} 
                       />
@@ -1846,24 +1882,42 @@ export default function Dashboard({
                </div>
                <div className="mt-4">
                  {(() => {
-                   const msLeft = effSensorDate + (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000 - Date.now();
+                   const totalDurationMs = (settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000;
+                   const expiryTimestamp = effSensorDate + totalDurationMs;
+                   const msLeft = expiryTimestamp - Date.now();
                    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                    const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                    const isExpired = msLeft <= 0;
+
+                   const expiryDateObj = new Date(expiryTimestamp);
+                   const expiryDayStr = expiryDateObj.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                     weekday: 'short',
+                     day: 'numeric',
+                     month: 'numeric'
+                   });
+                   const expiryTimeStr = expiryDateObj.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                     hour: '2-digit',
+                     minute: '2-digit'
+                   });
+
                    return (
                      <div>
                        <div className="flex items-baseline gap-1">
-                         <span className={cn("text-3xl font-black tracking-tight", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                         <span className={cn("text-3xl font-black tracking-tight leading-none", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.dni', { defaultValue: 'Dni' })}</span>
                          {!isExpired && hoursLeft > 0 && (
                            <>
-                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1">{hoursLeft}</span>
+                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1 leading-none">{hoursLeft}</span>
                              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">{t('auto.godz', { defaultValue: 'Godz' })}</span>
                            </>
                          )}
                        </div>
-                       <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.sensorDurationDays || 10) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                       <div className="text-[9px] font-bold text-violet-600/80 dark:text-violet-400/90 truncate mt-0.5 tracking-tight flex items-center gap-1">
+                         <Calendar size={10} className="shrink-0 opacity-70" />
+                         <span>{expiryDayStr} {expiryTimeStr}</span>
+                       </div>
+                       <div className="mt-1.5 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-violet-600")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / totalDurationMs)) * 100)}%` }} />
                        </div>
                      </div>
                    );
@@ -1887,24 +1941,42 @@ export default function Dashboard({
                </div>
                <div className="mt-4">
                  {(() => {
-                   const msLeft = effInfusionDate + (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000 - Date.now();
+                   const totalDurationMs = (settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000;
+                   const expiryTimestamp = effInfusionDate + totalDurationMs;
+                   const msLeft = expiryTimestamp - Date.now();
                    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
                    const hoursLeft = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                    const isExpired = msLeft <= 0;
+
+                   const expiryDateObj = new Date(expiryTimestamp);
+                   const expiryDayStr = expiryDateObj.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                     weekday: 'short',
+                     day: 'numeric',
+                     month: 'numeric'
+                   });
+                   const expiryTimeStr = expiryDateObj.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'pl-PL', {
+                     hour: '2-digit',
+                     minute: '2-digit'
+                   });
+
                    return (
                      <div>
                        <div className="flex items-baseline gap-1">
-                         <span className={cn("text-3xl font-black tracking-tight", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
+                         <span className={cn("text-3xl font-black tracking-tight leading-none", isExpired ? "text-rose-500" : "text-slate-800 dark:text-white")}>{isExpired ? "0" : daysLeft}</span>
                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">{t('auto.dni', { defaultValue: 'Dni' })}</span>
                          {!isExpired && hoursLeft > 0 && (
                            <>
-                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1">{hoursLeft}</span>
+                             <span className="text-xl font-black text-slate-800 dark:text-white ml-1 leading-none">{hoursLeft}</span>
                              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase text-[0.6rem]">{t('auto.godz', { defaultValue: 'Godz' })}</span>
                            </>
                          )}
                        </div>
-                       <div className="mt-2 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / ((settings.infusionSetDurationDays || 3) * 24 * 60 * 60 * 1000)) * 100))}%` }} />
+                       <div className="text-[9px] font-bold text-cyan-600/80 dark:text-cyan-400/90 truncate mt-0.5 tracking-tight flex items-center gap-1">
+                         <Calendar size={10} className="shrink-0 opacity-70" />
+                         <span>{expiryDayStr} {expiryTimeStr}</span>
+                       </div>
+                       <div className="mt-1.5 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                         <div className={cn("h-full", isExpired ? "bg-rose-500" : "bg-cyan-500")} style={{ width: `${Math.max(0, Math.min(100, (msLeft / totalDurationMs)) * 100)}%` }} />
                        </div>
                      </div>
                    );

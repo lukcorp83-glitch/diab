@@ -13,13 +13,13 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useAuthStore } from './stores/useAuthStore';
 import { useAppStore } from './stores/useAppStore';
 import {
-  Zap, Globe, Sun, Moon, LogIn,
+  Zap, Sun, Moon, LogIn, Facebook,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { auth, db } from "./lib/firebase";
 import { dbService } from "./services/databaseService";
 import {
-  signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, sendPasswordResetEmail, signInWithCredential, browserPopupRedirectResolver,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, sendPasswordResetEmail, signInWithCredential, browserPopupRedirectResolver,
 } from "firebase/auth";
 import {
   collection, query, addDoc, serverTimestamp, doc, setDoc,
@@ -67,6 +67,27 @@ import { handleBackPress } from "./lib/modalStack";
 
 
 
+const GoogleIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24">
+    <path
+      fill="#4285F4"
+      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+    />
+  </svg>
+);
+
 const EMPTY_ARRAY: any[] = [];
 
 export default function App() {
@@ -98,14 +119,7 @@ export default function App() {
         NotificationBridge.setOngoingNotificationEnabled({ enabled: userSettings.apkSystemNotificationsEnabled }).catch(() => {});
       }
     }
-  }, [
-    userSettings?.sensorChangeDate,
-    userSettings?.infusionSetChangeDate,
-    userSettings?.sensorDurationDays,
-    userSettings?.infusionSetDurationDays,
-    userSettings?.medications,
-    userSettings?.apkSystemNotificationsEnabled
-  ]);
+  }, [userSettings]);
   
   const userSettingsRef = useRef(userSettings);
   useEffect(() => { userSettingsRef.current = userSettings; }, [userSettings]);
@@ -519,6 +533,9 @@ export default function App() {
     if (Object.keys(updates).length > 0) {
       console.log('[App] Auto-synced device replacement dates from latest logs:', updates);
       setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+      try {
+        notificationService.updateDeviceReminders({ ...userSettings, ...updates });
+      } catch (e) {}
     }
   }, [user, userSettings, logs]);
 
@@ -815,15 +832,19 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Przechwycenie wyniku logowania przez przekierowanie Google (signInWithRedirect) na Web/PWA
+  // Przechwycenie wyniku logowania przez przekierowanie OAuth (Google / Facebook signInWithRedirect)
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
-      getRedirectResult(auth).catch((e: any) => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.debug('[App] Zalogowano pomyślnie przez przekierowanie:', result.user.email || result.user.uid);
+        }
+      })
+      .catch((e: any) => {
         if (e?.code !== 'auth/null-user') {
           console.debug('[App] getRedirectResult status:', e?.code || e?.message);
         }
       });
-    }
   }, []);
 
   // Automatyczne wyświetlenie okna Nowości (ChangelogPopup) po aktualizacji aplikacji
@@ -1139,6 +1160,9 @@ export default function App() {
 
     if (user) {
       await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+      try {
+        notificationService.updateDeviceReminders({ ...userSettings, ...updates });
+      } catch (e) {}
         
       try {
         const logPayload: any = {
@@ -1412,10 +1436,13 @@ export default function App() {
     }
   };
 
-  const getFriendlyAuthErrorMessage = (error: any, context?: 'login' | 'register' | 'google' | 'reset'): string => {
+  const getFriendlyAuthErrorMessage = (error: any, context?: 'login' | 'register' | 'google' | 'facebook' | 'reset'): string => {
     const code = (error?.code || "").toLowerCase();
     const msg = (error?.message || "").toLowerCase();
 
+    if (code.includes("account-exists-with-different-credential") || msg.includes("account-exists-with-different-credential")) {
+      return "Konto z tym adresem e-mail jest już zarejestrowane inną metodą (np. Google lub Hasło). Zaloguj się pierwotną metodą.";
+    }
     if (code.includes("invalid-email") || msg.includes("invalid-email")) {
       return "Wprowadź prawidłowy adres e-mail (np. nazwa@domena.pl).";
     }
@@ -1441,6 +1468,7 @@ export default function App() {
       return "Błąd połączenia z siecią. Sprawdź dostęp do internetu.";
     }
     if (code.includes("popup-closed-by-user") || msg.includes("popup-closed-by-user")) {
+      if (context === 'facebook') return "Logowanie przez Facebook zostało anulowane.";
       return "Logowanie przez Google zostało anulowane.";
     }
     if (code.includes("popup-blocked") || msg.includes("popup-blocked")) {
@@ -1449,6 +1477,9 @@ export default function App() {
     if (code.includes("argument-error") || msg.includes("argument-error")) {
       if (context === 'google') {
         return "Błąd sesji logowania Google. Odśwież stronę i spróbuj ponownie.";
+      }
+      if (context === 'facebook') {
+        return "Błąd sesji logowania Facebook. Odśwież stronę i spróbuj ponownie.";
       }
       return "Uzupełnij wymagane pola (prawidłowy e-mail i hasło).";
     }
@@ -1587,6 +1618,63 @@ export default function App() {
     }
   };
 
+  const handleFacebook = async () => {
+    setAuthError("");
+    try {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const result = await FirebaseAuthentication.signInWithOpenIdConnect({
+            providerId: 'facebook.com',
+            scopes: ['public_profile']
+          });
+          const accessToken = result.credential?.accessToken || (result as any)?.accessToken;
+          if (accessToken) {
+            const credential = FacebookAuthProvider.credential(accessToken);
+            await signInWithCredential(auth, credential);
+            return;
+          }
+          const idToken = result.credential?.idToken || (result as any)?.idToken;
+          if (idToken) {
+            const provider = new OAuthProvider('facebook.com');
+            const credential = provider.credential({ idToken });
+            await signInWithCredential(auth, credential);
+            return;
+          }
+        } catch (nativeErr: any) {
+          console.warn("Native Facebook sign-in attempt failed, falling back to Web OAuth:", nativeErr);
+        }
+      }
+
+      const provider = new FacebookAuthProvider();
+      provider.setCustomParameters({ display: 'touch' });
+
+      try {
+        await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+      } catch (popupErr: any) {
+        const errCode = popupErr?.code || "";
+        const errMsg = popupErr?.message || "";
+        if (errCode === 'auth/popup-closed-by-user') {
+          return;
+        }
+        if (
+          errCode === 'auth/popup-blocked' ||
+          errCode === 'auth/cancelled-popup-request' ||
+          errCode === 'auth/operation-not-supported-in-this-environment' ||
+          errMsg.includes('Cross-Origin-Opener-Policy') ||
+          errMsg.includes('window.closed')
+        ) {
+          console.warn("Popup blocked or not supported, falling back to signInWithRedirect:", popupErr);
+          await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
+          return;
+        }
+        throw popupErr;
+      }
+    } catch (e: any) {
+      if (e?.code === 'auth/popup-closed-by-user') return;
+      setAuthError(getFriendlyAuthErrorMessage(e, 'facebook'));
+    }
+  };
+
   const handleLogout = () => signOut(auth);
 
   if (!user && !loading) {
@@ -1603,8 +1691,7 @@ export default function App() {
               GlikoControl v{CURRENT_VERSION}
             </h2>
           </div>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Zintegrowany System Glikemii</p>
-          <p className="text-accent-400 text-xs font-bold mb-8 italic">GlikoControl AI</p>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-8">Zintegrowany System Glikemii</p>
 
           <div className="space-y-4 mb-6">
             <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className={cn("w-full p-4 rounded-2xl text-sm font-bold border outline-none focus:border-accent-500 transition-all", theme === "dark" ? "bg-slate-800/50 border-slate-700/50 text-white" : "bg-slate-50 border-slate-200 text-slate-900")} />
@@ -1629,14 +1716,20 @@ export default function App() {
             </button>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <button onClick={() => { Haptics.impact(); handleGoogle(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all", theme === "dark" ? "bg-slate-950 text-white border-slate-800" : "bg-white text-slate-700 border-slate-200")}>
-              <Globe className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Kontynuuj przez Google</span>
+          <div className="flex flex-col gap-2.5">
+            <button onClick={() => { Haptics.impact(); handleGoogle(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all", theme === "dark" ? "bg-slate-950 text-white border-slate-800 hover:bg-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50")}>
+              <GoogleIcon className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.kontynuuj_przez_google', { defaultValue: 'Kontynuuj przez Google' })}</span>
             </button>
-            <button onClick={() => { Haptics.impact(); handleAnonymous(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-2", theme === "dark" ? "bg-accent-500/10 text-accent-400 border-accent-500/20" : "bg-accent-50 text-accent-600 border-accent-100")}>
+
+            <button onClick={() => { Haptics.impact(); handleFacebook(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all", theme === "dark" ? "bg-[#1877F2]/15 text-[#4592ff] border-[#1877F2]/30 hover:bg-[#1877F2]/25" : "bg-[#1877F2] text-white border-[#1877F2] hover:bg-[#166fe5]")}>
+              <Facebook className="w-4 h-4 fill-current" />
+              <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.kontynuuj_przez_facebook', { defaultValue: 'Kontynuuj przez Facebook' })}</span>
+            </button>
+
+            <button onClick={() => { Haptics.impact(); handleAnonymous(); }} className={cn("flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border shadow-sm active:scale-95 transition-all mt-1", theme === "dark" ? "bg-accent-500/10 text-accent-400 border-accent-500/20 hover:bg-accent-500/15" : "bg-accent-50 text-accent-600 border-accent-100 hover:bg-accent-100/60")}>
               <Zap className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Logowanie bez konta (Gość)</span>
+              <span className="text-[10px] font-black uppercase tracking-wider">{t('auto.logowanie_bez_konta_gosc', { defaultValue: 'Logowanie bez konta (Gość)' })}</span>
             </button>
           </div>
           <button onClick={toggleTheme} className="mt-8 p-3 rounded-full hover:bg-slate-500/10 transition-colors">

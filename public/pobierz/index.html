@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pobierz GlikoControl — Oficjalna Aplikacja na Androida (APK)</title>
+  <meta name="description" content="Pobierz oficjalną wersję aplikacji GlikoControl na system Android (plik .apk). Ciągły monitoring glikemii, wsparcie CGM, widżety i sztuczna inteligencja.">
+  <link rel="icon" type="image/svg+xml" href="/pwa-icon.svg">
+  <link rel="apple-touch-icon" href="/pwa-icon.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased flex flex-col items-center justify-between p-4 sm:p-6">
+
+  <!-- GŁÓWNY KONTENER -->
+  <main class="w-full max-w-lg mx-auto my-auto py-6 space-y-6">
+    
+    <!-- NAGŁÓWEK Z LOGO -->
+    <header class="text-center space-y-3">
+      <div class="inline-flex p-3.5 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-3xl shadow-xl shadow-emerald-500/20 border border-emerald-400/30">
+        <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">GlikoControl</h1>
+        <p class="text-xs sm:text-sm font-semibold text-emerald-400 mt-0.5">Oficjalna aplikacja na system Android (.APK)</p>
+      </div>
+      <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="verBadge">Wersja Główna: sprawdzanie...</span>
+      </div>
+    </header>
+
+    <!-- KARTA POBIERANIA -->
+    <section class="bg-slate-800/90 border border-slate-700/80 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 backdrop-blur-md">
+      
+      <!-- PRZYCISKI POBIERANIA: MAIN & BETA (DYNAMICZNE) -->
+      <div class="space-y-3">
+        <!-- 1. GŁÓWNA WERSJA STABILNA (MAIN) -->
+        <a id="downloadStableBtn" 
+           href="https://github.com/lukcorp83-glitch/diab/releases/tag/aktualizacja" 
+           download="GlikoControl.apk"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="flex items-center justify-center gap-3 w-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/25 transition-all text-base sm:text-lg cursor-pointer">
+          <svg class="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span id="stableBtnText">Pobierz Wersję Główną APK (Stabilna)</span>
+        </a>
+        <p class="text-[11px] text-center text-slate-400">
+          Oficjalna, zalecana wersja stabilna (kanał Main) dla każdego użytkownika.
+        </p>
+
+        <!-- 2. WERSJA TESTOWA (BETA) -->
+        <a id="downloadBetaBtn" 
+           href="https://github.com/lukcorp83-glitch/diab/releases/tag/aktualizacja-beta" 
+           download="GlikoControl-beta.apk"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="flex items-center justify-center gap-2.5 w-full bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold py-3 px-5 rounded-2xl shadow-md transition-all text-sm cursor-pointer">
+          <span id="betaBtnText">🧪 Pobierz Wersję Testową (Beta)</span>
+        </a>
+        <p class="text-[11px] text-center text-indigo-300/80">
+          Dla uczestników programu beta z najnowszymi funkcjami testowymi.
+        </p>
+      </div>
+
+      <!-- KROK 1: OSTRZEŻENIE CHROME (KLUCZOWE) -->
+      <div class="p-4 bg-amber-500/15 border border-amber-500/30 rounded-2xl space-y-2 text-left">
+        <div class="flex items-center gap-2 text-amber-400 font-bold text-xs sm:text-sm">
+          <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>Ważne w przeglądarce Chrome na Androidzie:</span>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Gdy klikniesz pobierz, Chrome wyświetli na dole ekranu lub w powiadomieniach komunikat:
+          <br>
+          <b class="text-amber-300">„Plik może być szkodliwy. Czy chcesz zachować plik...?”</b>
+        </p>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          👉 <b>Koniecznie kliknij „Pobierz mimo to” lub „Zachowaj”!</b><br>
+          To standardowe zabezpieczenie Google dla wszystkich plików <code>.apk</code> pobieranych spoza sklepu Play. Dopóki tego nie potwierdzisz, plik nie pojawi się w folderze Pobrane!
+        </p>
+      </div>
+
+      <!-- KROK 2 & 3: INSTALACJA -->
+      <div class="p-4 bg-slate-900/60 border border-slate-700/60 rounded-2xl space-y-2 text-left text-xs">
+        <div class="font-bold text-slate-200">Jak zainstalować po pobraniu?</div>
+        <ol class="list-decimal pl-4 space-y-1.5 text-slate-400">
+          <li>Po ukończeniu pobierania dotknij powiadomienia w telefonie.</li>
+          <li>Lub otwórz w telefonie aplikację <b>Pliki</b> ➔ folder <b>Pobrane</b> i kliknij plik <b>.apk</b>.</li>
+          <li>Jeśli system zapyta, zezwól na <i>„Instalację z nieznanych źródeł”</i> dla przeglądarki lub menedżera plików.</li>
+        </ol>
+      </div>
+
+      <!-- LINK DO GITHUBA -->
+      <div class="text-center pt-1 border-t border-slate-700/60">
+        <a href="https://github.com/lukcorp83-glitch/diab/releases" 
+           target="_blank" 
+           rel="noopener noreferrer" 
+           class="text-xs text-emerald-400 hover:underline">
+          Zobacz wszystkie wydania na GitHubie &rarr;
+        </a>
+      </div>
+
+    </section>
+
+    <!-- FAQ ROZWIĄZYWANIE PROBLEMÓW -->
+    <section class="bg-slate-800/40 border border-slate-700/40 rounded-3xl p-5 text-left text-xs space-y-3">
+      <h3 class="font-bold text-slate-200 text-sm">❓ Pomoc i rozwiązywanie problemów</h3>
+      
+      <div>
+        <p class="font-semibold text-emerald-400">Pobieranie zatrzymało się na 99% lub plik zniknął?</p>
+        <p class="text-slate-400 mt-0.5 leading-relaxed">
+          Oznacza to, że Chrome czeka na kliknięcie <b>„Zachowaj”</b> w powiadomieniu. Ściągnij górną belkę powiadomień Androida i dotknij pobierania. Jeśli plik ma rozszerzenie <code>.crdownload</code> w aplikacji Pliki, zmień jego nazwę usuwając końcówkę <code>.crdownload</code> (pozostawiając <code>.apk</code>).
+        </p>
+      </div>
+
+      <div>
+        <p class="font-semibold text-emerald-400">Możesz też użyć innej przeglądarki:</p>
+        <p class="text-slate-400 mt-0.5 leading-relaxed">
+          Jeśli Chrome wciąż blokuje pobieranie, skopiuj adres <code>glikocontrol.pl/pobierz</code> i otwórz go w przeglądarce <b>Firefox</b> lub <b>Samsung Internet</b>, które nie wstrzymują plików instalacyjnych.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- STOPKA -->
+  <footer class="text-center text-[11px] text-slate-500 py-4">
+    <a href="https://glikocontrol.pl" class="text-emerald-400 hover:underline">Wróć do aplikacji GlikoControl</a> &bull;
+    <a href="https://www.facebook.com/groups/4442689766059238/" target="_blank" rel="noopener noreferrer" class="hover:underline">Grupa Społeczności</a>
+  </footer>
+
+  <!-- SKRYPT W 100% DYNAMICZNEGO WYKRYWANIA APK Z GITHUBA I VERSION.JSON -->
+  <script>
+    (async function() {
+      const stableBtn = document.getElementById('downloadStableBtn');
+      const stableBtnText = document.getElementById('stableBtnText');
+      const betaBtn = document.getElementById('downloadBetaBtn');
+      const betaBtnText = document.getElementById('betaBtnText');
+      const verBadge = document.getElementById('verBadge');
+
+      let resolvedStableUrl = stableBtn.href;
+      let resolvedBetaUrl = betaBtn.href;
+
+      // 1. Sprawdź GitHub Releases API
+      try {
+        const res = await fetch('https://api.github.com/repos/lukcorp83-glitch/diab/releases');
+        if (res.ok) {
+          const releases = await res.json();
+          if (Array.isArray(releases) && releases.length > 0) {
+            const stableRelease = releases.find(r => r.tag_name === 'aktualizacja');
+            const betaRelease = releases.find(r => r.tag_name === 'aktualizacja-beta');
+
+            const stableApk = stableRelease?.assets?.find(a => a.name && a.name.toLowerCase().endsWith('.apk'));
+            const betaApk = betaRelease?.assets?.find(a => a.name && a.name.toLowerCase().endsWith('.apk'));
+
+            if (stableApk) {
+              resolvedStableUrl = stableApk.browser_download_url;
+              stableBtn.href = resolvedStableUrl;
+              const match = stableApk.name.match(/(\d+\.\d+\.\d+)/);
+              const v = match ? match[1] : '';
+              stableBtnText.textContent = v ? `Pobierz Wersję Główną (${v})` : 'Pobierz Wersję Główną APK';
+              verBadge.textContent = v ? `Wersja Główna: v${v} (Stabilna)` : 'Wersja Główna (Stabilna)';
+            }
+
+            if (betaApk) {
+              resolvedBetaUrl = betaApk.browser_download_url;
+              betaBtn.href = resolvedBetaUrl;
+              const match = betaApk.name.match(/(\d+\.\d+\.\d+)/);
+              const v = match ? match[1] : '';
+              betaBtnText.textContent = v ? `🧪 Pobierz Wersję Testową (Beta ${v})` : '🧪 Pobierz Wersję Testową (Beta)';
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('GitHub API check failed, trying version.json fallback', e);
+      }
+
+      // 2. Fallback: Jeśli GitHub API miało rate-limit, odpytaj version.json
+      if (!resolvedStableUrl.endsWith('.apk')) {
+        try {
+          const vRes = await fetch('https://glikocontrol.pl/version.json?t=' + Date.now());
+          if (vRes.ok) {
+            const vData = await vRes.json();
+            if (vData && vData.apkUrl) {
+              resolvedStableUrl = vData.apkUrl;
+              stableBtn.href = resolvedStableUrl;
+              if (vData.version) {
+                stableBtnText.textContent = `Pobierz Wersję Główną (${vData.version})`;
+                verBadge.textContent = `Wersja Główna: v${vData.version} (Stabilna)`;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Auto-pobieranie jeśli w URL podano ?auto=1 lub ?download=1
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('auto') === '1' || params.get('download') === '1') {
+        const targetUrl = (params.get('beta') === '1' || params.get('channel') === 'beta') ? resolvedBetaUrl : resolvedStableUrl;
+        if (targetUrl && targetUrl.endsWith('.apk')) {
+          setTimeout(() => {
+            window.location.href = targetUrl;
+          }, 800);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

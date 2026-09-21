@@ -1104,7 +1104,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  })}
 
  {shopTab === 'skins' && SKINS.map(skin => {
- const isUnlocked = (petData.unlockedSkins || ['default']).includes(skin.id);
+ const isUnlocked = (petData.unlockedSkins || ['default']).includes(skin.id) ||
+   (!!skin.unlockedBy && (petData.unlockedAchievements || []).includes(skin.unlockedBy));
  const isEquipped = (petData.skin || 'default') === skin.id;
  const canAfford = (petData.coins || 0) >= skin.price;
  const isAchievementSkin = !!skin.unlockedBy;

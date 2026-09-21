@@ -2,8 +2,8 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.46';
-export const CURRENT_VERSION = '6.0.46';
+export const APP_VERSION = '6.0.47';
+export const CURRENT_VERSION = '6.0.47';
 
 export const IS_BETA_CHANNEL: boolean = 
   Boolean(import.meta.env.VITE_IS_BETA_CHANNEL) || 
@@ -134,8 +134,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
  glassmorphismEnabled: false,
  material3Enabled: false,
  treatmentMode: (localStorage.getItem("treatmentMode") as 'diet_only' | 'insulin' | 'pump') || 'insulin',
+ floatingChatEnabled: true,
+ customNavSlot: 'assistant',
 };
-
-
-
-

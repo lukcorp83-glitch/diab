@@ -210,6 +210,8 @@ export interface UserSettings {
     intensity: "low" | "medium" | "high";
   } | null;
   treatmentMode?: 'diet_only' | 'insulin' | 'pump'; // Typ leczenia: dieta/tabletki, insulina, pompa
+  floatingChatEnabled?: boolean; // Pływająca pigułka asystenta AI
+  customNavSlot?: string; // Identyfikator wybranej zakładki na 4. pozycji dolnego paska
 }
 
 export interface AssistantMessage {

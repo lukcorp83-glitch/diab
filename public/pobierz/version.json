@@ -1,6 +1,6 @@
 {
     "version": "6.0.46",
-    "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.46_OTA.apk",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.46_OTA.apk",
+    "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.46-beta_OTA.apk",
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.46-beta_OTA.apk",
     "releaseNotes": "Naprawa zawieszania widżetów i serwisu w tle, optymalizacja bazy danych i historii."
 }

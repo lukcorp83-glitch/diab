@@ -28,7 +28,18 @@ import {
   Zap,
   Globe,
   Database,
-  User
+  User,
+  BarChart2,
+  Pill,
+  Signal,
+  Bell,
+  Plane,
+  Trophy,
+  Gamepad2,
+  ShoppingBag,
+  BookOpen,
+  Dumbbell,
+  Calculator
 } from "lucide-react";
 import { doc, setDoc, addDoc, collection, serverTimestamp, query, onSnapshot } from "firebase/firestore";
 import { db } from "../../lib/firebase";
@@ -51,6 +62,7 @@ import GlikoSenseIcon from "../GlikoSenseIcon";
 import { NavButton } from "./NavButton";
 import { DynamicActionCapsule } from "./DynamicActionCapsule";
 import { useMealPlateStore } from "../../stores/useMealPlateStore";
+import { resolveNavSlot, getNavSlotIcon } from "../../constants/navSlots";
 
 export function AppLayout({
   children,
@@ -89,6 +101,7 @@ export function AppLayout({
     setShowStatusPopup,
     isKeyboardOpen,
     setInitialAction,
+    profileCategory,
     setProfileCategory
   } = useAppStore();
   const { t } = useTranslation();
@@ -96,6 +109,34 @@ export function AppLayout({
 
   const [shortcuts, setShortcuts] = React.useState<any[]>([]);
   const [avatarError, setAvatarError] = React.useState(false);
+
+  const currentNavSlot = React.useMemo(() => {
+    const slotId = userSettings?.customNavSlot || 'assistant';
+    return resolveNavSlot(slotId, !!userSettings?.childMode, userSettings?.treatmentMode || 'insulin');
+  }, [userSettings?.customNavSlot, userSettings?.childMode, userSettings?.treatmentMode]);
+
+  const isCustomSlotActive = React.useMemo(() => {
+    if (currentNavSlot.category) {
+      return activeTab === 'profile' && profileCategory === currentNavSlot.category;
+    }
+    return activeTab === currentNavSlot.tab;
+  }, [currentNavSlot, activeTab, profileCategory]);
+
+  const isProfileTabActive = React.useMemo(() => {
+    if (activeTab !== 'profile') return false;
+    if (currentNavSlot.category && profileCategory === currentNavSlot.category) return false;
+    return true;
+  }, [activeTab, currentNavSlot.category, profileCategory]);
+
+  const handleCustomSlotClick = () => {
+    if (currentNavSlot.category) {
+      setProfileCategory(currentNavSlot.category);
+      handleNavClick('profile');
+    } else {
+      setProfileCategory(null);
+      handleNavClick(currentNavSlot.tab);
+    }
+  };
 
   const photoUrl = React.useMemo(() => {
     if (!user || user.isAnonymous) return null;
@@ -396,16 +437,19 @@ export function AppLayout({
               )}
               {!userSettings?.followerMode && (
                 <NavButton
-                  active={activeTab === "assistant"}
-                  onClick={() => handleNavClick("assistant")}
-                  icon={<MessageSquare />}
-                  label={t("nav.chat")}
+                  active={isCustomSlotActive}
+                  onClick={handleCustomSlotClick}
+                  icon={getNavSlotIcon(currentNavSlot.iconName, 22)}
+                  label={t(currentNavSlot.labelKey, { defaultValue: currentNavSlot.defaultLabel })}
                   ecoMode={userSettings?.ecoMode}
                 />
               )}
               <NavButton
-                active={activeTab === "profile"}
-                onClick={() => handleNavClick("profile")}
+                active={isProfileTabActive}
+                onClick={() => {
+                  setProfileCategory(null);
+                  handleNavClick("profile");
+                }}
                 icon={<Menu />}
                 label={t("nav.more")}
                 ecoMode={userSettings?.ecoMode}

@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, X, Star } from 'lucide-react';
+import { Download, X, Star, AlertTriangle, ExternalLink, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
 import { CURRENT_VERSION } from '../constants/versions';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
-import { Capacitor } from '@capacitor/core';
 import localVersionData from '../../version.json';
+import { resolveApkDownloadUrl, triggerApkDownload, ApkDownloadInfo } from '../utils/apkDownloader';
 
 export default function UpdateModal() {
   const { t } = useTranslation();
   const [show, setShow] = useState(false);
   const [versionData, setVersionData] = useState<any>(null);
+  const [downloadStarted, setDownloadStarted] = useState(false);
+  const [apkInfo, setApkInfo] = useState<ApkDownloadInfo | null>(null);
 
   useEffect(() => {
     const checkUpdate = async () => {
@@ -40,13 +42,11 @@ export default function UpdateModal() {
           }
         }
 
-        // Ustawiamy właściwe adresy APK dla wybranego kanału (Główny / Beta)
+        // Dynamiczne rozwiązanie działającego adresu APK
+        const resolvedApk = await resolveApkDownloadUrl();
+        setApkInfo(resolvedApk);
         if (data) {
-          if (isBeta) {
-            data.apkUrl = `https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_${data.version}-beta_OTA.apk`;
-          } else {
-            data.apkUrl = `https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_${data.version}_OTA.apk`;
-          }
+          data.apkUrl = resolvedApk.url;
         }
 
         const dismissed = localStorage.getItem("dismissedApkVersion");
@@ -89,23 +89,22 @@ export default function UpdateModal() {
 
   if (!show || !versionData) return null;
 
-  const apkDownloadUrl = versionData.apkUrl || `https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_${versionData.version}_OTA.apk`;
+  const currentApkUrl = apkInfo?.url || versionData.apkUrl || 'https://github.com/lukcorp83-glitch/diab/releases';
 
   const handleDownloadApk = async () => {
     Haptics.success();
     localStorage.setItem("dismissedApkVersion", versionData.version);
-    setShow(false);
+    
+    // Bezpieczne wywołanie pobierania w tle
+    triggerApkDownload(currentApkUrl);
+    setDownloadStarted(true);
+  };
 
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.open({ url: apkDownloadUrl });
-      } catch {
-        window.open(apkDownloadUrl, '_system');
-      }
-    } else {
-      window.location.href = apkDownloadUrl;
-    }
+  const handleClose = () => {
+    Haptics.light();
+    localStorage.setItem("dismissedApkVersion", versionData.version);
+    setShow(false);
+    setDownloadStarted(false);
   };
 
   return (
@@ -131,63 +130,137 @@ export default function UpdateModal() {
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
           
           <button
-            onClick={() => {
-              Haptics.light();
-              localStorage.setItem("dismissedApkVersion", versionData.version);
-              setShow(false);
-            }}
+            onClick={handleClose}
             className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
           >
             <X size={20} />
           </button>
 
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
-              <Star size={24} className="fill-current" />
+          {!downloadStarted ? (
+            <>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
+                  <Star size={24} className="fill-current" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-800 dark:text-white">
+                    {t('auto.dostępna_wersja', { defaultValue: i18n.t('auto.dostepna_wersja', { defaultValue: "Dostępna Wersja" }) })} {versionData.version}
+                  </h2>
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                    {t('auto.oficjalna_aplikacja_apk', { defaultValue: 'Oficjalna aplikacja APK' })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  {i18n.language?.startsWith('en') && versionData.whatsNewEn ? versionData.whatsNewEn : versionData.whatsNew}
+                </p>
+              </div>
+
+              {/* Wskazówka o pobieraniu */}
+              <div className="mb-6 p-3.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-2xl border border-amber-500/25 text-left">
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+                  💡 <b>{t('update.tip_title', { defaultValue: 'Wskazówka:' })}</b>{' '}
+                  {t('update.tip_text', {
+                    defaultValue: 'W przeglądarce Chrome na Androidzie kliknij "Pobierz mimo to" / "Zachowaj", jeśli pojawi się ostrzeżenie o pliku APK.'
+                  })}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleDownloadApk}
+                  className="flex items-center justify-center gap-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-600/25 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Download size={18} />
+                  {t('auto.pobierz_aplikację_android_apk', { defaultValue: i18n.t('auto.pobierz_aplikacje_android', { defaultValue: "Pobierz plik APK" }) })}
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="w-full py-3 font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition-all text-sm cursor-pointer"
+                >
+                  {t('auto.przypomnij_później', { defaultValue: i18n.t('auto.przypomnij_pozniej', { defaultValue: "Przypomnij później" }) })}
+                </button>
+              </div>
+            </>
+          ) : (
+            /* EKRAN PO KLIKNIĘCIU POBIERZ: DOKŁADNE INSTRUKCJE FINALIZACJI CHROME ANDROID */
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center animate-pulse">
+                  <Download size={26} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 dark:text-white">
+                    Pobieranie w toku...
+                  </h3>
+                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 size={13} />
+                    Sygnał wysłany do przeglądarki
+                  </p>
+                </div>
+              </div>
+
+              {/* KROK 1: OSTRZEŻENIE CHROME O PLIKU SZKODLIWYM */}
+              <div className="p-3.5 bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/30 rounded-2xl text-left space-y-1.5">
+                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
+                  <AlertTriangle size={16} className="shrink-0" />
+                  <span>Krok 1: Zaakceptuj pobieranie w Chrome</span>
+                </div>
+                <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
+                  Przeglądarka wyświetla na dole ekranu lub w belce powiadomień ostrzeżenie:
+                  <br />
+                  <b className="text-rose-700 dark:text-rose-300">„Plik może być szkodliwy. Czy chcesz zachować plik...?”</b>
+                  <br />
+                  👉 <b>Koniecznie kliknij „Zachowaj” lub „Pobierz mimo to”!</b> Bez tego plik nie trafi do folderu Pobrane.
+                </p>
+              </div>
+
+              {/* KROK 2: CO ZROBIĆ GDY ZATARŁO SIĘ NA 99% / BRAK W POBRANYCH */}
+              <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 rounded-2xl text-left space-y-1">
+                <div className="text-amber-800 dark:text-amber-300 font-bold text-xs">
+                  Krok 2: Instalacja z folderu Pobrane
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Jeśli instalator nie otworzy się sam: otwórz w telefonie aplikację <b>„Pliki” ➔ folder „Pobrane”</b> i kliknij plik <b>.apk</b>. Jeśli plik ma rozszerzenie <code>.crdownload</code>, ściągnij górną belkę powiadomień i potwierdź jego zachowanie.
+                </p>
+              </div>
+
+              {/* PRZYCISKI AWARYJNE */}
+              <div className="pt-2 flex flex-col gap-2">
+                <a
+                  href={currentApkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white py-2.5 rounded-xl font-bold text-xs transition-colors"
+                >
+                  <RefreshCw size={14} />
+                  Pobierz ponownie (link bezpośredni)
+                </a>
+
+                <a
+                  href="https://glikocontrol.pl/pobierz/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full text-indigo-600 dark:text-indigo-400 py-2 font-bold text-xs hover:underline"
+                >
+                  <ExternalLink size={14} />
+                  Otwórz dedykowaną stronę pobierania
+                </a>
+
+                <button
+                  onClick={handleClose}
+                  className="w-full mt-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-md transition-all active:scale-95"
+                >
+                  Rozumiem, zamknij
+                </button>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-black text-slate-800 dark:text-white">{t('auto.dostępna_wersja', { defaultValue: i18n.t('auto.dostepna_wersja', { defaultValue: "Dostępna Wersja" }) })} {versionData.version}</h2>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('auto.oficjalna_aplikacja_apk', { defaultValue: 'Oficjalna aplikacja APK' })}</p>
-            </div>
-          </div>
-
-          <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              {i18n.language?.startsWith('en') && versionData.whatsNewEn ? versionData.whatsNewEn : versionData.whatsNew}
-            </p>
-          </div>
-
-          {/* Wskazówka o instalacji / 99% */}
-          <div className="mb-6 p-3.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-2xl border border-amber-500/25 text-left">
-            <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
-              💡 <b>{t('update.tip_title', { defaultValue: 'Wskazówka:' })}</b>{' '}
-              {t('update.tip_text', {
-                defaultValue: 'Jeśli pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie, ściągnij górną belkę powiadomień lub otwórz aplikację "Pliki" ➔ folder "Pobrane" i kliknij pobrany plik APK.'
-              })}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleDownloadApk}
-              className="flex items-center justify-center gap-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-indigo-600/25 active:scale-95 transition-all cursor-pointer"
-            >
-              <Download size={18} />
-              {t('auto.pobierz_aplikację_android_apk', { defaultValue: i18n.t('auto.pobierz_aplikacje_android', { defaultValue: "Pobierz plik APK" }) })}
-            </button>
-            <button
-              onClick={() => {
-                Haptics.light();
-                localStorage.setItem("dismissedApkVersion", versionData.version);
-                setShow(false);
-              }}
-              className="w-full py-3.5 font-bold text-slate-500 dark:text-slate-400 active:scale-95 transition-all text-sm cursor-pointer"
-            >
-              {t('auto.przypomnij_później', { defaultValue: i18n.t('auto.przypomnij_pozniej', { defaultValue: "Przypomnij później" }) })}
-            </button>
-          </div>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>
   );
 }
+

@@ -14,13 +14,27 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.46';
+export const CURRENT_VERSION = '6.0.47';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.47",
+    date: "2026-09-21",
+    title: "Logowanie przez Facebook, Data Wymiany na Widżetach i Poprawki Powiadomień",
+    changes: [
+      "Wdrożono obsługę logowania i rejestracji konta przez Facebook na wszystkich platformach (Web, PWA oraz natywna aplikacja APK)",
+      "Dodano czytelny wskaźnik daty i godziny wymiany (dzień tygodnia, dzień, miesiąc i godzina) na widżetach pulpitu dla Sensora i Wkłucia",
+      "Zachowano 100% kompaktowych gabarytów kafelków bez powiększania widżetów w siatce pulpitu",
+      "Dodano szybkie przyciski wyboru żywotności sensora w Profilu: 7 dni (Guardian), 10 dni (Dexcom), 14 dni (Libre)",
+      "Wyeliminowano problem podwójnych powiadomień po zakończeniu odliczania timera pre-bolusa",
+      "Wprowadzono trwałą blokadę restartu i ponownego przeliczania zakończonego timera przy późniejszym wzroście glikemii",
+      "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
+    ]
+  },
+  {
     version: "6.0.46",
     date: "2026-09-17",
     title: "Naprawa zawieszania widżetów, stabilizacja serwisu w tle i optymalizacja bazy",
@@ -64,25 +78,26 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Niezawodne pobieranie plików APK: bezpośrednie pobieranie pliku w przeglądarkach Web/PWA bez blokowania przez popup-blockery",
       "Dodano uprawnienie REQUEST_INSTALL_PACKAGES w manifeście Androida, zapobiegając blokowaniu instalatora po zakończeniu pobierania",
       "Wskazówka instalatora APK: czytelna instrukcja w oknie aktualizacji wyjaśniająca zachowanie Androida przy 99% pobierania"
-    ]
-  },
-  {
-    version: "6.0.42",
-    date: "2026-09-08",
-    title: "Bezpośrednie Rozgłoszenia xDrip+ (100% Offline), Synchronizacja Bolusów i Posiłków oraz Poprawki AI",
-    changes: [
-      "Bezpośrednia integracja z xDrip+ (Direct Broadcast Intents): natychmiastowy odbiór glikemii, trendów i delty w 100% offline bez internetu i bez uprawnień do powiadomień",
-      "Automatyczny odbiór zabiegów (Treatments): bolusy insuliny i spożyte węglowodany z kalkulatora xDrip+ automatycznie zasilają historię i bazę SQLite",
-      "Karta konfiguracji xDrip+ z 3-krokową instrukcją uruchomienia w zakładce Ustawienia Integracji",
-      "GlikoSense 4.1: wprowadzono bezpiecznik kliniczny eliminujący sprzeczne komunikaty o ukrytym wysiłku przy hiperglikemii",
-      "Naprawiono błąd 'Sparkles is not defined' w module wizualnej weryfikacji potraw aparatu AI",
-      "Naprawiono błąd 'useMemo is not defined' oraz 500 Internal Server Error przy generowaniu kluczy API dla xDrip+"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.47",
+    date: "2026-09-21",
+    title: "Logowanie przez Facebook, Data Wymiany na Widżetach i Poprawki Powiadomień",
+    changes: [
+      "Wdrożono obsługę logowania i rejestracji konta przez Facebook na wszystkich platformach (Web, PWA oraz natywna aplikacja APK)",
+      "Dodano czytelny wskaźnik daty i godziny wymiany (dzień tygodnia, dzień, miesiąc i godzina) na widżetach pulpitu dla Sensora i Wkłucia",
+      "Zachowano 100% kompaktowych gabarytów kafelków bez powiększania widżetów w siatce pulpitu",
+      "Dodano szybkie przyciski wyboru żywotności sensora w Profilu: 7 dni (Guardian), 10 dni (Dexcom), 14 dni (Libre)",
+      "Wyeliminowano problem podwójnych powiadomień po zakończeniu odliczania timera pre-bolusa",
+      "Wprowadzono trwałą blokadę restartu i ponownego przeliczania zakończonego timera przy późniejszym wzroście glikemii",
+      "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
+    ]
+  },
+  {
     version: "6.0.46",
     date: "2026-09-17",
     title: "Naprawa zawieszania widżetów, stabilizacja serwisu w tle i optymalizacja bazy",
@@ -126,19 +141,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Niezawodne pobieranie plików APK: bezpośrednie pobieranie pliku w przeglądarkach Web/PWA bez blokowania przez popup-blockery",
       "Dodano uprawnienie REQUEST_INSTALL_PACKAGES w manifeście Androida, zapobiegając blokowaniu instalatora po zakończeniu pobierania",
       "Wskazówka instalatora APK: czytelna instrukcja w oknie aktualizacji wyjaśniająca zachowanie Androida przy 99% pobierania"
-    ]
-  },
-  {
-    version: "6.0.42",
-    date: "2026-09-08",
-    title: "Bezpośrednie Rozgłoszenia xDrip+ (100% Offline), Synchronizacja Bolusów i Posiłków oraz Poprawki AI",
-    changes: [
-      "Bezpośrednia integracja z xDrip+ (Direct Broadcast Intents): natychmiastowy odbiór glikemii, trendów i delty w 100% offline bez internetu i bez uprawnień do powiadomień",
-      "Automatyczny odbiór zabiegów (Treatments): bolusy insuliny i spożyte węglowodany z kalkulatora xDrip+ automatycznie zasilają historię i bazę SQLite",
-      "Karta konfiguracji xDrip+ z 3-krokową instrukcją uruchomienia w zakładce Ustawienia Integracji",
-      "GlikoSense 4.1: wprowadzono bezpiecznik kliniczny eliminujący sprzeczne komunikaty o ukrytym wysiłku przy hiperglikemii",
-      "Naprawiono błąd 'Sparkles is not defined' w module wizualnej weryfikacji potraw aparatu AI",
-      "Naprawiono błąd 'useMemo is not defined' oraz 500 Internal Server Error przy generowaniu kluczy API dla xDrip+"
     ]
   }
 ];

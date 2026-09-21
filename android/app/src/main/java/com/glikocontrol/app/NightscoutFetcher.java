@@ -467,9 +467,24 @@ public class NightscoutFetcher {
                         long ageMs = now - timestamp;
                         // Jeśli bolus nastąpił w ciągu ostatnich 30 minut i dawka >= 0.3j lub z węglowodanami:
                         if (ageMs >= 0 && ageMs < 30 * 60 * 1000L && (insulin >= 0.3 || carbs > 0 || eventType.contains("bolus"))) {
+                            long lastCompletedPrebolus = prefs.getLong("last_completed_prebolus_timestamp", 0);
+                            long lastActiveTarget = prefs.getLong("last_active_prebolus_target", 0);
+
+                            // Jeśli ten bolus był w pobliżu ukończonego stopera (w ciągu 45 min) lub stoper został niedawno zakończony:
+                            if (lastCompletedPrebolus > 0 && ((now - lastCompletedPrebolus < 45 * 60 * 1000L) || Math.abs(timestamp - lastCompletedPrebolus) < 45 * 60 * 1000L)) {
+                                continue;
+                            }
+                            // Jeśli stoper jest już aktywny i odlicza:
+                            if (now < lastActiveTarget) {
+                                continue;
+                            }
+
                             String bolusId = t.optString("_id", String.valueOf(timestamp));
                             if (!bolusId.equals(lastNotifiedId)) {
-                                prefs.edit().putString("last_notified_pump_bolus_id", bolusId).apply();
+                                prefs.edit()
+                                        .putString("last_notified_pump_bolus_id", bolusId)
+                                        .putLong("last_active_prebolus_target", timestamp + (20 * 60 * 1000L))
+                                        .apply();
 
                                 // Precyzyjny czas oczekiwania zgodny z frontendem preBolusService
                                 int waitMinutes = 10;

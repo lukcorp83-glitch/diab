@@ -342,6 +342,14 @@ public class NotificationBridgePlugin extends Plugin {
             builder.setLargeIcon(pillIcon);
         }
 
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+            prefs.edit()
+                    .putLong("last_active_prebolus_target", targetTime)
+                    .putString("last_notified_pump_bolus_id", "active_" + targetTime)
+                    .apply();
+        } catch (Exception ignored) {}
+
         notificationManager.notify(notificationId, builder.build());
 
         // Zaplanuj automatyczną aktualizację minut na górnej belce oraz powiadomienie gotowości do posiłku
@@ -378,6 +386,14 @@ public class NotificationBridgePlugin extends Plugin {
 
                     long remainingMs = targetTime - System.currentTimeMillis();
                     if (remainingMs <= 500) {
+                        try {
+                            android.content.SharedPreferences prefs = appContext.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+                            prefs.edit()
+                                    .putLong("last_completed_prebolus_timestamp", System.currentTimeMillis())
+                                    .putLong("last_active_prebolus_target", 0)
+                                    .apply();
+                        } catch (Exception ignored) {}
+
                         androidx.core.app.NotificationCompat.Builder readyBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
                                 .setContentTitle("Czas na posiłek! 🍽️")
                                 .setContentText("Odliczanie zakończone. Możesz już zjeść posiłek!")
@@ -470,6 +486,13 @@ public class NotificationBridgePlugin extends Plugin {
             timerCompletionRunnable = null;
         }
         if (context != null) {
+            try {
+                android.content.SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
+                prefs.edit()
+                        .putLong("last_completed_prebolus_timestamp", System.currentTimeMillis())
+                        .putLong("last_active_prebolus_target", 0)
+                        .apply();
+            } catch (Exception ignored) {}
             android.app.NotificationManager notificationManager = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (notificationManager != null) {
                 notificationManager.cancel(notificationId);

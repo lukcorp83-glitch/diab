@@ -36,10 +36,8 @@ import {
 import { App as CapacitorApp } from '@capacitor/app';
 import { geminiService } from "../services/gemini";
 import { toast } from "react-hot-toast";
-import { notificationService } from "../services/notificationService";
 import { useAppStore } from "../stores/useAppStore";
-import { startPreBolusTimer, calculatePreBolusWaitTime } from "../services/preBolusService";
-
+import { startPreBolusTimer, calculatePreBolusWaitTime, markBolusAsHandled, markBolusAsCompleted, cancelPreBolusTimer } from "../services/preBolusService";
 import { Haptics } from "../lib/haptics";
 import { fetchCurrentWeather } from "../services/weatherService";
 import {
@@ -589,11 +587,13 @@ export default function BolusCalculator({ setTab,
 
     // Automatycznie startujemy stoper przedposiłkowy dla każdego bolusa
     if (finalDose >= 0.4) {
+      markBolusAsHandled(timestamp);
       const { waitMinutes } = calculatePreBolusWaitTime(bgNum > 0 ? bgNum : null, trend, settings?.insulinType);
       if (waitMinutes > 0) {
         startPreBolusTimer(waitMinutes, finalDose, timestamp);
       } else if (bgNum > 0) {
-        cancelPreBolusTimer();
+        markBolusAsCompleted(timestamp);
+        cancelPreBolusTimer(timestamp);
         toast(t('bolus.timing_immediate', { defaultValue: '🟢 Zjedz od razu bez czekania' }), {
           icon: '🍽️',
           duration: 5000
@@ -1285,6 +1285,7 @@ export default function BolusCalculator({ setTab,
  onClick={() => {
  const minutes = advice.text.includes("30 min") ? 30 : 15;
  Haptics.notification();
+ markBolusAsHandled(Date.now());
  startPreBolusTimer(minutes, dose);
  setReminderActive(true);
  toast.success(t('bolus.reminder_set', { defaultValue: 'Uruchomiono stoper przedposiłkowy!' }));

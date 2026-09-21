@@ -219,6 +219,15 @@
     "forty_five_down": "spada powoli",
     "flat": "stabilnie"
   },
+  "system": {
+    "floating_chat_title": "Pływająca pigułka czatu",
+    "floating_chat_desc": "Szybki dostęp do asystenta AI z każdego ekranu aplikacji",
+    "custom_nav_slot_title": "Czwarty przycisk dolnego paska",
+    "custom_nav_slot_desc": "Dostosuj skrót na dolnym pasku nawigacyjnym",
+    "custom_nav_slot_modal_title": "Wybierz czwarty przycisk",
+    "custom_nav_slot_modal_desc": "Wybierz zakładkę lub funkcję, która zastąpi domyślny przycisk czatu na dolnej belce:",
+    "custom_nav_slot_child_note": "Salon gier oraz Sklepik są dostępne wyłącznie w trybie dziecka."
+  },
   "bolus": {
     "title": "Kalkulator Dawki",
     "sugar": "Cukier",
@@ -1597,6 +1606,7 @@
   "auto.wejdz": "Wejdź",
   "auto.rejestracja": "Rejestracja",
   "auto.kontynuuj_przez_google": "Kontynuuj przez Google",
+  "auto.kontynuuj_przez_facebook": "Kontynuuj przez Facebook",
   "auto.logowanie_bez_konta_gosc": "Logowanie bez konta (Gość)",
   "auto.uwaga_w_trybie_goscia_po": "Uwaga: W trybie Gościa, po odświeżeniu aplikacji (szczególnie w               oknie testowym), dane i adres Nightscout mogą zostać zresetowane.               Użyj konta Google by zapisać je trwale.",
   "auto.tryb_offline_funkcje_moga": "Tryb Offline - Funkcje mogą być ograniczone",

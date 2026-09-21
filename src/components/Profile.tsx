@@ -87,7 +87,9 @@ import {
  Camera,
  Pizza,
  FileJson,
+ ExternalLink,
 } from "lucide-react";
+import { resolveApkDownloadUrl, triggerApkDownload } from "../utils/apkDownloader";
 import { db, auth, onConnectionChange } from "../lib/firebase";
 import { deleteUser } from "firebase/auth";
 import {
@@ -711,25 +713,13 @@ export default function Profile({
   }, []);
  const [nukeLoading, setNukeLoading] = useState(false);
  const [showRodo, setShowRodo] = useState(false);
- const [apkVersion, setApkVersion] = useState<string>("6.0.42");
- const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.42_OTA.apk");
+ const [apkVersion, setApkVersion] = useState<string>(CURRENT_VERSION);
+ const [apkUrl, setApkUrl] = useState<string>("https://github.com/lukcorp83-glitch/diab/releases");
  useEffect(() => {
- const isBeta = localStorage.getItem("betaProgramEnabled") === "true";
- const url = isBeta
- ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
- : 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now();
- fetch(url)
- .then(res => res.json())
- .then(data => {
- if (data.version) setApkVersion(data.version);
- if (data.apkUrl) {
- const finalApkUrl = isBeta 
- ? data.apkUrl.replace('aktualizacja', 'aktualizacja-beta').replace('_OTA.apk', '-beta_OTA.apk')
- : data.apkUrl;
- setApkUrl(finalApkUrl);
- }
- })
- .catch(() => {});
+   resolveApkDownloadUrl().then(info => {
+     if (info.version) setApkVersion(info.version);
+     if (info.url) setApkUrl(info.url);
+   }).catch(() => {});
  }, []);
  const nukeAllData = async () => {
  if (
@@ -826,8 +816,10 @@ export default function Profile({
  console.error("Error buying skin:", err);
  }
  };
- const handleEquipSkin = async (skinId: string) => {
- if (!petData.unlockedSkins.includes(skinId)) return;
+  const handleEquipSkin = async (skinId: string) => {
+  const isUnlocked = (petData.unlockedSkins || []).includes(skinId) ||
+    (!!SKINS.find(s => s.id === skinId)?.unlockedBy && (petData.unlockedAchievements || []).includes(SKINS.find(s => s.id === skinId)?.unlockedBy!));
+  if (!isUnlocked) return;
  Haptics.light();
  try {
  const petRef = doc(
@@ -2014,7 +2006,8 @@ export default function Profile({
  {shopTab === "skins" && (
  <div className="grid grid-cols-2 gap-4">
  {SKINS.map((skin) => {
- const isUnlocked = petData.unlockedSkins.includes(skin.id);
+ const isUnlocked = (petData.unlockedSkins || []).includes(skin.id) ||
+   (!!skin.unlockedBy && (petData.unlockedAchievements || []).includes(skin.unlockedBy));
  const isEquipped = petData.skin === skin.id;
  return (
  <div
@@ -2947,6 +2940,9 @@ export default function Profile({
         sensorDurationDays: days
       };
       setSettings((prev) => ({ ...prev, ...updates }));
+      try {
+        notificationService.updateDeviceReminders({ ...settings, ...updates });
+      } catch (e) {}
       if (user) {
         await setDoc(
           doc(
@@ -3198,6 +3194,9 @@ export default function Profile({
         infusionSite: insertionSite
       };
       setSettings((prev) => ({ ...prev, ...updates }));
+      try {
+        notificationService.updateDeviceReminders({ ...settings, ...updates });
+      } catch (e) {}
       localStorage.setItem("infusionSetChangeDate", String(chosenDate));
       localStorage.setItem("last_smart_reservoir_prompt", String(Date.now()));
       if (user) {
@@ -4416,44 +4415,55 @@ export default function Profile({
  </p>
  </div>
  </div>
- <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+ <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
  
  {t('auto.pobierz_najnowszą_wersję_oficjalnej', { defaultValue: i18n.t('auto.pobierz_najnowsza_wersje', { defaultValue: "Pobierz najnowszą wersję oficjalnej aplikacji na system Android (plik .apk), aby uzyskać najlepsze wrażenia, natywne powiadomienia i mniejsze zużycie baterii." }) })}
  </p>
- 
- {/* Przycisk pobierania APK - zawsze dostepny niezaleznie od platformy */}
- <a
- href={apkUrl}
- target="_blank"
- rel="noopener noreferrer"
- className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors active:scale-95"
- onClick={(e) => {
- Haptics.success();
- localStorage.setItem("dismissedApkVersion", apkVersion);
- if (Capacitor.isNativePlatform()) {
- e.preventDefault();
- // Otwórz w systemowej przeglądarce by uniknąć problemów z pobieraniem plików w WebView
- import('@capacitor/browser').then(({ Browser }) => {
- Browser.open({ url: apkUrl }).catch(() => {
- window.open(apkUrl, '_system');
- });
- }).catch(() => window.open(apkUrl, '_system'));
- }
- }}
- >
- <Download size={20} />
- {t('auto.pobierz_apk', { defaultValue: 'Pobierz APK' })} ({apkVersion})
- </a>
+  {/* Przycisk pobierania APK */}
+  <button
+    type="button"
+    onClick={() => {
+      Haptics.success();
+      localStorage.setItem("dismissedApkVersion", apkVersion);
+      triggerApkDownload(apkUrl);
+      toast.success(
+        i18n.language?.startsWith('en')
+          ? 'APK download started! In Chrome, accept "Download anyway".'
+          : 'Pobieranie APK rozpoczęte! W Chrome kliknij „Pobierz mimo to”.',
+        { duration: 5000 }
+      );
+    }}
+    className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition-colors active:scale-95 cursor-pointer mb-3"
+  >
+    <Download size={20} />
+    {t('auto.pobierz_apk', { defaultValue: 'Pobierz APK' })} ({apkVersion})
+  </button>
 
- {/* Wskazówka o instalacji / 99% */}
- <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-2xl border border-amber-500/25 text-left">
- <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
- 💡 <b>{t('update.tip_title', { defaultValue: 'Wskazówka:' })}</b>{' '}
- {t('update.tip_text', {
- defaultValue: 'Jeśli pobieranie zatrzyma się na 99% lub okno instalatora nie wyskoczy automatycznie, ściągnij górną belkę powiadomień lub otwórz aplikację "Pliki" ➔ folder "Pobrane" i kliknij pobrany plik APK.'
- })}
- </p>
- </div>
+  {/* Wskazówka o instalacji / 99% / Safe Browsing */}
+  <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-2xl border border-amber-500/25 text-left space-y-2 mb-2">
+    <p className="text-[11px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">
+      💡 <b>{t('update.tip_title', { defaultValue: 'Wskazówka dla Androida (Chrome):' })}</b>
+    </p>
+    <ul className="list-disc pl-4 text-[10.5px] text-amber-900/90 dark:text-amber-300/90 font-medium leading-relaxed space-y-1">
+      <li>
+        Chrome wyświetli na dole ekranu lub w powiadomieniach: <b>„Plik może być szkodliwy”</b>. Kliknij <b>„Pobierz mimo to”</b> lub <b>„Zachowaj”</b> (bez tego Android nie zapisze pliku).
+      </li>
+      <li>
+        Jeśli pobieranie zatrzyma się na 99% lub brak pliku w Pobranych: ściągnij górną belkę powiadomień lub otwórz aplikację <b>„Pliki” ➔ folder „Pobrane”</b> i kliknij pobrany plik APK.
+      </li>
+    </ul>
+    <div className="pt-0.5">
+      <a
+        href="https://glikocontrol.pl/pobierz/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+      >
+        <ExternalLink size={13} />
+        Otwórz oficjalną stronę pobierania (glikocontrol.pl/pobierz)
+      </a>
+    </div>
+  </div>
 
  <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-900/30">
  <h4 className="text-xs font-bold text-amber-800 dark:text-amber-500 mb-1">
@@ -4636,7 +4646,6 @@ function SettingInput({
  </div>
  );
 }
-
 
 
 

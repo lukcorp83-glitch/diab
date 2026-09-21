@@ -121,7 +121,7 @@ public class GlikoForegroundService extends Service implements SensorEventListen
                                             .setFullScreenIntent(pendingIntent, true)
                                             .setAutoCancel(true);
                                             
-                                    notificationManager.notify(777, builder.build());
+                                    notificationManager.notify(779, builder.build());
                                 }
                             } catch (Exception e) {
                                 android.util.Log.e("GlikoSenseML", "Błąd analizy JSONa z wynikiem", e);

@@ -219,6 +219,15 @@
     "forty_five_down": "falling slowly",
     "flat": "stable"
   },
+  "system": {
+    "floating_chat_title": "Floating chat capsule",
+    "floating_chat_desc": "Quick access to AI assistant from any app screen",
+    "custom_nav_slot_title": "4th bottom bar button",
+    "custom_nav_slot_desc": "Customize the shortcut on the bottom navigation bar",
+    "custom_nav_slot_modal_title": "Choose 4th button",
+    "custom_nav_slot_modal_desc": "Select a tab or feature to replace the default chat button on the bottom bar:",
+    "custom_nav_slot_child_note": "Arcade and Shop are available exclusively in Child Mode."
+  },
   "bolus": {
     "title": "Dose Calculator",
     "sugar": "Blood Sugar",
@@ -1284,6 +1293,7 @@
   "auto.nie_znaleziono_uzytkownika_o_t": "No user found with this email address.",
   "auto.bledny_format_adresu_email": "Invalid email address format.",
   "auto.blad_logowania_google": "Google login error",
+  "auto.kontynuuj_przez_facebook": "Continue with Facebook",
   "auto.raport_miesieczny": "Monthly Report",
   "auto.zajete": "occupied",
   "auto.podglad": "Preview",

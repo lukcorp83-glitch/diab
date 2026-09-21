@@ -16,7 +16,8 @@ import {
  Mic,
  Activity,
  Zap,
- ArrowRight
+ ArrowRight,
+ X
 } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { cn, getTrendInfo } from '../lib/utils';
@@ -35,7 +36,8 @@ export default function GlikoAssistant({
  messages,
  setMessages,
  isTyping,
- onSend}: { 
+ onSend,
+ onClose}: { 
   
  
  settings?: UserSettings;
@@ -45,6 +47,7 @@ export default function GlikoAssistant({
  setMessages: React.Dispatch<React.SetStateAction<AssistantMessage[]>>;
  isTyping: boolean;
  onSend: (text: string) => void;
+ onClose?: () => void;
 }) {
   const user = useAuthStore(state => state.user);
 
@@ -401,6 +404,18 @@ export default function GlikoAssistant({
             >
               <Trash2 size={18} />
             </button>
+            {onClose && (
+              <button 
+                onClick={() => {
+                  Haptics.light();
+                  onClose();
+                }}
+                className="p-2.5 rounded-xl transition-all bg-slate-400/10 dark:bg-slate-800/50 hover:bg-slate-400/20 text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                title={i18n.t('auto.zamknij', { defaultValue: "Zamknij" })}
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
         </div>
 

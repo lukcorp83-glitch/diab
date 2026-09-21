@@ -25,6 +25,7 @@ import InsulinDetective from "../InsulinDetective";
 import { Diets } from "../Diets";
 import JetLagMode from "../JetLagMode";
 import { preloadPetAssets } from "../../lib/assetCache";
+import FloatingChatCapsule from "../common/FloatingChatCapsule";
 
 export const AppContent = (props: any) => {
   const {
@@ -275,13 +276,18 @@ export const AppContent = (props: any) => {
               />
             )}
             {activeTab === "achievements" && (
-              <Achievements
-                setTab={changeTab}
-                petData={petData}
-              />
+              userSettings?.childMode ? (
+                <Achievements
+                  user={user}
+                  setTab={changeTab}
+                  petData={petData}
+                />
+              ) : null
             )}
             {activeTab === "games" && (
-              <GlikoGames setTab={changeTab} />
+              userSettings?.childMode ? (
+                <GlikoGames setTab={changeTab} />
+              ) : null
             )}
             {activeTab === "diets" && (
               <Diets
@@ -297,6 +303,26 @@ export const AppContent = (props: any) => {
             )}
           </div>
         )}
+
+        {/* Pływająca Pigułka Asystenta AI (Floating Chat Capsule) */}
+        <FloatingChatCapsule
+          settings={userSettings || undefined}
+          petData={petData}
+          onAddToPlate={(item) =>
+            setSharedPlate((prev) => [
+              ...prev,
+              {
+                ...item,
+                plateItemId: Math.random().toString(36).substr(2, 9),
+              },
+            ])
+          }
+          messages={assistantMessages}
+          setMessages={setAssistantMessages}
+          isTyping={isAssistantTyping}
+          onSend={(text) => sendAssistantMessage(text, petData)}
+          activeTab={activeTab}
+        />
       </div>
     </LocalErrorBoundary>
   );
