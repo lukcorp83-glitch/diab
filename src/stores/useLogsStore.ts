@@ -13,7 +13,25 @@ interface LogsState {
 
 export const useLogsStore = create<LogsState>((set) => ({
   logs: [],
-  setLogs: (logs) => set({ logs }),
+  setLogs: (logs) => set((state) => {
+    if (state.logs === logs) return state;
+    if (state.logs.length === logs.length) {
+      let identical = true;
+      for (let i = 0; i < logs.length; i++) {
+        const a = state.logs[i];
+        const b = logs[i];
+        if (a === b) continue;
+        const aId = a.id || a.nsId || (a as any)._id;
+        const bId = b.id || b.nsId || (b as any)._id;
+        if (aId !== bId || a.timestamp !== b.timestamp || a.value !== b.value) {
+          identical = false;
+          break;
+        }
+      }
+      if (identical) return state;
+    }
+    return { logs };
+  }),
   addLog: (log) => set((state) => ({ logs: [...state.logs, log] })),
   addLogs: (newLogs) => set((state) => {
     if (!newLogs || newLogs.length === 0) return state;

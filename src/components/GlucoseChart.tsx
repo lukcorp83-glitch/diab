@@ -96,10 +96,19 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  const [isDragging, setIsDragging] = useState(false);
  const [lastX, setLastX] = useState<number | null>(null);
 
- useEffect(() => {
-  // Reset view when base hours change
-  setZoomLevel(1);
-  setPanOffsetMs(0);
+  const prevHoursRef = useRef<number>(hours);
+  const hasAnimatedRef = useRef<boolean>(false);
+  const animStartTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Reset view when base hours change
+    setZoomLevel(1);
+    setPanOffsetMs(0);
+    if (prevHoursRef.current !== hours) {
+      prevHoursRef.current = hours;
+      hasAnimatedRef.current = false;
+      animStartTimeRef.current = null;
+    }
   }, [hours]);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -282,16 +291,17 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
   };
 
  const { chartData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end, hasData } = useMemo(() => {
- let now = Date.now();
- const { gLogs, bLogs, mLogs, siteLogs, sensorLogs } = partitionedLogs;
- 
- // Logic for 'now' focus
- if (gLogs.length > 0) {
- const latestLogTime = gLogs[gLogs.length - 1].timestamp;
- if (Date.now() - latestLogTime > 2 * 60 * 60 * 1000) {
- now = latestLogTime + 30 * 60 * 1000;
- }
- }
+  // Stabilizacja 'now' do najbliższej minuty, by uniknąć ciągłego jittera milisekund
+  let now = Math.floor(Date.now() / 60000) * 60000;
+  const { gLogs, bLogs, mLogs, siteLogs, sensorLogs } = partitionedLogs;
+  
+  // Logic for 'now' focus
+  if (gLogs.length > 0) {
+  const latestLogTime = gLogs[gLogs.length - 1].timestamp;
+  if (Date.now() - latestLogTime > 2 * 60 * 60 * 1000) {
+  now = latestLogTime + 30 * 60 * 1000;
+  }
+  }
 
  const predictionTime = 2 * 60 * 60 * 1000;
  const baseRangeMs = hours * 60 * 60 * 1000;
@@ -581,37 +591,65 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  xAxisTicks.sort((a, b) => a - b);
 
  return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end, hasData };
- }, [logs, hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction, mlPredictionDataState, zoomLevel, panOffsetMs]);
+ }, [logs, hours, targetMin, targetMax, settings?.dia, settings?.isf, settings?.wwRatio, settings?.ecoMode, showLoopSimulation, showMLPrediction, mlPredictionDataState, zoomLevel, panOffsetMs]);
 
- const isDark = theme === 'dark';
+  const isDark = theme === 'dark';
 
   useEffect(() => {
-  const canvas = canvasRef.current;
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  const isEco = settings?.ecoMode || false;
-  const animStartTime = performance.now();
-  const animDuration = 420; // 420ms ultra-smooth progressive trace
+    const isEco = settings?.ecoMode || false;
+    const animDuration = 420; // 420ms ultra-smooth progressive trace
 
-  let frameId: number;
+    // Animuj tylko przy pierwszym wejściu lub po zmianie zakresu godzin (o ile nie jest to tryb eco lub przeciąganie)
+    if (!hasAnimatedRef.current && animStartTimeRef.current === null && !isEco && !isDragging) {
+      animStartTimeRef.current = performance.now();
+    }
 
-  const draw = (nowTime?: number) => {
-  const currentTime = typeof nowTime === 'number' ? nowTime : performance.now();
-  const elapsed = currentTime - animStartTime;
-  const rawProgress = (isEco || isDragging) ? 1 : Math.min(1, elapsed / animDuration);
-  const progress = (isEco || isDragging) ? 1 : (1 - Math.pow(1 - rawProgress, 3));
+    let frameId: number;
 
-  const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
-  const w = rect.width;
-  const h = rect.height;
- 
- ctx.clearRect(0, 0, w, h);
+    const draw = (nowTime?: number) => {
+      const currentTime = typeof nowTime === 'number' ? nowTime : performance.now();
+
+      let progress = 1;
+      if (!isEco && !isDragging && !hasAnimatedRef.current && animStartTimeRef.current !== null) {
+        const elapsed = currentTime - animStartTimeRef.current;
+        if (elapsed >= animDuration) {
+          hasAnimatedRef.current = true;
+          animStartTimeRef.current = null;
+          progress = 1;
+        } else {
+          const rawProgress = Math.min(1, elapsed / animDuration);
+          progress = 1 - Math.pow(1 - rawProgress, 3);
+        }
+      } else {
+        progress = 1;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        // Kontener może nie być jeszcze zwymiarowany podczas montowania tabu
+        frameId = requestAnimationFrame(draw);
+        return;
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      const targetW = Math.round(rect.width * dpr);
+      const targetH = Math.round(rect.height * dpr);
+
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const w = rect.width;
+      const h = rect.height;
+
+      ctx.clearRect(0, 0, w, h);
  
  const pL = 20, pR = 10, pT = 10, pB = 20;
  const cw = w - pL - pR;
@@ -1379,10 +1417,10 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  }
  }
 
-  // Jeśli animacja rysowania trwa, zamawiamy kolejną klatkę
-  if (progress < 1 && !isEco && !isDragging) {
-    frameId = requestAnimationFrame(draw);
-  }
+    // Jeśli animacja rysowania trwa, zamawiamy kolejną klatkę
+    if (progress < 1 && !isEco && !isDragging && !hasAnimatedRef.current) {
+      frameId = requestAnimationFrame(draw);
+    }
   };
  
  const triggerDraw = () => {
@@ -1581,5 +1619,4 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  </div>
  );
 }
-
 

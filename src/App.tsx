@@ -40,7 +40,7 @@ import { NotificationBridge } from './lib/notificationBridge';
 import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore";
 import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
 import { useGlikoServer } from "./hooks/useGlikoServer";
 import { useAppSubscriptions } from "./hooks/useAppSubscriptions";
@@ -102,12 +102,14 @@ export default function App() {
     email, setEmail, password, setPassword, assistantMessages, setAssistantMessages,
     isAssistantTyping, setIsAssistantTyping, wsDevices, setWsDevices, mealProgress, setMealProgress
   } = useAppStore();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { user, loading, initAuthListener } = useAuthStore();
   useAppSubscriptions(user);
   const { data: fbPumpStatus = null } = usePumpStatus(user);
   const { data: userSettings = null } = useUserSettings(user) as any;
   const { data: nsSettings } = useNightscoutSettings(user);
+  const lastDeviceSyncKeyRef = useRef<string>('');
 
   useEffect(() => {
     if (userSettings) {
@@ -514,30 +516,51 @@ export default function App() {
     const latestSiteLog = logs.find((l: any) => l.type === 'site_change' && !l.notes?.toLowerCase().includes('zbiorniczk'));
     const latestSensorLog = logs.find((l: any) => l.type === 'sensor_change');
 
+    const siteLogTs = Number(latestSiteLog?.timestamp) || 0;
+    const sensorLogTs = Number(latestSensorLog?.timestamp) || 0;
+    const siteName = latestSiteLog?.site || '';
+
+    const currentInfusionTs = Number(userSettings.infusionSetChangeDate) || 0;
+    const currentSensorTs = Number(userSettings.sensorChangeDate) || 0;
+    const currentSite = userSettings.infusionSetSite || userSettings.infusionSite || '';
+
+    const uid = getEffectiveUid(user);
+    const syncKey = `${uid}|${latestSiteLog?.id || ''}|${siteLogTs}|${siteName}|${latestSensorLog?.id || ''}|${sensorLogTs}`;
+    if (lastDeviceSyncKeyRef.current === syncKey) return;
+
     const updates: any = {};
-    if (latestSiteLog && latestSiteLog.timestamp) {
-      if (!userSettings.infusionSetChangeDate || latestSiteLog.timestamp > userSettings.infusionSetChangeDate) {
-        updates.infusionSetChangeDate = latestSiteLog.timestamp;
-      }
-      if (latestSiteLog.site && latestSiteLog.site !== userSettings.infusionSetSite) {
-        updates.infusionSetSite = latestSiteLog.site;
-        updates.infusionSite = latestSiteLog.site;
-      }
+    if (siteLogTs > 0 && siteLogTs > currentInfusionTs) {
+      updates.infusionSetChangeDate = siteLogTs;
     }
-    if (latestSensorLog && latestSensorLog.timestamp) {
-      if (!userSettings.sensorChangeDate || latestSensorLog.timestamp > userSettings.sensorChangeDate) {
-        updates.sensorChangeDate = latestSensorLog.timestamp;
-      }
+    if (siteName && siteName !== currentSite) {
+      updates.infusionSetSite = siteName;
+      updates.infusionSite = siteName;
     }
+    if (sensorLogTs > 0 && sensorLogTs > currentSensorTs) {
+      updates.sensorChangeDate = sensorLogTs;
+    }
+
+    lastDeviceSyncKeyRef.current = syncKey;
 
     if (Object.keys(updates).length > 0) {
       console.log('[App] Auto-synced device replacement dates from latest logs:', updates);
-      setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), updates, { merge: true });
+      try {
+        const cached = localStorage.getItem('glikocontrol_user_settings');
+        const parsed = cached ? JSON.parse(cached) : {};
+        localStorage.setItem('glikocontrol_user_settings', JSON.stringify({ ...parsed, ...updates }));
+      } catch (e) {}
+
+      queryClient.setQueryData(['userSettings', uid], (prev: any) => ({ ...(prev || {}), ...updates }));
+
+      setDoc(doc(db, "users", uid, "settings", "profile"), updates, { merge: true }).catch((err) => {
+        console.warn('[App] Failed to save device replacement updates to Firestore:', err);
+      });
+
       try {
         notificationService.updateDeviceReminders({ ...userSettings, ...updates });
       } catch (e) {}
     }
-  }, [user, userSettings, logs]);
+  }, [user, userSettings, logs, queryClient]);
 
   // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
   useGlucoseAlerts(logs, userSettings);

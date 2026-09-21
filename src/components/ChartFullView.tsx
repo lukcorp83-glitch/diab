@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useLogsStore } from "../stores/useLogsStore";
-import { motion } from "motion/react";
-import { LogEntry, UserSettings } from "../types";
+import React, { useState, useEffect } from 'react';
+import { UserSettings } from "../types";
 import GlucoseChart from "./GlucoseChart";
 import { Haptics } from "../lib/haptics";
 import GlikoSenseIcon from "./GlikoSenseIcon";
-import { Activity, Clock, Droplet, Apple, Droplets, RefreshCw, Zap, Signal, Syringe } from "lucide-react";
+import { Activity, Apple, Droplets, Signal, Syringe } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
@@ -20,7 +18,6 @@ export default function ChartFullView({ settings,
  theme,
  setTab,
 }: ChartFullViewProps) {
- const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const [range, setRange] = useState<number>(() => {
  const saved = localStorage.getItem('glikosfera_chart_range');
