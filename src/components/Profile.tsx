@@ -609,7 +609,7 @@ export default function Profile({
  },
  {
  id: "system",
- label: i18n.t('auto.system', { defaultValue: 'System' }),
+ label: t('profile.tab_system', { defaultValue: 'Ustawienia' }),
  sub: i18n.t('auto.wyglad_inne', { defaultValue: i18n.t('auto.wyglad_inne', { defaultValue: "Wygląd & Inne" }) }),
  icon: <Settings size={24} />,
  color: "bg-slate-600",
@@ -1742,7 +1742,7 @@ export default function Profile({
  color: "text-green-500 bg-green-500/10",
  },
  { id: "notifications", label: i18n.t('auto.centrum_powiadomien', { defaultValue: "Centrum powiadomień" }), icon: <Bell size={14} />, color: "text-amber-500 bg-amber-500/10" },
- { id: "system", label: i18n.t('auto.system', { defaultValue: 'System' }), icon: <Settings size={14} />, color: "text-slate-500 bg-slate-500/10" },
+ { id: "system", label: t('profile.tab_system', { defaultValue: 'Ustawienia' }), icon: <Settings size={14} />, color: "text-slate-500 bg-slate-500/10" },
  ].map((cat) => (
  <button
  key={cat.id}

@@ -150,6 +150,8 @@ export class DatabaseService {
         payload TEXT NOT NULL,
         is_synced INTEGER DEFAULT 0
       );
+      CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON application_logs (timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_logs_type ON application_logs (type);
     `;
     await this.db.execute(query);
   }

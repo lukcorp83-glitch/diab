@@ -28,7 +28,7 @@ import {
   UserSettings,
 } from "./types";
 import { geminiService } from "./services/gemini";
-import { APP_VERSION } from "./constants";
+import { APP_VERSION, IS_BETA_CHANNEL } from "./constants";
 import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
 import { healthService } from "./services/healthService";
@@ -49,7 +49,6 @@ import Logo from "./components/Logo";
 import GlikoControlLogo from "./components/LogoAnimation";
 import { CURRENT_VERSION } from "./constants/versions";
 
-import { MigrationManager } from "./components/MigrationManager";
 import { GlucoseAlarmModal } from "./components/GlucoseAlarmModal";
 import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { ParentalPinModal } from "./components/ParentalPinModal";
@@ -127,6 +126,16 @@ export default function App() {
   useEffect(() => { userSettingsRef.current = userSettings; }, [userSettings]);
   const deletedNsIdsRef = useRef<Set<string>>((() => {
     try {
+      // Jednorazowe oczyszczenie zanieczyszczonej czarnej listy (spowodowanej błędnym usuwaniem logów po wypadnięciu ze snapshotu Firestore)
+      if (!localStorage.getItem('diab_cleaned_false_deleted_ids_v1')) {
+        localStorage.removeItem('diab_deleted_ns_ids');
+        localStorage.setItem('diab_cleaned_false_deleted_ids_v1', 'true');
+        console.log('[App] Wyczyszczono zanieczyszczoną czarną listę usuniętych ID (naprawa brakujących dni w statystykach).');
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
+        }, 1500);
+        return new Set<string>();
+      }
       const stored = localStorage.getItem('diab_deleted_ns_ids');
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -369,7 +378,10 @@ export default function App() {
         const recentCutoff = Date.now() - 48 * 60 * 60 * 1000;
         const toSave = [...fbLogs, ...nsLogs].filter(l => {
           const ts = l.timestamp || l.createdAt || 0;
-          if (ts < recentCutoff && lastSavedMaxTimestampRef.current > 0) return false;
+          const isTreatment = l.type === 'bolus' || l.type === 'meal' || l.type === 'site_change' || l.type === 'sensor_change';
+          // Zwykłe częste odczyty CGM filtrujemy do ostatnich 48h, ale zabiegi (węglowodany, insulina, wymiany wkłucia/sensora)
+          // zapisujemy do bazy SQLite zawsze, aby były w 100% dostępne w statystykach i kalendarzu na telefonie
+          if (!isTreatment && ts < recentCutoff && lastSavedMaxTimestampRef.current > 0) return false;
           if (deletedNsIdsRef.current) {
             if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
             if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
@@ -379,7 +391,7 @@ export default function App() {
         });
         if (toSave.length > 0) {
           lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
-          const batch = toSave.slice(0, 300); // max 300 najświeższych wpisów na cykl
+          const batch = toSave.slice(0, 500); // do 500 wpisów na cykl
           dbService.saveMultipleLogs(batch).catch(e => console.warn("Background DB save failed", e));
         }
       }, 5000);
@@ -1710,9 +1722,19 @@ export default function App() {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn("w-full max-w-sm p-10 rounded-[3.5rem] shadow-2xl text-center border transition-all duration-500", theme === "dark" ? "bg-slate-900/60 backdrop-blur-3xl border-slate-800/50" : "bg-white border-slate-200")}>
           <div className="flex items-center justify-center gap-4 mb-2">
             <Logo className="w-14 h-14" />
-            <h2 className={cn("text-3xl font-black tracking-tight", theme === "dark" ? "text-white" : "text-slate-900")}>
-              GlikoControl v{CURRENT_VERSION}
-            </h2>
+            <div className="text-left">
+              <div className="flex items-center gap-2">
+                <h2 className={cn("text-3xl font-black tracking-tight", theme === "dark" ? "text-white" : "text-slate-900")}>
+                  GlikoControl
+                </h2>
+                {IS_BETA_CHANNEL && (
+                  <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/35">
+                    BETA
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">v{CURRENT_VERSION}</span>
+            </div>
           </div>
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-8">Zintegrowany System Glikemii</p>
 
@@ -1788,7 +1810,6 @@ export default function App() {
         onClose={() => setSmartEquipmentType(null)}
         onConfirm={handleConfirmSmartEquipment}
       />
-      <MigrationManager user={user} />
       <AppLayout
         mainRef={mainRef}
         mealProgress={mealProgress}

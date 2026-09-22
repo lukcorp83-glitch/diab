@@ -38,7 +38,7 @@ import {
  Plane
 } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
-import { APP_VERSION, FACEBOOK_GROUP_URL, FACEBOOK_GROUP_URL_EN } from '../constants';
+import { APP_VERSION, IS_BETA_CHANNEL, FACEBOOK_GROUP_URL, FACEBOOK_GROUP_URL_EN } from '../constants';
 import GlikoSenseIcon from './GlikoSenseIcon';
 import { UserSettings } from '../types';
 
@@ -168,7 +168,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
  exit={{ x: '-100%', opacity: 0 }}
  transition={{ type: 'spring', damping: 28, stiffness: 250 }}
  className={cn(
- "fixed top-0 left-0 bottom-0 w-[85%] max-w-sm z-[110] flex flex-col p-8 shadow-2xl overflow-y-auto rounded-r-[3rem]",
+ "gpu-layer will-change-transform fixed top-0 left-0 bottom-0 w-[85%] max-w-sm z-[110] flex flex-col p-8 shadow-2xl overflow-y-auto rounded-r-[3rem]",
  theme === 'dark' ? "bg-[#020617]/95 backdrop-blur-2xl border-r border-white/5" : "bg-white/95 backdrop-blur-2xl border-r border-slate-200"
  )}
  >
@@ -177,14 +177,22 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
  <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -mr-32 -mb-32 pointer-events-none" />
 
  <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-200/50 dark:border-slate-800/30 relative">
- <div className="flex items-center gap-3">
- <Logo className="w-10 h-10 rounded-2xl shadow-lg shadow-accent-600/20" />
- <div>
- <h2 className={cn("text-xl font-black tracking-tighter leading-none uppercase font-display", theme === 'dark' ? "text-white" : "text-slate-900")}>
- {t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}
- </h2>
- </div>
- </div>
+  <div className="flex items-center gap-3">
+  <Logo className="w-10 h-10 rounded-2xl shadow-lg shadow-accent-600/20" />
+  <div>
+  <div className="flex items-center gap-2">
+  <h2 className={cn("text-xl font-black tracking-tighter leading-none uppercase font-display", theme === 'dark' ? "text-white" : "text-slate-900")}>
+  {t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}
+  </h2>
+  {(IS_BETA_CHANNEL || settings?.betaProgram) && (
+    <span className="px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/35">
+      BETA
+    </span>
+  )}
+  </div>
+  <span className="text-[9px] font-bold text-slate-400 font-mono">v{APP_VERSION}</span>
+  </div>
+  </div>
  <button 
  onClick={onClose}
  className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-accent-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-90"

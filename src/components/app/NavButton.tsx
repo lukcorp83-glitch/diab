@@ -32,7 +32,7 @@ export function NavButton({
       {active && (
         <motion.div
           layoutId={ecoMode ? undefined : "nav-indicator"}
-          className="absolute inset-1 rounded-2xl bg-accent-500/10 dark:bg-accent-400/10 -z-10 select-none pointer-events-none"
+          className="gpu-layer will-change-transform absolute inset-1 rounded-2xl bg-accent-500/10 dark:bg-accent-400/10 -z-10 select-none pointer-events-none"
           transition={{ type: "spring", stiffness: 350, damping: 25 }}
         />
       )}

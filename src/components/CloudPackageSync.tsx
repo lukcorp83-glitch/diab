@@ -143,16 +143,10 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
   try {
     onProgress?.(5);
     
-    // Szukamy paczki we wszystkich potencjalnych lokalizacjach Firestore
+    // Szukamy paczki w aktualnej lokalizacji Firestore users/{uid}
     let snap: any = await getDoc(doc(db, "users", uid, "syncPackage", "latest")).catch(() => null);
     if (!snap || !snap.exists()) {
-      snap = await getDoc(doc(db, "artifacts/diacontrolapp/users", uid, "syncPackage", "latest")).catch(() => null);
-    }
-    if (!snap || !snap.exists()) {
       snap = await getDoc(doc(db, "users", uid, "backup", "latest")).catch(() => null);
-    }
-    if (!snap || !snap.exists()) {
-      snap = await getDoc(doc(db, "artifacts/diacontrolapp/users", uid, "backup", "latest")).catch(() => null);
     }
 
     let parsed: any = null;
@@ -203,31 +197,12 @@ export const downloadCloudPackage = async (user: any, onProgress?: (progress: nu
         console.warn("[CloudPackageSync] Błąd pobierania z users/logs:", err);
       }
 
-      // 2. Sprawdź artifacts/diacontrolapp/users/{uid}/logs
-      if (recoveredLogs.length === 0) {
-        try {
-          const q2 = query(collection(db, "artifacts/diacontrolapp/users", uid, "logs"), orderBy("timestamp", "desc"), limit(10000));
-          const s2 = await getDocs(q2);
-          if (!s2.empty) {
-            s2.forEach(d => {
-              const l = d.data();
-              recoveredLogs.push({ ...l, id: l.id || d.id });
-            });
-          }
-        } catch (err) {
-          console.warn("[CloudPackageSync] Błąd pobierania z artifacts logs:", err);
-        }
-      }
-
-      // 3. Pobierz ustawienia profilu
+      // 2. Pobierz ustawienia profilu
       let recoveredSettings: any = null;
       try {
         const setSnap = await getDoc(doc(db, "users", uid, "settings", "profile"));
         if (setSnap.exists()) {
           recoveredSettings = setSnap.data();
-        } else {
-          const oldSetSnap = await getDoc(doc(db, "artifacts/diacontrolapp/users", uid, "settings", "profile"));
-          if (oldSetSnap.exists()) recoveredSettings = oldSetSnap.data();
         }
       } catch (err) {}
 

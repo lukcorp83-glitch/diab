@@ -27,21 +27,9 @@ export const useAppSubscriptions = (user: any) => {
         console.log(`[AppSub] ${queryKey}: received ${mapped.length} docs from users/${uid}/${pathSuffix}`);
         queryClient.setQueryData([queryKey, uid], mapped);
 
-        if (queryKey === "fbLogs") {
-          snapshot.docChanges().forEach((change) => {
-            if (change.type === "removed") {
-              const data = change.doc.data();
-              const ts = data.timestamp || 0;
-              const ageDays = (Date.now() - ts) / (1000 * 60 * 60 * 24);
-              // Only trigger explicit deletion if it's newer than 34 days (so it didn't just age out of the 35-day query window)
-              if (ageDays < 34) {
-                console.log(`[AppSub] fbLogs item remote deletion detected: ${change.doc.id}`);
-                window.dispatchEvent(new CustomEvent('localLogDelete', { detail: { id: change.doc.id } }));
-                import('../services/databaseService').then(({ dbService }) => dbService.deleteLog(change.doc.id));
-              }
-            }
-          });
-        }
+        // We don't trigger local deletion on docChanges "removed", because Firestore emits "removed"
+        // whenever a document falls out of the query limit (e.g. limit(4000)) or date window,
+        // which caused historical logs (like days 8-17) to be falsely wiped from phone SQLite and blacklisted!
       }, (error) => {
         console.error(`[AppSub] ${queryKey} onSnapshot error:`, error);
       });

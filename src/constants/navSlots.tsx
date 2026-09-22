@@ -18,6 +18,7 @@ import {
   Activity,
   Utensils,
   HelpCircle,
+  Settings,
 } from 'lucide-react';
 
 export interface NavSlotOption {
@@ -166,6 +167,14 @@ export const NAV_SLOT_OPTIONS: NavSlotOption[] = [
     childOnly: true,
   },
   {
+    id: 'profile:system',
+    tab: 'profile',
+    category: 'system',
+    labelKey: 'profile.tab_system',
+    defaultLabel: 'Ustawienia',
+    iconName: 'Settings',
+  },
+  {
     id: 'profile:shop',
     tab: 'profile',
     category: 'shop',
@@ -214,6 +223,8 @@ export function getNavSlotIcon(iconName: string, size = 20) {
       return <Utensils size={size} />;
     case 'HelpCircle':
       return <HelpCircle size={size} />;
+    case 'Settings':
+      return <Settings size={size} />;
     default:
       return <MessageSquare size={size} />;
   }

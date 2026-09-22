@@ -1,10 +1,10 @@
 {
-    "version": "6.0.47",
+    "version": "6.0.49",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.47-beta_OTA.apk",
-    "buildNumber": 162,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.49-beta_OTA.apk",
+    "buildNumber": 163,
     "forceUpdate": false,
-    "whatsNew": "Logowanie przez Facebook (Web & APK), wskaźnik daty i godziny wymiany na widżetach osprzętu, presety żywotności sensora (7, 10, 14 dni), poprawki timera pre-bolusa i powiadomień 12h.",
-    "whatsNewEn": "Facebook login (Web & APK), change date and time indicator on equipment widgets, sensor lifespan presets (7, 10, 14 days), pre-bolus timer and 12h reminder fixes.",
-    "otaRevision": 322
+    "whatsNew": "Wybór Ustawień jako 4. przycisku dolnego paska, akceleracja sprzętowa GPU i indeksy B-Tree w SQLite (błyskawiczne ładowanie), optymalizacja renderowania wykresów na telefonach.",
+    "whatsNewEn": "Settings as 4th bottom nav button option, hardware GPU acceleration and SQLite B-Tree indexes (instant loading), mobile chart render optimization.",
+    "otaRevision": 323
 }

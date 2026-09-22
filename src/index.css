@@ -527,4 +527,39 @@ body {
   .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
   .mt-safe { margin-top: env(safe-area-inset-top, 20px); }
   .mb-safe { margin-bottom: env(safe-area-inset-bottom, 20px); }
+
+  /* GPU Hardware Acceleration for buttery-smooth animations on mobile */
+  .gpu-layer {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .will-change-transform-opacity {
+    will-change: transform, opacity;
+  }
+}
+
+/* Wymuszenie sprzętowej akceleracji GPU na oknach modalnych i stałych belkach (redukcja jank na Androidzie) */
+.fixed.inset-0,
+nav.fixed {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Optymalizacja rozmycia tła (backdrop-filter) dla ekranów mobilnych (Android WebView) - płynne 60/120 FPS */
+@media (max-width: 768px) {
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl {
+    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(8px) !important;
+  }
 }
