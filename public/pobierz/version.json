@@ -1,6 +1,6 @@
 {
-    "version": "6.0.46",
-    "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.46-beta_OTA.apk",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.46-beta_OTA.apk",
-    "releaseNotes": "Naprawa zawieszania widżetów i serwisu w tle, optymalizacja bazy danych i historii."
+    "version": "6.0.48",
+    "url": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.48_OTA.apk",
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.48_OTA.apk",
+    "releaseNotes": "Ulepszenie interfejsu, logowanie przez Facebook, optymalizacja i usunięcie błędów, łączenie z xDrip+ przez nadawanie lokalne."
 }

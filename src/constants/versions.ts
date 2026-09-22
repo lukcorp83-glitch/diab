@@ -14,13 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.47';
+export const CURRENT_VERSION = '6.0.48';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.48",
+    date: "2026-09-22",
+    title: "Ulepszenie Interfejsu, Logowanie przez Facebook i Łączenie z xDrip+",
+    changes: [
+      "Ulepszenie interfejsu użytkownika i płynności działania aplikacji",
+      "Wdrożono obsługę logowania i rejestracji konta przez Facebook (Web, PWA oraz APK)",
+      "Łączenie z aplikacją xDrip+ przez nadawanie lokalne (Direct Local Broadcast) bez potrzeby Nightscout",
+      "Kompleksowa optymalizacja, usunięcie błędów i pełna stabilizacja wykresu glikemii oraz synchronizacji osprzętu"
+    ]
+  },
+  {
     version: "6.0.47",
     date: "2026-09-21",
     title: "Logowanie przez Facebook, Data Wymiany na Widżetach i Poprawki Powiadomień",
@@ -65,25 +76,23 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Włączenie opcji natychmiast odświeża i przywraca powiadomienie z bieżącym cukrem i wykresem",
       "Dodano przełącznik powiadomień systemowych również do sekcji Profil ➔ System & Aplikacja",
       "Automatyczna synchronizacja stanu powiadomień przy każdym uruchomieniu aplikacji"
-    ]
-  },
-  {
-    version: "6.0.43",
-    date: "2026-09-09",
-    title: "Naprawa Błędu Notification, Płynne Przewijanie do Góry i Niezawodne Pobieranie APK",
-    changes: [
-      "Wyeliminowano błąd 'Notification is not defined' na telefonach komórkowych (Safari iOS, wewnętrzna przeglądarka Facebooka i Messengera, tryby incognito)",
-      "Płynne przewijanie do góry (Scroll Lock Fix): usunięto przechwytywanie skośnych gestów kciuka, odblokowując natywne przewijanie ekranu",
-      "Dodano funkcję powrotu na samą górę: ponowne kliknięcie w aktywną zakładkę na dolnym pasku natychmiast płynnie przewija widok na szczyt",
-      "Niezawodne pobieranie plików APK: bezpośrednie pobieranie pliku w przeglądarkach Web/PWA bez blokowania przez popup-blockery",
-      "Dodano uprawnienie REQUEST_INSTALL_PACKAGES w manifeście Androida, zapobiegając blokowaniu instalatora po zakończeniu pobierania",
-      "Wskazówka instalatora APK: czytelna instrukcja w oknie aktualizacji wyjaśniająca zachowanie Androida przy 99% pobierania"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.48",
+    date: "2026-09-22",
+    title: "Ulepszenie Interfejsu, Logowanie przez Facebook i Łączenie z xDrip+",
+    changes: [
+      "Ulepszenie interfejsu użytkownika i płynności działania aplikacji",
+      "Wdrożono obsługę logowania i rejestracji konta przez Facebook (Web, PWA oraz APK)",
+      "Łączenie z aplikacją xDrip+ przez nadawanie lokalne (Direct Local Broadcast) bez potrzeby Nightscout",
+      "Kompleksowa optymalizacja, usunięcie błędów i pełna stabilizacja wykresu glikemii oraz synchronizacji osprzętu"
+    ]
+  },
+  {
     version: "6.0.47",
     date: "2026-09-21",
     title: "Logowanie przez Facebook, Data Wymiany na Widżetach i Poprawki Powiadomień",
@@ -128,19 +137,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Włączenie opcji natychmiast odświeża i przywraca powiadomienie z bieżącym cukrem i wykresem",
       "Dodano przełącznik powiadomień systemowych również do sekcji Profil ➔ System & Aplikacja",
       "Automatyczna synchronizacja stanu powiadomień przy każdym uruchomieniu aplikacji"
-    ]
-  },
-  {
-    version: "6.0.43",
-    date: "2026-09-09",
-    title: "Naprawa Błędu Notification, Płynne Przewijanie do Góry i Niezawodne Pobieranie APK",
-    changes: [
-      "Wyeliminowano błąd 'Notification is not defined' na telefonach komórkowych (Safari iOS, wewnętrzna przeglądarka Facebooka i Messengera, tryby incognito)",
-      "Płynne przewijanie do góry (Scroll Lock Fix): usunięto przechwytywanie skośnych gestów kciuka, odblokowując natywne przewijanie ekranu",
-      "Dodano funkcję powrotu na samą górę: ponowne kliknięcie w aktywną zakładkę na dolnym pasku natychmiast płynnie przewija widok na szczyt",
-      "Niezawodne pobieranie plików APK: bezpośrednie pobieranie pliku w przeglądarkach Web/PWA bez blokowania przez popup-blockery",
-      "Dodano uprawnienie REQUEST_INSTALL_PACKAGES w manifeście Androida, zapobiegając blokowaniu instalatora po zakończeniu pobierania",
-      "Wskazówka instalatora APK: czytelna instrukcja w oknie aktualizacji wyjaśniająca zachowanie Androida przy 99% pobierania"
     ]
   }
 ];
