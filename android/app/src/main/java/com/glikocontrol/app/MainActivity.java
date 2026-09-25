@@ -19,6 +19,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NotificationBridgePlugin.class);
         registerPlugin(MaterialYouPlugin.class);
         registerPlugin(StepCounterPlugin.class);
+        registerPlugin(ApkInstallerPlugin.class);
         super.onCreate(savedInstanceState);
         
         // Wymuszenie zapytania o uprawnienia przy uruchomieniu aplikacji

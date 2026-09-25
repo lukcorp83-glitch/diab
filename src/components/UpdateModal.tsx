@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import localVersionData from '../../version.json';
 import { resolveApkDownloadUrl, triggerApkDownload, ApkDownloadInfo } from '../utils/apkDownloader';
+import { Capacitor } from '@capacitor/core';
 
 export default function UpdateModal() {
   const { t } = useTranslation();
@@ -96,7 +97,8 @@ export default function UpdateModal() {
     localStorage.setItem("dismissedApkVersion", versionData.version);
     
     // Bezpieczne wywołanie pobierania w tle
-    triggerApkDownload(currentApkUrl);
+    const isBeta = localStorage.getItem("betaProgramEnabled") === "true";
+    triggerApkDownload(currentApkUrl, versionData.version, isBeta);
     setDownloadStarted(true);
   };
 
@@ -202,30 +204,55 @@ export default function UpdateModal() {
                 </div>
               </div>
 
-              {/* KROK 1: OSTRZEŻENIE CHROME O PLIKU SZKODLIWYM */}
-              <div className="p-3.5 bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/30 rounded-2xl text-left space-y-1.5">
-                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
-                  <AlertTriangle size={16} className="shrink-0" />
-                  <span>Krok 1: Zaakceptuj pobieranie w Chrome</span>
-                </div>
-                <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
-                  Przeglądarka wyświetla na dole ekranu lub w belce powiadomień ostrzeżenie:
-                  <br />
-                  <b className="text-rose-700 dark:text-rose-300">„Plik może być szkodliwy. Czy chcesz zachować plik...?”</b>
-                  <br />
-                  👉 <b>Koniecznie kliknij „Zachowaj” lub „Pobierz mimo to”!</b> Bez tego plik nie trafi do folderu Pobrane.
-                </p>
-              </div>
+              {Capacitor.isNativePlatform() ? (
+                /* WIDOK DLA NATYWNEGO ANDROIDA */
+                <>
+                  <div className="p-3.5 bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-left space-y-1.5">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                      <CheckCircle2 size={16} className="shrink-0" />
+                      <span>Pobieranie natywne w toku</span>
+                    </div>
+                    <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
+                      Aplikacja pobiera plik bezpośrednio przez systemowy menedżer pobierania Androida (bez użycia zewnętrznej przeglądarki). Postęp możesz sprawdzić w <b>górnej belce powiadomień</b>.
+                    </p>
+                  </div>
 
-              {/* KROK 2: CO ZROBIĆ GDY ZATARŁO SIĘ NA 99% / BRAK W POBRANYCH */}
-              <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 rounded-2xl text-left space-y-1">
-                <div className="text-amber-800 dark:text-amber-300 font-bold text-xs">
-                  Krok 2: Instalacja z folderu Pobrane
-                </div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Jeśli instalator nie otworzy się sam: otwórz w telefonie aplikację <b>„Pliki” ➔ folder „Pobrane”</b> i kliknij plik <b>.apk</b>. Jeśli plik ma rozszerzenie <code>.crdownload</code>, ściągnij górną belkę powiadomień i potwierdź jego zachowanie.
-                </p>
-              </div>
+                  <div className="p-3.5 bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/30 rounded-2xl text-left space-y-1">
+                    <div className="text-indigo-800 dark:text-indigo-300 font-bold text-xs">
+                      Automatyczne uruchomienie instalatora
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Zaraz po zakończeniu pobierania na ekranie pojawi się systemowe okno z pytaniem: <b>„Czy chcesz zainstalować aktualizację tej aplikacji?”</b>. Jeśli się nie pojawi, dotknij powiadomienia o pobraniu na belce.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                /* WIDOK DLA PRZEGLĄDARKI (CHROME / PWA) */
+                <>
+                  <div className="p-3.5 bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/30 rounded-2xl text-left space-y-1.5">
+                    <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
+                      <AlertTriangle size={16} className="shrink-0" />
+                      <span>Krok 1: Zaakceptuj pobieranie w Chrome</span>
+                    </div>
+                    <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
+                      Przeglądarka wyświetla ostrzeżenie o pliku APK:
+                      <br />
+                      <b className="text-rose-700 dark:text-rose-300">„Plik może być szkodliwy. Czy chcesz zachować plik...?”</b>
+                      <br />
+                      👉 <b>Koniecznie kliknij „Zachowaj” lub „Pobierz mimo to”!</b>
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 rounded-2xl text-left space-y-1">
+                    <div className="text-amber-800 dark:text-amber-300 font-bold text-xs">
+                      Krok 2: Instalacja z folderu Pobrane
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Jeśli plik ma rozszerzenie <code>.crdownload</code>, rozwiń pasek powiadomień i potwierdź jego zachowanie. Następnie otwórz aplikację <b>„Pliki” ➔ „Pobrane”</b> i kliknij pobrany plik .apk.
+                    </p>
+                  </div>
+                </>
+              )}
 
               {/* PRZYCISKI AWARYJNE */}
               <div className="pt-2 flex flex-col gap-2">

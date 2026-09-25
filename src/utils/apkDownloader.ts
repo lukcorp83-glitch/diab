@@ -91,18 +91,45 @@ export async function resolveApkDownloadUrl(): Promise<ApkDownloadInfo> {
   };
 }
 
+import { registerPlugin } from '@capacitor/core';
+
+interface ApkInstallerPluginInterface {
+  downloadAndInstall(options: { url: string; version: string; isBeta: boolean }): Promise<{ success: boolean; downloadId?: number; filename?: string }>;
+  openApkInstaller(options: { path: string }): Promise<{ success: boolean }>;
+}
+
+const ApkInstaller = registerPlugin<ApkInstallerPluginInterface>('ApkInstaller');
+
 /**
  * Bezpiecznie inicjuje pobieranie pliku APK na Androidzie i w przeglądarce.
- * Unika window.location.href, które w PWA i WebView zamraża stronę i blokuje monit Chrome Safe Browsing.
+ * Na Androidzie korzysta z wbudowanego systemowego DownloadManagera (zero zawieszania Chrome na 100%).
+ * W przeglądarce Web/PWA tworzy czyste pobieranie przez element <a> z atrybutem download.
  */
-export function triggerApkDownload(url: string): void {
+export async function triggerApkDownload(url: string, version?: string, isBetaCustom?: boolean): Promise<{ inAppDownload: boolean; success: boolean }> {
+  const isBeta = typeof isBetaCustom === 'boolean' 
+    ? isBetaCustom 
+    : (localStorage.getItem("betaProgramEnabled") === "true");
+
+  const effectiveVersion = version || CURRENT_VERSION;
+
   if (Capacitor.isNativePlatform()) {
     try {
-      window.open(url, '_system');
-    } catch {
-      window.location.href = url;
+      console.log(`[apkDownloader] Uruchamianie wbudowanego pobieracza APK dla wersji ${effectiveVersion} (Beta: ${isBeta})`);
+      const res = await ApkInstaller.downloadAndInstall({
+        url,
+        version: effectiveVersion,
+        isBeta
+      });
+      return { inAppDownload: true, success: res.success };
+    } catch (pluginErr) {
+      console.warn('[apkDownloader] Błąd wbudowanego instalatora APK, uruchamiam fallback systemowy:', pluginErr);
+      try {
+        window.open(url, '_system');
+      } catch {
+        window.location.href = url;
+      }
+      return { inAppDownload: false, success: true };
     }
-    return;
   }
 
   // W przeglądarce Web / PWA:
@@ -111,7 +138,7 @@ export function triggerApkDownload(url: string): void {
   a.href = url;
   a.target = '_blank';
   a.rel = 'noopener noreferrer';
-  a.setAttribute('download', '');
+  a.setAttribute('download', isBeta ? `GlikoControl_${effectiveVersion}-beta.apk` : `GlikoControl_${effectiveVersion}.apk`);
   document.body.appendChild(a);
   a.click();
 
@@ -122,4 +149,6 @@ export function triggerApkDownload(url: string): void {
       // Ignoruj
     }
   }, 1000);
+
+  return { inAppDownload: false, success: true };
 }
