@@ -3,6 +3,7 @@ import {
   getEffectiveIOB as getEffectiveIOBUtils,
   getMealAbsorptionTime,
   calculateCOB,
+  getCumulativeAbsorption,
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 const MaterialYou: any = Capacitor.Plugins?.MaterialYou || registerPlugin("MaterialYou");
@@ -38,7 +39,7 @@ import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPack
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
 import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore";
-import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal } from "./services/preBolusService";
+import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal, checkPreBolusHypoShield } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
@@ -577,13 +578,18 @@ export default function App() {
   // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
   useGlucoseAlerts(logs, userSettings);
 
-  // Automatyczne wykrywanie bolusa z pompy i posiłków z kompensacją opóźnienia
+  // Automatyczne wykrywanie bolusa z pompy, posiłków oraz ochrona Hypo Safety Shield dla aktywnego stopera
   useEffect(() => {
     if (!logs || logs.length === 0) return;
     const latestGlucose = logs.find((l: any) => l.type === 'glucose' || l.type === 'sgv');
     const glValue = latestGlucose?.value ? Math.round(latestGlucose.value) : null;
     const glTrend = latestGlucose?.direction || null;
+    const glDelta = typeof latestGlucose?.delta === 'number' ? latestGlucose.delta : null;
 
+    // 1. Aktywny monitor bezpieczeństwa: skraca stoper i alarmuje, gdy cukier gwałtownie spada
+    checkPreBolusHypoShield(glValue, glTrend, glDelta);
+
+    // 2. Detekcja nowych bolusów z pompy i nowych posiłków
     checkAndNotifyPumpBolus(logs, glValue, glTrend, userSettings);
     checkAndNotifyNewMeal(logs, userSettings);
   }, [logs, userSettings]);
@@ -1238,32 +1244,16 @@ export default function App() {
 
   useEffect(() => {
     const updateProgress = () => {
-      const absorbingMeals = logs
-        .filter((l) => l.type === "meal")
-        .map((m) => {
-          const mWW = m.value !== undefined ? m.value / 10 : (m as any).carbs !== undefined ? (m as any).carbs / 10 : 0;
-          const mWBT = ((m.protein || 0) * 4 + (m.fat || 0) * 9) / 100;
-          const durationH = getMealAbsorptionTime(mWW, mWBT);
-          const durationMs = durationH * 60 * 60 * 1000;
-          const mealStartTime = m.eatenAt || m.timestamp || 0;
-          const endTimeMs = mealStartTime + durationMs;
-          const isCurrentlyAbsorbing = Date.now() < endTimeMs && durationH > 0 && Date.now() >= mealStartTime;
-          return { m, durationH, mealStartTime, endTimeMs, isCurrentlyAbsorbing };
-        })
-        .filter((x) => x.isCurrentlyAbsorbing);
-
-      if (absorbingMeals.length > 0) {
-        absorbingMeals.sort((a, b) => b.endTimeMs - a.endTimeMs);
-        const active = absorbingMeals[0];
-        const ageH = (Date.now() - active.mealStartTime) / (1000 * 60 * 60);
-        setMealProgress(Math.max(0, Math.min(1, ageH / active.durationH)));
+      const state = getCumulativeAbsorption(logs, Date.now());
+      if (state.isAbsorbing) {
+        setMealProgress(state.overallProgress);
       } else {
         setMealProgress(null);
       }
     };
 
     updateProgress();
-    const interval = setInterval(updateProgress, 60000); // Aktualizacja co minutę
+    const interval = setInterval(updateProgress, 30000); // Aktualizacja co 30 sekund
     return () => clearInterval(interval);
   }, [logs, setMealProgress]);
 

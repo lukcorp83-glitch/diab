@@ -3,6 +3,7 @@ import { getEffectiveUid } from '../lib/utils';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAppStore } from '../stores/useAppStore';
 import { motion, AnimatePresence } from "motion/react";
+import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useLogsStore } from '../stores/useLogsStore';
@@ -270,6 +271,7 @@ export default function Dashboard({
   const treatmentMode = settings.treatmentMode ?? 'insulin';
   const isInsulinMode = treatmentMode === 'insulin' || treatmentMode === 'pump';
   const isPumpMode = treatmentMode === 'pump';
+  const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
   const [mlInfo, setMlInfo] = useState<{ accuracy: number, datasetSize: number } | null>(null);
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(initialAction === "add_glucose");
 
@@ -1829,22 +1831,38 @@ export default function Dashboard({
                  <motion.div
                    layout
                    variants={{
-                     hidden: { opacity: 0, y: 12, scale: 0.98 },
+                     hidden: { opacity: 0, y: 16, scale: 0.96 },
                      show: { 
                        opacity: 1, 
                        y: 0, 
                        scale: 1,
                        transition: {
                          type: "spring",
-                         stiffness: 350,
-                         damping: 26
+                         stiffness: 380,
+                         damping: 26,
+                         mass: 0.7
                        }
+                     }
+                   }}
+                   whileTap={!isEditingLayout ? { scale: isNative ? 0.965 : 0.985 } : undefined}
+                   whileHover={!isNative && !isEditingLayout ? { y: -3, transition: { duration: 0.2, ease: "easeOut" } } : undefined}
+                   transition={{
+                     layout: {
+                       type: "spring",
+                       stiffness: 400,
+                       damping: 30
+                     },
+                     scale: {
+                       type: "spring",
+                       stiffness: 420,
+                       damping: 28,
+                       mass: 0.8
                      }
                    }}
                    key={w.id}
                    id={w.id}
                    className={cn(
-                   "relative transition-all overflow-hidden flex flex-col p-2.5", 
+                   "relative overflow-hidden flex flex-col p-2.5 gpu-layer will-change-transform",
                    widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
                    widgetSize.startsWith('2') ? "col-span-2" : "col-span-1",
                    "rounded-[2.6rem]",

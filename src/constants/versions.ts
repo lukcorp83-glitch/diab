@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.49';
+export const CURRENT_VERSION = '6.0.50';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.50",
+    date: "2026-09-25",
+    title: "Hypo Safety Shield, Płynne Animacje Pixel / Material 3 i Odświeżony Trend 30D",
+    changes: [
+      "Wdrożono bezpiecznik medyczny Hypo Safety Shield w stoperze przedposiłkowym (natychmiastowe skrócenie czasu do 0 i alert przy gwałtownym spadku cukru)",
+      "Dodano responsywne, sprzętowo akcelerowane animacje kafelków na Pulpicie w stylu Google Pixel / Material 3 (Material Spring na Androidzie, hover na Web)",
+      "Odświeżono wykres trendu miesięcznego w zakładce GlikoSense: dodano korytarz normy, wskaźniki dziennego TIR i szacowane HbA1c z 30 dni (GMI)",
+      "Zabezpieczono animacje pulpitowe przed niepożądanym ruchem w trybie reorganizacji siatki kafelków",
+      "Dodano pełne dwujęzyczne wsparcie (PL/EN) dla powiadomień i monitów bezpieczeństwa stopera"
+    ]
+  },
+  {
     version: "6.0.49",
     date: "2026-09-22",
     title: "Ustawienia w Pasku Nawigacji, Akceleracja Sprzętowa GPU i Indeksy SQLite",
@@ -65,25 +77,24 @@ export const PWA_VERSIONS: VersionEntry[] = [
     title: "Optymalizacja aplikacji",
     changes: [
       "Optymalizacja aplikacji"
-    ]
-  },
-  {
-    version: "6.0.44",
-    date: "2026-09-09",
-    title: "Połączenie Przełącznika Powiadomień Cukru z Natywnym Paskiem Androida",
-    changes: [
-      "Połączono opcję 'Informacje o cukrach na pasku powiadomień' bezpośrednio z natywnym kodem Androida",
-      "Wyłączenie opcji w profilu natychmiast usuwa ciągłe powiadomienie glikemii (ID: 999) z paska powiadomień i ekranu blokady",
-      "Zachowano 100% ciągłość pracy serwisu w tle (GlikoForegroundService) bez zaśmiecania paska stanu",
-      "Włączenie opcji natychmiast odświeża i przywraca powiadomienie z bieżącym cukrem i wykresem",
-      "Dodano przełącznik powiadomień systemowych również do sekcji Profil ➔ System & Aplikacja",
-      "Automatyczna synchronizacja stanu powiadomień przy każdym uruchomieniu aplikacji"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.50",
+    date: "2026-09-25",
+    title: "Hypo Safety Shield, Płynne Animacje Pixel / Material 3 i Odświeżony Trend 30D",
+    changes: [
+      "Wdrożono bezpiecznik medyczny Hypo Safety Shield w stoperze przedposiłkowym (natychmiastowe skrócenie czasu do 0 i alert przy gwałtownym spadku cukru)",
+      "Dodano responsywne, sprzętowo akcelerowane animacje kafelków na Pulpicie w stylu Google Pixel / Material 3 (Material Spring na Androidzie, hover na Web)",
+      "Odświeżono wykres trendu miesięcznego w zakładce GlikoSense: dodano korytarz normy, wskaźniki dziennego TIR i szacowane HbA1c z 30 dni (GMI)",
+      "Zabezpieczono animacje pulpitowe przed niepożądanym ruchem w trybie reorganizacji siatki kafelków",
+      "Dodano pełne dwujęzyczne wsparcie (PL/EN) dla powiadomień i monitów bezpieczeństwa stopera"
+    ]
+  },
+  {
     version: "6.0.49",
     date: "2026-09-22",
     title: "Ustawienia w Pasku Nawigacji, Akceleracja Sprzętowa GPU i Indeksy SQLite",
@@ -128,19 +139,6 @@ export const APK_VERSIONS: VersionEntry[] = [
     title: "Optymalizacja aplikacji",
     changes: [
       "Optymalizacja aplikacji"
-    ]
-  },
-  {
-    version: "6.0.44",
-    date: "2026-09-09",
-    title: "Połączenie Przełącznika Powiadomień Cukru z Natywnym Paskiem Androida",
-    changes: [
-      "Połączono opcję 'Informacje o cukrach na pasku powiadomień' bezpośrednio z natywnym kodem Androida",
-      "Wyłączenie opcji w profilu natychmiast usuwa ciągłe powiadomienie glikemii (ID: 999) z paska powiadomień i ekranu blokady",
-      "Zachowano 100% ciągłość pracy serwisu w tle (GlikoForegroundService) bez zaśmiecania paska stanu",
-      "Włączenie opcji natychmiast odświeża i przywraca powiadomienie z bieżącym cukrem i wykresem",
-      "Dodano przełącznik powiadomień systemowych również do sekcji Profil ➔ System & Aplikacja",
-      "Automatyczna synchronizacja stanu powiadomień przy każdym uruchomieniu aplikacji"
     ]
   }
 ];

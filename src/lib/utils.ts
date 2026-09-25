@@ -51,6 +51,163 @@ export function getMealAbsorptionTime(ww: number, wbt: number): number {
   return Math.max(carbTime, wbtTime);
 }
 
+/**
+ * Zwraca ułamek intensywności wchłaniania węglowodanów w godzinie `t` od posiłku.
+ * Gwarantuje płynny rozkład ze szczytem zależnym od IG i łagodnym wygasaniem dokładnie do durationH.
+ */
+export function getCarbAbsorptionRate(t: number, durationH: number, gi = 50): number {
+  if (t <= 0 || t >= durationH || durationH <= 0) return 0;
+  // Szczyt glikemii: wysokie IG ~30-45min (0.5-0.75h), niskie IG ~60-90min (1-1.5h)
+  const peakFraction = gi > 70 ? 0.25 : gi < 50 ? 0.45 : 0.35;
+  const peakT = Math.max(0.3, Math.min(durationH * peakFraction, 1.5));
+  if (t <= peakT) {
+    return Math.pow(t / peakT, 1.5);
+  } else {
+    const remaining = (durationH - t) / (durationH - peakT);
+    return Math.max(0, Math.pow(remaining, 1.5));
+  }
+}
+
+/**
+ * Zwraca ułamek intensywności wchłaniania WBT w godzinie `t` od posiłku.
+ * WBT zaczynają uwalniać glukozę po 1-1.5h i trwają do durationH (4-8h).
+ */
+export function getWbtAbsorptionRate(t: number, durationH: number): number {
+  if (t <= 0.5 || t >= durationH || durationH <= 0.5) return 0;
+  const startT = 0.5;
+  const peakT = Math.max(1.5, Math.min(3.0, durationH * 0.45));
+  if (t <= peakT) {
+    return (t - startT) / (peakT - startT);
+  } else {
+    const remaining = (durationH - t) / (durationH - peakT);
+    return Math.max(0, Math.pow(remaining, 1.2));
+  }
+}
+
+export interface ActiveAbsorptionMealInfo {
+  log: LogEntry;
+  mSrc: any;
+  name: string;
+  ww: number;
+  wbt: number;
+  startTime: number;
+  durationH: number;
+  endTime: number;
+}
+
+export interface CumulativeAbsorptionState {
+  activeMeals: ActiveAbsorptionMealInfo[];
+  totalActiveWW: number;
+  totalActiveWBT: number;
+  earliestStartTime: number;
+  latestEndTime: number;
+  overallProgress: number; // 0..1
+  isAbsorbing: boolean;
+}
+
+/**
+ * Analizuje wszystkie wciąż wchłaniające się posiłki (Multi-Meal Engine).
+ */
+export function getCumulativeAbsorption(logs: LogEntry[], currentTime = Date.now()): CumulativeAbsorptionState {
+  if (!logs || logs.length === 0) {
+    return {
+      activeMeals: [],
+      totalActiveWW: 0,
+      totalActiveWBT: 0,
+      earliestStartTime: currentTime,
+      latestEndTime: currentTime,
+      overallProgress: 0,
+      isAbsorbing: false,
+    };
+  }
+
+  // Okno posiłków z ostatnich 10 godzin
+  const windowMs = 10 * 60 * 60 * 1000;
+  const candidates = logs.filter((l) => {
+    const ts = getTs(l.eatenAt || l.timestamp);
+    if (!ts || currentTime - ts > windowMs || currentTime < ts - 60000) return false;
+    return l.type === 'meal' || l.type === 'carbs' || !!l.linkedMeal;
+  });
+
+  const activeMeals: ActiveAbsorptionMealInfo[] = [];
+
+  for (const m of candidates) {
+    const mSrc = m.linkedMeal ? m.linkedMeal : m;
+    const mWW =
+      (mSrc as any).value !== undefined
+        ? Number((mSrc as any).value) / 10
+        : (mSrc as any).carbs !== undefined
+        ? Number((mSrc as any).carbs) / 10
+        : 0;
+    const mWBT = ((Number(mSrc.protein) || 0) * 4 + (Number(mSrc.fat) || 0) * 9) / 100;
+    const durationH = getMealAbsorptionTime(mWW, mWBT);
+    if (durationH <= 0 || (mWW <= 0 && mWBT <= 0)) continue;
+
+    const startTime = getTs(m.eatenAt || m.timestamp);
+    const endTime = startTime + durationH * 60 * 60 * 1000;
+
+    // Czy wciąż się wchłania w danej minucie?
+    if (currentTime >= startTime && currentTime < endTime) {
+      const name =
+        m.type === 'bolus' && m.linkedMeal
+          ? m.linkedMeal.name || 'Posiłek z pompy'
+          : (m as any).name || m.notes || 'Posiłek';
+      activeMeals.push({
+        log: m,
+        mSrc,
+        name,
+        ww: mWW,
+        wbt: mWBT,
+        startTime,
+        durationH,
+        endTime,
+      });
+    }
+  }
+
+  if (activeMeals.length === 0) {
+    return {
+      activeMeals: [],
+      totalActiveWW: 0,
+      totalActiveWBT: 0,
+      earliestStartTime: currentTime,
+      latestEndTime: currentTime,
+      overallProgress: 0,
+      isAbsorbing: false,
+    };
+  }
+
+  const totalActiveWW = activeMeals.reduce((acc, m) => acc + m.ww, 0);
+  const totalActiveWBT = activeMeals.reduce((acc, m) => acc + m.wbt, 0);
+  const earliestStartTime = Math.min(...activeMeals.map((m) => m.startTime));
+  const latestEndTime = Math.max(...activeMeals.map((m) => m.endTime));
+
+  // Ważony postęp trawienia w oparciu o łączną energię (WW + WBT)
+  let totalEnergy = 0;
+  let digestedEnergy = 0;
+
+  for (const m of activeMeals) {
+    const energy = m.ww * 10 + m.wbt * 10; // w jednostkach równoważnika węglowodanów
+    if (energy <= 0) continue;
+    const ageH = (currentTime - m.startTime) / (1000 * 60 * 60);
+    const frac = Math.max(0, Math.min(1, ageH / m.durationH));
+    totalEnergy += energy;
+    digestedEnergy += energy * frac;
+  }
+
+  const overallProgress = totalEnergy > 0 ? Math.max(0, Math.min(1, digestedEnergy / totalEnergy)) : 0;
+
+  return {
+    activeMeals,
+    totalActiveWW,
+    totalActiveWBT,
+    earliestStartTime,
+    latestEndTime,
+    overallProgress,
+    isAbsorbing: true,
+  };
+}
+
 export function calculateIOB(logs: LogEntry[], diaHours: number = 4) {
   const now = Date.now();
   const diaMs = diaHours * 60 * 60 * 1000;

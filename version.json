@@ -1,10 +1,10 @@
 {
-    "version": "6.0.49",
+    "version": "6.0.50",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.49-beta_OTA.apk",
-    "buildNumber": 163,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.50-beta_OTA.apk",
+    "buildNumber": 164,
     "forceUpdate": false,
-    "whatsNew": "Wybór Ustawień jako 4. przycisku dolnego paska, akceleracja sprzętowa GPU i indeksy B-Tree w SQLite (błyskawiczne ładowanie), optymalizacja renderowania wykresów na telefonach.",
-    "whatsNewEn": "Settings as 4th bottom nav button option, hardware GPU acceleration and SQLite B-Tree indexes (instant loading), mobile chart render optimization.",
-    "otaRevision": 323
+    "whatsNew": "Hypo Safety Shield (inteligentna ochrona przed hipoglikemią w stoperze przedposiłkowym – natychmiastowe zerowanie i alert przy gwałtownym spadku cukru), organiczne animacje kafelków na Pulpicie w stylu Google Pixel / Material 3 z rozróżnieniem platform (Web/Android), odświeżony wykres trendu miesięcznego w GlikoSense (korytarz normy, est. HbA1c 30D).",
+    "whatsNewEn": "Hypo Safety Shield (smart hypoglycemia prevention during pre-bolus countdown – immediate fast-forward and alert on rapid glucose drop), organic Google Pixel / Material 3 widget spring animations on Dashboard with Web/Android separation, refreshed Monthly Trend chart in GlikoSense (target corridor, est. HbA1c 30D).",
+    "otaRevision": 324
 }
