@@ -1381,13 +1381,22 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  Haptics.success();
  try {
  const info = await resolveApkDownloadUrl();
- triggerApkDownload(info.url);
+ triggerApkDownload(info.url, info.version, info.isBeta);
+ if (Capacitor.isNativePlatform()) {
+ toast.success(
+ i18n.language?.startsWith('en')
+ ? 'Downloading APK in background... Android installer will launch once ready.'
+ : 'Pobieranie APK w toku... Po ukończeniu system uruchomi instalator.',
+ { duration: 6000 }
+ );
+ } else {
  toast.success(
  i18n.language?.startsWith('en')
  ? 'APK download started! In Chrome, tap "Download anyway".'
  : 'Pobieranie APK rozpoczęte! W Chrome kliknij „Pobierz mimo to”.',
  { duration: 5000 }
  );
+ }
  } catch {
  window.open('https://glikocontrol.pl/pobierz/', '_blank');
  }

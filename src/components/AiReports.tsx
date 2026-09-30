@@ -1,5 +1,5 @@
 import { useAuthStore } from '../stores/useAuthStore';
-import { getEffectiveUid } from '../lib/utils';
+import { getEffectiveUid, cn } from '../lib/utils';
 import { useLogsStore } from "../stores/useLogsStore";
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -99,15 +99,18 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  }
  };
 
- const chartData = useMemo(() => {
+ const { chartData, stats30d } = useMemo(() => {
  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+ const targetMin = settings?.targetMin || 70;
+ const targetMax = settings?.targetMax || 180;
+
  const glucoseLogs = logs.filter(l => {
  if (l.type !== 'glucose' && !l.bg) return false;
  const ts = l.timestamp || new Date(l.createdAt).getTime();
  return typeof ts === 'number' && ts > thirtyDaysAgo;
  });
  
- if (glucoseLogs.length === 0) return [];
+ if (glucoseLogs.length === 0) return { chartData: [], stats30d: null };
 
  const grouped = glucoseLogs.reduce((acc, log) => {
  const ts = log.timestamp || new Date(log.createdAt).getTime();
@@ -120,15 +123,59 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  return acc;
  }, {} as Record<string, number[]>);
 
- return Object.entries(grouped)
- .map(([date, values]) => ({
+ let totalReadings = 0;
+ let totalInRange = 0;
+ let sumValues = 0;
+ const allValues: number[] = [];
+
+ const data = Object.entries(grouped)
+ .map(([date, values]) => {
+ const inRangeCount = values.filter(v => v >= targetMin && v <= targetMax).length;
+ const dayTir = Math.round((inRangeCount / values.length) * 100);
+ const dayAvg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+ const minVal = Math.round(Math.min(...values));
+ const maxVal = Math.round(Math.max(...values));
+
+ totalReadings += values.length;
+ totalInRange += inRangeCount;
+ values.forEach(v => {
+ sumValues += v;
+ allValues.push(v);
+ });
+
+ const dotColor = dayTir >= 70 ? '#10b981' : dayTir >= 50 ? '#f59e0b' : '#f43f5e';
+
+ return {
  date: new Date(date).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }),
- srednia: Math.round(values.reduce((a, b) => a + b, 0) / values.length),
- zakres: [Math.round(Math.min(...values)), Math.round(Math.max(...values))],
+ fullDate: new Date(date).toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' }),
+ srednia: dayAvg,
+ zakres: [minVal, maxVal],
+ min: minVal,
+ max: maxVal,
+ tir: dayTir,
+ dotColor,
  rawDate: date
- }))
+ };
+ })
  .sort((a, b) => a.rawDate.localeCompare(b.rawDate));
- }, [logs]);
+
+ const overallMean = totalReadings > 0 ? Math.round(sumValues / totalReadings) : 0;
+ const overallTir = totalReadings > 0 ? Math.round((totalInRange / totalReadings) * 100) : 0;
+ 
+ // Szacowane HbA1c (GMI: Glucose Management Indicator = (mean + 46.7) / 28.7)
+ const hba1c = overallMean > 0 ? Math.round(((overallMean + 46.7) / 28.7) * 10) / 10 : 0;
+
+ return {
+ chartData: data,
+ stats30d: {
+ mean: overallMean,
+ tir: overallTir,
+ hba1c,
+ targetMin,
+ targetMax
+ }
+ };
+ }, [logs, settings?.targetMin, settings?.targetMax]);
 
  return (
  <>
@@ -137,29 +184,47 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  <MLAnalysisWidget user={user} settings={settings} setTab={setTab} />
  <InfusionPerformanceWidget settings={settings} />
  
- {/* Glucose Trend Chart */}
- {chartData.length > 0 && (
- <div className="glass p-6 rounded-[2.5rem] dark:bg-slate-900 shadow-xl border border-slate-100 dark:border-slate-800">
- <div className="flex items-center gap-2 mb-6">
- <div className="p-2 bg-accent-50 dark:bg-accent-900/30 rounded-xl">
- <TrendingUp size={18} className="text-accent-600 dark:text-accent-400" />
+ {/* Glucose Trend Chart - Theme-Compliant & Redesigned */}
+ {chartData.length > 0 && stats30d && (
+ <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-5 sm:p-6 shadow-sm transition-colors">
+ <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+ <div className="flex items-center gap-2.5">
+ <div className="p-2.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-500/20">
+ <TrendingUp size={18} />
  </div>
  <div>
- <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('auto.trend_miesięczny', { defaultValue: i18n.t('auto.trend_miesieczny', { defaultValue: "Trend Miesięczny" }) })}</h3>
- <p className="text-[9px] font-bold text-slate-400 opacity-60">{t('auto.średni_dobowy_poziom_cukru_mg_dl', { defaultValue: i18n.t('auto.sredni_dobowy_poziom_cukr', { defaultValue: "Średni dobowy poziom cukru (mg/dL)" }) })}</p>
+ <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">{t('auto.trend_miesięczny', { defaultValue: i18n.t('auto.trend_miesieczny', { defaultValue: "Trend Miesięczny" }) })}</h3>
+ <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500">{t('auto.średni_dobowy_poziom_cukru_mg_dl', { defaultValue: i18n.t('auto.sredni_dobowy_poziom_cukr', { defaultValue: "Średni dobowy poziom cukru i rozkład TIR" }) })}</p>
+ </div>
+ </div>
+
+ <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-wider border border-slate-200 dark:border-slate-700/60">
+ <span className={cn(
+ "w-2 h-2 rounded-full",
+ stats30d.tir >= 70 ? "bg-emerald-500" : stats30d.tir >= 50 ? "bg-amber-500" : "bg-rose-500"
+ )} />
+ <span className="text-slate-700 dark:text-slate-300">
+ TIR 30D: <strong className={cn(
+ stats30d.tir >= 70 ? "text-emerald-600 dark:text-emerald-400" : stats30d.tir >= 50 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
+ )}>{stats30d.tir}%</strong>
+ </span>
  </div>
  </div>
  
- <div className="h-48 w-full">
- <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: 192 }} minWidth={100} minHeight={100}>
- <AreaChart data={chartData}>
+ <div className="h-56 w-full select-none">
+ <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: 224 }} minWidth={100} minHeight={100}>
+ <AreaChart data={chartData} margin={{ top: 10, right: 36, left: -22, bottom: 0 }}>
  <defs>
- <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
- <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
- <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+ <linearGradient id="colorAvgMonthly" x1="0" y1="0" x2="0" y2="1">
+ <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
+ <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+ </linearGradient>
+ <linearGradient id="colorRangeMonthly" x1="0" y1="0" x2="0" y2="1">
+ <stop offset="5%" stopColor="#818cf8" stopOpacity={0.25} />
+ <stop offset="95%" stopColor="#818cf8" stopOpacity={0.08} />
  </linearGradient>
  </defs>
- <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.5} />
+ <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" opacity={0.15} />
  <XAxis 
  dataKey="date" 
  axisLine={false} 
@@ -168,41 +233,149 @@ export default function AiReports({ settings, setTab}: { user: any, settings?: U
  interval="preserveStartEnd"
  />
  <YAxis 
- domain={['dataMin - 20', 'dataMax + 20']}
+ domain={['dataMin - 15', 'dataMax + 15']}
  axisLine={false}
  tickLine={false}
  tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
- width={30}
+ width={32}
+ />
+ <ReferenceLine 
+ y={stats30d.targetMax} 
+ stroke="#10b981" 
+ strokeDasharray="4 4" 
+ strokeOpacity={0.6}
+ label={{ position: 'insideTopRight', value: `${stats30d.targetMax}`, fill: '#10b981', fontSize: 9, fontWeight: 800, offset: 4 }} 
+ />
+ <ReferenceLine 
+ y={stats30d.targetMin} 
+ stroke="#10b981" 
+ strokeDasharray="4 4" 
+ strokeOpacity={0.6}
+ label={{ position: 'insideBottomRight', value: `${stats30d.targetMin}`, fill: '#10b981', fontSize: 9, fontWeight: 800, offset: 4 }} 
  />
  <Tooltip 
- contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}
- itemStyle={{ color: '#4f46e5', fontWeight: 800 }}
- labelStyle={{ color: '#64748b', fontWeight: 700, marginBottom: '4px' }}
+ content={({ active, payload }) => {
+ if (!active || !payload || !payload.length) return null;
+ const d = payload[0].payload;
+ return (
+ <div className="bg-slate-900/95 dark:bg-slate-800/95 text-white p-3 rounded-2xl shadow-xl border border-slate-700/50 text-[11px] space-y-1.5 min-w-[140px]">
+ <div className="font-black text-slate-300 text-[10px] uppercase tracking-wider pb-1 border-b border-white/10">
+ {d.fullDate}
+ </div>
+ <div className="flex items-baseline justify-between gap-3">
+ <span className="text-slate-400 font-bold">Średnia:</span>
+ <span className="text-sm font-black text-indigo-300">{d.srednia} mg/dL</span>
+ </div>
+ <div className="flex items-center justify-between gap-3">
+ <span className="text-slate-400 font-bold">TIR dnia:</span>
+ <span className={cn(
+ "font-black px-1.5 py-0.5 rounded text-[10px]",
+ d.tir >= 70 ? "bg-emerald-500/20 text-emerald-400" : d.tir >= 50 ? "bg-amber-500/20 text-amber-400" : "bg-rose-500/20 text-rose-400"
+ )}>
+ {d.tir}%
+ </span>
+ </div>
+ <div className="flex items-center justify-between gap-3 text-[10px] text-slate-400 pt-1 border-t border-white/5">
+ <span>Rozrzut:</span>
+ <span className="font-bold text-slate-200">{d.min} – {d.max}</span>
+ </div>
+ </div>
+ );
+ }}
  />
- <ReferenceLine y={140} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'right', value: '140', fill: '#94a3b8', fontSize: 8, fontWeight: 700 }} />
- <ReferenceLine y={70} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'right', value: '70', fill: '#94a3b8', fontSize: 8, fontWeight: 700 }} />
  <Area 
  name={t('auto.zakres', { defaultValue: 'Zakres (Min - Max)' })}
  type="monotone" 
  dataKey="zakres" 
- stroke="none" 
- fill="#4f46e5" 
- fillOpacity={0.15} 
- animationDuration={2000}
+ stroke="#818cf8"
+ strokeWidth={1}
+ strokeDasharray="2 2"
+ strokeOpacity={0.4}
+ fill="url(#colorRangeMonthly)" 
+ fillOpacity={1} 
+ animationDuration={1200}
  />
  <Area 
  name={t('auto.srednia_dobowa', { defaultValue: 'Średnia dobowa' })}
  type="monotone" 
  dataKey="srednia" 
- stroke="#4f46e5" 
- strokeWidth={3}
- fillOpacity={0} 
- animationDuration={2000}
- dot={{ r: 4, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }}
- activeDot={{ r: 6, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }}
+ stroke="#6366f1" 
+ strokeWidth={2.5}
+ fill="url(#colorAvgMonthly)" 
+ animationDuration={1500}
+ dot={(props: any) => {
+ const { cx, cy, payload } = props;
+ if (!cx || !cy) return null;
+ return (
+ <circle
+ key={`dot-${payload.date}`}
+ cx={cx}
+ cy={cy}
+ r={3.5}
+ fill={payload.dotColor}
+ stroke="#ffffff"
+ strokeWidth={1.5}
+ />
+ );
+ }}
+ activeDot={{ r: 6, fill: '#6366f1', strokeWidth: 2, stroke: '#ffffff' }}
  />
  </AreaChart>
  </ResponsiveContainer>
+ </div>
+
+ <div className="grid grid-cols-3 gap-2.5 mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
+ <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/80 flex flex-col items-center text-center">
+ <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-0.5">
+ Średnia 30D
+ </span>
+ <span className="text-base sm:text-lg font-black text-slate-800 dark:text-white leading-tight">
+ {stats30d.mean}
+ <span className="text-[9px] font-bold text-slate-400 ml-1">mg/dL</span>
+ </span>
+ </div>
+
+ <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/80 flex flex-col items-center text-center">
+ <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-0.5">
+ TIR (W normie)
+ </span>
+ <span className={cn(
+ "text-base sm:text-lg font-black leading-tight",
+ stats30d.tir >= 70 ? "text-emerald-500" : stats30d.tir >= 50 ? "text-amber-500" : "text-rose-500"
+ )}>
+ {stats30d.tir}%
+ </span>
+ </div>
+
+ <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/80 flex flex-col items-center text-center">
+ <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-0.5">
+ Est. HbA1c (30D)
+ </span>
+ <span className={cn(
+ "text-base sm:text-lg font-black leading-tight",
+ stats30d.hba1c <= 6.5 ? "text-emerald-500" : stats30d.hba1c <= 7.5 ? "text-amber-500" : "text-rose-500"
+ )}>
+ {stats30d.hba1c > 0 ? `${stats30d.hba1c}%` : '--'}
+ </span>
+ </div>
+ </div>
+
+ <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-3 text-[9px] font-bold text-slate-400">
+ <span className="flex items-center gap-1">
+ <span className="w-2 h-2 rounded-full bg-emerald-500" /> TIR &ge; 70%
+ </span>
+ <span className="flex items-center gap-1">
+ <span className="w-2 h-2 rounded-full bg-amber-500" /> TIR 50-69%
+ </span>
+ <span className="flex items-center gap-1">
+ <span className="w-2 h-2 rounded-full bg-rose-500" /> TIR &lt; 50%
+ </span>
+ <span className="flex items-center gap-1">
+ <span className="w-3 h-2 rounded bg-indigo-400/30 border border-indigo-400/50" /> Rozrzut Min–Max
+ </span>
+ <span className="flex items-center gap-1 opacity-70">
+ <span className="w-3 border-b-2 border-dashed border-emerald-500" /> Korytarz {stats30d.targetMin}-{stats30d.targetMax}
+ </span>
  </div>
  </div>
  )}

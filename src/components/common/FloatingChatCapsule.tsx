@@ -114,7 +114,7 @@ export default function FloatingChatCapsule({
           setIsOpen(true);
         }}
         className={cn(
-          "fixed bottom-28 right-5 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none",
+          "gpu-layer will-change-transform fixed bottom-28 right-5 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none",
           "border transition-colors duration-200",
           isChild
             ? "bg-gradient-to-tr from-amber-400 to-orange-500 text-white border-white/40 shadow-orange-500/40"
@@ -160,7 +160,7 @@ export default function FloatingChatCapsule({
               exit={{ y: "100%", opacity: 0, scale: 0.96 }}
               transition={{ type: "spring", damping: 28, stiffness: 280 }}
               className={cn(
-                "relative z-10 w-full md:w-[460px] h-[82vh] md:h-[700px] max-h-[90vh]",
+                "gpu-layer will-change-transform relative z-10 w-full md:w-[460px] h-[82vh] md:h-[700px] max-h-[90vh]",
                 "bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100",
                 "rounded-t-[2.2rem] md:rounded-[2.2rem] shadow-2xl overflow-hidden",
                 "border border-slate-200 dark:border-slate-800/80 flex flex-col"

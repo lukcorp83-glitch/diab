@@ -1,8 +1,13 @@
 import { LogEntry, HourlyProfile } from '../types';
 
+/**
+ * Obserwator efektywności bolusów korekcyjnych (MDR & Responsible AI Compliance).
+ * Algorytm NIE wylicza ani NIE narzuca nowej wartości parametru medycznego (ISF/bazy).
+ * Prezentuje wyłącznie retrospektywną statystykę dla pacjenta do dyskusji z lekarzem.
+ */
 export interface AutoTunerResult {
-  suggestionAvailable: boolean;
-  proposedISF: number | null;
+  observationAvailable: boolean;
+  efficiencyPercent: number;
   reasonType: 'decreased_sensitivity' | 'increased_sensitivity' | null;
   timeBlock?: {
     start: string;
@@ -18,14 +23,14 @@ const parseTime = (timeStr: string) => {
 
 export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyProfiles?: HourlyProfile[]): AutoTunerResult => {
   if (!logs || logs.length === 0 || !currentIsf) {
-    return { suggestionAvailable: false, proposedISF: null, reasonType: null };
+    return { observationAvailable: false, efficiencyPercent: 100, reasonType: null };
   }
 
   // Zabezpieczenie przed SPAMem - 48h
   if (typeof window !== 'undefined') {
     const lastTune = localStorage.getItem('lastIsfAutoTuneTime');
     if (lastTune && Date.now() - parseInt(lastTune) < 48 * 60 * 60 * 1000) {
-      return { suggestionAvailable: false, proposedISF: null, reasonType: null };
+      return { observationAvailable: false, efficiencyPercent: 100, reasonType: null };
     }
   }
 
@@ -44,7 +49,7 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
   );
 
   if (insulinLogs.length < 2) {
-    return { suggestionAvailable: false, proposedISF: null, reasonType: null };
+    return { observationAvailable: false, efficiencyPercent: 100, reasonType: null };
   }
 
   let blocks: { start: string, end: string, profileIndex?: number }[] = [];
@@ -83,7 +88,6 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
     let totalActualDrop = 0;
     let validEvaluations = 0;
     
-    // Używamy ISF z profilu użytkownika dla tego bloku, jeśli istnieje, w przeciwnym razie głównego ISF
     let blockIsf = currentIsf;
     if (block.profileIndex !== undefined && hourlyProfiles && hourlyProfiles[block.profileIndex]?.isf) {
       blockIsf = hourlyProfiles[block.profileIndex].isf;
@@ -122,26 +126,28 @@ export const detectIsfChanges = (logs: LogEntry[], currentIsf: number, hourlyPro
       }
     });
 
-    if (validEvaluations >= 2) {
+    if (validEvaluations >= 2 && totalExpectedDrop > 0) {
       const averageEfficiency = totalActualDrop / totalExpectedDrop;
 
-      if (averageEfficiency < 0.8 && averageEfficiency > 0.1) {
-        const calculatedNewIsf = Math.round(blockIsf * averageEfficiency);
-        const proposedISF = Math.max(calculatedNewIsf, Math.round(blockIsf * 0.75));
-        if (proposedISF < blockIsf) {
-          return { suggestionAvailable: true, proposedISF, reasonType: 'decreased_sensitivity', timeBlock: block };
-        }
+      if (averageEfficiency < 0.78 && averageEfficiency > 0.1) {
+        return { 
+          observationAvailable: true, 
+          efficiencyPercent: Math.round(averageEfficiency * 100), 
+          reasonType: 'decreased_sensitivity', 
+          timeBlock: block 
+        };
       }
 
-      if (averageEfficiency > 1.25 && averageEfficiency < 3.0) {
-        const calculatedNewIsf = Math.round(blockIsf * averageEfficiency);
-        const proposedISF = Math.min(calculatedNewIsf, Math.round(blockIsf * 1.3));
-        if (proposedISF > blockIsf) {
-          return { suggestionAvailable: true, proposedISF, reasonType: 'increased_sensitivity', timeBlock: block };
-        }
+      if (averageEfficiency > 1.28 && averageEfficiency < 3.0) {
+        return { 
+          observationAvailable: true, 
+          efficiencyPercent: Math.round(averageEfficiency * 100), 
+          reasonType: 'increased_sensitivity', 
+          timeBlock: block 
+        };
       }
     }
   }
 
-  return { suggestionAvailable: false, proposedISF: null, reasonType: null };
+  return { observationAvailable: false, efficiencyPercent: 100, reasonType: null };
 };

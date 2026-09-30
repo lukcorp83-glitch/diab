@@ -378,9 +378,7 @@ export default function Profile({
  const [isAnalyzingDrug, setIsAnalyzingDrug] = useState(false);
  const [cleaning, setCleaning] = useState(false);
  const [cleaningResult, setCleaningResult] = useState<string | null>(null);
- const [auditLoading, setAuditLoading] = useState(false);
- const [auditResult, setAuditResult] = useState<string | null>(null);
- const [tdiInputValue, setTdiInputValue] = useState<string>("");
+  const [tdiInputValue, setTdiInputValue] = useState<string>("");
 
  const storeCategory = useAppStore((state) => state.profileCategory);
  const setStoreCategory = useAppStore((state) => state.setProfileCategory);
@@ -609,7 +607,7 @@ export default function Profile({
  },
  {
  id: "system",
- label: i18n.t('auto.system', { defaultValue: 'System' }),
+ label: t('profile.tab_system', { defaultValue: 'Ustawienia' }),
  sub: i18n.t('auto.wyglad_inne', { defaultValue: i18n.t('auto.wyglad_inne', { defaultValue: "Wygląd & Inne" }) }),
  icon: <Settings size={24} />,
  color: "bg-slate-600",
@@ -667,24 +665,7 @@ export default function Profile({
     toast.success(i18n.t("auto.przywrocono_domyslna_kolejnosc", { defaultValue: "Przywrócono domyślny układ kafelków" }));
   };
  
- const performTherapyAudit = async () => {
- if (auditLoading) return;
- setAuditLoading(true);
- setAuditResult(null);
- Haptics.medium();
- try {
- const result = await geminiService.getMasterAnalysis(logs);
- setAuditResult(result);
- toast.success("Audyt terapii wygenerowany!");
- Haptics.success();
- } catch (err) {
- console.error("Therapy Audit Failed:", err);
- toast.error(i18n.t('auto.nie_udalo_sie_wygenerowac_audy', { defaultValue: i18n.t('auto.nie_udalo_sie_wygenerowac', { defaultValue: "Nie udało się wygenerować audytu." }) }));
- } finally {
- setAuditLoading(false);
- }
- };
- const scrollTabs = (dir: "left" | "right") => {
+  const scrollTabs = (dir: "left" | "right") => {
  if (tabsRef.current) {
  const scrollAmount = 200;
  tabsRef.current.scrollBy({
@@ -1742,7 +1723,7 @@ export default function Profile({
  color: "text-green-500 bg-green-500/10",
  },
  { id: "notifications", label: i18n.t('auto.centrum_powiadomien', { defaultValue: "Centrum powiadomień" }), icon: <Bell size={14} />, color: "text-amber-500 bg-amber-500/10" },
- { id: "system", label: i18n.t('auto.system', { defaultValue: 'System' }), icon: <Settings size={14} />, color: "text-slate-500 bg-slate-500/10" },
+ { id: "system", label: t('profile.tab_system', { defaultValue: 'Ustawienia' }), icon: <Settings size={14} />, color: "text-slate-500 bg-slate-500/10" },
  ].map((cat) => (
  <button
  key={cat.id}

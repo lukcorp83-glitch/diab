@@ -531,7 +531,7 @@ export default function DevicePairing({
  <div className="text-left">
  <h4 className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">
  
- {t('auto.blokada_terapii_dziecko', { defaultValue: 'Blokada terapii (Dziecko)' })}
+ {t('auto.blokada_terapii_dziecko', { defaultValue: 'Blokada edycji profilu (Dziecko)' })}
  </h4>
  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold leading-tight">
  
@@ -677,7 +677,7 @@ export default function DevicePairing({
  },
  {
  key: 'canEditTherapySettings',
- title: t('auto.zmiana_parametrow_terapii', { defaultValue: 'Zmiana parametrów terapii (Współczynniki)' }),
+ title: t('auto.zmiana_parametrow_terapii', { defaultValue: 'Zmiana parametrów profilu (Współczynniki)' }),
  desc: t('auto.edycja_icr_isf_i_zakresow_glikemii', { defaultValue: 'Modyfikacja przeliczników ICR, korekty ISF i celów cukru' }),
  icon: <Sliders size={15} className="text-amber-500" />
  },

@@ -285,7 +285,7 @@ export function AppLayout({
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
                       <span>v{APP_VERSION}</span>
-                      {IS_BETA_CHANNEL && (
+                      {(IS_BETA_CHANNEL || userSettings?.betaProgram) && (
                         <span className="px-1 py-0.2 text-[6.5px] font-black uppercase tracking-wider rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/35">
                           BETA
                         </span>

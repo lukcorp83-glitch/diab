@@ -684,8 +684,8 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
             rules.pkParams.optimalLagMinutes = optimalLagMinutes;
             const isEn = i18n.language && i18n.language.startsWith('en');
             insights.push(isEn
-                ? `⏱️ Pre-Bolus Learner: GlikoSense 4.1 measured that insulin starts lowering your sugar after approx. ${optimalLagMinutes} min. The pre-bolus timer has been calibrated!`
-                : `⏱️ Pre-Bolus Learner: GlikoSense 4.1 zmierzył, że insulina zaczyna zbijać Twój cukier po ok. ${optimalLagMinutes} min. Skalibrowałem stoper przedposiłkowy!`);
+                ? `⏱️ Pre-Bolus Learner: GlikoSense observed initial glucose response approx. ${optimalLagMinutes} min after bolus. Pre-bolus timer guidance updated.`
+                : `⏱️ Pre-Bolus Learner: GlikoSense zaobserwował początek reakcji glikemii po ok. ${optimalLagMinutes} min od podania. Zaktualizowano orientacyjny czas stopera przedposiłkowego.`);
         } else {
             rules.pkParams.optimalLagMinutes = optimalLagMinutes;
         }
@@ -1324,7 +1324,10 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     const threeHoursAgoForBasal = latestTimeMs - (3 * 60 * 60 * 1000);
     const recentMealsOrBoluses = sorted.filter(l => (l.type === 'meal' || l.type === 'bolus' || l.type === 'insulin') && (l.timestamp || new Date(l.createdAt).getTime()) >= threeHoursAgoForBasal);
     if (recentMealsOrBoluses.length === 0 && lastTrendNum > 3 && latestBg > 130 && latestBg < 200 && currentIob === 0 && currentCob === 0) {
-        insights.push(i18n.t('auto.nic_nie_bylo_jedzone_nie_bylo', { defaultValue: i18n.t('auto.nic_nie_bylo_jedzone_nie', { defaultValue: i18n.t('auto.nic_nie_bylo_jedzone_nie', { defaultValue: "🧗 Nic nie było jedzone, nie było insuliny, a mimo to pomalutku brniemy w góry. Tzw. pusta luka - sprawdź, czy Ci lekko baza nie nawala!" }) }) }));
+        const isEnBasal = i18n.language && i18n.language.startsWith('en');
+        insights.push(isEnBasal
+            ? "🧗 Glucose is rising slowly without recent food or active insulin (fasting drift). Consider discussing baseline/basal settings with your doctor."
+            : "🧗 Obserwuję powolny wzrost glikemii bez posiłku i aktywnej insuliny (luka metaboliczna). Warto skonsultować z lekarzem ustawienia przepływu podstawowego (bazy).");
     }
 
     if (currentFob > 15 || currentPob > 20) insights.push(i18n.t('auto.mam_u_siebie_zapisana_mase_tlu', { defaultValue: i18n.t('auto.mam_u_siebie_zapisana_mas', { defaultValue: i18n.t('auto.mam_u_siebie_zapisana_mas', { defaultValue: "⚠️ Mam u siebie zapisaną masę tłuszczów lub białek czekającą by się strawić! Zwracaj uwagę na ukryte wyskoki potraw za ok. 3-4 godziny - efekt pizzy wisi w powietrzu!" }) }) }));

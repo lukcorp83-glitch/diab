@@ -19,6 +19,7 @@ export interface PreBolusTimerState {
   bolusUnits?: number;
   elapsedSeconds: number;
   isReady: boolean;
+  hypoShieldTriggered?: boolean;
 }
 
 /**
@@ -48,7 +49,7 @@ export function calculatePreBolusWaitTime(
   if (glucoseValue < 80) {
     return {
       waitMinutes: 0,
-      reason: i18n.t('bolus.timing_hypo', { defaultValue: '⚠️ Niski cukier! Zjedz posiłek natychmiast, bez czekania.' })
+      reason: i18n.t('bolus.timing_hypo', { defaultValue: '⚠️ Niska glikemia – sugerowane natychmiastowe spożycie węglowodanów przed ewentualną insuliną.' })
     };
   } else if (glucoseValue <= 100) {
     // 80 - 100: niska norma
@@ -316,7 +317,8 @@ export function getPreBolusTimerState(): PreBolusTimerState {
         targetTime: 0,
         startTime: 0,
         elapsedSeconds: 0,
-        isReady: false
+        isReady: false,
+        hypoShieldTriggered: false
       };
     }
 
@@ -336,7 +338,8 @@ export function getPreBolusTimerState(): PreBolusTimerState {
       startTime,
       bolusUnits: parsed.bolusUnits,
       elapsedSeconds,
-      isReady
+      isReady,
+      hypoShieldTriggered: !!parsed.hypoShieldTriggered
     };
   } catch (e) {
     return {
@@ -346,9 +349,133 @@ export function getPreBolusTimerState(): PreBolusTimerState {
       targetTime: 0,
       startTime: 0,
       elapsedSeconds: 0,
-      isReady: false
+      isReady: false,
+      hypoShieldTriggered: false
     };
   }
+}
+
+/**
+ * Monitor bezpieczeństwa Hypo Safety Shield dla stopera przedposiłkowego.
+ * Jeśli stoper aktywnie odlicza, a cukier gwałtownie spada lub zbliża się do normy/hipoglikemii,
+ * natychmiast skraca czas oczekiwania do 0 i alarmuje użytkownika.
+ */
+export function checkPreBolusHypoShield(
+  currentGlucose: number | null,
+  currentTrend: string | null,
+  delta?: number | null
+): boolean {
+  if (currentGlucose === null || currentGlucose === undefined || isNaN(currentGlucose) || currentGlucose <= 0) {
+    return false;
+  }
+
+  const timerState = getPreBolusTimerState();
+  // Sprawdzamy czy stoper jest w ogóle aktywny, czy odlicza (nie jest jeszcze isReady)
+  if (!timerState.active || timerState.remainingSeconds <= 0 || timerState.isReady) {
+    return false;
+  }
+
+  const normTrend = (currentTrend || '').toLowerCase().trim();
+  const isFallingTrend = normTrend.includes('down') || 
+    normTrend === '↓' || normTrend === '↓↓' || normTrend === '⇊' || normTrend === '⇣' ||
+    normTrend === '↘' || normTrend === '⬊' || normTrend.includes('fall') ||
+    normTrend === '-1' || normTrend === '-2' || normTrend === '-3' || normTrend.startsWith('--') ||
+    (typeof delta === 'number' && delta <= -1.2);
+
+  const isRapidFall = normTrend.includes('doubledown') || normTrend === '↓↓' || normTrend === '⇊' ||
+    normTrend === '-2' || normTrend === '-3' || normTrend.startsWith('--') ||
+    (typeof delta === 'number' && delta <= -2.5);
+
+  // Warunki wyzwolenia Hypo Safety Shield:
+  // 1. Cukier w dolnej granicy (<= 100 mg/dL) ze spadkiem
+  // 2. Bezwzględna granica bezpieczeństwa (< 90 mg/dL) niezależnie od strzałki
+  // 3. Gwałtowny zjazd glikemii (Rapid Fall) przy cukrze <= 140 mg/dL
+  const shouldTrigger = 
+    (currentGlucose <= 100 && isFallingTrend) ||
+    (currentGlucose < 90) ||
+    (currentGlucose <= 140 && isRapidFall);
+
+  if (!shouldTrigger) {
+    return false;
+  }
+
+  // Zabezpieczenie przed wielokrotnym spamowaniem alertem w tej samej sesji stopera
+  const lastShieldTrigger = sessionStorage.getItem('prebolus_hypo_shield_triggered_time');
+  const now = Date.now();
+  if (lastShieldTrigger && (now - Number(lastShieldTrigger)) < 5 * 60 * 1000) {
+    return false;
+  }
+  sessionStorage.setItem('prebolus_hypo_shield_triggered_time', now.toString());
+
+  console.warn(`[HypoSafetyShield] Fast-forwarding pre-bolus timer! Glucose: ${currentGlucose}, Trend: ${currentTrend}, Delta: ${delta}`);
+
+  // Natychmiastowe skrócenie stopera do 0 (gotowe do posiłku)
+  const saved = localStorage.getItem('prebolus_timer_state');
+  let updatedState = {
+    ...timerState,
+    targetTime: now - 1000,
+    remainingSeconds: 0,
+    isReady: true,
+    hypoShieldTriggered: true
+  };
+
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      updatedState = {
+        ...parsed,
+        targetTime: now - 1000,
+        hypoShieldTriggered: true
+      };
+      if (parsed.startTime) {
+        markBolusAsCompleted(parsed.startTime);
+      }
+    } catch (e) {}
+  }
+
+  localStorage.setItem('prebolus_timer_state', JSON.stringify(updatedState));
+
+  // Haptyka ostrzegawcza
+  Haptics.warning();
+
+  // Wizualny toast dla użytkownika
+  const trendArrow = currentTrend ? ` ${currentTrend}` : (isFallingTrend ? ' ↓' : '');
+  toast.error(
+    i18n.t('bolus.hypo_shield_toast', {
+      glucose: Math.round(currentGlucose),
+      trend: trendArrow,
+      defaultValue: `🚨 Wykryto spadek cukru (${Math.round(currentGlucose)} mg/dL${trendArrow})! Stoper skrócony – zjedz posiłek natychmiast, aby uniknąć hipoglikemii.`
+    }),
+    {
+      duration: 10000,
+      icon: '🚨',
+      style: {
+        background: '#ef4444',
+        color: '#ffffff',
+        fontWeight: 'bold',
+        borderRadius: '1.2rem',
+        padding: '16px'
+      }
+    }
+  );
+
+  // Natychmiastowa aktualizacja paska stanu i powiadomień w Androidzie
+  try {
+    NotificationBridge.startLiveTimer({
+      targetTime: now - 1000,
+      title: i18n.t('bolus.hypo_shield_notif_title', { defaultValue: 'Posiłek natychmiast! 🚨' }),
+      text: i18n.t('bolus.hypo_shield_notif_desc', {
+        glucose: Math.round(currentGlucose),
+        defaultValue: `Wykryto spadek glikemii (${Math.round(currentGlucose)} mg/dL). Stoper zakończony – zjedz od razu!`
+      }),
+      id: 777
+    }).catch(() => {});
+  } catch (e) {}
+
+  // Emisja zdarzenia do UI (np. pigułka DynamicActionCapsule natychmiast zmienia kolor na gotowy do posiłku)
+  window.dispatchEvent(new CustomEvent('prebolus_timer_update', { detail: getPreBolusTimerState() }));
+
+  return true;
 }
 
 /**

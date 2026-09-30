@@ -17,7 +17,7 @@ import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { getEffectiveUid, getMealAbsorptionTime, pluralize } from "../lib/utils";
+import { getEffectiveUid, getMealAbsorptionTime, getCumulativeAbsorption, getCarbAbsorptionRate, getWbtAbsorptionRate, pluralize } from "../lib/utils";
 import { requireParentalAuth } from "../lib/childPermissions";
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 
@@ -608,53 +608,34 @@ export default function MealPlate({
  return () => clearInterval(timer);
  }, []);
 
- const activeMeal = useMemo(() => {
- if (!logs) return null;
- const meals = logs.filter((l) => l.type === "meal" || l.type === "carbs" || l.linkedMeal);
- if (meals.length === 0) return null;
+  const cumulativeAbsorption = useMemo(() => {
+    return getCumulativeAbsorption(logs || [], currentTime);
+  }, [logs, currentTime]);
 
- // Przetwarzamy wszystkie posiłki, obliczając ich czas zakończenia wchłaniania (end time)
- const mealsWithEndTime = meals.map((m) => {
- const mSrc = m.linkedMeal ? m.linkedMeal : m;
- if (!mSrc) return { m, endTimeMs: 0, isCurrentlyAbsorbing: false };
+  const activeMeal = useMemo(() => {
+    if (!logs) return null;
 
- const mWW =
- (mSrc as any).value !== undefined
- ? (mSrc as any).value / 10
- : (mSrc as any).carbs !== undefined
- ? (mSrc as any).carbs / 10
- : 0;
- const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
+    // Jeśli trwa wchłanianie posiłków, preferujemy najświeższy aktywny posiłek jako reprezentanta głównego
+    if (cumulativeAbsorption.isAbsorbing && cumulativeAbsorption.activeMeals.length > 0) {
+      const sortedByLatest = [...cumulativeAbsorption.activeMeals].sort((a, b) => b.startTime - a.startTime);
+      return sortedByLatest[0].log;
+    }
 
- const absorptionTimeHr = getMealAbsorptionTime(mWW, mWBT);
- const endTimeMs = (m.timestamp || 0) + absorptionTimeHr * 60 * 60 * 1000;
- const isCurrentlyAbsorbing = currentTime < endTimeMs;
+    // Jeśli żaden posiłek się obecnie nie wchłania, a ustawienie pokazuje widżet – weź ostatni posiłek
+    if (settings?.showMealWidget) {
+      const meals = logs.filter((l) => l.type === "meal" || l.type === "carbs" || l.linkedMeal);
+      if (meals.length > 0) {
+        const sorted = [...meals].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        return sorted[0];
+      }
+    }
 
- return { m, endTimeMs, isCurrentlyAbsorbing };
- });
-
- // Wybieramy te posiłki, których wchłanianie wciąż trwa
- const absorbingMeals = mealsWithEndTime.filter((x) => x.isCurrentlyAbsorbing);
-
- if (absorbingMeals.length > 0) {
- // Wybieramy ten, którego wchłanianie kończy się najpóźniej w przyszłości
- absorbingMeals.sort((a, b) => b.endTimeMs - a.endTimeMs);
- return absorbingMeals[0].m;
- }
-
- // Jeśli żaden posiłek się obecnie nie wchłania, a ustawienie pokazuje widżet
- if (settings?.showMealWidget) {
- const sortedMeals = [...mealsWithEndTime].sort((a, b) => (b.m.timestamp || 0) - (a.m.timestamp || 0));
- return sortedMeals.length > 0 ? sortedMeals[0].m : null;
- }
-
- return null;
-  }, [logs, settings?.showMealWidget, currentTime]);
+    return null;
+  }, [logs, cumulativeAbsorption, settings?.showMealWidget]);
 
   const activeBolus = useMemo(() => {
     if (!logs || !activeMeal) return null;
 
-    // If the active meal is actually a bolus with a linked meal, it IS the bolus
     if (activeMeal.type === "bolus" || (activeMeal.type as string) === "insulin") {
       return activeMeal;
     }
@@ -674,175 +655,95 @@ export default function MealPlate({
   }, [logs, activeMeal]);
 
   const activeChartData = useMemo(() => {
-    if (!activeMeal) return [];
+    if (!cumulativeAbsorption.isAbsorbing || cumulativeAbsorption.activeMeals.length === 0) {
+      return [];
+    }
 
-    const carbSrc: any =
-      activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
+    const { activeMeals, earliestStartTime, latestEndTime, totalActiveWW, totalActiveWBT } = cumulativeAbsorption;
 
-    // Default to WW and WBT from activeMeal
-    const WW =
-      carbSrc?.value !== undefined
-        ? carbSrc.value / 10
-        : carbSrc?.carbs !== undefined
-        ? carbSrc.carbs / 10
-        : 0;
-    const WBT = ((carbSrc?.protein || 0) * 4 + (carbSrc?.fat || 0) * 9) / 100;
- const gI = 50;
+    // Pobierz wszystkie bolusy w oknie czasowym aktywnych posiłków
+    const windowStart = earliestStartTime - 1000 * 60 * 60; // 1h przed pierwszym posiłkiem
+    const windowEnd = latestEndTime;
+    const relevantBoluses = (logs || []).filter(
+      (l) => (l.type === "bolus" || (l.type as string) === "insulin") &&
+             (l.timestamp || 0) >= windowStart - 1000 * 60 * 60 &&
+             (l.timestamp || 0) <= windowEnd
+    );
+    const bgLogs = (logs || [])
+      .filter((l) => l.type === "glucose")
+      .sort((a, b) => b.timestamp - a.timestamp);
 
- const data = [];
+    const insulinProfile: Record<number, number> = {
+      0: 0,
+      0.5: 0.15,
+      1.0: 0.35,
+      1.5: 0.25,
+      2.0: 0.15,
+      2.5: 0.08,
+      3.0: 0.02,
+      3.5: 0.0,
+      4.0: 0.0,
+    };
 
- const insulinProfile = {
- 0: 0,
- 0.5: 0.15,
- 1.0: 0.35,
- 1.5: 0.25,
- 2.0: 0.15,
- 2.5: 0.08,
- 3.0: 0.02,
- 3.5: 0.0,
- 4.0: 0.0,
- };
+    const data = [];
+    const stepMs = 30 * 60 * 1000; // krok co 30 minut
 
- const rules = (() => {
- try { return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}'); } catch { return {}; }
- })();
- const pkFast = rules.pkParams?.fastCarbDuration || 1.5;
- const pkNormal = rules.pkParams?.normalCarbDuration || 3.0;
- const pkSlow = rules.pkParams?.slowCarbDuration || 5.0;
+    // Zaczynamy 30 min przed pierwszym posiłkiem, a kończymy dokładnie na latestEndTime (+30m bufor)
+    const startTimeMs = Math.floor((earliestStartTime - stepMs) / stepMs) * stepMs;
+    const endTimeMs = Math.ceil((latestEndTime + stepMs / 2) / stepMs) * stepMs;
 
- const getCarbAbsorption = (t: number, gi: number) => {
- let multiplier = 1.0;
- if (gi > 70) multiplier = pkFast / 1.5;
- else if (gi < 50) multiplier = pkSlow / 5.0;
- else multiplier = pkNormal / 3.0;
+    for (let pointTime = startTimeMs; pointTime <= endTimeMs; pointTime += stepMs) {
+      let totalMealImpact = 0;
+      let totalInsImpact = 0;
 
- let peakT = (gi > 70 ? 0.75 : gi < 50 ? 1.5 : 1.0) * multiplier;
- let duration = 1.5 * multiplier;
- return Math.max(0, 1 - Math.pow((t - peakT) / duration, 2));
- };
+      // 1. Wpływ wszystkich aktywnych posiłków w tym punkcie czasowym
+      for (const m of activeMeals) {
+        const timeFromMealH = (pointTime - m.startTime) / (1000 * 60 * 60);
+        if (timeFromMealH >= 0 && timeFromMealH <= m.durationH) {
+          const carbRate = getCarbAbsorptionRate(timeFromMealH, m.durationH, 50) * m.ww;
+          const wbtRate = getWbtAbsorptionRate(timeFromMealH, m.durationH) * m.wbt;
+          totalMealImpact += (carbRate + wbtRate) * 10;
+        }
+      }
 
- const getWbtAbsorption = (t: number) => {
- let multiplier = pkSlow / 5.0;
- let adjT = t / multiplier;
- if (adjT < 1) return 0;
- if (adjT < 3) return (adjT - 1) * 0.5;
- return Math.max(0, 1 - (adjT - 3) * 0.5);
- };
+      // 2. Wpływ bolusów w tym punkcie czasowym
+      for (const b of relevantBoluses) {
+        const bVal = Number(b.value) || 0;
+        const timeFromBolusH = (pointTime - (b.timestamp || 0)) / (1000 * 60 * 60);
+        const step = Math.round(timeFromBolusH * 2) / 2;
+        if (step >= 0 && step <= 4 && insulinProfile[step] !== undefined) {
+          totalInsImpact += insulinProfile[step] * bVal;
+        }
+      }
 
- // Find all meals and boluses within 6h window before activeMeal
- const recentMeals = logs.filter(
- (l) =>
- (l.type === "meal" || (l.type as string) === "carbs" || l.linkedMeal) &&
- (activeMeal.timestamp || 0) - (l.timestamp || 0) < 1000 * 60 * 60 * 6,
- );
- const recentBoluses = logs.filter(
- (l) =>
- (l.type === "bolus" || (l.type as string) === "insulin") &&
- Math.abs((activeMeal.timestamp || 0) - (l.timestamp || 0)) <
- 1000 * 60 * 60 * 6,
- );
- const bgLogs = logs
- .filter((l) => l.type === "glucose")
- .sort((a, b) => b.timestamp - a.timestamp);
+      // 3. Najbliższy cukier w zasięgu 15 min (tylko dla punktów w czasie teraźniejszym/przeszłym)
+      let Cukier = null;
+      if (pointTime <= currentTime + 15 * 60000) {
+        const closestBg = bgLogs.find(
+          (l) => Math.abs(l.timestamp - pointTime) < 1000 * 60 * 15,
+        );
+        if (closestBg) {
+          Cukier = Number(closestBg.value);
+        }
+      }
 
- let maxChartHoursActive = 2;
- const maxCarbMultiplierActive = gI > 70 ? pkFast / 1.5 : gI < 50 ? pkSlow / 5.0 : pkNormal / 3.0;
- const maxCarbPeakActive = gI > 70 ? 0.75 : gI < 50 ? 1.5 : 1.0;
- const maxCarbTimeActive = WW > 0 ? (maxCarbPeakActive + 1.5) * maxCarbMultiplierActive : 0;
- const maxWbtTimeActive = WBT > 0 ? 5 * (pkSlow / 5.0) : 0;
- maxChartHoursActive = Math.max(maxCarbTimeActive, maxWbtTimeActive, 2);
- if (recentBoluses.length > 0) maxChartHoursActive = Math.max(maxChartHoursActive, 4);
- maxChartHoursActive = Math.ceil(maxChartHoursActive * 2) / 2;
- if (maxChartHoursActive > 8) maxChartHoursActive = 8;
+      const pointDate = new Date(pointTime);
+      data.push({
+        time: pointDate.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        Posiłek: Math.round(totalMealImpact * 10) / 10,
+        Insulina: -Math.round(totalInsImpact * 10),
+        Netto: Math.round((totalMealImpact - totalInsImpact * 10) * 10) / 10,
+        Cukier,
+        WW: totalActiveWW,
+        WBT: totalActiveWBT,
+      });
+    }
 
- for (let currentHr = -1; currentHr <= maxChartHoursActive; currentHr += 0.5) {
- let totalMealImpact = 0;
- let totalInsImpact = 0;
-
- const chartTime = new Date(
- (activeMeal.timestamp || 0) + currentHr * 60 * 60 * 1000,
- );
-
- // Meal Impacts
- for (const m of recentMeals) {
- const mSrc: any = m.linkedMeal ? m.linkedMeal : m;
- if (!mSrc) continue;
- const mWW =
- mSrc.value !== undefined
- ? Number(mSrc.value) / 10
- : mSrc.carbs !== undefined
- ? mSrc.carbs / 10
- : 0;
- const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
-
- // Relative age in hours for this meal at this chart point
- const relativeAgeHr =
- (chartTime.getTime() - (m.timestamp || 0)) / (1000 * 60 * 60);
-
- if (relativeAgeHr >= 0 && relativeAgeHr <= 10) {
- let tCarbProfile = 0;
- for (let step = 0; step <= 8; step += 0.5)
- tCarbProfile += getCarbAbsorption(step, gI);
- let tWbtProfile = 0;
- for (let step = 0; step <= 8; step += 0.5)
- tWbtProfile += getWbtAbsorption(step);
-
- let c =
- tCarbProfile > 0
- ? (getCarbAbsorption(relativeAgeHr, gI) / tCarbProfile) * mWW
- : 0;
- let w =
- tWbtProfile > 0
- ? (getWbtAbsorption(relativeAgeHr) / tWbtProfile) * mWBT
- : 0;
-
- totalMealImpact += c + w;
- }
- }
-
- // Insulin Impacts
- for (const b of recentBoluses) {
- const bVal = Number(b.value) || 0;
- const relativeAgeHr =
- (chartTime.getTime() - (b.timestamp || 0)) / (1000 * 60 * 60);
- // Find nearest 0.5 step
- const step = Math.round(relativeAgeHr * 2) / 2;
- if (
- step >= 0 &&
- step <= 4 &&
- (insulinProfile as any)[step] !== undefined
- ) {
- totalInsImpact += (insulinProfile as any)[step] * bVal;
- }
- }
-
- // Find closest BG within 15 mins for historical points
- let Cukier = null;
- if (chartTime.getTime() <= Date.now() + 15 * 60000) {
- const closestBg = bgLogs.find(
- (l) => Math.abs(l.timestamp - chartTime.getTime()) < 1000 * 60 * 15,
- );
- if (closestBg) {
- Cukier = Number(closestBg.value);
- }
- }
-
- data.push({
- time: chartTime.toLocaleTimeString([], {
- hour: "2-digit",
- minute: "2-digit",
- }),
- Posiłek: Math.round(totalMealImpact * 10),
- Insulina: -Math.round(totalInsImpact * 10),
- Netto: Math.round((totalMealImpact - totalInsImpact) * 10),
- Cukier: Cukier,
- WW,
- WBT,
- });
- }
-
- return data;
- }, [activeMeal, activeBolus, plate]);
+    return data;
+  }, [cumulativeAbsorption, logs, currentTime]);
 
  const projectedChartData = useMemo(() => {
  const totalWeightsWithGi = plate.filter(i => typeof i.gi === 'number').reduce((s, i) => s + i.weight, 0);
@@ -1542,38 +1443,29 @@ export default function MealPlate({
   fill="transparent"
   strokeDasharray="138.2"
   strokeDashoffset={
-  138.2 *
-  (() => {
-  if (!activeMeal) return 0;
-  const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
-  if (!mSrc) return 0;
-  const mWW = (mSrc as any).value !== undefined ? (mSrc as any).value / 10 : (mSrc as any).carbs !== undefined ? (mSrc as any).carbs / 10 : 0;
-  const mWBT = ((mSrc.protein || 0) * 4 + (mSrc.fat || 0) * 9) / 100;
-  const durationH = getMealAbsorptionTime(mWW, mWBT);
-  if (durationH <= 0) return 1;
-  const ageH = (currentTime - (activeMeal.timestamp || 0)) / (1000 * 60 * 60);
-  return Math.max(0, Math.min(1, ageH / durationH));
-  })()
+  138.2 * (cumulativeAbsorption.isAbsorbing ? cumulativeAbsorption.overallProgress : 1)
   }
   className={cn(
-   "transition-all duration-1000",
-   activeMeal.type === "meal" ? "text-amber-500" : "text-emerald-500"
-   )}
-   />
-   </svg>
-   <div className={cn(
-   "w-full h-full rounded-full absolute",
-   activeMeal.type === "meal" ? "bg-amber-500/10" : "bg-emerald-500/10"
-   )} />
-   {activeMeal.type === "meal" ? (
-   <Utensils className="text-amber-500 z-10" size={20} />
-   ) : (
-   <Zap className="text-emerald-500 z-10" size={20} />
-   )}
+  "transition-all duration-1000",
+  activeMeal.type === "meal" ? "text-amber-500" : "text-emerald-500"
+  )}
+  />
+  </svg>
+  <div className={cn(
+  "w-full h-full rounded-full absolute",
+  activeMeal.type === "meal" ? "bg-amber-500/10" : "bg-emerald-500/10"
+  )} />
+  {activeMeal.type === "meal" ? (
+  <Utensils className="text-amber-500 z-10" size={20} />
+  ) : (
+  <Zap className="text-emerald-500 z-10" size={20} />
+  )}
   </div>
   <div>
   <h3 className="font-bold text-slate-800 dark:text-white text-sm">
-  {activeMeal.type === "bolus" && activeMeal.linkedMeal
+  {cumulativeAbsorption.activeMeals.length > 1
+  ? `${t('meal.active_meals_count', { defaultValue: 'Aktywne posiłki' })} (${cumulativeAbsorption.activeMeals.length})`
+  : activeMeal.type === "bolus" && activeMeal.linkedMeal
   ? activeMeal.linkedMeal.name || t('meal.pump_meal_fallback', { defaultValue: i18n.t('auto.posilek_z_pompy', { defaultValue: "Posiłek z pompy" }) })
   : (activeMeal as any).name ||
   activeMeal.notes ||
@@ -1581,7 +1473,7 @@ export default function MealPlate({
   </h3>
   <p className="text-xs text-slate-500 dark:text-slate-400">
   {t('meal.given_at', { defaultValue: 'Podano:' })}{" "}
-  {new Date(activeMeal.timestamp).toLocaleTimeString([], {
+  {new Date(cumulativeAbsorption.earliestStartTime || activeMeal.timestamp).toLocaleTimeString([], {
   hour: "2-digit",
   minute: "2-digit",
   })}
@@ -1597,10 +1489,10 @@ export default function MealPlate({
   </div>
   <div className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
   <span className="text-accent-500 bg-accent-500/10 px-2 py-0.5 rounded-lg">
-  {activeChartData[0]?.WW?.toFixed(1) || "?"} {t('auto.ww', { defaultValue: 'WW' })}
+  {(cumulativeAbsorption.isAbsorbing ? cumulativeAbsorption.totalActiveWW : (activeChartData[0]?.WW || 0)).toFixed(1)} {t('auto.ww', { defaultValue: 'WW' })}
   </span>
   <span className="text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-lg">
-  {activeChartData[0]?.WBT?.toFixed(1) || "?"} {t('auto.wbt', { defaultValue: 'WBT' })}
+  {(cumulativeAbsorption.isAbsorbing ? cumulativeAbsorption.totalActiveWBT : (activeChartData[0]?.WBT || 0)).toFixed(1)} {t('auto.wbt', { defaultValue: 'WBT' })}
   </span>
   </div>
   </div>
@@ -1609,7 +1501,9 @@ export default function MealPlate({
   {t('meal.absorption_end', { defaultValue: i18n.t('auto.koniec_wchlaniania', { defaultValue: "Koniec wchłaniania" }) })}
   </div>
   <div className="text-sm font-black text-slate-800 dark:text-white">
-  {(() => {
+  {cumulativeAbsorption.isAbsorbing && cumulativeAbsorption.latestEndTime > 0
+  ? new Date(cumulativeAbsorption.latestEndTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  : (() => {
   if (!activeMeal) return "--:--";
   const mSrc = activeMeal.linkedMeal ? activeMeal.linkedMeal : activeMeal;
   if (!mSrc) return "--:--";

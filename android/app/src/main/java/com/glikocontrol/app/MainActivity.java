@@ -19,6 +19,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NotificationBridgePlugin.class);
         registerPlugin(MaterialYouPlugin.class);
         registerPlugin(StepCounterPlugin.class);
+        registerPlugin(ApkInstallerPlugin.class);
         super.onCreate(savedInstanceState);
         
         // Wymuszenie zapytania o uprawnienia przy uruchomieniu aplikacji
@@ -117,6 +118,9 @@ public class MainActivity extends BridgeActivity {
         final WebView webView = getBridge().getWebView();
         if (webView != null) {
             webView.getSettings().setJavaScriptEnabled(true);
+            webView.getSettings().setDomStorageEnabled(true);
+            webView.getSettings().setDatabaseEnabled(true);
+            webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
             webView.addJavascriptInterface(new Object() {
                 @android.webkit.JavascriptInterface
                 public void saveModelToDevice(String modelJson) {

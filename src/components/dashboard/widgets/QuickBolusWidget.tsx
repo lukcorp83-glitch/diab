@@ -57,10 +57,9 @@ export default function QuickBolusWidget({
     if (isEditingLayout) return;
     Haptics.medium();
 
-    if (correctionData && lastGlucose) {
+    if (lastGlucose) {
       sessionStorage.setItem("pending_correction", JSON.stringify({
-        bg: Math.round(lastGlucose),
-        dose: correctionData.dose
+        bg: Math.round(lastGlucose)
       }));
     }
     setTab('bolus');
@@ -96,19 +95,19 @@ export default function QuickBolusWidget({
             </span>
           </div>
 
-          {/* Center suggested dose */}
+          {/* Center status */}
           <div className="flex flex-col items-center justify-center my-auto z-10 pointer-events-none">
-            <span className="text-3xl font-black tracking-tight text-white drop-shadow-md tabular-nums">
-              +{correctionData.dose} <span className="text-sm font-extrabold text-indigo-200">{t('auto.j', { defaultValue: 'j.' })}</span>
+            <span className="text-2xl font-black tracking-tight text-white drop-shadow-md tabular-nums">
+              {Math.round(lastGlucose!)} <span className="text-xs font-extrabold text-indigo-200">mg/dL</span>
             </span>
-            <span className="text-[9px] font-bold text-white/70 mt-0.5 tabular-nums">
-              {iob > 0 ? `IOB: ${iob.toFixed(1)} j.` : `${t('auto.cel', { defaultValue: 'Cel' })}: ${correctionData.target}`}
+            <span className="text-[9px] font-bold text-white/80 mt-0.5 tabular-nums">
+              {iob > 0 ? `Aktywna IOB: ${iob.toFixed(1)} j.` : `Cel: ${correctionData.target} mg/dL`}
             </span>
           </div>
 
           {/* Bottom call to action */}
           <div className="w-full flex items-center justify-center gap-1 bg-white/15 py-1.5 px-3 rounded-2xl text-[10px] font-black uppercase tracking-wider text-white group-hover:bg-white group-hover:text-indigo-600 transition-all pointer-events-none z-10">
-            <span>{t('auto.podaj_bolus', { defaultValue: 'Podaj bolus' })}</span>
+            <span>{t('auto.oblicz_w_kalkulatorze', { defaultValue: 'Wpisz dawkę' })}</span>
             <ArrowRight size={12} strokeWidth={3} />
           </div>
         </>

@@ -16,6 +16,7 @@ import {
   Gauge
 } from 'lucide-react';
 import { PWA_VERSIONS } from '../constants/versions';
+import { IS_BETA_CHANNEL } from '../constants';
 import { cn } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
@@ -63,6 +64,11 @@ export default function ChangelogPopup({ onClose }: { onClose: () => void }) {
                 <span className="font-mono text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   v{current.version}
                 </span>
+                {IS_BETA_CHANNEL && (
+                  <span className="px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/35">
+                    BETA
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {t('auto.co_nowego', { defaultValue: 'Co nowego w tej wersji?' })}

@@ -248,7 +248,7 @@ export function DynamicActionCapsule({
         layout
         transition={springTransition}
         className={cn(
-          "absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center z-50 transition-colors duration-300 pointer-events-auto select-none",
+          "gpu-layer will-change-transform absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center z-50 transition-colors duration-300 pointer-events-auto select-none",
           capsuleState === 'default' || capsuleState === 'absorbing' ? 'overflow-visible' : 'overflow-hidden',
           capsuleState === 'hypo' 
             ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30 -translate-y-16 rounded-[1.5rem]" 
@@ -386,7 +386,7 @@ export function DynamicActionCapsule({
                 </div>
                 <div className="flex flex-col justify-center min-w-0">
                   <span className="text-[8px] font-black text-white/90 uppercase tracking-widest leading-none mb-0.5 truncate">
-                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? 'Odczekaj' : 'Możesz jeść!'}
+                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? 'Sugerowany czas' : 'Czas na posiłek'}
                   </span>
                   <span className="text-[11px] text-white uppercase font-black tracking-tight leading-none truncate font-mono">
                     {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? (

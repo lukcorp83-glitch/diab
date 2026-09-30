@@ -33,7 +33,7 @@ export default function InsulinDetective({ onClose }: InsulinDetectiveProps) {
  setError(null);
  setResult(null);
 
- const prompt = i18n.t('auto.jestes_systemem_inteligen', { defaultValue: "Jesteś systemem inteligentnej analizy skuteczności insuliny (Detektyw Insuliny). Użytkownik to diabetyk, u którego cukier nie spada mimo korekt.\nPodaje fakty:\n- Kiedy otwarto fiolkę / pen / założono wkłucie: {{var0}}\n- Czy insulina (pen/zbiorniczek) była w temperaturze powyżej 30°C: {{var1}}\n- Ile dawek korekcyjnych już podano: {{var2}}\n- Aktualny poziom cukru: {{var3}} mg/dl\n\nDokonaj oceny sytuacji (czy matematyka wskazuje, że przy tej ilości insuliny i tym czasie od otwarcia/warunków cukier powinien już spaść?). Jeśli tak, postaw ostrzeżenie, np. \"Stop. Istnieje duże prawdopodobieństwo, że Twoja insulina straciła aktywność...\"\nZasady:\n- Krótki, ale stanowczy, duży komunikat ujęty w HTML (użyj np. <h2> z klasami tailwind, <p>, <strong>, etc.)\n- Bez lania wody, konkretna kalkulacja i diagnoza ryzyk.\n- Zwróć uwagę na użytkowników pomp: problemem może być niedziałające wkłucie lub zapowietrzony dren, a nie tylko zepsuta insulina.\n- Zalecając nową dawkę dodaj informację o mniejszej (bezpiecznej) dawce korekcyjnej z nowego pena lub po zmianie wkłucia.\n- Zwracaj sam kod HTML. Odpowiadaj po polsku.", var0: openDate, var1: temperature, var2: correctionDoses, var3: currentBg });
+  const prompt = i18n.t('auto.jestes_systemem_inteligen', { defaultValue: "Jesteś asystentem technicznym w aplikacji GlikoControl (Analiza Sprzętu i Insuliny). Użytkownik to diabetyk, u którego glikemia utrzymuje się na wysokim poziomie mimo wcześniejszych bolusów.\nPodaje fakty:\n- Kiedy otwarto fiolkę / pen / założono wkłucie: {{var0}}\n- Czy insulina była narażona na temperaturę powyżej 30°C: {{var1}}\n- Ile prób korekty już zarejestrowano: {{var2}}\n- Aktualny poziom cukru: {{var3}} mg/dl\n\nDokonaj analizy potencjalnych przyczyn technicznych i sprzętowych (np. ekspozycja na ciepło i utrata aktywności biologicznej insuliny, zagięta kaniula wkłucia, pęcherzyk powietrza w drenie pompy, podanie w zrosty tłuszczowe).\nZasady:\n- Krótki, czytelny komunikat techniczny ujęty w HTML (użyj np. <h2> z klasami tailwind, <p>, <strong>, etc.)\n- Skup się na weryfikacji sprzętu i fiolki, a NIE na diagnozie medycznej.\n- Bezwzględny zakaz sugerowania lub wyliczania jakichkolwiek dawek leku!\n- Przypomnij o procedurze bezpieczeństwa: w razie wątpliwości zmiana wkłucia/fiolki, kontrola ciał ketonowych w moczu/krwi i kontakt z lekarzem prowadzącym.\n- Zwracaj sam kod HTML. Odpowiadaj po polsku.", var0: openDate, var1: temperature, var2: correctionDoses, var3: currentBg });
 
  try {
  const response = await geminiService.generateContent(prompt);
@@ -171,7 +171,7 @@ export default function InsulinDetective({ onClose }: InsulinDetectiveProps) {
  <>
  <Sparkles size={16} />
  
- {t('auto.diagnozuj_problem', { defaultValue: 'Diagnozuj Problem' })}
+ {t('auto.diagnozuj_problem', { defaultValue: 'Sprawdź przyczynę' })}
  </>
  )}
  </button>

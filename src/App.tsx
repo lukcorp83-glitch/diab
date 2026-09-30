@@ -3,6 +3,7 @@ import {
   getEffectiveIOB as getEffectiveIOBUtils,
   getMealAbsorptionTime,
   calculateCOB,
+  getCumulativeAbsorption,
 } from "./lib/utils";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 const MaterialYou: any = Capacitor.Plugins?.MaterialYou || registerPlugin("MaterialYou");
@@ -28,7 +29,7 @@ import {
   UserSettings,
 } from "./types";
 import { geminiService } from "./services/gemini";
-import { APP_VERSION } from "./constants";
+import { APP_VERSION, IS_BETA_CHANNEL } from "./constants";
 import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
 import { healthService } from "./services/healthService";
@@ -38,7 +39,7 @@ import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPack
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
 import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore";
-import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal } from "./services/preBolusService";
+import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal, checkPreBolusHypoShield } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
@@ -49,7 +50,6 @@ import Logo from "./components/Logo";
 import GlikoControlLogo from "./components/LogoAnimation";
 import { CURRENT_VERSION } from "./constants/versions";
 
-import { MigrationManager } from "./components/MigrationManager";
 import { GlucoseAlarmModal } from "./components/GlucoseAlarmModal";
 import { SmartEquipmentModal } from "./components/SmartEquipmentModal";
 import { ParentalPinModal } from "./components/ParentalPinModal";
@@ -127,6 +127,16 @@ export default function App() {
   useEffect(() => { userSettingsRef.current = userSettings; }, [userSettings]);
   const deletedNsIdsRef = useRef<Set<string>>((() => {
     try {
+      // Jednorazowe oczyszczenie zanieczyszczonej czarnej listy (spowodowanej błędnym usuwaniem logów po wypadnięciu ze snapshotu Firestore)
+      if (!localStorage.getItem('diab_cleaned_false_deleted_ids_v1')) {
+        localStorage.removeItem('diab_deleted_ns_ids');
+        localStorage.setItem('diab_cleaned_false_deleted_ids_v1', 'true');
+        console.log('[App] Wyczyszczono zanieczyszczoną czarną listę usuniętych ID (naprawa brakujących dni w statystykach).');
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('force-nightscout-sync'));
+        }, 1500);
+        return new Set<string>();
+      }
       const stored = localStorage.getItem('diab_deleted_ns_ids');
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -369,7 +379,10 @@ export default function App() {
         const recentCutoff = Date.now() - 48 * 60 * 60 * 1000;
         const toSave = [...fbLogs, ...nsLogs].filter(l => {
           const ts = l.timestamp || l.createdAt || 0;
-          if (ts < recentCutoff && lastSavedMaxTimestampRef.current > 0) return false;
+          const isTreatment = l.type === 'bolus' || l.type === 'meal' || l.type === 'site_change' || l.type === 'sensor_change';
+          // Zwykłe częste odczyty CGM filtrujemy do ostatnich 48h, ale zabiegi (węglowodany, insulina, wymiany wkłucia/sensora)
+          // zapisujemy do bazy SQLite zawsze, aby były w 100% dostępne w statystykach i kalendarzu na telefonie
+          if (!isTreatment && ts < recentCutoff && lastSavedMaxTimestampRef.current > 0) return false;
           if (deletedNsIdsRef.current) {
             if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
             if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
@@ -379,7 +392,7 @@ export default function App() {
         });
         if (toSave.length > 0) {
           lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
-          const batch = toSave.slice(0, 300); // max 300 najświeższych wpisów na cykl
+          const batch = toSave.slice(0, 500); // do 500 wpisów na cykl
           dbService.saveMultipleLogs(batch).catch(e => console.warn("Background DB save failed", e));
         }
       }, 5000);
@@ -565,13 +578,18 @@ export default function App() {
   // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
   useGlucoseAlerts(logs, userSettings);
 
-  // Automatyczne wykrywanie bolusa z pompy i posiłków z kompensacją opóźnienia
+  // Automatyczne wykrywanie bolusa z pompy, posiłków oraz ochrona Hypo Safety Shield dla aktywnego stopera
   useEffect(() => {
     if (!logs || logs.length === 0) return;
     const latestGlucose = logs.find((l: any) => l.type === 'glucose' || l.type === 'sgv');
     const glValue = latestGlucose?.value ? Math.round(latestGlucose.value) : null;
     const glTrend = latestGlucose?.direction || null;
+    const glDelta = typeof latestGlucose?.delta === 'number' ? latestGlucose.delta : null;
 
+    // 1. Aktywny monitor bezpieczeństwa: skraca stoper i alarmuje, gdy cukier gwałtownie spada
+    checkPreBolusHypoShield(glValue, glTrend, glDelta);
+
+    // 2. Detekcja nowych bolusów z pompy i nowych posiłków
     checkAndNotifyPumpBolus(logs, glValue, glTrend, userSettings);
     checkAndNotifyNewMeal(logs, userSettings);
   }, [logs, userSettings]);
@@ -1226,32 +1244,16 @@ export default function App() {
 
   useEffect(() => {
     const updateProgress = () => {
-      const absorbingMeals = logs
-        .filter((l) => l.type === "meal")
-        .map((m) => {
-          const mWW = m.value !== undefined ? m.value / 10 : (m as any).carbs !== undefined ? (m as any).carbs / 10 : 0;
-          const mWBT = ((m.protein || 0) * 4 + (m.fat || 0) * 9) / 100;
-          const durationH = getMealAbsorptionTime(mWW, mWBT);
-          const durationMs = durationH * 60 * 60 * 1000;
-          const mealStartTime = m.eatenAt || m.timestamp || 0;
-          const endTimeMs = mealStartTime + durationMs;
-          const isCurrentlyAbsorbing = Date.now() < endTimeMs && durationH > 0 && Date.now() >= mealStartTime;
-          return { m, durationH, mealStartTime, endTimeMs, isCurrentlyAbsorbing };
-        })
-        .filter((x) => x.isCurrentlyAbsorbing);
-
-      if (absorbingMeals.length > 0) {
-        absorbingMeals.sort((a, b) => b.endTimeMs - a.endTimeMs);
-        const active = absorbingMeals[0];
-        const ageH = (Date.now() - active.mealStartTime) / (1000 * 60 * 60);
-        setMealProgress(Math.max(0, Math.min(1, ageH / active.durationH)));
+      const state = getCumulativeAbsorption(logs, Date.now());
+      if (state.isAbsorbing) {
+        setMealProgress(state.overallProgress);
       } else {
         setMealProgress(null);
       }
     };
 
     updateProgress();
-    const interval = setInterval(updateProgress, 60000); // Aktualizacja co minutę
+    const interval = setInterval(updateProgress, 30000); // Aktualizacja co 30 sekund
     return () => clearInterval(interval);
   }, [logs, setMealProgress]);
 
@@ -1713,9 +1715,19 @@ export default function App() {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn("w-full max-w-sm p-10 rounded-[3.5rem] shadow-2xl text-center border transition-all duration-500", theme === "dark" ? "bg-slate-900/60 backdrop-blur-3xl border-slate-800/50" : "bg-white border-slate-200")}>
           <div className="flex items-center justify-center gap-4 mb-2">
             <Logo className="w-14 h-14" />
-            <h2 className={cn("text-3xl font-black tracking-tight", theme === "dark" ? "text-white" : "text-slate-900")}>
-              GlikoControl v{CURRENT_VERSION}
-            </h2>
+            <div className="text-left">
+              <div className="flex items-center gap-2">
+                <h2 className={cn("text-3xl font-black tracking-tight", theme === "dark" ? "text-white" : "text-slate-900")}>
+                  GlikoControl
+                </h2>
+                {IS_BETA_CHANNEL && (
+                  <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/35">
+                    BETA
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">v{CURRENT_VERSION}</span>
+            </div>
           </div>
           <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-8">Zintegrowany System Glikemii</p>
 
@@ -1791,7 +1803,6 @@ export default function App() {
         onClose={() => setSmartEquipmentType(null)}
         onConfirm={handleConfirmSmartEquipment}
       />
-      <MigrationManager user={user} />
       <AppLayout
         mainRef={mainRef}
         mealProgress={mealProgress}

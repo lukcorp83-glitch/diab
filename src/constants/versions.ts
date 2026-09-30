@@ -14,21 +14,47 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.48';
+export const CURRENT_VERSION = '6.0.51';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "6.0.48",
-    date: "2026-09-22",
-    title: "Ulepszenie Interfejsu, Logowanie przez Facebook i Łączenie z xDrip+",
+    version: "6.0.51",
+    date: "2026-09-30",
+    title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
     changes: [
-      "Ulepszenie interfejsu użytkownika i płynności działania aplikacji",
-      "Wdrożono obsługę logowania i rejestracji konta przez Facebook (Web, PWA oraz APK)",
-      "Łączenie z aplikacją xDrip+ przez nadawanie lokalne (Direct Local Broadcast) bez potrzeby Nightscout",
-      "Kompleksowa optymalizacja, usunięcie błędów i pełna stabilizacja wykresu glikemii oraz synchronizacji osprzętu"
+      "Wprowadzono ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
+      "Złagodzono stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek i wyciszenie pośpiechu)",
+      "Dostosowano terminologię w całej aplikacji do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
+      "Wprowadzono wyraźne noty informacyjne o braku decyzji terapeutycznych w modułach analitycznych",
+      "Uporządkowano i zoptymalizowano strukturę projektu oraz usunięto zbędne pliki robocze"
+    ]
+  },
+  {
+    version: "6.0.50",
+    date: "2026-09-25",
+    title: "Hypo Safety Shield, Płynne Animacje Pixel / Material 3 i Odświeżony Trend 30D",
+    changes: [
+      "Wdrożono bezpiecznik medyczny Hypo Safety Shield w stoperze przedposiłkowym (natychmiastowe skrócenie czasu do 0 i alert przy gwałtownym spadku cukru)",
+      "Dodano responsywne, sprzętowo akcelerowane animacje kafelków na Pulpicie w stylu Google Pixel / Material 3 (Material Spring na Androidzie, hover na Web)",
+      "Odświeżono wykres trendu miesięcznego w zakładce GlikoSense: dodano korytarz normy, wskaźniki dziennego TIR i szacowane HbA1c z 30 dni (GMI)",
+      "Zabezpieczono animacje pulpitowe przed niepożądanym ruchem w trybie reorganizacji siatki kafelków",
+      "Dodano pełne dwujęzyczne wsparcie (PL/EN) dla powiadomień i monitów bezpieczeństwa stopera"
+    ]
+  },
+  {
+    version: "6.0.49",
+    date: "2026-09-22",
+    title: "Ustawienia w Pasku Nawigacji, Akceleracja Sprzętowa GPU i Indeksy SQLite",
+    changes: [
+      "Dodano zakładkę 'Ustawienia' (dawniej System) do wyboru jako 4. przycisk dolnego paska nawigacyjnego",
+      "Wdrożono natywną akcelerację sprzętową GPU WebView w systemie Android dla maksymalnej płynności",
+      "Dodano indeksy B-Tree (timestamp, type) w lokalnej bazie SQLite – skanowanie bazy przyspieszone z setek ms do 1-2 ms",
+      "Zoptymalizowano renderowanie wykresu glikemii (capping DPR na ekranach 3x/3.5x - o 60% mniej obciążenia GPU)",
+      "Dodano sprzętowe warstwy kompozytora (will-change: transform) na kapsule akcji, pasku dolnym, menu bocznym i modalach",
+      "Usunięto przestarzały moduł migracji ze starej bazy i oczyszczono zapytania synchronizacyjne"
     ]
   },
   {
@@ -55,41 +81,46 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
       "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
       "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
-    ]
-  },
-  {
-    version: "6.0.45",
-    date: "2026-09-11",
-    title: "Optymalizacja aplikacji",
-    changes: [
-      "Optymalizacja aplikacji"
-    ]
-  },
-  {
-    version: "6.0.44",
-    date: "2026-09-09",
-    title: "Połączenie Przełącznika Powiadomień Cukru z Natywnym Paskiem Androida",
-    changes: [
-      "Połączono opcję 'Informacje o cukrach na pasku powiadomień' bezpośrednio z natywnym kodem Androida",
-      "Wyłączenie opcji w profilu natychmiast usuwa ciągłe powiadomienie glikemii (ID: 999) z paska powiadomień i ekranu blokady",
-      "Zachowano 100% ciągłość pracy serwisu w tle (GlikoForegroundService) bez zaśmiecania paska stanu",
-      "Włączenie opcji natychmiast odświeża i przywraca powiadomienie z bieżącym cukrem i wykresem",
-      "Dodano przełącznik powiadomień systemowych również do sekcji Profil ➔ System & Aplikacja",
-      "Automatyczna synchronizacja stanu powiadomień przy każdym uruchomieniu aplikacji"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-    version: "6.0.48",
-    date: "2026-09-22",
-    title: "Ulepszenie Interfejsu, Logowanie przez Facebook i Łączenie z xDrip+",
+    version: "6.0.51",
+    date: "2026-09-30",
+    title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
     changes: [
-      "Ulepszenie interfejsu użytkownika i płynności działania aplikacji",
-      "Wdrożono obsługę logowania i rejestracji konta przez Facebook (Web, PWA oraz APK)",
-      "Łączenie z aplikacją xDrip+ przez nadawanie lokalne (Direct Local Broadcast) bez potrzeby Nightscout",
-      "Kompleksowa optymalizacja, usunięcie błędów i pełna stabilizacja wykresu glikemii oraz synchronizacji osprzętu"
+      "Wprowadzono ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
+      "Złagodzono stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek i wyciszenie pośpiechu)",
+      "Dostosowano terminologię w całej aplikacji do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
+      "Wprowadzono wyraźne noty informacyjne o braku decyzji terapeutycznych w modułach analitycznych",
+      "Uporządkowano i zoptymalizowano strukturę projektu oraz usunięto zbędne pliki robocze"
+    ]
+  },
+  {
+    version: "6.0.50",
+    date: "2026-09-25",
+    title: "Hypo Safety Shield, Płynne Animacje Pixel / Material 3 i Odświeżony Trend 30D",
+    changes: [
+      "Wdrożono bezpiecznik medyczny Hypo Safety Shield w stoperze przedposiłkowym (natychmiastowe skrócenie czasu do 0 i alert przy gwałtownym spadku cukru)",
+      "Dodano responsywne, sprzętowo akcelerowane animacje kafelków na Pulpicie w stylu Google Pixel / Material 3 (Material Spring na Androidzie, hover na Web)",
+      "Odświeżono wykres trendu miesięcznego w zakładce GlikoSense: dodano korytarz normy, wskaźniki dziennego TIR i szacowane HbA1c z 30 dni (GMI)",
+      "Zabezpieczono animacje pulpitowe przed niepożądanym ruchem w trybie reorganizacji siatki kafelków",
+      "Dodano pełne dwujęzyczne wsparcie (PL/EN) dla powiadomień i monitów bezpieczeństwa stopera"
+    ]
+  },
+  {
+    version: "6.0.49",
+    date: "2026-09-22",
+    title: "Ustawienia w Pasku Nawigacji, Akceleracja Sprzętowa GPU i Indeksy SQLite",
+    changes: [
+      "Dodano zakładkę 'Ustawienia' (dawniej System) do wyboru jako 4. przycisk dolnego paska nawigacyjnego",
+      "Wdrożono natywną akcelerację sprzętową GPU WebView w systemie Android dla maksymalnej płynności",
+      "Dodano indeksy B-Tree (timestamp, type) w lokalnej bazie SQLite – skanowanie bazy przyspieszone z setek ms do 1-2 ms",
+      "Zoptymalizowano renderowanie wykresu glikemii (capping DPR na ekranach 3x/3.5x - o 60% mniej obciążenia GPU)",
+      "Dodano sprzętowe warstwy kompozytora (will-change: transform) na kapsule akcji, pasku dolnym, menu bocznym i modalach",
+      "Usunięto przestarzały moduł migracji ze starej bazy i oczyszczono zapytania synchronizacyjne"
     ]
   },
   {
@@ -116,27 +147,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
       "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
       "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
-    ]
-  },
-  {
-    version: "6.0.45",
-    date: "2026-09-11",
-    title: "Optymalizacja aplikacji",
-    changes: [
-      "Optymalizacja aplikacji"
-    ]
-  },
-  {
-    version: "6.0.44",
-    date: "2026-09-09",
-    title: "Połączenie Przełącznika Powiadomień Cukru z Natywnym Paskiem Androida",
-    changes: [
-      "Połączono opcję 'Informacje o cukrach na pasku powiadomień' bezpośrednio z natywnym kodem Androida",
-      "Wyłączenie opcji w profilu natychmiast usuwa ciągłe powiadomienie glikemii (ID: 999) z paska powiadomień i ekranu blokady",
-      "Zachowano 100% ciągłość pracy serwisu w tle (GlikoForegroundService) bez zaśmiecania paska stanu",
-      "Włączenie opcji natychmiast odświeża i przywraca powiadomienie z bieżącym cukrem i wykresem",
-      "Dodano przełącznik powiadomień systemowych również do sekcji Profil ➔ System & Aplikacja",
-      "Automatyczna synchronizacja stanu powiadomień przy każdym uruchomieniu aplikacji"
     ]
   }
 ];

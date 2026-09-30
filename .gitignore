@@ -13,3 +13,8 @@ android.keystore
 
 # Local user notes and audits
 diab up/
+*.cjs
+*.tmp
+*.txt
+lighthouse-report.json
+missing*.json

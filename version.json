@@ -1,10 +1,10 @@
 {
-    "version": "6.0.48",
+    "version": "6.0.51",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.48_OTA.apk",
-    "buildNumber": 163,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.51-beta_OTA.apk",
+    "buildNumber": 165,
     "forceUpdate": false,
-    "whatsNew": "Ulepszenie interfejsu, logowanie przez Facebook, optymalizacja i usunięcie błędów, łączenie z xDrip+ przez nadawanie lokalne.",
-    "whatsNewEn": "UI improvements, Facebook login, optimization and bug fixes, xDrip+ connection via local broadcast.",
-    "otaRevision": 323
+    "whatsNew": "Ręczny rejestrator dawki insuliny (pełna kontrola użytkownika bez automatycznego narzucania dawek), łagodny stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek), pełne dostosowanie terminologii edukacyjno-informacyjnej (MDR) oraz optymalizacja projektu.",
+    "whatsNewEn": "Manual insulin dose logger (user-entered dose records with full manual control, no automated dosage prescription), gentle meal-time suggestions on pre-bolus timer, MDR-compliant non-prescriptive informational terminology, and project cleanup.",
+    "otaRevision": 325
 }

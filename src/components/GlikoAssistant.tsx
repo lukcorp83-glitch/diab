@@ -73,7 +73,7 @@ export default function GlikoAssistant({
   }, []);
  const assistantName = isChild 
     ? (petData?.name || t('auto.asystent_gliko', { defaultValue: "Asystent Gliko" })) 
-    : t('auto.asystent_medyczny_ai', { defaultValue: "Asystent Medyczny AI" });
+    : t('assistant.title', { defaultValue: "Asystent Diabetyka AI" });
 
  useEffect(() => {
  if (messages.length === 0) {
@@ -417,6 +417,19 @@ export default function GlikoAssistant({
               </button>
             )}
           </div>
+        </div>
+
+        {/* Medical & Privacy Educational Disclaimer */}
+        <div className="px-3 py-1.5 mb-2 rounded-xl bg-slate-500/5 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span className="text-amber-500 font-bold">ℹ️</span>
+            <span>
+              {t('assistant.disclaimer_short', {
+                defaultValue: 'Charakter edukacyjny: AI nie dobiera dawek leków ani nie zastępuje lekarza diabetologa.'
+              })}
+            </span>
+          </div>
+          <span className="text-[9px] opacity-75 hidden sm:inline">Google Gemini API</span>
         </div>
 
         {/* Messages */}

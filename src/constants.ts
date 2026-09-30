@@ -2,12 +2,46 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.48';
-export const CURRENT_VERSION = '6.0.48';
+export const APP_VERSION = '6.0.51';
+export const CURRENT_VERSION = '6.0.51';
 
-export const IS_BETA_CHANNEL: boolean = 
-  Boolean(import.meta.env.VITE_IS_BETA_CHANNEL) || 
-  import.meta.env.VITE_APP_CHANNEL === 'beta';
+import versionData from '../version.json';
+
+const checkIsBeta = (): boolean => {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    if (Boolean(import.meta.env.VITE_IS_BETA_CHANNEL)) return true;
+    if (import.meta.env.VITE_APP_CHANNEL === 'beta') return true;
+    if (import.meta.env.VITE_GIT_BRANCH === 'beta') return true;
+  }
+  if (
+    (versionData as any)?.apkUrl?.toLowerCase().includes('beta') ||
+    (versionData as any)?.url?.toLowerCase().includes('beta') ||
+    (versionData as any)?.version?.toLowerCase().includes('beta')
+  ) {
+    return true;
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      if (
+        localStorage.getItem('betaProgramEnabled') === 'true' ||
+        localStorage.getItem('gliko_beta_channel') === 'true' ||
+        localStorage.getItem('is_beta_channel') === 'true'
+      ) {
+        return true;
+      }
+      if (
+        window.location.hostname.includes('beta') ||
+        window.location.pathname.includes('beta') ||
+        window.location.search.includes('beta')
+      ) {
+        return true;
+      }
+    } catch (e) {}
+  }
+  return false;
+};
+
+export const IS_BETA_CHANNEL: boolean = checkIsBeta();
 
 export const GLIKOSENSE_VERSION = '1.3.1';
 export const REQUIRED_GLIKOSENSE_VERSION = '1.3.1';
