@@ -14,13 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.51';
+export const CURRENT_VERSION = '6.0.52';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.52",
+    date: "2026-09-30",
+    title: "Oficjalne Wydanie: Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność MDR",
+    changes: [
+      "Wdrożono oficjalnie ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
+      "Wprowadzono łagodny stoper czasu przedposiłkowego (orientacyjny czas na posiłek i wyciszenie pośpiechu)",
+      "Pełne dostosowanie aplikacji i słowników do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
+      "Optymalizacja stabilności wydań produkcyjnych i synchronizacji OTA"
+    ]
+  },
+  {
     version: "6.0.51",
     date: "2026-09-30",
     title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
@@ -69,24 +80,23 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Wyeliminowano problem podwójnych powiadomień po zakończeniu odliczania timera pre-bolusa",
       "Wprowadzono trwałą blokadę restartu i ponownego przeliczania zakończonego timera przy późniejszym wzroście glikemii",
       "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
-    ]
-  },
-  {
-    version: "6.0.46",
-    date: "2026-09-17",
-    title: "Naprawa zawieszania widżetów, stabilizacja serwisu w tle i optymalizacja bazy",
-    changes: [
-      "Naprawiono pętlę serwisu w tle (GlikoForegroundService), gwarantując ciągłe odświeżanie danych 24/7",
-      "Zabezpieczono harmonogram alarmów widżetów Androida przed przerwaniem przy błędach sieciowych",
-      "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
-      "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
-      "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.52",
+    date: "2026-09-30",
+    title: "Oficjalne Wydanie: Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność MDR",
+    changes: [
+      "Wdrożono oficjalnie ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
+      "Wprowadzono łagodny stoper czasu przedposiłkowego (orientacyjny czas na posiłek i wyciszenie pośpiechu)",
+      "Pełne dostosowanie aplikacji i słowników do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
+      "Optymalizacja stabilności wydań produkcyjnych i synchronizacji OTA"
+    ]
+  },
+  {
     version: "6.0.51",
     date: "2026-09-30",
     title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
@@ -135,18 +145,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Wyeliminowano problem podwójnych powiadomień po zakończeniu odliczania timera pre-bolusa",
       "Wprowadzono trwałą blokadę restartu i ponownego przeliczania zakończonego timera przy późniejszym wzroście glikemii",
       "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
-    ]
-  },
-  {
-    version: "6.0.46",
-    date: "2026-09-17",
-    title: "Naprawa zawieszania widżetów, stabilizacja serwisu w tle i optymalizacja bazy",
-    changes: [
-      "Naprawiono pętlę serwisu w tle (GlikoForegroundService), gwarantując ciągłe odświeżanie danych 24/7",
-      "Zabezpieczono harmonogram alarmów widżetów Androida przed przerwaniem przy błędach sieciowych",
-      "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
-      "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
-      "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
     ]
   }
 ];

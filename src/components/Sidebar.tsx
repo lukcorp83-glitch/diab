@@ -184,7 +184,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
   <h2 className={cn("text-xl font-black tracking-tighter leading-none uppercase font-display", theme === 'dark' ? "text-white" : "text-slate-900")}>
   {t('auto.glikocontrol', { defaultValue: 'GlikoControl' })}
   </h2>
-  {(IS_BETA_CHANNEL || settings?.betaProgram) && (
+  {IS_BETA_CHANNEL && (
     <span className="px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/35">
       BETA
     </span>

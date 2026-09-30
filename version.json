@@ -1,10 +1,10 @@
 {
-    "version": "6.0.51",
+    "version": "6.0.52",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.51-beta_OTA.apk",
-    "buildNumber": 165,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.52_OTA.apk",
+    "buildNumber": 166,
     "forceUpdate": false,
-    "whatsNew": "Ręczny rejestrator dawki insuliny (pełna kontrola użytkownika bez automatycznego narzucania dawek), łagodny stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek), pełne dostosowanie terminologii edukacyjno-informacyjnej (MDR) oraz optymalizacja projektu.",
-    "whatsNewEn": "Manual insulin dose logger (user-entered dose records with full manual control, no automated dosage prescription), gentle meal-time suggestions on pre-bolus timer, MDR-compliant non-prescriptive informational terminology, and project cleanup.",
-    "otaRevision": 325
+    "whatsNew": "Wydanie oficjalne: Ręczny rejestrator dawki insuliny (pełna kontrola manualna bez automatycznego narzucania dawek), łagodny stoper czasu przedposiłkowego (orientacyjny czas na posiłek), pełna zgodność z wymogami MDR oraz optymalizacja stabilności.",
+    "whatsNewEn": "Official release: Manual insulin dose logger (user-entered dose records with full manual control, no automated dosage prescription), gentle meal-time suggestions on pre-bolus timer, full MDR compliance, and stability optimizations.",
+    "otaRevision": 326
 }
