@@ -9,24 +9,27 @@ export default function DidYouKnowWidget({ onClick }: { onClick: () => void }) {
   const { t } = useTranslation();
 
   const tips = useMemo(() => [
-    t('auto.czy_wiesz_ze_glikosense_predict', { defaultValue: "Czy wiesz, że sieć neuronowa GlikoSense uczy się Twojej wrażliwości na insulinę i przewiduje trendy cukru z 60-minutowym wyprzedzeniem?" }),
+    t('auto.czy_wiesz_ze_glikosense_predict', { defaultValue: "Czy wiesz, że sieć neuronowa GlikoSense uczy się Twoich wzorców glikemii i potrafi przewidywać trendy cukru z 60-minutowym wyprzedzeniem?" }),
     t('auto.czy_wiesz_ze_smart_rotacja', { defaultValue: "Czy wiesz, że inteligentna mapa wkłuć bada czas odpoczynku Twoich tkanek (0-100%) i sugeruje najświeższe miejsce na nowe wkłucie?" }),
-    t('auto.czy_wiesz_ze_kalkulator_wbt', { defaultValue: "Czy wiesz, że posiłki bogate w tłuszcze i białka (WBT) wymagają dawki przedłużonej? Nasz kalkulator automatycznie rozbija bolus na dwie fazy!" }),
-    t('auto.czy_wiesz_ze_jetlag_podroze', { defaultValue: "Czy wiesz, że w module GlikoSense znajdziesz Asystenta Podróży (JetLag), który pomaga bezpiecznie przesunąć godziny dawek bazy podczas lotów?" }),
-    t('auto.czy_wiesz_ze_komendy_glosowe', { defaultValue: "Czy wiesz, że możesz podyktować posiłek lub pomiar głosem, klikając mikrofon przy inteligentnym asystencie Gliko?" }),
-    t('auto.czy_wiesz_ze_health_connect', { defaultValue: "Czy wiesz, że aplikacja łączy się z Health Connect, aby monitorować Twoje kroki i ostrzegać przed spadkiem cukru po intensywnym wysiłku?" }),
-    t('auto.czy_wiesz_ze_mozesz_poprosic_g', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_popro', { defaultValue: "Czy wiesz, że możesz poprosić GlikoCzata o samodzielne dodanie posiłku, używając komendy np.: 'dodaj do talerza jabłko'!" }) }),
-    t('auto.system_osiagniec_odblokowuje_m', { defaultValue: i18n.t('auto.system_osiagniec_odblokow', { defaultValue: "System Osiągnięć odblokowuje monety dla Twojego Zwierzaka, co zachęca Cię do częstszych kontroli." }) }),
-    t('auto.talerz_wspolpracuje_z_ai_im_do', { defaultValue: i18n.t('auto.talerz_wspolpracuje_z_ai', { defaultValue: "Talerz współpracuje z AI. Im dokładniej opiszesz co zjadłeś, tym lepsze szacunki otrzymasz." }) }),
-    t('auto.kalkulator_bolusa_potrafi_wyci', { defaultValue: i18n.t('auto.kalkulator_bolusa_potrafi', { defaultValue: "Kalkulator Bolusa potrafi wyciągnąć opóźnienia i uwzględnić resztkowe IOB, na podstawie zdefiniowanej skali." }) }),
-    t('auto.sprawdz_integracje_z_nightscou', { defaultValue: i18n.t('auto.sprawdz_integracje_z_nigh', { defaultValue: "Sprawdź integrację z Nightscout w zakładce 'Integracje (API) / Nightscout', aby pobierać wyniki CGM w tle." }) }),
-    t('auto.czy_wiesz_ze_mozesz_skanowac_k', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_skano', { defaultValue: "Czy wiesz, że możesz skanować kody kreskowe produktów, aby szybko i precyzyjnie dodawać je do swojego posiłku?" }) }),
-    t('auto.czy_wiesz_ze_mozesz_uzyc_apara', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_uzyc', { defaultValue: "Czy wiesz, że możesz użyć aparatu AI, aby zrobić zdjęcie swojego talerza, a sztuczna inteligencja automatycznie rozpozna i oszacuje dla Ciebie posiłek?" }) }),
-    t('auto.czy_wiesz_ze_mozesz_dodac_wlas', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_dodac', { defaultValue: "Czy wiesz, że możesz dodać własny klucz API w ustawieniach 'Integracje', aby korzystać z szybszego asystenta AI oraz podnieść limit zapytań?" }) }),
-    t('auto.czy_wiesz_ze_mozesz_zainstalow', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_zains', { defaultValue: "Czy wiesz, że możesz zainstalować tę aplikację na telefonie? Użyj opcji 'Dodaj do ekranu głównego' w przeglądarce, by mieć do niej szybki dostęp!" }) }),
-    t('auto.czy_wiesz_ze_mozesz_stworzyc_w', { defaultValue: i18n.t('auto.czy_wiesz_ze_mozesz_stwor', { defaultValue: "Czy wiesz, że możesz stworzyć własny serwer do łączenia z xDrip przez wygenerowanie kodu w zakładce 'Integracje (API)'?" }) }),
-    t('auto.czy_wiesz_ze_pigulka_na_dole', { defaultValue: "Czy wiesz, że Pigułka na dole ekranu zamieni się w przypomnienie, gdy do końca ważności sensora lub wkłucia zostaną mniej niż 2 godziny?" }),
-    t('auto.czy_wiesz_ze_szybka_korekta', { defaultValue: "Czy wiesz, że gdy Twój cukier wzrośnie powyżej normy, kafel Bolusa na pulpicie automatycznie zaproponuje Ci szybkie podanie dawki korekcyjnej?" })
+    t('auto.czy_wiesz_ze_kalkulator_wbt', { defaultValue: "Czy wiesz, że posiłki bogate w białka i tłuszcze (WBT) wymagają dłuższego wchłaniania? Nasz kalkulator bolusa pomaga zaplanować dawkę dwufazową!" }),
+    t('auto.czy_wiesz_ze_jetlag_podroze', { defaultValue: "Czy wiesz, że w module Raportów AI (GlikoSense) znajdziesz Asystenta Podróży (JetLag), który pomaga w orientacyjnym rozplanowaniu dawek bazy przy zmianie stref czasowych?" }),
+    t('auto.czy_wiesz_ze_komendy_glosowe', { defaultValue: "Czy wiesz, że możesz podyktować posiłek lub pomiar głosem, klikając ikonę mikrofonu przy Asystencie Diabetyka AI?" }),
+    t('auto.czy_wiesz_ze_health_connect', { defaultValue: "Czy wiesz, że aplikacja łączy się z Health Connect i krokomierzem Androida, aby monitorować Twoją aktywność fizyczną i spalone kalorie?" }),
+    t('auto.czy_wiesz_ze_mozesz_poprosic_g', { defaultValue: "Czy wiesz, że możesz poprosić Asystenta AI o samodzielne skomponowanie posiłku, pisząc np.: 'dodaj do talerza jajecznicę z 3 jaj i kromkę chleba'?" }),
+    t('auto.system_osiagniec_odblokowuje_m', { defaultValue: "System Osiągnięć odblokowuje monety i unikalne skórki dla Twojego Zwierzaka w trybie dziecka, zachęcając do regularnych pomiarów!" }),
+    t('auto.talerz_wspolpracuje_z_ai_im_do', { defaultValue: "Talerz Posiłków współpracuje z AI – aparat rozpoznaje składniki ze zdjęcia, szacuje wagę, węglowodany, białka, tłuszcze oraz indeks glikemiczny." }),
+    t('auto.kalkulator_bolusa_potrafi_wyci', { defaultValue: "Kalkulator Bolusa precyzyjnie uwzględnia Twoje zdefiniowane współczynniki (ICR, ISF) oraz aktywną insulinę (IOB), aby ułatwić codzienne obliczenia." }),
+    t('auto.sprawdz_integracje_z_nightscou', { defaultValue: "Sprawdź integrację z Nightscout w zakładce 'Integracje (API)', aby bezprzewodowo pobierać odczyty CGM i wpisy w czasie rzeczywistym." }),
+    t('auto.czy_wiesz_ze_mozesz_skanowac_k', { defaultValue: "Czy wiesz, że możesz skanować kody kreskowe produktów, aby błyskawicznie sprawdzić makroskładniki i dodać je do Talerza Posiłków?" }),
+    t('auto.czy_wiesz_ze_mozesz_uzyc_apara', { defaultValue: "Czy wiesz, że funkcja Aparatu AI potrafi rozpoznać posiłek ze zdjęcia i rozbić go na pojedyncze składniki z orientacyjną gramaturą?" }),
+    t('auto.czy_wiesz_ze_mozesz_dodac_wlas', { defaultValue: "Czy wiesz, że możesz dodać własny darmowy klucz Google Gemini API w 'Integracjach', aby uzyskać nielimitowany dostęp do Asystenta AI?" }),
+    t('auto.czy_wiesz_ze_mozesz_zainstalow', { defaultValue: "Czy wiesz, że GlikoControl możesz zainstalować jako natywną aplikację Android (APK) z widżetami na pulpicie telefonu lub jako aplikację PWA?" }),
+    t('auto.czy_wiesz_ze_mozesz_stworzyc_w', { defaultValue: "Czy wiesz, że na telefonie z Androidem aplikacja potrafi odbierać odczyty z xDrip+ w 100% lokalnie i offline, bez połączenia z internetem?" }),
+    t('auto.czy_wiesz_ze_pigulka_na_dole', { defaultValue: "Czy wiesz, że Pigułka na dole ekranu zmieni swój kolor i wyświetli alert, gdy do końca ważności sensora lub wkłucia zostanie mniej niż 12 godzin?" }),
+    t('auto.czy_wiesz_ze_szybka_korekta', { defaultValue: "Czy wiesz, że klikając kafel Bolusa na pulpicie, możesz jednym dotknięciem przenieść bieżący cukier z sensora do kalkulatora, by szybko wyliczyć dawkę?" }),
+    t('auto.czy_wiesz_ze_stoper_prebolus', { defaultValue: "Czy wiesz, że po podaniu bolusa aplikacja automatycznie uruchamia stoper przedposiłkowy (Pre-bolus) z ochroną przed nagłym spadkiem glikemii?" }),
+    t('auto.czy_wiesz_ze_detektyw_insuliny', { defaultValue: "Czy wiesz, że w przypadku utrzymującego się wysokiego cukru moduł 'Detektyw insuliny' pomaga sprawdzić, czy lek nie uległ przegrzaniu lub kaniula zagięciu?" }),
+    t('auto.czy_wiesz_ze_personalizacja_paska', { defaultValue: "Czy wiesz, że w Profilu możesz dostosować czwarty przycisk dolnego paska nawigacji i przypiąć tam np. Historię, Leki, Osprzęt czy Trening?" })
   ], [t]);
 
   const [currentIndex, setCurrentIndex] = useState(0);

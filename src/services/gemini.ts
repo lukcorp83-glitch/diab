@@ -282,7 +282,7 @@ export const geminiService = {
     const dietInfo = settings?.activeDiet
       ? i18n.t('auto.uwaga_uzytkownik_jest_na', { defaultValue: "UWAGA: Użytkownik jest na diecie: {{var0}}. Zwróć na to uwagę przy zaleceniach.", var0: settings.activeDiet })
       : "";
-    const prompt = i18n.t('auto.jestes_asystentem_diabety', { defaultValue: "Jesteś asystentem diabetyka. Przeanalizuj poniższe logi z ostatnich 2 godzin (najnowsze u góry): {{var0}}. {{var1}} Zwróć odpowiedź w 3 krótkich punktach używając HTML (<b>, <ul>, <li>): 1. Sytuacja aktualna (oceń czy glikemia jest w normie, spada, rośnie, z czego to wynika). 2. Przewidywania (co może się stać przez najbliższe 2 godziny). 3. Zalecenie działania (np. podaj korektę, zjedz coś na podbicie, obserwuj). Zwięźle, naturalnie, po polsku. Bez znaków markdown typu gwiazdki.", var0: JSON.stringify(formattedLogs), var1: dietInfo });
+    const prompt = i18n.t('auto.jestes_asystentem_diabety', { defaultValue: "Jesteś asystentem diabetyka. Przeanalizuj poniższe logi z ostatnich 2 godzin (najnowsze u góry): {{var0}}. {{var1}} Zwróć odpowiedź w 3 krótkich punktach używając HTML (<b>, <ul>, <li>): 1. Sytuacja aktualna (oceń czy glikemia jest w normie, spada, rośnie, z czego to wynika). 2. Przewidywania (co może się stać przez najbliższe 2 godziny). 3. Podsumowanie stabilności i wnioski obserwacyjne (zwróć uwagę na bezpieczeństwo i nawodnienie, bez zalecania dawek leków). Zwięźle, naturalnie, po polsku. Bez znaków markdown typu gwiazdki.", var0: JSON.stringify(formattedLogs), var1: dietInfo });
     return this.generateContent(prompt);
   },
 
@@ -418,7 +418,7 @@ export const geminiService = {
     const dietInfo = settings?.activeDiet
       ? i18n.t('auto.dodatkowy_kontekst_uzytko', { defaultValue: "DODATKOWY KONTEKST: Użytkownik przebywa na diecie: {{var0}}. Skup się na ewaluacji jak ta dieta na niego działa, uwzględnij rekomendacje żywieniowe dla niej.", var0: settings.activeDiet })
       : "";
-    const prompt = i18n.t('auto.jestes_zaawansowanym_syst', { defaultValue: "Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl (GlikoSense). Otrzymujesz rozłożoną w czasie próbkę danych z OSTATNICH 15 DNI (łącznie {{var0}} rzadkich próbek obejmujących cały ten okres): {{var1}}. {{var2}}\n    Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego bazującego na PEŁNYCH 15 Dniach (nie skupiaj się tylko na ostatnich wpisach!).\n    Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):\n    1. <b>Krótki przegląd ostatnich 15 dni</b>.\n    2. <b>Analiza trendów i wzorców</b> (kiedy cukier skacze, dlaczego, czy bolusy są trafne na przestrzeni ostatnich dwóch tygodni).\n    3. <b>Ocena długoterminowa</b> (przewidywane HbA1c, czas w zakresie).\n    4. <b>Konkretne rekomendacje</b> (co poprawić w diecie, dawkowaniu lub aktywności).\n    5. <b>Sugestie profili godzinowych</b> (zaproponuj konkretne przedziały czasowe i wartości ISF oraz WW Ratio na podstawie zaobserwowanych trendów - np. zwiększony ISF rano jeśli cukier rośnie).\n    Zwracaj uwagę na: nocne hipoglikemie, skoki po posiłkach, efektywność insuliny z CAŁEGO okresu. \n    Ważne: Odpowiadaj WYŁĄCZNIE i ZAWSZE w JĘZYKU POLSKIM. Piszesz po polsku. Bez formatowania markdown (gwiazdek (**) ani (###)).", var0: formattedLogs.length, var1: JSON.stringify(formattedLogs), var2: dietInfo }) + " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
+    const prompt = i18n.t('auto.jestes_zaawansowanym_syst', { defaultValue: "Jesteś zaawansowanym systemem analizy cukrzycy GlikoControl (GlikoSense). Otrzymujesz rozłożoną w czasie próbkę danych z OSTATNICH 15 DNI (łącznie {{var0}} rzadkich próbek obejmujących cały ten okres): {{var1}}. {{var2}}\n    Twoim zadaniem jest stworzenie JEDNEGO, KOMPLEKSOWEGO RAPORTU eksperckiego bazującego na PEŁNYCH 15 Dniach (nie skupiaj się tylko na ostatnich wpisach!).\n    Struktura raportu (używaj HTML: <b>, <ul>, <li>, <br>):\n    1. <b>Krótki przegląd ostatnich 15 dni</b>.\n    2. <b>Analiza trendów i wzorców</b> (kiedy cukier skacze, dlaczego, czy bolusy są trafne na przestrzeni ostatnich dwóch tygodni).\n    3. <b>Ocena długoterminowa</b> (przewidywane HbA1c, czas w zakresie).\n    4. <b>Konkretne rekomendacje</b> (co poprawić w diecie, dawkowaniu lub aktywności).\n    5. <b>Wnioski do omówienia z zespołem diabetologicznym</b> (zestawienie powtarzających się zjawisk w poszczególnych porach dnia, bez zalecania konkretnych zmian w dawkach czy parametrach pomp).\n    Zwracaj uwagę na: nocne hipoglikemie, skoki po posiłkach, efektywność insuliny z CAŁEGO okresu. \n    Ważne: Odpowiadaj WYŁĄCZNIE i ZAWSZE w JĘZYKU POLSKIM. Piszesz po polsku. Bez formatowania markdown (gwiazdek (**) ani (###)).", var0: formattedLogs.length, var1: JSON.stringify(formattedLogs), var2: dietInfo }) + " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
     return this.generateContent(prompt);
   },
 
@@ -597,6 +597,11 @@ Zwróć odpowiedź WYŁĄCZNIE jako poprawny format JSON (bez markdownu):
     }
   },
 
+  /**
+   * Jakościowa analiza fizjologiczna posiłku (Responsible AI / MDR Compliance).
+   * Zgodnie z wytycznymi MDCG 2019-11 i Regułą 11 MDR model AI NIE WYLICZA ANI NIE SUGERUJE DAWEK LEKÓW/INSULINY.
+   * Dawka insuliny w kalkulatorze wynika wyłącznie z deterministycznych wzorów i ustawień pacjenta.
+   */
   async getBolusRecommendation(
     currentBg: number,
     currentCarbs: number,
@@ -607,15 +612,31 @@ Zwróć odpowiedź WYŁĄCZNIE jako poprawny format JSON (bez markdownu):
     recentLogs: any[],
     settings?: any,
   ) {
-    const formattedLogs = recentLogs.slice(0, 15).map((l) => ({
+    const formattedLogs = (recentLogs || []).slice(0, 8).map((l) => ({
       typ: l.type,
       wartosc: l.value,
-      czas: new Date(l.timestamp || l.createdAt).toLocaleString("pl-PL", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      czas: new Date(l.timestamp || l.createdAt).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" }),
     }));
-    const prompt = i18n.t('auto.jestes_ekspertem_diabetol', { defaultValue: "Jesteś ekspertem diabetologii systemu GlikoControl.\n    Zadanie: Przeanalizuj obecną sytuację pacjenta i oceń, czy sugerowana przez kalkulator dawka insuliny ({{var0}} j.) jest optymalna.\n\n    Sytuacja obecna:\n    - Glukoza: {{var1}} mg/dL\n    - Posiłek: {{var2}} g węglowodanów\n    - Trend: {{var3}}\n    - Aktywna insulina (IOB): {{var4}} j.\n    - Aktywne węglowodany (COB): {{var5}} g\n    - Dawka wyliczona z kalkulatora (matematycznie): {{var6}} j.\n\n    Najnowsze logi z historii (do analizy reakcji na poprzednie posiłki/bolusy): \n    {{var7}}\n\n    Przeanalizuj historię pod kątem Time In Range (TIR) - czy pacjent nie wpada po bolusach często w hipo/hiperglikemię. Zwróć wynik jako JSON (czysty JSON bez markdownu):\n    {\n      \"recommendedDose\": number,\n      \"reasoning\": \"Krótkie uzasadnienie po polsku (max 2 zdania)\",\n      \"confidence\": \"high\" | \"medium\" | \"low\"\n    }\n    \n    Zaproponuj ewentualną korektę (np. lekkie zmniejszenie jeśli pacjent miał hipo w ostatnich godzinach). Jeśli wyliczona dawka jest dobra, zwróć ją bez zmian.", var0: calculatedDose.toFixed(2), var1: currentBg, var2: currentCarbs, var3: trend, var4: iob.toFixed(2), var5: cob.toFixed(0), var6: calculatedDose.toFixed(2), var7: JSON.stringify(formattedLogs) });
+
+    const prompt = `Jesteś asystentem edukacyjnym w aplikacji GlikoControl.
+Zadanie: Dokonaj wyłącznie jakościowej, edukacyjnej analizy fizjologii trawienia posiłku i jego dynamiki wchłaniania.
+
+ZASADA BEZPIECZEŃSTWA MEDYCZNEGO (MDR COMPLIANCE):
+- Jako asystent AI NIE JESTEŚ LEKARZEM I NIE MASZ PRAWA sugerować, wyliczać ani modyfikować dawki insuliny.
+- NIE zwracaj żadnych liczb jednostek leku ani zaleceń dawkowania.
+- Skup się wyłącznie na profilu wchłaniania (np. wpływ tłuszczów/białek na opóźniony wyrzut cukru, indeks glikemiczny, konieczność obserwacji glikemii).
+
+Kontekst posiłku:
+- Aktualny cukier: ${currentBg} mg/dL, Trend: ${trend}
+- Węglowodany posiłku: ${currentCarbs} g
+- Aktywna insulina (IOB): ${iob.toFixed(2)} j., Aktywne węglowodany (COB): ${cob.toFixed(0)} g
+- Ostatnie zdarzenia: ${JSON.stringify(formattedLogs)}
+
+Zwróć wynik WYŁĄCZNIE jako czysty format JSON (bez markdownu):
+{
+  "reasoning": "Zwięzła wskazówka fizjologiczna dotycząca wchłaniania posiłku i dynamiki glikemii (maksymalnie 2 zdania po polsku)",
+  "confidence": "high"
+}`;
 
     try {
       const text = await this.generateContent(prompt);
@@ -626,32 +647,12 @@ Zwróć odpowiedź WYŁĄCZNIE jako poprawny format JSON (bez markdownu):
         .replace(/```$/, "")
         .trim();
       const parsedResult = JSON.parse(cleanJson);
-
-      if (settings && parsedResult && parsedResult.recommendedDose !== undefined) {
-        const isf = settings.isf || 50;
-        const wwRatio = settings.wwRatio || 10;
-        const targetMin = settings.targetMin || 70;
-
-        const safetyCheck = clampSafeBolus(
-          parsedResult.recommendedDose,
-          currentBg,
-          currentCarbs,
-          iob,
-          cob,
-          isf,
-          wwRatio,
-          targetMin
-        );
-
-        if (safetyCheck.capped) {
-          parsedResult.recommendedDose = safetyCheck.safeDose;
-          parsedResult.reasoning = i18n.t('auto.var0_oryginalny_powod_ai', { defaultValue: "{{var0}} Oryginalny powód AI: {{var1}}", var0: safetyCheck.reason, var1: parsedResult.reasoning });
-        }
-      }
-
+      // Gwarancja bezpieczeństwa: usuwamy pole z dawką, jeśli model przypadkowo je wygenerował
+      delete parsedResult.recommendedDose;
+      delete parsedResult.dose;
       return parsedResult;
     } catch (error) {
-      console.error("Gemini Bolus Rec Error:", error);
+      console.error("Gemini Physiological Advice Error:", error);
       return null;
     }
   },
@@ -774,7 +775,6 @@ Zwróć odpowiedź WYŁĄCZNIE jako poprawny format JSON (bez markdownu):
     
     AKCJE W APLIKACJI (ukryte tagi na końcu wiadomości):
     1. Posiłek do Talerza: <plate_action>{"action": "add", "item": {"name": "Nazwa", "carbs": 15, "protein": 1, "fat": 0, "kcal": 60}}</plate_action>
-    2. Zmiana ustawień: <app_action>{"action": "set_setting", "key": "isf", "value": 30}</app_action>
     3. Dodanie wpisu (cukier/bolus/wymiana): <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "AI"}}</app_action>
     4. Nawigacja: <app_action>{"action": "navigate", "value": "meal"}</app_action>
     
@@ -1057,7 +1057,7 @@ Odpowiedz TYLKO czystym JSON-em:
       } catch(e) {}
     }
 
-    const disclaimer = " PAMIĘTAJ: " + i18n.t('ai_medical_disclaimer', { defaultValue: "Uwaga: O zmianie dawek insuliny decyduje wyłącznie lekarz. Sztuczna inteligencja pełni tylko funkcję doradczą." });
+    const disclaimer = " \n\n[KLAUZULA BEZPIECZEŃSTWA MDR & RESPONSIBLE AI]:\nJesteś wyłącznie asystentem edukacyjno-informacyjnym, a NIE lekarzem i NIE wyrobem medycznym. Masz BEZWZGLĘDNY ZAKAZ sugerowania lub wyliczania konkretnych dawek insuliny i leków oraz ZAKAZ sugerowania zmian nastaw terapeutycznych (baza pompy, ISF, ICR, profile AAPS/Loop). Przy wszelkich pytaniach o zmianę leczenia zawsze odsyłaj do lekarza diabetologa. Odpowiedzi mają charakter wyłącznie informacyjny.";
     
     let systemInstruction = isChild
       ? `Jesteś ${petName} - wesołym i mądrym opiekunem-stworkiem (typ: ${petType}) w aplikacji GlikoControl.
@@ -1065,33 +1065,41 @@ Odpowiedz TYLKO czystym JSON-em:
     ${currentDataStr}
     DANE UŻYTKOWNIKA (24h):
     - Ostatnie logi: ${JSON.stringify(lastLogs)}
-    - Parametry (ISF, WW): ${JSON.stringify(settings)}${medicalRulesStr}
+    - Parametry ogólne (anonimowe): ${JSON.stringify({
+      targetMin: settings?.targetMin || 70,
+      targetMax: settings?.targetMax || 180,
+      treatmentMode: settings?.treatmentMode || "pump",
+      units: settings?.units || "mg/dL"
+    })}${medicalRulesStr}
 
     ZASADY ODPOWIADANIA:
     1. BĄDŹ ZWIĘZŁY: Przy prostych zapytaniach ogranicz odpowiedź do minimum. Odpowiadaj zwięźle i zrozumiale.
     2. AKCJE Z APLIKACJĄ I ZARZĄDZANIE DANYMI: Możesz wykonywać akcje za pomocą ukrytych tagów na samym końcu wiadomości:
        - ZAPISANIE BOLUSA LUB CUKRU: <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "Cukier z AI"}}</app_action>
        - ZAPISANIE WYMIANY: <app_action>{"action": "add_log", "logData": {"type": "site_change", "value": 1, "notes": "wymiana wkłucia"}}</app_action>
-       - ZMIANA USTAWIEŃ: <app_action>{"action": "set_setting", "key": "isf", "value": 30}</app_action>
-       - NAWIGACJA: <app_action>{"action": "navigate", "value": "history"}</app_action> (dashboard, profile, database, meal, history, chart, ai)
+              - NAWIGACJA: <app_action>{"action": "navigate", "value": "history"}</app_action> (dashboard, profile, database, meal, history, chart, ai)
        - DODANIE DO TALERZA: <plate_action>{"action": "add", "item": {"name": "Jabłko", "carbs": 15, "protein": 1, "fat": 0, "kcal": 60}}</plate_action>
     3. Formatuj odpowiedzi używając HTML (<b>, <ul>, <li>). NIE używaj markdown. Poinformuj dziecko/rodzica w treści, co zrobiłeś.
     4. BEZWZGLĘDNE BEZPIECZEŃSTWO DZIECKA: Przy wszelkich pytaniach o dawki insuliny, posiłki, bolusy, korekty czy złe samopoczucie ZAWSZE nakazuj dziecku: 'Zapytaj rodziców lub opiekuna!' lub 'Powiedz o tym rodzicom lub opiekunowi!'. Dziecko nie może podejmować decyzji medycznych bez dorosłych.
     ${langNote}
     ${dietRestriction}`
-      : `Jesteś ${petName} - inteligentnym i empatycznym doradcą medycznym AI w aplikacji GlikoControl do zarządzania cukrzycą. Posiadasz pełny wgląd w bieżące parametry pacjenta (cukier, IOB, COB, pompę) i historię terapii.
+      : `Jesteś ${petName} - inteligentnym i pomocnym asystentem w aplikacji GlikoControl wspierającym w codziennej samoopiece i edukacji diabetologicznej.
     ${currentDataStr}
     DANE UŻYTKOWNIKA (z ostatnich 24 godzin):
     - Ostatnie logi: ${JSON.stringify(lastLogs)}
-    - Parametry terapii: ${JSON.stringify(settings)}${medicalRulesStr}
+    - Parametry ogólne (anonimowe): ${JSON.stringify({
+      targetMin: settings?.targetMin || 70,
+      targetMax: settings?.targetMax || 180,
+      treatmentMode: settings?.treatmentMode || "pump",
+      units: settings?.units || "mg/dL"
+    })}${medicalRulesStr}
  
     ZASADY:
     1. PEŁNY KONTEKST MEDYCZNY: Wykorzystuj powyższe dane w czasie rzeczywistym. Gdy użytkownik pyta o samopoczucie, posiłki czy glikemię, odnoś się precyzyjnie do jego bieżącego poziomu cukru, aktywnej insuliny (IOB) i węglowodanów (COB).
     2. AKCJE W APLIKACJI (ukryte tagi na samym końcu odpowiedzi, jeśli użytkownik o to prosi):
        - BOLUS/CUKIER: <app_action>{"action": "add_log", "logData": {"type": "glucose", "value": 120, "notes": "Cukier z AI"}}</app_action> (lub type: "bolus")
        - WYMIANA OSPRZĘTU: <app_action>{"action": "add_log", "logData": {"type": "site_change", "value": 1, "notes": "wymiana wkłucia"}}</app_action>
-       - USTAWIENIA: <app_action>{"action": "set_setting", "key": "isf", "value": 30}</app_action>
-       - NAWIGACJA (meal/history/dashboard/chart/profile/database/ai): <app_action>{"action": "navigate", "value": "meal"}</app_action>
+              - NAWIGACJA (meal/history/dashboard/chart/profile/database/ai): <app_action>{"action": "navigate", "value": "meal"}</app_action>
        - POSIŁEK DO TALERZA: <plate_action>{"action": "add", "item": {"name": "Nazwa", "carbs": 20, "protein": 5, "fat": 2, "kcal": 150}}</plate_action>
     3. BĄDŹ ZWIĘZŁY: Odpowiadaj krótko, naturalnie i merytorycznie. Nie twórz sztucznie długich referatów – pacjent potrzebuje szybkiej, konkretnej informacji.
     4. FORMATOWANIE: Używaj prostego formatowania HTML (<b>, <ul>, <li>). NIE używaj gwiazdek markdown. Ukryte tagi akcji umieszczaj zawsze na samym końcu wypowiedzi.
@@ -1179,7 +1187,7 @@ Odpowiedz TYLKO czystym JSON-em:
           contents: fullContents,
           config: {
             systemInstruction: systemInstruction,
-            temperature: 0.4,
+            temperature: 0.15,
           },
         });
         if (response && response.text) {

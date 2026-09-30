@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.50';
+export const CURRENT_VERSION = '6.0.51';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.51",
+    date: "2026-09-30",
+    title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
+    changes: [
+      "Wprowadzono ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
+      "Złagodzono stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek i wyciszenie pośpiechu)",
+      "Dostosowano terminologię w całej aplikacji do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
+      "Wprowadzono wyraźne noty informacyjne o braku decyzji terapeutycznych w modułach analitycznych",
+      "Uporządkowano i zoptymalizowano strukturę projektu oraz usunięto zbędne pliki robocze"
+    ]
+  },
+  {
     version: "6.0.50",
     date: "2026-09-25",
     title: "Hypo Safety Shield, Płynne Animacje Pixel / Material 3 i Odświeżony Trend 30D",
@@ -69,20 +81,24 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
       "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
       "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
-    ]
-  },
-  {
-    version: "6.0.45",
-    date: "2026-09-11",
-    title: "Optymalizacja aplikacji",
-    changes: [
-      "Optymalizacja aplikacji"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.51",
+    date: "2026-09-30",
+    title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
+    changes: [
+      "Wprowadzono ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
+      "Złagodzono stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek i wyciszenie pośpiechu)",
+      "Dostosowano terminologię w całej aplikacji do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
+      "Wprowadzono wyraźne noty informacyjne o braku decyzji terapeutycznych w modułach analitycznych",
+      "Uporządkowano i zoptymalizowano strukturę projektu oraz usunięto zbędne pliki robocze"
+    ]
+  },
+  {
     version: "6.0.50",
     date: "2026-09-25",
     title: "Hypo Safety Shield, Płynne Animacje Pixel / Material 3 i Odświeżony Trend 30D",
@@ -131,14 +147,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
       "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
       "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
-    ]
-  },
-  {
-    version: "6.0.45",
-    date: "2026-09-11",
-    title: "Optymalizacja aplikacji",
-    changes: [
-      "Optymalizacja aplikacji"
     ]
   }
 ];

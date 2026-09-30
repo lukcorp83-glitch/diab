@@ -115,7 +115,7 @@ export default function WeatherWidget({ compact = false, pill = false }: { compa
  if (weather.temp >= 30) {
  alertColor = "text-rose-600 dark:text-rose-400";
  alertBg = "bg-rose-50 dark:bg-rose-500/10 border border-rose-500/20";
- alertText = i18n.t('auto.upal_trwa_var0_c_chron_wk', { defaultValue: "Upał trwa ({{var0}}°C). Chroń wkłucie i pompę przed słońcem. Przegrzany analog insuliny powyżej 30°C traci swoje właściwości lecznicze!", var0: weather.temp });
+ alertText = i18n.t('auto.upal_trwa_var0_c_chron_wk', { defaultValue: "Upał trwa ({{var0}}°C). Chroń wkłucie i pompę przed słońcem. Przegrzany analog insuliny powyżej 30°C traci swoją aktywność biologiczną!", var0: weather.temp });
  alertIcon = <AlertTriangle size={14} className="text-rose-500 shrink-0" />;
  } else if (weather.temp >= 25) {
  alertColor = "text-orange-600 dark:text-orange-400";

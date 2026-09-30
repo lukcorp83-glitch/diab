@@ -2196,7 +2196,7 @@ export default function Dashboard({
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-amber-500" />
                 
-                                                      {t('auto.leczenie', { defaultValue: 'Leczenie' })}
+                                                      {t('auto.leczenie_i_posilki', { defaultValue: 'Dawki i posiłki' })}
                                                     </h3>
               <button onClick={() => { Haptics.light(); setListFilter('treatment'); setTab("history"); }} className="text-[9px] font-black text-accent-500 uppercase">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
             </div>

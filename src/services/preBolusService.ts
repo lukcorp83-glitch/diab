@@ -49,7 +49,7 @@ export function calculatePreBolusWaitTime(
   if (glucoseValue < 80) {
     return {
       waitMinutes: 0,
-      reason: i18n.t('bolus.timing_hypo', { defaultValue: '⚠️ Niski cukier! Zjedz posiłek natychmiast, bez czekania.' })
+      reason: i18n.t('bolus.timing_hypo', { defaultValue: '⚠️ Niska glikemia – sugerowane natychmiastowe spożycie węglowodanów przed ewentualną insuliną.' })
     };
   } else if (glucoseValue <= 100) {
     // 80 - 100: niska norma

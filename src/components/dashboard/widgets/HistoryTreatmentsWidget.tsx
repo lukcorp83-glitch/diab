@@ -34,7 +34,7 @@ export default function HistoryTreatmentsWidget(props: any) {
  return (
  <div className="p-6 bg-slate-500/5 dark:bg-slate-950/10 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-[2.5rem] text-center text-xs text-slate-400 dark:text-slate-500 font-bold font-display w-full min-h-[140px] flex flex-col justify-center items-center">
  
- {t('auto.ostatnie_leczenie_brak_danych', { defaultValue: '💉 Ostatnie leczenie [Brak danych]' })}
+ {t('auto.ostatnie_leczenie_brak_danych', { defaultValue: '💉 Ostatnia dawka [Brak danych]' })}
  </div>
  );
  }
@@ -51,7 +51,7 @@ export default function HistoryTreatmentsWidget(props: any) {
  <div className="p-1.5 rounded-lg shrink-0 bg-accent-500/10 text-accent-500">
  <Syringe size={14} />
  </div>
- <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.leczenie', { defaultValue: 'Leczenie' })}</span>
+ <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">{t('auto.leczenie', { defaultValue: 'Wpisy insuliny' })}</span>
  </div>
  
  <div className="mt-2 text-left">
@@ -98,7 +98,7 @@ export default function HistoryTreatmentsWidget(props: any) {
  <div className="flex justify-between items-center px-1 pb-1">
  <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
  <div className="w-1.5 h-1.5 rounded-full bg-accent-500" />
- {t('auto.leczenie', { defaultValue: 'Leczenie' })}
+ {t('auto.leczenie', { defaultValue: 'Wpisy insuliny' })}
  </h3>
  <button onClick={() => { if (!isEditingLayout) { Haptics.light(); setListFilter('treatment'); setTab("history"); } }} className="text-[9px] font-black text-accent-500 uppercase font-display">{t('auto.wszystkie', { defaultValue: 'Wszystkie' })}</button>
  </div>

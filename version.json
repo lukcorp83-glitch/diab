@@ -1,10 +1,10 @@
 {
-    "version": "6.0.50",
+    "version": "6.0.51",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.50-beta_OTA.apk",
-    "buildNumber": 164,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.51-beta_OTA.apk",
+    "buildNumber": 165,
     "forceUpdate": false,
-    "whatsNew": "Hypo Safety Shield (inteligentna ochrona przed hipoglikemią w stoperze przedposiłkowym – natychmiastowe zerowanie i alert przy gwałtownym spadku cukru), organiczne animacje kafelków na Pulpicie w stylu Google Pixel / Material 3 z rozróżnieniem platform (Web/Android), odświeżony wykres trendu miesięcznego w GlikoSense (korytarz normy, est. HbA1c 30D).",
-    "whatsNewEn": "Hypo Safety Shield (smart hypoglycemia prevention during pre-bolus countdown – immediate fast-forward and alert on rapid glucose drop), organic Google Pixel / Material 3 widget spring animations on Dashboard with Web/Android separation, refreshed Monthly Trend chart in GlikoSense (target corridor, est. HbA1c 30D).",
-    "otaRevision": 324
+    "whatsNew": "Ręczny rejestrator dawki insuliny (pełna kontrola użytkownika bez automatycznego narzucania dawek), łagodny stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek), pełne dostosowanie terminologii edukacyjno-informacyjnej (MDR) oraz optymalizacja projektu.",
+    "whatsNewEn": "Manual insulin dose logger (user-entered dose records with full manual control, no automated dosage prescription), gentle meal-time suggestions on pre-bolus timer, MDR-compliant non-prescriptive informational terminology, and project cleanup.",
+    "otaRevision": 325
 }

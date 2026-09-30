@@ -386,7 +386,7 @@ export function DynamicActionCapsule({
                 </div>
                 <div className="flex flex-col justify-center min-w-0">
                   <span className="text-[8px] font-black text-white/90 uppercase tracking-widest leading-none mb-0.5 truncate">
-                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? 'Odczekaj' : 'Możesz jeść!'}
+                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? 'Sugerowany czas' : 'Czas na posiłek'}
                   </span>
                   <span className="text-[11px] text-white uppercase font-black tracking-tight leading-none truncate font-mono">
                     {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? (

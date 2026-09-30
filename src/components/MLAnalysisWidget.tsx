@@ -397,64 +397,6 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  }
  };
 
-  const handleAcceptAutoTune = async () => {
-    const authUser = auth.currentUser;
-    const effectiveUser = user || authUser;
-    if (!autoTunerResult?.proposedISF || !effectiveUser || !autoTunerResult.timeBlock) {
-      console.warn('[AutoTune] Missing prerequisites to apply autotune', { autoTunerResult, effectiveUser });
-      return;
-    }
-    try {
-      Haptics.impact();
-      const uid = getEffectiveUid(effectiveUser);
-      
-      let newProfiles = [...(settings?.hourlyProfiles || [])];
-      
-      if (newProfiles.length === 0) {
-        const baseIsf = settings?.isf || 50;
-        const baseWw = settings?.wwRatio || 10;
-        newProfiles = [
-          { time: '00:00', isf: baseIsf, wwRatio: baseWw },
-          { time: '06:00', isf: baseIsf, wwRatio: baseWw },
-          { time: '12:00', isf: baseIsf, wwRatio: baseWw },
-          { time: '18:00', isf: baseIsf, wwRatio: baseWw }
-        ];
-      }
-      
-      const blockIndex = newProfiles.findIndex(p => p.time === autoTunerResult.timeBlock!.start);
-      if (blockIndex !== -1) {
-        newProfiles[blockIndex] = { ...newProfiles[blockIndex], isf: autoTunerResult.proposedISF };
-      } else {
-        newProfiles.push({ 
-          time: autoTunerResult.timeBlock!.start, 
-          isf: autoTunerResult.proposedISF, 
-          wwRatio: settings?.wwRatio || 10 
-        });
-      }
-
-      newProfiles.sort((a, b) => a.time.localeCompare(b.time));
-
-      const updates: any = {
-        hourlyProfiles: newProfiles
-      };
-
-      // Zaktualizuj także bazowy ISF jeśli dotyczy głównego przedziału lub braku profili
-      if (autoTunerResult.timeBlock.start === '00:00' || autoTunerResult.timeBlock.start === '12:00' || newProfiles.length <= 1) {
-        updates.isf = autoTunerResult.proposedISF;
-      }
-
-      await setDoc(doc(db, "users", uid, "settings", "profile"), updates, { merge: true });
-      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updates }));
-      localStorage.setItem('lastIsfAutoTuneTime', Date.now().toString());
-      Haptics.success();
-      toast.success(t('auto.glikosense_autotune_success', { defaultValue: 'Profil ISF został pomyślnie zaktualizowany!' }));
-      setAutoTunerResult(null);
-    } catch (e: any) {
-      console.error('[AutoTune] Failed to accept auto-tune:', e);
-      toast.error(`Błąd zapisu ustawień: ${e?.message || ''}`);
-    }
-  };
-
   const handleDismissAutoTune = () => {
     localStorage.setItem('lastIsfAutoTuneTime', Date.now().toString());
     setAutoTunerResult(null);
@@ -768,7 +710,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
  <div className="flex flex-col h-full bg-slate-50/50 dark:bg-slate-900 overflow-y-auto overflow-x-hidden p-4 pb-24 gap-4">
     
     <AnimatePresence>
-      {autoTuningEnabled && autoTunerResult?.suggestionAvailable && autoTunerResult.proposedISF && settings?.isf && (
+      {autoTuningEnabled && autoTunerResult?.observationAvailable && autoTunerResult.timeBlock && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -780,28 +722,29 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
               <Bot size={22} className="text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="flex flex-col gap-1.5 flex-1">
-              <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                  {t('auto.glikosense_autotune_title_hourly', { defaultValue: `Wrażliwość ${autoTunerResult.timeBlock.start} - ${autoTunerResult.timeBlock.end}`, start: autoTunerResult.timeBlock.start, end: autoTunerResult.timeBlock.end })}
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  Obserwacja skuteczności bolusów ({autoTunerResult.timeBlock.start} - {autoTunerResult.timeBlock.end})
                   <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
                 </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                  {t('auto.glikosense_autotune_desc_hourly', { defaultValue: `Twoje bolusy w godzinach ${autoTunerResult.timeBlock.start} - ${autoTunerResult.timeBlock.end} działają słabiej. Zaktualizować ISF dla tego przedziału?`, start: autoTunerResult.timeBlock.start, end: autoTunerResult.timeBlock.end })}
-                </p>
-                
-                <div className="flex items-center gap-2 mt-2">
-                  <button
-                    onClick={handleAcceptAutoTune}
-                    className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors"
-                  >
-                    {t('auto.glikosense_autotune_action_hourly', { defaultValue: `Zmień na ${autoTunerResult.proposedISF} mg/dL`, newISF: autoTunerResult.proposedISF })}
-                  </button>
-                  <button
-                    onClick={handleDismissAutoTune}
-                    className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    {t('auto.glikosense_autotune_reject', { defaultValue: 'Zignoruj' })}
-                  </button>
-                </div>
+                <span className="text-[9px] font-black uppercase text-indigo-500 tracking-wider bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                  Statystyka
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                {autoTunerResult.reasonType === 'decreased_sensitivity'
+                  ? `W ostatnich 3 dniach bolusy korekcyjne w godzinach ${autoTunerResult.timeBlock.start} - ${autoTunerResult.timeBlock.end} obniżały glikemię średnio o ${100 - autoTunerResult.efficiencyPercent}% słabiej niż model statystyczny. Omów tę obserwację z lekarzem diabetologiem pod kątem ewentualnego dostosowania współczynnika ISF.`
+                  : `W ostatnich 3 dniach bolusy korekcyjne w godzinach ${autoTunerResult.timeBlock.start} - ${autoTunerResult.timeBlock.end} obniżały glikemię silniej niż zwykle (+ ${autoTunerResult.efficiencyPercent - 100}%). Omów tę obserwację z lekarzem diabetologiem.`}
+              </p>
+              
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={handleDismissAutoTune}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors"
+                >
+                  Rozumiem (Ukryj na 48h)
+                </button>
+              </div>
             </div>
           </div>
         </motion.div>

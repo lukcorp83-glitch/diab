@@ -378,9 +378,7 @@ export default function Profile({
  const [isAnalyzingDrug, setIsAnalyzingDrug] = useState(false);
  const [cleaning, setCleaning] = useState(false);
  const [cleaningResult, setCleaningResult] = useState<string | null>(null);
- const [auditLoading, setAuditLoading] = useState(false);
- const [auditResult, setAuditResult] = useState<string | null>(null);
- const [tdiInputValue, setTdiInputValue] = useState<string>("");
+  const [tdiInputValue, setTdiInputValue] = useState<string>("");
 
  const storeCategory = useAppStore((state) => state.profileCategory);
  const setStoreCategory = useAppStore((state) => state.setProfileCategory);
@@ -667,24 +665,7 @@ export default function Profile({
     toast.success(i18n.t("auto.przywrocono_domyslna_kolejnosc", { defaultValue: "Przywrócono domyślny układ kafelków" }));
   };
  
- const performTherapyAudit = async () => {
- if (auditLoading) return;
- setAuditLoading(true);
- setAuditResult(null);
- Haptics.medium();
- try {
- const result = await geminiService.getMasterAnalysis(logs);
- setAuditResult(result);
- toast.success("Audyt terapii wygenerowany!");
- Haptics.success();
- } catch (err) {
- console.error("Therapy Audit Failed:", err);
- toast.error(i18n.t('auto.nie_udalo_sie_wygenerowac_audy', { defaultValue: i18n.t('auto.nie_udalo_sie_wygenerowac', { defaultValue: "Nie udało się wygenerować audytu." }) }));
- } finally {
- setAuditLoading(false);
- }
- };
- const scrollTabs = (dir: "left" | "right") => {
+  const scrollTabs = (dir: "left" | "right") => {
  if (tabsRef.current) {
  const scrollAmount = 200;
  tabsRef.current.scrollBy({
