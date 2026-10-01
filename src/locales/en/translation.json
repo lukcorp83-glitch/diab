@@ -2063,5 +2063,16 @@
   "auto.czy_wiesz_ze_stoper_prebolus": "Did you know that after logging a bolus the app automatically starts a pre-bolus meal timer with active hypoglycemia protection?",
   "auto.czy_wiesz_ze_detektyw_insuliny": "Did you know that in case of persistent high glucose the 'Insulin Detective' helps check whether medication was overheated or a cannula bent?",
   "auto.czy_wiesz_ze_personalizacja_paska": "Did you know that in Profile you can customize the fourth bottom nav slot and pin History, Medications, Equipment, or Workouts?",
-  "auto.oblicz_w_kalkulatorze": "Log dose"
+  "auto.oblicz_w_kalkulatorze": "Log dose",
+  "mdr": {
+    "diets_disclaimer": "Educational Information: The presented nutritional models are for informational and auxiliary purposes only. The app does not provide medical diagnoses or prescribe therapeutic diets. Any dietary or insulin adjustments must strictly be consulted with your diabetologist or clinical dietitian.",
+    "training_disclaimer": "Educational & Activity Log: Sports advice is provided solely for general educational purposes. The app does not calculate medication doses or instruct on therapy changes. Always follow the individual recommendations of your physician.",
+    "educational_info": "Educational Information",
+    "educational_module": "Educational & Activity Log"
+  },
+  "updates": {
+    "notif_title_beta": "🚀 New Beta Version ({{version}})",
+    "notif_title": "✨ New GlikoControl update available ({{version}})",
+    "notif_body": "Tap to download and install the latest update."
+  }
 }

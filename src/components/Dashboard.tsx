@@ -28,7 +28,7 @@ import {
   Plus,
   Shield,
   Trash2,
-  ChevronRight,
+  ChevronRight, ChevronsUp, ChevronsDown,
   TrendingUp,
   AlertTriangle,
   Signal,
@@ -833,7 +833,7 @@ export default function Dashboard({
 
     if (diff > 15)
       return {
-        icon: <ChevronRight className="-rotate-90" />,
+        icon: <ChevronsUp className="text-rose-500 animate-pulse" />,
         color: "text-rose-500",
         text: i18n.t('auto.szybko_rośnie', { defaultValue: i18n.t('auto.szybko_rosnie', { defaultValue: "Szybko rośnie" }) }),
         direction: "UP_FAST",
@@ -851,7 +851,7 @@ export default function Dashboard({
       };
     if (diff < -15)
       return {
-        icon: <ChevronRight className="rotate-90" />,
+        icon: <ChevronsDown className="text-rose-500 animate-pulse" />,
         color: "text-rose-500",
         text: i18n.t('auto.szybko_spada', { defaultValue: 'Szybko spada' }),
         direction: "DOWN_FAST",

@@ -624,21 +624,37 @@ const saveInventoryItem = async () => {
               </div>
             </div>
 
-            {/* Szybki przycisk Zażyj 1 dawkę */}
-            <button
-              type="button"
-              onClick={() => takeMedicationDose(med)}
-              title={t('auto.zazyj_dawke', { defaultValue: 'Zażyj dawkę' })}
-              className={cn(
-                "px-2.5 py-1 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1 shadow-sm shrink-0 ml-2",
-                runout.isLowStock
-                  ? "bg-rose-600 text-white hover:bg-rose-700"
-                  : "bg-teal-600 text-white hover:bg-teal-700"
-              )}
-            >
-              <Check size={10} />
-              {t('auto.zazyj_dawke', { defaultValue: 'Zażyj' })}
-            </button>
+            {/* Szybki przycisk Zażyj 1 dawkę / Stan zażycia z synchronizacją chmury */}
+            {(() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const isTakenToday = med.lastTakenDate === todayStr;
+
+              if (isTakenToday) {
+                return (
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[8.5px] font-black uppercase tracking-wider shrink-0 ml-2 border border-emerald-500/20">
+                    <CheckCircle2 size={11} />
+                    <span>{t('auto.zazyto_dzisiaj', { defaultValue: 'Zażyto' })}</span>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  type="button"
+                  onClick={() => takeMedicationDose(med)}
+                  title={t('auto.zazyj_dawke', { defaultValue: 'Zażyj dawkę' })}
+                  className={cn(
+                    "px-2.5 py-1 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1 shadow-sm shrink-0 ml-2",
+                    runout.isLowStock
+                      ? "bg-rose-600 text-white hover:bg-rose-700"
+                      : "bg-teal-600 text-white hover:bg-teal-700"
+                  )}
+                >
+                  <Check size={10} />
+                  {t('auto.zazyj_dawke', { defaultValue: 'Zażyj' })}
+                </button>
+              );
+            })()}
           </div>
         );
       })()}

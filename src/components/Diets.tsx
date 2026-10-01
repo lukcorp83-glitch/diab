@@ -52,7 +52,7 @@ const DIET_TYPES = [
  ],
  pros: [i18n.t('auto.mniej_skokow_glikemii_po_posil', { defaultValue: i18n.t('auto.mniej_skokow_glikemii_po', { defaultValue: "Mniej skoków glikemii po posiłkach" }) }), i18n.t('auto.mniejsze_dawki_insuliny_mniej', { defaultValue: i18n.t('auto.mniejsze_dawki_insuliny_m', { defaultValue: "Mniejsze dawki insuliny (mniej błędów pomiarowych)" }) })],
  cons: [i18n.t('auto.moze_wymagac_dluzszego_ustawia', { defaultValue: i18n.t('auto.moze_wymagac_dluzszego_us', { defaultValue: "Może wymagać dłuższego ustawiania bazy (tzw. Wymienniki Białkowo-Tłuszczowe)" }) }), i18n.t('auto.ryzyko_ketozy_i_kwasicy_wymaga', { defaultValue: i18n.t('auto.ryzyko_ketozy_i_kwasicy_w', { defaultValue: "Ryzyko ketozy i kwasicy (wymaga kontroli ciał ketonowych)" }) }), 'Trudna dla dzieci w okresie wzrostu'],
- tips: i18n.t('auto.uzywajac_pompy_wbt_wymienniki', { defaultValue: i18n.t('auto.uzywajac_pompy_wbt_wymien', { defaultValue: "Używając pompy, WBT (Wymienniki Białkowo-Tłuszczowe) powinieneś podawać jako Bolus Przedłużony, np. na 2-4 godziny." }) })
+ tips: i18n.t('auto.uzywajac_pompy_wbt_wymienniki', { defaultValue: "Białka i tłuszcze (WBT) rozkładają się wielogodzinnie. W literaturze diabetologicznej zaleca się konsultację z lekarzem w kwestii doboru bolusa przedłużonego." })
  },
  {
  id: 'dash',
@@ -82,7 +82,7 @@ const DIET_TYPES = [
  ],
  pros: [i18n.t('auto.pomaga_w_redukcji_insulinoopor', { defaultValue: i18n.t('auto.pomaga_w_redukcji_insulin', { defaultValue: "Pomaga w redukcji insulinooporności" }) }), i18n.t('auto.baza_nocna_czesto_stabilizuje', { defaultValue: i18n.t('auto.baza_nocna_czesto_stabili', { defaultValue: "Baza nocna często stabilizuje się lepiej bez późnego posiłku" }) })],
  cons: [i18n.t('auto.ryzyko_hipoglikemii_u_diabetyk', { defaultValue: i18n.t('auto.ryzyko_hipoglikemii_u_dia', { defaultValue: "Ryzyko hipoglikemii - u diabetyków z pompą należy BARDZO OSTRZEŻNIE dobierać bazę" }) }), i18n.t('auto.mozliwe_zjawisko_brzasku_skok', { defaultValue: i18n.t('auto.mozliwe_zjawisko_brzasku', { defaultValue: "Możliwe zjawisko \"brzasku\" - skok cukru rano mimo braku jedzenia" }) })],
- tips: i18n.t('auto.jezeli_rano_mocno_skacze_cukie', { defaultValue: i18n.t('auto.jezeli_rano_mocno_skacze', { defaultValue: "Jeżeli rano mocno skacze cukier (tzw. brzask), przedłużony bolus nocny i dobrze ustawiona baza to podstawa. Nie polecane dla dzieci." }) })
+ tips: i18n.t('auto.jezeli_rano_mocno_skacze_cukie', { defaultValue: "Jeżeli rano występuje zjawisko brzasku, skonsultuj z lekarzem profil przepływu bazy nocnej. Metoda nie jest zalecana dla dzieci." })
  },
  {
  id: 'gluten',
@@ -162,6 +162,13 @@ export function Diets({ user, setTab, settings, logs = [] }: DietsProps) {
  if (activeDietData) {
  return (
  <div className="w-full max-w-md mx-auto space-y-4 p-4 pb-32">
+        {/* MDR_DISCLAIMER_DIETS */}
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 text-[10px] text-amber-800 dark:text-amber-200 flex items-start gap-2.5">
+          <Info size={16} className="text-amber-500 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            <strong>{t('mdr.educational_info', { defaultValue: 'Informacja edukacyjna' })}:</strong> {t('mdr.diets_disclaimer', { defaultValue: 'Prezentowane modele żywieniowe mają charakter wyłącznie poglądowy i pomocniczy. Aplikacja nie stawia diagnoz ani nie ordynuje diet leczniczych. Wszelkie zmiany jadłospisu i dawkowania insuliny należy bezwzględnie konsultować z lekarzem diabetologiem lub dietetykiem klinicznym.' })}
+          </p>
+        </div>
  <div className="flex items-center gap-3 mb-6">
  <div className={`p-3 rounded-2xl bg-white dark:bg-slate-800 shadow-sm ${activeDietData.color.replace('bg-', 'text-')}`}>
  {activeDietData.icon}

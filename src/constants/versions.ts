@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.53';
+export const CURRENT_VERSION = '6.0.55';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.55",
+    date: "2026-10-01",
+    title: "Podwójne Strzałki CGM, Synchronizacja Leków i Powiadomienia Push",
+    changes: [
+      "Wdrożono czytelne podwójne strzałki trendu (↑↑ / ↓↓) na wykresie Canvas oraz ikony podwójnych strzałek na pulpicie przy gwałtownych skokach cukru (>= 3 mg/dL/min)",
+      "Dodano pełną synchronizację zażytych leków w czasie rzeczywistym między telefonem a komputerem przez chmurę Firestore",
+      "Wdrożono systemowe powiadomienia push w belce telefonu informujące o dostępności nowej wersji aplikacji",
+      "Zneutralizowano porady w modułach Diety oraz GlikoTrening zgodnie z wymogami MDR SaMD (brak narzucania dawek insuliny)",
+      "Zapewniono 100% dwujęzyczność (PL/EN) dla wszystkich nowych banerów medycznych i powiadomień"
+    ]
+  },
+  {
     version: "6.0.53",
     date: "2026-10-01",
     title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
@@ -69,25 +81,22 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Usunięto przestarzały moduł migracji ze starej bazy i oczyszczono zapytania synchronizacyjne"
     ]
   },
-  {
-    version: "6.0.47",
-    date: "2026-09-21",
-    title: "Logowanie przez Facebook, Data Wymiany na Widżetach i Poprawki Powiadomień",
-    changes: [
-      "Wdrożono obsługę logowania i rejestracji konta przez Facebook na wszystkich platformach (Web, PWA oraz natywna aplikacja APK)",
-      "Dodano czytelny wskaźnik daty i godziny wymiany (dzień tygodnia, dzień, miesiąc i godzina) na widżetach pulpitu dla Sensora i Wkłucia",
-      "Zachowano 100% kompaktowych gabarytów kafelków bez powiększania widżetów w siatce pulpitu",
-      "Dodano szybkie przyciski wyboru żywotności sensora w Profilu: 7 dni (Guardian), 10 dni (Dexcom), 14 dni (Libre)",
-      "Wyeliminowano problem podwójnych powiadomień po zakończeniu odliczania timera pre-bolusa",
-      "Wprowadzono trwałą blokadę restartu i ponownego przeliczania zakończonego timera przy późniejszym wzroście glikemii",
-      "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
-    ]
-  },
-
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.55",
+    date: "2026-10-01",
+    title: "Podwójne Strzałki CGM, Synchronizacja Leków i Powiadomienia Push",
+    changes: [
+      "Wdrożono czytelne podwójne strzałki trendu (↑↑ / ↓↓) na wykresie Canvas oraz ikony podwójnych strzałek na pulpicie przy gwałtownych skokach cukru (>= 3 mg/dL/min)",
+      "Dodano pełną synchronizację zażytych leków w czasie rzeczywistym między telefonem a komputerem przez chmurę Firestore",
+      "Wdrożono systemowe powiadomienia push w belce telefonu informujące o dostępności nowej wersji aplikacji",
+      "Zneutralizowano porady w modułach Diety oraz GlikoTrening zgodnie z wymogami MDR SaMD (brak narzucania dawek insuliny)",
+      "Zapewniono 100% dwujęzyczność (PL/EN) dla wszystkich nowych banerów medycznych i powiadomień"
+    ]
+  },
+  {
     version: "6.0.53",
     date: "2026-10-01",
     title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
@@ -136,19 +145,4 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Usunięto przestarzały moduł migracji ze starej bazy i oczyszczono zapytania synchronizacyjne"
     ]
   },
-  {
-    version: "6.0.47",
-    date: "2026-09-21",
-    title: "Logowanie przez Facebook, Data Wymiany na Widżetach i Poprawki Powiadomień",
-    changes: [
-      "Wdrożono obsługę logowania i rejestracji konta przez Facebook na wszystkich platformach (Web, PWA oraz natywna aplikacja APK)",
-      "Dodano czytelny wskaźnik daty i godziny wymiany (dzień tygodnia, dzień, miesiąc i godzina) na widżetach pulpitu dla Sensora i Wkłucia",
-      "Zachowano 100% kompaktowych gabarytów kafelków bez powiększania widżetów w siatce pulpitu",
-      "Dodano szybkie przyciski wyboru żywotności sensora w Profilu: 7 dni (Guardian), 10 dni (Dexcom), 14 dni (Libre)",
-      "Wyeliminowano problem podwójnych powiadomień po zakończeniu odliczania timera pre-bolusa",
-      "Wprowadzono trwałą blokadę restartu i ponownego przeliczania zakończonego timera przy późniejszym wzroście glikemii",
-      "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
-    ]
-  },
-
 ];

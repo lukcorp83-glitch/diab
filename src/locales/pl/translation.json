@@ -3790,5 +3790,16 @@
   "auto.czy_wiesz_ze_stoper_prebolus": "Czy wiesz, że po podaniu bolusa aplikacja automatycznie uruchamia stoper przedposiłkowy (Pre-bolus) z ochroną przed nagłym spadkiem glikemii?",
   "auto.czy_wiesz_ze_detektyw_insuliny": "Czy wiesz, że w przypadku utrzymującego się wysokiego cukru moduł 'Detektyw insuliny' pomaga sprawdzić, czy lek nie uległ przegrzaniu lub kaniula zagięciu?",
   "auto.czy_wiesz_ze_personalizacja_paska": "Czy wiesz, że w Profilu możesz dostosować czwarty przycisk dolnego paska nawigacji i przypiąć tam np. Historię, Leki, Osprzęt czy Trening?",
-  "auto.oblicz_w_kalkulatorze": "Wpisz dawkę"
+  "auto.oblicz_w_kalkulatorze": "Wpisz dawkę",
+  "mdr": {
+    "diets_disclaimer": "Informacja edukacyjna: Prezentowane modele żywieniowe mają charakter wyłącznie poglądowy i pomocniczy. Aplikacja nie stawia diagnoz ani nie ordynuje diet leczniczych. Wszelkie zmiany jadłospisu i dawkowania insuliny należy bezwzględnie konsultować z lekarzem diabetologiem lub dietetykiem klinicznym.",
+    "training_disclaimer": "Moduł edukacyjno-rejestracyjny: Porady dotyczące sportu mają charakter wyłącznie ogólnoinformacyjny. Aplikacja nie oblicza dawek leków ani nie instruuje o zmianach terapii. Zawsze stosuj się do indywidualnych zaleceń Twojego diabetologa.",
+    "educational_info": "Informacja edukacyjna",
+    "educational_module": "Moduł edukacyjno-rejestracyjny"
+  },
+  "updates": {
+    "notif_title_beta": "🚀 Nowa wersja Beta ({{version}})",
+    "notif_title": "✨ Dostępna nowa wersja GlikoControl ({{version}})",
+    "notif_body": "Dotknij, aby pobrać i zainstalować najnowszą aktualizację."
+  }
 }

@@ -100,6 +100,8 @@ export interface Medication {
   stockQuantity?: number; // Pozostała ilość tabletek/sztuk w apteczce
   stockThreshold?: number; // Próg ostrzegania o kończącym się leku
   pillsPerDose?: number; // Liczba tabletek przyjmowana na jedno przypomnienie (domyślnie 1)
+  lastTakenDate?: string; // Data ostatniego zażycia "YYYY-MM-DD"
+  lastTakenTimestamp?: number; // Dokładny znacznik czasu ostatniego zażycia (ms)
 }
 
 export interface InventoryItem {

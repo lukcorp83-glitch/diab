@@ -968,17 +968,28 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  
  if (d.isLatest && d.velocity !== undefined) {
  let arrow = '→';
- if (d.velocity > 2) arrow = '⇈';
- else if (d.velocity > 1) arrow = '↑';
- else if (d.velocity > 0.5) arrow = '↗';
- else if (d.velocity < -2) arrow = '⇊';
- else if (d.velocity < -1) arrow = '↓';
- else if (d.velocity < -0.5) arrow = '↘';
+ const cgmDir = String(d.originalG?.direction || '').toLowerCase();
+
+ // Przy bardzo gwałtownych zmianach (>= 3 mg/dL/min lub wskaźnik DoubleUp z CGM) pojawiają się dwie wyraźne strzałki
+ if (cgmDir.includes('doubleup') || d.velocity >= 3) {
+ arrow = '↑↑';
+ } else if (cgmDir.includes('singleup') || d.velocity > 1) {
+ arrow = '↑';
+ } else if (cgmDir.includes('fortyfiveup') || cgmDir.includes('45up') || d.velocity > 0.5) {
+ arrow = '↗';
+ } else if (cgmDir.includes('doubledown') || d.velocity <= -3) {
+ arrow = '↓↓';
+ } else if (cgmDir.includes('singledown') || d.velocity < -1) {
+ arrow = '↓';
+ } else if (cgmDir.includes('fortyfivedown') || cgmDir.includes('45down') || d.velocity < -0.5) {
+ arrow = '↘';
+ }
+
  ctx.font = '900 24px sans-serif';
  ctx.fillStyle = fill;
  ctx.shadowColor = 'rgba(0,0,0,0.8)';
  ctx.shadowBlur = 6;
- ctx.fillText(arrow, x + 24, y);
+ ctx.fillText(arrow, x + (arrow.length > 1 ? 30 : 24), y);
  ctx.shadowBlur = 0;
  }
  }

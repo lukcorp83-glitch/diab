@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import localVersionData from '../../version.json';
 import { resolveApkDownloadUrl, triggerApkDownload, ApkDownloadInfo } from '../utils/apkDownloader';
+import { notificationService } from '../services/notificationService';
 import { Capacitor } from '@capacitor/core';
 
 export default function UpdateModal() {
@@ -65,6 +66,9 @@ export default function UpdateModal() {
         })(data.version, CURRENT_VERSION);
 
         if (isNewApkVersion && dismissed !== data.version) {
+          // Wyślij powiadomienie push / lokalne w belce powiadomień
+          notificationService.notifyAppUpdateAvailable(data.version, isBeta);
+
           const updateKey = `updateDetectedAt_${data.version}`;
           const detectedAt = localStorage.getItem(updateKey);
           
