@@ -462,22 +462,22 @@ export default function MealPlate({
  };
 
  const analyzeMeal = async () => {
- if (plate.length === 0) return;
- setIsAnalyzing(true);
- setAnalysis(null);
- try {
- const dietContext = settings?.activeDiet
- ? i18n.t('auto.uwaga_uzytkownik_przebywa', { defaultValue: "UWAGA: Użytkownik przebywa na diecie: {{var0}}. Koniecznie uwzględnij to podczas analizy i precyzuj jak bardzo ten zestaw do niej pasuje!", var0: settings.activeDiet })
- : "";
- const prompt = i18n.t('auto.jestes_zaawansowanym_asys', { defaultValue: "Jesteś zaawansowanym asystentem diabetologicznym. Przeanalizuj poniższy skład posiłku pacjenta:\n {{var0}}\n \n Wybrana obróbka termiczna całego posiłku: {{var1}}\n {{var2}}\n \n Zwróć szczegółową analizę w czytelnym formacie HTML (używaj <b>, <ul>, <li>, <br>, ale ZABRANIAM używania markdown, w szczególności gwazdek).\n \n Uwzględnij:\n 1. <b>Szczegółowy Wpływ Składników i Obróbki</b>: Wytłumacz, jak obecność białek/tłuszczy oraz dodanie płynów (np. wody, mleka - co rozcieńcza węglowodany na objętość) wpływa na ładunek glikemiczny (ŁG). Przeanalizuj również wpływ wybranej obróbki termicznej (np. gotowanie, smażenie, pieczenie, blendowanie) na wchłanianie i Indeks Glikemiczny (IG). Dodanie tłuszczu spowalnia trawienie (efekt pizzy), a blendowanie/rozgotowanie je przyspiesza.\n 2. <b>Profil Wchłaniania</b>: Oceń wypadkowy Indeks Glikemiczny (IG) oraz całkowity Ładunek Glikemiczny (ŁG) zestawu. Wskaż produkty obciążające układ i mogące powodować późniejsze skoki glikemii.\n 3. <b>Rekomendacja Bolusa (w tym WBT)</b>: Zaleć typ bolusa (np. prosty, złożony, przedłużony). Jeśli posiłek ma dużo WW i WBT, określ ile % insuliny podać od razu, a ile przedłużyć na ile godzin. Wspomnij o pre-bolusie.\n 4. <b>Ostrzeżenia</b>: Krótko (1 zdanie) na co uważać w ciągu najbliższych kilku godzin w związku z trwającym wchłanianiem tego konkretnego posiłku.\n \n Odpowiedź ma być konkretna, rzetelna i dostosowana do specyfiki użytych składników (np. mąki, jajek, mleka w przypadku ciasta naleśnikowego).", var0: JSON.stringify(plate.map((p) => ({ nazwa: getProductName(p, i18n.language), waga: p.weight, wegle: p.carbs, bialko: p.protein, tluszcz: p.fat, IG: p.gi }))), var1: cookingMethod === "raw" ? "Surowe / Brak" : cookingMethod === "boiled" ? "Gotowane" : cookingMethod === "baked" ? "Pieczone" : cookingMethod === "fried" ? i18n.t('auto.smazone', { defaultValue: "Smażone" }) : "Zblendowane", var2: dietContext });
- const result = await geminiService.generateContent(prompt);
- setAnalysis(result);
- } catch (e) {
- console.error(e);
- setAnalysis(i18n.t('auto.blad_analizy_ai', { defaultValue: i18n.t('auto.blad_analizy_ai', { defaultValue: "Błąd analizy AI." }) }));
- } finally {
- setIsAnalyzing(false);
- }
+    if (plate.length === 0) return;
+    setIsAnalyzing(true);
+    setAnalysis(null);
+    try {
+      const dietContext = settings?.activeDiet
+        ? i18n.t('auto.uwaga_uzytkownik_przebywa', { defaultValue: "UWAGA: Użytkownik przebywa na diecie: {{var0}}. Koniecznie uwzględnij to podczas analizy i precyzuj jak bardzo ten zestaw do niej pasuje!", var0: settings.activeDiet })
+        : "";
+      const prompt = i18n.t('auto.jestes_zaawansowanym_asys', { defaultValue: "Jesteś asystentem żywieniowym w aplikacji GlikoControl. Przeanalizuj poniższy skład posiłku użytkownika:\n {{var0}}\n \n Wybrana obróbka termiczna całego posiłku: {{var1}}\n {{var2}}\n \n Zwróć szczegółową analizę w czytelnym formacie HTML (używaj <b>, <ul>, <li>, <br>, ale ZABRANIAM używania markdown, w szczególności gwiazdek).\n \n Uwzględnij:\n 1. <b>Szczegółowy Wpływ Składników i Obróbki</b>: Wytłumacz, jak obecność białek/tłuszczy oraz dodanie płynów wpływa na ładunek glikemiczny (ŁG). Przeanalizuj wpływ obróbki termicznej (np. gotowanie, smażenie, pieczenie, blendowanie) na wchłanianie i Indeks Glikemiczny (IG). Dodanie tłuszczu spowalnia trawienie (efekt pizzy), a blendowanie/rozgotowanie je przyspiesza.\n 2. <b>Profil Wchłaniania</b>: Oceń wypadkowy Indeks Glikemiczny (IG) oraz całkowity Ładunek Glikemiczny (ŁG) zestawu. Wskaż składniki, które mogą powodować późniejsze przedłużone uwalnianie glukozy.\n 3. <b>Dynamika Trawienia i Węglowodanów</b>: Opisz spodziewane tempo trawienia posiłku (szybkie vs wolne węglowodany, wpływ WBT). BEZWZGLĘDNY ZAKAZ: nie sugeruj dawek insuliny, jednostek leków ani procentowego podziału leku – użytkownik dobiera dawki osobiście według zaleceń lekarza diabetologa.\n 4. <b>Wskazówki</b>: Krótko (1 zdanie) na co zwrócić uwagę w profilu wchłaniania posiłku.\n \n Odpowiedź ma być konkretna, rzetelna i dostosowana do specyfiki użytych składników.", var0: JSON.stringify(plate.map((p) => ({ nazwa: getProductName(p, i18n.language), waga: p.weight, wegle: p.carbs, bialko: p.protein, tluszcz: p.fat, IG: p.gi }))), var1: cookingMethod === "raw" ? "Surowe / Brak" : cookingMethod === "boiled" ? "Gotowane" : cookingMethod === "baked" ? "Pieczone" : cookingMethod === "fried" ? i18n.t('auto.smazone', { defaultValue: "Smażone" }) : "Zblendowane", var2: dietContext });
+      const result = await geminiService.generateContent(prompt);
+      setAnalysis(result);
+    } catch (e) {
+      console.error(e);
+      setAnalysis(i18n.t('auto.blad_analizy_ai', { defaultValue: "Błąd analizy AI." }));
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const saveMealSet = async () => {

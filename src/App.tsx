@@ -764,16 +764,22 @@ export default function App() {
                 else if (cleanTarget === 'profile' || cleanTarget === 'profil') setActiveTab('profile');
                 else if (cleanTarget === 'history' || cleanTarget === 'historia') setActiveTab('history');
               } else if (parsedAppAction.action === 'add_log' && parsedAppAction.logData) {
-                const newLog = {
-                  ...parsedAppAction.logData,
-                  id: Date.now().toString(),
-                  timestamp: Date.now(),
-                  createdAt: Date.now()
-                };
-                dbService.addLog(newLog).catch(() => {});
-                useLogsStore.getState().addLog(newLog);
-                Haptics.success();
-                toast.success(`Zapisano w dzienniczku: ${newLog.notes || newLog.type}`, { icon: '📝' });
+                // BEZWZGLĘDNY ZAKAZ: AI nie ma prawa dodawać wpisów typu 'bolus' (ani dla dorosłych, ani dla dzieci)
+                if (parsedAppAction.logData.type === 'bolus' || parsedAppAction.logData.type === 'insulin') {
+                  toast.error("Wpisz podaną dawkę osobiście w rejestratorze bolusa.", { icon: '🛡️' });
+                  setActiveTab('bolus');
+                } else {
+                  const newLog = {
+                    ...parsedAppAction.logData,
+                    id: Date.now().toString(),
+                    timestamp: Date.now(),
+                    createdAt: Date.now()
+                  };
+                  dbService.addLog(newLog).catch(() => {});
+                  useLogsStore.getState().addLog(newLog);
+                  Haptics.success();
+                  toast.success(`Zapisano w dzienniczku: ${newLog.notes || newLog.type}`, { icon: '📝' });
+                }
               }
             }
           } catch (e) {
@@ -833,16 +839,22 @@ export default function App() {
           else setActiveTab(cleanTarget);
         }
       } else if (detail.action === 'add_log' && detail.logData) {
-        const newLog = {
-          ...detail.logData,
-          id: Date.now().toString(),
-          timestamp: Date.now(),
-          createdAt: Date.now()
-        };
-        dbService.addLog(newLog).catch(() => {});
-        useLogsStore.getState().addLog(newLog);
-        Haptics.success();
-        toast.success(`Zapisano w dzienniczku: ${newLog.notes || newLog.type}`, { icon: '📝' });
+        // BEZWZGLĘDNY ZAKAZ: AI nie ma prawa dodawać wpisów typu 'bolus' (ani dla dorosłych, ani dla dzieci)
+        if (detail.logData.type === 'bolus' || detail.logData.type === 'insulin') {
+          toast.error("Wpisz podaną dawkę osobiście w rejestratorze bolusa.", { icon: '🛡️' });
+          setActiveTab('bolus');
+        } else {
+          const newLog = {
+            ...detail.logData,
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            createdAt: Date.now()
+          };
+          dbService.addLog(newLog).catch(() => {});
+          useLogsStore.getState().addLog(newLog);
+          Haptics.success();
+          toast.success(`Zapisano w dzienniczku: ${newLog.notes || newLog.type}`, { icon: '📝' });
+        }
       }
     };
     const handleChangeTab = (e: any) => {

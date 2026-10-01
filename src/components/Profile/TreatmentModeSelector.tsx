@@ -4,8 +4,8 @@ import { cn } from '../../lib/utils';
 import { 
   Activity, Apple, Zap, Signal, ShieldAlert, X, BookOpen, 
   CheckCircle2, AlertTriangle, ChevronRight, PhoneCall, 
-  HelpCircle, Clock, HeartHandshake, Calculator, Utensils, Flame,
-  Scale, Info
+  HelpCircle, Clock, HeartHandshake, Calculator, Flame,
+  Info
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { setDoc, doc } from 'firebase/firestore';
@@ -23,33 +23,10 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
   // Obsługa systemowego przycisku Wstecz
   useBackButton(showEmergencyGuide, () => setShowEmergencyGuide(false));
 
-  // Tryb wprowadzania węgli: gramy lub WW
-  const [carbMode, setCarbMode] = useState<'grams' | 'ww'>('grams');
-  const [carbInput, setCarbInput] = useState<string>("");
-  const [calcBg, setCalcBg] = useState<string>("");
-  const [calcFatProtein, setCalcFatProtein] = useState<boolean>(false);
-
-  // Masa ciała pacjenta jako ratunkowe źródło wyliczeń (fallback)
-  const [bodyWeight, setBodyWeight] = useState<string>("");
-  const [useWeightFallback, setUseWeightFallback] = useState<boolean>(false);
-
-  // Obliczenie sugerowanej dawki bazy zastępczej (długodziałającej)
   const isPump = settings.treatmentMode === 'pump';
 
-  // Obliczenia z masy ciała (standard bezpieczny: 0.55 j./kg)
-  const weightNum = parseFloat(bodyWeight) || 0;
-  const estimatedTdiFromWeight = weightNum > 0 ? weightNum * 0.55 : 0;
-  const isfFromWeight = estimatedTdiFromWeight > 0 ? Math.round(1800 / estimatedTdiFromWeight) : 0;
-  const wwRatioFromWeight = estimatedTdiFromWeight > 0 ? Math.round((estimatedTdiFromWeight / 50) * 10) / 10 : 0;
-  const basalFromWeight = estimatedTdiFromWeight > 0 ? Math.round(estimatedTdiFromWeight * 0.48 * 10) / 10 : 0;
-
-  // Aktywne parametry (z profilu lub z masy ciała)
-  const activeIsf = useWeightFallback && isfFromWeight > 0 ? isfFromWeight : (settings.isf || 50);
-  const activeWwRatio = useWeightFallback && wwRatioFromWeight > 0 ? wwRatioFromWeight : (settings.wwRatio || 1.0);
-
-  // Obliczenie sumy bazy
+  // Obliczenie sumy bazy w pompie dla celów orientacyjnych
   const initialCalculatedBasal = React.useMemo(() => {
-    if (useWeightFallback && basalFromWeight > 0) return basalFromWeight;
     if (settings.hourlyProfiles && settings.hourlyProfiles.length > 0) {
       const hasBasalRate = settings.hourlyProfiles.some((p: any) => typeof p.basal === 'number');
       if (hasBasalRate) {
@@ -60,30 +37,8 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
         return Math.round(total * 10) / 10;
       }
     }
-    if (settings.isf && settings.isf > 0) {
-      const estimatedTdi = Math.round(1800 / settings.isf);
-      return Math.round((estimatedTdi * 0.48) * 10) / 10;
-    }
-    return 14.0;
-  }, [settings.hourlyProfiles, settings.isf, useWeightFallback, basalFromWeight]);
-
-  const [customBasalInput, setCustomBasalInput] = useState<string>("");
-  const activeBasal = parseFloat(customBasalInput) > 0 ? parseFloat(customBasalInput) : initialCalculatedBasal;
-
-  // Wyliczenia kalkulatora awaryjnego
-  const bgNum = parseFloat(calcBg) || 0;
-  const rawCarbVal = parseFloat(carbInput) || 0;
-  const calculatedWwNum = carbMode === 'grams' ? rawCarbVal / 10 : rawCarbVal;
-
-  const targetMin = settings.targetMin || 100;
-  const targetMax = settings.targetMax || 140;
-
-  const mealDose = calculatedWwNum > 0 ? calculatedWwNum * activeWwRatio : 0;
-  const correctionDose = bgNum > targetMax ? (bgNum - targetMin) / activeIsf : (bgNum < 70 ? -0.5 : 0);
-  const rawTotalBolus = Math.max(0, mealDose + correctionDose);
-  const roundedPenDose = Math.round(rawTotalBolus * 2) / 2; // skok 0.5j
-  const splitFirstDose = Math.round((roundedPenDose * 0.6) * 2) / 2;
-  const splitSecondDose = Math.max(0.5, Math.round((roundedPenDose - splitFirstDose) * 2) / 2);
+    return 0;
+  }, [settings.hourlyProfiles]);
 
   return (
     <div className="space-y-3">
@@ -93,9 +48,9 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
           ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
           : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"
       )}>
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner">
-            <Activity size={22} />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0">
+            <Activity size={20} />
           </div>
           <div className="text-left">
             <p className="text-sm font-black dark:text-white leading-tight">
@@ -183,7 +138,7 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
                 </span>
               </h4>
               <p className="text-[9px] sm:text-[9.5px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
-                {t('auto.emergency_pen_guide_sub', { defaultValue: 'Procedura ratunkowa i kalkulator dawki bazy zastępczej' })}
+                {t('auto.emergency_pen_guide_sub', { defaultValue: 'Procedura ratunkowa i wytyczne przejścia na peny' })}
               </p>
             </div>
           </div>
@@ -230,7 +185,7 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                   <CheckCircle2 size={15} />
-                  {t('auto.emergency_step_1_title', { defaultValue: '1. Obliczenie Dawki Bazy (Długodziałającej)' })}
+                  {t('auto.emergency_step_1_title', { defaultValue: '1. Wytyczne Bazy Długodziałającej' })}
                 </h4>
               </div>
 
@@ -240,47 +195,40 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
                   <HelpCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div className="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                     <strong className="block font-black text-slate-800 dark:text-slate-100 text-[10px] mb-0.5">
-                      {t('auto.emergency_why_basal_title', { defaultValue: 'Skąd bierze się ta dawka bazy?' })}
+                      {t('auto.emergency_why_basal_title', { defaultValue: 'Jak lekarz wyznacza dawkę bazy w penie?' })}
                     </strong>
-                    {t('auto.emergency_why_basal_desc', { defaultValue: 'Pompa podaje insulinę bazową co kilka minut przez całą dobę. Suma tych dawek to Twoja dobowa baza (TDD Bazy). W penie podajemy dokładnie taką samą dawkę (1:1) w postaci insuliny długodziałającej o powolnym uwalnianiu (np. Lantus, Tresiba, Levemir, Toujeo).' })}
+                    {t('auto.emergency_why_basal_desc', { defaultValue: 'W pompie insulina bazowa podawana jest w mikrodawkach co kilka minut. W penie stosuje się insulinę o powolnym uwalnianiu (np. Lantus, Tresiba, Levemir, Toujeo). Dawkę zawsze ustala lekarz prowadzący – zwykle na podstawie sumy bazy w pompie z uwzględnieniem typu insuliny.' })}
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                    {t('auto.emergency_calculated_basal', { defaultValue: 'Sugerowana dawka bazy:' })}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      placeholder={String(Math.round(initialCalculatedBasal))}
-                      value={customBasalInput}
-                      onChange={(e) => setCustomBasalInput(e.target.value)}
-                      className="w-14 p-1 text-center font-black text-xs bg-amber-50 dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-lg outline-none text-slate-900 dark:text-white"
-                    />
-                    <span className="text-sm font-black text-amber-600 dark:text-amber-400">
-                      = {Math.round(activeBasal)} j. / 24h
+                {initialCalculatedBasal > 0 && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                      {t('auto.emergency_profile_basal_sum', { defaultValue: 'Suma bazy w Twoim profilu pompy:' })}
+                    </span>
+                    <span className="text-xs font-black text-amber-700 dark:text-amber-300">
+                      ~{initialCalculatedBasal.toFixed(1)} j. / 24h
                     </span>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Kiedy podać bazę */}
               <div className="p-3 bg-white/60 dark:bg-slate-900/60 rounded-xl space-y-1.5 text-[9.5px] text-slate-700 dark:text-slate-300 font-medium">
                 <div className="flex items-center gap-1.5 font-black text-slate-900 dark:text-white text-[10px]">
                   <Clock size={13} className="text-indigo-500" />
-                  {t('auto.emergency_when_inject_title', { defaultValue: 'Kiedy podać pierwszą dawkę bazy w penie?' })}
+                  {t('auto.emergency_when_inject_title', { defaultValue: 'Pora podania bazy w penie' })}
                 </div>
-                <p>• <strong>Awaria w ciągu dnia (rano/południe):</strong> {t('auto.emergency_when_inject_day', { defaultValue: 'Podaj pełną dawkę bazy długodziałającej od razu, LUB podawaj małe bolusy korekcyjne szybkodziałającą co 2-3h do godziny 20:00 i o 20:00 podaj pełną bazę.' })}</p>
-                <p>• <strong>Awaria wieczorem/w nocy:</strong> {t('auto.emergency_when_inject_night', { defaultValue: 'Podaj pełną dawkę bazy długodziałającej natychmiast.' })}</p>
+                <p>• <strong>Karta awaryjna:</strong> {t('auto.emergency_check_card', { defaultValue: 'Sprawdź w swojej pisemnej karcie awaryjnej zalecaną przez lekarza godzinę i dawkę wstrzyknięcia insuliny bazowej.' })}</p>
+                <p>• <strong>W razie wątpliwości:</strong> {t('auto.emergency_call_clinic', { defaultValue: 'Skontaktuj się z poradnią diabetologiczną lub szpitalnym oddziałem dyżurnym.' })}</p>
               </div>
             </div>
 
-            {/* Krok 2: Bolusy Posiłkowe, WBT i Szybki Przelicznik */}
+            {/* Krok 2: Bolusy Posiłkowe, WBT i Wzory Diabetologiczne */}
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3 text-left">
               <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                 <Zap size={14} className="text-indigo-500" />
-                {t('auto.emergency_step_2_title', { defaultValue: '2. Bolusy Posiłkowe i Korekty (Szybkodziałająca)' })}
+                {t('auto.emergency_step_2_title', { defaultValue: '2. Bolusy Posiłkowe i Korekty w Penie' })}
               </h4>
               
               {/* Oficjalne Wzory Diabetologiczne */}
@@ -288,18 +236,18 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
                 <div className="flex items-center justify-between text-indigo-400 font-black uppercase tracking-wider text-[9px]">
                   <span className="flex items-center gap-1.5">
                     <Calculator size={13} />
-                    {t('auto.emergency_formulas_badge', { defaultValue: 'Oficjalne wzory diabetologiczne' })}
+                    {t('auto.emergency_formulas_badge', { defaultValue: 'Oficjalne wzory diabetologiczne (ISPAD / PTD)' })}
                   </span>
                   <span className="text-[8px] bg-indigo-500/20 text-indigo-300 font-bold px-1.5 py-0.2 rounded">
-                    ISPAD / PTD
+                    Edukacja
                   </span>
                 </div>
                 <div className="space-y-1 font-mono text-[9px] text-slate-300">
                   <div className="p-1.5 bg-slate-800/80 rounded-lg border border-slate-700">
-                    📐 <strong>ISF</strong> = 1800 / TDI <span className="text-slate-400">(lub ~3270 / Waga [kg])</span>
+                    📐 <strong>ISF (Wrażliwość)</strong> = 1800 / TDD <span className="text-slate-400">(obniżenie glikemii przez 1j)</span>
                   </div>
                   <div className="p-1.5 bg-slate-800/80 rounded-lg border border-slate-700">
-                    🍞 <strong>Współczynnik WW</strong> = TDI / 50 <span className="text-slate-400">j./WW</span>
+                    🍞 <strong>Współczynnik WW</strong> = TDD / 50 <span className="text-slate-400">(zapotrzebowanie j./WW)</span>
                   </div>
                   <div className="p-1.5 bg-slate-800/80 rounded-lg border border-slate-700">
                     🎯 <strong>Korekta</strong> = (Aktualny Cukier - Cel) / ISF
@@ -312,7 +260,7 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
                 <div className="flex items-start gap-2 text-slate-600 dark:text-slate-300 font-medium">
                   <Info size={14} className="text-indigo-500 shrink-0 mt-0.5" />
                   <div>
-                    <strong>{t('auto.emergency_ww_expl', { defaultValue: '1 WW = 10g węglowodanów z etykiety (np. 40g węgli = 4 WW, 1 banan = ok. 2 WW)' })}</strong>
+                    <strong>{t('auto.emergency_ww_expl', { defaultValue: '1 WW = 10g węglowodanów przyswajalnych (np. 40g węgli = 4 WW, 1 banan = ok. 2 WW)' })}</strong>
                   </div>
                 </div>
                 <div className="flex items-start gap-2 text-slate-600 dark:text-slate-300 font-medium pt-1.5 border-t border-slate-100 dark:border-slate-800">
@@ -323,162 +271,20 @@ export default function TreatmentModeSelector({ user, settings, setSettings }: a
                 </div>
               </div>
 
-              {/* Sekcja: Awaryjne oszacowanie z masy ciała (gdy pacjent/rodzic nie zna parametrów) */}
-              <div className="p-3 bg-purple-50/60 dark:bg-purple-950/20 rounded-xl border border-purple-200/50 dark:border-purple-800/40 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                    <Scale size={13} />
-                    {t('auto.emergency_weight_fallback_title', { defaultValue: 'Nie znasz współczynników? Oszacuj z masy ciała' })}
-                  </span>
-                  <span className="text-[8px] bg-purple-200/50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold px-1.5 py-0.2 rounded-full">
-                    Ratunek 0.55j/kg
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <label className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 shrink-0">
-                    {t('auto.emergency_child_weight', { defaultValue: 'Masa ciała (kg):' })}
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="np. 60"
-                    value={bodyWeight}
-                    onChange={(e) => {
-                      setBodyWeight(e.target.value);
-                      if (parseFloat(e.target.value) > 0) setUseWeightFallback(true);
-                    }}
-                    className="w-20 p-1.5 text-xs font-black text-center bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-lg outline-none"
-                  />
-                  {weightNum > 0 && (
-                    <span className="text-[9px] font-black text-purple-600 dark:text-purple-400">
-                      👉 ISF: ~{isfFromWeight} | WW: ~{wwRatioFromWeight}j
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Interaktywny Mini-Kalkulator Bolusa Awaryjnego */}
-              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-200/50 dark:border-indigo-800/40 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-tight flex items-center gap-1.5">
-                    <Utensils size={12} />
-                    {t('auto.emergency_quick_calc_title', { defaultValue: 'Szybki przelicznik bolusa awaryjnego' })}
-                  </span>
-                  <span className="text-[9px] font-bold text-slate-400">
-                    Ratio: {activeWwRatio}j/WW | ISF: {activeIsf}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                      {t('auto.emergency_sugar_label', { defaultValue: 'Cukier (mg/dL):' })}
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="np. 180"
-                      value={calcBg}
-                      onChange={(e) => setCalcBg(e.target.value)}
-                      className="w-full p-1.5 text-xs font-black text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none"
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400">
-                        {t('auto.emergency_carbs_label', { defaultValue: 'Węglowodany:' })}
-                      </label>
-                      {/* Przełącznik Gramy / WW */}
-                      <div className="flex bg-slate-200 dark:bg-slate-800 rounded-md p-0.5 text-[8.5px] font-bold">
-                        <button
-                          type="button"
-                          onClick={() => setCarbMode('grams')}
-                          className={cn("px-1.5 py-0.2 rounded", carbMode === 'grams' ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-xs" : "text-slate-500")}
-                        >
-                          Gramy (g)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCarbMode('ww')}
-                          className={cn("px-1.5 py-0.2 rounded", carbMode === 'ww' ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-xs" : "text-slate-500")}
-                        >
-                          WW
-                        </button>
-                      </div>
-                    </div>
-                    <input
-                      type="number"
-                      placeholder={carbMode === 'grams' ? "np. 40 g" : "np. 4.0 WW"}
-                      value={carbInput}
-                      onChange={(e) => setCarbInput(e.target.value)}
-                      className="w-full p-1.5 text-xs font-black text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none"
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-2 cursor-pointer pt-0.5">
-                  <input
-                    type="checkbox"
-                    checked={calcFatProtein}
-                    onChange={(e) => setCalcFatProtein(e.target.checked)}
-                    className="rounded text-indigo-600 focus:ring-0 w-3.5 h-3.5"
-                  />
-                  <span className="text-[9.5px] font-bold text-slate-600 dark:text-slate-300">
-                    Posiłek tłusty/białkowy (pizza, fast food, ser)?
-                  </span>
-                </label>
-
-                {/* Wynik kalkulatora */}
-                {(bgNum > 0 || rawCarbVal > 0) && (
-                  <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-indigo-300 dark:border-indigo-700/60 text-left space-y-1 animate-in fade-in">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 dark:text-slate-300">
-                      <span>{t('auto.emergency_total_dose_result', { defaultValue: 'Wyliczona dawka łącznie:' })}</span>
-                      <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
-                        {roundedPenDose} j.
-                      </span>
-                    </div>
-
-                    {calcFatProtein ? (
-                      <div className="text-[9px] text-amber-700 dark:text-amber-300 font-bold bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20">
-                        👉 Podział na penie: <strong>{splitFirstDose} j.</strong> teraz + <strong>{splitSecondDose} j.</strong> za 90 minut.
-                      </div>
-                    ) : (
-                      <div className="text-[9px] text-slate-500 dark:text-slate-400">
-                        (Posiłek: {mealDose.toFixed(1)} j. [{calculatedWwNum.toFixed(1)} WW] | Korekta: {correctionDose > 0 ? `+${correctionDose.toFixed(1)}` : `${correctionDose.toFixed(1)}`} j.)
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
               {/* Zasada Split-dose dla WBT */}
               <div className="p-3 bg-amber-50/70 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-900/40 space-y-1">
                 <div className="flex items-center gap-1.5 text-[10px] font-black text-amber-800 dark:text-amber-300">
                   <Flame size={13} className="text-amber-500" />
-                  <span>{t('auto.emergency_split_dose_title', { defaultValue: 'Posiłki tłuszczowo-białkowe (WBT) bez fali złożonej' })}</span>
+                  <span>{t('auto.emergency_split_dose_title', { defaultValue: 'Posiłki tłuszczowo-białkowe (WBT) w penie' })}</span>
                 </div>
                 <p className="text-[9.5px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                  {t('auto.emergency_split_dose_desc', { defaultValue: 'W penie nie ma bolusa przedłużonego. Przy tłustych posiłkach (pizza, frytki, burgery) zastosuj podział dawki: podaj 50-60% insuliny przed posiłkiem, a pozostałe 40-50% drugim zastrzykiem po 90-120 minutach.' })}
+                  {t('auto.emergency_split_dose_desc', { defaultValue: 'W penie nie ma bolusa przedłużonego. Przy tłustych posiłkach (pizza, frytki, sery) lekarze zalecają podział dawki: część insuliny przed posiłkiem, a resztę po 90-120 minutach według indywidualnego planu leczenia.' })}
                 </p>
               </div>
 
-              {/* Zasady zaokrągleń */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[9.5px]">
-                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className="font-black text-emerald-600 dark:text-emerald-400 block mb-0.5">
-                    ⬇️ {t('auto.emergency_round_down', { defaultValue: 'Zaokrąglenie w dół:' })}
-                  </span>
-                  <span className="text-slate-500 dark:text-slate-400">
-                    {t('auto.emergency_round_down_desc', { defaultValue: 'Bezpieczniejsze – cukier będzie nieco wyższy, ale unikasz niedocukrzenia.' })}
-                  </span>
-                </div>
-                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className="font-black text-amber-600 dark:text-amber-400 block mb-0.5">
-                    ⬆️ {t('auto.emergency_round_up', { defaultValue: 'Zaokrąglenie w górę:' })}
-                  </span>
-                  <span className="text-slate-500 dark:text-slate-400">
-                    {t('auto.emergency_round_up_desc', { defaultValue: 'Podaj wyższą dawkę i dojedz 2–5g węglowodanów (np. 1 chrupka), aby zapobiec hipoglikemii.' })}
-                  </span>
-                </div>
+              {/* Klauzula Medyczna */}
+              <div className="p-2.5 bg-amber-500/10 text-amber-800 dark:text-amber-200 rounded-xl border border-amber-500/20 text-[9px] leading-relaxed">
+                ℹ️ <strong>Ważne:</strong> Aplikacja GlikoControl nie wylicza ani nie ustala dawek leków w nagłych wypadkach. Wszelkie dawki korekcyjne i posiłkowe w penie należy podawać zgodnie z pisemną kartą leczenia wydaną przez diabetologa.
               </div>
             </div>
 

@@ -1,3 +1,4 @@
+import { notificationService } from '../services/notificationService';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { getEffectiveUid } from './utils';
@@ -20,6 +21,7 @@ export async function recordMedicationTaken(medicationId: string, customPills?: 
       const saved = localStorage.getItem('glikosense_taken_meds');
       const takenMeds = saved ? JSON.parse(saved) : {};
       takenMeds[medicationId] = todayStr;
+      takenMeds[`${medicationId}_lastTaken`] = Date.now();
       localStorage.setItem('glikosense_taken_meds', JSON.stringify(takenMeds));
     } catch (e) {
       console.warn('[MedicationManager] Błąd zapisu lokalnego taken_meds:', e);
@@ -62,6 +64,13 @@ export async function recordMedicationTaken(medicationId: string, customPills?: 
             { id: `med-taken-${medicationId}`, icon: '💊' }
           );
 
+          // Natychmiast anuluj i przeplanuj powiadomienia w notificationService
+          try {
+            await notificationService.onMedicationTaken(medicationId, updatedMeds);
+          } catch (e) {
+            console.warn('[MedicationManager] Błąd synchronizacji powiadomień:', e);
+          }
+
           // Emituj globalne zdarzenie do odświeżenia widżetów w aplikacji
           window.dispatchEvent(new CustomEvent('medication-taken', { 
             detail: { medicationId, newStock, date: todayStr } 
@@ -72,7 +81,10 @@ export async function recordMedicationTaken(medicationId: string, customPills?: 
       }
     }
 
-    // Jeśli brak user lub brak w Firestore, wyemituj chociaż lokalny event
+    // Jeśli brak user lub brak w Firestore, zaktualizuj powiadomienia i wyemituj event
+    try {
+      await notificationService.onMedicationTaken(medicationId);
+    } catch (e) {}
     Haptics.success().catch(() => {});
     window.dispatchEvent(new CustomEvent('medication-taken', { 
       detail: { medicationId, date: todayStr } 

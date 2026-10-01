@@ -249,11 +249,11 @@ export default function GlikoAssistant({
  ];
 
  const suggestions = isChild ? [
- "Jak rano?",
- "Oblicz jedzenie",
- i18n.t('auto.cos_do_zabawy', { defaultValue: i18n.t('auto.cos_do_zabawy', { defaultValue: "Coś do zabawy" }) }),
- i18n.t('auto.czuje_sie_zle', { defaultValue: i18n.t('auto.czuje_sie_zle', { defaultValue: "Czuję się źle" }) }),
- i18n.t('auto.glodny', { defaultValue: i18n.t('auto.glodny', { defaultValue: "Głodny!" }) })
+ i18n.t('auto.jak_rano', { defaultValue: "Jak rano?" }),
+ i18n.t('auto.co_powiedziec_rodzicom', { defaultValue: "Co powiedzieć rodzicom?" }),
+ i18n.t('auto.cos_do_zabawy', { defaultValue: "Coś do zabawy ✨" }),
+ i18n.t('auto.czuje_sie_zle', { defaultValue: "Czuję się źle" }),
+ i18n.t('auto.porozmawiajmy', { defaultValue: "Porozmawiajmy 💬" })
  ] : adultSuggestions;
 
  const renderAvatar = (size: 'sm' | 'md' | 'lg' = 'md') => {
@@ -424,9 +424,13 @@ export default function GlikoAssistant({
           <div className="flex items-center gap-1.5">
             <span className="text-amber-500 font-bold">ℹ️</span>
             <span>
-              {t('assistant.disclaimer_short', {
-                defaultValue: 'Charakter edukacyjny: AI nie dobiera dawek leków ani nie zastępuje lekarza diabetologa.'
-              })}
+              {isChild 
+                ? t('assistant.child_disclaimer', {
+                    defaultValue: 'Tryb bezpieczny dla dzieci: Aplikacja nie doradza dawek ani leków. Zawsze pytaj rodziców, opiekuna lub lekarza!'
+                  })
+                : t('assistant.disclaimer_short', {
+                    defaultValue: 'Charakter edukacyjny: AI nie dobiera dawek leków ani nie zastępuje lekarza diabetologa.'
+                  })}
             </span>
           </div>
           <span className="text-[9px] opacity-75 hidden sm:inline">Google Gemini API</span>

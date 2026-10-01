@@ -321,7 +321,9 @@
     "ai_physiological_insight": "Wskazówka fizjologiczna AI (edukacyjna)",
     "ai_bolus_disclaimer": "Dawka kalkulatora wynika w 100% z Twoich ustawień medycznych. AI nie modyfikuje dawki insuliny.",
     "ask_ai_physiology": "Wskazówka fizjologiczna posiłku (AI)",
-    "subtitle": "Wpisz podane jednostki"
+    "subtitle": "Wpisz podane jednostki",
+    "child_warning_title": "Tryb Dziecka – Wprowadzanie pod kontrolą opiekuna",
+    "child_warning_desc": "Dawkę insuliny zawsze ustala rodzic, opiekun lub lekarz. Zapisanie dawki wymaga autoryzacji kodem PIN opiekuna."
   },
   "meal": {
     "alert_fried": "Uwaga: Smażenie automatycznie dodaje ~10g tłuszczu na 100g. Obniża IG, ale podbija WBT i Kcal.",
@@ -513,7 +515,15 @@
     "brak_pomiarow_dzisiaj": "Brak pomiarów dzisiaj",
     "notatka_zapisana": "Notatka została zapisana!",
     "notatka_usunieta": "Notatka została usunięta.",
-    "zapisanych_wpisow": "zapisanych wpisów"
+    "zapisanych_wpisow": "zapisanych wpisów",
+    "anomalia_dziecko_opis": "Niezwykły odczyt glikemii. Powiedz o tym rodzicom lub opiekunowi!",
+    "hypo_alarm_dziecko_opis": "🚨 Cukier poniżej 70 mg/dL! Natychmiast powiedz rodzicom lub opiekunowi!",
+    "hypo_czuwanie_dziecko_opis": "Cukier spada. Pokaż ten odczyt rodzicowi lub opiekunowi.",
+    "glikosense_czuje_ze_var0": "🚨 Cukier jest niski! {{var0}} prosi: natychmiast powiedz rodzicom lub opiekunowi! 👨‍👩‍👦",
+    "var0_pije_teraz_duzo_wody": "📈 Cukier jest wysoki. {{var0}} prosi: pokaż ten wynik rodzicom lub opiekunowi. 💧",
+    "co_powiedziec_rodzicom": "Co powiedzieć rodzicom?",
+    "jak_rano": "Jak rano?",
+    "porozmawiajmy": "Porozmawiajmy 💬"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {
@@ -3766,7 +3776,8 @@
   "common.loadMore": "Pokaż więcej",
   "assistant": {
     "title": "Asystent Diabetyka AI",
-    "disclaimer_short": "Charakter edukacyjny: AI nie dobiera dawek leków ani nie zastępuje lekarza diabetologa."
+    "disclaimer_short": "Charakter edukacyjny: AI nie dobiera dawek leków ani nie zastępuje lekarza diabetologa.",
+    "child_disclaimer": "Tryb bezpieczny dla dzieci: Aplikacja nie doradza dawek ani leków. Zawsze pytaj rodziców, opiekuna lub lekarza!"
   },
   "auto.czy_wiesz_ze_glikosense_predict": "Czy wiesz, że sieć neuronowa GlikoSense uczy się Twoich wzorców glikemii i potrafi przewidywać trendy cukru z 60-minutowym wyprzedzeniem?",
   "auto.czy_wiesz_ze_smart_rotacja": "Czy wiesz, że inteligentna mapa wkłuć bada czas odpoczynku Twoich tkanek (0-100%) i sugeruje najświeższe miejsce na nowe wkłucie?",

@@ -365,8 +365,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
 
  const glucoseStatusText = useMemo(() => {
  if (glucose === null || !petData) return null;
- if (glucose < 70) return `${petData.name} potrzebuje soku! 🧃`;
- if (glucose > 250) return `${petData.name} jest senny przez wysoki cukier... 💧`;
+ if (glucose < 70) return `Niski cukier! Powiedz rodzicom lub opiekunowi! 👨‍👩‍👦`;
+ if (glucose > 250) return `Wysoki cukier! Pokaż ten wynik rodzicom lub opiekunowi! 💧`;
  return null;
  }, [glucose, petData]);
 
@@ -581,19 +581,19 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  if (glucose !== null) {
  if (glucose < 70) {
  const texts = [
- i18n.t('auto.brrr_zamarzam_potrzebuje_wegla', { defaultValue: i18n.t('auto.brrr_zamarzam_potrzebuje', { defaultValue: "Brrr, zamarzam! Potrzebuję węgla ratunkowego! 🥶" }) }),
- i18n.t('auto.sluchaj_cukier_nam_spada_czas', { defaultValue: i18n.t('auto.sluchaj_cukier_nam_spada', { defaultValue: "Słuchaj, cukier nam spada! Czas na małą przekąskę? 🍎" }) }),
- i18n.t('auto.oj_cos_slabo_sie_czuje_ratujmy', { defaultValue: i18n.t('auto.oj_cos_slabo_sie_czuje_ra', { defaultValue: "Oj, coś słabo się czuję. Ratujmy sytuację węglami! 📉" }) }),
- 'Hipo alarm! Gdzie jest soczek?! 🧃',
+ "Cukier nam spada! Powiedz o tym szybko rodzicom lub opiekunowi! 👨‍👩‍👦",
+ "Niski cukier! Zawołaj proszę rodzica lub opiekuna! 🚨",
+ "Niski cukier... Pokaż koniecznie ten odczyt rodzicom! ❤️",
+ "Powiedz rodzicom lub opiekunowi o niskim cukrze! 👨‍👩‍👦",
  ];
  return texts[Math.floor(Math.random() * texts.length)];
  }
  if (glucose > 180) {
  const texts = [
- i18n.t('auto.uff_ale_goraco_ten_cukier_mnie', { defaultValue: i18n.t('auto.uff_ale_goraco_ten_cukier', { defaultValue: "Uff, ale gorąco! Ten cukier mnie obciąża... 🥵" }) }),
- i18n.t('auto.wysoko_latamy_czas_na_korekte', { defaultValue: i18n.t('auto.wysoko_latamy_czas_na_kor', { defaultValue: "Wysoko latamy! Czas na korektę, bo zaraz pęknę! 🚀" }) }),
- i18n.t('auto.czuje_sie_jak_balon_wypelniony', { defaultValue: i18n.t('auto.czuje_sie_jak_balon_wypel', { defaultValue: "Czuję się jak balon wypełniony syropem. Zbijmy to! 🎈" }) }),
- i18n.t('auto.piekny_cukier_szkoda_ze_nie_w', { defaultValue: i18n.t('auto.piekny_cukier_szkoda_ze_n', { defaultValue: "Piękny cukier, szkoda że nie w normie! Czas na bolus? 💉" }) }),
+ "Cukier jest wysoki. Powiedz o tym rodzicom lub opiekunowi! 👨‍👩‍👦",
+ "Uff, ten cukier jest wysoki... Pokaż ten odczyt rodzicom! 💧",
+ "Wysoki cukier! Porozmawiaj o tym z rodzicami lub opiekunem! 🩺",
+ "Pokaż ten wynik rodzicom lub opiekunowi! ❤️",
  ];
  return texts[Math.floor(Math.random() * texts.length)];
  }

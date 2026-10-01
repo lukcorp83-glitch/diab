@@ -14,21 +14,22 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.52';
+export const CURRENT_VERSION = '6.0.53';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "6.0.52",
-    date: "2026-09-30",
-    title: "Oficjalne Wydanie: Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność MDR",
+    version: "6.0.53",
+    date: "2026-10-01",
+    title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
     changes: [
-      "Wdrożono oficjalnie ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
-      "Wprowadzono łagodny stoper czasu przedposiłkowego (orientacyjny czas na posiłek i wyciszenie pośpiechu)",
-      "Pełne dostosowanie aplikacji i słowników do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
-      "Optymalizacja stabilności wydań produkcyjnych i synchronizacji OTA"
+      "Wdrożono inteligentne wyciszanie powiadomień o lekach (brak fałszywych alarmów, gdy lek został zażyty wcześniej)",
+      "Dodano automatyczne anulowanie i przeplanowywanie kolejnych dawek leków na dzień następny",
+      "Naprawiono układ kart i badge'y w widżecie GlikoSense na dużych ekranach (brak kolizji i nachodzenia na siebie)",
+      "Zabezpieczono nagłówek predykcji 30m przed ściskaniem i łamaniem w wąskich kolumnach pulpitu",
+      "Przeprowadzono pełny audyt zgodności z MDR SaMD (brak narzucania dawek leków przez AI i system)"
     ]
   },
   {
@@ -81,19 +82,21 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Wprowadzono trwałą blokadę restartu i ponownego przeliczania zakończonego timera przy późniejszym wzroście glikemii",
       "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
     ]
-  }
+  },
+
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-    version: "6.0.52",
-    date: "2026-09-30",
-    title: "Oficjalne Wydanie: Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność MDR",
+    version: "6.0.53",
+    date: "2026-10-01",
+    title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
     changes: [
-      "Wdrożono oficjalnie ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
-      "Wprowadzono łagodny stoper czasu przedposiłkowego (orientacyjny czas na posiłek i wyciszenie pośpiechu)",
-      "Pełne dostosowanie aplikacji i słowników do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
-      "Optymalizacja stabilności wydań produkcyjnych i synchronizacji OTA"
+      "Wdrożono inteligentne wyciszanie powiadomień o lekach (brak fałszywych alarmów, gdy lek został zażyty wcześniej)",
+      "Dodano automatyczne anulowanie i przeplanowywanie kolejnych dawek leków na dzień następny",
+      "Naprawiono układ kart i badge'y w widżecie GlikoSense na dużych ekranach (brak kolizji i nachodzenia na siebie)",
+      "Zabezpieczono nagłówek predykcji 30m przed ściskaniem i łamaniem w wąskich kolumnach pulpitu",
+      "Przeprowadzono pełny audyt zgodności z MDR SaMD (brak narzucania dawek leków przez AI i system)"
     ]
   },
   {
@@ -146,5 +149,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Wprowadzono trwałą blokadę restartu i ponownego przeliczania zakończonego timera przy późniejszym wzroście glikemii",
       "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
     ]
-  }
+  },
+
 ];

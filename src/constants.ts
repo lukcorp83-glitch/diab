@@ -2,8 +2,8 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.52';
-export const CURRENT_VERSION = '6.0.52';
+export const APP_VERSION = '6.0.53';
+export const CURRENT_VERSION = '6.0.53';
 
 import versionData from '../version.json';
 
@@ -22,6 +22,13 @@ const checkIsBeta = (): boolean => {
   }
   if (typeof window !== 'undefined') {
     try {
+      if (
+        localStorage.getItem('betaProgramEnabled') === 'true' ||
+        localStorage.getItem('gliko_beta_channel') === 'true' ||
+        localStorage.getItem('is_beta_channel') === 'true'
+      ) {
+        return true;
+      }
       if (
         window.location.hostname.includes('beta') ||
         window.location.pathname.includes('beta') ||

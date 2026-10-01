@@ -109,9 +109,13 @@ jobs:
           retention-days: 14
 
       - name: 🚀 Setup GitHub Pages
+        if: github.ref_name == 'main'
         uses: actions/configure-pages@v4
+        with:
+          enablement: true
 
       - name: 📤 Upload do GitHub Pages
+        if: github.ref_name == 'main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
