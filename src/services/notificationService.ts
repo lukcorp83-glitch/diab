@@ -540,6 +540,82 @@ export const notificationService = {
   _webReminderInterval: null as any,
   _lastTriggeredReminders: {} as Record<string, number>,
 
+  isMedicationAlreadyTaken(medId: string, reminderTimeStr?: string): boolean {
+    try {
+      const saved = localStorage.getItem('glikosense_taken_meds');
+      if (!saved) return false;
+      const takenMeds = JSON.parse(saved);
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // 1. Sprawdź czy odnotowano zażycie tego leku dzisiaj
+      const medTakenDate = takenMeds[medId];
+      if (medTakenDate !== todayStr) {
+        return false;
+      }
+
+      // 2. Jeśli podano konkretną godzinę przypomnienia (np. "12:00") i mamy timestamp ostatniego zażycia:
+      const lastTaken = takenMeds[`${medId}_lastTaken`];
+      if (lastTaken && reminderTimeStr && reminderTimeStr.includes(':')) {
+        const [rHour, rMinute] = reminderTimeStr.split(':').map(Number);
+        const reminderDate = new Date();
+        reminderDate.setHours(rHour, rMinute, 0, 0);
+
+        // Jeśli użytkownik zażył lek w oknie do 6 godzin przed wyznaczoną porą lub do 2 godzin po niej:
+        const diffMs = reminderDate.getTime() - lastTaken;
+        if (diffMs >= -2 * 3600 * 1000 && diffMs <= 6 * 3600 * 1000) {
+          return true;
+        }
+        // Jeśli zażyto lek niedawno (w ciągu ostatnich 3 godzin):
+        if (Date.now() - lastTaken < 3 * 3600 * 1000) {
+          return true;
+        }
+      }
+
+      // Domyślnie na dany dzień lek został już oznaczony jako zażyty
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  async onMedicationTaken(medicationId: string, currentMeds?: any[]) {
+    try {
+      const now = new Date();
+      const todayDateStr = now.toISOString().split('T')[0];
+      this._lastTriggeredReminders[`${medicationId}_${todayDateStr}`] = Date.now();
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const pending = await LocalNotifications.getPending();
+          const toCancel = pending.notifications.filter(n => n.extra?.medicationId === medicationId);
+          if (toCancel.length > 0) {
+            await LocalNotifications.cancel({ notifications: toCancel.map(n => ({ id: n.id })) });
+            console.log(`[NotificationService] Anulowano ${toCancel.length} oczekujących powiadomień po wcześniejszym zażyciu leku ${medicationId}`);
+          }
+        } catch (e) {
+          console.warn('[NotificationService] Błąd usuwania oczekujących powiadomień:', e);
+        }
+
+        // Natychmiast przeplanuj powiadomienia, aby następne przypomnienie wskoczyło na jutro
+        let meds = currentMeds;
+        if (!meds) {
+          try {
+            const rawSettings = localStorage.getItem('userSettings');
+            if (rawSettings) {
+              const parsed = JSON.parse(rawSettings);
+              meds = parsed.medications;
+            }
+          } catch (e) {}
+        }
+        if (meds && Array.isArray(meds)) {
+          await this.scheduleMedicationReminders(meds);
+        }
+      }
+    } catch (err) {
+      console.warn('[NotificationService] Błąd w onMedicationTaken:', err);
+    }
+  },
+
   async scheduleMedicationReminders(medications: any[]) {
     const activeMeds = (medications || []).filter((m: any) => m && m.active && Array.isArray(m.reminders) && m.reminders.length > 0);
 
@@ -569,7 +645,10 @@ export const notificationService = {
             const scheduledTime = new Date();
             scheduledTime.setHours(hours, minutes, 0, 0);
 
-            if (scheduledTime.getTime() <= now.getTime()) {
+            // Jeśli lek został już zażyty wcześniej dzisiaj lub czas już minął,
+            // planujemy przypomnienie dopiero na kolejny dzień (jutro)!
+            const alreadyTaken = this.isMedicationAlreadyTaken(med.id, timeStr);
+            if (scheduledTime.getTime() <= now.getTime() || alreadyTaken) {
               scheduledTime.setDate(scheduledTime.getDate() + 1);
             }
 
@@ -626,6 +705,11 @@ export const notificationService = {
       for (const rem of med.reminders) {
         const timeStr = typeof rem === 'string' ? rem : (rem.time || rem.hour || '');
         if (timeStr === currentHHMM) {
+          // Jeśli lek został już zażyty wcześniej – pomijamy alert!
+          if (this.isMedicationAlreadyTaken(med.id, timeStr)) {
+            continue;
+          }
+
           const triggerKey = `${med.id}_${todayDateStr}_${timeStr}`;
           const lastTriggered = this._lastTriggeredReminders[triggerKey] || 0;
           if (Date.now() - lastTriggered > 60000) {
@@ -719,9 +803,11 @@ export const notificationService = {
         if (isHigh && prefs.hyper === false) return;
         if (!isHigh && (prefs.hypo === false || prefs.hypoProtection === false)) return;
       }
+      let isChildMode = false;
       const rawSettings = localStorage.getItem('glikocontrol_user_settings');
       if (rawSettings) {
         const s = JSON.parse(rawSettings);
+        isChildMode = Boolean(s.childMode);
         if (s.notificationsEnabled === false) return;
         if (isHigh && s.notificationPrefs?.hyper === false) return;
         if (!isHigh && (s.notificationPrefs?.hypo === false || s.notificationPrefs?.hypoProtection === false)) return;
@@ -729,9 +815,13 @@ export const notificationService = {
     } catch (e) {}
 
     const title = isHigh ? i18n.t('auto.wysoki_cukier', { defaultValue: 'Wysoki Cukier!' }) : i18n.t('auto.niski_cukier', { defaultValue: 'Niski Cukier!' });
-    const body = isHigh
-      ? `Glikemia wynosi ${value} mg/dL i przekracza zakres docelowy!`
-      : `Glikemia wynosi ${value} mg/dL! Zjedz natychmiast węglowodany proste!`;
+    const body = isChildMode
+      ? (isHigh 
+          ? `Glikemia wynosi ${value} mg/dL. Powiedz o tym rodzicom lub opiekunowi!`
+          : `Glikemia wynosi ${value} mg/dL! Natychmiast powiedz rodzicom lub opiekunowi!`)
+      : (isHigh
+          ? `Glikemia wynosi ${value} mg/dL i przekracza zakres docelowy!`
+          : `Glikemia wynosi ${value} mg/dL! Zjedz natychmiast węglowodany proste!`);
 
     if (Capacitor.isNativePlatform()) {
       try {

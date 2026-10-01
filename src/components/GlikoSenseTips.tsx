@@ -17,6 +17,12 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  });
 
  const tips = useMemo(() => {
+ let isChildMode = false;
+ try {
+   const raw = localStorage.getItem('glikocontrol_user_settings');
+   if (raw) isChildMode = Boolean(JSON.parse(raw).childMode);
+ } catch (e) {}
+
  const today = new Date().setHours(0,0,0,0);
  const todayLogs = logs.filter(l => (l.timestamp || 0) >= today);
  const sortedGlucose = logs
@@ -60,7 +66,9 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  id: 'trend_down',
  type: 'trend',
  title: 'Trend spadkowy',
- content: i18n.t('auto.twoje_glikemie_wykazuja_tenden', { defaultValue: i18n.t('auto.twoje_glikemie_wykazuja_t', { defaultValue: "Twoje glikemie wykazują tendencję spadkową. Uważaj na niedocukrzenia." }) }),
+ content: isChildMode
+   ? "Twoje glikemie wykazują tendencję spadkową. Poinformuj o tym rodziców lub opiekuna! 👨‍👩‍👦"
+   : i18n.t('auto.twoje_glikemie_wykazuja_tenden', { defaultValue: i18n.t('auto.twoje_glikemie_wykazuja_t', { defaultValue: "Twoje glikemie wykazują tendencję spadkową. Uważaj na niedocukrzenia." }) }),
  icon: <TrendingDown size={20} className="text-emerald-500" />,
  color: 'emerald'
  });
@@ -69,7 +77,9 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  id: 'trend_up',
  type: 'trend',
  title: 'Trend wzrostowy',
- content: i18n.t('auto.ostatnie_pomiary_rosna_moze_wa', { defaultValue: i18n.t('auto.ostatnie_pomiary_rosna_mo', { defaultValue: "Ostatnie pomiary rosną. Może warto zweryfikować dawkę bazy?" }) }),
+ content: isChildMode
+   ? "Ostatnie pomiary rosną. Pokaż te wyniki rodzicom lub opiekunowi. 👨‍👩‍👦"
+   : "Ostatnie pomiary rosną. Zwróć uwagę na dynamikę wchłaniania posiłków.",
  icon: <TrendingUp size={20} className="text-rose-500" />,
  color: 'rose'
  });
@@ -88,7 +98,9 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  id: 'sport_detected',
  type: 'activity',
  title: i18n.t('auto.wykryto_dzien_sportu', { defaultValue: i18n.t('auto.wykryto_dzien_sportu', { defaultValue: "Wykryto \"Dzień Sportu\"" }) }),
- content: i18n.t('auto.zauwazylem_powtarzajace_sie_sp', { defaultValue: i18n.t('auto.zauwazylem_powtarzajace_s', { defaultValue: "Zauważyłem powtarzające się spadki we wtorki wieczorem. Czy wtedy trenujesz? Rozważ redukcję bazy o 20% przed wysiłkiem." }) }),
+ content: isChildMode
+   ? "Zauważyłem powtarzające się spadki we wtorki wieczorem. Przed wysiłkiem sportowym koniecznie porozmawiaj z rodzicami lub opiekunem! 🏃"
+   : "Zauważyłem powtarzające się spadki we wtorki wieczorem. Skonsultuj z lekarzem odpowiednie przygotowanie do aktywności fizycznej.",
  icon: <Activity size={20} className="text-indigo-500" />,
  color: 'indigo'
  });

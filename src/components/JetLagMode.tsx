@@ -38,23 +38,23 @@ export default function JetLagMode({ onClose }: JetLagModeProps) {
     setError(null);
     setPlan(null);
 
-    const prompt = `Jesteś ekspertem diabetologiem klinicznym specjalizującym się w podróżach transatlantyckich i strefach czasowych (Jet-Lag & Travel Protocol dla diabetyków).
+    const prompt = `Jesteś asystentem podróży w aplikacji GlikoControl (Protokół Podróżny & Strefy Czasowe dla Diabetyków).
 Użytkownik planuje podróż:
 - Wylot z: "${fromLocation}"
 - Cel podróży: "${toLocation}"
 - Godzina wylotu (czas lokalny): "${departureTime}"
 
-Przygotuj profesjonalny, konkretny i bezpieczny plan adaptacji diabetologicznej (oś czasu):
+Przygotuj profesjonalny, konkretny i bezpieczny plan adaptacji diabetologicznej (edukacyjna oś czasu):
 1. Określ kierunek lotu (Zachód = wydłużenie doby / Wschód = skrócenie doby) oraz szacowaną różnicę stref czasowych.
-2. Przygotuj liniową oś czasu (timeline):
-   - Co zrobić przed wejściem na pokład.
-   - Postępowanie w trakcie lotu (posiłki samolotowe, nawadnianie, pomiary glikemii).
-   - Dokładny schemat przestawienia insuliny bazowej (długodziałającej lub bazy w pompie) – czy podać dawkę uzupełniającą, czy przesunąć godzinę.
+2. Przygotuj poglądową liniową oś czasu (timeline):
+   - Co przygotować przed wejściem na pokład.
+   - Postępowanie w trakcie lotu (posiłki samolotowe, nawadnianie, częstsza kontrola glikemii).
+   - Ogólne zasady adaptacji czasu podania insuliny bazowej (zalecenia międzynarodowe ISPAD/ADA dotyczące stopniowego przesuwania pory podania lub konsultacji z lekarzem przed wylotem). BEZWZGLĘDNY ZAKAZ narzucania lub wyliczania konkretnych dawek insuliny w jednostkach!
    - Pierwsze 24 godziny po przylocie na miejsce.
-3. Praktyczne złote zasady podróżnika (insulina w bagażu podręcznym, ochrona przed zamarznięciem w luku, glukoza pod ręką).
+3. Praktyczne złote zasady podróżnika (insulina zawsze w bagażu podręcznym, ochrona przed zamarznięciem w luku bagażowym, zapas glukozy i zaświadczenie lekarskie na lotnisku).
 
 Zasady formatowania:
-- Brak ogólnych wstępów.
+- Brak zbędnych wstępów.
 - Użyj estetycznego formatowania HTML (nagłówki <h3>, listy <ul><li>, pogrubienia <b>, pigułki statusu).
 - Odpowiedź w języku polskim.`;
 
@@ -249,6 +249,14 @@ Zasady formatowania:
               [&>ul>li]:border [&>ul>li]:border-slate-200 dark:[&>ul>li]:border-slate-800 [&>ul>li]:text-slate-700 dark:[&>ul>li]:text-slate-300"
               dangerouslySetInnerHTML={{ __html: plan }}
             />
+
+            {/* Medical Disclaimer Banner */}
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] leading-relaxed flex items-start gap-2.5">
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-500" />
+              <div>
+                <strong>Klauzula Informacyjno-Edukacyjna:</strong> Wygenerowany harmonogram ma charakter wyłącznie orientacyjny i edukacyjny. Zmiany stref czasowych wpływają na metabolizm każdego pacjenta w odmienny sposób. Wszelkie modyfikacje dawek insuliny bazowej i bolusów należy bezwzględnie skonsultować z lekarzem diabetologiem przed wylotem.
+              </div>
+            </div>
           </motion.div>
         )}
       </div>

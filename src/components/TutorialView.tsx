@@ -44,15 +44,15 @@ export default function TutorialView({ setTab, onComplete }: TutorialViewProps) 
  },
  { 
  q: i18n.t('auto.do_czego_sluzy_talerz_posilkow', { defaultValue: i18n.t('auto.do_czego_sluzy_talerz_pos', { defaultValue: "Do czego służy Talerz Posiłków?" }) }), 
- a: i18n.t('auto.talerz_pozwala_komponowac_posi', { defaultValue: i18n.t('auto.talerz_pozwala_komponowac', { defaultValue: "Talerz pozwala komponować posiłki z różnych składników i budować własną listę dań. Mechanizm Talerza automatycznie przelicza ułożone produkty na wymienniki węglowodanowe (WW) i białkowo-tłuszczowe (WBT), aby bez dodatkowego przepisywania użyć tych danych w systemowym Kalkulatorze Bolusa." }) }) 
+ a: i18n.t('auto.talerz_pozwala_komponowac_posi', { defaultValue: i18n.t('auto.talerz_pozwala_komponowac', { defaultValue: "Talerz pozwala komponować posiłki z różnych składników i budować własną listę dań. Mechanizm Talerza automatycznie przelicza ułożone produkty na wymienniki węglowodanowe (WW) i białkowo-tłuszczowe (WBT), aby bez dodatkowego przepisywania mieć pełny podgląd wartości odżywczych podczas rejestrowania posiłku." }) }) 
  },
  {
  q: i18n.t('auto.po_co_ustala_sie_opoznienie_w', { defaultValue: i18n.t('auto.po_co_ustala_sie_opoznien', { defaultValue: "Po co ustala się opóźnienie w Talerzu Posiłków?" }) }),
- a: i18n.t('auto.tlustsze_potrawy_z_duza_ilosci', { defaultValue: i18n.t('auto.tlustsze_potrawy_z_duza_i', { defaultValue: "Tłustsze potrawy z dużą ilością białka (np. pizza, ser) spowalniają wchłanianie cukrów, więc tzw. WBT (wymienniki białkowo-tłuszczowe) trawią się godzinami. Talerz uwzględnia czas uwalniania. Umiemy przewidzieć przedłużenie i wyliczyć adekwatną dawkę dla pompy (bolus przedłużony lub złożony)." }) })
+ a: i18n.t('auto.tlustsze_potrawy_z_duza_ilosci', { defaultValue: i18n.t('auto.tlustsze_potrawy_z_duza_i', { defaultValue: "Tłustsze potrawy z dużą ilością białka (np. pizza, ser) spowalniają wchłanianie cukrów, więc tzw. WBT (wymienniki białkowo-tłuszczowe) trawią się godzinami. Talerz pomaga zapoznać się z dynamiką wchłaniania i zrozumieć, dlaczego przy takich posiłkach lekarze diabetolodzy rekomendują bolusy przedłużone lub rozłożone w czasie na pompie." }) })
  },
  { 
- q: i18n.t('auto.jak_dziala_szczegolowo_kalkula', { defaultValue: i18n.t('auto.jak_dziala_szczegolowo_ka', { defaultValue: "Jak działa szczegółowo Kalkulator Bolusa?" }) }), 
- a: i18n.t('auto.kalkulator_opiera_sie_o_sprawd', { defaultValue: i18n.t('auto.kalkulator_opiera_sie_o_s', { defaultValue: "Kalkulator opiera się o sprawdzoną formułę. Korzysta z Twoich ustaleń (ISF / Współczynnik WW). Oblicza najpierw korektę glukozy: (Glukoza - Docelowa) / ISF. Do tego dokłada insulinę na wprowadzony do Talerza posiłek na podstawie proporcji I:C (insulina do węglowodanów) i odejmuje szacowaną Aktywną Insulinę (IOB), żeby uniknąć nałożenia się dawek i potencjalnej hipoglikemii." }) }) 
+ q: i18n.t('auto.jak_dziala_szczegolowo_kalkula', { defaultValue: i18n.t('auto.jak_dziala_szczegolowo_ka', { defaultValue: "Jak działa rejestrator dawki insuliny (bolusa)?" }) }), 
+ a: i18n.t('auto.kalkulator_opiera_sie_o_sprawd', { defaultValue: i18n.t('auto.kalkulator_opiera_sie_o_s', { defaultValue: "Rejestrator bolusa pozwala wygodnie zapisać podaną dawkę insuliny (posiłkową, korekcyjną lub bazową) bezpośrednio do Twojego dzienniczka. Aplikacja automatycznie monitoruje czas rozwijania działania oraz aktywną insulinę w organizmie (IOB), co ułatwia orientację w przebiegu terapii i zapobiega niebezpiecznemu nakładaniu się dawek (insulin stacking)." }) }) 
  },
  { 
  q: i18n.t('auto.gdzie_zmienic_moje_wazne_wspol', { defaultValue: i18n.t('auto.gdzie_zmienic_moje_wazne', { defaultValue: "Gdzie zmienić moje ważne współczynniki (ISF, Cele)?" }) }), 
@@ -60,7 +60,7 @@ export default function TutorialView({ setTab, onComplete }: TutorialViewProps) 
  },
  { 
  q: i18n.t('auto.jak_zautomatyzowac_pobieranie', { defaultValue: i18n.t('auto.jak_zautomatyzowac_pobier', { defaultValue: "Jak zautomatyzować pobieranie glukozy?" }) }), 
- a: i18n.t('auto.nie_musisz_robic_tego_recznie', { defaultValue: i18n.t('auto.nie_musisz_robic_tego_rec', { defaultValue: "Nie musisz robić tego ręcznie. Jeśli posiadasz CGM, przejdź w obszarze 'Więcej' do 'Integracje (API)'. Tam przypnij swój link do Nightscout, a aplikacja w tle zacznie automatycznie dociągać na Twój ekran (i na użytek Kalkulatora / AI) odczyty glukozy minuty po minucie." }) }) 
+ a: i18n.t('auto.nie_musisz_robic_tego_recznie', { defaultValue: i18n.t('auto.nie_musisz_robic_tego_rec', { defaultValue: "Nie musisz robić tego ręcznie. Jeśli posiadasz CGM, przejdź w obszarze 'Więcej' do 'Integracje (API)'. Tam przypnij swój link do Nightscout, a aplikacja w tle zacznie automatycznie dociągać na Twój ekran i wykresy odczyty glukozy minuty po minucie." }) }) 
  },
  { 
  q: i18n.t('auto.po_co_sa_monety_i_zwierzak_sys', { defaultValue: i18n.t('auto.po_co_sa_monety_i_zwierza', { defaultValue: "Po co są monety i Zwierzak (System Grywalizacji)?" }) }), 
@@ -260,7 +260,7 @@ export default function TutorialView({ setTab, onComplete }: TutorialViewProps) 
  </li>
  <li className="flex items-start gap-3">
  <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">2</span>
- <div>{t('auto.kalkulator_bolusa_opiera_się_na_two', { defaultValue: i18n.t('auto.kalkulator_bolusa_opiera', { defaultValue: "Kalkulator Bolusa opiera się na Twoich ustawieniach - im dokładniej je wpiszesz, tym lepsze będą wyliczenia." }) })}</div>
+ <div>{t('auto.kalkulator_bolusa_opiera_się_na_two', { defaultValue: i18n.t('auto.kalkulator_bolusa_opiera', { defaultValue: "Dziennik bolusa i monitor IOB opierają się na Twoich parametrach terapii – im dokładniej je wpiszesz, tym bardziej precyzyjne będą analizy." }) })}</div>
  </li>
  <li className="flex items-start gap-3">
  <span className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">3</span>
@@ -275,7 +275,7 @@ export default function TutorialView({ setTab, onComplete }: TutorialViewProps) 
  <h2 className="text-sm font-black text-indigo-900 dark:text-indigo-400 mb-2">{t('auto.jak_korzystać_z_aplikacji', { defaultValue: i18n.t('auto.jak_korzystac_z_aplikacji', { defaultValue: "Jak korzystać z aplikacji?" }) })}</h2>
  <p className="text-xs font-medium text-indigo-700/80 dark:text-indigo-300 leading-relaxed">
  
- {t('auto.zestawienie_najczęściej_zadawanych_', { defaultValue: i18n.t('auto.zestawienie_najczesciej_z', { defaultValue: "Zestawienie najczęściej zadawanych pytań dotyczących działania zaawansowanych funkcji systemu w tym integracji kalkulatorów, sztucznej inteligencji czy pobierania logów glukozy." }) })}
+ {t('auto.zestawienie_najczęściej_zadawanych_', { defaultValue: i18n.t('auto.zestawienie_najczesciej_z', { defaultValue: "Zestawienie najczęściej zadawanych pytań dotyczących działania funkcji systemu, asystenta dietetycznego AI oraz pobierania danych z CGM." }) })}
  </p>
  </div>
 

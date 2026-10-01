@@ -321,7 +321,9 @@
     "ai_physiological_insight": "AI Physiological Insight (Educational)",
     "ai_bolus_disclaimer": "The calculator dose is 100% determined by your medical settings. AI does not modify insulin dose.",
     "ask_ai_physiology": "Meal Physiological Insight (AI)",
-    "subtitle": "Enter administered units"
+    "subtitle": "Enter administered units",
+    "child_warning_title": "Child Mode – Entry supervised by guardian",
+    "child_warning_desc": "Insulin dose is always determined by a parent, guardian, or doctor. Saving a dose requires parental PIN authorization."
   },
   "meal": {
     "alert_fried": "Warning: Frying adds ~10g fat/100g. Lowers GI, but spikes Kcal and FPU.",
@@ -513,7 +515,15 @@
     "brak_pomiarow_dzisiaj": "No readings today",
     "notatka_zapisana": "Note saved successfully!",
     "notatka_usunieta": "Note deleted.",
-    "zapisanych_wpisow": "saved entries"
+    "zapisanych_wpisow": "saved entries",
+    "anomalia_dziecko_opis": "Unusual glucose reading. Tell your parents or guardian!",
+    "hypo_alarm_dziecko_opis": "🚨 Glucose below 70 mg/dL! Immediately tell your parents or guardian!",
+    "hypo_czuwanie_dziecko_opis": "Glucose is dropping. Show this reading to your parent or guardian.",
+    "glikosense_czuje_ze_var0": "🚨 Glucose is low! {{var0}} asks: immediately tell your parents or guardian! 👨‍👩‍👦",
+    "var0_pije_teraz_duzo_wody": "📈 Glucose is high. {{var0}} asks: show this reading to your parents or guardian. 💧",
+    "co_powiedziec_rodzicom": "What to tell parents?",
+    "jak_rano": "How was morning?",
+    "porozmawiajmy": "Let's talk 💬"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {
@@ -2024,7 +2034,8 @@
   "common.loadMore": "Load more",
   "assistant": {
     "title": "Diabetes AI Assistant",
-    "disclaimer_short": "Educational purpose only: AI does not determine drug doses nor replace your endocrinologist."
+    "disclaimer_short": "Educational purpose only: AI does not determine drug doses nor replace your endocrinologist.",
+    "child_disclaimer": "Child Safe Mode: The app does not advise medication or doses. Always ask parents, guardian, or doctor!"
   },
   "auto.jestes_zaawansowanym_syst": "You are an intelligent data and trend analyst in the GlikoControl app. You receive a distributed sample of data from the LAST 15 DAYS (total {{var0}} samples covering this period): {{var1}}. {{var2}}\n    Your task is to generate ONE COMPREHENSIVE STATISTICAL SUMMARY based on the FULL 15 Days.\n    Summary structure (use HTML: <b>, <ul>, <li>, <br>):\n    1. <b>Brief overview of the last 15 days</b>.\n    2. <b>Pattern analysis</b> (time windows when glucose typically rises or drops, meal responses).\n    3. <b>Retrospective evaluation</b> (estimated HbA1c, estimated Time in Range TIR).\n    4. <b>Lifestyle insights</b> (observations on meal balancing and physical activity).\n    5. <b>Topics to discuss with your healthcare provider</b> (summary of recurring patterns to bring to your appointment, WITHOUT recommending any medicine units or pump ratio changes).\n    Pay attention to: nocturnal drops, post-meal reactions from the ENTIRE period.\n    Important: No markdown formatting (asterisks or ###).",
   "auto.jestes_systemem_inteligen": "You are a technical equipment assistant in the GlikoControl app (Hardware & Insulin Inspector). The user is a diabetic whose blood glucose remains high despite earlier boluses.\nFacts provided:\n- Vial/pen opened or infusion set inserted: {{var0}}\n- Whether insulin was exposed to heat above 30°C: {{var1}}\n- Recorded correction attempts: {{var2}}\n- Current blood sugar: {{var3}} mg/dl\n\nAnalyze potential technical and hardware causes (e.g. heat exposure and loss of biological activity, bent cannula, air bubbles in tubing, injection into lipohypertrophy).\nRules:\n- Concise HTML summary.\n- Focus on equipment/vial inspection, NOT medical diagnosis.\n- Strictly FORBIDDEN to calculate or recommend any medication doses!\n- Emphasize safety guidelines: check ketones, inspect infusion set, contact physician if in doubt.\n- Return clean HTML.",

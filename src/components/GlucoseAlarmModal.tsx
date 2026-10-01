@@ -45,6 +45,14 @@ export function GlucoseAlarmModal() {
   if (!alarmData) return null;
 
   const isLow = alarmData.type === 'low';
+  let isChildMode = false;
+  try {
+    const raw = localStorage.getItem('glikocontrol_user_settings');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      isChildMode = Boolean(parsed.childMode);
+    }
+  } catch (e) {}
 
   return (
     <AnimatePresence>
@@ -68,7 +76,7 @@ export function GlucoseAlarmModal() {
               </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2.5 py-0.5 rounded-full">
-                  {isLow ? '🚨 KRYTYCZNY NISKI CUKIER' : '📈 WYSOKI CUKIER'}
+                  {isLow ? (isChildMode ? '🚨 NISKI CUKIER' : '🚨 KRYTYCZNY NISKI CUKIER') : '📈 WYSOKI CUKIER'}
                 </span>
                 <h2 className="text-2xl font-black tracking-tight leading-none mt-1">
                   {alarmData.value} <span className="text-sm font-bold opacity-90">mg/dL</span>
@@ -87,8 +95,12 @@ export function GlucoseAlarmModal() {
 
           <p className="text-xs font-semibold text-white/90 leading-snug">
             {isLow
-              ? 'Wykryto spadek glikemii! Zjedz natychmiast węglowodany proste (np. sok, glukozę).'
-              : 'Glikemia przekroczyła cel! Sprawdź poziom insuliny i miejsce wkłucia.'}
+              ? (isChildMode
+                  ? 'Niski cukier! Natychmiast powiedz rodzicowi, opiekunowi lub nauczycielowi!'
+                  : 'Wykryto spadek glikemii! Zjedz natychmiast węglowodany proste (np. sok, glukozę).')
+              : (isChildMode
+                  ? 'Wysoki cukier! Pokaż ten odczyt rodzicom lub opiekunowi.'
+                  : 'Glikemia przekroczyła cel! Sprawdź poziom insuliny i miejsce wkłucia.')}
           </p>
 
           <button

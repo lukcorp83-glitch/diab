@@ -132,9 +132,11 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
         : glucose && glucose > 200 
         ? t('auto.odchylenie_gorne', { defaultValue: 'Wysoki poziom' })
         : t('auto.anomalia_dynamiki', { defaultValue: 'Skok dynamiki' });
-      anomalyDesc = isFast 
-        ? t('auto.anomalia_tempo_opis', { defaultValue: 'Wykryto przyspieszone tempo zmiany odbiegające od normy.' })
-        : t('auto.anomalia_prog_opis', { defaultValue: 'Zarejestrowano przekroczenie docelowych progów bezpieczeństwa.' });
+      anomalyDesc = isChildMode
+        ? t('auto.anomalia_dziecko_opis', { defaultValue: 'Niezwykły odczyt glikemii. Powiedz o tym rodzicom lub opiekunowi!' })
+        : (isFast 
+          ? t('auto.anomalia_tempo_opis', { defaultValue: 'Wykryto przyspieszone tempo zmiany odbiegające od normy.' })
+          : t('auto.anomalia_prog_opis', { defaultValue: 'Zarejestrowano przekroczenie docelowych progów bezpieczeństwa.' }));
       anomalyColor = glucose && glucose < 70 ? 'rose' : 'amber';
     }
 
@@ -171,11 +173,15 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
 
     if (glucose !== null && glucose < 70) {
       hypoStatus = t('auto.alarm_hypo', { defaultValue: 'Aktywna hipoglikemia' });
-      hypoDesc = t('auto.hypo_alarm_opis', { defaultValue: 'Cukier poniżej 70 mg/dL. Wymagane natychmiastowe szybkie węglowodany!' });
+      hypoDesc = isChildMode
+        ? t('auto.hypo_alarm_dziecko_opis', { defaultValue: '🚨 Cukier poniżej 70 mg/dL! Natychmiast powiedz rodzicom lub opiekunowi!' })
+        : t('auto.hypo_alarm_opis', { defaultValue: 'Cukier poniżej 70 mg/dL. Wymagane natychmiastowe szybkie węglowodany!' });
       hypoColor = 'rose';
     } else if (isHypoRisk) {
       hypoStatus = t('auto.ostrzezenie_spadek', { defaultValue: 'Czujność prewencyjna' });
-      hypoDesc = t('auto.hypo_czuwanie_opis', { defaultValue: 'Glikemia opada ku dolnej granicy. Model monitoruje bufor bezpieczeństwa.' });
+      hypoDesc = isChildMode
+        ? t('auto.hypo_czuwanie_dziecko_opis', { defaultValue: 'Cukier spada. Pokaż ten odczyt rodzicowi lub opiekunowi.' })
+        : t('auto.hypo_czuwanie_opis', { defaultValue: 'Glikemia opada ku dolnej granicy. Model monitoruje bufor bezpieczeństwa.' });
       hypoColor = 'amber';
     }
 
@@ -217,7 +223,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
         icon: isHypoRisk || (glucose !== null && glucose < 70) ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />
       }
     ];
-  }, [trend, glucose, logs, t]);
+  }, [trend, glucose, logs, t, isChildMode]);
 
   if (compact) {
     return (
@@ -375,14 +381,14 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
       </div>
 
       <div className="relative z-10">
-        <div className="flex items-center justify-between mb-3 md:mb-5">
-          <div className="flex items-center gap-2.5 md:gap-3">
+        <div className="flex items-center justify-between gap-2 mb-3 md:mb-4 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
             <div className={`p-1.5 md:p-2 rounded-xl ${statusColor} bg-opacity-20 shrink-0`}>
               <GlikoSenseIcon size={18} isAnalyzing={true} />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 
-                className="text-xs md:text-sm font-black dark:text-white leading-tight cursor-pointer hover:text-sky-400 transition-colors"
+                className="text-xs md:text-sm font-black dark:text-white leading-tight cursor-pointer hover:text-sky-400 transition-colors truncate"
                 onClick={toggleBackend}
               >
                 {t('auto.glikosense', { defaultValue: engineMode === 'v4_tcn' ? 'GlikoSense 4.1' : 'GlikoSense 3.0' })}
@@ -390,7 +396,7 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
             </div>
           </div>
           
-          <div className="flex items-center gap-1.5 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 whitespace-nowrap">
             <TrendingUp size={11} className="shrink-0" />
             <span className="hidden sm:inline">{t('auto.predykcja_30m', { defaultValue: 'Predykcja 30m' })}: </span>
             <span className="sm:hidden">{t('auto.30m', { defaultValue: '30m' })}: </span>
@@ -410,9 +416,9 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                  </div>
                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-relaxed">
                    {glucose && glucose < 70 
-                     ? i18n.t('auto.glikosense_czuje_ze_var0', { defaultValue: "GlikoSense czuje, że {{var0}} traci siły! Szybko, zjedzmy coś pysznego, żeby go rozweselić. 🍎", var0: petName })
+                     ? i18n.t('auto.glikosense_czuje_ze_var0', { defaultValue: "🚨 Cukier jest niski! {{var0}} prosi: natychmiast powiedz rodzicom lub opiekunowi! 👨‍👩‍👦", var0: petName })
                      : glucose && glucose > 180
-                     ? i18n.t('auto.var0_pije_teraz_duzo_wody', { defaultValue: "{{var0}} pije teraz dużo wody. Może pobawimy się w coś spokojnego? GlikoSense czuwa. 💧", var0: petName })
+                     ? i18n.t('auto.var0_pije_teraz_duzo_wody', { defaultValue: "📈 Cukier jest wysoki. {{var0}} prosi: pokaż ten wynik rodzicom lub opiekunowi. 💧", var0: petName })
                      : i18n.t('auto.glikosense_swieci_na_ziel', { defaultValue: "GlikoSense świeci na zielono! {{var0}} czuje się świetnie i jest gotowy na zabawę! 🌟", var0: petName })}
                  </p>
                </div>
@@ -457,18 +463,20 @@ export default function GlikoSenseNeural({ glucose, trend, isChildMode, petName 
                     key={card.id}
                     className="p-2.5 sm:p-3 md:p-3.5 rounded-xl sm:rounded-2xl md:rounded-[1.4rem] bg-white/50 dark:bg-slate-900/40 border border-white/70 dark:border-slate-800/60 backdrop-blur-sm shadow-xs flex flex-col justify-between transition-all hover:bg-white/70 dark:hover:bg-slate-900/60 min-h-[58px] sm:min-h-auto"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1.5">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <div className={cn("p-1 md:p-1.5 rounded-lg md:rounded-xl border shrink-0", colorClasses)}>
+                    <div className="flex flex-col gap-1.5 w-full min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0 w-full">
+                        <div className={cn("p-1 rounded-lg border shrink-0", colorClasses)}>
                           {card.icon}
                         </div>
-                        <span className="text-[10px] md:text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight truncate">
+                        <span className="text-[10px] md:text-[11px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight truncate flex-1 min-w-0">
                           {card.title}
                         </span>
                       </div>
-                      <span className={cn("text-[8px] md:text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full border shrink-0 tracking-wider self-start sm:self-auto truncate max-w-full", colorClasses)}>
-                        {card.status}
-                      </span>
+                      <div className="flex items-center">
+                        <span className={cn("text-[8px] md:text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full border shrink-0 tracking-wider max-w-full truncate inline-block", colorClasses)}>
+                          {card.status}
+                        </span>
+                      </div>
                     </div>
                     {/* Długi opis pojawia się dopiero na większych ekranach (tablet / desktop), zapobiegając rozciąganiu widżetu na smartfonie */}
                     <p className="hidden sm:block text-[10px] md:text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-snug mt-1.5">

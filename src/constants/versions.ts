@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.51';
+export const CURRENT_VERSION = '6.0.53';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.53",
+    date: "2026-10-01",
+    title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
+    changes: [
+      "Wdrożono inteligentne wyciszanie powiadomień o lekach (brak fałszywych alarmów, gdy lek został zażyty wcześniej)",
+      "Dodano automatyczne anulowanie i przeplanowywanie kolejnych dawek leków na dzień następny",
+      "Naprawiono układ kart i badge'y w widżecie GlikoSense na dużych ekranach (brak kolizji i nachodzenia na siebie)",
+      "Zabezpieczono nagłówek predykcji 30m przed ściskaniem i łamaniem w wąskich kolumnach pulpitu",
+      "Przeprowadzono pełny audyt zgodności z MDR SaMD (brak narzucania dawek leków przez AI i system)"
+    ]
+  },
+  {
     version: "6.0.51",
     date: "2026-09-30",
     title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
@@ -71,22 +83,23 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
     ]
   },
-  {
-    version: "6.0.46",
-    date: "2026-09-17",
-    title: "Naprawa zawieszania widżetów, stabilizacja serwisu w tle i optymalizacja bazy",
-    changes: [
-      "Naprawiono pętlę serwisu w tle (GlikoForegroundService), gwarantując ciągłe odświeżanie danych 24/7",
-      "Zabezpieczono harmonogram alarmów widżetów Androida przed przerwaniem przy błędach sieciowych",
-      "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
-      "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
-      "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
-    ]
-  }
+
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.53",
+    date: "2026-10-01",
+    title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
+    changes: [
+      "Wdrożono inteligentne wyciszanie powiadomień o lekach (brak fałszywych alarmów, gdy lek został zażyty wcześniej)",
+      "Dodano automatyczne anulowanie i przeplanowywanie kolejnych dawek leków na dzień następny",
+      "Naprawiono układ kart i badge'y w widżecie GlikoSense na dużych ekranach (brak kolizji i nachodzenia na siebie)",
+      "Zabezpieczono nagłówek predykcji 30m przed ściskaniem i łamaniem w wąskich kolumnach pulpitu",
+      "Przeprowadzono pełny audyt zgodności z MDR SaMD (brak narzucania dawek leków przez AI i system)"
+    ]
+  },
+  {
     version: "6.0.51",
     date: "2026-09-30",
     title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
@@ -137,16 +150,5 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Naprawiono wysyłanie powiadomienia na 12 godzin przed planowaną wymianą wkłucia (infusion set)"
     ]
   },
-  {
-    version: "6.0.46",
-    date: "2026-09-17",
-    title: "Naprawa zawieszania widżetów, stabilizacja serwisu w tle i optymalizacja bazy",
-    changes: [
-      "Naprawiono pętlę serwisu w tle (GlikoForegroundService), gwarantując ciągłe odświeżanie danych 24/7",
-      "Zabezpieczono harmonogram alarmów widżetów Androida przed przerwaniem przy błędach sieciowych",
-      "Wyeliminowano zamrażanie interfejsu (ANR) przy wznawianiu aplikacji poprzez optymalizację łączenia wpisów Nightscout O(1)",
-      "Natychmiastowe wyświetlanie świeżych danych z lokalnej bazy SQLite po wznowieniu aplikacji",
-      "Zoptymalizowano proces synchronizacji w tle Nightscout Worker (skrócenie timeoutów i ograniczenie partii)"
-    ]
-  }
+
 ];

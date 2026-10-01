@@ -69,6 +69,18 @@ export default function BolusCalculator({
     .slice(0, 16);
   const [entryTime, setEntryTime] = useState<string>(localISOTime);
 
+  const isChildMode = Boolean(
+    settings?.childMode ??
+    (() => {
+      try {
+        const s = localStorage.getItem('glikocontrol_user_settings');
+        return s ? JSON.parse(s)?.childMode : false;
+      } catch {
+        return false;
+      }
+    })()
+  );
+
   // Pobranie profilu użytkownika
   useEffect(() => {
     if (!user) return;
@@ -295,6 +307,21 @@ export default function BolusCalculator({
 
         <div className="w-10" />
       </div>
+
+      {/* Baner Bezpieczeństwa Trybu Dziecka */}
+      {isChildMode && (
+        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-amber-700 dark:text-amber-300">
+          <span className="text-xl">👨‍👩‍👦</span>
+          <div className="text-xs">
+            <p className="font-bold">
+              {t('bolus.child_warning_title', { defaultValue: 'Tryb Dziecka – Wprowadzanie pod kontrolą opiekuna' })}
+            </p>
+            <p className="opacity-90 mt-0.5">
+              {t('bolus.child_warning_desc', { defaultValue: 'Dawkę insuliny zawsze ustala rodzic, opiekun lub lekarz. Zapisanie dawki wymaga autoryzacji kodem PIN opiekuna.' })}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Karta Aktywnej Insuliny (IOB) i Cukru */}
       <div className="grid grid-cols-2 gap-3">

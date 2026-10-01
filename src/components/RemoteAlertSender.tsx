@@ -64,12 +64,12 @@ export default function RemoteAlertSender({ user: propUser }: { user?: any } = {
 
  <div className="grid grid-cols-2 gap-2">
  <button
- onClick={() => sendAlert(i18n.t('auto.podaj_1_jednostke_insuliny', { defaultValue: i18n.t('auto.podaj_1_jednostke_insulin', { defaultValue: "Podaj 1 jednostkę insuliny!" }) }), 'insulin')}
+ onClick={() => sendAlert(i18n.t('auto.podaj_1_jednostke_insuliny', { defaultValue: i18n.t('auto.podaj_1_jednostke_insulin', { defaultValue: "Przypomnienie: Sprawdź poziom cukru i podaj zaleconą dawkę insuliny." }) }), 'insulin')}
  disabled={loading}
  className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
  >
  <Pill size={24} />
- <span className="text-[9px] font-black uppercase text-center">{t('auto.podaj_1j', { defaultValue: 'Podaj 1j' })}<br/>{t('auto.insuliny', { defaultValue: 'Insuliny' })}</span>
+ <span className="text-[9px] font-black uppercase text-center">{t('auto.przypomnij_o_dawce', { defaultValue: 'Przypomnij o' })}<br/>{t('auto.dawce_insuliny', { defaultValue: 'Insulinie' })}</span>
  </button>
 
  <button
