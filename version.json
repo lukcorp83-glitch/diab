@@ -1,10 +1,10 @@
 {
-    "version": "6.0.53",
+    "version": "6.0.54",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.53-beta_OTA.apk",
-    "buildNumber": 167,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.54_OTA.apk",
+    "buildNumber": 168,
     "forceUpdate": false,
-    "whatsNew": "Inteligentne wyciszanie powiadomień o lekach (brak alarmów, gdy lek zażyto wcześniej), naprawa układu kart widżetu GlikoSense na dużym ekranie oraz pełny audyt zgodności informacyjnej MDR.",
-    "whatsNewEn": "Smart medication reminder suppression (no alerts if dose was already taken earlier), GlikoSense widget layout fixes for multi-column desktop displays, and full MDR SaMD compliance audit.",
-    "otaRevision": 327
+    "whatsNew": "Wydanie oficjalne: Inteligentne wyciszanie powiadomień o lekach (brak alarmów, gdy lek zażyto wcześniej), naprawa układu kart widżetu GlikoSense na dużym ekranie oraz pełny audyt zgodności informacyjnej MDR.",
+    "whatsNewEn": "Official release: Smart medication reminder suppression (no alerts if dose was already taken earlier), GlikoSense widget layout fixes for multi-column desktop displays, and full MDR SaMD compliance audit.",
+    "otaRevision": 328
 }

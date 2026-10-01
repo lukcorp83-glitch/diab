@@ -14,16 +14,16 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.53';
+export const CURRENT_VERSION = '6.0.54';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
-    version: "6.0.53",
+    version: "6.0.54",
     date: "2026-10-01",
-    title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
+    title: "Wydanie Oficjalne: Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
     changes: [
       "Wdrożono inteligentne wyciszanie powiadomień o lekach (brak fałszywych alarmów, gdy lek został zażyty wcześniej)",
       "Dodano automatyczne anulowanie i przeplanowywanie kolejnych dawek leków na dzień następny",
@@ -88,9 +88,9 @@ export const PWA_VERSIONS: VersionEntry[] = [
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
-    version: "6.0.53",
+    version: "6.0.54",
     date: "2026-10-01",
-    title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
+    title: "Wydanie Oficjalne: Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
     changes: [
       "Wdrożono inteligentne wyciszanie powiadomień o lekach (brak fałszywych alarmów, gdy lek został zażyty wcześniej)",
       "Dodano automatyczne anulowanie i przeplanowywanie kolejnych dawek leków na dzień następny",
