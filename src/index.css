@@ -563,3 +563,23 @@ nav.fixed {
     backdrop-filter: blur(8px) !important;
   }
 }
+
+/* Google Pixel / Android WebView Ultra-Smooth Touch & Hardware Acceleration */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+}
+
+.pixel-spring-pill {
+  contain: layout style;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+

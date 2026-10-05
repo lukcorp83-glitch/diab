@@ -83,7 +83,7 @@ function setCachedData<T>(key: string, data: T) {
 }
 
 export const nightscoutService = {
-  async fetchEntries(url: string, secret?: string, count = 4000, forceSync = false): Promise<LogEntry[]> {
+  async fetchEntries(url: string, secret?: string, count = 10000, forceSync = false): Promise<LogEntry[]> {
     const cacheKey = `ns-entries-${url}-${count}`;
     if (!forceSync) {
       const cached = getCachedData<LogEntry[]>(cacheKey);
@@ -171,7 +171,11 @@ export const nightscoutService = {
         
         const timestamp = ts;
         
-        const insulin = Number(t.insulin || (t as any).amount || 0);
+        const rawInsulin = t.insulin ?? (t as any).units ?? (t as any).dose ?? (t as any).enteredinsulin ?? (t as any).amount ?? (t as any).bolus ?? 0;
+        const normalInsulin = Number((t as any).normal || 0);
+        const extendedInsulin = Number((t as any).extended || 0);
+        const comboSum = (normalInsulin + extendedInsulin) > 0 ? (normalInsulin + extendedInsulin) : 0;
+        const insulin = Number(rawInsulin || comboSum || 0);
         const carbs = Number(t.carbs || 0);
 
           const mealName = (t as any).food || (t as any).description || (t.notes && t.notes !== '<none>' ? t.notes : '') || '';

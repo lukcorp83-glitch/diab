@@ -34,12 +34,31 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
+import android.os.PowerManager;
 
 public class NightscoutFetcher {
+
+    private static String getSha1(String input) {
+        if (input == null || input.isEmpty()) return "";
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            byte[] messageDigest = md.digest(input.getBytes("UTF-8"));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : messageDigest) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return input;
+        }
+    }
 
     public static void scheduleNextUpdate(Context context) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -417,7 +436,8 @@ public class NightscoutFetcher {
             conn.setRequestMethod("GET");
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)");
             if (secret != null && !secret.isEmpty() && !secret.contains("-")) {
-                conn.setRequestProperty("api-secret", secret);
+                String secretHeader = secret.length() == 40 ? secret : getSha1(secret);
+                conn.setRequestProperty("api-secret", secretHeader);
             }
             conn.setConnectTimeout(8000);
             conn.setReadTimeout(8000);
@@ -586,10 +606,19 @@ public class NightscoutFetcher {
 
     public static void fetchAndUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         new Thread(() -> {
+            PowerManager.WakeLock wakeLock = null;
             try {
+                try {
+                    PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                    if (pm != null) {
+                        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "glikocontrol:nightscout_fetcher_wakelock");
+                        wakeLock.acquire(45000); // Max 45 sekund na pobranie
+                    }
+                } catch (Exception ignored) {}
+
                 SharedPreferences prefs = context.getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
                 String nsUrl = prefs.getString("widget_ns_url", "");
-            String secret = prefs.getString("widget_ns_secret", "");
+                String secret = prefs.getString("widget_ns_secret", "");
             
             int targetMin = 70;
             int targetMax = 140;
@@ -623,7 +652,8 @@ public class NightscoutFetcher {
                     conn.setRequestMethod("GET");
                     conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)");
                     if (secret != null && !secret.isEmpty() && !secret.contains("-")) {
-                        conn.setRequestProperty("api-secret", secret);
+                        String secretHeader = secret.length() == 40 ? secret : getSha1(secret);
+                        conn.setRequestProperty("api-secret", secretHeader);
                     }
                     conn.setConnectTimeout(10000);
                     conn.setReadTimeout(10000);
@@ -637,7 +667,8 @@ public class NightscoutFetcher {
                         conn.setRequestMethod("GET");
                         conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)");
                         if (secret != null && !secret.isEmpty() && !secret.contains("-")) {
-                            conn.setRequestProperty("api-secret", secret);
+                            String secretHeader = secret.length() == 40 ? secret : getSha1(secret);
+                            conn.setRequestProperty("api-secret", secretHeader);
                         }
                         conn.setConnectTimeout(10000);
                         conn.setReadTimeout(10000);
@@ -938,6 +969,9 @@ public class NightscoutFetcher {
             } catch (Throwable t) {
                 android.util.Log.e("GlikoControlWidget", "Nieoczekiwany błąd w wątku fetchAndUpdate: " + t.getMessage(), t);
             } finally {
+                if (wakeLock != null && wakeLock.isHeld()) {
+                    try { wakeLock.release(); } catch (Exception ignored) {}
+                }
                 scheduleNextUpdate(context);
             }
         }).start();

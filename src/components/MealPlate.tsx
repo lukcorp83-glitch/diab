@@ -193,7 +193,7 @@ export default function MealPlate({
   const queryClient = useQueryClient();
 
  const logs = propLogs || useLogsStore(state => state.logs);
- const plate = sharedPlate;
+ const plate = Array.isArray(sharedPlate) ? sharedPlate : [];
  const setPlate = setSharedPlate || (() => {});
  const { t } = useTranslation();
  const setSearchTerm = useMealPlateStore(state => state.setSearchTerm);
@@ -1297,7 +1297,7 @@ export default function MealPlate({
  <ProductSearch openWeightModal={openWeightModal} openShortcutConfirmModal={openShortcutConfirmModal} startScanner={startScanner} startCameraAnalysis={startCameraAnalysis} isAnalyzing={isAnalyzing} searchError={searchError} setSearchError={setSearchError} allLocal={allLocal} activeDiet={settings?.activeDiet || null} mode={mode} publishToCommunity={publishToCommunity} saveToCustomDb={saveToCustomDb} handleScrollHaptics={handleScrollHaptics} addToPlate={addToPlate} addSavedMeal={addSavedMeal} settings={settings} isLoadingSavedMeals={isLoadingSavedMeals} savedMeals={savedMeals} plate={plate} setPlate={setPlate} cookingMethod={cookingMethod} db={db} getEffectiveUid={getEffectiveUid} />
  )}
 
- {(mode === "plate" || mode === "both") && plate.length === 0 && (
+ {(mode === "plate" || mode === "both") && (!plate || plate.length === 0) && (
  <motion.div
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}

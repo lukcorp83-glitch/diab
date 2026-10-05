@@ -815,7 +815,6 @@ export const notificationService = {
     try {
       const notifiedKey = `notified_update_${version}`;
       if (localStorage.getItem(notifiedKey)) return;
-      localStorage.setItem(notifiedKey, String(Date.now()));
 
       const title = isBeta 
         ? i18n.t('updates.notif_title_beta', { version, defaultValue: `🚀 Nowa wersja Beta (${version})` })
@@ -824,19 +823,27 @@ export const notificationService = {
 
       if (Capacitor.isNativePlatform()) {
         try {
-          await LocalNotifications.schedule({
-            notifications: [
-              {
-                id: 888,
-                title,
-                body,
-                channelId: 'glikocontrol_reminders_v1',
-                smallIcon: 'ic_stat_gliko',
-                extra: { action: 'open_update', version }
-              }
-            ]
-          });
-          console.log('[NotificationService] Wysłano powiadomienie push o aktualizacji:', version);
+          await this.initChannels();
+          let perms = await LocalNotifications.checkPermissions();
+          if (perms.display !== 'granted') {
+            perms = await LocalNotifications.requestPermissions();
+          }
+          if (perms.display === 'granted') {
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  id: 888,
+                  title,
+                  body,
+                  channelId: 'glikocontrol_reminders_v1',
+                  smallIcon: 'ic_stat_name',
+                  extra: { action: 'open_update', version }
+                }
+              ]
+            });
+            localStorage.setItem(notifiedKey, String(Date.now()));
+            console.log('[NotificationService] Wysłano powiadomienie push o aktualizacji:', version);
+          }
         } catch (e) {
           console.warn('[NotificationService] Błąd powiadomienia natywnego o aktualizacji:', e);
         }
@@ -852,6 +859,7 @@ export const notificationService = {
           } else {
             new window.Notification(title, { body });
           }
+          localStorage.setItem(notifiedKey, String(Date.now()));
         } catch (e) {}
       }
     } catch (e) {
@@ -860,6 +868,7 @@ export const notificationService = {
   },
 
   async triggerGlucoseAlarm(isHigh: boolean, value: number) {
+    let isChildMode = false;
     try {
       if (localStorage.getItem('notificationsEnabled') === 'false') return;
 
@@ -869,7 +878,6 @@ export const notificationService = {
         if (isHigh && prefs.hyper === false) return;
         if (!isHigh && (prefs.hypo === false || prefs.hypoProtection === false)) return;
       }
-      let isChildMode = false;
       const rawSettings = localStorage.getItem('glikocontrol_user_settings');
       if (rawSettings) {
         const s = JSON.parse(rawSettings);

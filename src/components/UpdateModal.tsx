@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Download, X, Star, AlertTriangle, ExternalLink, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Haptics } from '../lib/haptics';
 import { CURRENT_VERSION } from '../constants/versions';
+import { IS_BETA_CHANNEL } from '../constants';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import localVersionData from '../../version.json';
@@ -20,53 +21,69 @@ export default function UpdateModal() {
   useEffect(() => {
     const checkUpdate = async () => {
       try {
-        const isBeta = localStorage.getItem("betaProgramEnabled") === "true";
+        const isBeta = IS_BETA_CHANNEL || localStorage.getItem("betaProgramEnabled") === "true" || localStorage.getItem("gliko_beta_channel") === "true";
         
-        let data;
+        let data: any = null;
         if (import.meta.env.DEV) {
           data = localVersionData;
         } else {
-          try {
-            const url = isBeta 
-              ? 'https://glikocontrol.pl/beta.json?t=' + Date.now()
-              : 'https://glikocontrol.pl/version.json?t=' + Date.now();
-            
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("HTTP error");
-            data = await res.json();
-          } catch (fetchError) {
-            console.log("CORS/Fetch error, falling back...", fetchError);
-            const fallbackUrl = isBeta
-              ? 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now()
-              : 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now();
-            const resOld = await fetch(fallbackUrl);
-            data = await resOld.json();
+          const urlsToTry = isBeta 
+            ? [
+                'https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/beta.json?t=' + Date.now(),
+                'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now(),
+                'https://glikocontrol.pl/version.json?t=' + Date.now()
+              ]
+            : [
+                'https://glikocontrol.pl/version.json?t=' + Date.now(),
+                'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now(),
+                'https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/version.json?t=' + Date.now()
+              ];
+
+          for (const url of urlsToTry) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const parsed = await res.json();
+                if (parsed && (parsed.version || parsed.buildNumber)) {
+                  data = parsed;
+                  break;
+                }
+              }
+            } catch (err) {
+              // Następny URL w łańcuchu
+            }
           }
         }
+
+        if (!data || !data.version) return;
 
         // Dynamiczne rozwiązanie działającego adresu APK
         const resolvedApk = await resolveApkDownloadUrl();
         setApkInfo(resolvedApk);
-        if (data) {
+        if (resolvedApk?.url) {
           data.apkUrl = resolvedApk.url;
         }
 
         const dismissed = localStorage.getItem("dismissedApkVersion");
         
-        const isNewApkVersion = data && (function(v1, v2) {
-          var p1 = v1.split('.').map(Number);
-          var p2 = v2.split('.').map(Number);
-          for (var i=0; i<Math.max(p1.length, p2.length); i++) {
-            var n1 = p1[i] || 0;
-            var n2 = p2[i] || 0;
+        // Bezpieczne numeryczne porównanie wersji, odporne na przyrostki "-beta"
+        const compareVersions = (v1: string, v2: string) => {
+          if (!v1 || !v2) return false;
+          const clean1 = v1.replace(/^v/i, '').split('.').map(s => parseInt(s.replace(/\D+/g, ''), 10) || 0);
+          const clean2 = v2.replace(/^v/i, '').split('.').map(s => parseInt(s.replace(/\D+/g, ''), 10) || 0);
+          for (let i = 0; i < Math.max(clean1.length, clean2.length); i++) {
+            const n1 = clean1[i] || 0;
+            const n2 = clean2[i] || 0;
             if (n1 > n2) return true;
             if (n1 < n2) return false;
           }
           return false;
-        })(data.version, CURRENT_VERSION);
+        };
+
+        const isNewApkVersion = compareVersions(data.version, CURRENT_VERSION);
 
         if (isNewApkVersion && dismissed !== data.version) {
-          // Wyślij powiadomienie push / lokalne w belce powiadomień
+          // Wyślij powiadomienie push / lokalne w belce powiadomień Androida natychmiast
           notificationService.notifyAppUpdateAvailable(data.version, isBeta);
 
           const updateKey = `updateDetectedAt_${data.version}`;
@@ -74,7 +91,15 @@ export default function UpdateModal() {
           
           if (!detectedAt) {
             localStorage.setItem(updateKey, String(Date.now()));
-          } else if (Date.now() - parseInt(detectedAt, 10) > 10 * 60 * 1000) {
+            // Po 30 sekundach od pierwszego wykrycia w bieżącej sesji wyświetlamy okno
+            setTimeout(() => {
+              if (localStorage.getItem("dismissedApkVersion") !== data.version) {
+                setVersionData(data);
+                setShow(true);
+              }
+            }, 30000);
+          } else {
+            // Jeśli aktualizacja była już wcześniej wykryta w storage, pokazujemy okno od razu
             setVersionData(data);
             setShow(true);
           }
@@ -84,7 +109,7 @@ export default function UpdateModal() {
       }
     };
 
-    // Opóźniamy wyświetlenie, aby nie blokować UI na starcie
+    // Sprawdzenie dostępności aktualizacji po załadowaniu
     setTimeout(checkUpdate, 2000);
     
     // Sprawdzaj dostępność aktualizacji co 5 minut w tle

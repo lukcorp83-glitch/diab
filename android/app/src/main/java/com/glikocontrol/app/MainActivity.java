@@ -21,6 +21,38 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(StepCounterPlugin.class);
         registerPlugin(ApkInstallerPlugin.class);
         super.onCreate(savedInstanceState);
+
+        // Odblokowanie wysokiego odświeżania 90Hz / 120Hz (Google Pixel Smooth Display) oraz akceleracji okna
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                android.view.Display display = getDisplay();
+                if (display != null) {
+                    android.view.Display.Mode[] modes = display.getSupportedModes();
+                    android.view.Display.Mode maxMode = null;
+                    float maxRate = 60.0f;
+                    for (android.view.Display.Mode mode : modes) {
+                        if (mode.getRefreshRate() > maxRate) {
+                            maxRate = mode.getRefreshRate();
+                            maxMode = mode;
+                        }
+                    }
+                    if (maxMode != null) {
+                        android.view.WindowManager.LayoutParams params = getWindow().getAttributes();
+                        params.preferredDisplayModeId = maxMode.getModeId();
+                        getWindow().setAttributes(params);
+                        android.util.Log.d("GlikoPixel", "Odblokowano odswiezanie ekranu: " + maxRate + " Hz");
+                    }
+                }
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                getWindow().setFlags(
+                    android.view.WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                    android.view.WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+                );
+            }
+        } catch (Exception e) {
+            android.util.Log.w("GlikoPixel", "Nie udalo sie odblokowac wysokiego odswiezania: " + e.getMessage());
+        }
         
         // Wymuszenie zapytania o uprawnienia przy uruchomieniu aplikacji
         java.util.List<String> permissions = new java.util.ArrayList<>();
@@ -121,6 +153,12 @@ public class MainActivity extends BridgeActivity {
             webView.getSettings().setDomStorageEnabled(true);
             webView.getSettings().setDatabaseEnabled(true);
             webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
+            webView.setOverScrollMode(android.view.View.OVER_SCROLL_NEVER);
+            webView.setVerticalScrollBarEnabled(false);
+            webView.setHorizontalScrollBarEnabled(false);
+            try {
+                webView.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
+            } catch (Exception ignored) {}
             webView.addJavascriptInterface(new Object() {
                 @android.webkit.JavascriptInterface
                 public void saveModelToDevice(String modelJson) {

@@ -251,6 +251,7 @@ public class GlikoForegroundService extends Service implements SensorEventListen
                 public void run() {
                     android.util.Log.i("GlikoForeground", "Pętla Foreground Service wybudzona. Odpalam NightscoutFetcher...");
                     NightscoutFetcher.fetchAndUpdate(GlikoForegroundService.this, null, null);
+                    checkAppUpdateInBackground();
                     if (handler != null) {
                         handler.postDelayed(this, 300000);
                     }
@@ -310,7 +311,127 @@ public class GlikoForegroundService extends Service implements SensorEventListen
                 manager.deleteNotificationChannel("glucose_alerts_v4");
                 
                 manager.createNotificationChannel(serviceChannel);
+
+                // Kanał powiadomień o aktualizacjach aplikacji i przypomnieniach
+                NotificationChannel updateChannel = new NotificationChannel(
+                        "glikocontrol_reminders_v1",
+                        "Przypomnienia i Aktualizacje GlikoControl",
+                        NotificationManager.IMPORTANCE_HIGH
+                );
+                updateChannel.setDescription("Powiadomienia o nowych wersjach aplikacji oraz wymianach osprzętu");
+                updateChannel.enableVibration(true);
+                manager.createNotificationChannel(updateChannel);
             }
         }
+    }
+
+    private void checkAppUpdateInBackground() {
+        new Thread(() -> {
+            try {
+                android.content.SharedPreferences prefs = getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+                long now = System.currentTimeMillis();
+                long lastCheck = prefs.getLong("last_app_update_check_ts", 0);
+                // Sprawdzaj dostępność nowej wersji co 2 godziny w tle
+                if (now - lastCheck < 2 * 60 * 60 * 1000) {
+                    return;
+                }
+                prefs.edit().putLong("last_app_update_check_ts", now).apply();
+
+                boolean isBeta = prefs.getBoolean("betaProgramEnabled", false);
+                String channel = prefs.getString("app_channel", "");
+                if ("beta".equalsIgnoreCase(channel)) {
+                    isBeta = true;
+                }
+
+                String[] urlsToTry = isBeta ? new String[]{
+                    "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/beta.json",
+                    "https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json",
+                    "https://glikocontrol.pl/version.json"
+                } : new String[]{
+                    "https://glikocontrol.pl/version.json",
+                    "https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json",
+                    "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/version.json"
+                };
+
+                String remoteVersion = null;
+                for (String urlStr : urlsToTry) {
+                    try {
+                        java.net.URL url = new java.net.URL(urlStr + "?t=" + System.currentTimeMillis());
+                        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                        conn.setConnectTimeout(8000);
+                        conn.setReadTimeout(8000);
+                        conn.setRequestMethod("GET");
+                        if (conn.getResponseCode() == 200) {
+                            java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+                            StringBuilder sb = new StringBuilder();
+                            String line;
+                            while ((line = in.readLine()) != null) {
+                                sb.append(line);
+                            }
+                            in.close();
+                            org.json.JSONObject obj = new org.json.JSONObject(sb.toString());
+                            if (obj.has("version")) {
+                                remoteVersion = obj.getString("version");
+                                break;
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                if (remoteVersion == null || remoteVersion.isEmpty()) return;
+
+                String currentVersion = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+                if (isRemoteVersionNewer(remoteVersion, currentVersion)) {
+                    String lastNotified = prefs.getString("last_notified_update_version", "");
+                    if (!remoteVersion.equals(lastNotified)) {
+                        prefs.edit().putString("last_notified_update_version", remoteVersion).apply();
+
+                        Intent openIntent = new Intent(this, MainActivity.class);
+                        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        PendingIntent pi = PendingIntent.getActivity(this, 888, openIntent,
+                                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) ? (PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE) : PendingIntent.FLAG_UPDATE_CURRENT);
+
+                        String title = isBeta
+                                ? "🚀 Nowa wersja Beta (" + remoteVersion + ")"
+                                : "✨ Dostępna nowa wersja GlikoControl (" + remoteVersion + ")";
+                        String text = "Dostępna jest nowa wersja. Dotknij, aby otworzyć aplikację i zainstalować.";
+
+                        NotificationCompat.Builder b = new NotificationCompat.Builder(this, "glikocontrol_reminders_v1")
+                                .setSmallIcon(R.drawable.ic_stat_name)
+                                .setContentTitle(title)
+                                .setContentText(text)
+                                .setContentIntent(pi)
+                                .setAutoCancel(true)
+                                .setPriority(NotificationCompat.PRIORITY_HIGH);
+
+                        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                        if (nm != null) {
+                            nm.notify(888, b.build());
+                            android.util.Log.i("GlikoForegroundService", "Wysłano powiadomienie Android o nowej wersji: " + remoteVersion);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                android.util.Log.w("GlikoForegroundService", "Błąd sprawdzania aktualizacji w tle: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private boolean isRemoteVersionNewer(String remote, String current) {
+        if (remote == null || current == null) return false;
+        try {
+            String[] rParts = remote.replaceAll("^v", "").split("\\.");
+            String[] cParts = current.replaceAll("^v", "").split("\\.");
+            int maxLen = Math.max(rParts.length, cParts.length);
+            for (int i = 0; i < maxLen; i++) {
+                String rClean = i < rParts.length ? rParts[i].replaceAll("\\D+", "") : "0";
+                String cClean = i < cParts.length ? cParts[i].replaceAll("\\D+", "") : "0";
+                int rNum = rClean.isEmpty() ? 0 : Integer.parseInt(rClean);
+                int cNum = cClean.isEmpty() ? 0 : Integer.parseInt(cClean);
+                if (rNum > cNum) return true;
+                if (rNum < cNum) return false;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 }

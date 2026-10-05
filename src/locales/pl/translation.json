@@ -523,7 +523,12 @@
     "var0_pije_teraz_duzo_wody": "📈 Cukier jest wysoki. {{var0}} prosi: pokaż ten wynik rodzicom lub opiekunowi. 💧",
     "co_powiedziec_rodzicom": "Co powiedzieć rodzicom?",
     "jak_rano": "Jak rano?",
-    "porozmawiajmy": "Porozmawiajmy 💬"
+    "porozmawiajmy": "Porozmawiajmy 💬",
+    "srednia_glikemia": "Średnia glikemia",
+    "w_normie_tir": "W normie (TIR)",
+    "norma": "W normie",
+    "hipo": "Hipo",
+    "hiper": "Hiper"
   },
   "auto.localLogAdd": "ASZYSTENT AI ODPOWIEDZIAŁ!",
   "Przejście do zakładki": {

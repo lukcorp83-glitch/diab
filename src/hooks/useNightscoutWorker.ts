@@ -48,7 +48,8 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
                 newReservoir, 
                 prevReservoir, 
                 payload.entries || [], 
-                userSettingsRef.current
+                userSettingsRef.current,
+                payload.treatments || []
               );
 
               // Zapisujemy poziom TYLKO gdy jest to prawidłowy, fizyczny stan pompy (> 0)
@@ -60,7 +61,8 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
 
               if (triggerReservoir) {
                 window.dispatchEvent(new CustomEvent('smart-equipment-trigger', { detail: 'reservoir' }));
-              } else if (triggerSensor) {
+              }
+              if (triggerSensor) {
                 window.dispatchEvent(new CustomEvent('smart-equipment-trigger', { detail: 'sensor' }));
               }
             });
@@ -120,7 +122,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
     };
 
     if (nsUrl) {
-      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 6000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
       useAppStore.getState().setSyncStatus({ status: "syncing", lastSync: useAppStore.getState().syncStatus.lastSync });
     }
 
@@ -137,7 +139,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       console.log("Force sync manually triggered (Worker)", { urlToUse });
       useAppStore.getState().setSyncStatus({ status: "syncing", lastSync: useAppStore.getState().syncStatus.lastSync });
       worker.postMessage({ type: 'STOP_SYNC' });
-      worker.postMessage({ type: 'START_SYNC', payload: { url: urlToUse, secret: secretToUse, intervalMs: 5 * 60 * 1000, count: 6000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: urlToUse, secret: secretToUse, intervalMs: 5 * 60 * 1000, count: 10000 } });
     };
 
     console.log("==== HOOK: Rejestruję event listener na force-nightscout-sync ====");

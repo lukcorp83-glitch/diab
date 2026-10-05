@@ -13,6 +13,8 @@ export interface NotificationBridgePlugin {
   syncAlertPreferences(options: { hypoEnabled: boolean; hyperEnabled: boolean; targetMin?: number; targetMax?: number }): Promise<void>;
   triggerNativeGlucoseAlert(options: { title: string; body: string; isHigh: boolean; value: number }): Promise<void>;
   getLastAlertInfo(): Promise<{ lastAlertTime: number; lastAlertType: string }>;
+  isBatteryOptimizationIgnored(): Promise<{ isIgnored: boolean }>;
+  requestIgnoreBatteryOptimization(): Promise<void>;
   addListener(
     eventName: 'glucoseNotificationReceived',
     listenerFunc: (data: { glucose: number; iob: number; package: string; trend?: string; delta?: number; timestamp?: number }) => void,

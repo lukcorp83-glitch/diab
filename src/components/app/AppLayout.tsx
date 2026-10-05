@@ -105,7 +105,8 @@ export function AppLayout({
     setProfileCategory
   } = useAppStore();
   const { t } = useTranslation();
-  const sharedPlate = useMealPlateStore((state) => state.plate);
+  const rawSharedPlate = useMealPlateStore((state) => state.plate);
+  const sharedPlate = Array.isArray(rawSharedPlate) ? rawSharedPlate : [];
 
   const [shortcuts, setShortcuts] = React.useState<any[]>([]);
   const [avatarError, setAvatarError] = React.useState(false);
@@ -413,7 +414,7 @@ export function AppLayout({
                     lastGlucose={lastGlucoseValue ? Math.round(lastGlucoseValue) : null}
                     mealProgress={mealProgress}
                     shortcuts={shortcuts}
-                    plateCount={sharedPlate.length}
+                    plateCount={Array.isArray(sharedPlate) ? sharedPlate.length : 0}
                     userSettings={userSettings}
                     getEffectiveIOB={getEffectiveIOB}
                     changeTab={changeTab}

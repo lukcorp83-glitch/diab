@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils } from 'lucide-react';
+import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils, Battery, BatteryCharging } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -30,13 +30,28 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   const queryClient = useQueryClient();
   
   const [learnedRules, setLearnedRules] = useState<any>(() => {
- try {
- return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
- } catch {
- return {};
- }
- });
- const isNativeApp = () => Capacitor.isNativePlatform();
+    try {
+      return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const [isBatteryIgnored, setIsBatteryIgnored] = useState<boolean>(true);
+
+  React.useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      NotificationBridge.isBatteryOptimizationIgnored()
+        .then((res: any) => {
+          if (res && typeof res.isIgnored === 'boolean') {
+            setIsBatteryIgnored(res.isIgnored);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const isNativeApp = () => Capacitor.isNativePlatform();
  // will need to be imported or recreated here.
  
  return (
@@ -287,6 +302,60 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
       Graj MP3
     </button>
   </div>
+
+  {Capacitor.isNativePlatform() && (
+    <div className={cn(
+      "p-3.5 rounded-2xl border flex items-center justify-between gap-3 my-3 transition-all",
+      isBatteryIgnored 
+        ? "bg-emerald-50/50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20" 
+        : "bg-amber-50/80 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 shadow-sm"
+    )}>
+      <div className="flex items-center gap-2.5">
+        <div className={cn(
+          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
+          isBatteryIgnored ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+        )}>
+          {isBatteryIgnored ? <BatteryCharging size={18} /> : <Battery size={18} />}
+        </div>
+        <div>
+          <p className="text-xs font-black dark:text-white leading-tight">
+            {isBatteryIgnored ? 'Praca w tle (Bateria: Bez ograniczeń)' : 'Optymalizacja baterii Androida'}
+          </p>
+          <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+            {isBatteryIgnored 
+              ? 'Telefon nie usypia aplikacji w nocy. Alerty działają na bieżąco.' 
+              : 'Android może opóźniać alarmy w uśpieniu. Wyłącz optymalizację!'}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={async () => {
+          try {
+            await NotificationBridge.requestIgnoreBatteryOptimization();
+            setTimeout(() => {
+              NotificationBridge.isBatteryOptimizationIgnored()
+                .then((res: any) => {
+                  if (res && typeof res.isIgnored === 'boolean') {
+                    setIsBatteryIgnored(res.isIgnored);
+                  }
+                })
+                .catch(() => {});
+            }, 1500);
+          } catch (e: any) {
+            toast.error('Błąd otwierania ustawień baterii');
+          }
+        }}
+        className={cn(
+          "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all active:scale-95 shrink-0",
+          isBatteryIgnored 
+            ? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200" 
+            : "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20"
+        )}
+      >
+        {isBatteryIgnored ? 'Sprawdź' : 'Wyłącz limit'}
+      </button>
+    </div>
+  )}
 
  <div
  className={cn(

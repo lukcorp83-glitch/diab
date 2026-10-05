@@ -11,6 +11,7 @@ import { dbService } from '../../services/databaseService';
 import { db } from '../../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
 
 interface DynamicActionCapsuleProps {
   lastGlucose: number | null;
@@ -54,16 +55,29 @@ export function DynamicActionCapsule({
   const [preBolusState, setPreBolusState] = useState<PreBolusTimerState>(() => getPreBolusTimerState());
 
   useEffect(() => {
-    const handleUpdate = () => setPreBolusState(getPreBolusTimerState());
-    window.addEventListener('prebolus_timer_update', handleUpdate);
-    const timer = setInterval(() => {
-      setPreBolusState(getPreBolusTimerState());
-    }, 1000);
-    return () => {
-      window.removeEventListener('prebolus_timer_update', handleUpdate);
-      clearInterval(timer);
+    const syncState = () => {
+      const next = getPreBolusTimerState();
+      setPreBolusState(prev => {
+        if (prev.remainingSeconds === next.remainingSeconds && prev.active === next.active && prev.isReady === next.isReady) {
+          return prev;
+        }
+        return next;
+      });
     };
-  }, []);
+
+    window.addEventListener('prebolus_timer_update', syncState);
+    
+    // Ticker odświeżania sekund uruchamiany wyłącznie gdy stoper jest fizycznie aktywny (oszczędność CPU/GPU)
+    let timer: any = null;
+    if (preBolusState.active) {
+      timer = setInterval(syncState, 1000);
+    }
+
+    return () => {
+      window.removeEventListener('prebolus_timer_update', syncState);
+      if (timer) clearInterval(timer);
+    };
+  }, [preBolusState.active]);
 
   // Wykrywanie bolusa/posiłku bez składników (z ostatnich 3h, nowszych niż czas wyciszenia)
   const latestUnlinked = useMemo(() => {
@@ -207,7 +221,15 @@ export function DynamicActionCapsule({
     return shortcuts.slice(0, 4);
   }, [shortcuts]);
 
-  const springTransition = { type: 'spring', stiffness: 380, damping: 32, mass: 0.8 };
+  const isAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+
+  // Wersja Android (Google Pixel): Material 3 Emphasized Spring o wyższej responsywności i tłumieniu
+  // Wersja przeglądarkowa: dotychczasowe wartości bez zmian
+  const springTransition = useMemo(() => {
+    return isAndroid 
+      ? { type: 'spring', stiffness: 480, damping: 36, mass: 0.8 } 
+      : { type: 'spring', stiffness: 380, damping: 32, mass: 0.8 };
+  }, [isAndroid]);
 
   const hasUnlinked = latestUnlinked !== null && unlinkedCarbs > 0 && !isLow;
   
@@ -241,33 +263,44 @@ export function DynamicActionCapsule({
     return ` • ${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}j`;
   }, [preBolusState.bolusUnits]);
 
+  // Współrzędne docelowe zintegrowane w GPU (eliminacja konfliktów klas CSS transform i zacięć)
+  const targetY = (capsuleState === 'hypo' || capsuleState === 'prebolus' || capsuleState === 'unlinked') ? -64 : -20;
+  const targetWidth = capsuleState === 'hypo' ? 320 : capsuleState === 'prebolus' ? 340 : capsuleState === 'unlinked' ? 285 : 56;
+  const targetHeight = capsuleState === 'hypo' ? 'auto' : (capsuleState === 'prebolus' || capsuleState === 'unlinked') ? 48 : 56;
+  const targetRadius = capsuleState === 'hypo' ? 24 : 9999;
+
   return (
     <div className="relative w-14 h-14 flex items-center justify-center pointer-events-auto">
-      {/* Główny, zunifikowany kontener morfujący – uniesiony nad dolny pasek nawigacji aby nie zasłaniać sąsiednich ikon */}
+      {/* Główny, zunifikowany kontener morfujący – animowany sprzętowo na GPU z fizyką Pixel Spring */}
       <motion.div
-        layout
+        initial={false}
+        animate={{
+          y: targetY,
+          width: targetWidth,
+          height: targetHeight,
+          borderRadius: targetRadius,
+        }}
+        whileTap={capsuleState === 'default' || capsuleState === 'absorbing' ? { scale: 0.91 } : undefined}
         transition={springTransition}
         className={cn(
-          "gpu-layer will-change-transform absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center z-50 transition-colors duration-300 pointer-events-auto select-none",
+          "pixel-spring-pill gpu-layer will-change-transform absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center z-50 pointer-events-auto select-none touch-manipulation",
           capsuleState === 'default' || capsuleState === 'absorbing' ? 'overflow-visible' : 'overflow-hidden',
           capsuleState === 'hypo' 
-            ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30 -translate-y-16 rounded-[1.5rem]" 
+            ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30" 
             : capsuleState === 'prebolus'
             ? (preBolusState.remainingSeconds > 0 && !preBolusState.isReady)
-              ? "bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 shadow-2xl shadow-orange-500/40 border border-orange-300/30 -translate-y-16 rounded-full"
-              : "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 shadow-2xl shadow-emerald-500/40 border border-emerald-300/30 -translate-y-16 rounded-full"
+              ? "bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 shadow-2xl shadow-orange-500/40 border border-orange-300/30"
+              : "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 shadow-2xl shadow-emerald-500/40 border border-emerald-300/30"
             : capsuleState === 'unlinked'
-            ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 shadow-2xl shadow-indigo-500/40 border border-indigo-300/30 -translate-y-16 rounded-full"
+            ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 shadow-2xl shadow-indigo-500/40 border border-indigo-300/30"
             : capsuleState === 'absorbing'
-            ? "bg-amber-500 shadow-lg shadow-amber-500/30 -translate-y-5 rounded-full cursor-pointer active:scale-95"
+            ? "bg-amber-500 shadow-lg shadow-amber-500/30 cursor-pointer"
             : cn(
-                "shadow-lg -translate-y-5 rounded-full cursor-pointer active:scale-95",
+                "shadow-lg cursor-pointer",
                 hardwareWarning ? "bg-slate-800 shadow-slate-900/30" : "bg-indigo-600 shadow-indigo-500/30"
               )
         )}
         style={{
-          width: capsuleState === 'hypo' ? 320 : capsuleState === 'prebolus' ? 340 : capsuleState === 'unlinked' ? 285 : 56,
-          height: capsuleState === 'hypo' ? 'auto' : (capsuleState === 'prebolus' || capsuleState === 'unlinked') ? 48 : 56,
           maxWidth: '90vw',
           transformOrigin: 'bottom center'
         }}

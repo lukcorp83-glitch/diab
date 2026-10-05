@@ -7,6 +7,8 @@ import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.provider.Settings;
 import android.content.ComponentName;
+import android.os.PowerManager;
+import android.net.Uri;
 
 import androidx.core.app.NotificationManagerCompat;
 
@@ -525,6 +527,11 @@ public class NotificationBridgePlugin extends Plugin {
             if (call.hasOption("targetMax")) {
                 editor.putString("widget_target_max", String.valueOf(call.getInt("targetMax", 180)));
             }
+            if (call.hasOption("betaProgramEnabled")) {
+                editor.putBoolean("betaProgramEnabled", call.getBoolean("betaProgramEnabled", false));
+                android.content.SharedPreferences glikoPrefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+                glikoPrefs.edit().putBoolean("betaProgramEnabled", call.getBoolean("betaProgramEnabled", false)).apply();
+            }
             editor.apply();
             call.resolve();
         } catch (Exception e) {
@@ -687,5 +694,49 @@ public class NotificationBridgePlugin extends Plugin {
             ret.put("supported", false);
         }
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void isBatteryOptimizationIgnored(PluginCall call) {
+        JSObject ret = new JSObject();
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+                boolean isIgnored = pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName());
+                ret.put("isIgnored", isIgnored);
+            } else {
+                ret.put("isIgnored", true);
+            }
+        } catch (Exception e) {
+            ret.put("isIgnored", false);
+        }
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void requestIgnoreBatteryOptimization(PluginCall call) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+                if (pm != null && !pm.isIgnoringBatteryOptimizations(getContext().getPackageName())) {
+                    Intent intent = new Intent();
+                    intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getContext().startActivity(intent);
+                }
+            }
+            call.resolve();
+        } catch (Exception e) {
+            // Fallback: otwórz ogólny ekran ustawień baterii
+            try {
+                Intent fallback = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+                call.resolve();
+            } catch (Exception ex) {
+                call.reject("Nie udało się otworzyć ustawień baterii: " + ex.getMessage());
+            }
+        }
     }
 }

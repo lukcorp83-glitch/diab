@@ -15,11 +15,16 @@ import {
   Flame,
   LayoutGrid,
   List,
+  Table as TableIcon,
   Plus,
   Clock,
   Zap,
   TrendingUp,
-  Filter
+  Filter,
+  Check,
+  ChevronRight,
+  Info,
+  Calendar
 } from "lucide-react";
 import { LogEntry, PlateItem } from "../../types";
 import { cn } from "../../lib/utils";
@@ -36,6 +41,18 @@ const getPluralForm = (count: number, one: string, few: string, many: string): s
     return `${count} ${few}`;
   }
   return `${count} ${many}`;
+};
+
+const formatMealDate = (timestamp?: number): string => {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  const days = ['ndz.', 'pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.'];
+  const dayName = days[d.getDay()];
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const hours = d.getHours().toString().padStart(2, '0');
+  const mins = d.getMinutes().toString().padStart(2, '0');
+  return `${dayName}, ${day}.${month} ${hours}:${mins}`;
 };
 
 export interface NutriMealEntry {
@@ -82,7 +99,7 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('date_desc');
   const [filterCategory, setFilterCategory] = useState<'all' | 'golden' | 'tricky'>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showAllGolden, setShowAllGolden] = useState(false);
   const [showAllTricky, setShowAllTricky] = useState(false);
 
@@ -102,27 +119,24 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
       count: number; 
       totalCorrections: number; 
       totalMaxBg: number; 
-      totalCarbs: number;
-      totalProtein: number;
-      totalFat: number;
-      macroCount: number;
-      glucoseTrajectories: number[][];
+      totalCarbs: number; 
+      totalProtein: number; 
+      totalFat: number; 
+      macroCount: number; 
+      glucoseTrajectories: number[][]; 
       lastTimestamp: number;
+      originalName: string;
     }> = {};
 
-    const meals = logs.filter(l => l.type === 'meal' || (l.type === 'bolus' && (l.linkedMeal?.carbs || l.notes || (l as any).note || (l as any).description)));
+    const meals = logs.filter(l => l.type === 'meal' || l.type === 'bolus');
     const glucoseLogs = logs.filter(l => l.type === 'glucose' || (l as any).bg).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     const bolusLogs = logs.filter(l => l.type === 'bolus' || (l.type as string) === 'insulin');
 
-    const isSpecificMealName = (name: string): boolean => {
-      if (!name) return false;
-      const clean = name.trim().toLowerCase();
-      const genericNames = [
-        'kalkulator', 'bolus', 'korekta', 'dane z kalkulatora', 'kalkulator bolusa'
-      ];
-      if (genericNames.includes(clean)) return false;
-      if (/^kalkulator/i.test(clean)) return false;
-      return clean.length >= 2;
+    const cleanMealString = (raw: string): string => {
+      if (!raw) return '';
+      let s = raw.trim();
+      s = s.replace(/^(dane z kalkulatora|kalkulator bolusa|kalkulator|bolus z posiłkiem|bolus|korekta)[:\s\-]*/i, '').trim();
+      return s;
     };
 
     meals.forEach(m => {
@@ -134,9 +148,19 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
         rawName = (m as any).products.map((p: any) => p.name).filter(Boolean).join(", ");
       }
 
-      if (!rawName || !isSpecificMealName(rawName)) return;
+      const cleaned = cleanMealString(rawName || '');
+      // POKAZUJEMY WYŁĄCZNIE POSIŁKI Z RZECZYWISTYMI NAZWAMI LUB SKŁADNIKAMI
+      if (!cleaned || cleaned.length < 2) {
+        return;
+      }
 
-      const name = rawName.trim().toLowerCase();
+      // Odrzuć całkowicie generyczne słowa typu "bolus", "kalkulator"
+      if (/^(kalkulator|bolus|korekta|posiłek|meal)$/i.test(cleaned)) {
+        return;
+      }
+
+      const finalName = cleaned;
+      const lookupKey = finalName.trim().toLowerCase();
       const mealTime = m.timestamp || (m.createdAt ? new Date(m.createdAt).getTime() : 0);
       if (!mealTime) return;
 
@@ -153,7 +177,6 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
         if (val > 180) hasSpike = true;
       });
 
-      // Zbuduj trajektorię glikemii (0h, 30m, 60m, 90m, 120m, 180m)
       const sampleOffsets = [0, 30, 60, 90, 120, 180];
       const trajectory: number[] = [];
       sampleOffsets.forEach(offsetMin => {
@@ -168,7 +191,6 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
         if (closestG && Math.abs((closestG.timestamp || 0) - targetT) <= 25 * 60 * 1000) {
           trajectory.push(closestG.value || closestG.bg || 120);
         } else {
-          // Default fallbacks
           if (trajectory.length > 0) trajectory.push(trajectory[trajectory.length - 1]);
           else trajectory.push(110);
         }
@@ -179,26 +201,27 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
         return bt > mealTime + 30 * 60 * 1000 && bt <= mealTime + 3 * 60 * 60 * 1000;
       });
 
-      const carbs = Number(m.linkedMeal?.carbs || m.carbs || (m as any).carbs || 0);
+      const carbs = Number(m.linkedMeal?.carbs || (m as any).carbs || 0);
       const protein = Number(m.linkedMeal?.protein || m.protein || (m as any).protein || 0);
       const fat = Number(m.linkedMeal?.fat || m.fat || (m as any).fat || 0);
 
-      if (!mealPatterns[name]) {
-        mealPatterns[name] = { 
+      if (!mealPatterns[lookupKey]) {
+        mealPatterns[lookupKey] = { 
           spikes: 0, 
           count: 0, 
           totalCorrections: 0, 
           totalMaxBg: 0, 
-          totalCarbs: 0,
-          totalProtein: 0,
-          totalFat: 0,
-          macroCount: 0,
-          glucoseTrajectories: [],
-          lastTimestamp: 0 
+          totalCarbs: 0, 
+          totalProtein: 0, 
+          totalFat: 0, 
+          macroCount: 0, 
+          glucoseTrajectories: [], 
+          lastTimestamp: 0,
+          originalName: finalName
         };
       }
 
-      const p = mealPatterns[name];
+      const p = mealPatterns[lookupKey];
       p.count += 1;
       p.totalMaxBg += (maxBg > 0 ? maxBg : 130);
       p.totalCorrections += postMealBoluses.length;
@@ -215,15 +238,14 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
       }
     });
 
-    const nutriMeals: (NutriMealEntry & { lastTimestamp?: number })[] = Object.keys(mealPatterns).map(name => {
-      const p = mealPatterns[name];
+    const nutriMeals: (NutriMealEntry & { lastTimestamp?: number })[] = Object.keys(mealPatterns).map(key => {
+      const p = mealPatterns[key];
       const avgMaxBg = p.totalMaxBg / p.count;
       const avgCorrections = p.totalCorrections / p.count;
       const avgCarbs = p.macroCount > 0 ? Math.round(p.totalCarbs / p.macroCount) : undefined;
       const avgProtein = p.macroCount > 0 ? Math.round(p.totalProtein / p.macroCount) : undefined;
       const avgFat = p.macroCount > 0 ? Math.round(p.totalFat / p.macroCount) : undefined;
 
-      // Średnia krzywa glikemii po daniu
       const avgTrajectory: number[] = [0, 1, 2, 3, 4, 5].map(idx => {
         const sum = p.glucoseTrajectories.reduce((acc, curr) => acc + (curr[idx] || 120), 0);
         return Math.round(sum / Math.max(1, p.glucoseTrajectories.length));
@@ -261,7 +283,7 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
       }
 
       return {
-        name,
+        name: p.originalName,
         count: p.count,
         spikes: p.spikes,
         avgMaxBg: Math.round(avgMaxBg),
@@ -338,17 +360,17 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
 
   const isGoodTolerance = overallTolerance >= 75;
 
-  // Funkcja generująca wygładzony wykres SVG Sparkline krzywej poposiłkowej
-  const renderSparkline = (points?: number[], isGolden: boolean = true) => {
+  // Wygładzony wykres z pełną szerokością i etykietą czasu, renderowany w osobnym wierszu (ZERO kolizji z nazwą)
+  const renderSparklineRow = (points?: number[], isGolden: boolean = true) => {
     if (!points || points.length < 2) return null;
     const minVal = Math.min(...points, 80);
     const maxVal = Math.max(...points, 190);
-    const w = 110;
-    const h = 32;
+    const w = 240;
+    const h = 34;
 
     const coords = points.map((val, idx) => {
       const x = (idx / (points.length - 1)) * w;
-      const y = h - ((val - minVal) / Math.max(1, (maxVal - minVal))) * (h - 8) - 4;
+      const y = h - ((val - minVal) / Math.max(1, (maxVal - minVal))) * (h - 10) - 5;
       return { x, y, val };
     });
 
@@ -359,26 +381,29 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
     const gradId = `spark_${isGolden ? 'g' : 't'}_${Math.abs(points[0] + points[points.length - 1])}`;
 
     return (
-      <div className="flex flex-col items-end shrink-0">
-        <svg width={w} height={h} className="overflow-visible">
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity="0.35" />
-              <stop offset="100%" stopColor={color} stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
-          <path d={fillD} fill={`url(#${gradId})`} />
-          <path d={pathD} fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-          {/* Ostatni punkt z kropką */}
-          <circle
-            cx={coords[coords.length - 1].x}
-            cy={coords[coords.length - 1].y}
-            r="3.5"
-            fill={color}
-            className="animate-pulse"
-          />
-        </svg>
-        <span className="text-[8px] font-bold text-slate-400 mt-0.5">0h ➔ 3h</span>
+      <div className="w-full flex items-center justify-between bg-slate-50/60 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200/50 dark:border-slate-800/60">
+        <div className="flex flex-col text-[9.5px] font-bold text-slate-400">
+          <span>Krzywa poposiłkowa</span>
+          <span className="text-[8px] text-slate-500 dark:text-slate-400">0h ➔ 3h</span>
+        </div>
+        <div className="flex-1 max-w-[240px] px-2 flex justify-end">
+          <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-8 overflow-visible max-w-[200px]">
+            <defs>
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+                <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+            <path d={fillD} fill={`url(#${gradId})`} />
+            <path d={pathD} fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            <circle
+              cx={coords[coords.length - 1].x}
+              cy={coords[coords.length - 1].y}
+              r="3.5"
+              fill={color}
+            />
+          </svg>
+        </div>
       </div>
     );
   };
@@ -400,53 +425,262 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
     onAddToPlate(item);
   };
 
-  return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-5 sm:space-y-6">
-      
-      {/* HERO BENTO HEADER - Glassmorphism Aurora Card */}
+  const renderMealCard = (meal: NutriMealEntry, isGolden: boolean, idx: number) => {
+    return (
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
+        key={meal.name + idx}
+        whileHover={{ scale: 1.008 }}
+        whileTap={{ scale: 0.992 }}
+        className={cn(
+          "glass-card p-4 sm:p-5 rounded-[2rem] border transition-all shadow-sm flex flex-col justify-between gap-3.5 relative overflow-hidden",
+          isGolden
+            ? "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-white/70 dark:from-emerald-950/20 dark:via-slate-900/90 dark:to-slate-900/90 border-emerald-500/25 dark:border-emerald-400/20"
+            : "bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-white/70 dark:from-amber-950/20 dark:via-slate-900/90 dark:to-slate-900/90 border-amber-500/25 dark:border-amber-400/20"
+        )}
+      >
+        {/* Header: Pełna szerokość na nazwę, liczbę spożyć oraz dokładną datę */}
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "w-11 h-11 rounded-2xl flex items-center justify-center font-black shrink-0 shadow-sm mt-0.5",
+            isGolden ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+          )}>
+            {isGolden ? <CheckCircle2 size={22} /> : <AlertTriangle size={22} />}
+          </div>
+          
+          <div className="min-w-0 flex-1">
+            <h4 className="text-base sm:text-lg font-black text-slate-900 dark:text-white capitalize leading-snug break-words">
+              {meal.name}
+            </h4>
+            
+            <div className="flex items-center gap-2 flex-wrap text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1">
+              <span>Zjedzono {meal.count}×</span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-bold">
+                <Calendar size={12} className="text-slate-400" />
+                {formatMealDate(meal.lastTimestamp)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Krzywa Poposiłkowa - w dedykowanym poziomym wierszu (ZERO kolizji z nazwą) */}
+        {renderSparklineRow(meal.sparkline, isGolden)}
+
+        {/* Pasek Stabilności Glikemii */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-[11px] font-bold">
+            <span className={cn(
+              "flex items-center gap-1",
+              isGolden ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"
+            )}>
+              <Zap size={13} className="shrink-0" /> Stabilność profilu glikemii
+            </span>
+            <span className={cn(
+              "font-black text-xs",
+              isGolden ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+            )}>
+              {meal.toleranceScore}%
+            </span>
+          </div>
+          <div className={cn(
+            "w-full h-2 rounded-full overflow-hidden p-0.5",
+            isGolden ? "bg-emerald-500/15 dark:bg-emerald-950/40" : "bg-amber-500/15 dark:bg-amber-950/40"
+          )}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${meal.toleranceScore}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className={cn("h-full rounded-full shadow-sm", isGolden ? "bg-emerald-500" : "bg-amber-500")}
+            />
+          </div>
+        </div>
+
+        {/* Przestronne Kapsułki Metryk (Elastyczne 4 kolumny z truncate) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
+          <div className="px-2.5 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 flex flex-col justify-center min-w-0">
+            <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-tight truncate">Śr. Szczyt</span>
+            <span className={cn("text-xs font-black truncate", isGolden ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300")}>
+              {meal.avgMaxBg || 140} <span className="text-[9px] font-normal text-slate-400">mg/dL</span>
+            </span>
+          </div>
+
+          <div className="px-2.5 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 flex flex-col justify-center min-w-0">
+            <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-tight truncate">Powrót</span>
+            <span className={cn("text-xs font-black truncate", isGolden ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300")}>
+              ~{meal.avgReturnTime || 90} <span className="text-[9px] font-normal text-slate-400">min</span>
+            </span>
+          </div>
+
+          <div className="px-2.5 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 flex flex-col justify-center min-w-0">
+            <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-tight truncate">Korekty</span>
+            <span className={cn("text-xs font-black truncate", isGolden ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300")}>
+              {meal.avgCorrections || 0}× <span className="text-[9px] font-normal text-slate-400">/ posiłek</span>
+            </span>
+          </div>
+
+          <div className="px-2.5 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 flex flex-col justify-center min-w-0">
+            <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-tight truncate">Powtarzalność</span>
+            <span className={cn("text-xs font-black truncate", isGolden ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300")}>
+              {meal.consistencyIndex}%
+            </span>
+          </div>
+        </div>
+
+        {/* Stopka: Makroskładniki + Wrzuć na Talerz */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-800 gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-bold">
+            {meal.avgCarbs !== undefined && (
+              <span className="px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                W: {meal.avgCarbs}g
+              </span>
+            )}
+            {meal.avgProtein !== undefined && meal.avgProtein > 0 && (
+              <span className="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                B: {meal.avgProtein}g
+              </span>
+            )}
+            {meal.avgFat !== undefined && meal.avgFat > 0 && (
+              <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                T: {meal.avgFat}g
+              </span>
+            )}
+          </div>
+
+          {onAddToPlate && (
+            <button
+              onClick={() => handleAddMealToPlate(meal)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-white text-[11px] font-black tracking-tight flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer ml-auto",
+                isGolden ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600"
+              )}
+            >
+              <Plus size={13} strokeWidth={3} /> Wrzuć na Talerz
+            </button>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
+  const renderTableView = (meals: NutriMealEntry[], isGolden: boolean) => {
+    return (
+      <div className="w-full overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/90 shadow-sm backdrop-blur-md">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <th className="py-3 px-3">Posiłek</th>
+              <th className="py-3 px-3 text-center">Ostatnio</th>
+              <th className="py-3 px-3 text-center">Wpisy</th>
+              <th className="py-3 px-3 text-center">Śr. Szczyt</th>
+              <th className="py-3 px-3 text-center">Stabilność</th>
+              <th className="py-3 px-3 text-center">Powtarzalność</th>
+              <th className="py-3 px-3 text-center">Makroskładniki</th>
+              {onAddToPlate && <th className="py-3 px-3 text-right">Akcja</th>}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+            {meals.map((meal, idx) => (
+              <tr key={meal.name + idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                <td className="py-3 px-3 font-black text-slate-900 dark:text-white capitalize">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("w-2 h-2 rounded-full shrink-0", isGolden ? "bg-emerald-500" : "bg-amber-500")} />
+                    <span className="truncate max-w-[220px]">{meal.name}</span>
+                  </div>
+                </td>
+                <td className="py-3 px-3 text-center font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap text-[11px]">
+                  {formatMealDate(meal.lastTimestamp)}
+                </td>
+                <td className="py-3 px-3 text-center font-bold text-slate-600 dark:text-slate-300">
+                  {meal.count}×
+                </td>
+                <td className="py-3 px-3 text-center font-black">
+                  <span className={cn(isGolden ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")}>
+                    {meal.avgMaxBg || 140} mg
+                  </span>
+                </td>
+                <td className="py-3 px-3 text-center">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-black",
+                    isGolden ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                  )}>
+                    {meal.toleranceScore}%
+                  </span>
+                </td>
+                <td className="py-3 px-3 text-center font-bold text-slate-600 dark:text-slate-300">
+                  {meal.consistencyIndex}%
+                </td>
+                <td className="py-3 px-3 text-center">
+                  <div className="flex items-center justify-center gap-1 text-[10px] font-bold">
+                    {meal.avgCarbs !== undefined && <span className="text-sky-600">W:{meal.avgCarbs}</span>}
+                    {meal.avgProtein !== undefined && meal.avgProtein > 0 && <span className="text-indigo-600">B:{meal.avgProtein}</span>}
+                    {meal.avgFat !== undefined && meal.avgFat > 0 && <span className="text-amber-600">T:{meal.avgFat}</span>}
+                  </div>
+                </td>
+                {onAddToPlate && (
+                  <td className="py-3 px-3 text-right">
+                    <button
+                      onClick={() => handleAddMealToPlate(meal)}
+                      className="p-1.5 rounded-xl bg-slate-100 hover:bg-emerald-500 hover:text-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 transition-all cursor-pointer inline-flex items-center justify-center shadow-xs"
+                      title="Wrzuć na Talerz"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full mx-auto space-y-5">
+      
+      {/* GÓRNY BANNER: Kompaktowy Hero Header (Świetny na Mobile i Desktop) */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         className={cn(
-          "glass-card relative p-5 sm:p-7 rounded-[2.5rem] overflow-hidden border transition-all shadow-xl",
+          "glass-card relative p-4 sm:p-5 rounded-[2.2rem] overflow-hidden border transition-all shadow-md",
           isGoodTolerance
             ? "bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-indigo-500/10 border-emerald-500/30 dark:border-emerald-400/20 bg-white/80 dark:bg-slate-900/80"
             : "bg-gradient-to-br from-amber-500/15 via-rose-500/10 to-purple-500/10 border-amber-500/30 dark:border-amber-400/20 bg-white/80 dark:bg-slate-900/80"
         )}
       >
-        {/* Glow Aurora Background Circle */}
         <div 
           className={cn(
-            "absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl opacity-35 pointer-events-none",
+            "absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-35 pointer-events-none",
             isGoodTolerance ? "bg-emerald-400" : "bg-amber-400"
           )} 
         />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6">
-          <div className="flex items-center gap-4 text-center md:text-left">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 text-left w-full md:w-auto">
             <div className={cn(
-              "w-13 h-13 sm:w-15 sm:h-15 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0",
+              "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0",
               isGoodTolerance ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30" : "bg-gradient-to-br from-amber-500 to-rose-500 shadow-amber-500/30"
             )}>
-              <GlikoSenseIcon size={28} isAnalyzing={true} />
+              <GlikoSenseIcon size={26} isAnalyzing={true} />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/30 dark:bg-white/10 backdrop-blur-md text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-1 border border-white/20">
-                <Flame size={12} className={isGoodTolerance ? "text-emerald-500" : "text-amber-500"} />
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/40 dark:bg-white/10 backdrop-blur-md text-[9px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-0.5 border border-white/20">
+                <Flame size={11} className={isGoodTolerance ? "text-emerald-500" : "text-amber-500"} />
                 GlikoSense Odżywianie
               </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
                 Reakcja na Posiłki
               </h2>
               <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1">
-                Inteligentna analiza wpływu dań na stabilność poziomu cukru
+                Analiza stabilności glikemii po zdefiniowanych posiłkach
               </p>
             </div>
           </div>
 
-          {/* Aurora Ring Score Gauge */}
-          <div className="flex items-center gap-4 bg-white/60 dark:bg-slate-900/80 p-3.5 sm:p-4 rounded-3xl backdrop-blur-md border border-white/40 dark:border-slate-800 shrink-0 shadow-sm">
-            <div className="relative w-18 h-18 sm:w-20 sm:h-20 flex items-center justify-center">
+          {/* Radial Score + Global Stats */}
+          <div className="flex items-center gap-3 bg-white/60 dark:bg-slate-900/80 p-2.5 sm:p-3 rounded-2xl backdrop-blur-md border border-white/40 dark:border-slate-800 shadow-xs w-full md:w-auto justify-between md:justify-start">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                 <path
                   className="text-slate-200 dark:text-slate-800"
@@ -466,226 +700,133 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-                <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
                   {overallTolerance}%
                 </span>
-                <span className="text-[7.5px] font-black uppercase text-slate-400 mt-0.5 tracking-wider">Indeks</span>
+                <span className="text-[7px] font-black uppercase text-slate-400 mt-0.5 tracking-wider">Indeks</span>
               </div>
             </div>
 
-            <div className="text-left">
+            <div className="text-left pr-2">
               <span className="text-xs font-black text-slate-900 dark:text-white block">
                 {isGoodTolerance ? "Wysoka Stabilność" : "Wymaga Uwagi"}
               </span>
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mt-0.5 max-w-[130px] leading-tight">
-                {isGoodTolerance ? "Większość dań bez gwałtownych skoków" : "Zwracaj uwagę na opóźnione wchłanianie"}
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mt-0.5 max-w-[140px] leading-tight">
+                {isGoodTolerance ? "Większość dań bez skoków cukru" : "Wykryto opóźnione wchłanianie"}
               </span>
             </div>
           </div>
         </div>
       </motion.div>
 
-      {/* BENTO GRID 4-KPI TILES */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        {/* Bento Tile 1: Złote Posiłki */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          onClick={() => setFilterCategory(filterCategory === 'golden' ? 'all' : 'golden')}
-          className={cn(
-            "glass-card p-4 sm:p-5 rounded-[2rem] border transition-all shadow-sm flex flex-col justify-between gap-2.5 cursor-pointer select-none",
-            filterCategory === 'golden'
-              ? "bg-emerald-500/20 border-emerald-500 ring-2 ring-emerald-500/40"
-              : "bg-emerald-500/10 dark:bg-slate-900/90 border-emerald-500/30 hover:bg-emerald-500/15"
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold">
-              <ShieldCheck size={20} />
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">
-              Bezpieczne
-            </span>
+      {/* PASEK FILTRÓW, WYSZUKIWARKI I WIDOKÓW */}
+      <div className="glass-card flex items-center justify-between gap-2.5 flex-wrap bg-white/85 dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md">
+        {/* Wyszukiwarka */}
+        <div className="flex-1 min-w-[200px] relative flex items-center">
+          <Search size={14} className="absolute left-3 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Szukaj dania (np. owsianka, obiad)..."
+            className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+          />
+        </div>
+
+        {/* Pigułki Kategorii */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <button
+            onClick={() => setFilterCategory('all')}
+            className={cn(
+              "py-1 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer",
+              filterCategory === 'all'
+                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs"
+                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            )}
+          >
+            Wszystkie ({allMeals.length})
+          </button>
+          <button
+            onClick={() => setFilterCategory('golden')}
+            className={cn(
+              "py-1 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer flex items-center gap-1",
+              filterCategory === 'golden'
+                ? "bg-emerald-500 text-white shadow-xs"
+                : "text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            )}
+          >
+            Złote ({goldenMeals.length})
+          </button>
+          <button
+            onClick={() => setFilterCategory('tricky')}
+            className={cn(
+              "py-1 px-2.5 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer flex items-center gap-1",
+              filterCategory === 'tricky'
+                ? "bg-amber-500 text-white shadow-xs"
+                : "text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+            )}
+          >
+            Kapryśne ({trickyMeals.length})
+          </button>
+        </div>
+
+        {/* Sortowanie i Przełącznik Widoków */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <ArrowUpDown size={12} className="text-slate-400 shrink-0" />
+            <select
+              value={sortBy}
+              onChange={e => {
+                Haptics.light();
+                setSortBy(e.target.value as any);
+              }}
+              className="bg-transparent text-slate-900 dark:text-white text-[10px] font-bold focus:outline-none cursor-pointer"
+            >
+              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value="date_desc">📅 Najnowsze</option>
+              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value="date_asc">📅 Najstarsze</option>
+              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value="tolerance_desc">💚 Stabilność</option>
+              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value="count_desc">🔥 Najczęstsze</option>
+              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value="maxBg_desc">📈 Najwyższy szczyt</option>
+              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value="name_asc">🔤 Nazwa A-Z</option>
+            </select>
           </div>
 
-          <div>
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white block leading-none">
-              {goldenMeals.length}
-            </span>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 block mt-1">
-              {t("nutrition.golden_meals", { defaultValue: "Moje Złote Posiłki" })}
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Bento Tile 2: Posiłki Kapryśne */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          onClick={() => setFilterCategory(filterCategory === 'tricky' ? 'all' : 'tricky')}
-          className={cn(
-            "glass-card p-4 sm:p-5 rounded-[2rem] border transition-all shadow-sm flex flex-col justify-between gap-2.5 cursor-pointer select-none",
-            filterCategory === 'tricky'
-              ? "bg-amber-500/20 border-amber-500 ring-2 ring-amber-500/40"
-              : "bg-amber-500/10 dark:bg-slate-900/90 border-amber-500/30 hover:bg-amber-500/15"
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold">
-              <AlertTriangle size={20} />
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full">
-              Wymagające
-            </span>
-          </div>
-
-          <div>
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white block leading-none">
-              {trickyMeals.length}
-            </span>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 block mt-1">
-              {t("nutrition.tricky_meals", { defaultValue: "Posiłki Kapryśne" })}
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Bento Tile 3: Przeanalizowane Dania */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          onClick={() => setFilterCategory('all')}
-          className="glass-card p-4 sm:p-5 rounded-[2rem] bg-white/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between gap-2.5"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
-              <Utensils size={20} />
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
-              Baza AI
-            </span>
-          </div>
-
-          <div>
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white block leading-none">
-              {allMeals.length}
-            </span>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 block mt-1">
-              Zarejestrowane Dania
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Bento Tile 4: Średni Szczyt Glikemii */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card p-4 sm:p-5 rounded-[2rem] bg-white/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between gap-2.5"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-sky-500/10 flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold">
-              <Activity size={20} />
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full">
-              Śr. Szczyt
-            </span>
-          </div>
-
-          <div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">
-                {avgOverallMaxBg}
-              </span>
-              <span className="text-xs font-bold text-slate-400">mg/dL</span>
-            </div>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 block mt-1">
-              Średni Szczyt Posiłkowy
-            </span>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* FLOATING CONTROL BAR (Search + Filters + Sort + View Switcher) */}
-      {allMeals.length > 0 && (
-        <div className="glass-card flex items-center justify-between gap-2.5 sm:gap-3 flex-wrap bg-white/85 dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md">
-          {/* Search Box */}
-          <div className="flex-1 min-w-[180px] relative flex items-center">
-            <Search size={15} className="absolute left-3 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Szukaj posiłku (np. owsianka, pizza)..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Sort Selection */}
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-              <ArrowUpDown size={13} className="text-slate-400 shrink-0" />
-              <select
-                value={sortBy}
-                onChange={e => {
-                  Haptics.light();
-                  setSortBy(e.target.value as any);
-                }}
-                className="bg-transparent text-slate-900 dark:text-white text-[11px] font-bold focus:outline-none cursor-pointer"
-              >
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="date_desc">📅 Wg daty (Najnowsze)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="date_asc">📅 Wg daty (Najstarsze)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="tolerance_desc">💚 Wg tolerancji (Najwyższa)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="tolerance_asc">⚠️ Wg tolerancji (Najniższa)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="count_desc">🔥 Wg częstotliwości (Najczęstsze)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="count_asc">🧊 Wg częstotliwości (Najrzadsze)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="maxBg_desc">📈 Wg szczytu cukru (Najwyższy)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="maxBg_asc">📉 Wg szczytu cukru (Najniższy)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="name_asc">🔤 Wg nazwy (A-Z)</option>
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold" value="name_desc">🔤 Wg nazwy (Z-A)</option>
-              </select>
-            </div>
-
-            {/* View Switcher Toggle */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => {
-                  Haptics.light();
-                  setViewMode('grid');
-                }}
-                className={cn(
-                  "p-1.5 rounded-lg text-xs font-bold transition-all",
-                  viewMode === 'grid'
-                    ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm"
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                )}
-                title="Karty Bento"
-              >
-                <LayoutGrid size={15} />
-              </button>
-              <button
-                onClick={() => {
-                  Haptics.light();
-                  setViewMode('list');
-                }}
-                className={cn(
-                  "p-1.5 rounded-lg text-xs font-bold transition-all",
-                  viewMode === 'list'
-                    ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm"
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                )}
-                title="Kompaktowa Lista"
-              >
-                <List size={15} />
-              </button>
-            </div>
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => {
+                Haptics.light();
+                setViewMode('grid');
+              }}
+              className={cn(
+                "p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                viewMode === 'grid'
+                  ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs"
+                  : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              )}
+              title="Karty"
+            >
+              <LayoutGrid size={13} />
+            </button>
+            <button
+              onClick={() => {
+                Haptics.light();
+                setViewMode('table');
+              }}
+              className={cn(
+                "p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                viewMode === 'table'
+                  ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs"
+                  : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              )}
+              title="Tabela"
+            >
+              <TableIcon size={13} />
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* GOLDEN MEALS SECTION (🟢) */}
+      {/* SEKCJA ZŁOTYCH POSIŁKÓW (🟢) */}
       {(filterCategory === 'all' || filterCategory === 'golden') && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
@@ -700,118 +841,22 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
             </span>
           </div>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 px-1 -mt-1">
-            {t("nutrition.golden_meals_desc", { defaultValue: "Posiłki o najwyższym wskaźniku tolerancji – glikemia łagodnie wraca do normy." })}
+            {t("nutrition.golden_meals_desc", { defaultValue: "Posiłki o najwyższym wskaźniku tolerancji – glikemia łagodnie wraca do normy bez skoków." })}
           </p>
 
           {filteredGolden.length === 0 ? (
             <div className="p-7 rounded-3xl bg-slate-100/50 dark:bg-slate-900/50 border border-dashed border-slate-300 dark:border-slate-800 text-center text-xs font-semibold text-slate-400">
-              {searchQuery ? "Brak złotych posiłków pasujących do wyszukiwania." : t("nutrition.no_data_yet", { defaultValue: "Zbieram pierwsze logi posiłków..." })}
+              {searchQuery ? "Brak złotych posiłków pasujących do wyszukiwania." : "Zbieram pierwsze logi posiłków z nazwami..."}
             </div>
           ) : (
             <>
-              <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-3.5" : "flex flex-col gap-2.5"}>
-                {visibleGolden.map((meal, idx) => (
-                  <motion.div
-                    key={meal.name + idx}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    className={cn(
-                      "glass-card p-4 sm:p-5 rounded-[2rem] border transition-all shadow-sm flex flex-col justify-between gap-3 relative overflow-hidden",
-                      "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent dark:bg-slate-900/90 border-emerald-500/25 dark:border-emerald-400/20"
-                    )}
-                  >
-                    {/* Header: Name + Score Ring + Sparkline */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black shrink-0 mt-0.5">
-                          <CheckCircle2 size={20} />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white capitalize leading-tight truncate">
-                            {meal.name}
-                          </h4>
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mt-0.5">
-                            Zjedzono {meal.count}× • Bez skoków cukru
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Sparkline Curve */}
-                      {renderSparkline(meal.sparkline, true)}
-                    </div>
-
-                    {/* Progress Bar & Tolerance */}
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      <div className="flex items-center justify-between text-[11px] font-black">
-                        <span className="text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
-                          <Zap size={13} /> Wskaźnik stabilności glikemii
-                        </span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                          {meal.toleranceScore}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-emerald-500/15 dark:bg-emerald-950/40 rounded-full overflow-hidden p-0.5">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${meal.toleranceScore}%` }}
-                          transition={{ duration: 0.8, ease: "easeOut" }}
-                          className="h-full bg-emerald-500 rounded-full shadow-sm"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Sub-stats Bento Pills */}
-                    <div className="grid grid-cols-4 gap-1.5 pt-1 text-center">
-                      <div className="p-2 rounded-2xl bg-white/70 dark:bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/10">
-                        <span className="text-[8.5px] font-bold text-slate-400 block uppercase">Śr. Max</span>
-                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">{meal.avgMaxBg || 140} mg</span>
-                      </div>
-                      <div className="p-2 rounded-2xl bg-white/70 dark:bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/10">
-                        <span className="text-[8.5px] font-bold text-slate-400 block uppercase">Powrót</span>
-                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">{meal.avgReturnTime || 90}m</span>
-                      </div>
-                      <div className="p-2 rounded-2xl bg-white/70 dark:bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/10">
-                        <span className="text-[8.5px] font-bold text-slate-400 block uppercase">Korekty</span>
-                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">{meal.avgCorrections || 0}×</span>
-                      </div>
-                      <div className="p-2 rounded-2xl bg-white/70 dark:bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/10">
-                        <span className="text-[8.5px] font-bold text-slate-400 block uppercase">Spójność</span>
-                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">{meal.consistencyIndex}%</span>
-                      </div>
-                    </div>
-
-                    {/* Footer: Macros + 1-Click Add to Plate */}
-                    <div className="flex items-center justify-between pt-1 border-t border-emerald-500/10 gap-2">
-                      <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-bold">
-                        {meal.avgCarbs !== undefined && (
-                          <span className="px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
-                            W: {meal.avgCarbs}g
-                          </span>
-                        )}
-                        {meal.avgProtein !== undefined && meal.avgProtein > 0 && (
-                          <span className="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                            B: {meal.avgProtein}g
-                          </span>
-                        )}
-                        {meal.avgFat !== undefined && meal.avgFat > 0 && (
-                          <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                            T: {meal.avgFat}g
-                          </span>
-                        )}
-                      </div>
-
-                      {onAddToPlate && (
-                        <button
-                          onClick={() => handleAddMealToPlate(meal)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black tracking-tight flex items-center gap-1 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-                        >
-                          <Plus size={13} strokeWidth={3} /> Wrzuć na Talerz
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+              {viewMode === 'table' ? (
+                renderTableView(visibleGolden, true)
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {visibleGolden.map((meal, idx) => renderMealCard(meal, true, idx))}
+                </div>
+              )}
 
               {filteredGolden.length > 6 && (
                 <button
@@ -819,7 +864,7 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
                     Haptics.light();
                     setShowAllGolden(!showAllGolden);
                   }}
-                  className="w-full py-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-pointer"
+                  className="w-full py-2.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-emerald-500/20 cursor-pointer"
                 >
                   {showAllGolden ? (
                     <>Zwiń listę <ChevronUp size={14} /></>
@@ -833,7 +878,7 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
         </div>
       )}
 
-      {/* TRICKY MEALS SECTION (🔴) */}
+      {/* SEKCJA POSIŁKÓW KAPRYŚNYCH (🔴) */}
       {(filterCategory === 'all' || filterCategory === 'tricky') && (
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between px-1">
@@ -848,118 +893,22 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
             </span>
           </div>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 px-1 -mt-1">
-            {t("nutrition.tricky_meals_desc", { defaultValue: "Posiłki wymagające szczególnej uwagi ze względu na opóźnione wchłanianie (WBT/tłuszcz)." })}
+            {t("nutrition.tricky_meals_desc", { defaultValue: "Posiłki wykazujące większą zmienność glikemiczną lub opóźnione wchłanianie (np. tłuszcz/białko)." })}
           </p>
 
           {filteredTricky.length === 0 ? (
             <div className="p-7 rounded-3xl bg-emerald-500/5 border border-emerald-500/20 text-center text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-2">
-              <CheckCircle2 size={18} /> Brawo! Nie masz w historii wyznaczonego żadnego trudnego posiłku.
+              <CheckCircle2 size={18} /> Brak trudnych posiłków w wybranym filtrze.
             </div>
           ) : (
             <>
-              <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-3.5" : "flex flex-col gap-2.5"}>
-                {visibleTricky.map((meal, idx) => (
-                  <motion.div
-                    key={meal.name + idx}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    className={cn(
-                      "glass-card p-4 sm:p-5 rounded-[2rem] border transition-all shadow-sm flex flex-col justify-between gap-3 relative overflow-hidden",
-                      "bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent dark:bg-slate-900/90 border-amber-500/25 dark:border-amber-400/20"
-                    )}
-                  >
-                    {/* Header: Name + Warning + Sparkline */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black shrink-0 mt-0.5">
-                          <AlertTriangle size={20} />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white capitalize leading-tight truncate">
-                            {meal.name}
-                          </h4>
-                          <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-400/80 block mt-0.5">
-                            Zjedzono {meal.count}× • Skoki: {meal.spikes}×
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Sparkline Curve */}
-                      {renderSparkline(meal.sparkline, false)}
-                    </div>
-
-                    {/* Progress Bar & Tolerance */}
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      <div className="flex items-center justify-between text-[11px] font-black">
-                        <span className="text-amber-700 dark:text-amber-300 flex items-center gap-1">
-                          <Zap size={13} /> Wskaźnik stabilności glikemii
-                        </span>
-                        <span className="text-amber-600 dark:text-amber-400 font-black">
-                          {meal.toleranceScore}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-amber-500/15 dark:bg-amber-950/40 rounded-full overflow-hidden p-0.5">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${meal.toleranceScore}%` }}
-                          transition={{ duration: 0.8, ease: "easeOut" }}
-                          className="h-full bg-amber-500 rounded-full shadow-sm"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Sub-stats Bento Pills */}
-                    <div className="grid grid-cols-4 gap-1.5 pt-1 text-center">
-                      <div className="p-2 rounded-2xl bg-white/70 dark:bg-amber-500/10 backdrop-blur-sm border border-amber-500/10">
-                        <span className="text-[8.5px] font-bold text-slate-400 block uppercase">Śr. Max</span>
-                        <span className="text-xs font-black text-amber-700 dark:text-amber-300">{meal.avgMaxBg || 185} mg</span>
-                      </div>
-                      <div className="p-2 rounded-2xl bg-white/70 dark:bg-amber-500/10 backdrop-blur-sm border border-amber-500/10">
-                        <span className="text-[8.5px] font-bold text-slate-400 block uppercase">Powrót</span>
-                        <span className="text-xs font-black text-amber-700 dark:text-amber-300">{meal.avgReturnTime || 120}m</span>
-                      </div>
-                      <div className="p-2 rounded-2xl bg-white/70 dark:bg-amber-500/10 backdrop-blur-sm border border-amber-500/10">
-                        <span className="text-[8.5px] font-bold text-slate-400 block uppercase">Korekty</span>
-                        <span className="text-xs font-black text-amber-700 dark:text-amber-300">{meal.avgCorrections || 0}×</span>
-                      </div>
-                      <div className="p-2 rounded-2xl bg-white/70 dark:bg-amber-500/10 backdrop-blur-sm border border-amber-500/10">
-                        <span className="text-[8.5px] font-bold text-slate-400 block uppercase">Spójność</span>
-                        <span className="text-xs font-black text-amber-700 dark:text-amber-300">{meal.consistencyIndex}%</span>
-                      </div>
-                    </div>
-
-                    {/* Footer: Macros + 1-Click Add to Plate */}
-                    <div className="flex items-center justify-between pt-1 border-t border-amber-500/10 gap-2">
-                      <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-bold">
-                        {meal.avgCarbs !== undefined && (
-                          <span className="px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
-                            W: {meal.avgCarbs}g
-                          </span>
-                        )}
-                        {meal.avgProtein !== undefined && meal.avgProtein > 0 && (
-                          <span className="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                            B: {meal.avgProtein}g
-                          </span>
-                        )}
-                        {meal.avgFat !== undefined && meal.avgFat > 0 && (
-                          <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                            T: {meal.avgFat}g
-                          </span>
-                        )}
-                      </div>
-
-                      {onAddToPlate && (
-                        <button
-                          onClick={() => handleAddMealToPlate(meal)}
-                          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black tracking-tight flex items-center gap-1 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-                        >
-                          <Plus size={13} strokeWidth={3} /> Wrzuć na Talerz
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+              {viewMode === 'table' ? (
+                renderTableView(visibleTricky, false)
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {visibleTricky.map((meal, idx) => renderMealCard(meal, false, idx))}
+                </div>
+              )}
 
               {filteredTricky.length > 6 && (
                 <button
@@ -967,7 +916,7 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
                     Haptics.light();
                     setShowAllTricky(!showAllTricky);
                   }}
-                  className="w-full py-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-amber-500/20 cursor-pointer"
+                  className="w-full py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-amber-500/20 cursor-pointer"
                 >
                   {showAllTricky ? (
                     <>Zwiń listę <ChevronUp size={14} /></>
@@ -978,6 +927,16 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
               )}
             </>
           )}
+        </div>
+      )}
+
+      {allMeals.length === 0 && (
+        <div className="p-8 rounded-[2.5rem] bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+          <Utensils size={32} className="mx-auto text-slate-400" />
+          <h4 className="text-base font-black text-slate-900 dark:text-white">Brak zapisanych posiłków z nazwami</h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            Wpisuj nazwy dań lub dodawaj składniki za pomocą Talerza. Silnik automatycznie zbada reakcję glikemiczną dla każdego z nich.
+          </p>
         </div>
       )}
     </div>

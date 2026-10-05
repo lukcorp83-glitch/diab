@@ -1,10 +1,10 @@
 {
-    "version": "6.0.55",
+    "version": "6.0.57",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.55-beta_OTA.apk",
-    "buildNumber": 168,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.57-beta_OTA.apk",
+    "buildNumber": 170,
     "forceUpdate": false,
-    "whatsNew": "Podwójne strzałki trendu na wykresie i pulpicie, pełna synchronizacja zażycia leków w chmurze (telefon-komputer), powiadomienia push o aktualizacji oraz zgodność MDR dla diet i treningu.",
-    "whatsNewEn": "Double trend arrows on chart and dashboard, cross-device medication intake cloud sync, push notifications for updates, and MDR compliance for diets and training.",
-    "otaRevision": 328
+    "whatsNew": "Naprawiono błąd zamykania aplikacji (Cannot read properties of undefined reading length) podczas otwierania z widżetu aparatu AI oraz zabezpieczono stan Talerza i Centrum Żywienia.",
+    "whatsNewEn": "Fixed app crash (Cannot read properties of undefined reading length) when launching from AI Camera widget, with bulletproof safeguards for plate and nutrition state.",
+    "otaRevision": 330
 }

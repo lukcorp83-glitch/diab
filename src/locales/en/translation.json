@@ -523,7 +523,12 @@
     "var0_pije_teraz_duzo_wody": "📈 Glucose is high. {{var0}} asks: show this reading to your parents or guardian. 💧",
     "co_powiedziec_rodzicom": "What to tell parents?",
     "jak_rano": "How was morning?",
-    "porozmawiajmy": "Let's talk 💬"
+    "porozmawiajmy": "Let's talk 💬",
+    "srednia_glikemia": "Average Glucose",
+    "w_normie_tir": "In Range (TIR)",
+    "norma": "In Range",
+    "hipo": "Hypo",
+    "hiper": "Hyper"
   },
   "auto.localLogAdd": "THE AI ASSISTANT ANSWERED!",
   "Przejście do zakładki": {

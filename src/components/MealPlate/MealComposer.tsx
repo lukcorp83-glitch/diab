@@ -41,6 +41,7 @@ export const MealComposer = ({
 }) => {
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
+ const safePlate = Array.isArray(plate) ? plate : [];
 
  const totalCalsFromMacros = totalCarbs * 4 + totalProtein * 4 + totalFat * 9;
  const carbsPct = totalCalsFromMacros > 0 ? ((totalCarbs * 4) / totalCalsFromMacros) * 100 : 0;
@@ -48,12 +49,12 @@ export const MealComposer = ({
  const fatPct = totalCalsFromMacros > 0 ? ((totalFat * 9) / totalCalsFromMacros) * 100 : 0;
 
  const plateChartData = useMemo(() => {
- if (plate.length === 0) return [];
+ if (safePlate.length === 0) return [];
 
  const WW = totalWW;
  const WBT = totalWBT;
- const totalWeightsWithGi = plate.filter((i) => typeof i.gi === 'number').reduce((s, i) => s + i.weight, 0);
- const weightedGiSum = plate.filter((i) => typeof i.gi === 'number').reduce((s, i) => s + (i.gi) * i.weight, 0);
+ const totalWeightsWithGi = safePlate.filter((i) => typeof i.gi === 'number').reduce((s, i) => s + i.weight, 0);
+ const weightedGiSum = safePlate.filter((i) => typeof i.gi === 'number').reduce((s, i) => s + (i.gi) * i.weight, 0);
  const averageGi = totalWeightsWithGi > 0 ? weightedGiSum / totalWeightsWithGi : 50;
 
  const data = [];
@@ -99,7 +100,7 @@ export const MealComposer = ({
 
  return (
  <>
- {(mode === "plate" || mode === "both") && plate.length > 0 && (
+ {(mode === "plate" || mode === "both") && safePlate.length > 0 && (
  <div className="bg-slate-900 rounded-[2.5rem] p-6 text-white shadow-2xl border-l-[6px] border-accent-500">
  <div className="flex justify-between items-center mb-4 border-b border-accent-500/20 pb-4">
  <div className="flex items-center gap-2">
@@ -110,7 +111,7 @@ export const MealComposer = ({
  {t('meal.your_plate', { defaultValue: i18n.t('auto.twoj_talerz', { defaultValue: "Centrum Żywieniowe" }) })}
  </span>
  <span className="bg-accent-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
- {plate.length}
+ {safePlate.length}
  </span>
  </div>
  <button

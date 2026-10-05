@@ -57,7 +57,8 @@ export const AppContent = (props: any) => {
     syncStatus,
     isShortcutMode
   } = useAppStore();
-  const sharedPlate = useMealPlateStore((state) => state.plate);
+  const rawSharedPlate = useMealPlateStore((state) => state.plate);
+  const sharedPlate = Array.isArray(rawSharedPlate) ? rawSharedPlate : [];
   const setSharedPlate = useMealPlateStore((state) => state.setPlate);
 
   const content = (

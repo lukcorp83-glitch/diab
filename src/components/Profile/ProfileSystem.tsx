@@ -29,6 +29,7 @@ import { useLogsStore } from '../../stores/useLogsStore';
 import { useAppStore } from '../../stores/useAppStore';
 import { geminiService } from '../../services/gemini';
 import { Haptics } from '../../lib/haptics';
+import { NotificationBridge } from '../../lib/notificationBridge';
 
 export default function ProfileSystem({ user, settings, setSettings, isIOS, pushSupported, latestSensorLog, updates, sensorSite }: any) {
  const { t } = useTranslation();
@@ -1140,6 +1141,11 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  const isBeta = !settings.betaProgram;
  setSettings(prev => ({ ...prev, betaProgram: isBeta }));
  localStorage.setItem("betaProgramEnabled", String(isBeta));
+ try {
+   if (Capacitor.isNativePlatform() && NotificationBridge?.syncAlertPreferences) {
+     NotificationBridge.syncAlertPreferences({ betaProgramEnabled: isBeta });
+   }
+ } catch (e) {}
  if (user) {
  await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { betaProgram: isBeta }, { merge: true });
  queryClient.invalidateQueries({ queryKey: ["userSettings"] });

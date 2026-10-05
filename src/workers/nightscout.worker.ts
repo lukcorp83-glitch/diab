@@ -155,7 +155,11 @@ function processTreatments(data: any[]): any[] {
     if (!ts) return;
     if (ts < 10000000000) ts *= 1000;
     const timestamp = ts;
-    const insulin = Number(t.insulin || t.amount || 0);
+    const rawInsulin = t.insulin ?? t.units ?? t.dose ?? t.enteredinsulin ?? t.amount ?? t.bolus ?? 0;
+    const normalInsulin = Number(t.normal || 0);
+    const extendedInsulin = Number(t.extended || 0);
+    const comboSum = (normalInsulin + extendedInsulin) > 0 ? (normalInsulin + extendedInsulin) : 0;
+    const insulin = Number(rawInsulin || comboSum || 0);
     const carbs = Number(t.carbs || 0);
     const mealName = t.food || t.description || (t.notes && t.notes !== '<none>' ? t.notes : '') || '';
     const cleanNotes = mealName || (t.eventType && t.eventType !== '<none>' ? t.eventType : '');
@@ -286,8 +290,8 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
   const cacheBust = `_t=${Date.now()}`;
   
   const entriesCount = count;
-  // Optymalizacja: dla małych/szybkich odświeżeń pobieramy tylko bieżące zabiegi (100), dla pełnej historii max 2000 (nigdy 20 000!)
-  const treatmentsCount = count <= 150 ? 100 : (count <= 1000 ? 500 : 2000);
+  // Optymalizacja: dla małych/szybkich odświeżeń pobieramy tylko bieżące zabiegi (100), dla pełnej historii max 4000
+  const treatmentsCount = count <= 150 ? 100 : (count <= 1000 ? 500 : 4000);
   
   const entriesUrl = secret && secret.includes('-') 
     ? `${baseUrl}/api/v1/entries.json?count=${entriesCount}&${cacheBust}&token=${secret}` 

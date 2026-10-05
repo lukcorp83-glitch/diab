@@ -376,11 +376,11 @@ export default function App() {
     useEffect(() => {
       if (fbLogs.length === 0 && nsLogs.length === 0) return;
       const timeoutId = setTimeout(() => {
-        const recentCutoff = Date.now() - 48 * 60 * 60 * 1000;
+        const recentCutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
         const toSave = [...fbLogs, ...nsLogs].filter(l => {
           const ts = l.timestamp || l.createdAt || 0;
           const isTreatment = l.type === 'bolus' || l.type === 'meal' || l.type === 'site_change' || l.type === 'sensor_change';
-          // Zwykłe częste odczyty CGM filtrujemy do ostatnich 48h, ale zabiegi (węglowodany, insulina, wymiany wkłucia/sensora)
+          // Odczyty CGM zachowujemy do 90 dni (pełny kwartał na potrzeby statystyk i TIR), a zabiegi (węglowodany, insulina, wkłucia/sensory)
           // zapisujemy do bazy SQLite zawsze, aby były w 100% dostępne w statystykach i kalendarzu na telefonie
           if (!isTreatment && ts < recentCutoff && lastSavedMaxTimestampRef.current > 0) return false;
           if (deletedNsIdsRef.current) {
@@ -425,7 +425,7 @@ export default function App() {
 
       const timer = setTimeout(autoRestoreCloudData, 3000);
       return () => clearTimeout(timer);
-    }, [user, sqliteLogs.length, logs.length]);
+    }, [user, sqliteLogs?.length, logs?.length]);
 
     // Automatyczne codzienne tworzenie paczki zapasowej w chmurze (raz na 24h w tle)
     useEffect(() => {
@@ -433,7 +433,7 @@ export default function App() {
       const autoUploadDailyPackage = async () => {
         const lastSync = Number(localStorage.getItem('last_cloud_package_sync') || 0);
         const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-        if (Date.now() - lastSync > ONE_DAY_MS && logs.length > 50) {
+        if (Date.now() - lastSync > ONE_DAY_MS && (logs?.length || 0) > 50) {
           console.log('[App] Automatyczne codzienne wysyłanie paczki synchronizacyjnej w tle...');
           const ok = await uploadCloudPackage(user, userSettings);
           if (ok) {
@@ -444,7 +444,7 @@ export default function App() {
 
       const timer = setTimeout(autoUploadDailyPackage, 15000);
       return () => clearTimeout(timer);
-    }, [user, userSettings, logs.length]);
+    }, [user, userSettings, logs?.length]);
   
     useEffect(() => {
       const allMap = new Map();
@@ -1116,14 +1116,15 @@ export default function App() {
     };
   }, []);
 
-  // Smart Equipment Listener & Modal State
-  const [smartEquipmentType, setSmartEquipmentType] = useState<'reservoir' | 'sensor' | null>(null);
+  // Smart Equipment Listener & Modal State with Queue
+  const [smartEquipmentQueue, setSmartEquipmentQueue] = useState<Array<'reservoir' | 'sensor'>>([]);
+  const smartEquipmentType = smartEquipmentQueue[0] || null;
 
   useEffect(() => {
     const handleSmartEquipment = (e: any) => {
       const type = e.detail; // 'sensor' or 'reservoir'
       if (type === 'sensor' || type === 'reservoir') {
-        setSmartEquipmentType(type);
+        setSmartEquipmentQueue(prev => prev.includes(type) ? prev : [...prev, type]);
       }
     };
 
@@ -1131,9 +1132,17 @@ export default function App() {
     return () => window.removeEventListener('smart-equipment-trigger', handleSmartEquipment);
   }, []);
 
+  const handleDismissSmartEquipment = () => {
+    const type = smartEquipmentType;
+    if (type) {
+      import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
+    }
+    setSmartEquipmentQueue(prev => prev.slice(1));
+  };
+
   const handleConfirmSmartEquipment = async (replaceInfusionSet: boolean, selectedSite?: string) => {
     const type = smartEquipmentType;
-    setSmartEquipmentType(null);
+    setSmartEquipmentQueue(prev => prev.slice(1));
     if (!type) return;
 
     import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
@@ -1809,7 +1818,7 @@ export default function App() {
         type={smartEquipmentType}
         logs={logs}
         userSettings={userSettings}
-        onClose={() => setSmartEquipmentType(null)}
+        onClose={handleDismissSmartEquipment}
         onConfirm={handleConfirmSmartEquipment}
       />
       <AppLayout

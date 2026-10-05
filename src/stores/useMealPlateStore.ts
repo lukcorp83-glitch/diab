@@ -27,29 +27,36 @@ export const useMealPlateStore = create<MealPlateState>()(
   persist(
     (set) => ({
       plate: [],
-      setPlate: (updater) => set((state) => ({
-        plate: typeof updater === 'function' ? updater(state.plate) : updater
-      })),
-      addToPlate: (item) => set((state) => ({ plate: [...state.plate, item] })),
-      removeFromPlate: (id) => set((state) => ({ plate: state.plate.filter(i => i.plateItemId !== id) })),
+      setPlate: (updater) => set((state) => {
+        const currentPlate = Array.isArray(state.plate) ? state.plate : [];
+        const next = typeof updater === 'function' ? updater(currentPlate) : updater;
+        return { plate: Array.isArray(next) ? next : [] };
+      }),
+      addToPlate: (item) => set((state) => ({ plate: [...(Array.isArray(state.plate) ? state.plate : []), item] })),
+      removeFromPlate: (id) => set((state) => ({ plate: (Array.isArray(state.plate) ? state.plate : []).filter(i => i.plateItemId !== id) })),
       clearPlate: () => set({ plate: [] }),
       
       searchTerm: "",
       setSearchTerm: (searchTerm) => set({ searchTerm }),
       
       onlineResults: [],
-      setOnlineResults: (onlineResults) => set({ onlineResults }),
+      setOnlineResults: (onlineResults) => set({ onlineResults: Array.isArray(onlineResults) ? onlineResults : [] }),
       
       isSearching: false,
       customProducts: [],
-      setCustomProducts: (customProducts) => set({ customProducts }),
+      setCustomProducts: (customProducts) => set({ customProducts: Array.isArray(customProducts) ? customProducts : [] }),
       communityProducts: [],
-      setCommunityProducts: (communityProducts) => set({ communityProducts }),
+      setCommunityProducts: (communityProducts) => set({ communityProducts: Array.isArray(communityProducts) ? communityProducts : [] }),
       setIsSearching: (isSearching) => set({ isSearching }),
     }),
     {
       name: 'diacontrol_shared_plate',
-      partialize: (state) => ({ plate: state.plate }),
+      partialize: (state) => ({ plate: Array.isArray(state.plate) ? state.plate : [] }),
+      onRehydrateStorage: () => (state) => {
+        if (state && (!state.plate || !Array.isArray(state.plate))) {
+          state.plate = [];
+        }
+      }
     }
   )
 );
