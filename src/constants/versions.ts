@@ -14,13 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.57';
+export const CURRENT_VERSION = '6.0.58';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.58",
+    date: "2026-10-05",
+    title: "Powiadomienia Aktualizacji, Monitor Tła i Ulepszone Animacje",
+    changes: [
+      "Wyeliminowano błąd blokujący powiadomienia o aktualizacjach (w tym wersji Beta) w Androidzie i naprawiono zasób ikony powiadomień",
+      "Dodano cykliczny monitor dostępności wydań w usłudze tła Androida (GlikoForegroundService) powiadamiający o nowościach",
+      "Ulepszono animacje i płynność interfejsu (dolna belka, menu boczne, okna dialogowe)",
+      "Wdrożono ścisłe wykluczenia indeksowania plików tymczasowych Androida, redukując zużycie pamięci RAM"
+    ]
+  },
+  {
     version: "6.0.57",
     date: "2026-10-05",
     title: "Poprawka Widżetu Aparatu AI i Stabilność Talerza",
@@ -64,24 +75,23 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Naprawiono układ kart i badge'ów w widżecie GlikoSense na dużych ekranach (brak kolizji i nachodzenia na siebie)",
       "Zabezpieczono nagłówek predykcji 30m przed ściskaniem i łamaniem w wąskich kolumnach pulpitu",
       "Przeprowadzono pełny audyt zgodności z MDR SaMD (brak narzucania dawek leków przez AI i system)"
-    ]
-  },
-  {
-    version: "6.0.51",
-    date: "2026-09-30",
-    title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
-    changes: [
-      "Wprowadzono ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
-      "Złagodzono stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek i wyciszenie pośpiechu)",
-      "Dostosowano terminologię w całej aplikacji do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
-      "Wprowadzono wyraźne noty informacyjne o braku decyzji terapeutycznych w modułach analitycznych",
-      "Uporządkowano i zoptymalizowano strukturę projektu oraz usunięto zbędne pliki robocze"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.58",
+    date: "2026-10-05",
+    title: "Powiadomienia Aktualizacji, Monitor Tła i Ulepszone Animacje",
+    changes: [
+      "Wyeliminowano błąd blokujący powiadomienia o aktualizacjach (w tym wersji Beta) w Androidzie i naprawiono zasób ikony powiadomień",
+      "Dodano cykliczny monitor dostępności wydań w usłudze tła Androida (GlikoForegroundService) powiadamiający o nowościach",
+      "Ulepszono animacje i płynność interfejsu (dolna belka, menu boczne, okna dialogowe)",
+      "Wdrożono ścisłe wykluczenia indeksowania plików tymczasowych Androida, redukując zużycie pamięci RAM"
+    ]
+  },
+  {
     version: "6.0.57",
     date: "2026-10-05",
     title: "Poprawka Widżetu Aparatu AI i Stabilność Talerza",
@@ -125,18 +135,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Naprawiono układ kart i badge'ów w widżecie GlikoSense na dużych ekranach (brak kolizji i nachodzenia na siebie)",
       "Zabezpieczono nagłówek predykcji 30m przed ściskaniem i łamaniem w wąskich kolumnach pulpitu",
       "Przeprowadzono pełny audyt zgodności z MDR SaMD (brak narzucania dawek leków przez AI i system)"
-    ]
-  },
-  {
-    version: "6.0.51",
-    date: "2026-09-30",
-    title: "Ręczny Rejestrator Dawek, Łagodny Stoper i Zgodność z MDR",
-    changes: [
-      "Wprowadzono ręczny rejestrator podanej dawki insuliny (pełna swoboda i manualna kontrola pacjenta bez automatycznego narzucania dawek)",
-      "Złagodzono stoper czasu przedposiłkowego (orientacyjne sugestie czasu na posiłek i wyciszenie pośpiechu)",
-      "Dostosowano terminologię w całej aplikacji do wymogów MDR (zamiana terminologii medycznej na informacyjną i edukacyjną)",
-      "Wprowadzono wyraźne noty informacyjne o braku decyzji terapeutycznych w modułach analitycznych",
-      "Uporządkowano i zoptymalizowano strukturę projektu oraz usunięto zbędne pliki robocze"
     ]
   }
 ];

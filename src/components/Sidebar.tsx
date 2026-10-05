@@ -163,13 +163,13 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
 
  {/* Sidebar */}
  <motion.div
- initial={{ x: '-100%', opacity: 0.5 }}
+ initial={{ x: '-100%', opacity: 0.85 }}
  animate={{ x: 0, opacity: 1 }}
- exit={{ x: '-100%', opacity: 0 }}
- transition={{ type: 'spring', damping: 28, stiffness: 250 }}
+ exit={{ x: '-100%', opacity: 0.85 }}
+ transition={{ type: 'spring', damping: 32, stiffness: 360, mass: 0.8 }}
  className={cn(
  "gpu-layer will-change-transform fixed top-0 left-0 bottom-0 w-[85%] max-w-sm z-[110] flex flex-col p-8 shadow-2xl overflow-y-auto rounded-r-[3rem]",
- theme === 'dark' ? "bg-[#020617]/95 backdrop-blur-2xl border-r border-white/5" : "bg-white/95 backdrop-blur-2xl border-r border-slate-200"
+ theme === 'dark' ? "bg-[#020617]/95 backdrop-blur-xl border-r border-white/5" : "bg-white/95 backdrop-blur-xl border-r border-slate-200"
  )}
  >
  {/* Background elements for that 'Neural' feel */}
@@ -249,6 +249,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
  initial={{ opacity: 0, height: 0, y: -10 }}
  animate={{ opacity: 1, height: 'auto', y: 0 }}
  exit={{ opacity: 0, height: 0, y: -10 }}
+ transition={{ type: 'spring', stiffness: 420, damping: 30 }}
  className="flex flex-col gap-1 mt-1 pl-12 pr-2 overflow-hidden"
  >
  {item.subItems!.map(sub => (

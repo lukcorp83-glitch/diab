@@ -1,10 +1,10 @@
 {
-    "version": "6.0.57",
+    "version": "6.0.58",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.57-beta_OTA.apk",
-    "buildNumber": 170,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.58-beta_OTA.apk",
+    "buildNumber": 171,
     "forceUpdate": false,
-    "whatsNew": "Naprawiono błąd zamykania aplikacji (Cannot read properties of undefined reading length) podczas otwierania z widżetu aparatu AI oraz zabezpieczono stan Talerza i Centrum Żywienia.",
-    "whatsNewEn": "Fixed app crash (Cannot read properties of undefined reading length) when launching from AI Camera widget, with bulletproof safeguards for plate and nutrition state.",
-    "otaRevision": 330
+    "whatsNew": "Naprawiono powiadomienia o aktualizacjach (w tym kanale Beta), dodano sprawdzanie wersji w tle przez usługę Androida oraz ulepszono animacje interfejsu.",
+    "whatsNewEn": "Fixed update notifications (including Beta channel), added background update checks via Android foreground service, and improved UI animations.",
+    "otaRevision": 331
 }

@@ -1,0 +1,22 @@
+{
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/android/app/build/**": true,
+    "**/android/.gradle/**": true,
+    "**/.gradle/**": true,
+    "**/.agents/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/android/app/build": true,
+    "**/android/.gradle": true,
+    "**/.agents": true
+  },
+  "typescript.tsserver.maxTsServerMemory": 512,
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false
+}

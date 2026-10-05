@@ -155,10 +155,10 @@ export default function FloatingChatCapsule({
 
             {/* Kontener czatu z animacją sprężynową (Slide up na mobile / Scale + fade na desktopie) */}
             <motion.div
-              initial={{ y: "100%", opacity: 0.5, scale: 0.98 }}
+              initial={{ y: "100%", opacity: 0.85, scale: 0.98 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: "100%", opacity: 0, scale: 0.96 }}
-              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              exit={{ y: "100%", opacity: 0.85, scale: 0.96 }}
+              transition={{ type: "spring", damping: 32, stiffness: 380, mass: 0.8 }}
               className={cn(
                 "gpu-layer will-change-transform relative z-10 w-full md:w-[460px] h-[82vh] md:h-[700px] max-h-[90vh]",
                 "bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100",

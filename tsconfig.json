@@ -24,5 +24,20 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "types": ["vite-plugin-pwa/client"]
-  }
+  },
+  "include": [
+    "src/**/*",
+    "version.json",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "android",
+    "build",
+    "coverage",
+    ".agents",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
 }

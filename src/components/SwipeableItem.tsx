@@ -155,7 +155,7 @@ export default function SwipeableItem({
  onDragEnd={handleDragEnd}
  animate={controls}
  style={{ x }}
- className={`relative z-10 ${bgClass} touch-pan-y cursor-grab active:cursor-grabbing will-change-transform h-full`}
+ className={`gpu-layer will-change-transform relative z-10 ${bgClass} touch-pan-y cursor-grab active:cursor-grabbing h-full`}
  >
  {children}
  </motion.div>

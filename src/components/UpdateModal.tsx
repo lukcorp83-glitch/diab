@@ -153,10 +153,11 @@ export default function UpdateModal() {
         }}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.92, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full relative overflow-y-auto max-h-full"
+          exit={{ opacity: 0, scale: 0.92, y: 16 }}
+          transition={{ type: "spring", stiffness: 420, damping: 30, mass: 0.8 }}
+          className="gpu-layer will-change-transform bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full relative overflow-y-auto max-h-full"
         >
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
           
