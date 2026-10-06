@@ -374,10 +374,10 @@ export default function App() {
     // Cichy zapis nowych danych z chmury i Nightscout do lokalnej bazy SQLite (Local-First)
     const lastSavedMaxTimestampRef = useRef<number>(0);
     useEffect(() => {
-      if (fbLogs.length === 0 && nsLogs.length === 0) return;
+      if ((!fbLogs || fbLogs.length === 0) && (!nsLogs || nsLogs.length === 0)) return;
       const timeoutId = setTimeout(() => {
         const recentCutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
-        const toSave = [...fbLogs, ...nsLogs].filter(l => {
+        const toSave = [...(fbLogs || []), ...(nsLogs || [])].filter(l => {
           const ts = l.timestamp || l.createdAt || 0;
           const isTreatment = l.type === 'bolus' || l.type === 'meal' || l.type === 'site_change' || l.type === 'sensor_change';
           // Odczyty CGM zachowujemy do 90 dni (pełny kwartał na potrzeby statystyk i TIR), a zabiegi (węglowodany, insulina, wkłucia/sensory)
@@ -595,7 +595,7 @@ export default function App() {
   }, [logs, userSettings]);
 
   const lastGlucoseValue = useMemo(() => {
-    const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
+    const gl = (logs || []).filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
     if (gl.length === 0) return null;
     gl.sort((a: any, b: any) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
     return gl[0].value || null;
@@ -632,7 +632,7 @@ export default function App() {
   // Synchronizacja danych z widgetami systemowymi
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
+    const gl = (logs || []).filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
     if (gl.length === 0) return;
     gl.sort((a: any, b: any) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
     
@@ -997,9 +997,18 @@ export default function App() {
     }).then(l => { listener = l; });
 
     // Obsługa kliknięć w widgety Androida i skróty aplikacji (Deep Links & Native Shortcuts)
+    let lastHandledAction = '';
+    let lastHandledActionTime = 0;
+
     const handleActionRouting = (action: string) => {
       if (!action) return;
       const cleanAction = action.trim().toLowerCase();
+      const now = Date.now();
+      if (cleanAction === lastHandledAction && (now - lastHandledActionTime < 2500)) {
+        return;
+      }
+      lastHandledAction = cleanAction;
+      lastHandledActionTime = now;
       
       if (cleanAction === 'open_camera_vision' || cleanAction === 'ai_camera') {
         useAppStore.getState().setActiveTab('meal');

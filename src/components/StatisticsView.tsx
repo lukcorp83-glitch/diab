@@ -222,7 +222,7 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
   }, [monthsData, expandedMonth]);
 
   const daysOfData = useMemo(() => {
-    if (logs.length === 0) return 0;
+    if (!logs || logs.length === 0) return 0;
     const earliest = logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt || 0;
     const latest = logs[0].timestamp || logs[0].createdAt || 0;
     return Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24)));

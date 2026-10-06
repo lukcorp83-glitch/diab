@@ -19,7 +19,7 @@ export default function DailyTirWidget({ settings }: DailyTirWidgetProps) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const glucoseLogs = logs.filter(
+    const glucoseLogs = (logs || []).filter(
       (log) => log.type === "glucose" && new Date(getTimestampMs(log.timestamp)) >= today
     );
 

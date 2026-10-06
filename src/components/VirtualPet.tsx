@@ -103,7 +103,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  const [tempName, setTempName] = useState('');
  const [imageError, setImageError] = useState<string | null>(null);
  const [accError, setAccError] = useState<string | null>(null);
- const prevLogsRef = useRef(logs.length);
+ const prevLogsRef = useRef(logs?.length || 0);
 
  useEffect(() => {
  setImageError(null);
@@ -290,7 +290,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
 
  // Handle TIR reward for backgrounds
  useEffect(() => {
- if (!user || !logs.length || !petData) return;
+ if (!user || !(logs?.length) || !petData) return;
  
  const checkRewards = async () => {
  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -317,12 +317,12 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  };
  
  checkRewards();
- }, [logs.length, user, petData?.unlockedBackgrounds]);
+ }, [logs?.length, user, petData?.unlockedBackgrounds]);
 
  // Auto XP when user logs data
  useEffect(() => {
  if (!user) return;
- if (logs.length > prevLogsRef.current) {
+ if ((logs?.length || 0) > prevLogsRef.current) {
  const rewardUser = async () => {
  try {
  const docRef = doc(db, 'users', getEffectiveUid(user), 'pet', 'status');
@@ -354,8 +354,8 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  };
  rewardUser();
  }
- prevLogsRef.current = logs.length;
- }, [logs.length, user]);
+ prevLogsRef.current = logs?.length || 0;
+ }, [logs?.length, user]);
 
  useEffect(() => {
  return () => {
@@ -1282,7 +1282,7 @@ export default function VirtualPet({ glucose, setTab, embedded = false, pumpStat
  </div>
  
  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 pb-2 custom-scrollbar">
- {(!petData.inventory || petData.inventory.length === 0) ? (
+ {(!petData?.inventory || petData.inventory.length === 0) ? (
  <div className="text-center py-6 text-slate-400">
  <p className="text-xs font-bold mb-1">{t('auto.pusty_ekwipunek', { defaultValue: 'Pusty ekwipunek' })}</p>
  <p className="text-[10px]">{t('auto.kup_nowe_przemioty_w_sklepiku', { defaultValue: 'Kup nowe przemioty w sklepiku!' })}</p>

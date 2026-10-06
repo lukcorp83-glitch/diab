@@ -76,9 +76,9 @@ export default function AiScanningOverlay() {
   } = aiScanState;
 
   // Pobierz listę kroków dla bieżącego trybu
-  const steps = statusMessages && statusMessages.length > 0 
+  const steps = (statusMessages && statusMessages.length > 0)
     ? statusMessages 
-    : (DEFAULT_STATUS_STEPS[mode] || DEFAULT_STATUS_STEPS.general);
+    : (DEFAULT_STATUS_STEPS[mode] || DEFAULT_STATUS_STEPS.general || []);
 
   useEffect(() => {
     if (!isScanning) {
@@ -88,12 +88,13 @@ export default function AiScanningOverlay() {
 
     Haptics.medium();
 
+    const totalSteps = steps?.length || 1;
     const interval = setInterval(() => {
-      setCurrentStepIndex((prev) => (prev + 1) % steps.length);
+      setCurrentStepIndex((prev) => (prev + 1) % totalSteps);
     }, 1800);
 
     return () => clearInterval(interval);
-  }, [isScanning, steps.length]);
+  }, [isScanning, steps?.length]);
 
   if (!isScanning) return null;
 

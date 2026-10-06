@@ -1,10 +1,10 @@
 {
-    "version": "6.0.58",
+    "version": "6.0.59",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.58-beta_OTA.apk",
-    "buildNumber": 171,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.59-beta_OTA.apk",
+    "buildNumber": 172,
     "forceUpdate": false,
-    "whatsNew": "Naprawiono powiadomienia o aktualizacjach (w tym kanale Beta), dodano sprawdzanie wersji w tle przez usługę Androida oraz ulepszono animacje interfejsu.",
-    "whatsNewEn": "Fixed update notifications (including Beta channel), added background update checks via Android foreground service, and improved UI animations.",
-    "otaRevision": 331
+    "whatsNew": "Wyeliminowano błąd zimnego startu aplikacji oraz naprawiono wielokrotne uruchamianie aparatu z poziomu widżetu Androida.",
+    "whatsNewEn": "Fixed cold start application crash and resolved repeated camera launch issue when opening via Android widget.",
+    "otaRevision": 332
 }

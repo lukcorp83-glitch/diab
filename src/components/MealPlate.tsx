@@ -21,6 +21,9 @@ import { getEffectiveUid, getMealAbsorptionTime, getCumulativeAbsorption, getCar
 import { requireParentalAuth } from "../lib/childPermissions";
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 
+// Globalny znacznik zapobiegający wielokrotnemu otwieraniu kamery przy remount
+let lastGlobalCameraTrigger = 0;
+
 // Lazy load Diets to avoid conflict with AppContent.tsx lazy import
 const Diets = React.lazy(() => import("./Diets").then(module => ({ default: module.Diets })));
 import { createPortal } from "react-dom";
@@ -993,7 +996,8 @@ export default function MealPlate({
 
   const startCameraAnalysis = () => {
     const now = Date.now();
-    if (now - lastCameraTriggerRef.current < 2000) return; // Zapobiega wielokrotnym wibracjom i wywołaniom
+    if (now - lastGlobalCameraTrigger < 2500 || now - lastCameraTriggerRef.current < 2500) return; // Zapobiega wielokrotnym wibracjom i wywołaniom
+    lastGlobalCameraTrigger = now;
     lastCameraTriggerRef.current = now;
     Haptics.light();
     setShowCameraModeModal(true);

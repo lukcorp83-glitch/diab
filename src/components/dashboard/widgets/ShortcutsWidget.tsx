@@ -97,7 +97,7 @@ export default function ShortcutsWidget({
     }
   };
 
-  if (shortcuts.length === 0) {
+  if (!shortcuts || shortcuts.length === 0) {
     return (
       <div 
         onClick={() => {
@@ -122,11 +122,11 @@ export default function ShortcutsWidget({
         <div className="flex items-center gap-2">
           <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">{t('auto.szybkie_skroty_naglowek', { defaultValue: 'SZYBKIE SKRÓTY' })}</h4>
           <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-            {shortcuts.length}
+            {shortcuts?.length || 0}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          {shortcuts.length > 2 && (
+          {(shortcuts?.length || 0) > 2 && (
             <div className="hidden sm:flex items-center gap-1 mr-1">
               <button 
                 onClick={() => scrollSide('left')}

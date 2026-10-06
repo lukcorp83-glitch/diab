@@ -212,9 +212,11 @@ export const ProductSearch = ({
       // 1. Najwyższy wynik trafności
       if (b.score !== a.score) return b.score - a.score;
       // 2. Krótsza nazwa (bardziej precyzyjne dopasowanie)
-      if (a.nameNorm.length !== b.nameNorm.length) return a.nameNorm.length - b.nameNorm.length;
+      const aLen = a.nameNorm?.length || 0;
+      const bLen = b.nameNorm?.length || 0;
+      if (aLen !== bLen) return aLen - bLen;
       // 3. Alfabetycznie
-      return a.nameNorm.localeCompare(b.nameNorm, 'pl');
+      return (a.nameNorm || '').localeCompare(b.nameNorm || '', 'pl');
     }).map(item => item.product);
   }, [allLocal, activeCategory, searchTerm]);
 

@@ -375,10 +375,10 @@ export default function Dashboard({
 
   useEffect(() => {
     const runAnalysis = async () => {
-      if (logs.length >= 5) {
+      if (logs && logs.length >= 5) {
         try {
           const res = await MLAnalyzer.analyzeData(logs, false, 'quick');
-          setMlInfo({ accuracy: res.accuracy, datasetSize: res.datasetSize || logs.length });
+          setMlInfo({ accuracy: res.accuracy, datasetSize: res.datasetSize || (logs?.length || 0) });
         } catch (e) {
           console.error("Dashboard ML analysis error:", e);
         }
@@ -879,7 +879,7 @@ export default function Dashboard({
 
   const patternInsights = useMemo(() => {
     const now = Date.now();
-    const sortedGlucose = logs
+    const sortedGlucose = (logs || [])
       .filter((l) => l.type === "glucose" || (l as any).bg)
       .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
@@ -907,7 +907,7 @@ export default function Dashboard({
       }
     } else {
       // 2. Jeśli nie ma bieżącego niskiego cukru, sprawdzamy OSTATNI posiłek z ostatnich 3h
-      const recentMeal = logs.find(
+      const recentMeal = (logs || []).find(
         (l) =>
           (l.type === "meal" || l.type === "carbs" || (l.type === "bolus" && (l.linkedMeal || l.notes?.toLowerCase().includes("posiłek")))) &&
           now - (l.timestamp || 0) <= 3 * 60 * 60 * 1000
@@ -1023,7 +1023,7 @@ export default function Dashboard({
               isChildMode={settings.childMode || false}
               petName={petData?.name}
               accuracy={mlInfo?.accuracy}
-              datasetSize={mlInfo?.datasetSize || logs.length}
+              datasetSize={mlInfo?.datasetSize || (logs?.length || 0)}
               compact={size.startsWith("1")}
             >
               {settings.childMode && (
@@ -2078,7 +2078,7 @@ export default function Dashboard({
       {/* 7. Quick Actions Section */}
       <motion.div className="space-y-4">
         {/* Shortcuts row - Now full width and above buttons */}
-        {shortcuts.length > 0 && (
+        {(shortcuts?.length || 0) > 0 && (
           <div className="glass-card !p-6 flex flex-col gap-4 border border-white/50 dark:border-white/5 shadow-lg">
             <div className="flex justify-between items-center px-1">
               <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">{t('auto.szybkie_skroty_naglowek', { defaultValue: 'SZYBKIE SKRÓTY' })}</h4>
@@ -2156,7 +2156,7 @@ export default function Dashboard({
 
       {/* 8. Recent History View */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {recentGlucoseLogs.length > 0 && (
+        {(recentGlucoseLogs?.length || 0) > 0 && (
           <motion.div className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
@@ -2190,7 +2190,7 @@ export default function Dashboard({
           </motion.div>
         )}
 
-        {recentTreatmentLogs.length > 0 && (
+        {(recentTreatmentLogs?.length || 0) > 0 && (
           <motion.div className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">

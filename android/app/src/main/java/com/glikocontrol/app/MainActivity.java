@@ -264,10 +264,12 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    private String lastHandledAction = "";
+    private long lastHandledActionTime = 0;
+
     @Override
     public void onResume() {
         super.onResume();
-        handleShortcutIntent(getIntent());
         try {
             NightscoutFetcher.fetchAndUpdate(this, null, null);
         } catch (Exception ignored) {}
@@ -294,13 +296,19 @@ public class MainActivity extends BridgeActivity {
             if (parts.length > 1) {
                 final String action = parts[1].replaceAll("[^a-zA-Z0-9_]", "");
                 
-                // Wyczyść dane intentu, aby akcja nie powtarzała się przy każdym wznowieniu onResume!
+                long now = System.currentTimeMillis();
+                if (action.equals(lastHandledAction) && (now - lastHandledActionTime < 2500)) {
+                    return;
+                }
+                lastHandledAction = action;
+                lastHandledActionTime = now;
+
+                // Wyczyść dane intentu i zresetuj intent aktywności, aby akcja nie powtórzyła się!
                 try {
                     intent.setData(null);
                     intent.removeExtra("action");
-                    if (intent.getAction() != null && intent.getAction().contains("action=")) {
-                        intent.setAction(Intent.ACTION_MAIN);
-                    }
+                    intent.setAction(Intent.ACTION_MAIN);
+                    setIntent(new Intent(Intent.ACTION_MAIN));
                 } catch (Exception ignored) {}
 
                 WidgetUpdaterPlugin.setPendingAction(action);

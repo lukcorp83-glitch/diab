@@ -14,13 +14,24 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.58';
+export const CURRENT_VERSION = '6.0.59';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.59",
+    date: "2026-10-06",
+    title: "Stabilizacja Uruchamiania z Widżetu i Naprawa Zimnego Startu",
+    changes: [
+      "Wyeliminowano błąd krytyczny na zimnym starcie aplikacji (Cannot read properties of undefined reading length)",
+      "Naprawiono wielokrotne i samoczynne otwieranie aparatu po kliknięciu natywnego widżetu aparatu AI",
+      "Zoptymalizowano obsługę intencji i skrótów Androida zapobiegając powtórnemu wywoływaniu akcji przy wznawianiu aplikacji",
+      "Wdrożono defensywne sprawdzanie stanu magazynów i widżetów pulpitu"
+    ]
+  },
+  {
     version: "6.0.58",
     date: "2026-10-05",
     title: "Powiadomienia Aktualizacji, Monitor Tła i Ulepszone Animacje",
@@ -63,24 +74,23 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Wdrożono systemowe powiadomienia push w belce telefonu informujące o dostępności nowej wersji aplikacji",
       "Zneutralizowano porady w modułach Diety oraz GlikoTrening zgodnie z wymogami MDR SaMD (brak narzucania dawek insuliny)",
       "Zapewniono 100% dwujęzyczność (PL/EN) dla wszystkich nowych banerów medycznych i powiadomień"
-    ]
-  },
-  {
-    version: "6.0.53",
-    date: "2026-10-01",
-    title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
-    changes: [
-      "Wdrożono inteligentne wyciszanie powiadomień o lekach (brak fałszywych alarmów, gdy lek został zażyty wcześniej)",
-      "Dodano automatyczne anulowanie i przeplanowywanie kolejnych dawek leków na dzień następny",
-      "Naprawiono układ kart i badge'ów w widżecie GlikoSense na dużych ekranach (brak kolizji i nachodzenia na siebie)",
-      "Zabezpieczono nagłówek predykcji 30m przed ściskaniem i łamaniem w wąskich kolumnach pulpitu",
-      "Przeprowadzono pełny audyt zgodności z MDR SaMD (brak narzucania dawek leków przez AI i system)"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.59",
+    date: "2026-10-06",
+    title: "Stabilizacja Uruchamiania z Widżetu i Naprawa Zimnego Startu",
+    changes: [
+      "Wyeliminowano błąd krytyczny na zimnym starcie aplikacji (Cannot read properties of undefined reading length)",
+      "Naprawiono wielokrotne i samoczynne otwieranie aparatu po kliknięciu natywnego widżetu aparatu AI",
+      "Zoptymalizowano obsługę intencji i skrótów Androida zapobiegając powtórnemu wywoływaniu akcji przy wznawianiu aplikacji",
+      "Wdrożono defensywne sprawdzanie stanu magazynów i widżetów pulpitu"
+    ]
+  },
+  {
     version: "6.0.58",
     date: "2026-10-05",
     title: "Powiadomienia Aktualizacji, Monitor Tła i Ulepszone Animacje",
@@ -123,18 +133,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Wdrożono systemowe powiadomienia push w belce telefonu informujące o dostępności nowej wersji aplikacji",
       "Zneutralizowano porady w modułach Diety oraz GlikoTrening zgodnie z wymogami MDR SaMD (brak narzucania dawek insuliny)",
       "Zapewniono 100% dwujęzyczność (PL/EN) dla wszystkich nowych banerów medycznych i powiadomień"
-    ]
-  },
-  {
-    version: "6.0.53",
-    date: "2026-10-01",
-    title: "Inteligentne Alarmy Leków, Poprawki Układu GlikoSense i Bezpieczeństwo MDR",
-    changes: [
-      "Wdrożono inteligentne wyciszanie powiadomień o lekach (brak fałszywych alarmów, gdy lek został zażyty wcześniej)",
-      "Dodano automatyczne anulowanie i przeplanowywanie kolejnych dawek leków na dzień następny",
-      "Naprawiono układ kart i badge'ów w widżecie GlikoSense na dużych ekranach (brak kolizji i nachodzenia na siebie)",
-      "Zabezpieczono nagłówek predykcji 30m przed ściskaniem i łamaniem w wąskich kolumnach pulpitu",
-      "Przeprowadzono pełny audyt zgodności z MDR SaMD (brak narzucania dawek leków przez AI i system)"
     ]
   }
 ];
