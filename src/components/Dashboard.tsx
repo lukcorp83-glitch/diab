@@ -18,6 +18,7 @@ import HydrationWidget from "./HydrationWidget";
 import SiteRotationWidget from "./SiteRotationWidget";
 import { PumpStatusCard } from "./PumpStatusCard";
 import { PenTrackerWidget } from "./PenTrackerWidget";
+import AtAGlance from "./dashboard/AtAGlance";
 import {
   Activity,
   Clock,
@@ -1516,6 +1517,16 @@ export default function Dashboard({
     <div
       className="space-y-6 pb-20 will-change-transform relative"
     >
+      {/* Pixel At a Glance (W skrócie) Header */}
+      {(settings.atAGlanceEnabled ?? true) && (
+        <AtAGlance
+          userSettings={settings}
+          logs={logs}
+          setTab={setTab}
+          isInsulinMode={isInsulinMode}
+        />
+      )}
+
       {/* Pasek Pigułek - Linia 1 (Hydratacja, Pogoda, Bateria, Zbiornik) */}
       <div className="px-2 flex gap-2 overflow-x-auto scrollbar-none pb-1 mt-2">
          {widgets.find(w => w.id === 'hydration')?.visible && (

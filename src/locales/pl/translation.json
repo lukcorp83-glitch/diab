@@ -226,7 +226,9 @@
     "custom_nav_slot_desc": "Dostosuj skrót na dolnym pasku nawigacyjnym",
     "custom_nav_slot_modal_title": "Wybierz czwarty przycisk",
     "custom_nav_slot_modal_desc": "Wybierz zakładkę lub funkcję, która zastąpi domyślny przycisk czatu na dolnej belce:",
-    "custom_nav_slot_child_note": "Salon gier oraz Sklepik są dostępne wyłącznie w trybie dziecka."
+    "custom_nav_slot_child_note": "Salon gier oraz Sklepik są dostępne wyłącznie w trybie dziecka.",
+    "at_a_glance_title": "Pasek «W skrócie» (Pixel At a Glance)",
+    "at_a_glance_desc": "Inteligentny pasek na górze pulpitu informujący o stoperze, osprzęcie i stanie cukru"
   },
   "bolus": {
     "title": "Rejestracja Dawki Insuliny",

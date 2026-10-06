@@ -1078,6 +1078,25 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
                 }}
               />
             </div>
+
+            <div className="border-t border-slate-200/50 dark:border-white/5 pt-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black dark:text-white">{t('system.at_a_glance_title', { defaultValue: 'Pasek «W skrócie» (Pixel At a Glance)' })}</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">{t('system.at_a_glance_desc', { defaultValue: 'Inteligentny pasek na górze pulpitu informujący o stoperze, osprzęcie i stanie cukru' })}</p>
+              </div>
+              <PixelSwitch
+                checked={settings.atAGlanceEnabled ?? true}
+                activeColor="bg-accent-500"
+                onChange={async (newVal) => {
+                  setSettings(prev => ({ ...prev, atAGlanceEnabled: newVal }));
+                  localStorage.setItem("atAGlanceEnabled", String(newVal));
+                  if (user) {
+                    await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { atAGlanceEnabled: newVal }, { merge: true });
+                    queryClient.invalidateQueries({ queryKey: ["userSettings"] });
+                  }
+                }}
+              />
+            </div>
  </div>
 
  {/* Program Testów Beta OTA */}

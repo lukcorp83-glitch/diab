@@ -1796,8 +1796,18 @@ export default function Profile({
    initial={{ opacity: 0, y: 16 }}
    animate={{ opacity: 1, y: 0 }}
    exit={{ opacity: 0, y: -12 }}
+   drag="x"
+   dragDirectionLock
+   dragConstraints={{ left: 0, right: 0 }}
+   dragElastic={{ left: 0.02, right: 0.35 }}
+   onDragEnd={(_e, info) => {
+     if (info.offset.x > 80 || info.velocity.x > 350) {
+       Haptics.light();
+       setActiveCategory(null);
+     }
+   }}
    transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-   className="pb-20"
+   className="pb-20 touch-pan-y"
  >
  <div 
  ref={topMenuRef}
