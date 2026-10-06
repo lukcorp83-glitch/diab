@@ -7,7 +7,7 @@ import { updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { getEffectiveUid } from '../../lib/utils';
 import toast from 'react-hot-toast';
-import { Switch } from '@headlessui/react';
+import PixelSwitch from '../common/PixelSwitch';
 import i18n from '../../i18n';
 import { Capacitor } from '@capacitor/core';
 import { notificationService } from '../../services/notificationService';
@@ -82,8 +82,10 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  </p>
  </div>
  </div>
-  <button
-    onClick={async () => {
+      <PixelSwitch
+        checked={Boolean(settings.notificationsEnabled)}
+        activeColor="bg-accent-500"
+        onChange={async () => {
       if (!settings.notificationsEnabled) {
         if (window.self !== window.top && !Capacitor.isNativePlatform()) {
           alert(
@@ -188,13 +190,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
         }
       }
     }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.notificationsEnabled && "bg-accent-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+  />
  </div>
 
  <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700 mt-3 mb-3">
@@ -209,8 +205,10 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
         </p>
       </div>
     </div>
-    <button
-      onClick={async () => {
+    <PixelSwitch
+      checked={settings.apkSystemNotificationsEnabled ?? true}
+      activeColor="bg-accent-500"
+      onChange={async () => {
         if (window.self !== window.top && !Capacitor.isNativePlatform()) {
           alert(i18n.t('auto.wazne_przegladarki_blokuja_pow', { defaultValue: i18n.t('auto.wazne_przegladarki_blokuj', { defaultValue: "📢 WAŻNE: Przeglądarki blokują powiadomienia wewnątrz podglądu (iframe).\n\nAby włączyć ten widżet, otwórz aplikację w nowej karcie (przycisk w prawym górnym rogu tego okna)." }) }));
           return;
@@ -270,14 +268,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
 
         toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
       }}
-      className={cn(
-        "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
-        (settings.apkSystemNotificationsEnabled ?? true) &&
-        "bg-accent-500 pl-5",
-      )}
-    >
-      <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-    </button>
+    />
   </div>
 
   <div className="p-3.5 bg-indigo-50/50 dark:bg-slate-800/60 rounded-2xl border border-indigo-100 dark:border-slate-700 flex items-center justify-between gap-3 my-3">
@@ -646,37 +637,29 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  </div>
  </div>
  
- <button
- onClick={() => {
- const newRules = { ...learnedRules };
- 
- if (pref.type === "boolean") {
- newRules[pref.id] = !isActive;
- } else {
- // Modyfikatory (np. insulinooporność 1.2x)
- if (isActive) {
- newRules[pref.id] = 1.0;
- } else {
- newRules[pref.id] = 1.2; // Domyślna wartość włączenia
- }
- }
- 
- setLearnedRules(newRules);
- localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
- toast.success(isActive ? t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) : t('auto.regula_wlaczona', { defaultValue: "Reguła włączona" }));
- }}
- className={cn(
- "w-10 h-5 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
- isActive ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-3 h-3 rounded-full shadow-md transform transition-transform duration-200",
- isActive ? "translate-x-5" : "translate-x-0"
- )}
- />
- </button>
+              <PixelSwitch
+                checked={isActive}
+                activeColor="bg-amber-500"
+                className="shrink-0"
+                onChange={() => {
+                  const newRules = { ...learnedRules };
+                  
+                  if (pref.type === "boolean") {
+                    newRules[pref.id] = !isActive;
+                  } else {
+                    // Modyfikatory (np. insulinooporność 1.2x)
+                    if (isActive) {
+                      newRules[pref.id] = 1.0;
+                    } else {
+                      newRules[pref.id] = 1.2; // Domyślna wartość włączenia
+                    }
+                  }
+                  
+                  setLearnedRules(newRules);
+                  localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
+                  toast.success(isActive ? t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) : t('auto.regula_wlaczona', { defaultValue: "Reguła włączona" }));
+                }}
+              />
  </div>
  );
  })}

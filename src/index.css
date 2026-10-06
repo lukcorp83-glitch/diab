@@ -263,6 +263,14 @@ body {
 
 .scrollbar-custom {
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Material 3 / Pixel momentum and overscroll stretch behavior */
+.pixel-scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
 }
 
 @media (pointer: fine) {

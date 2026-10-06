@@ -87,31 +87,44 @@ export default function GlucoseModal({ isOpen, onClose, user }: GlucoseModalProp
 
  if (!mounted || !isOpen) return null;
 
- return createPortal(
- <motion.div 
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- className="fixed inset-0 pt-safe pb-safe z-[100] flex items-end sm:items-center justify-center bg-slate-950/40 backdrop-blur-md p-4"
- >
- <motion.div 
- initial={{ y: "20%", opacity: 0, scale: 0.95 }}
- animate={{ y: 0, opacity: 1, scale: 1 }}
- transition={{ type: "spring", damping: 25, stiffness: 300 }}
- className="glass w-full max-w-md rounded-[3rem] p-10 shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden"
- >
- <div className="flex justify-between items-center mb-8">
- <div>
- <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight font-display uppercase tracking-tighter italic">{t('auto.zapisz_cukier', { defaultValue: 'Zapisz Cukier' })}</h2>
- <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mt-1">{t('auto.pomiar_ręczny_glukozy', { defaultValue: i18n.t('auto.pomiar_reczny_glukozy', { defaultValue: "Pomiar ręczny glukozy" }) })}</p>
- </div>
- <button 
- type="button"
- onClick={onClose} 
- className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all active:scale-90 border border-transparent dark:hover:border-white/10"
- >
- <X size={20} />
- </button>
- </div>
+  return createPortal(
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      onClick={onClose}
+      className="fixed inset-0 pt-safe pb-safe z-[100] flex items-end sm:items-center justify-center bg-slate-950/40 backdrop-blur-md p-2 sm:p-4"
+    >
+      <motion.div 
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0.5 }}
+        onDragEnd={(_e, info) => {
+          if (info.offset.y > 100 || info.velocity.y > 400) {
+            onClose();
+          }
+        }}
+        initial={{ y: "20%", opacity: 0, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+        className="glass w-full max-w-md rounded-t-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden"
+      >
+        {/* Pixel Bottom Sheet Drag Handle */}
+        <div className="w-12 h-1.5 bg-slate-400/40 dark:bg-slate-500/40 rounded-full mx-auto -mt-2 mb-5 sm:hidden" />
+
+        <div className="flex justify-between items-center mb-6 sm:mb-8">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight font-display uppercase tracking-tighter italic">{t('auto.zapisz_cukier', { defaultValue: 'Zapisz Cukier' })}</h2>
+            <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest mt-1">{t('auto.pomiar_ręczny_glukozy', { defaultValue: i18n.t('auto.pomiar_reczny_glukozy', { defaultValue: "Pomiar ręczny glukozy" }) })}</p>
+          </div>
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all active:scale-90 border border-transparent dark:hover:border-white/10"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
  <div className="space-y-8">
  <div className="flex justify-center mb-4">

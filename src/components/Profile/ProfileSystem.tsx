@@ -30,6 +30,7 @@ import { useAppStore } from '../../stores/useAppStore';
 import { geminiService } from '../../services/gemini';
 import { Haptics } from '../../lib/haptics';
 import { NotificationBridge } from '../../lib/notificationBridge';
+import PixelSwitch from '../common/PixelSwitch';
 
 export default function ProfileSystem({ user, settings, setSettings, isIOS, pushSupported, latestSensorLog, updates, sensorSite }: any) {
  const { t } = useTranslation();
@@ -275,42 +276,33 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  <div className="text-left">
  <p className="text-[11px] font-black uppercase dark:text-white">{t('auto.aktywuj_tryb', { defaultValue: 'Aktywuj tryb' })}</p>
  </div>
- <button
- onClick={async () => {
- const isFollower = !settings.followerMode;
- const updated = { ...settings, followerMode: isFollower };
- setSettings(updated);
- const uid = getEffectiveUid(user!);
- if (uid) {
-   try {
-     await setDoc(
-       doc(db, "users", uid, "settings", "profile"),
-       { followerMode: isFollower },
-       { merge: true }
-     );
-   } catch (e) {
-     console.warn("Could not sync followerMode to Firestore", e);
-   }
- }
- 
- if (isFollower) {
- toast.success(i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: "Włączono Tryb Śledzący" }) }));
- } else {
- toast.success(i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: "Wyłączono Tryb Śledzący" }) }));
- }
- }}
- className={cn(
- "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
- settings.followerMode ? "bg-cyan-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
- settings.followerMode ? "translate-x-6" : "translate-x-0"
- )}
+ <PixelSwitch
+  checked={Boolean(settings.followerMode)}
+  activeColor="bg-cyan-500"
+  onChange={async (newVal) => {
+    const isFollower = newVal;
+    const updated = { ...settings, followerMode: isFollower };
+    setSettings(updated);
+    const uid = getEffectiveUid(user!);
+    if (uid) {
+      try {
+        await setDoc(
+          doc(db, "users", uid, "settings", "profile"),
+          { followerMode: isFollower },
+          { merge: true }
+        );
+      } catch (e) {
+        console.warn("Could not sync followerMode to Firestore", e);
+      }
+    }
+    
+    if (isFollower) {
+      toast.success(i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: "Włączono Tryb Śledzący" }) }));
+    } else {
+      toast.success(i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: "Wyłączono Tryb Śledzący" }) }));
+    }
+  }}
  />
- </button>
  </div>
  </div>
 
@@ -1073,28 +1065,19 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  <h3 className="text-sm font-black dark:text-white">{t('auto.tryb_eko_maksymalna_wydajność', { defaultValue: i18n.t('auto.tryb_eko_maksymalna_wydaj', { defaultValue: "Tryb Eko (Maksymalna wydajność)" }) })}</h3>
  <p className="text-[10px] text-slate-500">{t('auto.wyłącza_animacje_cienie_oraz_rozmyc', { defaultValue: i18n.t('auto.wylacza_animacje_cienie_o', { defaultValue: "Wyłącza animacje, cienie oraz rozmycia szklane by przyspieszyć działanie." }) })}</p>
  </div>
- <button
- onClick={async () => {
- const mode = !settings.ecoMode;
- setSettings(prev => ({ ...prev, ecoMode: mode }));
- localStorage.setItem("ecoMode", String(mode));
- if (user) {
- await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true }); queryClient.invalidateQueries({ queryKey: ["userSettings"] });;
- }
- }}
- className={cn(
- "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
- settings.ecoMode ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
- settings.ecoMode ? "translate-x-6" : "translate-x-0"
- )}
- />
- </button>
- </div>
+              <PixelSwitch
+                checked={Boolean(settings.ecoMode)}
+                activeColor="bg-accent-500"
+                onChange={async (newVal) => {
+                  setSettings(prev => ({ ...prev, ecoMode: newVal }));
+                  localStorage.setItem("ecoMode", String(newVal));
+                  if (user) {
+                    await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: newVal }, { merge: true });
+                    queryClient.invalidateQueries({ queryKey: ["userSettings"] });
+                  }
+                }}
+              />
+            </div>
  </div>
 
  {/* Program Testów Beta OTA */}
@@ -1136,38 +1119,30 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </div>
  </div>
 
- <button
- onClick={async () => {
- const isBeta = !settings.betaProgram;
- setSettings(prev => ({ ...prev, betaProgram: isBeta }));
- localStorage.setItem("betaProgramEnabled", String(isBeta));
- try {
-   if (Capacitor.isNativePlatform() && NotificationBridge?.syncAlertPreferences) {
-     NotificationBridge.syncAlertPreferences({ betaProgramEnabled: isBeta });
-   }
- } catch (e) {}
- if (user) {
- await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { betaProgram: isBeta }, { merge: true });
- queryClient.invalidateQueries({ queryKey: ["userSettings"] });
- }
- if (isBeta) {
- toast.success("Włączono kanał Beta! Zrestartuj aplikację, aby pobrać wersję testową.");
- } else {
- toast.success("Przywrócono kanał Stabilny.");
- }
- }}
- className={cn(
- "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 mt-1",
- settings.betaProgram ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
- settings.betaProgram ? "translate-x-6" : "translate-x-0"
- )}
- />
- </button>
+              <PixelSwitch
+                checked={Boolean(settings.betaProgram)}
+                activeColor="bg-pink-500"
+                className="shrink-0 mt-1"
+                onChange={async (newVal) => {
+                  const isBeta = newVal;
+                  setSettings(prev => ({ ...prev, betaProgram: isBeta }));
+                  localStorage.setItem("betaProgramEnabled", String(isBeta));
+                  try {
+                    if (Capacitor.isNativePlatform() && NotificationBridge?.syncAlertPreferences) {
+                      NotificationBridge.syncAlertPreferences({ betaProgramEnabled: isBeta });
+                    }
+                  } catch (e) {}
+                  if (user) {
+                    await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { betaProgram: isBeta }, { merge: true });
+                    queryClient.invalidateQueries({ queryKey: ["userSettings"] });
+                  }
+                  if (isBeta) {
+                    toast.success("Włączono kanał Beta! Zrestartuj aplikację, aby pobrać wersję testową.");
+                  } else {
+                    toast.success("Przywrócono kanał Stabilny.");
+                  }
+                }}
+              />
  </div>
 
  {/* Ostrzeżenie o niestabilności */}

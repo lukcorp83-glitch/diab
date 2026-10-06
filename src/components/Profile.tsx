@@ -4769,43 +4769,74 @@ function SettingInput({
     }
   }, [value]);
 
+  const stepNum = parseFloat(step) || 1;
+
+  const handleStep = (direction: 'up' | 'down') => {
+    if (disabled) return;
+    Haptics.tick();
+    let current = parseFloat(localValue);
+    if (isNaN(current)) current = 0;
+    const nextVal = direction === 'up' ? current + stepNum : current - stepNum;
+    const clamped = Math.min(max, Math.max(min, Math.round(nextVal * 100) / 100));
+    const formatted = formatValue(clamped);
+    setLocalValue(formatted);
+    onChange(clamped);
+  };
+
   return (
-    <div className="space-y-1.5 flex flex-col items-center">
+    <div className="space-y-1.5 flex flex-col items-center w-full">
       <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
         {label}
       </label>
-      <input
- type="number"
- step={step}
- min={min}
- max={max}
- value={localValue}
- disabled={disabled}
- onChange={(e) => {
- setLocalValue(e.target.value);
- const parsed = parseFloat(e.target.value);
- if (!isNaN(parsed)) {
- onChange(parsed);
- }
- }}
- onBlur={() => {
- let parsed = parseFloat(localValue);
- if (isNaN(parsed)) parsed = 0;
- if (parsed < min) parsed = min;
- if (parsed > max) parsed = max;
- const formatted = Number.isInteger(parsed)
- ? parsed.toString()
- : Number(parsed)
- .toFixed(2)
- .replace(/\.00$/, "")
- .replace(/(\.[0-9])0$/, "$1");
- setLocalValue(formatted);
- onChange(parseFloat(formatted));
- }}
- className={`w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
- />
- </div>
- );
+      <div className="flex items-center w-full gap-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.88 }}
+          disabled={disabled || (parseFloat(localValue) <= min)}
+          onClick={() => handleStep('down')}
+          className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200/50 dark:border-slate-700/50 active:bg-slate-200 dark:active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+        >
+          <Minus size={18} strokeWidth={2.5} />
+        </motion.button>
+
+        <input
+          type="number"
+          step={step}
+          min={min}
+          max={max}
+          value={localValue}
+          disabled={disabled}
+          onChange={(e) => {
+            setLocalValue(e.target.value);
+            const parsed = parseFloat(e.target.value);
+            if (!isNaN(parsed)) {
+              onChange(parsed);
+            }
+          }}
+          onBlur={() => {
+            let parsed = parseFloat(localValue);
+            if (isNaN(parsed)) parsed = 0;
+            if (parsed < min) parsed = min;
+            if (parsed > max) parsed = max;
+            const formatted = formatValue(parsed);
+            setLocalValue(formatted);
+            onChange(parseFloat(formatted));
+          }}
+          className={`flex-1 min-w-0 bg-slate-50 dark:bg-slate-800 py-3.5 px-2 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        />
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.88 }}
+          disabled={disabled || (parseFloat(localValue) >= max)}
+          onClick={() => handleStep('up')}
+          className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200/50 dark:border-slate-700/50 active:bg-slate-200 dark:active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+        >
+          <Plus size={18} strokeWidth={2.5} />
+        </motion.button>
+      </div>
+    </div>
+  );
 }
 
 
