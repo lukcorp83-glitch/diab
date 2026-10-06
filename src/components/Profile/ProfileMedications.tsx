@@ -559,6 +559,10 @@ const saveInventoryItem = async () => {
  </strong>
  {' • '}{med.aiData.interactions}
  </p>
+ <p className="text-[8.5px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/40 dark:border-slate-800/40 flex items-center gap-1">
+ <Info size={10} className="shrink-0 text-teal-500" />
+ <span>{t('medication_ai_disclaimer', { defaultValue: 'Informacja edukacyjna: Skonsultuj się z lekarzem lub farmaceutą.' })}</span>
+ </p>
  </div>
  )}
  </div>
@@ -871,6 +875,14 @@ const saveInventoryItem = async () => {
             <strong className="text-slate-800 dark:text-slate-200">{t('auto.interakcje', { defaultValue: "Interakcje:" })}</strong> {newMedication.aiData.interactions}
           </div>
         )}
+      </div>
+
+      {/* Notka medyczna MDR / Responsible AI */}
+      <div className="pt-2 border-t border-teal-500/10 flex items-start gap-1.5 text-[9.5px] text-teal-700/80 dark:text-teal-300/80">
+        <Info size={12} className="shrink-0 mt-0.5 text-teal-500" />
+        <p className="leading-snug">
+          {t('medication_ai_disclaimer', { defaultValue: 'Informacja edukacyjna: Analiza AI ma charakter pomocniczy. Zawsze skonsultuj się z lekarzem lub farmaceutą przed zażyciem leku lub zmianą dawkowania.' })}
+        </p>
       </div>
     </div>
   )}

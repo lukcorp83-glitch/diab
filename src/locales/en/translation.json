@@ -2073,6 +2073,7 @@
   "auto.oblicz_w_kalkulatorze": "Log dose",
   "mdr": {
     "diets_disclaimer": "Educational Information: The presented nutritional models are for informational and auxiliary purposes only. The app does not provide medical diagnoses or prescribe therapeutic diets. Any dietary or insulin adjustments must strictly be consulted with your diabetologist or clinical dietitian.",
+    "medication_ai_disclaimer": "Educational Information: AI analysis is for informational purposes only and does not replace professional medical advice. Always consult a physician or pharmacist before taking medications or changing dosage.",
     "training_disclaimer": "Educational & Activity Log: Sports advice is provided solely for general educational purposes. The app does not calculate medication doses or instruct on therapy changes. Always follow the individual recommendations of your physician.",
     "educational_info": "Educational Information",
     "educational_module": "Educational & Activity Log"

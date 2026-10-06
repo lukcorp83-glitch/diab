@@ -1330,7 +1330,7 @@ Format JSON:
   },
 
   async analyzeMedication(medName: string): Promise<any> {
-    const prompt = `Act as an expert clinical pharmacologist. Analyze the medication/supplement named "${medName}". 
+    const prompt = `Act as an expert clinical pharmacologist in diabetes care. Analyze the medication/supplement named "${medName}". 
 Return ONLY a valid JSON object with the exact following schema:
 {
   "activeIngredient": "String. The primary active substance (INN). If combination, state main active components.",
@@ -1338,6 +1338,7 @@ Return ONLY a valid JSON object with the exact following schema:
   "interactions": "String. A short, concise sentence about major interactions with diabetes medications or insulin.",
   "description": "String. 1-2 concise sentences explaining what it is and its primary effect on blood sugar or insulin resistance."
 }
+IMPORTANT MEDICAL SAFETY GUARDRAIL: Do NOT prescribe, change, or recommend drug doses. All outputs are educational.
 IMPORTANT: Translate 'activeIngredient', 'interactions', and 'description' to Polish. KEEP 'sugarImpact' strictly in English as one of the 4 allowed keywords.
 Respond ONLY with the JSON object. Do not include markdown code blocks or any other text.`;
 
