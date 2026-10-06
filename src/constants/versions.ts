@@ -23,12 +23,14 @@ export const PWA_VERSIONS: VersionEntry[] = [
   {
     version: "6.0.59",
     date: "2026-10-06",
-    title: "Stabilizacja Uruchamiania z Widżetu i Naprawa Zimnego Startu",
+    title: "Styl Pixel & Material You oraz Usprawnienia Interfejsu",
     changes: [
-      "Wyeliminowano błąd krytyczny na zimnym starcie aplikacji (Cannot read properties of undefined reading length)",
-      "Naprawiono wielokrotne i samoczynne otwieranie aparatu po kliknięciu natywnego widżetu aparatu AI",
-      "Zoptymalizowano obsługę intencji i skrótów Androida zapobiegając powtórnemu wywoływaniu akcji przy wznawianiu aplikacji",
-      "Wdrożono defensywne sprawdzanie stanu magazynów i widżetów pulpitu"
+      "Wdrożono inteligentny pasek «W skrócie» na pulpicie z dynamicznym statusem stopera, osprzętu i glikemii (z możliwością wyłączenia w Ustawieniach)",
+      "Dodano Material 3 Segmented Button na wykresie pełnoekranowym z płynną animacją sprężystą i tyknięciem haptycznym",
+      "Wprowadzono zwijający się przycisk akcji Expressive FAB w historii posiłków (kompaktowe koło przy scrollowaniu w dół)",
+      "Wdrożono mechaniczne steppery z haptyką oraz pigułki szybkiego wyboru (70, 100, 120, 150 mg/dL) w oknie wprowadzania cukru",
+      "Zaimplementowano okna dialogowe potwierdzeń w stylu Pixel Monet z pastelowymi ikonami i zaokrąglonymi przyciskami",
+      "Zreorganizowano sekcję wyglądu w Ustawieniach w zgrupowane karty Pixel Inset Group z wewnętrznymi separatorami"
     ]
   },
   {
@@ -82,12 +84,14 @@ export const APK_VERSIONS: VersionEntry[] = [
   {
     version: "6.0.59",
     date: "2026-10-06",
-    title: "Stabilizacja Uruchamiania z Widżetu i Naprawa Zimnego Startu",
+    title: "Styl Pixel & Material You oraz Usprawnienia Interfejsu",
     changes: [
-      "Wyeliminowano błąd krytyczny na zimnym starcie aplikacji (Cannot read properties of undefined reading length)",
-      "Naprawiono wielokrotne i samoczynne otwieranie aparatu po kliknięciu natywnego widżetu aparatu AI",
-      "Zoptymalizowano obsługę intencji i skrótów Androida zapobiegając powtórnemu wywoływaniu akcji przy wznawianiu aplikacji",
-      "Wdrożono defensywne sprawdzanie stanu magazynów i widżetów pulpitu"
+      "Wdrożono inteligentny pasek «W skrócie» na pulpicie z dynamicznym statusem stopera, osprzętu i glikemii (z możliwością wyłączenia w Ustawieniach)",
+      "Dodano Material 3 Segmented Button na wykresie pełnoekranowym z płynną animacją sprężystą i tyknięciem haptycznym",
+      "Wprowadzono zwijający się przycisk akcji Expressive FAB w historii posiłków (kompaktowe koło przy scrollowaniu w dół)",
+      "Wdrożono mechaniczne steppery z haptyką oraz pigułki szybkiego wyboru (70, 100, 120, 150 mg/dL) w oknie wprowadzania cukru",
+      "Zaimplementowano okna dialogowe potwierdzeń w stylu Pixel Monet z pastelowymi ikonami i zaokrąglonymi przyciskami",
+      "Zreorganizowano sekcję wyglądu w Ustawieniach w zgrupowane karty Pixel Inset Group z wewnętrznymi separatorami"
     ]
   },
   {

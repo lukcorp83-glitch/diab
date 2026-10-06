@@ -306,3 +306,9 @@ Ten dokument służy optymalizacji pamięci (tokenów) sztucznej inteligencji. Z
   - `src/services/notificationService.ts`:
     - Poprawiono zakres widoczności zmiennej `isChildMode` w `triggerGlucoseAlarm`, eliminując potencjalne błędy wykonania podczas wyzwalania alarmów glikemii.
 - Pełna weryfikacja diagnostyczna: 0 błędów w całym projekcie (175 plików `src`), build produkcyjny zakończony pomyślnie.
+- **Wdrożenie Material You & Pixel Design System (Android 14/15 Expressive UI)**:
+  - `src/components/common/SegmentedButton.tsx`: Przełącznik segmentowy w stylu Material 3 z animowaną pigułką `layoutId` (Framer Motion spring) i tyknięciem haptycznym `Haptics.tick()`. Wdrożony m.in. na pełnoekranowym wykresie `ChartFullView.tsx` dla zakresów czasu (`3h`, `6h`, `12h`, `24h`).
+  - `src/index.css`: Dodano klasy `.pixel-inset-group` i `.pixel-inset-item` z zaokrąglonymi narożnikami 2.25rem oraz wewnętrznymi separatorami krawędziowymi (inset dividers) symulującymi natywne menu ustawień Pixela. Zintegrowane m.in. w `ProfileSystem.tsx`.
+  - `src/components/common/ExpressiveFab.tsx`: Pływający przycisk Material 3 z animowanym zwijaniem tekstu (z pigułki z labelem do kompaktowego koła) podczas scrollowania listy w dół i rozwijaniem po powrocie. Wdrożony w `MealHistoryView.tsx`.
+  - `src/components/GlucoseModal.tsx`: Zintegrowano mechaniczne steppera `−` / `+` z haptyką `Haptics.tick()` oraz pigułki szybkiego wyboru (`70`, `100`, `120`, `150` mg/dL).
+  - `src/components/common/PixelAlertDialog.tsx`: Dialog potwierdzenia w stylu Pixel Monet z pastelowym okrągłym tłem ikony na górze, spring animacją i pigułkowymi przyciskami akcji. Wdrożony w `MealHistoryView.tsx` (potwierdzenie spożycia posiłku).

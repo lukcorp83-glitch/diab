@@ -1002,69 +1002,63 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  ))}
  </div>
 
- {/* Dynamic Colors Toggle */}
- <div className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mt-4">
- <div className="flex items-center gap-3">
- <div className="w-10 h-10 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-500">
- <Sparkles size={20} />
- </div>
- <div className="text-left">
- <p className="text-sm font-black dark:text-white leading-tight">{t('auto.dynamiczne_kolory', { defaultValue: 'Dynamiczne Kolory' })}</p>
- <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t('auto.dopasowuje_kolory_aplikacji_do_twoj', { defaultValue: 'Dopasowuje kolory aplikacji do Twojej tapety' })}</p>
- </div>
- </div>
- <button
- onClick={async () => {
- const newVal = !settings.dynamicColorsEnabled;
- const updated = {
-   ...settings,
-   dynamicColorsEnabled: newVal,
-   material3Enabled: newVal ? settings.material3Enabled : false
- };
- setSettings(updated);
- localStorage.setItem("dynamicColorsEnabled", String(newVal));
- if (!newVal) localStorage.setItem("material3Enabled", "false");
- localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+          {/* Inset Grouped Settings: Styl i Wydajność */}
+          <div className={cn(
+            "pixel-inset-group border mt-4 overflow-hidden",
+            settings.glassmorphismEnabled
+              ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+              : "bg-white dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-700/80 shadow-xs"
+          )}>
+            {/* Dynamic Colors Item */}
+            <div className="pixel-inset-item flex items-center justify-between p-4 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-accent-500/10 flex items-center justify-center text-accent-500 shrink-0">
+                  <Sparkles size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-black dark:text-white leading-tight">{t('auto.dynamiczne_kolory', { defaultValue: 'Dynamiczne Kolory' })}</p>
+                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t('auto.dopasowuje_kolory_aplikacji_do_twoj', { defaultValue: 'Dopasowuje kolory aplikacji do Twojej tapety' })}</p>
+                </div>
+              </div>
+              <PixelSwitch
+                checked={Boolean(settings.dynamicColorsEnabled)}
+                activeColor="bg-accent-500"
+                onChange={async (newVal) => {
+                  const updated = {
+                    ...settings,
+                    dynamicColorsEnabled: newVal,
+                    material3Enabled: newVal ? settings.material3Enabled : false
+                  };
+                  setSettings(updated);
+                  localStorage.setItem("dynamicColorsEnabled", String(newVal));
+                  if (!newVal) localStorage.setItem("material3Enabled", "false");
+                  localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
 
- if (user) {
- const uid = getEffectiveUid(user);
- const updates: any = { dynamicColorsEnabled: newVal };
- if (!newVal) updates.material3Enabled = false;
- await setDoc(
- doc(db, "users", uid, "settings", "profile"),
- updates,
- { merge: true }
- );
- queryClient.setQueryData(['userSettings', uid], (old: any) => ({
- ...(old || {}),
- ...updates,
- }));
- queryClient.invalidateQueries({ queryKey: ['userSettings'] });
- }
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.dynamicColorsEnabled && "bg-accent-500 pl-5"
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
- </div>
- </div>
+                  if (user) {
+                    const uid = getEffectiveUid(user);
+                    const updates: any = { dynamicColorsEnabled: newVal };
+                    if (!newVal) updates.material3Enabled = false;
+                    await setDoc(
+                      doc(db, "users", uid, "settings", "profile"),
+                      updates,
+                      { merge: true }
+                    );
+                    queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+                      ...(old || {}),
+                      ...updates,
+                    }));
+                    queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+                  }
+                }}
+              />
+            </div>
 
- <div
- className={cn(
- "p-6 rounded-[2.5rem] border space-y-6 mt-4",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
- )}
- >
- <div className="flex items-center justify-between">
- <div>
- <h3 className="text-sm font-black dark:text-white">{t('auto.tryb_eko_maksymalna_wydajność', { defaultValue: i18n.t('auto.tryb_eko_maksymalna_wydaj', { defaultValue: "Tryb Eko (Maksymalna wydajność)" }) })}</h3>
- <p className="text-[10px] text-slate-500">{t('auto.wyłącza_animacje_cienie_oraz_rozmyc', { defaultValue: i18n.t('auto.wylacza_animacje_cienie_o', { defaultValue: "Wyłącza animacje, cienie oraz rozmycia szklane by przyspieszyć działanie." }) })}</p>
- </div>
+            {/* Eco Mode Item */}
+            <div className="pixel-inset-item flex items-center justify-between p-4 sm:p-5">
+              <div className="text-left pr-3">
+                <h3 className="text-sm font-black dark:text-white leading-tight">{t('auto.tryb_eko_maksymalna_wydajność', { defaultValue: i18n.t('auto.tryb_eko_maksymalna_wydaj', { defaultValue: "Tryb Eko (Maksymalna wydajność)" }) })}</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{t('auto.wyłącza_animacje_cienie_oraz_rozmyc', { defaultValue: i18n.t('auto.wylacza_animacje_cienie_o', { defaultValue: "Wyłącza animacje, cienie oraz rozmycia szklane by przyspieszyć działanie." }) })}</p>
+              </div>
               <PixelSwitch
                 checked={Boolean(settings.ecoMode)}
                 activeColor="bg-accent-500"
@@ -1079,10 +1073,11 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
               />
             </div>
 
-            <div className="border-t border-slate-200/50 dark:border-white/5 pt-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-black dark:text-white">{t('system.at_a_glance_title', { defaultValue: 'Pasek «W skrócie» (Pixel At a Glance)' })}</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">{t('system.at_a_glance_desc', { defaultValue: 'Inteligentny pasek na górze pulpitu informujący o stoperze, osprzęcie i stanie cukru' })}</p>
+            {/* At a Glance Item */}
+            <div className="pixel-inset-item flex items-center justify-between p-4 sm:p-5">
+              <div className="text-left pr-3">
+                <h3 className="text-sm font-black dark:text-white leading-tight">{t('system.at_a_glance_title', { defaultValue: 'Pasek «W skrócie»' })}</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{t('system.at_a_glance_desc', { defaultValue: 'Inteligentny pasek na górze pulpitu informujący o stoperze, osprzęcie i stanie cukru' })}</p>
               </div>
               <PixelSwitch
                 checked={settings.atAGlanceEnabled ?? true}
@@ -1097,7 +1092,8 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
                 }}
               />
             </div>
- </div>
+          </div>
+        </div>
 
  {/* Program Testów Beta OTA */}
  <div

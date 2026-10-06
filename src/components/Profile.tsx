@@ -150,97 +150,97 @@ const MATERIAL3_CATEGORY_THEMES: Record<string, {
     bg: "bg-indigo-50/70 dark:bg-indigo-950/25",
     iconBg: "bg-indigo-500/15 dark:bg-indigo-400/20",
     iconColor: "text-indigo-600 dark:text-indigo-300",
-    border: "border-indigo-100/60 dark:border-indigo-900/30",
+    border: "border-indigo-400/40 dark:border-indigo-500/40",
   },
   simulator: {
     bg: "bg-orange-50/70 dark:bg-orange-950/25",
     iconBg: "bg-orange-500/15 dark:bg-orange-400/20",
     iconColor: "text-orange-600 dark:text-orange-300",
-    border: "border-orange-100/60 dark:border-orange-900/30",
+    border: "border-orange-400/40 dark:border-orange-500/40",
   },
   account: {
     bg: "bg-blue-50/70 dark:bg-blue-950/25",
     iconBg: "bg-blue-500/15 dark:bg-blue-400/20",
     iconColor: "text-blue-600 dark:text-blue-300",
-    border: "border-blue-100/60 dark:border-blue-900/30",
+    border: "border-blue-400/40 dark:border-blue-500/40",
   },
   therapy: {
     bg: "bg-emerald-50/70 dark:bg-emerald-950/25",
     iconBg: "bg-emerald-500/15 dark:bg-emerald-400/20",
     iconColor: "text-emerald-600 dark:text-emerald-300",
-    border: "border-emerald-100/60 dark:border-emerald-900/30",
+    border: "border-emerald-400/40 dark:border-emerald-500/40",
   },
   training: {
     bg: "bg-teal-50/70 dark:bg-teal-950/25",
     iconBg: "bg-teal-500/15 dark:bg-teal-400/20",
     iconColor: "text-teal-600 dark:text-teal-300",
-    border: "border-teal-100/60 dark:border-teal-900/30",
+    border: "border-teal-400/40 dark:border-teal-500/40",
   },
   shop: {
     bg: "bg-amber-50/70 dark:bg-amber-950/25",
     iconBg: "bg-amber-500/15 dark:bg-amber-400/20",
     iconColor: "text-amber-600 dark:text-amber-300",
-    border: "border-amber-100/60 dark:border-amber-900/30",
+    border: "border-amber-400/40 dark:border-amber-500/40",
   },
   notifications: {
     bg: "bg-amber-50/70 dark:bg-amber-950/25",
     iconBg: "bg-amber-500/15 dark:bg-amber-400/20",
     iconColor: "text-amber-600 dark:text-amber-300",
-    border: "border-amber-100/60 dark:border-amber-900/30",
+    border: "border-amber-400/40 dark:border-amber-500/40",
   },
   devices: {
     bg: "bg-violet-50/70 dark:bg-violet-950/25",
     iconBg: "bg-violet-500/15 dark:bg-violet-400/20",
     iconColor: "text-violet-600 dark:text-violet-300",
-    border: "border-violet-100/60 dark:border-violet-900/30",
+    border: "border-violet-400/40 dark:border-violet-500/40",
   },
   stats: {
     bg: "bg-purple-50/70 dark:bg-purple-950/25",
     iconBg: "bg-purple-500/15 dark:bg-purple-400/20",
     iconColor: "text-purple-600 dark:text-purple-300",
-    border: "border-purple-100/60 dark:border-purple-900/30",
+    border: "border-purple-400/40 dark:border-purple-500/40",
   },
   food: {
     bg: "bg-orange-50/70 dark:bg-orange-950/25",
     iconBg: "bg-orange-500/15 dark:bg-orange-400/20",
     iconColor: "text-orange-600 dark:text-orange-300",
-    border: "border-orange-100/60 dark:border-orange-900/30",
+    border: "border-orange-400/40 dark:border-orange-500/40",
   },
   meds: {
     bg: "bg-cyan-50/70 dark:bg-cyan-950/25",
     iconBg: "bg-cyan-500/15 dark:bg-cyan-400/20",
     iconColor: "text-cyan-600 dark:text-cyan-300",
-    border: "border-cyan-100/60 dark:border-cyan-900/30",
+    border: "border-cyan-400/40 dark:border-cyan-500/40",
   },
   api: {
     bg: "bg-sky-50/70 dark:bg-sky-950/25",
     iconBg: "bg-sky-500/15 dark:bg-sky-400/20",
     iconColor: "text-sky-600 dark:text-sky-300",
-    border: "border-sky-100/60 dark:border-sky-900/30",
+    border: "border-sky-400/40 dark:border-sky-500/40",
   },
   pairing: {
     bg: "bg-blue-50/70 dark:bg-blue-950/25",
     iconBg: "bg-blue-500/15 dark:bg-blue-400/20",
     iconColor: "text-blue-600 dark:text-blue-300",
-    border: "border-blue-100/60 dark:border-blue-900/30",
+    border: "border-blue-400/40 dark:border-blue-500/40",
   },
   android: {
     bg: "bg-emerald-50/70 dark:bg-emerald-950/25",
     iconBg: "bg-emerald-500/15 dark:bg-emerald-400/20",
     iconColor: "text-emerald-600 dark:text-emerald-300",
-    border: "border-emerald-100/60 dark:border-emerald-900/30",
+    border: "border-emerald-400/40 dark:border-emerald-500/40",
   },
   system: {
-    bg: "bg-slate-100/70 dark:bg-slate-800/40",
+    bg: "bg-slate-100/80 dark:bg-slate-800/60",
     iconBg: "bg-slate-500/15 dark:bg-slate-400/20",
-    iconColor: "text-slate-600 dark:text-slate-300",
-    border: "border-slate-200/60 dark:border-slate-700/30",
+    iconColor: "text-slate-700 dark:text-slate-300",
+    border: "border-slate-300 dark:border-slate-600",
   },
   diets: {
     bg: "bg-emerald-50/70 dark:bg-emerald-950/25",
     iconBg: "bg-emerald-500/15 dark:bg-emerald-400/20",
     iconColor: "text-emerald-600 dark:text-emerald-300",
-    border: "border-emerald-100/60 dark:border-emerald-900/30",
+    border: "border-emerald-400/40 dark:border-emerald-500/40",
   },
 };
 
@@ -1525,10 +1525,10 @@ export default function Profile({
             className={cn(
               "w-full flex items-center justify-between p-3.5 transition-all shadow-sm select-none border",
               settings.glassmorphismEnabled
-                ? "rounded-2xl backdrop-blur-xl bg-white/20 dark:bg-white/5 border-white/40 dark:border-white/10"
+                ? "rounded-2xl backdrop-blur-xl bg-white/20 dark:bg-white/5 border border-white/40 dark:border-white/10"
                 : isMaterial
-                ? cn("rounded-[1.5rem]", mTheme.bg, mTheme.border)
-                : "rounded-2xl bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700",
+                ? cn("rounded-[1.5rem] border-2", mTheme.bg, mTheme.border)
+                : "rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700",
               "cursor-grab active:cursor-grabbing hover:border-indigo-500/50"
             )}
           >
@@ -1635,7 +1635,7 @@ export default function Profile({
                 "w-full h-32 flex flex-col p-4 transition-all duration-300 relative overflow-hidden group select-none cursor-pointer",
                 isMaterial
                   ? cn(
-                      "rounded-[2rem] border shadow-xs active:shadow-inner",
+                      "rounded-[2rem] border-2 shadow-xs active:shadow-inner",
                       mTheme.bg,
                       mTheme.border
                     )

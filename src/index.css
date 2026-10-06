@@ -273,6 +273,32 @@ body {
   scroll-behavior: smooth;
 }
 
+/* Material 3 Inset Grouped Settings Cards */
+.pixel-inset-group {
+  border-radius: 2rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.pixel-inset-item {
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.pixel-inset-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 1.25rem;
+  right: 1.25rem;
+  height: 1px;
+  background-color: rgba(226, 232, 240, 0.6);
+}
+
+.dark .pixel-inset-item:not(:last-child)::after {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
 @media (pointer: fine) {
   .scrollbar-custom::-webkit-scrollbar {
     height: 4px;

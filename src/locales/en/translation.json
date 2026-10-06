@@ -227,7 +227,7 @@
     "custom_nav_slot_modal_title": "Choose 4th button",
     "custom_nav_slot_modal_desc": "Select a tab or feature to replace the default chat button on the bottom bar:",
     "custom_nav_slot_child_note": "Arcade and Shop are available exclusively in Child Mode.",
-    "at_a_glance_title": "\"At a Glance\" Header (Pixel Style)",
+    "at_a_glance_title": "\"At a Glance\" Header",
     "at_a_glance_desc": "Smart dashboard header with contextual timer, equipment and glucose info"
   },
   "bolus": {

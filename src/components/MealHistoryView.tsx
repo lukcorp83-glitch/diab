@@ -16,6 +16,9 @@ import { useNightscoutSettings } from "../hooks/queries/useProfileData";
 import { nightscoutService } from "../services/nightscout";
 import { cancelPreBolusTimer } from "../services/preBolusService";
 import { dbService } from "../services/databaseService";
+import { useAppStore } from "../stores/useAppStore";
+import ExpressiveFab from "./common/ExpressiveFab";
+import PixelAlertDialog from "./common/PixelAlertDialog";
 
 interface MealHistoryProps {
   user?: any;
@@ -29,7 +32,24 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
   const { t } = useTranslation();
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [confirmEatenLog, setConfirmEatenLog] = useState<LogEntry | null>(null);
+  const [fabExpanded, setFabExpanded] = useState(true);
   const { data: nsSettings } = useNightscoutSettings(user);
+
+  // Dynamiczne zwijanie FAB przy scrollowaniu w dół
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY + 20) {
+        setFabExpanded(false); // Zwijamy przy scrollowaniu w dół
+      } else if (currentScrollY < lastScrollY - 20 || currentScrollY <= 20) {
+        setFabExpanded(true); // Rozwijamy przy powrocie w górę
+      }
+      lastScrollY = currentScrollY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const mealLogs = useMemo(() => {
     return logs.filter(log => {
@@ -156,75 +176,46 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
         )}
       </AnimatePresence>
 
-      {/* Modal potwierdzenia zjedzenia posiłku */}
-      <AnimatePresence>
+      {/* Modal potwierdzenia zjedzenia posiłku w stylu Pixel */}
+      <PixelAlertDialog
+        isOpen={!!confirmEatenLog}
+        onClose={() => setConfirmEatenLog(null)}
+        onConfirm={async () => {
+          const l = confirmEatenLog;
+          setConfirmEatenLog(null);
+          if (l) await confirmMarkAsEaten(l);
+        }}
+        title={t('meal_history.confirm_eaten_title', { defaultValue: 'Potwierdź zjedzenie posiłku' })}
+        description={t('meal_history.confirm_eaten_desc', { 
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
+          defaultValue: `Czy chcesz oznaczyć, że ten posiłek został zjedzony teraz (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})?` 
+        })}
+        icon={Utensils}
+        variant="amber"
+        confirmLabel={t('meal_history.btn_confirm', { defaultValue: 'Tak, zjadłem' })}
+        cancelLabel={t('meal_history.btn_cancel', { defaultValue: 'Anuluj' })}
+      >
         {confirmEatenLog && (
-          <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            onClick={() => setConfirmEatenLog(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4 text-center relative overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto shadow-inner">
-                <Utensils size={32} strokeWidth={2.5} className="animate-bounce" />
-              </div>
-
-              <div className="space-y-1">
-                <h3 className="text-lg font-black dark:text-white">
-                  {t('meal_history.confirm_eaten_title', { defaultValue: 'Potwierdź zjedzenie posiłku' })}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {t('meal_history.confirm_eaten_desc', { time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), defaultValue: `Czy chcesz oznaczyć, że ten posiłek został zjedzony teraz (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})?` })}
-                </p>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 text-left space-y-1">
-                <p className="text-xs font-black dark:text-white truncate">
-                  {confirmEatenLog.name || confirmEatenLog.description || confirmEatenLog.linkedMeal?.name || (confirmEatenLog.items && confirmEatenLog.items.length > 0 ? confirmEatenLog.items.map((i: any) => i.name).filter(Boolean).join(', ') : 'Posiłek')}
-                </p>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                  <span>Wpis: {new Date(confirmEatenLog.timestamp || confirmEatenLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  <span>•</span>
-                  <span className="text-amber-500 font-black">
-                    {Math.round((confirmEatenLog.linkedMeal?.carbs || (confirmEatenLog as any).carbs || (confirmEatenLog.type === 'meal' ? confirmEatenLog.value : 0) || 0) * 10) / 10}g W
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">
-                {t('meal_history.confirm_eaten_hint', { defaultValue: '💡 Od tego momentu aplikacja rozpocznie odliczanie czasu wchłaniania węglowodanów i wskaźnik trawienia (%) na Talerzu.' })}
+          <div className="space-y-2 mt-2">
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 text-left space-y-1">
+              <p className="text-xs font-black dark:text-white truncate">
+                {confirmEatenLog.name || confirmEatenLog.description || confirmEatenLog.linkedMeal?.name || (confirmEatenLog.items && confirmEatenLog.items.length > 0 ? confirmEatenLog.items.map((i: any) => i.name).filter(Boolean).join(', ') : 'Posiłek')}
               </p>
-
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmEatenLog(null)}
-                  className="py-3 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 cursor-pointer"
-                >
-                  {t('meal_history.btn_cancel', { defaultValue: 'Anuluj' })}
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const l = confirmEatenLog;
-                    setConfirmEatenLog(null);
-                    if (l) await confirmMarkAsEaten(l);
-                  }}
-                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-lg shadow-orange-500/25 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <CheckCircle2 size={14} />
-                  <span>{t('meal_history.btn_confirm', { defaultValue: 'Tak, zjadłem' })}</span>
-                </button>
+              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <span>Wpis: {new Date(confirmEatenLog.timestamp || confirmEatenLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>•</span>
+                <span className="text-amber-500 font-black">
+                  {Math.round((confirmEatenLog.linkedMeal?.carbs || (confirmEatenLog as any).carbs || (confirmEatenLog.type === 'meal' ? confirmEatenLog.value : 0) || 0) * 10) / 10}g W
+                </span>
               </div>
-            </motion.div>
+            </div>
+
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center">
+              {t('meal_history.confirm_eaten_hint', { defaultValue: '💡 Od tego momentu aplikacja rozpocznie odliczanie czasu wchłaniania węglowodanów i wskaźnik trawienia (%) na Talerzu.' })}
+            </p>
           </div>
         )}
-      </AnimatePresence>
+      </PixelAlertDialog>
 
       <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-2">{t('meal_history.section_title', { defaultValue: 'Historia Twoich posiłków' })}</h3>
 
@@ -349,6 +340,19 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
             </motion.div>
           ))}
         </AnimatePresence>
+      </div>
+
+      {/* Material 3 Expressive FAB */}
+      <div className="fixed bottom-24 right-5 z-40">
+        <ExpressiveFab
+          label={t('meal_history.new_meal_btn', { defaultValue: 'Nowy Posiłek' })}
+          icon={<Plus size={20} strokeWidth={2.5} />}
+          expanded={fabExpanded}
+          onClick={() => {
+            useAppStore.getState().setActiveTab('plate');
+          }}
+          color="bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/30"
+        />
       </div>
     </div>
   );

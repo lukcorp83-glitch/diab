@@ -1,22 +1,17 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { 
-  CloudRain, 
-  Sun, 
-  Cloud, 
-  Sparkles, 
   Clock, 
   Signal, 
   Droplets, 
   ChevronRight,
-  TrendingUp,
-  TrendingDown,
   CheckCircle2,
-  Calendar
+  Calendar,
+  Activity,
+  ShieldCheck
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Haptics } from '../../lib/haptics';
-import { fetchCurrentWeather } from '../../services/weatherService';
 import { getPreBolusTimerState, PreBolusTimerState } from '../../services/preBolusService';
 import { LogEntry, UserSettings } from '../../types';
 import { cn } from '../../lib/utils';
@@ -30,7 +25,6 @@ interface AtAGlanceProps {
 
 export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMode = true }: AtAGlanceProps) {
   const { t, i18n } = useTranslation();
-  const [weather, setWeather] = useState<any>(null);
   const [preBolusState, setPreBolusState] = useState<PreBolusTimerState>(() => getPreBolusTimerState());
   const [currentDate, setCurrentDate] = useState(() => new Date());
 
@@ -40,15 +34,6 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
       setCurrentDate(new Date());
     }, 60000);
     return () => clearInterval(timer);
-  }, []);
-
-  // Pobieranie pogody
-  useEffect(() => {
-    let mounted = true;
-    fetchCurrentWeather().then((data) => {
-      if (mounted && data) setWeather(data);
-    });
-    return () => { mounted = false; };
   }, []);
 
   // Nasłuchiwanie stopera przedposiłkowego
@@ -158,7 +143,7 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
       if (isTarget) {
         return {
           id: 'glucose_target',
-          icon: <Sparkles size={16} className="text-emerald-500 shrink-0" />,
+          icon: <Activity size={16} className="text-emerald-500 shrink-0" />,
           title: t('at_a_glance.glucose_in_range', { defaultValue: 'Glikemia w docelowym zakresie' }),
           desc: `Ostatni odczyt ${val} mg/dL • Profil stabilny`,
           action: () => setTab('chart'),
@@ -171,7 +156,7 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
     // Domyślny stan powitania z datą
     return {
       id: 'default_glance',
-      icon: <Sparkles size={16} className="text-indigo-500 shrink-0" />,
+      icon: <ShieldCheck size={16} className="text-indigo-500 shrink-0" />,
       title: t('at_a_glance.gliko_ready', { defaultValue: 'GlikoSense czuwa nad glikemią' }),
       desc: t('at_a_glance.gliko_ready_desc', { defaultValue: 'Wszystkie systemy i powiadomienia aktywne' }),
       action: () => setTab('chart'),
@@ -190,15 +175,6 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
     });
   }, [currentDate, i18n.language]);
 
-  // Ikona pogody
-  const weatherIcon = useMemo(() => {
-    if (!weather) return <Sun size={15} className="text-amber-500" />;
-    const cond = (weather.condition || '').toLowerCase();
-    if (cond.includes('deszcz') || cond.includes('rain')) return <CloudRain size={15} className="text-sky-500" />;
-    if (cond.includes('chm') || cond.includes('cloud')) return <Cloud size={15} className="text-slate-400" />;
-    return <Sun size={15} className="text-amber-500" />;
-  }, [weather]);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }}
@@ -206,26 +182,15 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
       transition={{ duration: 0.25, ease: "easeOut" }}
       className="px-2 pt-1 pb-1 select-none"
     >
-      {/* Górna linia: Data i Temperatura w stylu Pixel At a Glance */}
-      <div className="flex items-center justify-between text-xs font-black dark:text-white px-1 mb-2 tracking-tight">
+      {/* Górna linia: Data */}
+      <div className="flex items-center text-xs font-black dark:text-white px-1 mb-2 tracking-tight">
         <div className="flex items-center gap-2">
           <Calendar size={13} className="text-slate-400 dark:text-slate-500" />
           <span className="capitalize">{formattedDate}</span>
         </div>
-
-        {weather && (
-          <div 
-            onClick={() => { Haptics.light(); setTab('chart'); }}
-            className="flex items-center gap-1.5 cursor-pointer opacity-85 hover:opacity-100 transition-opacity"
-          >
-            {weatherIcon}
-            <span>{Math.round(weather.temp)}°C</span>
-            {weather.city && <span className="text-[10px] text-slate-400 font-bold hidden sm:inline">• {weather.city}</span>}
-          </div>
-        )}
       </div>
 
-      {/* Dolna linia: Dynamiczna pigułka kontekstowa Google Pixel */}
+      {/* Dolna linia: Dynamiczna pigułka kontekstowa W skrócie */}
       <motion.button
         type="button"
         whileTap={{ scale: 0.98 }}

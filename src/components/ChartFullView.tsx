@@ -8,6 +8,8 @@ import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
+import SegmentedButton from './common/SegmentedButton';
+
 interface ChartFullViewProps {
  settings: UserSettings;
  theme: 'light' | 'dark';
@@ -56,26 +58,17 @@ export default function ChartFullView({ settings,
  <p className="text-[10px] font-black text-slate-400 px-2 uppercase tracking-widest">{t('auto.pełny_podgląd_danych_z_ostatnich_go', { defaultValue: i18n.t('auto.pelny_podglad_danych_z_os', { defaultValue: "Pełny podgląd danych z ostatnich godzin" }) })}</p>
  </div>
 
- <div className="flex flex-col gap-3 px-2">
- <div className="flex justify-between items-center bg-white/50 dark:bg-slate-800/50 p-2 rounded-2xl backdrop-blur-sm shadow-sm border border-slate-200/50 dark:border-slate-700/50">
- {[3, 6, 12, 24].map((h) => (
- <button
- key={h}
- onClick={() => {
- Haptics.selection();
- setRange(h);
- }}
- className={cn(
- "flex-1 py-3 text-xs font-black rounded-xl transition-all uppercase tracking-tighter",
- range === h
- ? "bg-accent-500 text-white shadow-md shadow-accent-500/20"
- : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white",
- )}
- >
- {h}H
- </button>
- ))}
- </div>
+    <div className="flex flex-col gap-3 px-2">
+      <SegmentedButton
+        value={range}
+        onChange={(h) => setRange(h)}
+        options={[
+          { value: 3, label: '3H' },
+          { value: 6, label: '6H' },
+          { value: 12, label: '12H' },
+          { value: 24, label: '24H' },
+        ]}
+      />
 
  <div className="flex gap-2">
  <button
